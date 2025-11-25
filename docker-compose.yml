@@ -1,0 +1,87 @@
+# 代碼功能說明: Docker Compose 開發環境配置
+# 創建日期: 2025-01-27
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-01-27
+
+version: '3.8'
+
+services:
+  # API Gateway (待實現)
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-box/api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./:/app
+      - ./logs:/app/logs
+    networks:
+      - ai-box-network
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL 數據庫
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=ai_box_user
+      - POSTGRES_PASSWORD=ai_box_password
+      - POSTGRES_DB=ai_box_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ai-box-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_box_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (用於緩存和短期記憶)
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-box-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  ai-box-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+
+volumes:
+  postgres_data:
+  redis_data:
+
