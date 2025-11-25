@@ -1,3 +1,5 @@
 ---
 alwaysApply: true
 ---
+凡是創建代碼檔案，最上方備註：代碼功能說明、創建日期、創建人（Daniel Chung）、最後修改日期
+凡是要創建、修改日期，請先上網(https://tw.piliapp.com/time/)確認當天的日期及時間

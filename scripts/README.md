@@ -57,111 +57,11 @@
 
 ### 測試腳本
 
-#### `test_git_setup.sh`
+**注意**: 測試腳本已根據階段一完成確認清除。實際測試將通過以下方式進行：
 
-測試 Git 版本控制設置，包括：
-- 倉庫初始化檢查
-- 分支創建測試
-- .gitignore 測試
-- Git Hooks 測試
-- 分支保護規則檢查
-- 文檔檢查
-
-**使用方法**:
-```bash
-./scripts/test_git_setup.sh
-```
-
-**前置條件**:
-- Git 已安裝
-- 當前目錄為 Git 倉庫
-
----
-
-#### `test_docker.sh`
-
-測試 Docker 環境配置，包括：
-- Docker 安裝檢查
-- Docker 守護進程檢查
-- Docker 基本功能測試
-- Dockerfile 檢查
-- docker-compose 檢查
-- Docker 網路測試
-- Docker 資源檢查
-
-**使用方法**:
-```bash
-./scripts/test_docker.sh
-```
-
-**前置條件**:
-- Docker Desktop 已安裝並運行
-
----
-
-#### `test_k8s.sh`
-
-測試 Kubernetes 環境，包括：
-- kubectl 安裝檢查
-- k3s 檢查
-- Kubernetes 集群連接檢查
-- 命名空間檢查
-- 基礎資源檢查
-- 測試部署檢查
-- kubeconfig 檢查
-
-**使用方法**:
-```bash
-./scripts/test_k8s.sh
-```
-
-**前置條件**:
-- kubectl 已安裝
-- Kubernetes 集群可用（k3s 或 Docker Desktop K8s）
-
----
-
-#### `test_cicd.sh`
-
-測試 CI/CD 流程配置，包括：
-- GitHub Actions 工作流文件檢查
-- GitHub CLI 檢查
-- 工作流配置檢查
-- 本地測試工具檢查
-- 依賴文件檢查
-- Docker 構建檢查
-
-**使用方法**:
-```bash
-./scripts/test_cicd.sh
-```
-
-**前置條件**:
-- 當前目錄為 Git 倉庫
-- 已配置 GitHub Actions（可選）
-
----
-
-#### `test_monitoring.sh`
-
-測試監控基礎設施，包括：
-- Kubernetes 環境檢查
-- 命名空間檢查
-- Prometheus 檢查
-- Grafana 檢查
-- 監控配置檢查
-- 告警規則檢查
-- 數據收集測試
-
-**使用方法**:
-```bash
-./scripts/test_monitoring.sh
-```
-
-**前置條件**:
-- kubectl 已安裝
-- Kubernetes 集群可用
-- 監控組件已部署（可選）
+1. **手動驗證**: 使用 `verify_env.sh` 驗證開發環境
+2. **CI/CD 自動測試**: GitHub Actions 工作流自動執行測試
+3. **部署後驗證**: 部署後手動驗證各組件功能
 
 ---
 
@@ -177,25 +77,32 @@
 ./scripts/verify_env.sh
 ```
 
-### 2. 工作項測試
+### 2. 工作項驗證
 
-根據工作項進度，執行相應的測試腳本：
+根據工作項進度，執行相應的驗證：
 
 ```bash
+# 工作項 1.1.1: 開發環境搭建
+./scripts/verify_env.sh
+
 # 工作項 1.1.2: 版本控制設置
-./scripts/test_git_setup.sh
-
-# 工作項 1.2.1: Docker 環境配置
-./scripts/test_docker.sh
-
-# 工作項 1.2.2: Kubernetes 環境準備
-./scripts/test_k8s.sh
+git status
+git branch -a
 
 # 工作項 1.1.3: CI/CD 基礎配置
-./scripts/test_cicd.sh
+# 推送代碼後，GitHub Actions 會自動執行
+
+# 工作項 1.2.1: Docker 環境配置
+docker-compose config
+docker-compose up -d
+
+# 工作項 1.2.2: Kubernetes 環境準備
+kubectl apply -f k8s/base/namespaces.yaml
+kubectl get namespaces
 
 # 工作項 1.2.3: 監控基礎設施
-./scripts/test_monitoring.sh
+kubectl apply -f k8s/monitoring/
+kubectl get pods -n ai-box-monitoring
 ```
 
 ### 3. 定期驗證
