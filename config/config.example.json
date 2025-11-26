@@ -1,0 +1,151 @@
+{
+  "project": {
+    "name": "AI-Box",
+    "environment": "development",
+    "datasets_root": "./datasets"
+  },
+  "services": {
+    "api": {
+      "host": "0.0.0.0",
+      "port": 8000,
+      "cors_origins": "*"
+    },
+    "mcp_server": {
+      "host": "0.0.0.0",
+      "port": 8002
+    },
+    "ollama": {
+      "scheme": "http",
+      "host": "olm.k84.org",
+      "port": 11434,
+      "health_timeout": 10,
+      "request_timeout": 60,
+      "default_model": "gpt-oss:20b",
+      "embedding_model": "nomic-embed-text",
+      "nodes": [
+        {
+          "name": "olm-primary",
+          "host": "olm.k84.org",
+          "port": 11434,
+          "weight": 3
+        },
+        {
+          "name": "olm-fallback",
+          "host": "localhost",
+          "port": 11435,
+          "weight": 1
+        }
+      ],
+      "router": {
+        "strategy": "weighted",
+        "cooldown_seconds": 45
+      },
+      "baseline_models": [
+        "gpt-oss:20b",
+        "qwen3-coder:30b"
+      ],
+      "fallback_models": [
+        "llama3.1:8b",
+        "mistral-nemo:12b"
+      ],
+      "download": {
+        "data_root": "~/.ollama",
+        "retry": {
+          "max_attempts": 3,
+          "backoff_seconds": 20
+        },
+        "allowed_window": "02:00-06:00 UTC+8",
+        "max_parallel_jobs": 1
+      }
+    },
+    "security": {
+      "enabled": false,
+      "mode": "development",
+      "jwt": {
+        "enabled": false,
+        "secret_key": "SECURITY_JWT_SECRET_KEY",
+        "algorithm": "HS256",
+        "expiration_hours": 24
+      },
+      "api_key": {
+        "enabled": false
+      },
+      "rbac": {
+        "enabled": false
+      }
+    }
+  },
+  "workflows": {
+    "langchain_graph": {
+      "enable_memory": true,
+      "enable_rag": true,
+      "enable_tools": true,
+      "max_iterations": 10,
+      "default_llm": "gpt-oss:20b",
+      "state_store": {
+        "backend": "redis",
+        "redis_url": "redis://localhost:6379/5",
+        "namespace": "ai-box:workflow:langgraph",
+        "ttl_seconds": 3600
+      },
+      "telemetry": {
+        "emit_metrics": true,
+        "emit_traces": true,
+        "emit_logs": true
+      },
+      "prompt_template_path": null
+    }
+  },
+  "datastores": {
+    "chromadb": {
+      "mount_path": "./datasets/chromadb",
+      "mode": "persistent",
+      "http_port": 8001
+    },
+    "arangodb": {
+      "host": "127.0.0.1",
+      "port": 8529,
+      "protocol": "http",
+      "database": "ai_box_kg",
+      "data_path": "./datasets/arangodb/data",
+      "apps_path": "./datasets/arangodb/apps",
+      "storage_class": "fast-ssd",
+      "request_timeout": 30,
+      "credentials": {
+        "username": "ARANGODB_USERNAME",
+        "password": "ARANGODB_PASSWORD"
+      },
+      "retry": {
+        "enabled": true,
+        "max_attempts": 3,
+        "backoff_factor": 1.5,
+        "max_backoff_seconds": 10
+      },
+      "pool": {
+        "connections": 10,
+        "max_size": 10,
+        "timeout": 5
+      },
+      "tls": {
+        "enabled": false,
+        "verify": true,
+        "ca_file": null
+      }
+    }
+  },
+  "kubernetes": {
+    "namespace": "ai-box",
+    "monitoring_namespace": "ai-box-monitoring"
+  },
+  "monitoring": {
+    "prometheus_enabled": true,
+    "grafana_enabled": true
+  },
+  "jobs": {
+    "ollama_sync": {
+      "enabled": true,
+      "schedule_cron": "0 3 * * *",
+      "manifest_path": "docs/deployment/ollama-models-manifest.json"
+    }
+  }
+}

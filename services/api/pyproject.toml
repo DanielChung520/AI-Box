@@ -1,0 +1,63 @@
+# 代碼功能說明: FastAPI Service 項目配置
+# 創建日期: 2025-11-25
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-11-25
+
+[project]
+name = "ai-box-api"
+version = "1.0.0"
+description = "AI Box FastAPI Service - 統一 API 入口"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    {name = "Daniel Chung", email = "daniel.chung@example.com"}
+]
+license = {text = "MIT"}
+keywords = ["fastapi", "api", "ai", "agent"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.0.0",
+    "python-multipart>=0.0.6",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["services.api"]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

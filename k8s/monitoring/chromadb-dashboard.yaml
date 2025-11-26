@@ -1,0 +1,53 @@
+# 代碼功能說明: Grafana ChromaDB Dashboard
+# 創建日期: 2025-11-25 21:24 (UTC+8)
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-11-25 21:24 (UTC+8)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-chromadb
+  namespace: ai-box-monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  chromadb-dashboard.json: |
+    {
+      "title": "ChromaDB Overview",
+      "timezone": "browser",
+      "editable": true,
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "HTTP Request Duration (p95)",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=\"chromadb-service\"}[5m])) by (le))",
+              "legendFormat": "p95"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Container CPU Usage",
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"chromadb.*\"}[5m]))",
+              "legendFormat": "CPU"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Container Memory Usage",
+          "targets": [
+            {
+              "expr": "sum(container_memory_usage_bytes{pod=~\"chromadb.*\"})",
+              "legendFormat": "Memory"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 36,
+      "version": 1
+    }

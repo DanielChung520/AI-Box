@@ -1,7 +1,7 @@
 # 代碼功能說明: Grafana Deployment 配置
-# 創建日期: 2025-01-27
+# 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-11-25
 
 apiVersion: apps/v1
 kind: Deployment
@@ -67,4 +67,3 @@ metadata:
 type: Opaque
 stringData:
   admin-password: "admin"
-

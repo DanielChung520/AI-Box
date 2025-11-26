@@ -1,0 +1,59 @@
+# 代碼功能說明: ArangoDB 知識圖譜 Schema 定義
+# 創建日期: 2025-11-25 22:58 (UTC+8)
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-11-25 22:58 (UTC+8)
+
+version: 1
+graph:
+  name: knowledge_graph
+  edge_definitions:
+    - edge_collection: relations
+      from_vertex_collections:
+        - entities
+      to_vertex_collections:
+        - entities
+
+collections:
+  entities:
+    type: document
+    description: "統一存放 Agent、Task、Resource、Dataset 等節點"
+    required_fields:
+      - _key
+      - type
+      - name
+      - updated_at
+    optional_fields:
+      - summary
+      - tags
+      - owner
+      - status
+      - metadata
+    indexes:
+      - type: persistent
+        name: idx_entities_type
+        fields: ["type"]
+      - type: persistent
+        name: idx_entities_owner
+        fields: ["owner"]
+      - type: persistent
+        name: idx_entities_tags
+        fields: ["tags[*]"]
+  relations:
+    type: edge
+    description: "連結 entities 的關係集合"
+    required_fields:
+      - _from
+      - _to
+      - type
+      - updated_at
+    optional_fields:
+      - weight
+      - confidence
+      - metadata
+    indexes:
+      - type: persistent
+        name: idx_relations_type
+        fields: ["type"]
+      - type: persistent
+        name: idx_relations_weight
+        fields: ["weight"]

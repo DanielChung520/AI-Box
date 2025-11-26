@@ -1,7 +1,7 @@
 # 代碼功能說明: GitHub Actions CI/CD 工作流配置，定義自動化測試和構建流程
-# 創建日期: 2025-01-27
+# 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-11-25
 
 name: CI Pipeline
 
@@ -18,21 +18,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install black ruff mypy
-      
+
       - name: Run Ruff
         run: |
           ruff check .
-      
+
       - name: Check Black formatting
         run: |
           black --check .
@@ -42,23 +42,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install pytest pytest-cov
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-      
+
       - name: Run tests
         run: |
           pytest --cov=. --cov-report=xml --cov-report=html || true
-      
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
@@ -72,10 +72,10 @@ jobs:
     if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Build Docker image
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
         run: |
@@ -84,4 +84,3 @@ jobs:
           else
             echo "Dockerfile not found, skipping build"
           fi
-

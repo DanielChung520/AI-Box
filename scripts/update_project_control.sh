@@ -1,8 +1,8 @@
 #!/bin/bash
 # 代碼功能說明: 項目工作管制表更新腳本，自動更新進度和狀態
-# 創建日期: 2025-01-27
+# 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-11-25
 
 set -e
 
@@ -55,7 +55,7 @@ case $CHOICE in
         read -p "工作項 ID (例如: 1.1.1): " WORK_ITEM_ID
         read -p "狀態 (completed/in_progress/pending/blocked): " STATUS
         read -p "完成度 (0-100): " PROGRESS
-        
+
         # 這裡可以添加自動更新邏輯
         echo "工作項 ${WORK_ITEM_ID} 狀態已更新為: ${STATUS}, 進度: ${PROGRESS}%"
         ;;
@@ -65,7 +65,7 @@ case $CHOICE in
         echo "============"
         read -p "階段編號 (1-6): " PHASE_NUM
         read -p "進度百分比 (0-100): " PROGRESS
-        
+
         echo "階段 ${PHASE_NUM} 進度已更新為: ${PROGRESS}%"
         ;;
     3)
@@ -75,7 +75,7 @@ case $CHOICE in
         read -p "里程碑編號 (M1-M8): " MILESTONE
         read -p "狀態 (completed/in_progress/pending): " STATUS
         read -p "實際完成日期 (YYYY-MM-DD，可選): " ACTUAL_DATE
-        
+
         echo "里程碑 ${MILESTONE} 狀態已更新為: ${STATUS}"
         if [ -n "$ACTUAL_DATE" ]; then
             echo "實際完成日期: ${ACTUAL_DATE}"
@@ -89,7 +89,7 @@ case $CHOICE in
         read -p "影響 (高/中/低): " IMPACT
         read -p "可能性 (高/中/低): " PROBABILITY
         read -p "緩解措施: " MITIGATION
-        
+
         echo "風險已記錄"
         ;;
     5)
@@ -118,4 +118,3 @@ esac
 
 echo ""
 echo -e "${GREEN}操作完成！${NC}"
-

@@ -1,8 +1,8 @@
 #!/bin/bash
 # 代碼功能說明: GitHub 遠程倉庫設置腳本
-# 創建日期: 2025-01-27
+# 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-11-25
 
 set -e
 
@@ -92,4 +92,3 @@ echo "4. 設置分支保護規則："
 echo "   - 訪問: https://github.com/${GITHUB_USERNAME}/AI-Box/settings/branches"
 echo "   - 為 main 分支設置保護規則"
 echo ""
-

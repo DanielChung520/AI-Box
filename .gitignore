@@ -52,6 +52,7 @@ Desktop.ini
 *.pem
 *.key
 *.cert
+config/config.json
 
 # Testing
 .pytest_cache/
@@ -85,4 +86,3 @@ temp/
 *.tmp
 *.bak
 *.swp
-
