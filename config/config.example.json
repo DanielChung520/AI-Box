@@ -94,7 +94,38 @@
         "emit_logs": true
       },
       "prompt_template_path": null
+    },
+    "crewai": {
+      "enable_crew": true,
+      "max_agents": 5,
+      "collaboration_mode": "sequential",
+      "token_budget": 100000,
+      "default_llm": "gpt-oss:20b",
+      "enable_tools": true,
+      "enable_memory": true,
+      "process_timeout": 3600,
+      "max_iterations": 20
+    },
+    "autogen": {
+      "enable_planning": true,
+      "max_steps": 20,
+      "planning_mode": "auto",
+      "auto_retry": true,
+      "max_rounds": 10,
+      "budget_tokens": 100000,
+      "default_llm": "gpt-oss:20b",
+      "enable_tools": true,
+      "enable_memory": true,
+      "checkpoint_enabled": true,
+      "checkpoint_dir": "./datasets/autogen/checkpoints"
     }
+  },
+  "file_upload": {
+    "max_file_size": 104857600,
+    "allowed_extensions": [".pdf", ".docx", ".txt", ".md", ".csv", ".json", ".html", ".xlsx"],
+    "storage_backend": "local",
+    "storage_path": "./datasets/files",
+    "enable_virus_scan": false
   },
   "datastores": {
     "chromadb": {

@@ -24,7 +24,7 @@ async def review_result_handler(arguments: dict) -> dict:
     """審查結果工具處理器"""
     request = ReviewRequest(**arguments)
     result = review_agent.review(request)
-    return result.dict()
+    return result.model_dump()
 
 
 mcp_server.register_tool(

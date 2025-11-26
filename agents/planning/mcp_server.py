@@ -24,7 +24,7 @@ async def generate_plan_handler(arguments: dict) -> dict:
     """生成計劃工具處理器"""
     request = PlanRequest(**arguments)
     result = planning_agent.generate_plan(request)
-    return result.dict()
+    return result.model_dump()
 
 
 mcp_server.register_tool(

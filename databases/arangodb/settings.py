@@ -118,7 +118,7 @@ def _load_datastore_section(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _build_settings_from_sources(
-    config_path: Optional[Union[str, Path]]
+    config_path: Optional[Union[str, Path]],
 ) -> ArangoDBSettings:
     """依序讀取 config.json 與樣板建立設定。"""
     data: Dict[str, Any] = {}

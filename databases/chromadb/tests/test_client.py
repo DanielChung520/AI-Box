@@ -41,7 +41,9 @@ def chroma_client():
 @pytest.fixture
 def test_collection(chroma_client):
     """創建測試用的集合"""
-    collection = chroma_client.get_or_create_collection("test_collection")
+    collection = chroma_client.get_or_create_collection(
+        "test_collection", metadata={"test": "true"}
+    )
     yield ChromaCollection(collection, expected_embedding_dim=384)
     try:
         chroma_client.delete_collection("test_collection")
@@ -95,15 +97,17 @@ def test_client_connection_timeout(chroma_client):
 
 def test_create_collection(chroma_client):
     """測試創建集合"""
-    collection = chroma_client.get_or_create_collection("test_create")
+    collection = chroma_client.get_or_create_collection(
+        "test_create", metadata={"test": "true"}
+    )
     assert collection is not None
     chroma_client.delete_collection("test_create")
 
 
 def test_list_collections(chroma_client):
     """測試列出集合"""
-    chroma_client.get_or_create_collection("test_list1")
-    chroma_client.get_or_create_collection("test_list2")
+    chroma_client.get_or_create_collection("test_list1", metadata={"test": "true"})
+    chroma_client.get_or_create_collection("test_list2", metadata={"test": "true"})
     collections = chroma_client.list_collections()
     assert "test_list1" in collections
     assert "test_list2" in collections
@@ -113,7 +117,7 @@ def test_list_collections(chroma_client):
 
 def test_delete_collection(chroma_client):
     """測試刪除集合"""
-    chroma_client.get_or_create_collection("test_delete")
+    chroma_client.get_or_create_collection("test_delete", metadata={"test": "true"})
     chroma_client.delete_collection("test_delete")
     collections = chroma_client.list_collections()
     assert "test_delete" not in collections
@@ -121,8 +125,8 @@ def test_delete_collection(chroma_client):
 
 def test_reset_database(chroma_client):
     """測試重置資料庫"""
-    chroma_client.get_or_create_collection("test_reset1")
-    chroma_client.get_or_create_collection("test_reset2")
+    chroma_client.get_or_create_collection("test_reset1", metadata={"test": "true"})
+    chroma_client.get_or_create_collection("test_reset2", metadata={"test": "true"})
     chroma_client.reset()
     collections = chroma_client.list_collections()
     assert len(collections) == 0

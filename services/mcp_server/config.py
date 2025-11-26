@@ -9,10 +9,12 @@ from typing import Optional
 
 try:
     from pydantic_settings import BaseSettings  # type: ignore[attr-defined]
-    from pydantic import Field
+    from pydantic import Field, ConfigDict
 except ImportError:
     # 兼容 pydantic v1
     from pydantic import BaseSettings, Field  # type: ignore[no-redef]
+
+    ConfigDict = None  # type: ignore[assignment, misc]
 
 
 class MCPServerConfig(BaseSettings):
@@ -44,10 +46,18 @@ class MCPServerConfig(BaseSettings):
     # 優雅關閉配置
     shutdown_timeout: int = Field(default=30, description="關閉超時時間（秒）")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    if ConfigDict is not None:
+        model_config = ConfigDict(
+            env_file=".env",
+            env_file_encoding="utf-8",
+            case_sensitive=False,
+        )
+    else:
+        # Pydantic v1 兼容
+        class Config:  # type: ignore[no-redef]
+            env_file = ".env"
+            env_file_encoding = "utf-8"
+            case_sensitive = False
 
 
 def get_config() -> MCPServerConfig:

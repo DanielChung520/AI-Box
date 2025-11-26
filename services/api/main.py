@@ -22,6 +22,11 @@ from services.api.routers import (
     mcp,
     chromadb,
     llm,
+    crewai,
+    crewai_tasks,
+    file_upload,
+    chunk_processing,
+    file_metadata,
 )
 from services.api.core.version import get_version_info, API_PREFIX
 from services.security.config import get_security_settings
@@ -74,6 +79,22 @@ app = FastAPI(
             "name": "LLM",
             "description": "Ollama 本地 LLM 推理與嵌入",
         },
+        {
+            "name": "CrewAI",
+            "description": "CrewAI 多角色協作引擎管理",
+        },
+        {
+            "name": "File Upload",
+            "description": "文件上傳和管理功能",
+        },
+        {
+            "name": "Chunk Processing",
+            "description": "文件分塊處理功能",
+        },
+        {
+            "name": "File Metadata",
+            "description": "文件元數據管理功能",
+        },
     ],
 )
 
@@ -121,6 +142,13 @@ app.include_router(orchestrator.router, prefix=API_PREFIX, tags=["Agent Orchestr
 app.include_router(mcp.router, prefix=API_PREFIX, tags=["MCP"])
 app.include_router(chromadb.router, prefix=API_PREFIX, tags=["ChromaDB"])
 app.include_router(llm.router, prefix=API_PREFIX, tags=["LLM"])
+app.include_router(crewai.router, prefix=API_PREFIX, tags=["CrewAI"])
+app.include_router(crewai_tasks.router, prefix=API_PREFIX, tags=["CrewAI"])
+app.include_router(file_upload.router, prefix=API_PREFIX, tags=["File Upload"])
+app.include_router(
+    chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Processing"]
+)
+app.include_router(file_metadata.router, prefix=API_PREFIX, tags=["File Metadata"])
 
 
 @app.on_event("startup")

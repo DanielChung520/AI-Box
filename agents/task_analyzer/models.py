@@ -6,7 +6,7 @@
 """Task Analyzer 數據模型定義"""
 
 from enum import Enum
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Literal
 from pydantic import BaseModel, Field
 
 
@@ -78,6 +78,7 @@ class WorkflowSelectionResult(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description="置信度")
     reasoning: str = Field(..., description="選擇理由")
     config: Dict[str, Any] = Field(default_factory=dict, description="工作流配置")
+    strategy: Optional[WorkflowStrategy] = Field(None, description="工作流策略（混合模式時使用）")
 
 
 class LLMRoutingResult(BaseModel):
@@ -94,3 +95,15 @@ class LLMRoutingResult(BaseModel):
         None,
         description="當 provider 為本地 LLM 時指派的節點",
     )
+
+
+class WorkflowStrategy(BaseModel):
+    """工作流策略模型"""
+
+    mode: Literal["single", "hybrid"] = Field(..., description="模式：單一或混合")
+    primary: WorkflowType = Field(..., description="主要工作流類型")
+    fallback: List[WorkflowType] = Field(default_factory=list, description="備用工作流類型列表")
+    switch_conditions: Dict[str, Any] = Field(
+        default_factory=dict, description="切換條件配置"
+    )
+    reasoning: str = Field(..., description="策略選擇理由")

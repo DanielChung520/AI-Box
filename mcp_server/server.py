@@ -79,7 +79,7 @@ class MCPServer:
                     method = mcp_request.method
                     self.metrics_callback(method, latency, is_error)
 
-                return JSONResponse(content=response.dict(exclude_none=True))
+                return JSONResponse(content=response.model_dump(exclude_none=True))
             except Exception as e:
                 is_error = True
                 logger.error(f"Error handling MCP request: {e}")
@@ -99,7 +99,8 @@ class MCPServer:
                     ),
                 )
                 return JSONResponse(
-                    content=error_response.dict(exclude_none=True), status_code=500
+                    content=error_response.model_dump(exclude_none=True),
+                    status_code=500,
                 )
 
     def _setup_health_routes(self):
@@ -159,7 +160,7 @@ class MCPServer:
 
     async def _handle_list_tools(self, request: MCPRequest) -> MCPListToolsResponse:
         """處理列出工具請求"""
-        tools_list = [tool.dict() for tool in self.tools.values()]
+        tools_list = [tool.model_dump() for tool in self.tools.values()]
         return MCPListToolsResponse(id=request.id, result={"tools": tools_list})
 
     async def _handle_tool_call(self, request: MCPRequest) -> MCPToolCallResponse:
@@ -180,9 +181,11 @@ class MCPServer:
                 "content": [
                     {
                         "type": "text",
-                        "text": json.dumps(result)
-                        if isinstance(result, dict)
-                        else str(result),
+                        "text": (
+                            json.dumps(result)
+                            if isinstance(result, dict)
+                            else str(result)
+                        ),
                     }
                 ]
             },

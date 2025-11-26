@@ -81,7 +81,7 @@ class ReviewAgent:
         if self.memory_manager:
             self.memory_manager.store_short_term(
                 key=f"review:{review_id}",
-                value=review_result.dict(),
+                value=review_result.model_dump(),
                 ttl=3600,  # 1小時
             )
 

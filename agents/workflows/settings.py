@@ -83,7 +83,7 @@ def _extract_workflow_section(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _build_settings_from_sources(
-    config_path: Optional[Union[str, Path]]
+    config_path: Optional[Union[str, Path]],
 ) -> LangChainGraphSettings:
     merged: Dict[str, Any] = {}
     for path in _resolve_config_paths(config_path):

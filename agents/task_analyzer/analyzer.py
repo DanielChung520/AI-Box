@@ -13,6 +13,7 @@ from agents.task_analyzer.models import (
     TaskAnalysisRequest,
     TaskAnalysisResult,
     TaskType,
+    WorkflowType,
 )
 from agents.task_analyzer.classifier import TaskClassifier
 from agents.task_analyzer.workflow_selector import WorkflowSelector
@@ -99,6 +100,20 @@ class TaskAnalyzer:
                 "fallback_providers": [p.value for p in llm_routing.fallback_providers],
             },
         }
+
+        # 如果是混合模式，添加 strategy 信息
+        if (
+            workflow_selection.workflow_type == WorkflowType.HYBRID
+            and workflow_selection.strategy
+        ):
+            strategy = workflow_selection.strategy
+            analysis_details["workflow_strategy"] = {
+                "mode": strategy.mode,
+                "primary": strategy.primary.value,
+                "fallback": [f.value for f in strategy.fallback],
+                "switch_conditions": strategy.switch_conditions,
+                "reasoning": strategy.reasoning,
+            }
 
         # 計算整體置信度（取平均值）
         overall_confidence = (

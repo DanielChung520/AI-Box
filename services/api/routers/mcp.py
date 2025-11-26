@@ -136,7 +136,9 @@ async def list_mcp_tools():
             await manager.initialize()
 
         tools = await manager.list_tools()
-        tools_data = [tool.dict() if hasattr(tool, "dict") else tool for tool in tools]
+        tools_data = [
+            tool.model_dump() if hasattr(tool, "model_dump") else tool for tool in tools
+        ]
 
         return APIResponse.success(
             data={"tools": tools_data},

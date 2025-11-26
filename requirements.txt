@@ -14,6 +14,7 @@ python-arango>=7.8.0
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 pydantic>=2.0.0
+pydantic-settings>=2.0.0
 python-multipart>=0.0.6
 httpx>=0.25.0
 
@@ -21,6 +22,8 @@ httpx>=0.25.0
 langchain-core>=1.1.0,<2.0.0
 langchain-community>=0.3.0,<1.0.0
 langgraph>=1.0.4,<2.0.0
+crewai>=0.28.0
+pyautogen>=0.2.0,<0.3.0
 
 # Redis 依賴（用於短期記憶）
 redis>=5.0.0
@@ -34,3 +37,9 @@ tenacity>=8.2.0
 # 日誌與設定管理
 structlog>=24.1.0
 PyYAML>=6.0.1
+
+# 文件處理依賴
+PyPDF2>=3.0.0
+python-docx>=1.1.0
+openpyxl>=3.1.0
+beautifulsoup4>=4.12.0

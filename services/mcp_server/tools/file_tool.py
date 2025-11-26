@@ -35,8 +35,14 @@ class FileTool(BaseTool):
                         "enum": ["read", "write", "list", "delete"],
                         "description": "操作類型",
                     },
-                    "path": {"type": "string", "description": "文件路徑（相對於 base_path）"},
-                    "content": {"type": "string", "description": "文件內容（僅用於 write 操作）"},
+                    "path": {
+                        "type": "string",
+                        "description": "文件路徑（相對於 base_path）",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "文件內容（僅用於 write 操作）",
+                    },
                 },
                 "required": ["operation", "path"],
             },

@@ -82,7 +82,14 @@ class TaskClassifier:
         # 檢查複雜任務標記
         if any(
             keyword in task_lower
-            for keyword in ["多個", "多個步驟", "多步驟", "綜合", "multiple", "multi-step"]
+            for keyword in [
+                "多個",
+                "多個步驟",
+                "多步驟",
+                "綜合",
+                "multiple",
+                "multi-step",
+            ]
         ):
             scores[TaskType.COMPLEX] = max(scores.get(TaskType.COMPLEX, 0.0), 0.8)
 

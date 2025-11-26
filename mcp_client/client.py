@@ -129,7 +129,7 @@ class MCPClient:
                 request.id = self._generate_request_id()
 
             response = await self.client.post(
-                self.endpoint, json=request.dict(exclude_none=True)
+                self.endpoint, json=request.model_dump(exclude_none=True)
             )
             response.raise_for_status()
             response_data = response.json()

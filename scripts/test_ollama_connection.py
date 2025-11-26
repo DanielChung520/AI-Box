@@ -97,7 +97,10 @@ async def test_chat(
             if response.status_code == 200:
                 data = response.json()
                 content = data.get("message", {}).get("content", "")
-                return True, f"✓ 對話測試成功 (耗時: {elapsed:.2f}秒)\n  回應: {content[:100]}"
+                return (
+                    True,
+                    f"✓ 對話測試成功 (耗時: {elapsed:.2f}秒)\n  回應: {content[:100]}",
+                )
             else:
                 return False, f"✗ 對話測試失敗 (狀態碼: {response.status_code})"
     except httpx.TimeoutException:

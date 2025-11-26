@@ -14,6 +14,7 @@ from agents.task_analyzer.models import (
     WorkflowSelectionResult,
     TaskClassificationResult,
 )
+from agents.task_analyzer.decision_engine import DecisionEngine
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class WorkflowSelector:
 
     def __init__(self):
         """初始化工作流選擇器"""
+        self.decision_engine = DecisionEngine()
         # 定義任務類型到工作流類型的映射規則
         self.workflow_rules = {
             TaskType.QUERY: {
@@ -98,8 +100,19 @@ class WorkflowSelector:
                 f"置信度 {confidence:.2f}"
             )
 
+        # 使用決策引擎決定策略
+        strategy = self.decision_engine.decide_strategy(task_classification, context)
+
+        # 如果策略是混合模式，使用 HYBRID 工作流類型
+        if strategy.mode == "hybrid":
+            workflow_type = WorkflowType.HYBRID
+            confidence = 0.9  # 混合模式置信度較高
+            reasoning = f"混合模式：{strategy.reasoning}"
+
         # 構建工作流配置
-        config = self._build_workflow_config(workflow_type, task_type, context)
+        config = self._build_workflow_config(
+            workflow_type, task_type, context, strategy
+        )
 
         logger.info(
             f"Selected workflow: {workflow_type.value} with confidence {confidence:.2f}"
@@ -110,6 +123,7 @@ class WorkflowSelector:
             confidence=confidence,
             reasoning=reasoning,
             config=config,
+            strategy=strategy if strategy.mode == "hybrid" else None,
         )
 
     def _build_workflow_config(
@@ -117,6 +131,7 @@ class WorkflowSelector:
         workflow_type: WorkflowType,
         task_type: TaskType,
         context: Optional[Dict[str, Any]] = None,
+        strategy: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         構建工作流配置
@@ -161,10 +176,17 @@ class WorkflowSelector:
                 }
             )
         elif workflow_type == WorkflowType.HYBRID:
+            if strategy:
+                primary = strategy.primary.value
+                fallback = [f.value for f in strategy.fallback]
+            else:
+                primary = WorkflowType.AUTOGEN.value
+                fallback = [WorkflowType.LANGCHAIN.value]
             config.update(
                 {
-                    "primary_workflow": WorkflowType.AUTOGEN.value,
-                    "secondary_workflow": WorkflowType.LANGCHAIN.value,
+                    "primary_workflow": primary,
+                    "fallback_workflows": fallback,
+                    "switch_conditions": strategy.switch_conditions if strategy else {},
                     "switch_threshold": 0.7,
                 }
             )

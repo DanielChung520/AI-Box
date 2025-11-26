@@ -74,7 +74,7 @@ class PlanningAgent:
         if self.memory_manager:
             self.memory_manager.store_short_term(
                 key=f"plan:{plan_id}",
-                value=plan_result.dict(),
+                value=plan_result.model_dump(),
                 ttl=3600,  # 1小時
             )
 

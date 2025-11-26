@@ -24,7 +24,7 @@ async def execute_task_handler(arguments: dict) -> dict:
     """執行任務工具處理器"""
     request = ExecutionRequest(**arguments)
     result = execution_agent.execute(request)
-    return result.dict()
+    return result.model_dump()
 
 
 mcp_server.register_tool(

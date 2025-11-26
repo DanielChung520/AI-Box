@@ -138,12 +138,16 @@ def benchmark_query(
         "total_elapsed_time": total_elapsed,
         "avg_latency_ms": statistics.mean(latencies),
         "p50_latency_ms": statistics.median(latencies),
-        "p95_latency_ms": statistics.quantiles(latencies, n=20)[18]
-        if len(latencies) >= 20
-        else latencies[-1],
-        "p99_latency_ms": statistics.quantiles(latencies, n=100)[98]
-        if len(latencies) >= 100
-        else latencies[-1],
+        "p95_latency_ms": (
+            statistics.quantiles(latencies, n=20)[18]
+            if len(latencies) >= 20
+            else latencies[-1]
+        ),
+        "p99_latency_ms": (
+            statistics.quantiles(latencies, n=100)[98]
+            if len(latencies) >= 100
+            else latencies[-1]
+        ),
         "min_latency_ms": min(latencies),
         "max_latency_ms": max(latencies),
         "qps": num_queries / total_elapsed if total_elapsed > 0 else 0,
@@ -221,12 +225,16 @@ def benchmark_concurrent_queries(
         "total_elapsed_time": total_elapsed,
         "avg_latency_ms": statistics.mean(latencies),
         "p50_latency_ms": statistics.median(latencies),
-        "p95_latency_ms": statistics.quantiles(latencies, n=20)[18]
-        if len(latencies) >= 20
-        else latencies[-1],
-        "p99_latency_ms": statistics.quantiles(latencies, n=100)[98]
-        if len(latencies) >= 100
-        else latencies[-1],
+        "p95_latency_ms": (
+            statistics.quantiles(latencies, n=20)[18]
+            if len(latencies) >= 20
+            else latencies[-1]
+        ),
+        "p99_latency_ms": (
+            statistics.quantiles(latencies, n=100)[98]
+            if len(latencies) >= 100
+            else latencies[-1]
+        ),
         "min_latency_ms": min(latencies),
         "max_latency_ms": max(latencies),
         "qps": num_queries / total_elapsed if total_elapsed > 0 else 0,
@@ -297,7 +305,9 @@ def main():
     parser.add_argument("--host", default="localhost", help="ChromaDB 主機（HTTP 模式）")
     parser.add_argument("--port", type=int, default=8001, help="ChromaDB 端口（HTTP 模式）")
     parser.add_argument(
-        "--persist-dir", default="./benchmark_chroma_data", help="持久化目錄（持久化模式）"
+        "--persist-dir",
+        default="./benchmark_chroma_data",
+        help="持久化目錄（持久化模式）",
     )
     parser.add_argument("--collection", default="benchmark_collection", help="測試集合名稱")
     parser.add_argument("--num-docs", type=int, default=1000, help="測試文檔數量")

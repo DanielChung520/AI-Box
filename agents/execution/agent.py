@@ -109,7 +109,7 @@ class ExecutionAgent:
         if self.memory_manager:
             self.memory_manager.store_short_term(
                 key=f"execution:{execution_id}",
-                value=execution_result.dict(),
+                value=execution_result.model_dump(),
                 ttl=3600,  # 1小時
             )
 

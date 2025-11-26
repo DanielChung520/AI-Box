@@ -40,7 +40,8 @@ class DocumentAddRequest(BaseModel):
         False, description="若未提供 embeddings，使用默認嵌入提供者（需 documents）"
     )
     embedding_model: Optional[str] = Field(
-        None, description="覆寫嵌入模型（預設見 config.services.ollama.embedding_model）"
+        None,
+        description="覆寫嵌入模型（預設見 config.services.ollama.embedding_model）",
     )
 
 

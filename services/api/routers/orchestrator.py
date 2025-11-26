@@ -99,7 +99,7 @@ async def list_agents(
         )
 
         return APIResponse.success(
-            data={"agents": [agent.dict() for agent in agents]},
+            data={"agents": [agent.model_dump() for agent in agents]},
             message="Agents retrieved successfully",
         )
     except Exception as e:
@@ -131,7 +131,7 @@ async def discover_agents(
         )
 
         return APIResponse.success(
-            data={"agents": [agent.dict() for agent in agents]},
+            data={"agents": [agent.model_dump() for agent in agents]},
             message="Agents discovered successfully",
         )
     except Exception as e:
@@ -189,7 +189,7 @@ async def get_task_result(task_id: str) -> JSONResponse:
 
         if result:
             return APIResponse.success(
-                data=result.dict(),
+                data=result.model_dump(),
                 message="Task result retrieved successfully",
             )
         else:

@@ -7,9 +7,9 @@
 
 from __future__ import annotations
 
-from typing import List, Literal, Optional, Union
+from typing import List, Literal, Optional, Self, Union
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class OllamaOptions(BaseModel):
@@ -66,17 +66,17 @@ class OllamaEmbeddingRequest(BaseModel):
     text: Optional[str] = Field(None, description="單一文本")
     texts: Optional[List[str]] = Field(None, description="多個文本")
 
-    @root_validator  # type: ignore[call-overload]
-    def ensure_inputs(cls, values):
-        text = values.get("text")
-        texts = values.get("texts")
+    @model_validator(mode="after")
+    def ensure_inputs(self) -> Self:
+        text = self.text
+        texts = self.texts
         if not text and not texts:
             raise ValueError("必須提供 text 或 texts")
         if text and texts:
-            values["texts"] = [text] + texts
+            self.texts = [text] + texts
         elif text and not texts:
-            values["texts"] = [text]
-        return values
+            self.texts = [text]
+        return self
 
     @property
     def inputs(self) -> List[str]:
