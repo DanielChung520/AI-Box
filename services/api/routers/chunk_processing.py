@@ -102,6 +102,8 @@ async def process_file_chunking(
         }
 
         # 獲取解析器
+        if file_type is None:
+            file_type = "text/plain"  # 默認使用文本類型
         parser = get_parser(file_type)
 
         # 解析文件

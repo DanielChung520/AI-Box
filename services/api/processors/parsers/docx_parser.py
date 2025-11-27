@@ -76,12 +76,13 @@ class DocxParser(BaseParser):
             self.logger.error("DOCX 文件解析失敗", file_path=file_path, error=str(e))
             raise
 
-    def parse_from_bytes(self, file_content: bytes) -> Dict[str, Any]:
+    def parse_from_bytes(self, file_content: bytes, **kwargs) -> Dict[str, Any]:
         """
         從字節內容解析 DOCX
 
         Args:
             file_content: 文件內容（字節）
+            **kwargs: 其他參數
 
         Returns:
             解析結果

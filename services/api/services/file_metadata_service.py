@@ -37,6 +37,8 @@ class FileMetadataService:
 
     def _ensure_collection(self):
         """確保集合存在"""
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
         if not self.client.db.has_collection(COLLECTION_NAME):
             self.client.db.create_collection(COLLECTION_NAME)
             # 創建索引
@@ -49,6 +51,8 @@ class FileMetadataService:
 
     def create(self, metadata: FileMetadataCreate) -> FileMetadata:
         """創建文件元數據"""
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
         doc = {
             "_key": metadata.file_id,
             "file_id": metadata.file_id,
@@ -71,6 +75,8 @@ class FileMetadataService:
 
     def get(self, file_id: str) -> Optional[FileMetadata]:
         """獲取文件元數據"""
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
         collection = self.client.db.collection(COLLECTION_NAME)
         doc = collection.get(file_id)
 
@@ -83,13 +89,15 @@ class FileMetadataService:
         self, file_id: str, update: FileMetadataUpdate
     ) -> Optional[FileMetadata]:
         """更新文件元數據"""
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
         collection = self.client.db.collection(COLLECTION_NAME)
         doc = collection.get(file_id)
 
         if doc is None:
             return None
 
-        update_data = {"updated_at": datetime.utcnow().isoformat()}
+        update_data: dict = {"updated_at": datetime.utcnow().isoformat()}
 
         if update.tags is not None:
             update_data["tags"] = update.tags
@@ -105,6 +113,8 @@ class FileMetadataService:
 
     def delete(self, file_id: str) -> bool:
         """刪除文件元數據"""
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
         collection = self.client.db.collection(COLLECTION_NAME)
         try:
             collection.delete(file_id)
@@ -123,11 +133,15 @@ class FileMetadataService:
         sort_order: str = "desc",
     ) -> List[FileMetadata]:
         """查詢文件元數據列表"""
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+        if self.client.db.aql is None:
+            raise RuntimeError("ArangoDB AQL is not available")
         aql = f"""
         FOR doc IN {COLLECTION_NAME}
         FILTER 1 == 1
         """
-        bind_vars = {}
+        bind_vars: dict = {}
 
         if file_type:
             aql += " AND doc.file_type == @file_type"
@@ -153,6 +167,10 @@ class FileMetadataService:
 
     def search(self, query: str, limit: int = 100) -> List[FileMetadata]:
         """全文搜索"""
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+        if self.client.db.aql is None:
+            raise RuntimeError("ArangoDB AQL is not available")
         aql = f"""
         FOR doc IN {COLLECTION_NAME}
         FILTER doc.filename LIKE @query
@@ -160,7 +178,7 @@ class FileMetadataService:
            OR @query IN doc.tags
         LIMIT @limit
         """
-        bind_vars = {
+        bind_vars: dict = {
             "query": f"%{query}%",
             "limit": limit,
         }

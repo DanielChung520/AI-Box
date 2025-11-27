@@ -11,7 +11,11 @@ import logging
 import time
 from typing import Any, Dict, List
 
-from agents.workflows.base import WorkflowExecutionResult, WorkflowRequestContext
+from agents.workflows.base import (
+    WorkflowExecutionResult,
+    WorkflowRequestContext,
+    WorkflowTelemetryEvent,
+)
 from agents.crewai.settings import CrewAISettings
 from agents.crewai.llm_adapter import OllamaLLMAdapter
 from agents.crewai.process_engine import ProcessEngine
@@ -57,7 +61,7 @@ class CrewAIWorkflow:
         self._task_registry = TaskRegistry()
         self._context_recorder = ContextRecorder()
         self._token_guard = TokenBudgetGuard(settings.token_budget)
-        self._telemetry_events: List[Dict[str, Any]] = []
+        self._telemetry_events: List[WorkflowTelemetryEvent] = []
 
     async def run(self) -> WorkflowExecutionResult:
         """執行整個工作流。"""
@@ -158,7 +162,7 @@ class CrewAIWorkflow:
                         workflow="crewai",
                         status=status,
                         steps=len(tasks),
-                        crew_id=crew_config.crew_id,
+                        route="unknown",  # TODO: 從 context 中獲取 route
                         events=self._telemetry_events,
                     )
                 except Exception as exc:  # pragma: no cover
@@ -222,11 +226,14 @@ class CrewAIWorkflow:
             else collaboration_mode
         )
 
+        from agents.crewai.models import CrewResourceQuota
+
+        resource_quota = CrewResourceQuota(token_budget=self._settings.token_budget)
         config = self._crew_manager.create_crew(
             name=f"Crew-{self._ctx.task_id[:8]}",
             description=f"Crew for task: {self._ctx.task[:100]}",
             collaboration_mode=mode,
-            resource_quota=self._settings.token_budget,
+            resource_quota=resource_quota,
         )
 
         return config
@@ -283,7 +290,7 @@ class CrewAIWorkflow:
 
     def _emit_telemetry(self, event_name: str, payload: Dict[str, Any]) -> None:
         """發送觀測事件。"""
-        event = {"name": event_name, "payload": payload}
+        event = WorkflowTelemetryEvent(name=event_name, payload=payload)
         self._telemetry_events.append(event)
         logger.debug(f"Telemetry event: {event_name}")
 

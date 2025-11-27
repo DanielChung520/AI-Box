@@ -178,5 +178,27 @@
       "schedule_cron": "0 3 * * *",
       "manifest_path": "docs/deployment/ollama-models-manifest.json"
     }
+  },
+  "text_analysis": {
+    "ner": {
+      "model_type": "spacy",
+      "model_name": "zh_core_web_sm",
+      "fallback_model": "ollama:qwen3-coder:30b",
+      "enable_gpu": false,
+      "batch_size": 32
+    },
+    "re": {
+      "model_type": "transformers",
+      "model_name": "bert-base-chinese",
+      "fallback_model": "ollama:qwen3-coder:30b",
+      "enable_gpu": false,
+      "max_relation_length": 128
+    },
+    "rt": {
+      "model_type": "ollama",
+      "model_name": "qwen3-coder:30b",
+      "enable_gpu": false,
+      "classification_threshold": 0.7
+    }
   }
 }

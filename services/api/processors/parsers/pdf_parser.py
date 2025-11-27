@@ -5,7 +5,7 @@
 
 """PDF 文件解析器 - 使用 PyPDF2"""
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 from .base_parser import BaseParser
 
 try:
@@ -39,7 +39,7 @@ class PdfParser(BaseParser):
 
         try:
             text_parts = []
-            pages_metadata = []
+            pages_metadata: List[Dict[str, Any]] = []
 
             with open(file_path, "rb") as f:
                 pdf_reader = PyPDF2.PdfReader(f)
@@ -87,12 +87,13 @@ class PdfParser(BaseParser):
             self.logger.error("PDF 文件解析失敗", file_path=file_path, error=str(e))
             raise
 
-    def parse_from_bytes(self, file_content: bytes) -> Dict[str, Any]:
+    def parse_from_bytes(self, file_content: bytes, **kwargs) -> Dict[str, Any]:
         """
         從字節內容解析 PDF
 
         Args:
             file_content: 文件內容（字節）
+            **kwargs: 其他參數
 
         Returns:
             解析結果
@@ -104,7 +105,7 @@ class PdfParser(BaseParser):
             from io import BytesIO
 
             text_parts = []
-            pages_metadata = []
+            pages_metadata: List[Dict[str, Any]] = []
 
             pdf_file = BytesIO(file_content)
             pdf_reader = PyPDF2.PdfReader(pdf_file)

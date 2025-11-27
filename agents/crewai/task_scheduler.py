@@ -115,7 +115,7 @@ class TaskScheduler:
         """
         # 重新構建隊列（因為 PriorityQueue 不支持直接遍歷）
         queue_items = []
-        temp_queue = PriorityQueue()
+        temp_queue: PriorityQueue = PriorityQueue()
 
         while not self._task_queue.empty():
             item = self._task_queue.get()

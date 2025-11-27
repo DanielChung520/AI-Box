@@ -27,6 +27,12 @@ from services.api.routers import (
     file_upload,
     chunk_processing,
     file_metadata,
+    ner,
+    re,
+    rt,
+    triple_extraction,
+    kg_builder,
+    kg_query,
 )
 from services.api.core.version import get_version_info, API_PREFIX
 from services.security.config import get_security_settings
@@ -95,6 +101,30 @@ app = FastAPI(
             "name": "File Metadata",
             "description": "文件元數據管理功能",
         },
+        {
+            "name": "NER",
+            "description": "命名實體識別功能",
+        },
+        {
+            "name": "RE",
+            "description": "關係抽取功能",
+        },
+        {
+            "name": "RT",
+            "description": "關係類型分類功能",
+        },
+        {
+            "name": "Triple Extraction",
+            "description": "三元組提取功能",
+        },
+        {
+            "name": "Knowledge Graph Builder",
+            "description": "知識圖譜構建功能",
+        },
+        {
+            "name": "Knowledge Graph Query",
+            "description": "知識圖譜查詢功能",
+        },
     ],
 )
 
@@ -149,6 +179,16 @@ app.include_router(
     chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Processing"]
 )
 app.include_router(file_metadata.router, prefix=API_PREFIX, tags=["File Metadata"])
+app.include_router(ner.router, prefix=API_PREFIX, tags=["NER"])
+app.include_router(re.router, prefix=API_PREFIX, tags=["RE"])
+app.include_router(rt.router, prefix=API_PREFIX, tags=["RT"])
+app.include_router(
+    triple_extraction.router, prefix=API_PREFIX, tags=["Triple Extraction"]
+)
+app.include_router(
+    kg_builder.router, prefix=API_PREFIX, tags=["Knowledge Graph Builder"]
+)
+app.include_router(kg_query.router, prefix=API_PREFIX, tags=["Knowledge Graph Query"])
 
 
 @app.on_event("startup")

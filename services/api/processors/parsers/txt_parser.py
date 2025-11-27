@@ -58,7 +58,7 @@ class TxtParser(BaseParser):
             raise
 
     def parse_from_bytes(
-        self, file_content: bytes, encoding: str = "utf-8"
+        self, file_content: bytes, encoding: str = "utf-8", **kwargs
     ) -> Dict[str, Any]:
         """
         從字節內容解析文本
@@ -66,6 +66,7 @@ class TxtParser(BaseParser):
         Args:
             file_content: 文件內容（字節）
             encoding: 編碼格式
+            **kwargs: 其他參數
 
         Returns:
             解析結果
