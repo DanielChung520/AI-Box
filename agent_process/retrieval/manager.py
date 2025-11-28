@@ -13,6 +13,17 @@ from databases.chromadb.client import ChromaDBClient
 
 logger = logging.getLogger(__name__)
 
+# AAM 整合（可選）
+try:
+    from agent_process.memory.aam.hybrid_rag import HybridRAGService
+    from agent_process.memory.aam.aam_core import AAMManager
+
+    AAM_AVAILABLE = True
+except ImportError:
+    AAM_AVAILABLE = False
+    HybridRAGService = None  # type: ignore[assignment, misc]
+    AAMManager = None  # type: ignore[assignment, misc]
+
 
 class RetrievalStrategy(str, Enum):
     """檢索策略枚舉"""
@@ -29,6 +40,7 @@ class RetrievalManager:
         self,
         chromadb_client: Optional[ChromaDBClient] = None,
         default_strategy: RetrievalStrategy = RetrievalStrategy.HYBRID,
+        aam_hybrid_rag: Optional[Any] = None,  # HybridRAGService
     ):
         """
         初始化檢索管理器
@@ -36,9 +48,11 @@ class RetrievalManager:
         Args:
             chromadb_client: ChromaDB 客戶端
             default_strategy: 默認檢索策略
+            aam_hybrid_rag: AAM 混合 RAG 服務（可選）
         """
         self.chromadb_client = chromadb_client
         self.default_strategy = default_strategy
+        self.aam_hybrid_rag = aam_hybrid_rag
 
     def retrieve(
         self,
@@ -65,6 +79,19 @@ class RetrievalManager:
 
         logger.info(f"Retrieving documents with strategy: {strategy.value}")
 
+        # 如果啟用了 AAM 混合 RAG，優先使用它
+        if self.aam_hybrid_rag is not None and AAM_AVAILABLE:
+            try:
+                aam_results = self.aam_hybrid_rag.retrieve(query, top_k=n_results)
+                if aam_results:
+                    logger.debug(f"AAM Hybrid RAG returned {len(aam_results)} results")
+                    return aam_results
+            except Exception as e:
+                logger.warning(
+                    f"AAM Hybrid RAG failed, falling back to standard retrieval: {e}"
+                )
+
+        # 標準檢索邏輯
         if strategy == RetrievalStrategy.VECTOR_ONLY:
             return self._vector_retrieval(query, collection_name, n_results, filters)
         elif strategy == RetrievalStrategy.KEYWORD_ONLY:

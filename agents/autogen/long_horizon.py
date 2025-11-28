@@ -165,19 +165,28 @@ class LongHorizonTaskManager:
         try:
             # 存儲計劃摘要
             plan_summary = self.state_mapper.extract_plan_summary(plan)
-            self.memory_manager.store_long_term(
-                key=f"plan:{plan.plan_id}",
-                value={
+            value_content = json.dumps(
+                {
                     "summary": plan_summary,
                     "key_points": key_points,
-                },
+                }
+            )
+            self.memory_manager.store_long_term(
+                content=value_content,
+                metadata={"key": f"plan:{plan.plan_id}", "type": "plan_summary"},
             )
 
             # 存儲關鍵決策點
             for idx, point in enumerate(key_points):
+                point_content = (
+                    json.dumps(point) if isinstance(point, dict) else str(point)
+                )
                 self.memory_manager.store_long_term(
-                    key=f"plan:{plan.plan_id}:point:{idx}",
-                    value=point,
+                    content=point_content,
+                    metadata={
+                        "key": f"plan:{plan.plan_id}:point:{idx}",
+                        "type": "key_point",
+                    },
                 )
 
             logger.info(f"Stored long-term memory for plan {plan.plan_id}")

@@ -89,7 +89,11 @@ class AutoGenLLMAdapter:
         """獲取當前可用的 base URL。"""
         if self._router:
             node = self._router.select_node()
-            return f"http://{node.host}:{node.port}"
+            if node is not None:
+                return f"http://{node.host}:{node.port}"
+        # 確保 _base_url 不為 None
+        if self._base_url is None:
+            raise RuntimeError("Base URL is not set")
         return self._base_url
 
     async def generate(

@@ -26,9 +26,9 @@ from agents.autogen.tool_adapter import AutoGenToolAdapter
 from agents.autogen.agent_roles import get_default_agent_roles
 
 try:
-    from services.api.telemetry import publish_workflow_metrics
+    from services.api.telemetry.workflow import publish_workflow_metrics
 except Exception:
-    publish_workflow_metrics = None
+    publish_workflow_metrics = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 
@@ -268,12 +268,14 @@ class AutoGenWorkflow:
         self._telemetry_events.append(event)
 
         # 如果可用，發送到 Prometheus
-        if publish_workflow_metrics:
+        if publish_workflow_metrics is not None:
             try:
                 publish_workflow_metrics(
-                    workflow_type="autogen",
-                    event_name=name,
-                    **payload,
+                    workflow="autogen",
+                    status=payload.get("status", "unknown"),
+                    steps=payload.get("steps", 0),
+                    route=payload.get("route", "standard"),
+                    events=[event],
                 )
             except Exception as exc:
                 logger.warning(f"Failed to publish metrics: {exc}")

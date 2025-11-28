@@ -315,34 +315,32 @@ class ExecutionPlanner:
             logger.info("No failed steps to revise")
             return plan
 
-        # 構建重規劃提示
-        failed_steps_data = [
-            {
-                "step_id": step.step_id,
-                "description": step.description,
-                "error": step.error,
-                "retry_count": step.retry_count,
-            }
-            for step in failed_steps
-        ]
-
-        prompt = f"""原始計劃執行過程中遇到以下問題：
-
-{json.dumps(feedback, ensure_ascii=False, indent=2)}
-
-失敗的步驟：
-{json.dumps(failed_steps_data, ensure_ascii=False, indent=2)}
-
-請提供修訂建議，包括：
-1. 需要重試的步驟
-2. 需要調整的步驟順序
-3. 需要新增的步驟
-4. 需要移除的步驟
-
-請以 JSON 格式返回修訂建議。
-"""
-
         # 調用 LLM 獲取修訂建議（這裡簡化處理，實際應該異步調用）
+        # 構建重規劃提示（目前未使用，保留以備將來使用）
+        # failed_steps_data = [
+        #     {
+        #         "step_id": step.step_id,
+        #         "description": step.description,
+        #         "error": step.error,
+        #         "retry_count": step.retry_count,
+        #     }
+        #     for step in failed_steps
+        # ]
+        # prompt = f"""原始計劃執行過程中遇到以下問題：
+        #
+        # {json.dumps(feedback, ensure_ascii=False, indent=2)}
+        #
+        # 失敗的步驟：
+        # {json.dumps(failed_steps_data, ensure_ascii=False, indent=2)}
+        #
+        # 請提供修訂建議，包括：
+        # 1. 需要重試的步驟
+        # 2. 需要調整的步驟順序
+        # 3. 需要新增的步驟
+        # 4. 需要移除的步驟
+        #
+        # 請以 JSON 格式返回修訂建議。
+        # """
         # 為了演示，我們直接修改失敗的步驟
         for step in failed_steps:
             if step.retry_count < 3:  # 最多重試 3 次

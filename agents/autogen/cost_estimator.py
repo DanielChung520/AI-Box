@@ -26,7 +26,7 @@ class CostEstimate:
     estimated_cost: float
     currency: str = "USD"
     model_name: str = ""
-    breakdown: Dict[str, Any] = None
+    breakdown: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
         """初始化後處理。"""

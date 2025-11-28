@@ -71,19 +71,34 @@ def serialize_hybrid_state(state: HybridState) -> str:
         pass
     elif "autogen_plan" in serialized:
         # 如果是 ExecutionPlan 對象，轉換為字典
-        if hasattr(serialized["autogen_plan"], "to_dict"):
-            serialized["autogen_plan"] = serialized["autogen_plan"].to_dict()
-        elif hasattr(serialized["autogen_plan"], "__dict__"):
-            serialized["autogen_plan"] = asdict(serialized["autogen_plan"])
+        plan_obj = serialized["autogen_plan"]
+        if hasattr(plan_obj, "to_dict"):
+            serialized["autogen_plan"] = plan_obj.to_dict()
+        elif hasattr(plan_obj, "__dict__"):
+            # 檢查是否為 dataclass 實例
+            from dataclasses import is_dataclass
+
+            if is_dataclass(plan_obj) and not isinstance(plan_obj, type):
+                # 確保是實例而不是類
+                serialized["autogen_plan"] = asdict(plan_obj)  # type: ignore[arg-type]
+            else:
+                serialized["autogen_plan"] = (
+                    plan_obj.__dict__ if hasattr(plan_obj, "__dict__") else {}
+                )
 
     # LangGraphState 已經是 TypedDict，可以直接序列化
     if "langgraph_state" in serialized:
         # 確保 telemetry 是可序列化的
-        if "telemetry" in serialized["langgraph_state"]:
-            telemetry = serialized["langgraph_state"]["telemetry"]
+        langgraph_state = serialized["langgraph_state"]
+        if isinstance(langgraph_state, dict) and "telemetry" in langgraph_state:
+            telemetry = langgraph_state["telemetry"]
             if isinstance(telemetry, list):
-                serialized["langgraph_state"]["telemetry"] = [
-                    asdict(event) if hasattr(event, "__dict__") else event
+                from dataclasses import is_dataclass
+
+                langgraph_state["telemetry"] = [
+                    asdict(event)
+                    if is_dataclass(event) and hasattr(event, "__dict__")
+                    else event
                     for event in telemetry
                 ]
 
@@ -183,7 +198,22 @@ class PlanningSync:
             PlanStatus.FAILED: "failed",
             PlanStatus.REVISED: "planning",
         }
-        langgraph_status = status_mapping.get(plan.status, "planning")
+        langgraph_status_raw = status_mapping.get(plan.status, "planning")
+        # 確保 status 是 Literal 類型
+        valid_statuses = (
+            "initialized",
+            "planning",
+            "executing",
+            "review",
+            "completed",
+            "failed",
+        )
+        if langgraph_status_raw in valid_statuses:
+            langgraph_status: Literal[
+                "initialized", "planning", "executing", "review", "completed", "failed"
+            ] = langgraph_status_raw  # type: ignore[assignment]
+        else:
+            langgraph_status = "planning"
 
         return LangGraphState(
             task=plan.task,
@@ -298,7 +328,6 @@ class StateSync:
         Returns:
             更新後的計畫
         """
-        plan_steps = state.get("plan", [])
         outputs = state.get("outputs", [])
         current_step = state.get("current_step", 0)
         status = state.get("status", "unknown")
@@ -390,7 +419,6 @@ class SwitchController:
 
         # 檢查切換條件
         error_rate = metrics.get("error_rate", 0.0)
-        latency = metrics.get("latency", 0.0)
         cost = metrics.get("cost", 0.0)
         cost_threshold = metrics.get("cost_threshold", float("inf"))
 
@@ -557,8 +585,10 @@ class HybridOrchestrator:
     def __init__(
         self,
         request_ctx: WorkflowRequestContext,
-        primary_mode: str = "autogen",
-        fallback_modes: Optional[List[str]] = None,
+        primary_mode: Literal["autogen", "langgraph", "crewai"] = "autogen",
+        fallback_modes: Optional[
+            List[Literal["autogen", "langgraph", "crewai"]]
+        ] = None,
     ):
         """
         初始化混合編排器。
@@ -700,9 +730,24 @@ class HybridOrchestrator:
 
             if target_mode and target_mode != self._hybrid_state["current_mode"]:
                 # 執行切換
-                switch_success = await self._execute_switch(
-                    self._hybrid_state["current_mode"], target_mode
-                )
+                current_mode = self._hybrid_state["current_mode"]
+                if target_mode in (
+                    "autogen",
+                    "langgraph",
+                    "crewai",
+                ) and current_mode in (
+                    "autogen",
+                    "langgraph",
+                    "crewai",
+                ):
+                    switch_success = await self._execute_switch(
+                        current_mode, target_mode  # type: ignore[arg-type]
+                    )
+                else:
+                    logger.warning(
+                        f"Invalid mode for switch: {current_mode} -> {target_mode}"
+                    )
+                    switch_success = False
 
                 if switch_success:
                     # 繼續執行新工作流
@@ -731,7 +776,14 @@ class HybridOrchestrator:
 
         elif current_mode == "langgraph" and result.state_snapshot:
             # 更新 LangGraph 狀態
-            self._hybrid_state["langgraph_state"] = result.state_snapshot
+            if isinstance(result.state_snapshot, dict):
+                # 確保是 LangGraphState 類型
+                # 使用類型忽略，因為 TypedDict 的 ** 展開在 mypy 中有限制
+                self._hybrid_state["langgraph_state"] = LangGraphState(
+                    **result.state_snapshot  # type: ignore[typeddict-item]
+                )
+            else:
+                self._hybrid_state["langgraph_state"] = result.state_snapshot  # type: ignore[assignment]
 
         self._hybrid_state["updated_at"] = datetime.now().isoformat()
 
@@ -757,7 +809,11 @@ class HybridOrchestrator:
 
         return metrics
 
-    async def _execute_switch(self, from_mode: str, to_mode: str) -> bool:
+    async def _execute_switch(
+        self,
+        from_mode: Literal["autogen", "langgraph", "crewai"],
+        to_mode: Literal["autogen", "langgraph", "crewai"],
+    ) -> bool:
         """
         執行模式切換。
 
@@ -780,9 +836,7 @@ class HybridOrchestrator:
             start_time = datetime.now()
 
             # 暫停當前工作流並保存狀態
-            saved_state = self._switch_controller.pause_workflow(
-                self._current_workflow, from_mode
-            )
+            self._switch_controller.pause_workflow(self._current_workflow, from_mode)
 
             # 執行狀態遷移
             migrated_state = await self._migrate_state(from_mode, to_mode)
@@ -828,7 +882,11 @@ class HybridOrchestrator:
 
             return False
 
-    async def _migrate_state(self, from_mode: str, to_mode: str) -> HybridState:
+    async def _migrate_state(
+        self,
+        from_mode: Literal["autogen", "langgraph", "crewai"],
+        to_mode: Literal["autogen", "langgraph", "crewai"],
+    ) -> HybridState:
         """
         執行狀態遷移。
 
@@ -852,7 +910,8 @@ class HybridOrchestrator:
             # LangGraph → AutoGen
             langgraph_state = self._hybrid_state.get("langgraph_state", {})
             if langgraph_state:
-                autogen_context = self._state_sync.langgraph_to_autogen(langgraph_state)
+                # 轉換狀態（autogen_context 目前未使用，保留轉換邏輯以備將來使用）
+                self._state_sync.langgraph_to_autogen(langgraph_state)
                 # 更新 autogen_plan
                 autogen_plan = self._hybrid_state.get("autogen_plan", {})
                 if autogen_plan:
@@ -944,7 +1003,10 @@ class HybridOrchestrator:
         )
 
     async def _handle_switch_failure(
-        self, from_mode: str, to_mode: str, error: str
+        self,
+        from_mode: Literal["autogen", "langgraph", "crewai"],
+        to_mode: Literal["autogen", "langgraph", "crewai"],
+        error: str,
     ) -> None:
         """處理切換失敗。"""
         logger.error(f"Switch from {from_mode} to {to_mode} failed: {error}")

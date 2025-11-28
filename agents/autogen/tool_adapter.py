@@ -41,13 +41,18 @@ class AutoGenToolAdapter:
                 logger.warning(f"Tool '{tool.name}' has no handler")
                 return None
 
+            # 確保 handler 不為 None（mypy 類型檢查）
+            handler = tool.handler
+            if handler is None:
+                return None
+
             # 創建包裝函數
             def tool_wrapper(*args: Any, **kwargs: Any) -> Any:
                 """工具包裝函數。"""
                 try:
                     # 合併配置和參數
                     merged_kwargs = {**tool.config, **kwargs}
-                    result = tool.handler(*args, **merged_kwargs)
+                    result = handler(*args, **merged_kwargs)
                     logger.debug(f"Tool '{tool.name}' executed successfully")
                     return result
                 except Exception as exc:
