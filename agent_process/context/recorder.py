@@ -1,57 +1,82 @@
-# 代碼功能說明: Context Recorder 實現
-# 創建日期: 2025-10-25
+# 代碼功能說明: 上下文記錄器
+# 創建日期: 2025-01-27 14:00 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-01-27 14:00 (UTC+8)
 
-"""Context Recorder - 實現上下文記錄和對話歷史管理"""
+"""上下文記錄器，提供消息記錄和檢索功能。"""
 
+from __future__ import annotations
+
+import json
 import logging
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, field
-from datetime import datetime
-from collections import deque
+from typing import Any, Dict, List, Optional
+
+import redis  # type: ignore[import-untyped]
+
+from agent_process.context.models import ContextConfig, ContextMessage
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class ContextEntry:
-    """上下文條目"""
-
-    role: str  # user, assistant, system
-    content: str
-    timestamp: datetime = field(default_factory=datetime.now)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-    def to_dict(self) -> Dict[str, Any]:
-        """轉換為字典"""
-        return {
-            "role": self.role,
-            "content": self.content,
-            "timestamp": self.timestamp.isoformat(),
-            "metadata": self.metadata,
-        }
-
-
 class ContextRecorder:
-    """上下文記錄器"""
+    """上下文記錄器，負責記錄和檢索對話消息。"""
 
     def __init__(
         self,
-        max_history: int = 100,
-        session_ttl: int = 3600,  # 1小時
-    ):
+        config: Optional[ContextConfig] = None,
+        redis_url: Optional[str] = None,
+        namespace: Optional[str] = None,
+        ttl_seconds: Optional[int] = None,
+    ) -> None:
         """
-        初始化上下文記錄器
+        初始化上下文記錄器。
 
         Args:
-            max_history: 最大歷史記錄數量
-            session_ttl: 會話過期時間（秒）
+            config: 配置對象（優先使用）
+            redis_url: Redis 連接 URL（如果 config 為 None 時使用）
+            namespace: 命名空間（如果 config 為 None 時使用）
+            ttl_seconds: TTL 秒數（如果 config 為 None 時使用）
         """
-        self.max_history = max_history
-        self.session_ttl = session_ttl
-        self._sessions: Dict[str, deque] = {}
-        self._session_timestamps: Dict[str, datetime] = {}
+        if config is not None:
+            self._config = config
+        else:
+            self._config = ContextConfig(
+                redis_url=redis_url,
+                namespace=namespace or "agent_process:context",
+                ttl_seconds=ttl_seconds or 3600,
+            )
+
+        self._namespace = self._config.namespace
+        self._ttl = self._config.ttl_seconds
+        self._memory_store: Dict[str, List[Dict[str, Any]]] = {}
+        self._redis: Optional[redis.Redis] = None
+
+        if self._config.redis_url:
+            try:
+                self._redis = redis.Redis.from_url(
+                    self._config.redis_url, decode_responses=True
+                )
+                # 測試連接
+                self._redis.ping()
+                logger.info("Context Recorder 已連接到 Redis")
+            except Exception as exc:
+                logger.warning("Context Recorder 初始化 Redis 失敗，使用記憶體儲存: %s", exc)
+                self._redis = None
+
+    def _key(self, session_id: str, suffix: Optional[str] = None) -> str:
+        """
+        生成 Redis 鍵。
+
+        Args:
+            session_id: 會話 ID
+            suffix: 可選後綴
+
+        Returns:
+            Redis 鍵
+        """
+        if suffix:
+            return f"{self._namespace}:{session_id}:{suffix}"
+        return f"{self._namespace}:{session_id}"
 
     def record(
         self,
@@ -61,168 +86,158 @@ class ContextRecorder:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
-        記錄上下文條目
+        記錄消息。
 
         Args:
-            session_id: 會話ID
-            role: 角色（user, assistant, system）
-            content: 內容
+            session_id: 會話 ID
+            role: 消息角色（user, assistant, system）
+            content: 消息內容
             metadata: 元數據
 
         Returns:
             是否成功記錄
         """
         try:
-            # 獲取或創建會話
-            if session_id not in self._sessions:
-                self._sessions[session_id] = deque(maxlen=self.max_history)
-                self._session_timestamps[session_id] = datetime.now()
-
-            # 創建上下文條目
-            entry = ContextEntry(
-                role=role,
-                content=content,
-                metadata=metadata or {},
+            message = ContextMessage(
+                role=role, content=content, metadata=metadata or {}
             )
+            message_dict = message.model_dump()
 
-            # 添加到會話歷史
-            self._sessions[session_id].append(entry)
-            self._session_timestamps[session_id] = datetime.now()
+            if self._redis is not None:
+                # 使用 Redis List 存儲消息
+                key = self._key(session_id, "messages")
+                message_json = json.dumps(message_dict, default=str)
+                self._redis.rpush(key, message_json)
+                self._redis.expire(key, self._ttl)
+            else:
+                # 使用內存存儲
+                if session_id not in self._memory_store:
+                    self._memory_store[session_id] = []
+                self._memory_store[session_id].append(message_dict)
 
-            logger.debug(f"Recorded context entry for session: {session_id}")
+            logger.debug("Recorded message in session %s (role: %s)", session_id, role)
             return True
-        except Exception as e:
-            logger.error(f"Failed to record context entry: {e}")
+        except Exception as exc:
+            logger.error("Failed to record message: %s", exc)
             return False
 
-    def get_history(
-        self,
-        session_id: str,
-        limit: Optional[int] = None,
-        role_filter: Optional[str] = None,
-    ) -> List[ContextEntry]:
-        """
-        獲取會話歷史
-
-        Args:
-            session_id: 會話ID
-            limit: 限制返回數量
-            role_filter: 角色過濾器
-
-        Returns:
-            上下文條目列表
-        """
-        if session_id not in self._sessions:
-            logger.warning(f"Session '{session_id}' not found")
-            return []
-
-        history = list(self._sessions[session_id])
-
-        # 角色過濾
-        if role_filter:
-            history = [entry for entry in history if entry.role == role_filter]
-
-        # 限制數量
-        if limit:
-            history = history[-limit:]
-
-        return history
-
     def get_conversation_context(
-        self,
-        session_id: str,
-        limit: Optional[int] = None,
+        self, session_id: str, limit: Optional[int] = None
     ) -> List[Dict[str, str]]:
         """
-        獲取對話上下文（用於 LLM 調用）
+        獲取對話上下文，格式為 LLM 可用的消息列表。
 
         Args:
-            session_id: 會話ID
-            limit: 限制返回數量
+            session_id: 會話 ID
+            limit: 限制返回的消息數量（None 表示返回所有）
 
         Returns:
-            對話上下文列表（格式：{"role": "...", "content": "..."}）
+            消息列表，格式為 [{"role": "...", "content": "..."}]
         """
-        history = self.get_history(session_id, limit=limit)
+        try:
+            messages: List[Dict[str, Any]] = []
 
-        context = []
-        for entry in history:
-            context.append(
-                {
-                    "role": entry.role,
-                    "content": entry.content,
-                }
-            )
+            if self._redis is not None:
+                key = self._key(session_id, "messages")
+                message_jsons = self._redis.lrange(key, 0, -1)
+                if isinstance(message_jsons, list):
+                    for msg_json in message_jsons:
+                        if isinstance(msg_json, str):
+                            messages.append(json.loads(msg_json))
+            else:
+                messages = self._memory_store.get(session_id, [])
 
-        return context
+            # 轉換為 LLM 格式
+            llm_messages: List[Dict[str, str]] = []
+            for msg in messages:
+                llm_messages.append(
+                    {
+                        "role": msg.get("role", "user"),
+                        "content": msg.get("content", ""),
+                    }
+                )
+
+            # 應用限制
+            if limit is not None and limit > 0:
+                llm_messages = llm_messages[-limit:]
+
+            return llm_messages
+        except Exception as exc:
+            logger.error("Failed to get conversation context: %s", exc)
+            return []
 
     def clear_session(self, session_id: str) -> bool:
         """
-        清空會話歷史
+        清空會話的所有消息。
 
         Args:
-            session_id: 會話ID
+            session_id: 會話 ID
 
         Returns:
             是否成功清空
         """
         try:
-            if session_id in self._sessions:
-                self._sessions[session_id].clear()
-                logger.info(f"Cleared session history: {session_id}")
-                return True
-            return False
-        except Exception as e:
-            logger.error(f"Failed to clear session '{session_id}': {e}")
+            if self._redis is not None:
+                key = self._key(session_id, "messages")
+                self._redis.delete(key)
+            else:
+                if session_id in self._memory_store:
+                    del self._memory_store[session_id]
+
+            logger.info("Cleared session %s", session_id)
+            return True
+        except Exception as exc:
+            logger.error("Failed to clear session: %s", exc)
             return False
 
-    def delete_session(self, session_id: str) -> bool:
+    def get_messages(
+        self, session_id: str, limit: Optional[int] = None
+    ) -> List[ContextMessage]:
         """
-        刪除會話
+        獲取完整的消息對象列表。
 
         Args:
-            session_id: 會話ID
+            session_id: 會話 ID
+            limit: 限制返回的消息數量
 
         Returns:
-            是否成功刪除
+            消息對象列表
         """
         try:
-            if session_id in self._sessions:
-                del self._sessions[session_id]
-            if session_id in self._session_timestamps:
-                del self._session_timestamps[session_id]
-            logger.info(f"Deleted session: {session_id}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to delete session '{session_id}': {e}")
-            return False
+            messages: List[Dict[str, Any]] = []
 
-    def cleanup_expired_sessions(self) -> int:
-        """
-        清理過期會話
+            if self._redis is not None:
+                key = self._key(session_id, "messages")
+                message_jsons = self._redis.lrange(key, 0, -1)
+                if isinstance(message_jsons, list):
+                    for msg_json in message_jsons:
+                        if isinstance(msg_json, str):
+                            messages.append(json.loads(msg_json))
+            else:
+                messages = self._memory_store.get(session_id, [])
 
-        Returns:
-            清理的會話數量
-        """
-        expired_sessions = []
-        now = datetime.now()
+            # 轉換為 ContextMessage 對象
+            context_messages: List[ContextMessage] = []
+            for msg_dict in messages:
+                try:
+                    # 處理時間戳字符串
+                    if "timestamp" in msg_dict and isinstance(
+                        msg_dict["timestamp"], str
+                    ):
+                        from datetime import datetime
 
-        for session_id, timestamp in self._session_timestamps.items():
-            elapsed = (now - timestamp).total_seconds()
-            if elapsed > self.session_ttl:
-                expired_sessions.append(session_id)
+                        msg_dict["timestamp"] = datetime.fromisoformat(
+                            msg_dict["timestamp"]
+                        )
+                    context_messages.append(ContextMessage(**msg_dict))
+                except Exception as exc:
+                    logger.warning("Failed to parse message: %s", exc)
 
-        for session_id in expired_sessions:
-            self.delete_session(session_id)
+            # 應用限制
+            if limit is not None and limit > 0:
+                context_messages = context_messages[-limit:]
 
-        logger.info(f"Cleaned up {len(expired_sessions)} expired sessions")
-        return len(expired_sessions)
-
-    def get_session_count(self) -> int:
-        """
-        獲取會話數量
-
-        Returns:
-            會話數量
-        """
-        return len(self._sessions)
+            return context_messages
+        except Exception as exc:
+            logger.error("Failed to get messages: %s", exc)
+            return []

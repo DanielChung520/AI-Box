@@ -33,7 +33,6 @@ docker-compose.yml
 .pre-commit-config.yaml
 
 # 大型配置目錄
-agent_process/
 databases/arangodb/tests/
 databases/chromadb/tests/
 

@@ -188,3 +188,304 @@ alwaysApply: true
 - mypy 類型檢查必須通過
 - ruff 代碼檢查必須通過
 - black 格式化檢查必須通過
+
+
+## Git 提交前檢查規範（2025-01-27 14:00 UTC+8）
+
+### 提交前必須執行的步驟
+
+**重要**：每次提交代碼前，必須確保所有 pre-commit hooks 檢查通過。如果檢查失敗，提交會被阻止。
+
+#### 1. 自動修復步驟（推薦）
+
+```bash
+# 方法一：使用 pre-commit 自動修復（推薦）
+pre-commit run --all-files
+
+# 方法二：手動運行各個工具
+# 格式化代碼
+black .
+
+# 檢查和修復代碼風格
+ruff check --fix .
+
+# 類型檢查（只檢查，不自動修復）
+mypy .
+```
+
+#### 2. 提交流程
+
+```bash
+# 1. 添加文件到暫存區
+git add .
+
+# 2. 提交（pre-commit hooks 會自動運行）
+git commit -m "your commit message"
+
+# 如果 hooks 失敗，會自動修復部分問題，然後需要：
+# - 重新添加修復後的文件：git add .
+# - 重新提交：git commit -m "your commit message"
+```
+
+### Pre-commit Hooks 檢查項目詳解
+
+#### Black 代碼格式化檢查
+
+**檢查內容**：
+- 代碼格式是否符合 Black 規範
+- 行長度、縮進、引號使用等
+
+**常見錯誤**：
+- 代碼格式不符合 Black 規範
+- 行尾有多餘空格
+- 文件末尾缺少換行符
+
+**修復方法**：
+```bash
+# 自動格式化所有文件
+black .
+
+# 格式化特定文件
+black path/to/file.py
+
+# 檢查但不修改（dry-run）
+black --check .
+```
+
+**注意事項**：
+- Black 會自動修改文件格式，修改後需要重新 `git add`
+- 如果 Black 修改了文件，提交會失敗，需要重新提交
+
+#### Ruff 代碼風格檢查
+
+**檢查內容**：
+- 未使用的變量（F841）
+- 未使用的導入
+- 代碼風格問題
+- 潛在的 bug
+
+**常見錯誤**：
+- `F841: Local variable 'xxx' is assigned to but never used`
+- 未使用的導入
+- 代碼風格不符合規範
+
+**修復方法**：
+```bash
+# 自動修復可修復的問題
+ruff check --fix .
+
+# 只檢查不修復
+ruff check .
+
+# 檢查特定文件
+ruff check path/to/file.py
+```
+
+**注意事項**：
+- Ruff 會自動修復部分問題，但有些問題需要手動修復
+- 未使用的變量必須刪除或使用
+- 修復後需要重新 `git add`
+
+#### Mypy 類型檢查
+
+**檢查內容**：
+- 類型注解是否正確
+- 類型是否匹配
+- 是否有類型錯誤
+
+**常見錯誤**：
+- `error: "Redis" expects no type arguments, but 1 given`
+- `error: Argument 1 has incompatible type`
+- `error: Item "X" has no attribute "__iter__"`
+- `error: Unsupported right operand type for in`
+
+**修復方法**：
+```bash
+# 檢查所有文件
+mypy .
+
+# 檢查特定文件
+mypy path/to/file.py
+
+# 忽略缺失的導入（用於第三方庫）
+mypy --ignore-missing-imports .
+```
+
+**常見類型錯誤修復**：
+
+1. **Redis 類型注解錯誤**：
+   ```python
+   # ❌ 錯誤
+   self._redis: Optional[redis.Redis[str]] = None
+
+   # ✅ 正確（redis-py 不支持類型參數）
+   self._redis: Optional[redis.Redis] = None
+   ```
+
+2. **異步操作類型錯誤**：
+   ```python
+   # ❌ 錯誤（忘記 await）
+   result = self._redis.get(key)
+
+   # ✅ 正確（同步 Redis）
+   result = self._redis.get(key)
+   # 或使用類型忽略（如果確定是同步的）
+   result = self._redis.get(key)  # type: ignore[union-attr]
+   ```
+
+3. **ArangoDB 查詢結果類型**：
+   ```python
+   # ❌ 錯誤
+   document = collection.get(session_id)
+   if "messages" in document:  # 類型錯誤
+
+   # ✅ 正確
+   document = collection.get(session_id)
+   if document is not None and isinstance(document, dict):
+       if "messages" in document:
+   ```
+
+### 提交失敗處理流程
+
+#### 情況 1：Black 格式化失敗
+
+**錯誤信息**：
+```
+black....................................................................Failed
+- hook id: black
+- files were modified by this hook
+```
+
+**處理步驟**：
+1. Black 已經自動修復了文件
+2. 重新添加修復後的文件：`git add .`
+3. 重新提交：`git commit -m "your message"`
+
+#### 情況 2：Ruff 檢查失敗
+
+**錯誤信息**：
+```
+ruff.....................................................................Failed
+- hook id: ruff
+- exit code: 1
+- files were modified by this hook
+```
+
+**處理步驟**：
+1. 檢查 Ruff 的錯誤信息
+2. 如果 Ruff 自動修復了，重新添加：`git add .`
+3. 如果有需要手動修復的問題（如未使用的變量），手動修復後重新添加
+4. 重新提交
+
+#### 情況 3：Mypy 類型檢查失敗
+
+**錯誤信息**：
+```
+mypy.....................................................................Failed
+- hook id: mypy
+- exit code: 1
+```
+
+**處理步驟**：
+1. 查看 mypy 的詳細錯誤信息
+2. 根據錯誤信息修復類型問題
+3. 如果無法修復（如第三方庫類型問題），使用 `# type: ignore[error-code]` 註釋
+4. 重新添加和提交
+
+### 提交前檢查清單
+
+在執行 `git commit` 前，請確保：
+
+- [ ] 已運行 `black .` 格式化代碼
+- [ ] 已運行 `ruff check --fix .` 修復代碼風格問題
+- [ ] 已運行 `mypy .` 檢查類型（或至少檢查修改的文件）
+- [ ] 所有測試通過（如果有）
+- [ ] 代碼符合項目規範
+- [ ] 沒有未使用的變量或導入
+- [ ] 所有類型注解正確
+
+### 快速修復命令
+
+```bash
+# 一鍵修復所有可自動修復的問題
+black . && ruff check --fix . && git add .
+
+# 然後檢查類型（不會自動修復）
+mypy . || echo "有類型錯誤，需要手動修復"
+
+# 最後提交
+git commit -m "your message"
+```
+
+### 常見問題解決方案
+
+#### Q1: pre-commit hooks 一直失敗，如何跳過？
+
+**不推薦跳過**，但如果有緊急情況：
+```bash
+# 跳過 pre-commit hooks（不推薦）
+git commit --no-verify -m "your message"
+```
+
+**注意**：跳過 hooks 會導致代碼質量問題，應該盡量避免。
+
+#### Q2: 如何只檢查特定文件？
+
+```bash
+# 只檢查特定文件
+black path/to/file.py
+ruff check path/to/file.py
+mypy path/to/file.py
+```
+
+#### Q3: 如何更新 pre-commit hooks？
+
+```bash
+# 更新 pre-commit hooks
+pre-commit autoupdate
+
+# 重新安裝 hooks
+pre-commit install
+```
+
+#### Q4: 如何查看詳細的錯誤信息？
+
+```bash
+# 查看詳細的 mypy 錯誤
+mypy . --show-error-codes
+
+# 查看詳細的 ruff 錯誤
+ruff check . --verbose
+
+# 查看詳細的 black 錯誤
+black . --diff
+```
+
+### 開發環境設置
+
+確保開發環境已正確設置：
+
+```bash
+# 1. 激活虛擬環境
+source venv/bin/activate  # Linux/Mac
+# 或
+venv\Scripts\activate  # Windows
+
+# 2. 安裝 pre-commit
+pip install pre-commit
+
+# 3. 安裝 pre-commit hooks
+pre-commit install
+
+# 4. 安裝開發依賴
+pip install black ruff mypy
+```
+
+### 持續集成（CI）檢查
+
+在 CI/CD 流程中，這些檢查也會自動運行：
+- 所有 pre-commit hooks 必須通過
+- 類型檢查必須通過
+- 代碼格式化檢查必須通過
+
+如果 CI 檢查失敗，請在本地修復後重新提交。
