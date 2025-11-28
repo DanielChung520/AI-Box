@@ -5,9 +5,8 @@
 
 """NER 命名實體識別服務 - 支持 spaCy 和 Ollama 模型"""
 
-import json
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import List, Optional
 import structlog
 
 from core.config import get_config_section
@@ -64,7 +63,7 @@ class SpacyNERModel(BaseNERModel):
     def __init__(self, model_name: str = "zh_core_web_sm", enable_gpu: bool = False):
         self.model_name = model_name
         self.enable_gpu = enable_gpu
-        self._model: Optional[Any] = None
+        self._model = None
         self._load_model()
 
     def _load_model(self):
@@ -90,6 +89,9 @@ class SpacyNERModel(BaseNERModel):
 
     async def extract_entities(self, text: str) -> List[Entity]:
         """使用 spaCy 提取實體"""
+        if not self.is_available():
+            raise RuntimeError(f"spaCy model {self.model_name} is not available")
+
         if self._model is None:
             raise RuntimeError(f"spaCy model {self.model_name} is not available")
 
@@ -142,10 +144,8 @@ class OllamaNERModel(BaseNERModel):
 
     async def extract_entities(self, text: str) -> List[Entity]:
         """使用 Ollama 提取實體"""
-        if self.client is None:
-            raise RuntimeError(
-                f"Ollama client is not available for model {self.model_name}"
-            )
+        if not self.is_available():
+            raise RuntimeError(f"Ollama model {self.model_name} is not available")
 
         prompt = self._prompt_template.format(text=text)
 
@@ -156,9 +156,7 @@ class OllamaNERModel(BaseNERModel):
                 format="json",
             )
 
-            if response is None:
-                logger.error("ollama_ner_no_response", model=self.model_name)
-                return []
+            import json
 
             result_text = response.get("response", "")
             # 嘗試從響應中提取 JSON
@@ -172,15 +170,9 @@ class OllamaNERModel(BaseNERModel):
                     result_text = result_text.split("```")[1].split("```")[0].strip()
 
                 entities_data = json.loads(result_text)
-
-                if not isinstance(entities_data, list):
-                    logger.error("ollama_ner_invalid_format", model=self.model_name)
-                    return []
-
                 entities = []
+
                 for item in entities_data:
-                    if not isinstance(item, dict):
-                        continue
                     entities.append(
                         Entity(
                             text=item.get("text", ""),

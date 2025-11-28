@@ -54,6 +54,11 @@ async def extract_triples(request: TripleExtractionRequest) -> JSONResponse:
         )
 
         return APIResponse.success(data=response.model_dump())
+    except RuntimeError as e:
+        return APIResponse.error(
+            message=f"三元組提取失敗: {str(e)}",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     except Exception as e:
         return APIResponse.error(
             message=f"三元組提取失敗: {str(e)}",

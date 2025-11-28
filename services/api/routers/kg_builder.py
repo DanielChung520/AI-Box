@@ -35,6 +35,11 @@ async def build_kg_from_triples(triples: List[Triple]) -> JSONResponse:
     try:
         result = await service.build_from_triples(triples)
         return APIResponse.success(data=result, message="知識圖譜構建成功")
+    except RuntimeError as e:
+        return APIResponse.error(
+            message=f"知識圖譜構建失敗: {str(e)}",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     except Exception as e:
         return APIResponse.error(
             message=f"知識圖譜構建失敗: {str(e)}",

@@ -48,6 +48,11 @@ async def extract_entities(request: NERRequest) -> JSONResponse:
         )
 
         return APIResponse.success(data=response.model_dump())
+    except RuntimeError as e:
+        return APIResponse.error(
+            message=f"實體識別失敗: {str(e)}",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     except Exception as e:
         return APIResponse.error(
             message=f"實體識別失敗: {str(e)}",
@@ -83,6 +88,11 @@ async def extract_entities_batch(request: NERBatchRequest) -> JSONResponse:
         )
 
         return APIResponse.success(data=response.model_dump())
+    except RuntimeError as e:
+        return APIResponse.error(
+            message=f"批量實體識別失敗: {str(e)}",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     except Exception as e:
         return APIResponse.error(
             message=f"批量實體識別失敗: {str(e)}",

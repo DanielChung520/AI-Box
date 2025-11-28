@@ -4,3 +4,187 @@ alwaysApply: true
 凡是創建代碼檔案，最上方備註：代碼功能說明、創建日期、創建人（Daniel Chung）、最後修改日期
 凡是要創建、修改日期，請先上網(https://tw.piliapp.com/time/)確認當天的日期及時間
 配置規範（2025-11-25 22:46 UTC+8）：敏感資訊集中於 .env / Secret；非敏感環境參數寫入 config/config.json（由 config/config.example.json 派生），新增欄位時需同步更新樣板與文檔
+
+## 類型注解規範（2025-11-27 13:00 UTC+8）
+
+### 必須使用類型注解的情況
+1. **全局變量**：如果可能為 None，必須使用 `Optional[T]`
+   ```python
+   # ❌ 錯誤
+   _service: KGBuilderService = None
+
+   # ✅ 正確
+   _service: Optional[KGBuilderService] = None
+   ```
+
+2. **函數參數**：如果默認值為 None，必須使用 `Optional[T]`
+   ```python
+   # ❌ 錯誤
+   def func(model_type: str = None):
+
+   # ✅ 正確
+   def func(model_type: Optional[str] = None):
+   ```
+
+3. **局部變量**：複雜類型或可能為 None 的變量需要類型注解
+   ```python
+   # ✅ 正確
+   temp_queue: PriorityQueue = PriorityQueue()
+   model: Optional[BaseRTModel] = None
+   bind_vars: dict = {}
+   ```
+
+4. **類屬性**：所有類屬性都應該有類型注解
+   ```python
+   class Service:
+       _primary_model: Optional[BaseModel] = None
+       _fallback_model: Optional[BaseModel] = None
+   ```
+
+### 類型匹配要求
+- 使用正確的類型，不要混用（如 `List[Dict]` vs `List[WorkflowTelemetryEvent]`）
+- 對象類型要匹配（如 `CrewResourceQuota` 對象而非 `int`）
+- 避免隱式 Optional，明確使用 `Optional[T]` 或 `T | None`
+
+## 防御性編程規範（2025-11-27 13:00 UTC+8）
+
+### None 檢查要求
+1. **數據庫連接**：使用前必須檢查是否為 None
+   ```python
+   # ❌ 錯誤
+   collection = self.client.db.collection(COLLECTION_NAME)
+
+   # ✅ 正確
+   if self.client.db is None:
+       raise RuntimeError("ArangoDB client is not connected")
+   collection = self.client.db.collection(COLLECTION_NAME)
+   ```
+
+2. **可選參數**：處理可能為 None 的參數
+   ```python
+   # ❌ 錯誤
+   parser = get_parser(file_type)  # file_type 可能是 None
+
+   # ✅ 正確
+   if file_type is None:
+       file_type = "text/plain"  # 提供默認值
+   parser = get_parser(file_type)
+   ```
+
+3. **模型對象**：使用前檢查是否已初始化
+   ```python
+   # ❌ 錯誤
+   doc = self._model(text)  # _model 可能是 None
+
+   # ✅ 正確
+   if self._model is None:
+       raise RuntimeError(f"Model {self.model_name} is not available")
+   doc = self._model(text)
+   ```
+
+4. **AQL 查詢**：檢查 aql 屬性是否可用
+   ```python
+   # ✅ 正確
+   if self.client.db is None or self.client.db.aql is None:
+       raise RuntimeError("AQL is not available")
+   cursor = self.client.db.aql.execute(aql, bind_vars=bind_vars)
+   ```
+
+### API 調用檢查
+- 調用外部 API 前，確認參數名稱和類型正確
+- 檢查函數簽名，不要傳入不存在的參數
+- 使用 IDE 的類型提示功能驗證參數
+
+## 代碼結構規範（2025-11-27 13:00 UTC+8）
+
+### Import 語句規範
+1. **位置**：所有 import 必須在文件頂部，在模塊文檔字符串之後
+   ```python
+   """模塊說明"""
+
+   from typing import Optional, List
+   from fastapi import APIRouter
+   # ❌ 錯誤：不要在代碼中間添加 import
+   ```
+
+2. **順序**：
+   - 標準庫 import
+   - 第三方庫 import
+   - 本地模塊 import
+   - 類型相關 import（如 `from typing import ...`）
+
+### 變量使用規範
+1. **未使用的變量**：必須刪除或使用
+   ```python
+   # ❌ 錯誤：定義但未使用
+   type_names = [rt.type for rt in filtered]
+   pass
+
+   # ✅ 正確：刪除未使用的變量，或添加註釋說明為什麼需要
+   ```
+
+2. **全局變量**：使用單例模式時，類型必須正確
+   ```python
+   # ✅ 正確
+   _service: Optional[KGBuilderService] = None
+
+   def get_service() -> KGBuilderService:
+       global _service
+       if _service is None:
+           _service = KGBuilderService()
+       return _service
+   ```
+
+### 文件格式規範
+1. **文件末尾**：必須有換行符（由 pre-commit hook 自動修復）
+2. **行尾空格**：不允許有 trailing whitespace（由 pre-commit hook 自動檢查和修復）
+3. **代碼格式化**：使用 black 自動格式化
+4. **類型檢查**：提交前必須通過 mypy 檢查
+
+**Pre-commit Hooks 自動檢查項目**：
+- ✅ **trailing-whitespace**：自動移除行尾空格
+- ✅ **end-of-file-fixer**：自動修復文件末尾格式（確保文件末尾有換行符）
+- ✅ **black**：自動格式化 Python 代碼
+- ✅ **ruff**：自動檢查和修復代碼風格問題
+- ✅ **mypy**：類型檢查（必須通過）
+- ✅ **check-yaml/json/toml**：配置文件語法檢查
+- ✅ **check-added-large-files**：檢查大文件（>1MB）
+- ✅ **check-merge-conflict**：檢查合併衝突標記
+- ✅ **check-case-conflict**：檢查文件名大小寫衝突
+
+**提交前必須確保**：
+- 所有 pre-commit hooks 檢查通過
+- 如果檢查失敗，會自動修復部分問題，請重新提交修復後的代碼
+
+## 代碼審查檢查清單（2025-11-27 13:00 UTC+8）
+
+### 提交前必須檢查
+- [ ] 所有類型注解完整且正確
+- [ ] 所有可能為 None 的值都有檢查
+- [ ] Import 語句在文件頂部
+- [ ] 沒有未使用的變量
+- [ ] 通過 pre-commit hooks（black, ruff, mypy）
+- [ ] API 調用參數正確
+- [ ] 數據庫連接使用前有 None 檢查
+- [ ] 模型對象使用前有可用性檢查
+
+### 常見錯誤模式
+1. **類型不匹配**：`List[Dict]` vs `List[WorkflowTelemetryEvent]`
+2. **缺少 Optional**：`T = None` 應為 `Optional[T] = None`
+3. **缺少 None 檢查**：直接使用可能為 None 的對象
+4. **Import 位置錯誤**：在代碼中間添加 import
+5. **API 參數錯誤**：傳入不存在的參數名
+
+## 工具使用規範（2025-11-27 13:00 UTC+8）
+
+### 開發時使用
+- 啟用 IDE 的類型檢查功能
+- 使用 mypy 進行類型檢查：`mypy .`
+- 使用 ruff 進行代碼檢查：`ruff check .`
+- 使用 black 進行格式化：`black .`
+
+### CI/CD 檢查
+- pre-commit hooks 必須全部通過
+- mypy 類型檢查必須通過
+- ruff 代碼檢查必須通過
+- black 格式化檢查必須通過

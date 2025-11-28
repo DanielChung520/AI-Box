@@ -112,8 +112,6 @@ class TripleExtractionService:
         """提取三元組"""
         # 步驟 1: NER（實體識別）
         if entities is None and enable_ner:
-            if self.ner_service is None:
-                raise RuntimeError("NER service is not available")
             entities = await self.ner_service.extract_entities(text)
         elif entities is None:
             entities = []
@@ -125,8 +123,6 @@ class TripleExtractionService:
             return []
 
         # 步驟 2: RE（關係抽取）
-        if self.re_service is None:
-            raise RuntimeError("RE service is not available")
         relations = await self.re_service.extract_relations(text, entities)
 
         if not relations:
@@ -135,8 +131,6 @@ class TripleExtractionService:
 
         # 步驟 3: RT（關係分類）
         triples = []
-        if self.rt_service is None:
-            raise RuntimeError("RT service is not available")
         for relation in relations:
             # 對每個關係進行類型分類
             relation_types = await self.rt_service.classify_relation_type(

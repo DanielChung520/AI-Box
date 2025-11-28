@@ -1,0 +1,42 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+# 排除不需要索引的目錄和文件
+
+# 測試文件
+tests/
+**/test_*.py
+**/*_test.py
+
+# 文檔文件
+docs/
+*.md
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+
+# 配置文件
+config/
+.github/
+k8s/
+infra/
+scripts/
+
+# 數據集和模板
+datasets/
+agent_templates.yaml
+
+# Cursor 內部文件
+.cursor/
+
+# Docker 和部署
+Dockerfile
+docker-compose.yml
+.pre-commit-config.yaml
+
+# 大型配置目錄
+agent_process/
+databases/arangodb/tests/
+databases/chromadb/tests/
+
+# 特定大文件
+AI-Box.code-workspace
+requirements*.txt

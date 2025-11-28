@@ -50,6 +50,11 @@ async def extract_relations(request: RERequest) -> JSONResponse:
         )
 
         return APIResponse.success(data=response.model_dump())
+    except RuntimeError as e:
+        return APIResponse.error(
+            message=f"關係抽取失敗: {str(e)}",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     except Exception as e:
         return APIResponse.error(
             message=f"關係抽取失敗: {str(e)}",
@@ -81,6 +86,11 @@ async def extract_relations_from_entities(request: RERequest) -> JSONResponse:
         )
 
         return APIResponse.success(data=response.model_dump())
+    except RuntimeError as e:
+        return APIResponse.error(
+            message=f"關係抽取失敗: {str(e)}",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     except Exception as e:
         return APIResponse.error(
             message=f"關係抽取失敗: {str(e)}",

@@ -29,8 +29,6 @@ class KGBuilderService:
 
     def _ensure_collections(self):
         """確保集合存在"""
-        if self.client is None:
-            raise RuntimeError("ArangoDB client is not initialized")
         if self.client.db is None:
             raise RuntimeError("數據庫連接未初始化")
 
@@ -60,7 +58,7 @@ class KGBuilderService:
         self, text: str, entity_type: str, start: int, end: int
     ) -> str:
         """查找或創建實體（實體去重）"""
-        if self.client is None or self.client.db is None:
+        if self.client.db is None:
             raise RuntimeError("數據庫連接未初始化")
         entity_key = self._generate_entity_key(text, entity_type)
         collection = self.client.db.collection(ENTITIES_COLLECTION)
@@ -103,7 +101,7 @@ class KGBuilderService:
         context: str,
     ) -> Optional[str]:
         """查找或創建關係（關係去重）"""
-        if self.client is None or self.client.db is None:
+        if self.client.db is None:
             raise RuntimeError("數據庫連接未初始化")
         # 生成關係鍵
         key_str = f"{from_vertex}:{relation_type}:{to_vertex}"
@@ -236,7 +234,7 @@ class KGBuilderService:
         offset: int = 0,
     ) -> List[Dict]:
         """查詢實體列表"""
-        if self.client is None or self.client.db is None:
+        if self.client.db is None:
             raise RuntimeError("數據庫連接未初始化")
 
         if self.client.db.aql is None:

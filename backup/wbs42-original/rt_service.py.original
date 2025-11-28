@@ -5,9 +5,8 @@
 
 """RT 關係類型分類服務 - 支持 Ollama 和 transformers 模型"""
 
-import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import List, Optional, Dict
 import structlog
 
 from core.config import get_config_section
@@ -107,10 +106,8 @@ class OllamaRTModel(BaseRTModel):
         object_text: Optional[str] = None,
     ) -> List[RelationType]:
         """使用 Ollama 分類關係類型"""
-        if self.client is None:
-            raise RuntimeError(
-                f"Ollama client is not available for model {self.model_name}"
-            )
+        if not self.is_available():
+            raise RuntimeError(f"Ollama model {self.model_name} is not available")
 
         # 構建上下文
         context_section = ""
@@ -135,9 +132,7 @@ class OllamaRTModel(BaseRTModel):
                 format="json",
             )
 
-            if response is None:
-                logger.error("ollama_rt_no_response", model=self.model_name)
-                return []
+            import json
 
             result_text = response.get("response", "")
             # 嘗試從響應中提取 JSON
@@ -151,15 +146,9 @@ class OllamaRTModel(BaseRTModel):
                     result_text = result_text.split("```")[1].split("```")[0].strip()
 
                 types_data = json.loads(result_text)
-
-                if not isinstance(types_data, list):
-                    logger.error("ollama_rt_invalid_format", model=self.model_name)
-                    return []
-
                 relation_types = []
+
                 for item in types_data:
-                    if not isinstance(item, dict):
-                        continue
                     relation_types.append(
                         RelationType(
                             type=item.get("type", "RELATED_TO"),
@@ -189,8 +178,8 @@ class TransformersRTModel(BaseRTModel):
     def __init__(self, model_name: str = "bert-base-chinese", enable_gpu: bool = False):
         self.model_name = model_name
         self.enable_gpu = enable_gpu
-        self._model: Optional[Any] = None
-        self._tokenizer: Optional[Any] = None
+        self._model = None
+        self._tokenizer = None
         self._load_model()
 
     def _load_model(self):
@@ -229,7 +218,7 @@ class TransformersRTModel(BaseRTModel):
         object_text: Optional[str] = None,
     ) -> List[RelationType]:
         """使用 transformers 分類關係類型（簡化實現）"""
-        if self._model is None or self._tokenizer is None:
+        if not self.is_available():
             raise RuntimeError(
                 f"Transformers RT model {self.model_name} is not available"
             )

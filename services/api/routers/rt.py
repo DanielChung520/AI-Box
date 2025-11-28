@@ -57,6 +57,11 @@ async def classify_relation_type(request: RTRequest) -> JSONResponse:
         )
 
         return APIResponse.success(data=response.model_dump())
+    except RuntimeError as e:
+        return APIResponse.error(
+            message=f"關係類型分類失敗: {str(e)}",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     except Exception as e:
         return APIResponse.error(
             message=f"關係類型分類失敗: {str(e)}",

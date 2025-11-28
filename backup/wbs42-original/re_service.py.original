@@ -5,9 +5,8 @@
 
 """RE 關係抽取服務 - 支持 transformers 和 Ollama 模型"""
 
-import json
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import List, Optional
 import structlog
 
 from core.config import get_config_section
@@ -55,8 +54,8 @@ class TransformersREModel(BaseREModel):
     def __init__(self, model_name: str = "bert-base-chinese", enable_gpu: bool = False):
         self.model_name = model_name
         self.enable_gpu = enable_gpu
-        self._model: Optional[Any] = None
-        self._tokenizer: Optional[Any] = None
+        self._model = None
+        self._tokenizer = None
         self._load_model()
 
     def _load_model(self):
@@ -92,7 +91,7 @@ class TransformersREModel(BaseREModel):
         self, text: str, entities: Optional[List[Entity]] = None
     ) -> List[Relation]:
         """使用 transformers 提取關係（簡化實現）"""
-        if self._model is None or self._tokenizer is None:
+        if not self.is_available():
             raise RuntimeError(
                 f"Transformers RE model {self.model_name} is not available"
             )
@@ -169,10 +168,8 @@ class OllamaREModel(BaseREModel):
         self, text: str, entities: Optional[List[Entity]] = None
     ) -> List[Relation]:
         """使用 Ollama 提取關係"""
-        if self.client is None:
-            raise RuntimeError(
-                f"Ollama client is not available for model {self.model_name}"
-            )
+        if not self.is_available():
+            raise RuntimeError(f"Ollama model {self.model_name} is not available")
 
         # 構建提示詞
         entities_section = ""
@@ -191,9 +188,7 @@ class OllamaREModel(BaseREModel):
                 format="json",
             )
 
-            if response is None:
-                logger.error("ollama_re_no_response", model=self.model_name)
-                return []
+            import json
 
             result_text = response.get("response", "")
             # 嘗試從響應中提取 JSON
@@ -207,34 +202,19 @@ class OllamaREModel(BaseREModel):
                     result_text = result_text.split("```")[1].split("```")[0].strip()
 
                 relations_data = json.loads(result_text)
-
-                if not isinstance(relations_data, list):
-                    logger.error("ollama_re_invalid_format", model=self.model_name)
-                    return []
-
                 relations = []
+
                 for item in relations_data:
-                    if not isinstance(item, dict):
-                        continue
-
-                    subject_data = item.get("subject", {})
-                    object_data = item.get("object", {})
-
-                    if not isinstance(subject_data, dict) or not isinstance(
-                        object_data, dict
-                    ):
-                        continue
-
                     relations.append(
                         Relation(
                             subject=RelationEntity(
-                                text=subject_data.get("text", ""),
-                                label=subject_data.get("label", "UNKNOWN"),
+                                text=item["subject"]["text"],
+                                label=item["subject"]["label"],
                             ),
                             relation=item.get("relation", "RELATED_TO"),
                             object=RelationEntity(
-                                text=object_data.get("text", ""),
-                                label=object_data.get("label", "UNKNOWN"),
+                                text=item["object"]["text"],
+                                label=item["object"]["label"],
                             ),
                             confidence=float(item.get("confidence", 0.5)),
                             context=item.get("context", text),
@@ -340,10 +320,6 @@ class REService:
 
         # 如果沒有提供實體，自動識別
         if entities is None:
-            if self.ner_service is None:
-                raise RuntimeError(
-                    "NER service is not available for automatic entity extraction"
-                )
             entities = await self.ner_service.extract_entities(text)
 
         return await model.extract_relations(text, entities)
