@@ -107,3 +107,13 @@ class LLMRoutingResult(BaseModel):
         None,
         description="當 provider 為本地 LLM 時指派的節點",
     )
+    # 路由元數據
+    routing_strategy: Optional[str] = Field(None, description="使用的路由策略名稱")
+    estimated_latency: Optional[float] = Field(None, description="預估延遲時間（秒）", ge=0.0)
+    estimated_cost: Optional[float] = Field(None, description="預估成本", ge=0.0)
+    quality_score: Optional[float] = Field(
+        None, description="質量評分（0.0-1.0）", ge=0.0, le=1.0
+    )
+    routing_metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="路由元數據（擴展信息）"
+    )
