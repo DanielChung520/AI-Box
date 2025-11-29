@@ -1,32 +1,76 @@
-# 代碼功能說明: Pytest 共享配置和 Fixtures
-# 創建日期: 2025-01-27 (UTC+8)
+# 代碼功能說明: pytest 配置和共享 fixtures
+# 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27 (UTC+8)
+# 最後修改日期: 2025-11-29
 
-"""Pytest 共享配置和 Fixtures"""
+"""pytest 配置和共享測試 fixtures。"""
+
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from services.api.models.ner_models import Entity
+from agents.task_analyzer.models import TaskClassificationResult, TaskType
 
 
 @pytest.fixture
-def mock_entity() -> Entity:
-    """創建模擬實體"""
-    return Entity(
-        text="張三",
-        label="PERSON",
-        start=0,
-        end=2,
-        confidence=0.95,
+def mock_openai_client():
+    """模擬 OpenAI 客戶端。"""
+    mock_client = AsyncMock()
+    mock_client.completions.create = AsyncMock(
+        return_value=MagicMock(
+            choices=[MagicMock(text="Test response")],
+            usage=MagicMock(
+                prompt_tokens=10,
+                completion_tokens=20,
+                total_tokens=30,
+            ),
+        )
+    )
+    mock_client.chat.completions.create = AsyncMock(
+        return_value=MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(content="Test chat response"),
+                )
+            ],
+            usage=MagicMock(
+                prompt_tokens=10,
+                completion_tokens=20,
+                total_tokens=30,
+            ),
+        )
+    )
+    mock_client.embeddings.create = AsyncMock(
+        return_value=MagicMock(
+            data=[MagicMock(embedding=[0.1, 0.2, 0.3])],
+        )
+    )
+    return mock_client
+
+
+@pytest.fixture
+def sample_task_classification():
+    """示例任務分類結果。"""
+    return TaskClassificationResult(
+        task_type=TaskType.QUERY,
+        confidence=0.9,
+        reasoning="Test task classification",
     )
 
 
 @pytest.fixture
-def mock_entities() -> list[Entity]:
-    """創建模擬實體列表"""
+def sample_messages():
+    """示例消息列表。"""
     return [
-        Entity(text="張三", label="PERSON", start=0, end=2, confidence=0.95),
-        Entity(text="微軟", label="ORG", start=5, end=7, confidence=0.90),
-        Entity(text="北京", label="LOC", start=10, end=12, confidence=0.88),
+        {"role": "user", "content": "Hello, how are you?"},
+        {"role": "assistant", "content": "I'm doing well, thank you!"},
     ]
+
+
+@pytest.fixture(autouse=True)
+def setup_env_vars(monkeypatch):
+    """設置測試環境變數。"""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("GROK_API_KEY", "test-grok-key")
+    monkeypatch.setenv("QWEN_API_KEY", "test-qwen-key")

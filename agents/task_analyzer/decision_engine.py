@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 from agents.task_analyzer.models import (
     TaskClassificationResult,
@@ -59,7 +59,7 @@ class DecisionEngine:
         requires_long_horizon = context.get("requires_long_horizon", False)
 
         # 決策邏輯
-        mode = "single"
+        mode: Literal["single", "hybrid"] = "single"
         primary = WorkflowType.LANGCHAIN
         fallback: list[WorkflowType] = []
         reasoning_parts = []

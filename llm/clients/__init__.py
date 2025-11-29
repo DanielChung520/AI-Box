@@ -6,5 +6,20 @@
 """LLM 客戶端接口模組：定義統一的 LLM 客戶端接口。"""
 
 from .base import BaseLLMClient  # noqa: F401
+from .chatgpt import ChatGPTClient  # noqa: F401
+from .gemini import GeminiClient  # noqa: F401
+from .grok import GrokClient  # noqa: F401
+from .qwen import QwenClient  # noqa: F401
+from .ollama import OllamaClient  # noqa: F401
+from .factory import LLMClientFactory, get_client  # noqa: F401
 
-__all__ = ["BaseLLMClient"]
+__all__ = [
+    "BaseLLMClient",
+    "ChatGPTClient",
+    "GeminiClient",
+    "GrokClient",
+    "QwenClient",
+    "OllamaClient",
+    "LLMClientFactory",
+    "get_client",
+]

@@ -123,14 +123,14 @@ class CrewAIToolWrapper(BaseTool):
 
     name: str
     description: str
-    _handler: Callable
+    _handler: Optional[Callable[..., Any]]
     _config: Dict[str, Any]
 
     def __init__(
         self,
         name: str,
         description: str,
-        handler: Optional[Callable],
+        handler: Optional[Callable[..., Any]],
         config: Optional[Dict[str, Any]] = None,
     ):
         """
@@ -159,7 +159,7 @@ class CrewAIToolWrapper(BaseTool):
         Returns:
             工具執行結果
         """
-        if not self._handler:
+        if self._handler is None:
             raise ValueError(f"Tool '{self.name}' has no handler")
 
         try:
@@ -186,7 +186,7 @@ class CrewAIToolWrapper(BaseTool):
         # 如果處理函數是異步的，直接調用
         import inspect
 
-        if self._handler and inspect.iscoroutinefunction(self._handler):
+        if self._handler is not None and inspect.iscoroutinefunction(self._handler):
             merged_kwargs = {**self._config, **kwargs}
             return await self._handler(*args, **merged_kwargs)
         else:

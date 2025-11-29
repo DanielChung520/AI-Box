@@ -33,10 +33,9 @@ class JsonParser(BaseParser):
             self.logger.error("JSON 文件解析失敗", file_path=file_path, error=str(e))
             raise
 
-    def parse_from_bytes(
-        self, file_content: bytes, encoding: str = "utf-8"
-    ) -> Dict[str, Any]:
+    def parse_from_bytes(self, file_content: bytes, **kwargs: Any) -> Dict[str, Any]:
         """從字節內容解析 JSON"""
+        encoding: str = kwargs.get("encoding", "utf-8")
         try:
             text = file_content.decode(encoding)
             data = json.loads(text)

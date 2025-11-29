@@ -15,11 +15,11 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from agents.task_analyzer.analyzer import TaskAnalyzer
-from agents.task_analyzer.models import TaskAnalysisRequest
-from agents.workflows.base import WorkflowRequestContext
-from agents.workflows.factory_router import get_workflow_factory_router
-from agents.task_analyzer.models import WorkflowType
+from agents.task_analyzer.analyzer import TaskAnalyzer  # noqa: E402
+from agents.task_analyzer.models import TaskAnalysisRequest  # noqa: E402
+from agents.workflows.base import WorkflowRequestContext  # noqa: E402
+from agents.workflows.factory_router import get_workflow_factory_router  # noqa: E402
+from agents.task_analyzer.models import WorkflowType  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
