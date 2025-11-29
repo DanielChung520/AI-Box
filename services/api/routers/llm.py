@@ -11,7 +11,7 @@ from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from services.api.clients.ollama_client import (
+from llm.clients.ollama import (
     OllamaClient,
     OllamaClientError,
     OllamaHTTPError,
@@ -87,17 +87,27 @@ async def generate_text(
     settings = get_ollama_settings()
     model = request.model or settings.default_model
     try:
+        # 構建 kwargs，包含 options 和其他參數
+        kwargs: dict = {}
+        if request.options:
+            kwargs["options"] = _options_dict(request.options)
+        if request.format:
+            kwargs["format"] = request.format
+        if request.keep_alive:
+            kwargs["keep_alive"] = request.keep_alive
+        if request.idempotency_key:
+            kwargs["idempotency_key"] = request.idempotency_key
+
         result = await client.generate(
+            request.prompt,
             model=model,
-            prompt=request.prompt,
-            options=_options_dict(request.options),
-            stream=request.stream,
-            format=request.format,
-            keep_alive=request.keep_alive,
-            idempotency_key=request.idempotency_key,
+            **kwargs,
         )
+        # 新接口返回 {"text": "...", "content": "...", "model": "..."}
+        # 為了向後兼容，提取 text 或 content 作為 response
+        response_text = result.get("text") or result.get("content", "")
         return APIResponse.success(
-            data={"model": model, "response": result},
+            data={"model": model, "response": response_text},
             message="Generate success",
         )
     except Exception as exc:  # noqa: BLE001
@@ -114,16 +124,25 @@ async def chat_completion(
     settings = get_ollama_settings()
     model = request.model or settings.default_model
     try:
+        # 構建 kwargs
+        kwargs: dict = {}
+        if request.options:
+            kwargs["options"] = _options_dict(request.options)
+        if request.keep_alive:
+            kwargs["keep_alive"] = request.keep_alive
+        if request.idempotency_key:
+            kwargs["idempotency_key"] = request.idempotency_key
+
         result = await client.chat(
+            [message.model_dump() for message in request.messages],
             model=model,
-            messages=[message.model_dump() for message in request.messages],
-            options=_options_dict(request.options),
-            stream=request.stream,
-            keep_alive=request.keep_alive,
-            idempotency_key=request.idempotency_key,
+            **kwargs,
         )
+        # 新接口返回 {"content": "...", "message": "...", "model": "..."}
+        # 為了向後兼容，提取 content 或 message 作為 response
+        response_content = result.get("content") or result.get("message", "")
         return APIResponse.success(
-            data={"model": model, "response": result},
+            data={"model": model, "response": response_content},
             message="Chat success",
         )
     except Exception as exc:  # noqa: BLE001
@@ -143,8 +162,9 @@ async def create_embeddings(
     embeddings: List[dict] = []
     try:
         for text in request.inputs:
-            result = await client.embeddings(model=model, prompt=text)
-            embeddings.append({"text": text, "embedding": result.get("embedding")})
+            # 新接口返回 List[float]，直接使用
+            embedding = await client.embeddings(text, model=model)
+            embeddings.append({"text": text, "embedding": embedding})
         return APIResponse.success(
             data={"model": model, "items": embeddings},
             message="Embeddings generated",

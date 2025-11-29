@@ -9,7 +9,7 @@ import os
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Query
 
-from services.api.clients.ollama_client import (
+from llm.clients.ollama import (
     get_ollama_client,
     OllamaClientError,
     OllamaHTTPError,
@@ -61,8 +61,8 @@ async def _generate_embeddings_from_texts(
     embeddings: List[List[float]] = []
     try:
         for text in texts:
-            result = await client.embeddings(model=model, prompt=text)
-            embedding = result.get("embedding")
+            # 新接口直接返回 List[float]
+            embedding = await client.embeddings(text, model=model)
             if not embedding:
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,

@@ -10,7 +10,7 @@ from .chatgpt import ChatGPTClient  # noqa: F401
 from .gemini import GeminiClient  # noqa: F401
 from .grok import GrokClient  # noqa: F401
 from .qwen import QwenClient  # noqa: F401
-from .ollama import OllamaClient  # noqa: F401
+from .ollama import OllamaClient, get_ollama_client  # noqa: F401
 from .factory import LLMClientFactory, get_client  # noqa: F401
 
 __all__ = [
@@ -20,6 +20,7 @@ __all__ = [
     "GrokClient",
     "QwenClient",
     "OllamaClient",
+    "get_ollama_client",
     "LLMClientFactory",
     "get_client",
 ]

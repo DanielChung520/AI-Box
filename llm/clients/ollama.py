@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -336,3 +337,15 @@ class OllamaClient(BaseLLMClient):
             如果可用返回 True，否則返回 False
         """
         return self._router is not None and len(self._router.get_nodes()) > 0
+
+
+# 為了向後兼容，提供 get_ollama_client() 函數
+@lru_cache(maxsize=1)
+def get_ollama_client() -> OllamaClient:
+    """
+    FastAPI 依賴注入用的單例函數（向後兼容）。
+
+    Returns:
+        OllamaClient 實例
+    """
+    return OllamaClient()

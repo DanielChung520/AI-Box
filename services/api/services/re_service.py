@@ -14,7 +14,7 @@ from core.config import get_config_section
 from services.api.models.re_models import Relation, RelationEntity
 from services.api.models.ner_models import Entity
 from services.api.services.ner_service import NERService
-from services.api.clients.ollama_client import OllamaClient, get_ollama_client
+from llm.clients.ollama import OllamaClient, get_ollama_client
 
 logger = structlog.get_logger(__name__)
 
@@ -186,8 +186,8 @@ class OllamaREModel(BaseREModel):
 
         try:
             response = await self.client.generate(
+                prompt,
                 model=self.model_name,
-                prompt=prompt,
                 format="json",
             )
 
@@ -195,7 +195,8 @@ class OllamaREModel(BaseREModel):
                 logger.error("ollama_re_no_response", model=self.model_name)
                 return []
 
-            result_text = response.get("response", "")
+            # 新接口返回 {"text": "...", "content": "...", "model": "..."}
+            result_text = response.get("text") or response.get("content", "")
             # 嘗試從響應中提取 JSON
             try:
                 # 移除可能的 markdown 代碼塊標記
