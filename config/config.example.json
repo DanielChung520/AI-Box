@@ -228,5 +228,30 @@
       "collection_name": "aam_memories",
       "graph_name": "memory_graph"
     }
+  },
+  "llm": {
+    "load_balancer": {
+      "strategy": "round_robin",
+      "providers": [
+        "chatgpt",
+        "gemini",
+        "qwen",
+        "grok",
+        "ollama"
+      ],
+      "weights": {
+        "chatgpt": 3,
+        "gemini": 2,
+        "qwen": 2,
+        "grok": 1,
+        "ollama": 1
+      },
+      "cooldown_seconds": 30
+    },
+    "health_check": {
+      "interval": 60.0,
+      "timeout": 5.0,
+      "failure_threshold": 3
+    }
   }
 }

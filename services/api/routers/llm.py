@@ -26,6 +26,29 @@ from services.api.models.ollama import (
     OllamaGenerateRequest,
 )
 
+# 嘗試導入 MoE 管理器（如果可用）
+try:
+    from llm.moe_manager import LLMMoEManager
+
+    _moe_manager: LLMMoEManager | None = None
+
+    def get_moe_manager() -> LLMMoEManager | None:
+        """獲取 MoE 管理器實例（單例）。"""
+        global _moe_manager
+        if _moe_manager is None:
+            try:
+                _moe_manager = LLMMoEManager()
+            except Exception:
+                pass
+        return _moe_manager
+
+except ImportError:
+
+    def get_moe_manager() -> "LLMMoEManager | None":  # type: ignore[no-redef]
+        """獲取 MoE 管理器實例（不可用時返回 None）。"""
+        return None
+
+
 router = APIRouter(prefix="/llm", tags=["LLM"])
 
 OllamaClientDep = Annotated[OllamaClient, Depends(get_ollama_client)]
@@ -128,3 +151,96 @@ async def create_embeddings(
         )
     except Exception as exc:  # noqa: BLE001
         _handle_exception(exc)
+
+
+@router.get("/health", status_code=status.HTTP_200_OK)
+async def llm_health_check():
+    """
+    LLM 服務健康檢查端點。
+
+    Returns:
+        LLM 服務健康狀態和提供商狀態
+    """
+    moe_manager = get_moe_manager()
+    if moe_manager is None:
+        return APIResponse.success(
+            data={
+                "status": "healthy",
+                "service": "llm",
+                "load_balancer": "not_configured",
+                "health_check": "not_configured",
+            },
+            message="LLM service is healthy (basic mode)",
+        )
+
+    # 獲取健康檢查狀態
+    health_status = {}
+    if moe_manager.failover_manager is not None:
+        health_status = moe_manager.failover_manager.get_provider_health_status()
+
+    # 獲取負載均衡器統計
+    load_balancer_stats = {}
+    if moe_manager.load_balancer is not None:
+        load_balancer_stats = {
+            "provider_stats": moe_manager.load_balancer.get_provider_stats(),
+            "overall_stats": moe_manager.load_balancer.get_overall_stats(),
+        }
+
+    return APIResponse.success(
+        data={
+            "status": "healthy",
+            "service": "llm",
+            "load_balancer": load_balancer_stats,
+            "health_check": health_status,
+        },
+        message="LLM service is healthy",
+    )
+
+
+@router.get("/load-balancer/stats", status_code=status.HTTP_200_OK)
+async def get_load_balancer_stats():
+    """
+    獲取負載均衡器統計信息。
+
+    Returns:
+        負載均衡器統計信息
+    """
+    moe_manager = get_moe_manager()
+    if moe_manager is None or moe_manager.load_balancer is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Load balancer is not configured",
+        )
+
+    stats = {
+        "provider_stats": moe_manager.load_balancer.get_provider_stats(),
+        "overall_stats": moe_manager.load_balancer.get_overall_stats(),
+    }
+
+    return APIResponse.success(
+        data=stats,
+        message="Load balancer statistics retrieved",
+    )
+
+
+@router.get("/health-check/status", status_code=status.HTTP_200_OK)
+async def get_health_check_status():
+    """
+    獲取健康檢查狀態。
+
+    Returns:
+        健康檢查狀態信息
+    """
+    moe_manager = get_moe_manager()
+    if moe_manager is None or moe_manager.failover_manager is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Health check is not configured",
+        )
+
+    status_data = moe_manager.failover_manager.get_provider_health_status()
+
+    return APIResponse.success(
+        data=status_data,
+        message="Health check status retrieved",
+    )

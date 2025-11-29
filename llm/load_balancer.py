@@ -11,7 +11,8 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from collections import deque
+from typing import Any, Callable, Deque, Dict, List, Optional
 
 from agents.task_analyzer.models import LLMProvider
 
@@ -29,6 +30,9 @@ class LLMProviderNode:
     active_connections: int = 0
     next_retry_ts: float = field(default=0.0)
     last_used: float = field(default_factory=time.time)
+    average_latency: float = field(default=0.0)
+    last_latency: float = field(default=0.0)
+    response_times: Deque[float] = field(default_factory=lambda: deque(maxlen=100))
 
     def available(self, now: float) -> bool:
         """檢查節點是否可用。"""
@@ -44,6 +48,7 @@ class MultiLLMLoadBalancer:
         strategy: str = "round_robin",
         weights: Optional[Dict[LLMProvider, int]] = None,
         cooldown_seconds: int = 30,
+        health_check_callback: Optional[Callable[[LLMProvider], bool]] = None,
     ):
         """
         初始化多 LLM 負載均衡器。
@@ -60,6 +65,20 @@ class MultiLLMLoadBalancer:
         self.strategy = strategy
         self.cooldown_seconds = max(cooldown_seconds, 5)
 
+        # 驗證策略名稱
+        valid_strategies = [
+            "round_robin",
+            "weighted",
+            "least_connections",
+            "latency_based",
+            "response_time_based",
+        ]
+        if strategy not in valid_strategies:
+            logger.warning(
+                f"Unknown strategy '{strategy}', falling back to 'round_robin'"
+            )
+            self.strategy = "round_robin"
+
         # 創建提供商節點
         self._provider_nodes: Dict[LLMProvider, LLMProviderNode] = {}
         for provider in providers:
@@ -71,12 +90,26 @@ class MultiLLMLoadBalancer:
 
         self._lock = threading.Lock()
         self._rr_index = 0
+        self._health_check_callback = health_check_callback
+
+        # 統計信息
+        self._total_requests: int = 0
+        self._success_count: Dict[LLMProvider, int] = {}
+        self._failure_count: Dict[LLMProvider, int] = {}
+        self._total_latency: Dict[LLMProvider, float] = {}
+        self._request_count: Dict[LLMProvider, int] = {}
 
     def _eligible_providers(self) -> List[LLMProviderNode]:
         """獲取可用的提供商節點。"""
         now = time.time()
         healthy = [
-            node for node in self._provider_nodes.values() if node.available(now)
+            node
+            for node in self._provider_nodes.values()
+            if node.available(now)
+            and (
+                self._health_check_callback is None
+                or self._health_check_callback(node.provider)
+            )
         ]
         return healthy or list(self._provider_nodes.values())
 
@@ -107,6 +140,26 @@ class MultiLLMLoadBalancer:
                     candidates,
                     key=lambda n: n.active_connections,
                 )
+            elif self.strategy == "latency_based":
+                # 基於延遲：選擇平均延遲最低的節點
+                selected_node = min(
+                    candidates,
+                    key=lambda n: (
+                        n.average_latency if n.average_latency > 0 else float("inf")
+                    ),
+                )
+            elif self.strategy == "response_time_based":
+                # 基於響應時間：選擇最近響應時間最短的節點
+                selected_node = min(
+                    candidates,
+                    key=lambda n: (
+                        n.last_latency
+                        if n.last_latency > 0
+                        else (
+                            n.average_latency if n.average_latency > 0 else float("inf")
+                        )
+                    ),
+                )
             else:
                 # 輪詢（默認）
                 selected_node = candidates[self._rr_index % len(candidates)]
@@ -116,14 +169,23 @@ class MultiLLMLoadBalancer:
             selected_node.last_used = time.time()
             selected_node.active_connections += 1
 
+            # 更新統計信息
+            self._total_requests += 1
+            self._request_count[selected_node.provider] = (
+                self._request_count.get(selected_node.provider, 0) + 1
+            )
+
             return selected_node.provider
 
-    def mark_success(self, provider: LLMProvider) -> None:
+    def mark_success(
+        self, provider: LLMProvider, latency: Optional[float] = None
+    ) -> None:
         """
         標記提供商成功。
 
         Args:
             provider: LLM 提供商
+            latency: 請求延遲時間（秒，可選）
         """
         with self._lock:
             if provider in self._provider_nodes:
@@ -131,6 +193,21 @@ class MultiLLMLoadBalancer:
                 node.healthy = True
                 node.next_retry_ts = 0.0
                 node.active_connections = max(0, node.active_connections - 1)
+
+                # 更新統計信息
+                self._success_count[provider] = self._success_count.get(provider, 0) + 1
+                if latency is not None:
+                    self._total_latency[provider] = (
+                        self._total_latency.get(provider, 0.0) + latency
+                    )
+                    # 更新節點的延遲信息
+                    node.last_latency = latency
+                    node.response_times.append(latency)
+                    # 計算平均延遲
+                    if node.response_times:
+                        node.average_latency = sum(node.response_times) / len(
+                            node.response_times
+                        )
 
     def mark_failure(self, provider: LLMProvider) -> None:
         """
@@ -145,6 +222,10 @@ class MultiLLMLoadBalancer:
                 node.healthy = False
                 node.next_retry_ts = time.time() + self.cooldown_seconds
                 node.active_connections = max(0, node.active_connections - 1)
+
+                # 更新統計信息
+                self._failure_count[provider] = self._failure_count.get(provider, 0) + 1
+
                 logger.warning(
                     f"Marked {provider.value} as failed, will retry after {self.cooldown_seconds}s"
                 )
@@ -160,6 +241,11 @@ class MultiLLMLoadBalancer:
             stats: Dict[LLMProvider, Dict[str, Any]] = {}
             now = time.time()
             for provider, node in self._provider_nodes.items():
+                request_count = self._request_count.get(provider, 0)
+                success_count = self._success_count.get(provider, 0)
+                failure_count = self._failure_count.get(provider, 0)
+                total_latency = self._total_latency.get(provider, 0.0)
+
                 stats[provider] = {
                     "healthy": node.healthy,
                     "available": node.available(now),
@@ -167,8 +253,40 @@ class MultiLLMLoadBalancer:
                     "active_connections": node.active_connections,
                     "last_used": node.last_used,
                     "next_retry_ts": node.next_retry_ts,
+                    "request_count": request_count,
+                    "success_count": success_count,
+                    "failure_count": failure_count,
+                    "success_rate": (
+                        success_count / request_count if request_count > 0 else 0.0
+                    ),
+                    "average_latency": (
+                        total_latency / success_count if success_count > 0 else 0.0
+                    ),
                 }
             return stats
+
+    def get_overall_stats(self) -> Dict[str, Any]:
+        """
+        獲取整體統計信息。
+
+        Returns:
+            整體統計字典
+        """
+        with self._lock:
+            total_success = sum(self._success_count.values())
+            total_failure = sum(self._failure_count.values())
+            total_requests = self._total_requests
+
+            return {
+                "total_requests": total_requests,
+                "total_success": total_success,
+                "total_failure": total_failure,
+                "success_rate": (
+                    total_success / total_requests if total_requests > 0 else 0.0
+                ),
+                "strategy": self.strategy,
+                "provider_count": len(self._provider_nodes),
+            }
 
     def update_weight(self, provider: LLMProvider, weight: int) -> None:
         """

@@ -489,3 +489,181 @@ pip install black ruff mypy
 - 代碼格式化檢查必須通過
 
 如果 CI 檢查失敗，請在本地修復後重新提交。
+
+## 項目控制表更新規範（2025-01-27 14:00 UTC+8）
+
+### 更新 PROJECT_CONTROL_TABLE.md 的強制要求
+
+**重要**：更新 `docs/PROJECT_CONTROL_TABLE.md` 時，**必須在原有文件基礎上進行更新**，**嚴禁直接創建新文件或覆蓋整個文件**。
+
+#### 更新原則
+
+1. **必須讀取現有文件**：更新前必須先讀取現有的 `PROJECT_CONTROL_TABLE.md` 文件內容
+2. **局部更新**：只更新需要修改的部分（如任務狀態、完成日期、進度百分比等）
+3. **保留原有結構**：保持文件的整體結構、格式和未修改的內容不變
+4. **禁止覆蓋**：不得使用 `write` 工具直接覆蓋整個文件
+
+#### 正確的更新方式
+
+**✅ 推薦方式 1：使用 Python 腳本讀取-修改-寫回**
+
+```python
+# 讀取現有文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# 只修改需要更新的部分
+content = content.replace("舊狀態", "新狀態")
+# 或使用正則表達式精確匹配需要更新的行
+
+# 寫回文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w', encoding='utf-8') as f:
+    f.write(content)
+```
+
+**✅ 推薦方式 2：使用 sed 或 grep 進行局部替換**
+
+```bash
+# 使用 sed 替換特定行
+sed -i 's/舊內容/新內容/g' docs/PROJECT_CONTROL_TABLE.md
+```
+
+**✅ 推薦方式 3：使用 search_replace 工具進行精確替換**
+
+```python
+# 使用 search_replace 工具，提供足夠的上下文確保唯一匹配
+search_replace(
+    file_path="docs/PROJECT_CONTROL_TABLE.md",
+    old_string="| 5.1.1 | LLM Router 核心 | 2 天 | ⏸️ | 0% | - | - | AI-1 |",
+    new_string="| 5.1.1 | LLM Router 核心 | 2 天 | ✅ | 100% | 2025-01-27 | 2025-01-27 | AI-1 |"
+)
+```
+
+#### 錯誤的更新方式（禁止）
+
+**❌ 錯誤方式 1：直接創建新文件**
+
+```python
+# ❌ 禁止：直接創建新文件
+write("docs/PROJECT_CONTROL_TABLE.md", "新內容...")
+```
+
+**❌ 錯誤方式 2：覆蓋整個文件**
+
+```python
+# ❌ 禁止：讀取備份文件然後覆蓋原文件
+with open("backup.md", 'r') as f:
+    content = f.read()
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w') as f:
+    f.write(content)  # 這會丟失原文件中的其他更新
+```
+
+**❌ 錯誤方式 3：不讀取原文件就更新**
+
+```python
+# ❌ 禁止：不讀取原文件，直接寫入
+content = "新內容..."
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w') as f:
+    f.write(content)
+```
+
+#### 更新前檢查清單
+
+在更新 `PROJECT_CONTROL_TABLE.md` 前，必須：
+
+- [ ] 確認已讀取現有文件內容
+- [ ] 確認只更新需要修改的部分
+- [ ] 確認保留文件的整體結構
+- [ ] 確認未修改的內容保持不變
+- [ ] 確認更新後的格式正確（Markdown 表格格式）
+
+#### 更新後驗證
+
+更新完成後，應該驗證：
+
+- [ ] 文件格式正確（Markdown 表格可以正常渲染）
+- [ ] 未修改的內容仍然存在
+- [ ] 更新的內容正確反映實際進度
+- [ ] 文件結構完整（所有章節都存在）
+
+#### 常見更新場景示例
+
+**場景 1：更新單個任務狀態**
+
+```python
+# 讀取文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# 更新特定任務
+content = content.replace(
+    "| 5.1.1 | LLM Router 核心 | 2 天 | ⏸️ | 0% | - | - | AI-1 |",
+    "| 5.1.1 | LLM Router 核心 | 2 天 | ✅ | 100% | 2025-01-27 | 2025-01-27 | AI-1 |"
+)
+
+# 寫回文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w', encoding='utf-8') as f:
+    f.write(content)
+```
+
+**場景 2：更新階段進度**
+
+```python
+# 讀取文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# 更新進度
+content = content.replace(
+    "| **階段五** | LLM MoE 階段 | ... | 🔄 進行中 | 25% |",
+    "| **階段五** | LLM MoE 階段 | ... | 🔄 進行中 | 78.6% (11/14) |"
+)
+
+# 寫回文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w', encoding='utf-8') as f:
+    f.write(content)
+```
+
+**場景 3：批量更新多個任務**
+
+```python
+# 讀取文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# 定義更新映射
+updates = {
+    "| 5.1.1 | ... | ⏸️ | 0% |": "| 5.1.1 | ... | ✅ | 100% | 2025-01-27 | 2025-01-27 |",
+    "| 5.1.2 | ... | ⏸️ | 0% |": "| 5.1.2 | ... | ✅ | 100% | 2025-01-27 | 2025-01-27 |",
+}
+
+# 批量更新
+for old, new in updates.items():
+    content = content.replace(old, new)
+
+# 寫回文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w', encoding='utf-8') as f:
+    f.write(content)
+```
+
+#### 緊急情況處理
+
+如果誤操作導致文件損壞：
+
+1. **立即停止**：不要繼續修改
+2. **檢查 Git 歷史**：使用 `git log docs/PROJECT_CONTROL_TABLE.md` 查看歷史版本
+3. **恢復備份**：如果有備份文件（如 `.backup`），從備份恢復
+4. **從 Git 恢復**：使用 `git checkout HEAD -- docs/PROJECT_CONTROL_TABLE.md` 恢復到最後一次提交的版本
+5. **手動修復**：如果以上方法都不可用，手動對比並修復文件
+
+#### 總結
+
+**核心原則**：
+- ✅ **必須**在原有文件基礎上更新
+- ✅ **必須**先讀取現有文件內容
+- ✅ **必須**只更新需要修改的部分
+- ❌ **禁止**直接創建新文件
+- ❌ **禁止**覆蓋整個文件
+- ❌ **禁止**不讀取原文件就更新
+
+遵循這些規範可以確保項目控制表的更新不會丟失已有的進度記錄，避免因誤操作導致的數據丟失。

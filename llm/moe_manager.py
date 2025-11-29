@@ -17,6 +17,17 @@ from .clients.factory import LLMClientFactory
 from .clients.base import BaseLLMClient
 from .routing.dynamic import DynamicRouter
 from .routing.evaluator import RoutingEvaluator
+from .load_balancer import MultiLLMLoadBalancer
+from .failover import LLMFailoverManager
+from .config import (
+    get_load_balancer_strategy,
+    get_load_balancer_weights,
+    get_load_balancer_cooldown,
+    get_load_balancer_providers,
+    get_health_check_interval,
+    get_health_check_timeout,
+    get_health_check_failure_threshold,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +40,8 @@ class LLMMoEManager:
         dynamic_router: Optional[DynamicRouter] = None,
         evaluator: Optional[RoutingEvaluator] = None,
         enable_failover: bool = True,
+        load_balancer: Optional[MultiLLMLoadBalancer] = None,
+        failover_manager: Optional[LLMFailoverManager] = None,
     ):
         """
         初始化 LLM MoE 管理器。
@@ -37,10 +50,62 @@ class LLMMoEManager:
             dynamic_router: 動態路由器（可選，自動創建）
             evaluator: 路由評估器（可選，自動創建）
             enable_failover: 是否啟用故障轉移
+            load_balancer: 負載均衡器（可選，自動創建）
+            failover_manager: 故障轉移管理器（可選，自動創建）
         """
         self.dynamic_router = dynamic_router or DynamicRouter()
         self.evaluator = evaluator or RoutingEvaluator()
         self.enable_failover = enable_failover
+
+        # 負載均衡器和故障轉移管理器
+        if failover_manager is None and enable_failover:
+            # 從配置文件創建故障轉移管理器
+            self.failover_manager = LLMFailoverManager(
+                health_check_interval=get_health_check_interval(),
+                health_check_timeout=get_health_check_timeout(),
+                failure_threshold=get_health_check_failure_threshold(),
+            )
+        else:
+            self.failover_manager = failover_manager  # type: ignore[assignment]
+
+        if load_balancer is None:
+            # 從配置文件創建負載均衡器
+            providers = get_load_balancer_providers()
+            strategy = get_load_balancer_strategy()
+            weights = get_load_balancer_weights()
+            cooldown = get_load_balancer_cooldown()
+
+            # 如果提供了故障轉移管理器，使用其健康檢查回調
+            health_check_callback = None
+            if self.failover_manager is not None:
+                health_check_callback = self.failover_manager.is_provider_healthy
+
+            self.load_balancer = MultiLLMLoadBalancer(
+                providers=providers,
+                strategy=strategy,
+                weights=weights if weights else None,
+                cooldown_seconds=cooldown,
+                health_check_callback=health_check_callback,
+            )
+        else:
+            self.load_balancer = load_balancer
+
+        # 如果提供了故障轉移管理器，啟動健康檢查並整合到負載均衡器
+        if self.failover_manager is not None and self.load_balancer is not None:
+            # 啟動健康檢查循環
+            import asyncio
+
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # 如果事件循環正在運行，創建任務
+                    asyncio.create_task(self.failover_manager.start())
+                else:
+                    # 否則直接啟動
+                    loop.run_until_complete(self.failover_manager.start())
+            except RuntimeError:
+                # 沒有事件循環，稍後啟動
+                pass
 
         # 客戶端緩存
         self._client_cache: Dict[LLMProvider, BaseLLMClient] = {}
@@ -93,12 +158,18 @@ class LLMMoEManager:
 
         # 選擇 LLM 提供商
         if provider is None and task_classification is not None:
-            # 使用路由策略選擇提供商
-            routing_result = self.dynamic_router.get_strategy().select_provider(
-                task_classification, prompt, context
-            )
-            provider = routing_result.provider
-            strategy_name = routing_result.metadata.get("strategy", "unknown")
+            # 優先使用負載均衡器選擇提供商（如果啟用）
+            if self.load_balancer is not None:
+                # 先從負載均衡器獲取候選提供商
+                provider = self.load_balancer.select_provider()
+                strategy_name = f"load_balancer_{self.load_balancer.strategy}"
+            else:
+                # 使用路由策略選擇提供商
+                routing_result = self.dynamic_router.get_strategy().select_provider(
+                    task_classification, prompt, context
+                )
+                provider = routing_result.provider
+                strategy_name = routing_result.metadata.get("strategy", "unknown")
         else:
             provider = provider or LLMProvider.CHATGPT
             strategy_name = "manual"
@@ -135,6 +206,10 @@ class LLMMoEManager:
         except Exception as exc:
             latency = time.time() - start_time
             logger.error(f"LLM generate error with {provider.value}: {exc}")
+
+            # 標記負載均衡器失敗
+            if self.load_balancer is not None:
+                self.load_balancer.mark_failure(provider)
 
             # 記錄失敗
             if task_classification is not None:
@@ -193,14 +268,20 @@ class LLMMoEManager:
 
         # 選擇 LLM 提供商
         if provider is None and task_classification is not None:
-            # 使用路由策略選擇提供商
-            # 從最後一條消息提取任務描述
-            task_description = messages[-1].get("content", "") if messages else ""
-            routing_result = self.dynamic_router.get_strategy().select_provider(
-                task_classification, task_description, context
-            )
-            provider = routing_result.provider
-            strategy_name = routing_result.metadata.get("strategy", "unknown")
+            # 優先使用負載均衡器選擇提供商（如果啟用）
+            if self.load_balancer is not None:
+                # 先從負載均衡器獲取候選提供商
+                provider = self.load_balancer.select_provider()
+                strategy_name = f"load_balancer_{self.load_balancer.strategy}"
+            else:
+                # 使用路由策略選擇提供商
+                # 從最後一條消息提取任務描述
+                task_description = messages[-1].get("content", "") if messages else ""
+                routing_result = self.dynamic_router.get_strategy().select_provider(
+                    task_classification, task_description, context
+                )
+                provider = routing_result.provider
+                strategy_name = routing_result.metadata.get("strategy", "unknown")
         else:
             provider = provider or LLMProvider.CHATGPT
             strategy_name = "manual"
@@ -222,6 +303,10 @@ class LLMMoEManager:
 
             latency = time.time() - start_time
 
+            # 標記負載均衡器成功
+            if self.load_balancer is not None:
+                self.load_balancer.mark_success(provider, latency=latency)
+
             # 記錄路由結果
             if task_classification is not None:
                 self.evaluator.record_decision(
@@ -237,6 +322,10 @@ class LLMMoEManager:
         except Exception as exc:
             latency = time.time() - start_time
             logger.error(f"LLM chat error with {provider.value}: {exc}")
+
+            # 標記負載均衡器失敗
+            if self.load_balancer is not None:
+                self.load_balancer.mark_failure(provider)
 
             # 記錄失敗
             if task_classification is not None:
@@ -459,8 +548,23 @@ class LLMMoEManager:
         Returns:
             路由指標字典
         """
-        return {
+        metrics: Dict[str, Any] = {
             "provider_metrics": self.evaluator.get_provider_metrics(),
             "strategy_metrics": self.evaluator.get_strategy_metrics(),
             "recommendations": self.evaluator.get_recommendations(),
         }
+
+        # 添加負載均衡器統計信息
+        if self.load_balancer is not None:
+            metrics["load_balancer"] = {
+                "provider_stats": self.load_balancer.get_provider_stats(),
+                "overall_stats": self.load_balancer.get_overall_stats(),
+            }
+
+        # 添加健康檢查狀態
+        if self.failover_manager is not None:
+            metrics[
+                "health_status"
+            ] = self.failover_manager.get_provider_health_status()
+
+        return metrics
