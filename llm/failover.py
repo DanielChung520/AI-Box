@@ -126,10 +126,32 @@ class LLMFailoverManager:
 
         try:
             if client is None:
-                client = LLMClientFactory.create_client(provider, use_cache=True)
+                try:
+                    client = LLMClientFactory.create_client(provider, use_cache=True)
+                except Exception as exc:
+                    latency = time.time() - start_time
+                    logger.warning(
+                        f"Failed to create client for {provider.value}: {exc}"
+                    )
+                    return HealthCheckResult(
+                        provider=provider,
+                        healthy=False,
+                        latency=latency,
+                        error=f"Failed to create client: {exc}",
+                    )
+
+            if client is None:
+                latency = time.time() - start_time
+                return HealthCheckResult(
+                    provider=provider,
+                    healthy=False,
+                    latency=latency,
+                    error="Client is None",
+                )
 
             if not client.is_available():
                 latency = time.time() - start_time
+                logger.debug(f"Client {provider.value} is not available")
                 return HealthCheckResult(
                     provider=provider,
                     healthy=False,
@@ -144,6 +166,10 @@ class LLMFailoverManager:
                     timeout=self.health_check_timeout,
                 )
                 latency = time.time() - start_time
+                logger.debug(
+                    f"Health check passed for {provider.value} "
+                    f"(latency: {latency:.3f}s)"
+                )
                 return HealthCheckResult(
                     provider=provider,
                     healthy=True,
@@ -151,6 +177,10 @@ class LLMFailoverManager:
                 )
             except asyncio.TimeoutError:
                 latency = time.time() - start_time
+                logger.warning(
+                    f"Health check timeout for {provider.value} "
+                    f"(timeout: {self.health_check_timeout}s)"
+                )
                 return HealthCheckResult(
                     provider=provider,
                     healthy=False,
@@ -160,6 +190,10 @@ class LLMFailoverManager:
 
         except Exception as exc:
             latency = time.time() - start_time
+            logger.error(
+                f"Health check error for {provider.value}: {exc}",
+                exc_info=True,
+            )
             return HealthCheckResult(
                 provider=provider,
                 healthy=False,
@@ -232,19 +266,32 @@ class LLMFailoverManager:
             如果健康返回 True
         """
         if provider not in self._provider_health:
-            return True  # 未知狀態視為健康
+            # 未知狀態視為健康（首次檢查前假設健康）
+            logger.debug(f"Provider {provider.value} has no health check history")
+            return True
 
         result = self._provider_health[provider]
         failure_count = self._failure_counts.get(provider, 0)
 
         # 檢查是否超過失敗閾值
         if failure_count >= self.failure_threshold:
+            logger.debug(
+                f"Provider {provider.value} exceeded failure threshold "
+                f"({failure_count}/{self.failure_threshold})"
+            )
             return False
 
         # 檢查健康檢查結果是否過期（超過2倍間隔）
         last_check = self._last_health_check.get(provider, 0)
-        if time.time() - last_check > self.health_check_interval * 2:
-            return True  # 過期視為健康（避免誤判）
+        current_time = time.time()
+        if current_time - last_check > self.health_check_interval * 2:
+            # 過期視為健康（避免誤判，但記錄警告）
+            logger.warning(
+                f"Provider {provider.value} health check expired "
+                f"({current_time - last_check:.1f}s ago, "
+                f"threshold: {self.health_check_interval * 2}s)"
+            )
+            return True
 
         return result.healthy
 
@@ -306,6 +353,7 @@ class LLMFailoverManager:
                     if config.jitter:
                         import random
 
+                        # Jitter: 在 0.5x 到 1.0x 之間隨機調整延遲
                         delay = delay * (0.5 + random.random() * 0.5)
 
                     logger.warning(

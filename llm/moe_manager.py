@@ -431,7 +431,7 @@ class LLMMoEManager:
         Raises:
             Exception: 如果所有提供商都失敗
         """
-        # 定義備用提供商順序
+        # 定義備用提供商順序（優先級從高到低）
         fallback_providers = [
             LLMProvider.GEMINI,
             LLMProvider.QWEN,
@@ -443,12 +443,37 @@ class LLMMoEManager:
         if failed_provider in fallback_providers:
             fallback_providers.remove(failed_provider)
 
+        # 如果啟用了故障轉移管理器，優先選擇健康的提供商
+        if self.failover_manager is not None:
+            healthy_providers = self.failover_manager.get_healthy_providers(
+                fallback_providers
+            )
+            if healthy_providers:
+                # 優先使用健康的提供商
+                fallback_providers = healthy_providers + [
+                    p for p in fallback_providers if p not in healthy_providers
+                ]
+
+        last_exception: Optional[Exception] = None
+
         # 嘗試備用提供商
         for fallback in fallback_providers:
             try:
-                logger.info(f"Failing over to {fallback.value}")
+                logger.info(
+                    f"Failing over from {failed_provider.value} to {fallback.value}"
+                )
                 client = self.get_client(fallback)
+
                 if not client.is_available():
+                    logger.debug(f"Provider {fallback.value} is not available")
+                    continue
+
+                # 檢查健康狀態（如果啟用了故障轉移管理器）
+                if (
+                    self.failover_manager is not None
+                    and not self.failover_manager.is_provider_healthy(fallback)
+                ):
+                    logger.debug(f"Provider {fallback.value} is not healthy, skipping")
                     continue
 
                 result = await client.generate(
@@ -459,17 +484,37 @@ class LLMMoEManager:
                     **kwargs,
                 )
 
-                logger.info(f"Successfully failed over to {fallback.value}")
+                logger.info(
+                    f"Successfully failed over from {failed_provider.value} "
+                    f"to {fallback.value}"
+                )
+
+                # 標記負載均衡器成功（如果啟用）
+                if self.load_balancer is not None:
+                    self.load_balancer.mark_success(fallback)
+
                 return result
 
             except Exception as exc:
-                logger.warning(f"Fallback to {fallback.value} also failed: {exc}")
+                last_exception = exc
+                logger.warning(
+                    f"Fallback to {fallback.value} failed: {exc}",
+                    exc_info=True,
+                )
+
+                # 標記負載均衡器失敗（如果啟用）
+                if self.load_balancer is not None:
+                    self.load_balancer.mark_failure(fallback)
+
                 continue
 
         # 所有提供商都失敗
-        raise Exception(
-            f"All LLM providers failed. Original error from {failed_provider.value}"
+        error_msg = (
+            f"All LLM providers failed. " f"Original provider: {failed_provider.value}"
         )
+        if last_exception:
+            error_msg += f". Last error: {last_exception}"
+        raise Exception(error_msg)
 
     async def _failover_chat(
         self,
@@ -501,7 +546,7 @@ class LLMMoEManager:
         Raises:
             Exception: 如果所有提供商都失敗
         """
-        # 定義備用提供商順序
+        # 定義備用提供商順序（優先級從高到低）
         fallback_providers = [
             LLMProvider.GEMINI,
             LLMProvider.QWEN,
@@ -513,12 +558,37 @@ class LLMMoEManager:
         if failed_provider in fallback_providers:
             fallback_providers.remove(failed_provider)
 
+        # 如果啟用了故障轉移管理器，優先選擇健康的提供商
+        if self.failover_manager is not None:
+            healthy_providers = self.failover_manager.get_healthy_providers(
+                fallback_providers
+            )
+            if healthy_providers:
+                # 優先使用健康的提供商
+                fallback_providers = healthy_providers + [
+                    p for p in fallback_providers if p not in healthy_providers
+                ]
+
+        last_exception: Optional[Exception] = None
+
         # 嘗試備用提供商
         for fallback in fallback_providers:
             try:
-                logger.info(f"Failing over to {fallback.value}")
+                logger.info(
+                    f"Failing over from {failed_provider.value} to {fallback.value}"
+                )
                 client = self.get_client(fallback)
+
                 if not client.is_available():
+                    logger.debug(f"Provider {fallback.value} is not available")
+                    continue
+
+                # 檢查健康狀態（如果啟用了故障轉移管理器）
+                if (
+                    self.failover_manager is not None
+                    and not self.failover_manager.is_provider_healthy(fallback)
+                ):
+                    logger.debug(f"Provider {fallback.value} is not healthy, skipping")
                     continue
 
                 result = await client.chat(
@@ -529,17 +599,37 @@ class LLMMoEManager:
                     **kwargs,
                 )
 
-                logger.info(f"Successfully failed over to {fallback.value}")
+                logger.info(
+                    f"Successfully failed over from {failed_provider.value} "
+                    f"to {fallback.value}"
+                )
+
+                # 標記負載均衡器成功（如果啟用）
+                if self.load_balancer is not None:
+                    self.load_balancer.mark_success(fallback)
+
                 return result
 
             except Exception as exc:
-                logger.warning(f"Fallback to {fallback.value} also failed: {exc}")
+                last_exception = exc
+                logger.warning(
+                    f"Fallback to {fallback.value} failed: {exc}",
+                    exc_info=True,
+                )
+
+                # 標記負載均衡器失敗（如果啟用）
+                if self.load_balancer is not None:
+                    self.load_balancer.mark_failure(fallback)
+
                 continue
 
         # 所有提供商都失敗
-        raise Exception(
-            f"All LLM providers failed. Original error from {failed_provider.value}"
+        error_msg = (
+            f"All LLM providers failed. " f"Original provider: {failed_provider.value}"
         )
+        if last_exception:
+            error_msg += f". Last error: {last_exception}"
+        raise Exception(error_msg)
 
     def get_routing_metrics(self) -> Dict[str, Any]:
         """
