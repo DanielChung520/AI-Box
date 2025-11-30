@@ -320,6 +320,8 @@ start_fastapi() {
     fi
 
     # 檢查依賴模組
+    # 设置 PYTHONPATH 以确保可以导入模块
+    export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
     if ! "$PYTHON_CMD" -c "from api.main import app" 2>/dev/null; then
         echo -e "${RED}錯誤: 無法導入 FastAPI 應用${NC}"
         echo -e "${YELLOW}請檢查依賴是否安裝完整${NC}"
