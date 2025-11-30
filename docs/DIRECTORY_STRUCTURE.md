@@ -275,6 +275,88 @@ AI-Box/
 │   ├── file_storage.py                      # 文件存儲抽象
 │   └── models.py                            # 存儲數據模型
 │
+├── agent_process/                          # Agent 基礎設施（保留）
+│   ├── __init__.py
+│   ├── memory/                             # 記憶管理（Agent 基礎設施）
+│   │   ├── __init__.py
+│   │   ├── manager.py                     # Memory Manager 實現
+│   │   └── aam/                           # AAM（記憶增強模組）
+│   │       ├── __init__.py
+│   │       ├── aam_core.py                # AAM 核心管理器
+│   │       ├── models.py                  # AAM 數據模型
+│   │       ├── storage_adapter.py         # 存儲適配器
+│   │       ├── context_integration.py     # Context 集成
+│   │       ├── kg_query_integration.py    # KG 查詢集成
+│   │       ├── kg_builder_integration.py  # KG 構建集成
+│   │       ├── hybrid_rag.py             # 混合 RAG
+│   │       ├── realtime_retrieval.py      # 實時檢索
+│   │       ├── knowledge_extraction_agent.py  # 知識提取 Agent
+│   │       └── async_processor.py         # 異步處理器
+│   ├── tools/                              # 工具註冊表（Agent 基礎設施）
+│   │   ├── __init__.py
+│   │   └── registry.py                   # Tool Registry 實現
+│   ├── context/                            # Context 管理（適配器，已遷移到 genai/workflows/context/）
+│   │   └── __init__.py                    # 適配器文件
+│   ├── retrieval/                          # 檢索管理（適配器，已遷移到 genai/workflows/rag/）
+│   │   └── __init__.py                    # 適配器文件
+│   └── prompt/                             # Prompt 管理（適配器，已遷移到 genai/prompt/）
+│       └── __init__.py                    # 適配器文件
+│
+├── services/                               # 適配器目錄（向後兼容，保留）
+│   ├── __init__.py
+│   ├── agent_registry/                     # Agent Registry 適配器
+│   │   └── __init__.py                    # 重新導出 agents.services.registry
+│   ├── security/                           # Security 適配器
+│   │   └── __init__.py                    # 重新導出 system.security
+│   ├── file_server/                        # File Server 適配器
+│   │   └── __init__.py                    # 重新導出 agents.services.file_service
+│   ├── result_processor/                   # Result Processor 適配器
+│   │   └── __init__.py                    # 重新導出 agents.services.processing
+│   ├── mcp_server/                         # MCP Server 適配器
+│   │   ├── __init__.py
+│   │   └── tools/                          # MCP 工具配置
+│   │       └── config.yaml                # MCP 工具配置文件
+│   └── api/                                # API 適配器
+│       ├── __init__.py
+│       ├── routers/                        # 路由適配器（GenAI 路由）
+│       │   ├── __init__.py
+│       │   ├── aam_async_tasks.py         # 重新導出 genai.api.routers.aam_async_tasks
+│       │   ├── chunk_processing.py         # 重新導出 genai.api.routers.chunk_processing
+│       │   ├── kg_builder.py              # 重新導出 genai.api.routers.kg_builder
+│       │   ├── kg_query.py                # 重新導出 genai.api.routers.kg_query
+│       │   ├── ner.py                     # 重新導出 genai.api.routers.ner
+│       │   ├── re.py                      # 重新導出 genai.api.routers.re
+│       │   ├── rt.py                      # 重新導出 genai.api.routers.rt
+│       │   └── triple_extraction.py       # 重新導出 genai.api.routers.triple_extraction
+│       ├── middleware/                     # 中間件適配器
+│       │   ├── __init__.py
+│       │   ├── error_handler.py           # 重新導出 api.middleware.error_handler
+│       │   ├── logging.py                 # 重新導出 api.middleware.logging
+│       │   └── request_id.py              # 重新導出 api.middleware.request_id
+│       └── core/                           # 核心適配器
+│           ├── __init__.py
+│           ├── response.py                # 重新導出 api.core.response
+│           ├── settings.py                # 重新導出 api.core.settings
+│           └── version.py                 # 重新導出 api.core.version
+│
+├── chroma_data/                            # ChromaDB 數據目錄（運行時數據，不提交到 Git）
+│   └── ...                                 # ChromaDB 持久化模式的數據文件
+│                                           # 包含: chroma.sqlite3, index/ 等
+│
+├── datasets/                               # 數據集目錄（運行時數據，部分不提交到 Git）
+│   ├── files/                              # 用戶上傳的文件存儲目錄
+│   │   └── [hash]/                        # 按文件 ID 前2個字符分組的文件
+│   ├── autogen/                            # AutoGen 相關數據
+│   │   └── checkpoints/                   # AutoGen 任務檢查點文件
+│   ├── agent_files/                        # Agent 產出的文件（HTML/PDF等）
+│   ├── arangodb/                           # ArangoDB 種子數據
+│   │   ├── schema.yml                     # 數據庫架構定義
+│   │   └── seed_data.json                 # 初始數據
+│   ├── crewai/                             # CrewAI 相關數據
+│   │   └── agent_templates.yaml           # Agent 模板文件
+│   └── chromadb/                           # ChromaDB 相關數據
+│
+
 ├── docs/                                    # 文檔
 │   ├── architecture.md                      # 架構文檔
 │   ├── api_reference.md                     # API 參考
@@ -468,16 +550,187 @@ AI-Box/
 | `services/security/` | `system/security/` | 組件分離 |
 | `services/api/main.py` | `api/main.py` | 統一入口 |
 
+
+
 ---
 
-## 📝 注意事項
+### 8. agent_process/ - Agent 基礎設施
+
+**職責**: Agent 的基礎設施組件（記憶管理、工具註冊表）
+
+**結構說明**:
+- `memory/` - 記憶管理器（MemoryManager）和 AAM（記憶增強模組）
+- `tools/` - 工具註冊表（ToolRegistry）
+- `context/` - Context 管理適配器（已遷移到 `genai/workflows/context/`）
+- `retrieval/` - 檢索管理適配器（已遷移到 `genai/workflows/rag/`）
+- `prompt/` - Prompt 管理適配器（已遷移到 `genai/prompt/`）
+
+**保留原因**:
+- `memory/` 和 `tools/` 仍在被 `agents/core/*/agent.py` 使用
+- 這些是 Agent 的基礎設施，暫時保留在原位置
+- 其他部分已遷移，只保留適配器
+
+**遷移狀態**:
+- ✅ `context/` → `genai/workflows/context/` (已遷移，保留適配器)
+- ✅ `retrieval/` → `genai/workflows/rag/` (已遷移，保留適配器)
+- ✅ `prompt/` → `genai/prompt/` (已遷移，保留適配器)
+- ⏸️ `memory/` - 保留（仍在被使用）
+- ⏸️ `tools/` - 保留（仍在被使用）
+
+---
+
+### 9. services/ - 適配器目錄
+
+**職責**: 提供向後兼容的適配器，重新導出新位置的模組
+
+**結構說明**:
+- `agent_registry/` - 重新導出 `agents.services.registry`
+- `security/` - 重新導出 `system.security`
+- `file_server/` - 重新導出 `agents.services.file_service`
+- `result_processor/` - 重新導出 `agents.services.processing`
+- `mcp_server/` - 重新導出 `mcp.server`
+- `api/` - 重新導出 `api` 和 `genai.api.routers`
+
+**保留原因**:
+- 確保舊代碼仍可使用 `services.*` 路徑
+- 提供平滑的遷移過渡期
+- 所有適配器文件只包含重新導出語句
+
+**遷移狀態**:
+- ✅ 所有實際文件已遷移到新位置
+- ✅ 只保留適配器文件（`__init__.py`）
+- ✅ 適配器確保向後兼容
+
+---
+
+### 10. chroma_data/ - ChromaDB 數據目錄
+
+**職責**: ChromaDB 持久化模式的數據存儲
+
+**結構說明**:
+- 運行時自動創建的數據目錄
+- 包含 ChromaDB 的向量數據文件（`.sqlite3`、索引文件等）
+
+**特點**:
+- 運行時數據（不提交到 Git）
+- 使用持久化模式時自動創建
+- 默認路徑: `./chroma_data`（可在 `database/chromadb/client.py` 中配置）
+
+**代碼位置**:
+- `database/chromadb/client.py` - 定義 `persist_directory` 參數
+
+---
+
+### 11. datasets/ - 數據集目錄
+
+**職責**: 存儲項目使用的各種數據集和文件
+
+**結構說明**:
+- `files/` - 用戶上傳的文件存儲目錄（通過 API 上傳）
+- `autogen/checkpoints/` - AutoGen 長時程任務的檢查點文件
+- `agent_files/` - Agent 產出的文件（HTML/PDF 等）
+- `arangodb/` - ArangoDB 種子數據（架構定義、初始數據）
+- `crewai/` - CrewAI 相關數據（Agent 模板文件）
+- `chromadb/` - ChromaDB 相關數據
+
+**特點**:
+- 運行時數據（部分不提交到 Git）
+- `datasets/files/` 在 `.gitignore` 中（用戶文件不提交）
+- 配置文件和模板可以提交到 Git
+
+**代碼位置**:
+- `storage/file_storage.py` - 默認路徑: `./datasets/files`
+- `agents/autogen/long_horizon.py` - 檢查點路徑: `./datasets/autogen/checkpoints`
+- `agents/services/file_service/agent_file_service.py` - Agent 文件路徑: `./datasets/agent_files`
+
+---
+
+## 📊 目錄分類
+
+### 核心代碼目錄（提交到 Git）
+- `api/` - API 界面層
+- `agents/` - Agent 服務層
+- `database/` - 數據庫模組
+- `genai/` - GenAI 模組
+- `llm/` - LLM 模組
+- `mcp/` - MCP 模組
+- `storage/` - 文件存儲
+- `system/` - 系統管理
+- `agent_process/` - Agent 基礎設施（部分）
+- `services/` - 適配器目錄（只包含適配器文件）
+
+### 運行時數據目錄（不提交到 Git）
+- `chroma_data/` - ChromaDB 數據文件
+- `datasets/files/` - 用戶上傳的文件
+- `datasets/autogen/checkpoints/` - AutoGen 檢查點
+- `datasets/agent_files/` - Agent 產出文件
+
+### 配置文件目錄（部分提交到 Git）
+- `config/` - 配置文件（`config.json` 不提交）
+- `datasets/arangodb/` - 數據庫種子數據（可以提交）
+- `datasets/crewai/` - CrewAI 模板文件（可以提交）
+
+### 其他目錄
+- `docs/` - 文檔目錄
+- `tests/` - 測試目錄
+- `scripts/` - 腳本目錄
+- `backup/` - 備份目錄（不提交）
+
+---
+
+## 🔄 遷移對應關係（更新）
+
+### 主要遷移對應表
+
+| 原路徑 | 新路徑 | 狀態 | 備註 |
+|--------|--------|------|------|
+| `databases/chromadb/` | `database/chromadb/` | ✅ 已遷移 | 單一服務 |
+| `databases/arangodb/` | `database/arangodb/` | ✅ 已遷移 | 單一服務 |
+| `llm/moe_manager.py` | `llm/moe/moe_manager.py` | ✅ 已遷移 | 重組結構 |
+| `mcp_server/` | `mcp/server/` | ✅ 已遷移 | 重命名 |
+| `mcp_client/` | `mcp/client/` | ✅ 已遷移 | 重命名 |
+| `services/api/routers/ner.py` | `genai/api/routers/ner.py` | ✅ 已遷移 | 組件分離 |
+| `services/agent_registry/` | `agents/services/registry/` | ✅ 已遷移 | 組件分離 |
+| `agents/planning/mcp_server.py` | `agents/core/planning/handlers.py` | ✅ 已遷移 | 重命名 |
+| `services/security/` | `system/security/` | ✅ 已遷移 | 組件分離 |
+| `services/api/main.py` | `api/main.py` | ✅ 已遷移 | 統一入口 |
+| `agent_process/context/` | `genai/workflows/context/` | ✅ 已遷移 | 保留適配器 |
+| `agent_process/retrieval/` | `genai/workflows/rag/` | ✅ 已遷移 | 保留適配器 |
+| `agent_process/prompt/` | `genai/prompt/` | ✅ 已遷移 | 保留適配器 |
+| `agent_process/memory/` | - | ⏸️ 保留 | 仍在被使用 |
+| `agent_process/tools/` | - | ⏸️ 保留 | 仍在被使用 |
+
+---
+
+## 📝 注意事項（更新）
 
 1. **導入路徑更新**: 所有遷移都需要更新導入路徑
 2. **依賴關係**: 注意模組間的依賴關係，按順序遷移
 3. **測試覆蓋**: 每個模組遷移後都需要進行測試
 4. **文檔同步**: 更新相關文檔中的路徑引用
+5. **適配器保留**: 適配器確保向後兼容，舊代碼仍可使用原路徑
+6. **運行時數據**: `chroma_data/` 和 `datasets/files/` 等運行時數據目錄不提交到 Git
+7. **基礎設施保留**: `agent_process/memory/` 和 `agent_process/tools/` 作為 Agent 基礎設施暫時保留
 
 ---
 
-**最後更新**: 2025-01-27
+**最後更新**: 2025-11-30
+**維護者**: Daniel Chung
+
+
+---
+
+## 📝 注意事項（更新）
+
+1. **導入路徑更新**: 所有遷移都需要更新導入路徑
+2. **依賴關係**: 注意模組間的依賴關係，按順序遷移
+3. **測試覆蓋**: 每個模組遷移後都需要進行測試
+4. **文檔同步**: 更新相關文檔中的路徑引用
+5. **適配器保留**: 適配器確保向後兼容，舊代碼仍可使用原路徑
+6. **運行時數據**: `chroma_data/` 和 `datasets/files/` 等運行時數據目錄不提交到 Git
+7. **基礎設施保留**: `agent_process/memory/` 和 `agent_process/tools/` 作為 Agent 基礎設施暫時保留
+
+---
+
+**最後更新**: 2025-11-30
 **維護者**: Daniel Chung
