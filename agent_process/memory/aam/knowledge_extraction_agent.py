@@ -13,8 +13,8 @@ import structlog
 
 from agent_process.memory.aam.models import Memory, MemoryType, MemoryPriority
 from agent_process.memory.aam.aam_core import AAMManager
-from services.api.services.triple_extraction_service import TripleExtractionService
-from services.api.models.triple_models import Triple
+from genai.api.services.triple_extraction_service import TripleExtractionService
+from genai.api.models.triple_models import Triple
 
 logger = structlog.get_logger(__name__)
 

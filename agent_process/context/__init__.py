@@ -1,27 +1,29 @@
-# 代碼功能說明: 上下文管理模組
-# 創建日期: 2025-01-27 14:00 (UTC+8)
+# 代碼功能說明: 上下文管理模組適配器（向後兼容）
+# 創建日期: 2025-11-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27 14:00 (UTC+8)
+# 最後修改日期: 2025-11-30
 
-"""上下文管理模組，提供上下文記錄、對話歷史管理和上下文窗口管理功能。"""
+"""上下文管理模組適配器 - 重新導出 genai.workflows.context 的模組"""
 
-from __future__ import annotations
-
-from agent_process.context.history import ConversationHistory
-from agent_process.context.manager import ContextManager
-from agent_process.context.models import (
+# 從 genai 模組重新導出
+from genai.workflows.context.history import ConversationHistory  # noqa: F401
+from genai.workflows.context.manager import ContextManager  # noqa: F401
+from genai.workflows.context.models import (  # noqa: F401
     ContextConfig,
     ContextMessage,
     ContextSession,
 )
-from agent_process.context.persistence import ContextPersistence
-from agent_process.context.recorder import ContextRecorder
-from agent_process.context.storage import (
+from genai.workflows.context.persistence import ContextPersistence  # noqa: F401
+from genai.workflows.context.recorder import ContextRecorder  # noqa: F401
+from genai.workflows.context.storage import (  # noqa: F401
     MemoryStorageBackend,
     RedisStorageBackend,
     StorageBackend,
 )
-from agent_process.context.window import ContextWindow, TruncationStrategy
+from genai.workflows.context.window import (
+    ContextWindow,
+    TruncationStrategy,
+)  # noqa: F401
 
 __all__ = [
     "ContextManager",

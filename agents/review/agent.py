@@ -10,7 +10,7 @@ import logging
 from typing import Dict, Any, Optional, List
 
 from agents.review.models import ReviewRequest, ReviewResult, ReviewStatus
-from agent_process.prompt import PromptManager
+from genai.prompt import PromptManager
 from agent_process.memory import MemoryManager
 
 logger = logging.getLogger(__name__)

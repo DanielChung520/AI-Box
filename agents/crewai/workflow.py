@@ -24,7 +24,7 @@ from agents.crewai.manager import CrewManager
 from agents.crewai.models import CrewConfig
 from agents.crewai.task_registry import TaskRegistry
 from agents.crewai.task_models import CrewTask, TaskStatus, TaskResult
-from agent_process.context.recorder import ContextRecorder
+from genai.workflows.context.recorder import ContextRecorder
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from agent_process.context.manager import ContextManager
+from genai.workflows.context.manager import ContextManager
 from agent_process.memory.aam.models import Memory, MemoryType, MemoryPriority
 from agent_process.memory.aam.aam_core import AAMManager
 from agent_process.memory.aam.realtime_retrieval import RealtimeRetrievalService
@@ -211,12 +211,16 @@ class ContextIntegration:
 
             metadata: Dict[str, Any] = {
                 "session_id": session_id,
-                "message_id": latest_message.message_id
-                if hasattr(latest_message, "message_id")
-                else None,
-                "timestamp": latest_message.timestamp.isoformat()
-                if hasattr(latest_message, "timestamp")
-                else None,
+                "message_id": (
+                    latest_message.message_id
+                    if hasattr(latest_message, "message_id")
+                    else None
+                ),
+                "timestamp": (
+                    latest_message.timestamp.isoformat()
+                    if hasattr(latest_message, "timestamp")
+                    else None
+                ),
                 "source": "context_sync",
             }
 

@@ -13,8 +13,8 @@ from agents.workflows.base import (
     WorkflowFactoryProtocol,
     WorkflowRequestContext,
 )
-from agents.workflows.langchain_graph import LangChainGraphWorkflow
-from agents.workflows.langchain_graph.telemetry import WorkflowTelemetryCollector
+from genai.workflows.langchain.workflow import LangChainGraphWorkflow
+from genai.workflows.langchain.telemetry import WorkflowTelemetryCollector
 from agents.workflows.settings import (
     LangChainGraphSettings,
     load_langchain_graph_settings,

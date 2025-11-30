@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from agent_process.context.recorder import ContextRecorder
+from genai.workflows.context.recorder import ContextRecorder
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +161,7 @@ class ConversationManager:
             "agents": list(
                 set(msg.get("agent_name") for msg in self._conversation_history)
             ),
-            "last_message": self._conversation_history[-1]
-            if self._conversation_history
-            else None,
+            "last_message": (
+                self._conversation_history[-1] if self._conversation_history else None
+            ),
         }

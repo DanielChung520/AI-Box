@@ -1,21 +1,27 @@
-# 代碼功能說明: LangChain/Graph 工作流匯出
-# 創建日期: 2025-11-26 20:07 (UTC+8)
+# 代碼功能說明: LangChain Graph 工作流適配器（向後兼容）
+# 創建日期: 2025-11-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-26 20:07 (UTC+8)
+# 最後修改日期: 2025-11-30
 
-"""LangChain/Graph Workflow 子模組匯出。"""
+"""LangChain Graph 工作流適配器 - 重新導出 genai.workflows.langchain 的工作流"""
 
-from .checkpoint import build_checkpointer, RedisCheckpointSaver
-from .context_recorder import ContextRecorder, build_context_recorder
-from .state import LangGraphState, build_initial_state
-from .workflow import LangChainGraphWorkflow
+# 從 genai 模組重新導出工作流
+from genai.workflows.langchain import (  # noqa: F401
+    LangChainGraphWorkflow,
+    build_checkpointer,
+    build_context_recorder,
+    ContextRecorder,
+    LangGraphState,
+    build_initial_state,
+    WorkflowTelemetryCollector,
+)
 
 __all__ = [
-    "LangGraphState",
-    "build_initial_state",
     "LangChainGraphWorkflow",
     "build_checkpointer",
-    "RedisCheckpointSaver",
-    "ContextRecorder",
     "build_context_recorder",
+    "ContextRecorder",
+    "LangGraphState",
+    "build_initial_state",
+    "WorkflowTelemetryCollector",
 ]

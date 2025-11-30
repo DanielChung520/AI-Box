@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from agent_process.context.recorder import ContextRecorder
+from genai.workflows.context.recorder import ContextRecorder
 
 logger = logging.getLogger(__name__)
 

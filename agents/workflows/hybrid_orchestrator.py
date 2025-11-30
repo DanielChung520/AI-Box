@@ -20,7 +20,7 @@ from agents.workflows.base import (
     WorkflowRequestContext,
     WorkflowTelemetryEvent,
 )
-from agents.workflows.langchain_graph.state import LangGraphState
+from genai.workflows.langchain.state import LangGraphState
 
 logger = logging.getLogger(__name__)
 
@@ -96,9 +96,11 @@ def serialize_hybrid_state(state: HybridState) -> str:
                 from dataclasses import is_dataclass
 
                 langgraph_state["telemetry"] = [
-                    asdict(event)
-                    if is_dataclass(event) and hasattr(event, "__dict__")
-                    else event
+                    (
+                        asdict(event)
+                        if is_dataclass(event) and hasattr(event, "__dict__")
+                        else event
+                    )
                     for event in telemetry
                 ]
 
