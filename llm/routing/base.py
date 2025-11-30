@@ -9,9 +9,14 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from agents.task_analyzer.models import LLMProvider, TaskClassificationResult
+if TYPE_CHECKING:
+    from agents.task_analyzer.models import LLMProvider, TaskClassificationResult
+else:
+    # 运行时延迟导入，避免循环导入
+    LLMProvider = None
+    TaskClassificationResult = None
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +26,7 @@ class RoutingResult:
 
     def __init__(
         self,
-        provider: LLMProvider,
+        provider: Any,  # LLMProvider
         confidence: float,
         reasoning: str,
         metadata: Optional[Dict[str, Any]] = None,
@@ -48,7 +53,7 @@ class BaseRoutingStrategy(ABC):
     @abstractmethod
     def select_provider(
         self,
-        task_classification: TaskClassificationResult,
+        task_classification: Any,  # TaskClassificationResult
         task: str,
         context: Optional[Dict[str, Any]] = None,
     ) -> RoutingResult:
@@ -68,7 +73,7 @@ class BaseRoutingStrategy(ABC):
     @abstractmethod
     def evaluate(
         self,
-        provider: LLMProvider,
+        provider: Any,  # LLMProvider
         task_type: str,
         context: Optional[Dict[str, Any]] = None,
     ) -> float:
@@ -87,7 +92,7 @@ class BaseRoutingStrategy(ABC):
 
     def update_metrics(
         self,
-        provider: LLMProvider,
+        provider: Any,  # LLMProvider
         success: bool,
         latency: Optional[float] = None,
         cost: Optional[float] = None,
@@ -118,7 +123,9 @@ class BaseRoutingStrategy(ABC):
         if cost is not None:
             metrics["total_cost"] += cost
 
-    def get_metrics(self, provider: Optional[LLMProvider] = None) -> Dict[str, Any]:
+    def get_metrics(
+        self, provider: Optional[Any] = None
+    ) -> Dict[str, Any]:  # Optional[LLMProvider]
         """
         獲取路由指標。
 
