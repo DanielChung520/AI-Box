@@ -38,7 +38,7 @@ class AutoGenSettings(BaseModel):
     )
     checkpoint_enabled: bool = Field(default=True, description="是否啟用狀態持久化")
     checkpoint_dir: str = Field(
-        default="./data/data/datasets/autogen/checkpoints",
+        default="./data/datasets/autogen/checkpoints",
         description="Checkpoint 保存目錄",
     )
 
