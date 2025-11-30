@@ -6,7 +6,7 @@
 """Agent Discovery 服務 - 實現按能力、權限、分類等條件發現 Agent"""
 
 import logging
-from typing import Dict, Any, Optional, List, Set
+from typing import Optional, List
 from datetime import datetime, timedelta
 
 from agents.services.registry.models import (

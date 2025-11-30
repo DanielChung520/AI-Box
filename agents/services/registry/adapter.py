@@ -5,7 +5,6 @@
 
 """Agent Registry Adapter - 適配新舊 Agent 模型，保持向後兼容"""
 
-from typing import Optional
 from agents.services.orchestrator.models import (
     AgentInfo as LegacyAgentInfo,
     AgentStatus as LegacyAgentStatus,
