@@ -6,8 +6,8 @@
 """Execution Agent MCP Server"""
 
 from mcp.server.server import MCPServer
-from agents.execution.agent import ExecutionAgent
-from agents.execution.models import ExecutionRequest
+from agents.core.execution.agent import ExecutionAgent
+from agents.core.execution.models import ExecutionRequest
 
 # 初始化 Execution Agent
 execution_agent = ExecutionAgent()

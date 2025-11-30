@@ -12,8 +12,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from services.api.core.response import APIResponse
-from services.result_processor.aggregator import ResultAggregator
-from services.result_processor.report_generator import ReportGenerator
+from agents.services.processing.aggregator import ResultAggregator
+from agents.services.processing.report_generator import ReportGenerator
 from services.security.dependencies import get_current_user
 from services.security.models import User
 

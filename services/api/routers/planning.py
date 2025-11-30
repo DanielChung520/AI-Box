@@ -11,8 +11,8 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 
 from services.api.core.response import APIResponse
-from agents.planning.agent import PlanningAgent
-from agents.planning.models import PlanRequest, PlanStepStatus
+from agents.core.planning.agent import PlanningAgent
+from agents.core.planning.models import PlanRequest, PlanStepStatus
 
 router = APIRouter()
 

@@ -233,8 +233,8 @@ async def startup_event():
 
     # 啟動 Agent 健康監控（可選，根據配置啟用）
     try:
-        from services.agent_registry.registry import get_agent_registry
-        from services.agent_registry.health_monitor import AgentHealthMonitor
+        from agents.services.registry.registry import get_agent_registry
+        from agents.services.registry.health_monitor import AgentHealthMonitor
 
         registry = get_agent_registry()
         health_monitor = AgentHealthMonitor(
@@ -255,7 +255,7 @@ async def shutdown_event():
 
     # 停止 Agent 健康監控
     try:
-        from services.agent_registry.health_monitor import AgentHealthMonitor
+        from agents.services.registry.health_monitor import AgentHealthMonitor
 
         # 注意：這裡需要保存全局的 health_monitor 實例引用才能停止
         # 暫時記錄日誌，實際實現需要保存實例引用

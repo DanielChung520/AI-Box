@@ -11,9 +11,9 @@ from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 
 from services.api.core.response import APIResponse
-from services.agent_registry.registry import get_agent_registry
-from services.agent_registry.discovery import AgentDiscovery
-from services.agent_registry.models import AgentStatus
+from agents.services.registry.registry import get_agent_registry
+from agents.services.registry.discovery import AgentDiscovery
+from agents.services.registry.models import AgentStatus
 from services.security.dependencies import get_current_user
 from services.security.models import User
 

@@ -11,8 +11,8 @@ from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 
 from services.api.core.response import APIResponse
-from services.agent_registry.registry import get_agent_registry
-from services.agent_registry.models import (
+from agents.services.registry.registry import get_agent_registry
+from agents.services.registry.models import (
     AgentRegistrationRequest,
     AgentRegistryInfo,
     AgentStatus,

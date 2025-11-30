@@ -11,8 +11,8 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 
 from services.api.core.response import APIResponse
-from agents.review.agent import ReviewAgent
-from agents.review.models import ReviewRequest
+from agents.core.review.agent import ReviewAgent
+from agents.core.review.models import ReviewRequest
 
 router = APIRouter()
 

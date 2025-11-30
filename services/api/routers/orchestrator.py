@@ -12,8 +12,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from services.api.core.response import APIResponse
-from agents.orchestrator.orchestrator import AgentOrchestrator
-from agents.orchestrator.models import (
+from agents.services.orchestrator.orchestrator import AgentOrchestrator
+from agents.services.orchestrator.models import (
     AgentRegistrationRequest,
     AgentStatus,
 )

@@ -11,8 +11,8 @@ from fastapi import status as http_status
 from fastapi.responses import JSONResponse, FileResponse
 
 from services.api.core.response import APIResponse
-from services.file_server.agent_file_service import get_agent_file_service
-from services.file_server.models import FileType
+from agents.services.file_service.agent_file_service import get_agent_file_service
+from agents.services.file_service.models import FileType
 
 router = APIRouter()
 

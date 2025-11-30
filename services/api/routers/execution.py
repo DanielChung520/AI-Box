@@ -11,8 +11,8 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
 from services.api.core.response import APIResponse
-from agents.execution.agent import ExecutionAgent
-from agents.execution.models import ExecutionRequest
+from agents.core.execution.agent import ExecutionAgent
+from agents.core.execution.models import ExecutionRequest
 
 router = APIRouter()
 
@@ -137,9 +137,11 @@ async def list_tools() -> JSONResponse:
             tool_dict = {
                 "name": tool.name,
                 "description": tool.description,
-                "tool_type": tool.tool_type.value
-                if hasattr(tool.tool_type, "value")
-                else str(tool.tool_type),
+                "tool_type": (
+                    tool.tool_type.value
+                    if hasattr(tool.tool_type, "value")
+                    else str(tool.tool_type)
+                ),
             }
             tools_data.append(tool_dict)
 

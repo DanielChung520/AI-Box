@@ -6,8 +6,8 @@
 """Planning Agent MCP Server"""
 
 from mcp.server.server import MCPServer
-from agents.planning.agent import PlanningAgent
-from agents.planning.models import PlanRequest
+from agents.core.planning.agent import PlanningAgent
+from agents.core.planning.models import PlanRequest
 
 # 初始化 Planning Agent
 planning_agent = PlanningAgent()

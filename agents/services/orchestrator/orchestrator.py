@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from collections import deque
 
-from agents.services.orchestrator.models import (
+from .models import (
     AgentInfo,
     AgentStatus,
     TaskRequest,
