@@ -333,10 +333,6 @@ start_fastapi() {
         echo -e "${YELLOW}警告: 無法導入 FastAPI 應用（可能是循環導入問題）${NC}"
         echo -e "${YELLOW}將嘗試直接啟動服務...${NC}"
     fi
-        echo -e "${RED}錯誤: 無法導入 FastAPI 應用${NC}"
-        echo -e "${YELLOW}請檢查依賴是否安裝完整${NC}"
-        echo -e "${YELLOW}嘗試: pip install -r requirements.txt${NC}"
-    fi
 
     echo -e "${GREEN}啟動 FastAPI 服務 (端口 $FASTAPI_PORT)...${NC}"
     if command -v "$UVICORN_CMD" &> /dev/null; then
