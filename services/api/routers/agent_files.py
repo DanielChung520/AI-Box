@@ -5,8 +5,8 @@
 
 """Agent Files API 路由 - 提供 Agent 產出物的上傳和訪問接口"""
 
-from typing import Optional, List
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Query
+from typing import Optional
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse, FileResponse
 

@@ -290,7 +290,10 @@ class LongHorizonTaskManager:
         """
         # 檢查 token 預算
         if plan.total_estimated_tokens > budget_tokens:
-            return False, f"超出 Token 預算: {plan.total_estimated_tokens}/{budget_tokens}"
+            return (
+                False,
+                f"超出 Token 預算: {plan.total_estimated_tokens}/{budget_tokens}",
+            )
 
         # 檢查迭代輪數（這裡簡化處理，實際應該追蹤實際執行輪數）
         # 假設每個步驟算一輪

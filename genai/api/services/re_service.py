@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 import structlog
 
-from core.config import get_config_section
+from system.infra.config.config import get_config_section
 from genai.api.models.re_models import Relation, RelationEntity
 from genai.api.models.ner_models import Entity
 from genai.api.services.ner_service import NERService

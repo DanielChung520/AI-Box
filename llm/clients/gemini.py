@@ -18,7 +18,7 @@ except ImportError:
     genai = None  # type: ignore[assignment, misc]
     GenerateContentResponse = None  # type: ignore[assignment, misc]
 
-from core.config import get_config_section
+from system.infra.config.config import get_config_section
 
 from .base import BaseLLMClient
 

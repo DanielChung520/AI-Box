@@ -22,7 +22,7 @@ from services.api.storage.file_storage import (
 )
 from services.api.services.file_metadata_service import FileMetadataService
 from services.api.models.file_metadata import FileMetadataCreate
-from core.config import get_config_section
+from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
 

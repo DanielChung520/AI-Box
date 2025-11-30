@@ -11,7 +11,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import httpx
-from core.config import get_config_section
+from system.infra.config.config import get_config_section
 from llm.router import LLMNodeConfig, LLMNodeRouter
 
 logger = logging.getLogger(__name__)

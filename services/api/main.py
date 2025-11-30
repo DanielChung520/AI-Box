@@ -42,8 +42,8 @@ from services.api.routers import (
 )
 
 from services.api.core.version import get_version_info, API_PREFIX
-from services.security.config import get_security_settings
-from services.security.middleware import SecurityMiddleware
+from system.security.config import get_security_settings
+from system.security.middleware import SecurityMiddleware
 
 # 配置日誌
 logging.basicConfig(

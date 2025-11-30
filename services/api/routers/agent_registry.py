@@ -14,11 +14,10 @@ from services.api.core.response import APIResponse
 from agents.services.registry.registry import get_agent_registry
 from agents.services.registry.models import (
     AgentRegistrationRequest,
-    AgentRegistryInfo,
     AgentStatus,
 )
-from services.security.dependencies import get_current_user
-from services.security.models import User
+from system.security.dependencies import get_current_user
+from system.security.models import User
 
 router = APIRouter()
 

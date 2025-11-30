@@ -158,7 +158,10 @@ class CostEstimator:
             (是否在預算內, 消息)
         """
         if estimate.total_tokens <= budget_tokens:
-            return True, f"預算充足（使用 {estimate.total_tokens}/{budget_tokens} tokens）"
+            return (
+                True,
+                f"預算充足（使用 {estimate.total_tokens}/{budget_tokens} tokens）",
+            )
         else:
             excess = estimate.total_tokens - budget_tokens
             return (

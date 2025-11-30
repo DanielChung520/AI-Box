@@ -22,7 +22,7 @@ from services.api.processors.parsers.txt_parser import TxtParser
 from services.api.processors.parsers.md_parser import MdParser
 from services.api.processors.parsers.pdf_parser import PdfParser
 from services.api.processors.parsers.docx_parser import DocxParser
-from core.config import get_config_section
+from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
 

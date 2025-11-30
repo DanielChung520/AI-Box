@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from agents.task_analyzer.models import LLMProvider
-from core.config import get_config_section
+from system.infra.config.config import get_config_section
 
 
 def load_load_balancer_config() -> Dict[str, Any]:

@@ -22,7 +22,7 @@ except ImportError:
     Completion = None  # type: ignore[assignment, misc]
     Embedding = None  # type: ignore[assignment, misc]
 
-from core.config import get_config_section
+from system.infra.config.config import get_config_section
 
 from .base import BaseLLMClient
 

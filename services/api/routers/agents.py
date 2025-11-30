@@ -10,8 +10,8 @@ from fastapi import APIRouter, status, Depends
 from pydantic import BaseModel
 
 from services.api.core.response import APIResponse
-from services.security.dependencies import get_current_user
-from services.security.models import User
+from system.security.dependencies import get_current_user
+from system.security.models import User
 
 router = APIRouter()
 

@@ -1,6 +1,10 @@
-# 代碼功能說明: core 套件初始化
-# 創建日期: 2025-11-25 23:57 (UTC+8)
+# 代碼功能說明: Core 配置適配器（向後兼容）
+# 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25 23:57 (UTC+8)
+# 最後修改日期: 2025-01-27
 
-"""共享核心工具模組。"""
+"""Core 配置適配器 - 重新導出 system.infra.config 的模組"""
+
+from system.infra.config.config import load_project_config, get_config_section
+
+__all__ = ["load_project_config", "get_config_section"]

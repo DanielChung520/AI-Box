@@ -8,7 +8,7 @@
 import logging
 from typing import Dict, Any, Optional, List
 
-from core.config import get_config_section
+from system.infra.config.config import get_config_section
 from llm.router import LLMNodeConfig, LLMNodeRouter
 from llm.routing.dynamic import DynamicRouter
 from llm.routing.evaluator import RoutingEvaluator
