@@ -86,3 +86,9 @@ temp/
 *.tmp
 *.bak
 *.swp
+
+# Test results and datasets
+datasets/files/
+tests/integration/*/junit*.xml
+tests/integration/*/test_results_*.json
+tests/integration/*/test_output*.txt

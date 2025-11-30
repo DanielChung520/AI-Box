@@ -15,6 +15,7 @@ from services.api.models.re_models import Relation, RelationEntity
 from services.api.models.ner_models import Entity
 from services.api.services.ner_service import NERService
 from llm.clients.ollama import OllamaClient, get_ollama_client
+from llm.clients.gemini import GeminiClient
 
 logger = structlog.get_logger(__name__)
 
@@ -255,16 +256,146 @@ class OllamaREModel(BaseREModel):
             return []
 
 
+class GeminiREModel(BaseREModel):
+    """Gemini RE 模型實現"""
+
+    def __init__(
+        self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None
+    ):
+        self.model_name = model_name
+        try:
+            self.client = client or GeminiClient()
+        except (ImportError, ValueError) as e:
+            # Gemini 不可用（缺少依赖或 API key），设置为 None
+            logger.warning("gemini_re_client_unavailable", error=str(e))
+            self.client = None
+        self._prompt_template = """請從以下文本中抽取實體之間的關係，並以 JSON 格式返回結果。
+
+文本：{text}
+
+{entities_section}
+
+請返回 JSON 格式，包含以下字段：
+- subject: 主體實體（包含 text 和 label）
+- relation: 關係類型（LOCATED_IN, WORKS_FOR, PART_OF, RELATED_TO, OCCURS_AT 等）
+- object: 客體實體（包含 text 和 label）
+- confidence: 置信度（0-1之間的浮點數）
+- context: 關係出現的上下文
+
+返回格式示例：
+[
+  {{
+    "subject": {{"text": "張三", "label": "PERSON"}},
+    "relation": "WORKS_FOR",
+    "object": {{"text": "微軟", "label": "ORG"}},
+    "confidence": 0.88,
+    "context": "張三在微軟公司工作"
+  }}
+]"""
+
+    def is_available(self) -> bool:
+        """檢查 Gemini 模型是否可用"""
+        return self.client is not None and self.client.is_available()
+
+    async def extract_relations(
+        self, text: str, entities: Optional[List[Entity]] = None
+    ) -> List[Relation]:
+        """使用 Gemini 提取關係"""
+        if self.client is None or not self.client.is_available():
+            raise RuntimeError(
+                f"Gemini client is not available for model {self.model_name}"
+            )
+
+        # 構建提示詞
+        entities_section = ""
+        if entities:
+            entities_text = "\n".join([f"- {e.text} ({e.label})" for e in entities])
+            entities_section = f"已識別的實體：\n{entities_text}\n"
+
+        prompt = self._prompt_template.format(
+            text=text, entities_section=entities_section
+        )
+
+        try:
+            response = await self.client.generate(
+                prompt,
+                model=self.model_name,
+            )
+
+            if response is None:
+                logger.error("gemini_re_no_response", model=self.model_name)
+                return []
+
+            # 新接口返回 {"text": "...", "content": "...", "model": "..."}
+            result_text = response.get("text") or response.get("content", "")
+            # 嘗試從響應中提取 JSON
+            try:
+                # 移除可能的 markdown 代碼塊標記
+                if "```json" in result_text:
+                    result_text = (
+                        result_text.split("```json")[1].split("```")[0].strip()
+                    )
+                elif "```" in result_text:
+                    result_text = result_text.split("```")[1].split("```")[0].strip()
+
+                relations_data = json.loads(result_text)
+
+                if not isinstance(relations_data, list):
+                    logger.error("gemini_re_invalid_format", model=self.model_name)
+                    return []
+
+                relations = []
+                for item in relations_data:
+                    if not isinstance(item, dict):
+                        continue
+
+                    subject_data = item.get("subject", {})
+                    object_data = item.get("object", {})
+
+                    if not isinstance(subject_data, dict) or not isinstance(
+                        object_data, dict
+                    ):
+                        continue
+
+                    relations.append(
+                        Relation(
+                            subject=RelationEntity(
+                                text=subject_data.get("text", ""),
+                                label=subject_data.get("label", "UNKNOWN"),
+                            ),
+                            relation=item.get("relation", "RELATED_TO"),
+                            object=RelationEntity(
+                                text=object_data.get("text", ""),
+                                label=object_data.get("label", "UNKNOWN"),
+                            ),
+                            confidence=float(item.get("confidence", 0.5)),
+                            context=item.get("context", text),
+                        )
+                    )
+
+                return relations
+            except json.JSONDecodeError as e:
+                logger.error(
+                    "gemini_re_json_parse_failed", error=str(e), response=result_text
+                )
+                return []
+        except Exception as e:
+            logger.error(
+                "gemini_re_extraction_failed", error=str(e), model=self.model_name
+            )
+            return []
+
+
 class REService:
     """RE 服務主類"""
 
     def __init__(self, ner_service: Optional[NERService] = None):
         self.config = get_config_section("text_analysis", "re", default={}) or {}
-        self.model_type = self.config.get("model_type", "transformers")
-        self.model_name = self.config.get("model_name", "bert-base-chinese")
-        self.fallback_model = self.config.get(
-            "fallback_model", "ollama:qwen3-coder:30b"
-        )
+        # 優先使用本地模型（Ollama），只有在無法達成時才使用外部 provider
+        self.model_type = self.config.get("model_type", "ollama")
+        self.model_name = self.config.get("model_name", "qwen3-coder:30b")
+        # Fallback 順序：本地模型優先，外部 provider 作為最後備選
+        self.fallback_model = self.config.get("fallback_model", "gemini:gemini-pro")
         self.max_relation_length = self.config.get("max_relation_length", 128)
         self.enable_gpu = self.config.get("enable_gpu", False)
 
@@ -292,17 +423,39 @@ class REService:
             if model_name.startswith("ollama:"):
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = OllamaREModel(model_name=model_name)
+        elif self.model_type == "gemini":
+            model_name = (
+                self.model_name
+                if ":" in self.model_name
+                else f"gemini:{self.model_name}"
+            )
+            if model_name.startswith("gemini:"):
+                model_name = model_name.split(":", 1)[1]
+            self._primary_model = GeminiREModel(model_name=model_name)
         else:
             logger.warning("unknown_re_model_type", model_type=self.model_type)
             self._primary_model = None
 
         # 初始化備選模型
+        # 優先使用本地模型（Ollama），外部 provider 作為最後備選
         if self.fallback_model:
             if self.fallback_model.startswith("ollama:"):
                 fallback_name = self.fallback_model.split(":", 1)[1]
                 self._fallback_model = OllamaREModel(model_name=fallback_name)
+            elif self.fallback_model.startswith("gemini:"):
+                fallback_name = self.fallback_model.split(":", 1)[1]
+                self._fallback_model = GeminiREModel(model_name=fallback_name)
             else:
                 self._fallback_model = None
+        else:
+            # 如果未配置 fallback，根據主模型類型自動選擇
+            # 優先使用本地模型作為 fallback
+            if self.model_type == "gemini":
+                # 如果主模型是外部 provider，fallback 使用本地模型
+                self._fallback_model = OllamaREModel(model_name="qwen3-coder:30b")
+            elif self.model_type != "ollama":
+                # 如果主模型不是 Ollama，fallback 優先使用本地模型
+                self._fallback_model = OllamaREModel(model_name="qwen3-coder:30b")
 
     def _get_model(self, model_type: Optional[str] = None) -> Optional[BaseREModel]:
         """獲取可用的模型"""
@@ -314,6 +467,9 @@ class REService:
                 model = self._primary_model
         elif requested_type == "ollama":
             if isinstance(self._primary_model, OllamaREModel):
+                model = self._primary_model
+        elif requested_type == "gemini":
+            if isinstance(self._primary_model, GeminiREModel):
                 model = self._primary_model
         else:
             model = self._primary_model

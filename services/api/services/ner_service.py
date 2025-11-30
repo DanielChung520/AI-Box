@@ -13,6 +13,7 @@ import structlog
 from core.config import get_config_section
 from services.api.models.ner_models import Entity
 from llm.clients.ollama import OllamaClient, get_ollama_client
+from llm.clients.gemini import GeminiClient
 
 logger = structlog.get_logger(__name__)
 
@@ -205,16 +206,113 @@ class OllamaNERModel(BaseNERModel):
             return []
 
 
+class GeminiNERModel(BaseNERModel):
+    """Gemini NER 模型實現"""
+
+    def __init__(
+        self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None
+    ):
+        self.model_name = model_name
+        try:
+            self.client = client or GeminiClient()
+        except (ImportError, ValueError) as e:
+            # Gemini 不可用（缺少依赖或 API key），设置为 None
+            logger.warning("gemini_ner_client_unavailable", error=str(e))
+            self.client = None
+        self._prompt_template = """請從以下文本中識別命名實體，並以 JSON 格式返回結果。
+文本：{text}
+
+請返回 JSON 格式，包含以下字段：
+- text: 實體文本
+- label: 實體類型（PERSON, ORG, LOC, DATE, MONEY, PRODUCT, EVENT 等）
+- start: 實體在文本中的起始位置（字符索引）
+- end: 實體在文本中的結束位置（字符索引）
+- confidence: 置信度（0-1之間的浮點數）
+
+返回格式示例：
+[
+  {{"text": "張三", "label": "PERSON", "start": 0, "end": 2, "confidence": 0.95}},
+  {{"text": "北京", "label": "LOC", "start": 5, "end": 7, "confidence": 0.90}}
+]"""
+
+    def is_available(self) -> bool:
+        """檢查 Gemini 模型是否可用"""
+        return self.client is not None and self.client.is_available()
+
+    async def extract_entities(self, text: str) -> List[Entity]:
+        """使用 Gemini 提取實體"""
+        if self.client is None or not self.client.is_available():
+            raise RuntimeError(
+                f"Gemini client is not available for model {self.model_name}"
+            )
+
+        prompt = self._prompt_template.format(text=text)
+
+        try:
+            response = await self.client.generate(
+                prompt,
+                model=self.model_name,
+            )
+
+            if response is None:
+                logger.error("gemini_ner_no_response", model=self.model_name)
+                return []
+
+            # 新接口返回 {"text": "...", "content": "...", "model": "..."}
+            result_text = response.get("text") or response.get("content", "")
+            # 嘗試從響應中提取 JSON
+            try:
+                # 移除可能的 markdown 代碼塊標記
+                if "```json" in result_text:
+                    result_text = (
+                        result_text.split("```json")[1].split("```")[0].strip()
+                    )
+                elif "```" in result_text:
+                    result_text = result_text.split("```")[1].split("```")[0].strip()
+
+                entities_data = json.loads(result_text)
+
+                if not isinstance(entities_data, list):
+                    logger.error("gemini_ner_invalid_format", model=self.model_name)
+                    return []
+
+                entities = []
+                for item in entities_data:
+                    if not isinstance(item, dict):
+                        continue
+                    entities.append(
+                        Entity(
+                            text=item.get("text", ""),
+                            label=item.get("label", "UNKNOWN"),
+                            start=item.get("start", 0),
+                            end=item.get("end", 0),
+                            confidence=float(item.get("confidence", 0.5)),
+                        )
+                    )
+
+                return entities
+            except json.JSONDecodeError as e:
+                logger.error(
+                    "gemini_ner_json_parse_failed", error=str(e), response=result_text
+                )
+                return []
+        except Exception as e:
+            logger.error(
+                "gemini_ner_extraction_failed", error=str(e), model=self.model_name
+            )
+            return []
+
+
 class NERService:
     """NER 服務主類"""
 
     def __init__(self):
         self.config = get_config_section("text_analysis", "ner", default={}) or {}
-        self.model_type = self.config.get("model_type", "spacy")
-        self.model_name = self.config.get("model_name", "zh_core_web_sm")
-        self.fallback_model = self.config.get(
-            "fallback_model", "ollama:qwen3-coder:30b"
-        )
+        # 優先使用本地模型（Ollama），只有在無法達成時才使用外部 provider
+        self.model_type = self.config.get("model_type", "ollama")
+        self.model_name = self.config.get("model_name", "qwen3-coder:30b")
+        # Fallback 順序：本地模型優先，外部 provider 作為最後備選
+        self.fallback_model = self.config.get("fallback_model", "gemini:gemini-pro")
         self.batch_size = self.config.get("batch_size", 32)
         self.enable_gpu = self.config.get("enable_gpu", False)
 
@@ -239,17 +337,39 @@ class NERService:
             if model_name.startswith("ollama:"):
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = OllamaNERModel(model_name=model_name)
+        elif self.model_type == "gemini":
+            model_name = (
+                self.model_name
+                if ":" in self.model_name
+                else f"gemini:{self.model_name}"
+            )
+            if model_name.startswith("gemini:"):
+                model_name = model_name.split(":", 1)[1]
+            self._primary_model = GeminiNERModel(model_name=model_name)
         else:
             logger.warning("unknown_ner_model_type", model_type=self.model_type)
             self._primary_model = None
 
         # 初始化備選模型
+        # 優先使用本地模型（Ollama），外部 provider 作為最後備選
         if self.fallback_model:
             if self.fallback_model.startswith("ollama:"):
                 fallback_name = self.fallback_model.split(":", 1)[1]
                 self._fallback_model = OllamaNERModel(model_name=fallback_name)
+            elif self.fallback_model.startswith("gemini:"):
+                fallback_name = self.fallback_model.split(":", 1)[1]
+                self._fallback_model = GeminiNERModel(model_name=fallback_name)
             else:
                 self._fallback_model = None
+        else:
+            # 如果未配置 fallback，根據主模型類型自動選擇
+            # 優先使用本地模型作為 fallback
+            if self.model_type == "gemini":
+                # 如果主模型是外部 provider，fallback 使用本地模型
+                self._fallback_model = OllamaNERModel(model_name="qwen3-coder:30b")
+            elif self.model_type != "ollama":
+                # 如果主模型不是 Ollama，fallback 優先使用本地模型
+                self._fallback_model = OllamaNERModel(model_name="qwen3-coder:30b")
 
     def _get_model(self, model_type: Optional[str] = None) -> Optional[BaseNERModel]:
         """獲取可用的模型"""
@@ -261,6 +381,9 @@ class NERService:
                 model = self._primary_model
         elif requested_type == "ollama":
             if isinstance(self._primary_model, OllamaNERModel):
+                model = self._primary_model
+        elif requested_type == "gemini":
+            if isinstance(self._primary_model, GeminiNERModel):
                 model = self._primary_model
         else:
             model = self._primary_model

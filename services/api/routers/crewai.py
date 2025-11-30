@@ -1,7 +1,7 @@
 # 代碼功能說明: CrewAI API 路由
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-10-26
+# 最後修改日期: 2025-11-30
 
 """CrewAI Crew Manager API 路由"""
 
@@ -18,6 +18,10 @@ from agents.crewai.models import (
     CollaborationMode,
     CrewResourceQuota,
 )
+from agents.workflows.base import WorkflowRequestContext
+from agents.workflows.factory_router import get_workflow_factory_router
+from agents.task_analyzer.models import WorkflowType
+import uuid
 
 router = APIRouter()
 
@@ -62,7 +66,15 @@ class AddAgentRequest(BaseModel):
     agent: AgentRole = Field(..., description="Agent 角色")
 
 
-@router.post("/api/v1/crews", status_code=http_status.HTTP_201_CREATED)
+class ExecuteCrewRequest(BaseModel):
+    """執行 Crew 請求模型"""
+
+    inputs: Dict = Field(..., description="輸入數據")
+    user_id: Optional[str] = Field(default=None, description="用戶ID")
+    context: Optional[Dict] = Field(default_factory=dict, description="上下文信息")
+
+
+@router.post("/crews", status_code=http_status.HTTP_201_CREATED)
 async def create_crew(request: CreateCrewRequest) -> JSONResponse:
     """
     創建隊伍
@@ -93,7 +105,7 @@ async def create_crew(request: CreateCrewRequest) -> JSONResponse:
         ) from exc
 
 
-@router.get("/api/v1/crews", status_code=http_status.HTTP_200_OK)
+@router.get("/crews", status_code=http_status.HTTP_200_OK)
 async def list_crews() -> JSONResponse:
     """
     列出所有隊伍
@@ -114,7 +126,7 @@ async def list_crews() -> JSONResponse:
         ) from exc
 
 
-@router.get("/api/v1/crews/{crew_id}", status_code=http_status.HTTP_200_OK)
+@router.get("/crews/{crew_id}", status_code=http_status.HTTP_200_OK)
 async def get_crew(crew_id: str) -> JSONResponse:
     """
     獲取隊伍詳情
@@ -146,7 +158,7 @@ async def get_crew(crew_id: str) -> JSONResponse:
         ) from exc
 
 
-@router.put("/api/v1/crews/{crew_id}", status_code=http_status.HTTP_200_OK)
+@router.put("/crews/{crew_id}", status_code=http_status.HTTP_200_OK)
 async def update_crew(crew_id: str, request: UpdateCrewRequest) -> JSONResponse:
     """
     更新隊伍
@@ -191,7 +203,7 @@ async def update_crew(crew_id: str, request: UpdateCrewRequest) -> JSONResponse:
         ) from exc
 
 
-@router.delete("/api/v1/crews/{crew_id}", status_code=http_status.HTTP_200_OK)
+@router.delete("/crews/{crew_id}", status_code=http_status.HTTP_200_OK)
 async def delete_crew(crew_id: str) -> JSONResponse:
     """
     刪除隊伍
@@ -223,7 +235,7 @@ async def delete_crew(crew_id: str) -> JSONResponse:
         ) from exc
 
 
-@router.get("/api/v1/crews/{crew_id}/metrics", status_code=http_status.HTTP_200_OK)
+@router.get("/crews/{crew_id}/metrics", status_code=http_status.HTTP_200_OK)
 async def get_crew_metrics(crew_id: str) -> JSONResponse:
     """
     獲取觀測指標
@@ -255,7 +267,7 @@ async def get_crew_metrics(crew_id: str) -> JSONResponse:
         ) from exc
 
 
-@router.post("/api/v1/crews/{crew_id}/agents", status_code=http_status.HTTP_200_OK)
+@router.post("/crews/{crew_id}/agents", status_code=http_status.HTTP_200_OK)
 async def add_agent_to_crew(crew_id: str, request: AddAgentRequest) -> JSONResponse:
     """
     添加 Agent 到隊伍
@@ -289,7 +301,7 @@ async def add_agent_to_crew(crew_id: str, request: AddAgentRequest) -> JSONRespo
 
 
 @router.delete(
-    "/api/v1/crews/{crew_id}/agents/{agent_role}",
+    "/crews/{crew_id}/agents/{agent_role}",
     status_code=http_status.HTTP_200_OK,
 )
 async def remove_agent_from_crew(crew_id: str, agent_role: str) -> JSONResponse:
@@ -321,4 +333,85 @@ async def remove_agent_from_crew(crew_id: str, agent_role: str) -> JSONResponse:
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to remove agent: {str(exc)}",
+        ) from exc
+
+
+@router.post(
+    "/crewai/crews/{crew_id}/execute",
+    status_code=http_status.HTTP_200_OK,
+)
+async def execute_crew(crew_id: str, request: ExecuteCrewRequest) -> JSONResponse:
+    """
+    執行 Crew
+
+    Args:
+        crew_id: 隊伍 ID
+        request: 執行請求
+
+    Returns:
+        執行結果
+    """
+    try:
+        # 檢查 Crew 是否存在
+        config = crew_manager.get_crew(crew_id)
+        if not config:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail=f"Crew '{crew_id}' not found",
+            )
+
+        # 生成任務ID
+        task_id = str(uuid.uuid4())
+
+        # 從 inputs 中提取任務描述
+        task = request.inputs.get("task", "")
+
+        # 構建請求上下文
+        request_ctx = WorkflowRequestContext(
+            task_id=task_id,
+            task=task,
+            user_id=request.user_id,
+            context={
+                **(request.context or {}),
+                "crew_id": crew_id,
+                "inputs": request.inputs,
+            },
+            workflow_config={"crew_id": crew_id},
+        )
+
+        # 獲取工作流工廠路由器
+        router_instance = get_workflow_factory_router()
+
+        # 構建工作流
+        workflow = router_instance.build_workflow(WorkflowType.CREWAI, request_ctx)
+        if not workflow:
+            raise HTTPException(
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to build CrewAI workflow",
+            )
+
+        # 執行工作流
+        result = await workflow.run()
+
+        # 返回結果
+        return APIResponse.success(
+            data={
+                "task_id": task_id,
+                "crew_id": crew_id,
+                "status": result.status,
+                "output": result.output,
+                "reasoning": result.reasoning,
+                "telemetry": [
+                    {"name": e.name, "payload": e.payload} for e in result.telemetry
+                ],
+                "state_snapshot": result.state_snapshot,
+            },
+            message="Crew executed successfully",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to execute crew: {str(exc)}",
         ) from exc

@@ -74,19 +74,23 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         return json.loads(raw.decode("utf-8"))
 
     def get_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
-        data = self._redis.get(self._key(config))
-        if not data:
+        try:
+            data = self._redis.get(self._key(config))
+            if not data:
+                return None
+            if not isinstance(data, bytes):
+                return None  # type: ignore[unreachable]
+            payload = self._deserialize(data)
+            checkpoint = payload["checkpoint"]
+            metadata = payload["metadata"]
+            return CheckpointTuple(
+                config=config,
+                checkpoint=checkpoint,
+                metadata=metadata,
+            )
+        except Exception as exc:
+            logger.warning(f"Redis checkpoint get_tuple failed: {exc}, returning None")
             return None
-        if not isinstance(data, bytes):
-            return None  # type: ignore[unreachable]
-        payload = self._deserialize(data)
-        checkpoint = payload["checkpoint"]
-        metadata = payload["metadata"]
-        return CheckpointTuple(
-            config=config,
-            checkpoint=checkpoint,
-            metadata=metadata,
-        )
 
     def list(
         self,
@@ -115,7 +119,11 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
             "metadata": metadata,
             "versions": new_versions,
         }
-        self._redis.setex(self._key(config), self._ttl, self._serialize(payload))
+        try:
+            self._redis.setex(self._key(config), self._ttl, self._serialize(payload))
+        except Exception as exc:
+            logger.warning(f"Redis checkpoint put failed: {exc}")
+            # 繼續執行，不拋出異常（允許部分功能失效）
         return config
 
     def put_writes(
@@ -132,15 +140,23 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
             "task_id": task_id,
             "task_path": task_path,
         }
-        self._redis.setex(
-            f"{self._key(config)}:writes", self._ttl, self._serialize(payload)
-        )
+        try:
+            self._redis.setex(
+                f"{self._key(config)}:writes", self._ttl, self._serialize(payload)
+            )
+        except Exception as exc:
+            logger.warning(f"Redis checkpoint put_writes failed: {exc}")
+            # 繼續執行，不拋出異常
 
     def delete_thread(self, thread_id: str) -> None:
-        pattern = f"{self._namespace}:{thread_id}:*"
-        keys = list(self._redis.scan_iter(match=pattern))
-        if keys:
-            self._redis.delete(*keys)
+        try:
+            pattern = f"{self._namespace}:{thread_id}:*"
+            keys = list(self._redis.scan_iter(match=pattern))
+            if keys:
+                self._redis.delete(*keys)
+        except Exception as exc:
+            logger.warning(f"Redis checkpoint delete_thread failed: {exc}")
+            # 繼續執行，不拋出異常
 
     async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
         return await asyncio.to_thread(self.get_tuple, config)
@@ -189,6 +205,12 @@ def build_checkpointer(settings: LangChainGraphSettings):
     backend = (settings.state_store.backend or "memory").lower()
     if backend == "redis":
         try:
+            # 測試 Redis 連接是否可用
+            import redis as redis_client
+
+            test_redis = redis_client.Redis.from_url(settings.state_store.redis_url)
+            test_redis.ping()
+            logger.info("Redis checkpoint 連接成功，使用 Redis 後端")
             return RedisCheckpointSaver(
                 redis_url=settings.state_store.redis_url,
                 namespace=settings.state_store.namespace,
@@ -196,4 +218,5 @@ def build_checkpointer(settings: LangChainGraphSettings):
             )
         except Exception as exc:  # pragma: no cover - redis 啟動失敗時 fallback
             logger.warning("初始化 Redis checkpoint 失敗，改用 MemorySaver: %s", exc)
+            return MemorySaver()
     return MemorySaver()

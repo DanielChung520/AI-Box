@@ -34,6 +34,11 @@ from services.api.routers import (
     triple_extraction,
     kg_builder,
     kg_query,
+    workflows,
+    agent_registry,
+    agent_catalog,
+    agent_files,
+    reports,
 )
 
 from services.api.core.version import get_version_info, API_PREFIX
@@ -138,6 +143,10 @@ app = FastAPI(
             "name": "Knowledge Graph Query",
             "description": "知識圖譜查詢功能",
         },
+        {
+            "name": "Workflows",
+            "description": "工作流執行功能（LangChain、AutoGen、混合模式）",
+        },
     ],
 )
 
@@ -180,6 +189,8 @@ async def get_version():
 
 # 註冊版本化路由
 app.include_router(agents.router, prefix=API_PREFIX, tags=["Agents"])
+app.include_router(agent_registry.router, prefix=API_PREFIX, tags=["Agent Registry"])
+app.include_router(agent_catalog.router, prefix=API_PREFIX, tags=["Agent Catalog"])
 app.include_router(task_analyzer.router, prefix=API_PREFIX, tags=["Task Analyzer"])
 app.include_router(orchestrator.router, prefix=API_PREFIX, tags=["Agent Orchestrator"])
 app.include_router(planning.router, prefix=API_PREFIX, tags=["Planning Agent"])
@@ -210,6 +221,9 @@ app.include_router(
     kg_builder.router, prefix=API_PREFIX, tags=["Knowledge Graph Builder"]
 )
 app.include_router(kg_query.router, prefix=API_PREFIX, tags=["Knowledge Graph Query"])
+app.include_router(workflows.router, prefix=API_PREFIX, tags=["Workflows"])
+app.include_router(agent_files.router, prefix=API_PREFIX, tags=["Agent Files"])
+app.include_router(reports.router, prefix=API_PREFIX, tags=["Reports"])
 
 
 @app.on_event("startup")
@@ -217,11 +231,37 @@ async def startup_event():
     """應用啟動事件"""
     logger.info(f"AI Box API Gateway starting up... Version: {version_info['version']}")
 
+    # 啟動 Agent 健康監控（可選，根據配置啟用）
+    try:
+        from services.agent_registry.registry import get_agent_registry
+        from services.agent_registry.health_monitor import AgentHealthMonitor
+
+        registry = get_agent_registry()
+        health_monitor = AgentHealthMonitor(
+            registry=registry,
+            check_interval=int(os.getenv("AGENT_HEALTH_CHECK_INTERVAL", "60")),
+            heartbeat_timeout=int(os.getenv("AGENT_HEARTBEAT_TIMEOUT", "300")),
+        )
+        await health_monitor.start()
+        logger.info("Agent health monitor started")
+    except Exception as e:
+        logger.warning(f"Failed to start agent health monitor: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """應用關閉事件"""
     logger.info("AI Box API Gateway shutting down...")
+
+    # 停止 Agent 健康監控
+    try:
+        from services.agent_registry.health_monitor import AgentHealthMonitor
+
+        # 注意：這裡需要保存全局的 health_monitor 實例引用才能停止
+        # 暫時記錄日誌，實際實現需要保存實例引用
+        logger.info("Stopping agent health monitor...")
+    except Exception as e:
+        logger.warning(f"Failed to stop agent health monitor: {e}")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 # 代碼功能說明: CrewAI LLM 適配層
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-10-26
+# 最後修改日期: 2025-11-30
 
 """封裝 LLM Router 調用，提供 CrewAI 所需的 LLM 接口。"""
 
@@ -44,13 +44,17 @@ class OllamaLLMAdapter(BaseChatModel):
         **kwargs: Any,
     ):
         """初始化 Ollama LLM 適配器。"""
-        super().__init__(**kwargs)
-        self.model_name = model_name
-        self.timeout = timeout
-        self.temperature = temperature
-        self.max_tokens = max_tokens
+        # 將必需字段傳入父類初始化
+        super().__init__(
+            model_name=model_name,
+            base_url=base_url,
+            timeout=timeout,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
         self._router: Optional[LLMNodeRouter] = None
-        self._base_url = base_url
+        self._base_url = self.base_url  # 使用父類設置的 base_url
         self._init_router()
 
     def _init_router(self) -> None:
