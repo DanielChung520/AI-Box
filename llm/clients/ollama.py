@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from llm.router import LLMNodeRouter
-from api.core.settings import get_ollama_settings
 
 from .base import BaseLLMClient
 
@@ -50,6 +49,9 @@ class OllamaClient(BaseLLMClient):
             default_model: 默認模型名稱（可選，從配置讀取）
             timeout: 請求超時時間（可選，從配置讀取）
         """
+        # 延迟导入，避免循环导入
+        from api.core.settings import get_ollama_settings
+
         self.settings = get_ollama_settings()
 
         # 使用提供的 router 或從設置創建
