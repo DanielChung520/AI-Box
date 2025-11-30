@@ -24,7 +24,7 @@ class LongHorizonTaskManager:
 
     def __init__(
         self,
-        checkpoint_dir: str = "./datasets/autogen/checkpoints",
+        checkpoint_dir: str = "./data/data/datasets/autogen/checkpoints",
         memory_manager: Optional[MemoryManager] = None,
     ):
         """

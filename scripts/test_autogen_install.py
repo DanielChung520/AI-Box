@@ -65,7 +65,7 @@ def test_directory_structure():
 
         checks = [
             (autogen_dir, "agents/autogen"),
-            (checkpoint_dir, "datasets/autogen/checkpoints"),
+            (checkpoint_dir, "data/datasets/autogen/checkpoints"),
         ]
 
         all_ok = True

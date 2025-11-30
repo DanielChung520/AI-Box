@@ -101,7 +101,7 @@ class FileStorage(ABC):
 class LocalFileStorage(FileStorage):
     """本地文件系統存儲"""
 
-    def __init__(self, storage_path: str = "./datasets/files"):
+    def __init__(self, storage_path: str = "./data/data/datasets/files"):
         """
         初始化本地文件存儲
 
@@ -305,7 +305,7 @@ def create_storage_from_config(config: dict) -> FileStorage:
         FileStorage 實例
     """
     storage_backend = config.get("storage_backend", "local")
-    storage_path = config.get("storage_path", "./datasets/files")
+    storage_path = config.get("storage_path", "./data/data/datasets/files")
 
     if storage_backend == "local":
         return LocalFileStorage(storage_path=storage_path)

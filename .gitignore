@@ -88,13 +88,13 @@ temp/
 *.swp
 
 # Test results and datasets
-datasets/files/
+data/datasets/files/
 tests/integration/*/junit*.xml
 tests/integration/*/test_results_*.json
 tests/integration/*/test_output*.txt
 
 # Database data directories
-chroma_data/
+data/chroma_data/
 *.db
 *.sqlite
 *.sqlite3

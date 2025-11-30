@@ -49,7 +49,7 @@ class ChromaDBClient:
         self.host = host or os.getenv("CHROMADB_HOST", "localhost")
         self.port = port or int(os.getenv("CHROMADB_PORT", "8001"))
         self.persist_directory = persist_directory or os.getenv(
-            "CHROMADB_PERSIST_DIR", "./chroma_data"
+            "CHROMADB_PERSIST_DIR", "./data/chroma_data"
         )
         self.mode = mode
         self.pool_size = max(pool_size, 1)
