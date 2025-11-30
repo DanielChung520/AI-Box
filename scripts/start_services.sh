@@ -320,7 +320,7 @@ start_fastapi() {
     fi
 
     # 檢查依賴模組
-    if ! "$PYTHON_CMD" -c "from services.api.main import app" 2>/dev/null; then
+    if ! "$PYTHON_CMD" -c "from api.main import app" 2>/dev/null; then
         echo -e "${RED}錯誤: 無法導入 FastAPI 應用${NC}"
         echo -e "${YELLOW}請檢查依賴是否安裝完整${NC}"
         echo -e "${YELLOW}嘗試: pip install -r requirements.txt${NC}"
@@ -329,13 +329,13 @@ start_fastapi() {
 
     echo -e "${GREEN}啟動 FastAPI 服務 (端口 $FASTAPI_PORT)...${NC}"
     if command -v "$UVICORN_CMD" &> /dev/null; then
-        nohup "$UVICORN_CMD" services.api.main:app \
+        nohup "$UVICORN_CMD" api.main:app \
             --host 0.0.0.0 \
             --port $FASTAPI_PORT \
             --reload \
             > "$LOG_DIR/fastapi.log" 2>&1 &
     else
-        nohup "$PYTHON_CMD" -m uvicorn services.api.main:app \
+        nohup "$PYTHON_CMD" -m uvicorn api.main:app \
             --host 0.0.0.0 \
             --port $FASTAPI_PORT \
             --reload \
@@ -389,13 +389,13 @@ start_mcp_server() {
     fi
 
     # 檢查 Python 模組
-    if ! "$PYTHON_CMD" -c "import services.mcp_server.main" 2>/dev/null; then
+    if ! "$PYTHON_CMD" -c "import mcp.server.main" 2>/dev/null; then
         echo -e "${RED}錯誤: MCP Server 模組未找到${NC}"
         return 1
     fi
 
     echo -e "${GREEN}啟動 MCP Server (端口 $MCP_SERVER_PORT)...${NC}"
-    nohup "$PYTHON_CMD" -m services.mcp_server.main \
+    nohup "$PYTHON_CMD" -m mcp.server.main \
         --host 0.0.0.0 \
         --port $MCP_SERVER_PORT \
         > "$LOG_DIR/mcp_server.log" 2>&1 &
