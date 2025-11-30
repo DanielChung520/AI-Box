@@ -12,7 +12,7 @@ from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
 from agents.infra.memory.aam.aam_core import AAMManager
 from agents.infra.memory.aam.realtime_retrieval import RealtimeRetrievalService
 from agents.infra.memory.aam.context_integration import ContextIntegration
-from agent_process.context.manager import ContextManager
+from genai.workflows.context.manager import ContextManager
 
 
 class TestRealtimeRetrievalService:
@@ -169,7 +169,7 @@ class TestContextIntegration:
     ):
         """測試上下文轉換為記憶"""
         # 設置 Mock 返回值
-        from agent_process.context.models import ContextMessage
+        from genai.workflows.context.models import ContextMessage
         from datetime import datetime
 
         messages = [

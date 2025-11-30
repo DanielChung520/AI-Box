@@ -52,7 +52,7 @@ def test_workflow_factory_integration():
 def test_context_recorder_integration():
     """測試 Context Recorder 整合。"""
     from agents.autogen.conversation import ConversationManager
-    from agent_process.context.recorder import ContextRecorder
+    from genai.workflows.context.recorder import ContextRecorder
 
     recorder = ContextRecorder()
     manager = ConversationManager(
