@@ -33,7 +33,7 @@ class TestChromaDBIntegration:
     async def test_chromadb_connection(self):
         """步驟 1: ChromaDB 連接測試"""
         try:
-            from databases.chromadb import ChromaDBClient
+            from database.chromadb import ChromaDBClient
 
             client = ChromaDBClient()
             collections = client.list_collections()

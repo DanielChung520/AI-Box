@@ -11,7 +11,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from databases.arangodb import ArangoDBClient
+from database.arangodb import ArangoDBClient
 
 from agent_process.context.models import ContextConfig, ContextMessage
 

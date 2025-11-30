@@ -13,7 +13,7 @@ import structlog
 
 from agent_process.memory.aam.models import Memory
 from agent_process.memory.aam.aam_core import AAMManager
-from databases.arangodb.client import ArangoDBClient
+from database.arangodb.client import ArangoDBClient
 
 logger = structlog.get_logger(__name__)
 

@@ -26,7 +26,7 @@ class TestArangoDBIntegration:
     async def test_arangodb_connection(self):
         """步驟 1: ArangoDB 連接測試"""
         try:
-            from databases.arangodb import ArangoDBClient
+            from database.arangodb import ArangoDBClient
 
             client = ArangoDBClient()
             assert client.db is not None
@@ -38,7 +38,7 @@ class TestArangoDBIntegration:
     async def test_aql_query(self):
         """步驟 4: AQL 查詢測試"""
         try:
-            from databases.arangodb import ArangoDBClient
+            from database.arangodb import ArangoDBClient
 
             client = ArangoDBClient()
             if client.db is None or client.db.aql is None:
@@ -89,7 +89,7 @@ class TestArangoDBIntegration:
     async def test_create_collections_and_graph(self):
         """步驟 2: 集合和圖創建測試"""
         try:
-            from databases.arangodb import ArangoDBClient
+            from database.arangodb import ArangoDBClient
 
             client = ArangoDBClient()
             if client.db is None:
@@ -141,8 +141,8 @@ class TestArangoDBIntegration:
     async def test_graph_operations(self):
         """步驟 3: 圖操作測試"""
         try:
-            from databases.arangodb import ArangoDBClient
-            from databases.arangodb.graph import ArangoGraph
+            from database.arangodb import ArangoDBClient
+            from database.arangodb.graph import ArangoGraph
 
             client = ArangoDBClient()
             if client.db is None:
@@ -242,8 +242,8 @@ class TestArangoDBIntegration:
     async def test_graph_query_performance(self):
         """步驟 5: 圖查詢性能測試"""
         try:
-            from databases.arangodb import ArangoDBClient
-            from databases.arangodb.graph import ArangoGraph
+            from database.arangodb import ArangoDBClient
+            from database.arangodb.graph import ArangoGraph
 
             client = ArangoDBClient()
             if client.db is None or client.db.aql is None:

@@ -20,7 +20,7 @@ import json
 # 添加項目根目錄到路徑
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from databases.chromadb import ChromaDBClient, ChromaCollection  # noqa: E402
+from database.chromadb import ChromaDBClient, ChromaCollection  # noqa: E402
 
 
 def generate_embeddings(count: int, dimension: int = 384) -> List[List[float]]:

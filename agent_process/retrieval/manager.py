@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional, List
 from enum import Enum
 
-from databases.chromadb.client import ChromaDBClient
+from database.chromadb.client import ChromaDBClient
 
 logger = logging.getLogger(__name__)
 

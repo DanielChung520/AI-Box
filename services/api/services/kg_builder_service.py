@@ -10,7 +10,7 @@ from datetime import datetime
 import structlog
 import hashlib
 
-from databases.arangodb import ArangoDBClient
+from database.arangodb import ArangoDBClient
 from services.api.models.triple_models import Triple
 
 logger = structlog.get_logger(__name__)
@@ -262,7 +262,7 @@ class KGBuilderService:
         limit: int = 20,
     ) -> List[Dict]:
         """獲取實體的鄰居節點"""
-        from databases.arangodb import queries as kg_queries
+        from database.arangodb import queries as kg_queries
 
         return kg_queries.fetch_neighbors(
             self.client, entity_id, relation_types=relation_types, limit=limit
@@ -272,7 +272,7 @@ class KGBuilderService:
         self, entity_id: str, max_depth: int = 2, limit: int = 50
     ) -> List[Dict]:
         """獲取實體的 N 度關係子圖"""
-        from databases.arangodb import queries as kg_queries
+        from database.arangodb import queries as kg_queries
 
         return kg_queries.fetch_subgraph(
             self.client, entity_id, max_depth=max_depth, limit=limit

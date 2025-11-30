@@ -15,13 +15,13 @@ from typing import Any, Dict, List
 import structlog
 import yaml  # type: ignore[import-untyped]
 
-from databases.arangodb import (
+from database.arangodb import (
     ArangoCollection,
     ArangoDBClient,
     ArangoGraph,
     load_arangodb_settings,
 )
-from databases.arangodb.settings import clear_arangodb_settings_cache
+from database.arangodb.settings import clear_arangodb_settings_cache
 
 LOGGER = structlog.get_logger(__name__)
 DEFAULT_DATASET_ROOT = Path(__file__).resolve().parents[1] / "datasets" / "arangodb"

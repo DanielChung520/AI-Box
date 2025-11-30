@@ -18,7 +18,7 @@ except ImportError:
     REDIS_AVAILABLE = False
     logging.warning("Redis not available, using in-memory storage")
 
-from databases.chromadb.client import ChromaDBClient
+from database.chromadb.client import ChromaDBClient
 
 logger = logging.getLogger(__name__)
 

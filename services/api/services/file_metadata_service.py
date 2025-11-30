@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import List, Optional
 import structlog
 
-from databases.arangodb import ArangoDBClient
+from database.arangodb import ArangoDBClient
 from services.api.models.file_metadata import (
     FileMetadata,
     FileMetadataCreate,

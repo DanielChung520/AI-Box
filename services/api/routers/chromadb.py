@@ -24,12 +24,12 @@ from services.api.models.chromadb import (
     QueryRequest,
     BatchAddRequest,
 )
-from databases.chromadb.utils import ensure_list
+from database.chromadb.utils import ensure_list
 
 # 嘗試導入 ChromaDB 客戶端
 try:
-    from databases.chromadb import ChromaDBClient, ChromaCollection
-    from databases.chromadb.exceptions import (
+    from database.chromadb import ChromaDBClient, ChromaCollection
+    from database.chromadb.exceptions import (
         ChromaDBError,
         ChromaDBConnectionError,  # noqa: F401
         ChromaDBOperationError,

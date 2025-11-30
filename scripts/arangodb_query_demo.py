@@ -13,8 +13,8 @@ from typing import List
 
 import structlog
 
-from databases.arangodb import ArangoDBClient, load_arangodb_settings
-from databases.arangodb import queries as kg_queries
+from database.arangodb import ArangoDBClient, load_arangodb_settings
+from database.arangodb import queries as kg_queries
 
 LOGGER = structlog.get_logger(__name__)
 
