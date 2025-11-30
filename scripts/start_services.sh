@@ -38,11 +38,15 @@ mkdir -p "$LOG_DIR"
 # 函數：檢查端口是否被占用
 check_port() {
     local port=$1
+    # 检查 LISTEN 状态的端口
     if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-        return 0  # 端口被占用
-    else
-        return 1  # 端口未被占用
+        return 0  # 端口被占用（LISTEN 状态）
     fi
+    # 检查其他状态的端口（包括 CLOSED）
+    if lsof -ti :$port >/dev/null 2>&1; then
+        return 0  # 端口被占用（其他状态）
+    fi
+    return 1  # 端口未被占用
 }
 
 # 函數：關閉占用端口的進程
