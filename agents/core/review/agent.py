@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List
 
 from agents.core.review.models import ReviewRequest, ReviewResult, ReviewStatus
 from genai.prompt import PromptManager
-from agent_process.memory import MemoryManager
+from agents.infra.memory import MemoryManager
 
 logger = logging.getLogger(__name__)
 

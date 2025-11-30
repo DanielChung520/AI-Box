@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # AAM 整合（可選）
 try:
     from genai.workflows.rag.hybrid_rag import HybridRAGService
-    from agent_process.memory.aam.aam_core import AAMManager
+    from agents.infra.memory.aam.aam_core import AAMManager
 
     AAM_AVAILABLE = True
 except ImportError:

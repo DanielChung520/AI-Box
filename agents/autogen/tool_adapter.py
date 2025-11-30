@@ -8,7 +8,7 @@
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-from agent_process.tools.registry import ToolRegistry, Tool
+from agents.infra.tools.registry import ToolRegistry, Tool
 
 logger = logging.getLogger(__name__)
 

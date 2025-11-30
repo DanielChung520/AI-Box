@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from agent_process.memory.manager import MemoryManager
+from agents.infra.memory.manager import MemoryManager
 from agents.autogen.planner import ExecutionPlan, PlanStatus
 from agents.autogen.state_mapper import StateMapper
 

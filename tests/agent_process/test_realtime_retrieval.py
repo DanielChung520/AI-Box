@@ -8,10 +8,10 @@
 import pytest
 from unittest.mock import Mock
 
-from agent_process.memory.aam.models import Memory, MemoryType, MemoryPriority
-from agent_process.memory.aam.aam_core import AAMManager
-from agent_process.memory.aam.realtime_retrieval import RealtimeRetrievalService
-from agent_process.memory.aam.context_integration import ContextIntegration
+from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
+from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.realtime_retrieval import RealtimeRetrievalService
+from agents.infra.memory.aam.context_integration import ContextIntegration
 from agent_process.context.manager import ContextManager
 
 
@@ -193,7 +193,7 @@ class TestContextIntegration:
     def test_inject_memory_to_context(self, context_integration, mock_context_manager):
         """測試將記憶注入到上下文"""
         # 設置 Mock 返回值
-        from agent_process.memory.aam.models import Memory, MemoryType
+        from agents.infra.memory.aam.models import Memory, MemoryType
 
         test_memories = [
             Memory(

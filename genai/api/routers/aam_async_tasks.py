@@ -13,9 +13,9 @@ from fastapi.responses import JSONResponse
 import structlog
 
 from api.core.response import APIResponse
-from agent_process.memory.aam.async_processor import AsyncProcessor, TaskStatus
-from agent_process.memory.aam.knowledge_extraction_agent import KnowledgeExtractionAgent
-from agent_process.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.async_processor import AsyncProcessor, TaskStatus
+from agents.infra.memory.aam.knowledge_extraction_agent import KnowledgeExtractionAgent
+from agents.infra.memory.aam.aam_core import AAMManager
 
 logger = structlog.get_logger(__name__)
 
@@ -65,7 +65,7 @@ async def submit_knowledge_extraction_task(
         processor = get_async_processor()
         agent = get_knowledge_agent()
 
-        from agent_process.memory.aam.models import MemoryType
+        from agents.infra.memory.aam.models import MemoryType
 
         mem_type = MemoryType(memory_type) if memory_type else None
 

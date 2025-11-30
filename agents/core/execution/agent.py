@@ -16,8 +16,8 @@ from agents.core.execution.models import (
     ExecutionResult,
     ExecutionStatus,
 )
-from agent_process.tools import ToolRegistry
-from agent_process.memory import MemoryManager
+from agents.infra.tools import ToolRegistry
+from agents.infra.memory import MemoryManager
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +197,7 @@ class ExecutionAgent:
         Returns:
             是否成功註冊
         """
-        from agent_process.tools import ToolType
+        from agents.infra.tools import ToolType
 
         tool_type_enum = (
             ToolType(tool_type)

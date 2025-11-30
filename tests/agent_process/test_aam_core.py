@@ -9,9 +9,9 @@ import pytest
 from unittest.mock import Mock
 from datetime import datetime
 
-from agent_process.memory.aam.models import Memory, MemoryType, MemoryPriority
-from agent_process.memory.aam.aam_core import AAMManager
-from agent_process.memory.aam.storage_adapter import (
+from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
+from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.storage_adapter import (
     RedisAdapter,
     ChromaDBAdapter,
     ArangoDBAdapter,

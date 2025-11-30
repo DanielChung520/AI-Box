@@ -16,7 +16,7 @@ from agents.core.planning.models import (
     PlanStepStatus,
 )
 from genai.prompt import PromptManager
-from agent_process.memory import MemoryManager
+from agents.infra.memory import MemoryManager
 
 logger = logging.getLogger(__name__)
 
