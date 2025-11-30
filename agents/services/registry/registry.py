@@ -14,7 +14,13 @@ from agents.services.registry.models import (
     AgentRegistrationRequest,
     AgentStatus,
     AgentPermissionConfig,
+    AgentMetadata,
 )
+from agents.services.protocol.base import (
+    AgentServiceProtocol,
+    AgentServiceProtocolType,
+)
+from agents.services.protocol.factory import AgentServiceClientFactory
 
 logger = logging.getLogger(__name__)
 
@@ -51,14 +57,13 @@ class AgentRegistry:
                 )
                 # 更新現有 Agent
                 existing = self._agents[request.agent_id]
-                existing.status = AgentStatus.ACTIVE
+                existing.status = AgentStatus.ONLINE
                 existing.capabilities = request.capabilities
-                existing.metadata = request.metadata
+                if request.metadata:
+                    existing.metadata = request.metadata
                 existing.endpoints = request.endpoints
                 if request.permissions:
                     existing.permissions = request.permissions
-                if request.extra:
-                    existing.extra.update(request.extra)
                 existing.last_updated = datetime.now()
                 return True
 
@@ -66,14 +71,13 @@ class AgentRegistry:
             agent_info = AgentRegistryInfo(
                 agent_id=request.agent_id,
                 agent_type=request.agent_type,
-                status=AgentStatus.PENDING,  # 默認為待審核狀態
+                name=request.name,
+                status=AgentStatus.OFFLINE,  # 默認為離線狀態，等待心跳激活
                 capabilities=request.capabilities,
-                metadata=request.metadata,
+                metadata=request.metadata or AgentMetadata(),
                 endpoints=request.endpoints,
                 permissions=request.permissions or AgentPermissionConfig(),
-                extra=request.extra or {},
                 registered_at=datetime.now(),
-                last_updated=datetime.now(),
             )
 
             self._agents[request.agent_id] = agent_info
@@ -87,7 +91,7 @@ class AgentRegistry:
 
             self._logger.info(
                 f"Registered agent: {request.agent_id} "
-                f"(type: {request.agent_type}, category: {request.metadata.category})"
+                f"(type: {request.agent_type}, name: {request.name})"
             )
             return True
 
@@ -139,11 +143,43 @@ class AgentRegistry:
         """
         return self._agents.get(agent_id)
 
+    def get_agent_client(self, agent_id: str) -> Optional[AgentServiceProtocol]:
+        """
+        獲取 Agent Service Client
+
+        Args:
+            agent_id: Agent ID
+
+        Returns:
+            Agent Service Client 實例，如果不存在返回 None
+        """
+        agent_info = self.get_agent(agent_id)
+        if not agent_info:
+            return None
+
+        # 根據協議類型創建對應的 Client
+        protocol = agent_info.endpoints.protocol
+        endpoint = (
+            agent_info.endpoints.http
+            if protocol == AgentServiceProtocolType.HTTP
+            else agent_info.endpoints.mcp
+        )
+
+        if not endpoint:
+            self._logger.error(
+                f"Agent {agent_id} endpoint not configured for protocol {protocol}"
+            )
+            return None
+
+        return AgentServiceClientFactory.create(
+            protocol=protocol,
+            endpoint=endpoint,
+        )
+
     def list_agents(
         self,
         agent_type: Optional[str] = None,
         status: Optional[AgentStatus] = None,
-        category: Optional[str] = None,
     ) -> List[AgentRegistryInfo]:
         """
         列出 Agent
@@ -151,7 +187,6 @@ class AgentRegistry:
         Args:
             agent_type: Agent 類型過濾器
             status: Agent 狀態過濾器
-            category: Agent 分類過濾器
 
         Returns:
             Agent 列表
@@ -162,8 +197,6 @@ class AgentRegistry:
             agents = [a for a in agents if a.agent_type == agent_type]
         if status:
             agents = [a for a in agents if a.status == status]
-        if category:
-            agents = [a for a in agents if a.metadata.category == category]
 
         return agents
 
@@ -206,10 +239,9 @@ class AgentRegistry:
         agent = self._agents.get(agent_id)
         if agent:
             agent.last_heartbeat = datetime.now()
-            # 如果之前是離線狀態，自動恢復為活躍狀態
+            # 如果之前是離線狀態，自動恢復為在線狀態
             if agent.status == AgentStatus.OFFLINE:
-                agent.status = AgentStatus.ACTIVE
-                agent.last_updated = datetime.now()
+                agent.status = AgentStatus.ONLINE
 
             if self._storage:
                 try:
