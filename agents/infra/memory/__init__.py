@@ -5,6 +5,6 @@
 
 """Memory Manager 模組"""
 
-from agent_process.memory.manager import MemoryManager
+from agents.infra.memory.manager import MemoryManager
 
 __all__ = ["MemoryManager"]
