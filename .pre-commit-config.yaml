@@ -28,8 +28,12 @@ repos:
     - --exit-non-zero-on-fix
     - --ignore
     - F401,F841
+    - tests_backup/
+    - tests/
     - --exclude
     - tests/
+    - --exclude
+    - tests_backup/
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.8.0
   hooks:
@@ -37,4 +41,4 @@ repos:
     args:
     - --ignore-missing-imports
     - --explicit-package-bases
-    exclude: ^tests/.*\.py$
+    exclude: ^(tests/|tests_backup/).*\.py$
