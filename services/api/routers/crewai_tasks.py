@@ -112,7 +112,7 @@ async def list_tasks(
     try:
         tasks = task_registry.list_tasks(crew_id=crew_id, status=status)
         return APIResponse.success(
-            data=[task.model_dump() for task in tasks],
+            data=[task.model_dump(mode="json") for task in tasks],
             message="Tasks retrieved successfully",
         )
     except Exception as exc:
@@ -142,7 +142,7 @@ async def get_task(task_id: str) -> JSONResponse:
             )
 
         return APIResponse.success(
-            data=task.model_dump(),
+            data=task.model_dump(mode="json"),
             message="Task retrieved successfully",
         )
     except HTTPException:
@@ -188,7 +188,7 @@ async def update_task_status(
 
         task = task_registry.get_task(task_id)
         return APIResponse.success(
-            data=task.model_dump() if task else {},
+            data=task.model_dump(mode="json") if task else {},
             message="Task status updated successfully",
         )
     except HTTPException:
@@ -261,7 +261,7 @@ async def get_task_result(task_id: str) -> JSONResponse:
             )
 
         return APIResponse.success(
-            data=result.model_dump(),
+            data=result.model_dump(mode="json"),
             message="Task result retrieved successfully",
         )
     except HTTPException:

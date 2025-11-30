@@ -39,7 +39,7 @@ async def get_file_metadata(file_id: str) -> JSONResponse:
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    return APIResponse.success(data=metadata.model_dump())
+    return APIResponse.success(data=metadata.model_dump(mode="json"))
 
 
 @router.get("/metadata")
@@ -66,7 +66,7 @@ async def list_file_metadata(
 
     return APIResponse.success(
         data={
-            "files": [m.model_dump() for m in results],
+            "files": [m.model_dump(mode="json") for m in results],
             "total": len(results),
             "limit": limit,
             "offset": offset,
@@ -88,7 +88,7 @@ async def update_file_metadata(
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    return APIResponse.success(data=metadata.model_dump(), message="元數據更新成功")
+    return APIResponse.success(data=metadata.model_dump(mode="json"), message="元數據更新成功")
 
 
 @router.post("/metadata/search")
@@ -102,7 +102,7 @@ async def search_file_metadata(
 
     return APIResponse.success(
         data={
-            "files": [m.model_dump() for m in results],
+            "files": [m.model_dump(mode="json") for m in results],
             "total": len(results),
             "query": query,
         }

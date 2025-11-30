@@ -19,11 +19,12 @@ from services.api.routers import (
     agents,
     task_analyzer,
     orchestrator,
+    planning,
+    execution,
+    review,
     mcp,
     chromadb,
     llm,
-    crewai,
-    crewai_tasks,
     file_upload,
     chunk_processing,
     file_metadata,
@@ -34,6 +35,7 @@ from services.api.routers import (
     kg_builder,
     kg_query,
 )
+
 from services.api.core.version import get_version_info, API_PREFIX
 from services.security.config import get_security_settings
 from services.security.middleware import SecurityMiddleware
@@ -44,6 +46,17 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# 可選導入 CrewAI 路由（如果模組未安裝則跳過）
+try:
+    from services.api.routers import crewai, crewai_tasks
+
+    CREWAI_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"CrewAI 路由不可用: {e}")
+    CREWAI_AVAILABLE = False
+    crewai = None  # type: ignore[assignment]
+    crewai_tasks = None  # type: ignore[assignment]
 
 # 獲取版本信息
 version_info = get_version_info()
@@ -169,11 +182,19 @@ async def get_version():
 app.include_router(agents.router, prefix=API_PREFIX, tags=["Agents"])
 app.include_router(task_analyzer.router, prefix=API_PREFIX, tags=["Task Analyzer"])
 app.include_router(orchestrator.router, prefix=API_PREFIX, tags=["Agent Orchestrator"])
+app.include_router(planning.router, prefix=API_PREFIX, tags=["Planning Agent"])
+app.include_router(execution.router, prefix=API_PREFIX, tags=["Execution Agent"])
+app.include_router(review.router, prefix=API_PREFIX, tags=["Review Agent"])
 app.include_router(mcp.router, prefix=API_PREFIX, tags=["MCP"])
 app.include_router(chromadb.router, prefix=API_PREFIX, tags=["ChromaDB"])
 app.include_router(llm.router, prefix=API_PREFIX, tags=["LLM"])
-app.include_router(crewai.router, prefix=API_PREFIX, tags=["CrewAI"])
-app.include_router(crewai_tasks.router, prefix=API_PREFIX, tags=["CrewAI"])
+# 條件性註冊 CrewAI 路由
+if CREWAI_AVAILABLE and crewai is not None and crewai_tasks is not None:
+    app.include_router(crewai.router, prefix=API_PREFIX, tags=["CrewAI"])
+    app.include_router(crewai_tasks.router, prefix=API_PREFIX, tags=["CrewAI"])
+    logger.info("CrewAI 路由已註冊")
+else:
+    logger.warning("CrewAI 路由未註冊（模組不可用）")
 app.include_router(file_upload.router, prefix=API_PREFIX, tags=["File Upload"])
 app.include_router(
     chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Processing"]

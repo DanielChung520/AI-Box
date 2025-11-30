@@ -107,7 +107,11 @@ class ArangoGraph:
             插入結果
         """
         try:
-            result = self.graph.insert_edge(collection, edge, from_vertex, to_vertex)  # type: ignore[call-arg,arg-type]
+            # ArangoDB Graph.insert_edge 需要邊文檔包含 _from 和 _to 字段
+            edge_with_vertices = edge.copy()
+            edge_with_vertices["_from"] = from_vertex
+            edge_with_vertices["_to"] = to_vertex
+            result = self.graph.insert_edge(collection, edge_with_vertices)  # type: ignore[call-arg,arg-type]
             logger.debug(
                 f"Inserted edge into collection '{collection}' in graph '{self.name}'"
             )

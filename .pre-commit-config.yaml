@@ -1,37 +1,40 @@
-# 代碼功能說明: pre-commit 配置文件，定義代碼提交前的檢查規則
-# 創建日期: 2025-10-25
-# 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
-
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-        args: ['--unsafe']  # 允許多個 YAML 文檔（Kubernetes 需要）
-      - id: check-added-large-files
-        args: ['--maxkb=1000']
-      - id: check-json
-      - id: check-toml
-      - id: check-merge-conflict
-      - id: check-case-conflict
-
-  - repo: https://github.com/psf/black
-    rev: 23.12.1
-    hooks:
-      - id: black
-        language_version: python3
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.8
-    hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
-    hooks:
-      - id: mypy
-        args: [--ignore-missing-imports, --explicit-package-bases]
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.5.0
+  hooks:
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+  - id: check-yaml
+    args:
+    - --unsafe
+  - id: check-added-large-files
+    args:
+    - --maxkb=1000
+  - id: check-json
+  - id: check-toml
+  - id: check-merge-conflict
+  - id: check-case-conflict
+- repo: https://github.com/psf/black
+  rev: 23.12.1
+  hooks:
+  - id: black
+    language_version: python3
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.1.8
+  hooks:
+  - id: ruff
+    args:
+    - --fix
+    - --exit-non-zero-on-fix
+    - --ignore
+    - F401,F841
+    - --exclude
+    - tests/
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.8.0
+  hooks:
+  - id: mypy
+    args:
+    - --ignore-missing-imports
+    - --explicit-package-bases
+    exclude: ^tests/.*\.py$

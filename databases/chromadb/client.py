@@ -187,9 +187,11 @@ class ChromaDBClient:
             raise ChromaDBConnectionError("ChromaDB client is not connected")
 
         def _op(acquired: Any):  # type: ignore[valid-type]
+            # ChromaDB 不接受空字典作為 metadata，傳遞 None
+            metadata_to_use = metadata if metadata and len(metadata) > 0 else None
             collection = acquired.get_or_create_collection(
                 name=name,
-                metadata=metadata or {},
+                metadata=metadata_to_use,
                 embedding_function=embedding_function,
             )
             logger.info(f"Collection '{name}' retrieved or created")

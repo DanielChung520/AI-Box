@@ -6,7 +6,7 @@
 """ChromaDB API 請求/響應模型定義"""
 
 from typing import List, Dict, Any, Optional, Union
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class CollectionCreateRequest(BaseModel):
@@ -74,16 +74,12 @@ class QueryRequest(BaseModel):
         description="包含的字段列表 ['documents', 'metadatas', 'embeddings', 'distances']",
     )
 
-    @field_validator("query_embeddings", "query_texts")
-    @classmethod
-    def validate_query_input(cls, v, info):
+    @model_validator(mode="after")
+    def validate_query_input(self):
         """確保至少提供一種查詢方式"""
-        if (
-            info.data.get("query_embeddings") is None
-            and info.data.get("query_texts") is None
-        ):
+        if self.query_embeddings is None and self.query_texts is None:
             raise ValueError("Either query_embeddings or query_texts must be provided")
-        return v
+        return self
 
 
 class DocumentItem(BaseModel):

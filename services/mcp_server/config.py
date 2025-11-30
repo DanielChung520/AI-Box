@@ -51,6 +51,7 @@ class MCPServerConfig(BaseSettings):
             env_file=".env",
             env_file_encoding="utf-8",
             case_sensitive=False,
+            extra="ignore",  # 忽略未定義的環境變數，避免 Pydantic 驗證錯誤
         )
     else:
         # Pydantic v1 兼容
@@ -58,6 +59,7 @@ class MCPServerConfig(BaseSettings):
             env_file = ".env"
             env_file_encoding = "utf-8"
             case_sensitive = False
+            extra = "ignore"  # 忽略未定義的環境變數
 
 
 def get_config() -> MCPServerConfig:

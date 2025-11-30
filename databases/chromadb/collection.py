@@ -155,20 +155,33 @@ class ChromaCollection:
 
         for batch_idx, batch in enumerate(batches):
             try:
-                # 提取各字段
+                # 提取各字段，確保長度一致
                 ids = [item.get("id") for item in batch]
-                embeddings = [
-                    item.get("embedding") for item in batch if item.get("embedding")
+                embeddings_list: list[list[float] | None] = [
+                    item.get("embedding") for item in batch
                 ]
-                embeddings = embeddings if embeddings else []
-                metadatas = [
-                    item.get("metadata") for item in batch if item.get("metadata")
+                metadatas_list: list[dict[str, Any] | None] = [
+                    item.get("metadata") for item in batch
                 ]
-                metadatas = metadatas if metadatas else []
-                documents = [
-                    item.get("document") for item in batch if item.get("document")
+                documents_list: list[str | None] = [
+                    item.get("document") for item in batch
                 ]
-                documents = documents if documents else []
+
+                # 過濾 None 值，但保持列表長度一致
+                # 如果所有 embeddings 都是 None，則傳遞 None
+                embeddings: Optional[list[list[float]]] = None
+                if not all(emb is None for emb in embeddings_list):
+                    embeddings = [emb for emb in embeddings_list if emb is not None]
+
+                # 如果所有 metadatas 都是 None，則傳遞 None
+                metadatas: Optional[list[dict[str, Any]]] = None
+                if not all(meta is None for meta in metadatas_list):
+                    metadatas = [meta for meta in metadatas_list if meta is not None]
+
+                # 如果所有 documents 都是 None，則傳遞 None
+                documents: Optional[list[str]] = None
+                if not all(doc is None for doc in documents_list):
+                    documents = [doc for doc in documents_list if doc is not None]
 
                 # 使用標準 add 方法
                 self.add(

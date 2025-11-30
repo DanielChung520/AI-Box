@@ -83,7 +83,7 @@ async def create_crew(request: CreateCrewRequest) -> JSONResponse:
             metadata=request.metadata,
         )
         return APIResponse.success(
-            data=config.model_dump(),
+            data=config.model_dump(mode="json"),
             message="Crew created successfully",
         )
     except Exception as exc:
@@ -104,7 +104,7 @@ async def list_crews() -> JSONResponse:
     try:
         crews = crew_manager.list_crews()
         return APIResponse.success(
-            data=[crew.model_dump() for crew in crews],
+            data=[crew.config.model_dump(mode="json") for crew in crews],
             message="Crews retrieved successfully",
         )
     except Exception as exc:
@@ -134,7 +134,7 @@ async def get_crew(crew_id: str) -> JSONResponse:
             )
 
         return APIResponse.success(
-            data=config.model_dump(),
+            data=config.model_dump(mode="json"),
             message="Crew retrieved successfully",
         )
     except HTTPException:
@@ -179,7 +179,7 @@ async def update_crew(crew_id: str, request: UpdateCrewRequest) -> JSONResponse:
             config.metadata = request.metadata
 
         return APIResponse.success(
-            data=config.model_dump(),
+            data=config.model_dump(mode="json"),
             message="Crew updated successfully",
         )
     except HTTPException:
@@ -243,7 +243,7 @@ async def get_crew_metrics(crew_id: str) -> JSONResponse:
             )
 
         return APIResponse.success(
-            data=metrics.model_dump(),
+            data=metrics.model_dump(mode="json"),
             message="Metrics retrieved successfully",
         )
     except HTTPException:

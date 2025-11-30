@@ -9,8 +9,11 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import os
+import logging
 
 from services.api.core.response import APIResponse
+
+logger = logging.getLogger(__name__)
 
 # 嘗試導入 MCP Client（如果可用）
 try:
@@ -198,14 +201,26 @@ async def call_mcp_tool(request: MCPToolCallRequest):
 
 @router.on_event("startup")
 async def startup_mcp():
-    """啟動時初始化 MCP 連線"""
+    """啟動時初始化 MCP 連線（非阻塞）"""
     if MCP_AVAILABLE:
         manager = get_mcp_manager()
         if manager:
             try:
-                await manager.initialize()
+                # 使用 asyncio.create_task 在后台初始化，不阻塞应用启动
+                import asyncio
+
+                asyncio.create_task(_initialize_mcp_background(manager))
             except Exception as e:
-                print(f"Failed to initialize MCP connection: {e}")
+                logger.warning(f"Failed to start MCP initialization: {e}")
+
+
+async def _initialize_mcp_background(manager):
+    """在后台初始化 MCP 连接"""
+    try:
+        await manager.initialize()
+        logger.info("MCP connection initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to initialize MCP connection (will retry later): {e}")
 
 
 @router.on_event("shutdown")

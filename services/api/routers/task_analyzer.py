@@ -53,7 +53,7 @@ async def analyze_task(request: TaskAnalysisAPIRequest) -> JSONResponse:
         result = task_analyzer.analyze(analysis_request)
 
         return APIResponse.success(
-            data=result.model_dump(),
+            data=result.model_dump(mode="json"),
             message="Task analysis completed successfully",
         )
     except Exception as e:
