@@ -266,7 +266,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "services.api.main:app",
+        "api.main:app",
         host=os.getenv("API_GATEWAY_HOST", "0.0.0.0"),
         port=int(os.getenv("API_GATEWAY_PORT", "8000")),
         reload=os.getenv("ENV", "development") == "development",
