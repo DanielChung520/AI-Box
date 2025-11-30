@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from llm.router import LLMNodeRouter
-from services.api.core.settings import get_ollama_settings
+from api.core.settings import get_ollama_settings
 
 from .base import BaseLLMClient
 
