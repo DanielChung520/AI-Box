@@ -331,6 +331,8 @@ start_fastapi() {
 
     echo -e "${GREEN}啟動 FastAPI 服務 (端口 $FASTAPI_PORT)...${NC}"
     if command -v "$UVICORN_CMD" &> /dev/null; then
+    export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
+
         nohup "$UVICORN_CMD" api.main:app \
             --host 0.0.0.0 \
             --port $FASTAPI_PORT \
