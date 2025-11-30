@@ -367,6 +367,43 @@
   - `core.config` ✅
   - `services.api.storage` ✅
 
+
+
+### 清理任務（續）
+
+**舊目錄刪除**:
+- [x] 刪除 `databases/` 目錄（已遷移到 `database/`）
+- [x] 刪除 `mcp_server/` 目錄（已遷移到 `mcp/server/`）
+- [x] 刪除 `mcp_client/` 目錄（已遷移到 `mcp/client/`）
+- [x] 刪除 `core/` 目錄（已遷移到 `system/infra/config/`）
+- [x] 清理 `services/` 目錄中的實際文件（只保留適配器）
+  - 刪除 `services/agent_registry/` 中的實際文件
+  - 刪除 `services/security/` 中的實際文件
+  - 刪除 `services/file_server/` 中的實際文件
+  - 刪除 `services/result_processor/` 中的實際文件
+  - 刪除 `services/mcp_server/` 中的實際文件
+  - 刪除 `services/api/services/` 和 `services/api/models/`
+  - 刪除 `services/api/routers/` 中的非適配器文件
+  - 刪除 `services/api/utils/`, `storage/`, `processors/`, `telemetry/`, `main.py`
+
+**保留的目錄**:
+- [x] `agent_process/` - 保留 `memory/` 和 `tools/`（Agent 基礎設施，還在被使用）
+- [x] `services/` - 只保留適配器文件
+
+**最終根目錄結構**:
+- ✅ `api/` - API 界面層
+- ✅ `agents/` - Agent 服務層
+- ✅ `database/` - 數據庫模組
+- ✅ `genai/` - GenAI 模組
+- ✅ `llm/` - LLM 模組
+- ✅ `mcp/` - MCP 模組
+- ✅ `storage/` - 文件存儲
+- ✅ `system/` - 系統管理
+- ✅ `agent_process/` - Agent 基礎設施（memory, tools）
+- ✅ `services/` - 適配器目錄（向後兼容）
+- ✅ `docs/` - 文檔目錄
+
+
 **目錄清理**:
 - [x] 清理所有 `__pycache__` 目錄
 - [x] 保留適配器文件以確保向後兼容
