@@ -9,8 +9,8 @@ import pytest
 import time
 from fastapi.testclient import TestClient
 
-from mcp_server.server import MCPServer
-from services.mcp_server.tools.task_analyzer import TaskAnalyzerTool
+from mcp.server.server import MCPServer
+from mcp.server.tools.task_analyzer import TaskAnalyzerTool
 
 
 @pytest.fixture

@@ -6,9 +6,9 @@
 """MCP Client 測試模組"""
 
 import pytest
-from mcp_client.client import MCPClient
-from mcp_client.connection.manager import MCPConnectionManager
-from mcp_client.connection.pool import LoadBalanceStrategy
+from mcp.client.client import MCPClient
+from mcp.client.connection.manager import MCPConnectionManager
+from mcp.client.connection.pool import LoadBalanceStrategy
 
 
 @pytest.mark.asyncio

@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 # 嘗試導入 MCP Client（如果可用）
 try:
-    from mcp_client.connection.manager import MCPConnectionManager
-    from mcp_client.connection.pool import LoadBalanceStrategy
+    from mcp.client.connection.manager import MCPConnectionManager
+    from mcp.client.connection.pool import LoadBalanceStrategy
 
     MCP_AVAILABLE = True
 except ImportError:

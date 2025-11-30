@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from mcp_client.client import MCPClient
+from mcp.client.client import MCPClient
 from services.agent_registry.registry import AgentRegistry
 from services.agent_registry.models import AgentRegistryInfo
 

@@ -7,8 +7,8 @@
 
 import pytest
 import tempfile
-from services.mcp_server.tools.task_analyzer import TaskAnalyzerTool
-from services.mcp_server.tools.file_tool import FileTool
+from mcp.server.tools.task_analyzer import TaskAnalyzerTool
+from mcp.server.tools.file_tool import FileTool
 
 
 @pytest.mark.asyncio
