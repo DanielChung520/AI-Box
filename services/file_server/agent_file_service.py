@@ -12,7 +12,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from agents.services.file_service.models import AgentFileInfo, FileType
-from services.api.storage.file_storage import FileStorage, LocalFileStorage
+from storage.file_storage import FileStorage, LocalFileStorage
 
 logger = logging.getLogger(__name__)
 

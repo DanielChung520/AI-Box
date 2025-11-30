@@ -9,7 +9,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Query, status
 from fastapi.responses import JSONResponse
 
-from services.api.core.response import APIResponse
+from api.core.response import APIResponse
 from genai.api.services.kg_builder_service import KGBuilderService
 
 router = APIRouter(prefix="/kg", tags=["Knowledge Graph Query"])

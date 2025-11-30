@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
-from services.api.core.response import APIResponse
+from api.core.response import APIResponse
 from genai.api.services.rt_service import RTService
 from genai.api.models.rt_models import (
     RTRequest,

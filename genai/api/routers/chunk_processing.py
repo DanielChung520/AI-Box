@@ -12,8 +12,8 @@ from fastapi.responses import JSONResponse
 import structlog
 from enum import Enum
 
-from services.api.core.response import APIResponse
-from services.api.storage.file_storage import FileStorage, create_storage_from_config
+from api.core.response import APIResponse
+from storage.file_storage import FileStorage, create_storage_from_config
 from services.api.processors.chunk_processor import (
     ChunkProcessor,
     create_chunk_processor_from_config,

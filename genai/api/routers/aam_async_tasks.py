@@ -12,7 +12,7 @@ from fastapi import APIRouter, status, BackgroundTasks
 from fastapi.responses import JSONResponse
 import structlog
 
-from services.api.core.response import APIResponse
+from api.core.response import APIResponse
 from agent_process.memory.aam.async_processor import AsyncProcessor, TaskStatus
 from agent_process.memory.aam.knowledge_extraction_agent import KnowledgeExtractionAgent
 from agent_process.memory.aam.aam_core import AAMManager

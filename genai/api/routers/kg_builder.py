@@ -9,7 +9,7 @@ from typing import List, Optional
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
-from services.api.core.response import APIResponse
+from api.core.response import APIResponse
 from genai.api.services.kg_builder_service import KGBuilderService
 from genai.api.models.triple_models import Triple
 

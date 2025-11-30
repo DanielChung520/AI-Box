@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
-from services.api.core.response import APIResponse
+from api.core.response import APIResponse
 from genai.api.services.ner_service import NERService
 from genai.api.models.ner_models import (
     NERRequest,
