@@ -28,6 +28,6 @@ from .clients import (  # noqa: F401
     LLMClientFactory,
     get_client,
 )
-from .moe_manager import LLMMoEManager  # noqa: F401
+from .moe.moe_manager import LLMMoEManager  # noqa: F401
 from .load_balancer import MultiLLMLoadBalancer  # noqa: F401
 from .failover import LLMFailoverManager, RetryConfig  # noqa: F401

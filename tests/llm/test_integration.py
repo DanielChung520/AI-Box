@@ -10,7 +10,7 @@ import pytest
 
 from agents.task_analyzer.models import LLMProvider, TaskClassificationResult, TaskType
 from llm.load_balancer import MultiLLMLoadBalancer
-from llm.moe_manager import LLMMoEManager
+from llm.moe.moe_manager import LLMMoEManager
 
 
 class TestLLMIntegration:

@@ -471,7 +471,7 @@ class TestFailoverIntegration:
     @pytest.mark.asyncio
     async def test_failover_integration_with_moe_manager(self):
         """測試故障轉移與 MoE Manager 的集成。"""
-        from llm.moe_manager import LLMMoEManager
+        from llm.moe.moe_manager import LLMMoEManager
         from llm.failover import LLMFailoverManager
 
         # 創建故障轉移管理器

@@ -28,7 +28,7 @@ from services.api.models.ollama import (
 
 # 嘗試導入 MoE 管理器（如果可用）
 try:
-    from llm.moe_manager import LLMMoEManager
+    from llm.moe.moe_manager import LLMMoEManager
 
     _moe_manager: LLMMoEManager | None = None
 

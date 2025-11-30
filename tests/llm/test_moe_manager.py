@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from agents.task_analyzer.models import LLMProvider
-from llm.moe_manager import LLMMoEManager
+from llm.moe.moe_manager import LLMMoEManager
 
 
 class TestLLMMoEManager:
