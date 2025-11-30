@@ -12,9 +12,9 @@ from typing import Any, Dict, List, Optional
 import structlog
 
 from genai.workflows.context.manager import ContextManager
-from agent_process.memory.aam.models import Memory, MemoryType, MemoryPriority
-from agent_process.memory.aam.aam_core import AAMManager
-from agent_process.memory.aam.realtime_retrieval import RealtimeRetrievalService
+from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
+from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.realtime_retrieval import RealtimeRetrievalService
 
 logger = structlog.get_logger(__name__)
 

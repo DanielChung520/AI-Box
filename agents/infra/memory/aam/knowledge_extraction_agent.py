@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from agent_process.memory.aam.models import Memory, MemoryType, MemoryPriority
-from agent_process.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
+from agents.infra.memory.aam.aam_core import AAMManager
 from genai.api.services.triple_extraction_service import TripleExtractionService
 from genai.api.models.triple_models import Triple
 

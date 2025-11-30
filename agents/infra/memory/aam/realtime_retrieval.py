@@ -13,8 +13,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import structlog
 
-from agent_process.memory.aam.models import Memory, MemoryType, MemoryPriority
-from agent_process.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
+from agents.infra.memory.aam.aam_core import AAMManager
 
 logger = structlog.get_logger(__name__)
 

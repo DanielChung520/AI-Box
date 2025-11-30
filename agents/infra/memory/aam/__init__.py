@@ -5,13 +5,13 @@
 
 """AAM (記憶增強模組) - 提供記憶檢索、存儲、更新和刪除功能"""
 
-from agent_process.memory.aam.models import (
+from agents.infra.memory.aam.models import (
     Memory,
     MemoryType,
     MemoryPriority,
 )
-from agent_process.memory.aam.aam_core import AAMManager
-from agent_process.memory.aam.storage_adapter import (
+from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.storage_adapter import (
     BaseStorageAdapter,
     RedisAdapter,
     ChromaDBAdapter,

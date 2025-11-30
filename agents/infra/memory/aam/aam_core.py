@@ -12,8 +12,8 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from agent_process.memory.aam.models import Memory, MemoryType, MemoryPriority
-from agent_process.memory.aam.storage_adapter import (
+from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
+from agents.infra.memory.aam.storage_adapter import (
     BaseStorageAdapter,
     RedisAdapter,
     ChromaDBAdapter,

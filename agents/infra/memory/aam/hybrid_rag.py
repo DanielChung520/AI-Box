@@ -14,9 +14,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 import structlog
 
-from agent_process.memory.aam.models import Memory
-from agent_process.memory.aam.aam_core import AAMManager
-from agent_process.memory.aam.realtime_retrieval import RealtimeRetrievalService
+from agents.infra.memory.aam.models import Memory
+from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.realtime_retrieval import RealtimeRetrievalService
 
 logger = structlog.get_logger(__name__)
 

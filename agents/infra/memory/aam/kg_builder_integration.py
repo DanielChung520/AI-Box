@@ -11,8 +11,8 @@ from typing import List, Optional
 
 import structlog
 
-from agent_process.memory.aam.models import MemoryType
-from agent_process.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.models import MemoryType
+from agents.infra.memory.aam.aam_core import AAMManager
 from genai.api.services.kg_builder_service import KGBuilderService
 from genai.api.models.triple_models import Triple
 
@@ -64,7 +64,7 @@ class KGBuilderIntegration:
             # 從記憶中提取三元組（需要先通過知識提取 Agent）
             # 這裡簡化處理，實際應該調用 KnowledgeExtractionAgent
             # 注意：這裡需要異步調用，簡化為同步
-            # from agent_process.memory.aam.knowledge_extraction_agent import (
+            # from agents.infra.memory.aam.knowledge_extraction_agent import (
             #     KnowledgeExtractionAgent,
             # )
             # agent = KnowledgeExtractionAgent(self.aam_manager)

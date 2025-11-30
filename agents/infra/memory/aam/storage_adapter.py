@@ -13,7 +13,7 @@ from typing import Any, List, Optional
 
 import structlog
 
-from agent_process.memory.aam.models import Memory, MemoryType
+from agents.infra.memory.aam.models import Memory, MemoryType
 
 logger = structlog.get_logger(__name__)
 
