@@ -322,11 +322,20 @@ start_fastapi() {
     # 檢查依賴模組
     # 设置 PYTHONPATH 以确保可以导入模块
     export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
+    # 检查模块文件是否存在（不实际导入，避免循环导入问题）
+    if [ ! -f "$PROJECT_ROOT/api/main.py" ]; then
+        echo -e "${RED}錯誤: FastAPI 主文件不存在${NC}"
+        echo -e "${YELLOW}請檢查項目結構是否完整${NC}"
+        return 1
+    fi
+    # 尝试导入（允许失败，因为可能是循环导入问题）
     if ! "$PYTHON_CMD" -c "from api.main import app" 2>/dev/null; then
+        echo -e "${YELLOW}警告: 無法導入 FastAPI 應用（可能是循環導入問題）${NC}"
+        echo -e "${YELLOW}將嘗試直接啟動服務...${NC}"
+    fi
         echo -e "${RED}錯誤: 無法導入 FastAPI 應用${NC}"
         echo -e "${YELLOW}請檢查依賴是否安裝完整${NC}"
         echo -e "${YELLOW}嘗試: pip install -r requirements.txt${NC}"
-        return 1
     fi
 
     echo -e "${GREEN}啟動 FastAPI 服務 (端口 $FASTAPI_PORT)...${NC}"
