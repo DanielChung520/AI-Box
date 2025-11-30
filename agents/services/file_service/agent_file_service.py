@@ -33,7 +33,7 @@ class AgentFileService:
         """
         self._storage = storage or LocalFileStorage(
             storage_path=os.getenv(
-                "AGENT_FILES_STORAGE_PATH", "./data/data/datasets/agent_files"
+                "AGENT_FILES_STORAGE_PATH", "./data/datasets/agent_files"
             )
         )
         self._base_url = base_url.rstrip("/")

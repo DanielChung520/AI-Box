@@ -24,7 +24,9 @@ from database.arangodb import (
 from database.arangodb.settings import clear_arangodb_settings_cache
 
 LOGGER = structlog.get_logger(__name__)
-DEFAULT_DATASET_ROOT = Path(__file__).resolve().parents[1] / "datasets" / "arangodb"
+DEFAULT_DATASET_ROOT = (
+    Path(__file__).resolve().parents[1] / "data" / "datasets" / "arangodb"
+)
 
 
 def parse_args() -> argparse.Namespace:

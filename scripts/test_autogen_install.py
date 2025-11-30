@@ -61,7 +61,7 @@ def test_directory_structure():
     """測試目錄結構。"""
     try:
         autogen_dir = project_root / "agents" / "autogen"
-        checkpoint_dir = project_root / "datasets" / "autogen" / "checkpoints"
+        checkpoint_dir = project_root / "data" / "datasets" / "autogen" / "checkpoints"
 
         checks = [
             (autogen_dir, "agents/autogen"),
