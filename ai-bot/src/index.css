@@ -140,6 +140,89 @@
   white-space: pre-wrap;
 }
 
+/* DOCX 内容样式 */
+.docx-content {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.docx-content h1,
+.docx-content h2,
+.docx-content h3,
+.docx-content h4,
+.docx-content h5,
+.docx-content h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.docx-content h1 {
+  font-size: 2em;
+}
+
+.docx-content h2 {
+  font-size: 1.5em;
+}
+
+.docx-content h3 {
+  font-size: 1.25em;
+}
+
+.docx-content p {
+  margin-bottom: 1em;
+  color: var(--text-secondary);
+}
+
+.docx-content ul,
+.docx-content ol {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+  color: var(--text-secondary);
+}
+
+.docx-content li {
+  margin-bottom: 0.5em;
+}
+
+.docx-content strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.docx-content em {
+  font-style: italic;
+}
+
+.docx-content a {
+  color: var(--accent-blue-light);
+  text-decoration: none;
+}
+
+.docx-content a:hover {
+  text-decoration: underline;
+}
+
+.docx-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.docx-content table td,
+.docx-content table th {
+  border: 1px solid var(--border-primary);
+  padding: 0.5em;
+  color: var(--text-secondary);
+}
+
+.docx-content table th {
+  background-color: var(--bg-tertiary);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 /* 应用主题颜色到Tailwind类 */
 .bg-primary {
   background-color: var(--bg-primary);

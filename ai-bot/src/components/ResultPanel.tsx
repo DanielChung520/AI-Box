@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLanguage } from '../contexts/languageContext';
 import { cn } from '../lib/utils';
 import FileTree from './FileTree';
-import MarkdownViewer from './MarkdownViewer';
+import FileViewer from './FileViewer';
 
 interface ResultPanelProps {
   collapsed: boolean;
@@ -11,49 +11,44 @@ interface ResultPanelProps {
 }
 
 export default function ResultPanel({ collapsed, onToggle, onViewChange }: ResultPanelProps) {
-  const [activeTab, setActiveTab] = useState<'files' | 'markdown'>('files');
+  const [activeTab, setActiveTab] = useState<'files' | 'preview'>('files');
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const { t } = useLanguage();
 
-  // 模拟一个示例Markdown内容
-  const exampleMarkdown = `# 数据分析报告
+  // 模擬文件 URL（實際應該從 API 獲取）
+  const getFileUrl = (fileName: string): string => {
+    // 這裡應該根據實際情況構建文件 URL
+    // 暫時使用模擬 URL
+    return `/api/files/${encodeURIComponent(fileName)}`;
+  };
+
+  // 模擬文件內容（僅用於 Markdown，其他類型從 URL 加載）
+  const getFileContent = (fileName: string): string | undefined => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    if (extension === 'md' || extension === 'markdown') {
+      // 模擬 Markdown 內容
+      return `# ${fileName}
 
 ## 概述
-这份报告分析了最近一个季度的销售数据和用户增长情况。
+這是一個示例文件內容。
 
-## 关键发现
+## 內容
 
-### 销售数据
-- 总销售额达到了 **1,250,000** 元，同比增长 15%
-- 华东地区贡献了 45% 的销售额
-- 产品 A 的销量占比最高，达到 32%
+這是一個支持多種文件格式預覽的文件查看器。
 
-### 用户增长
-- 新增用户数为 12,450 人，环比增长 8%
-- 活跃用户留存率提升至 68%
-- 付费转化率达到 5.2%，创历史新高
+### 支持的文件類型
+- Markdown (.md)
+- PDF (.pdf)
+- DOCX (.docx)
 
-## 图表分析
-
-\`\`\`
-// 示例代码
-function calculateGrowth(current, previous) {
-  return ((current - previous) / previous) * 100;
-}
-\`\`\`
-
-## 结论与建议
-1. 继续加大对华东地区的市场投入
-2. 优化产品 A 的用户体验，保持市场领先地位
-3. 探索提升付费转化率的新策略
-
----
-
-*报告生成时间: 2025-12-02*`;
+*文件生成時間: 2025-01-27*`;
+    }
+    return undefined;
+  };
 
   const handleFileSelect = (fileId: string) => {
     setSelectedFile(fileId);
-    setActiveTab('markdown');
+    setActiveTab('preview');
     if (onViewChange) {
       onViewChange(true);
     }
@@ -78,13 +73,16 @@ function calculateGrowth(current, previous) {
             {t('resultPanel.files')}
           </button>
           <button
-            className={`px-3 py-1 rounded-t-lg text-sm ${activeTab === 'markdown' ? 'bg-tertiary text-primary' : 'text-tertiary'}`}
+            className={`px-3 py-1 rounded-t-lg text-sm ${activeTab === 'preview' ? 'bg-tertiary text-primary' : 'text-tertiary'}`}
             onClick={() => {
-              setActiveTab('markdown');
-              if (onViewChange) {
-                onViewChange(true);
+              if (selectedFile) {
+                setActiveTab('preview');
+                if (onViewChange) {
+                  onViewChange(true);
+                }
               }
             }}
+            disabled={!selectedFile}
           >
             {t('resultPanel.preview')}
           </button>
@@ -96,8 +94,17 @@ function calculateGrowth(current, previous) {
         {activeTab === 'files' && (
           <FileTree onFileSelect={handleFileSelect} />
         )}
-        {activeTab === 'markdown' && (
-          <MarkdownViewer content={exampleMarkdown} fileName={selectedFile || '数据分析报告.md'} />
+        {activeTab === 'preview' && selectedFile && (
+          <FileViewer
+            fileUrl={getFileUrl(selectedFile)}
+            fileName={selectedFile}
+            content={getFileContent(selectedFile)}
+          />
+        )}
+        {activeTab === 'preview' && !selectedFile && (
+          <div className="p-4 h-full flex items-center justify-center text-tertiary">
+            {t('resultPanel.noFileSelected', '請選擇一個文件進行預覽')}
+          </div>
         )}
       </div>
     </div>

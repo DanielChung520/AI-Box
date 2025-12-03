@@ -203,6 +203,11 @@ export const translations: Translations = {
     zh_CN: '预览',
     zh_TW: '預覽'
   },
+  'resultPanel.noFileSelected': {
+    en: 'Please select a file to preview',
+    zh_CN: '请选择一个文件进行预览',
+    zh_TW: '請選擇一個文件進行預覽'
+  },
 
   // 主题切换
   'theme.toggle.dark': {
@@ -403,6 +408,66 @@ export const translations: Translations = {
     zh_TW: '下載'
   },
   'markdownViewer.more': {
+    en: 'More',
+    zh_CN: '更多',
+    zh_TW: '更多'
+  },
+  'pdfViewer.loading': {
+    en: 'Loading...',
+    zh_CN: '加载中...',
+    zh_TW: '加載中...'
+  },
+  'pdfViewer.error': {
+    en: 'Failed to load PDF',
+    zh_CN: '无法加载 PDF',
+    zh_TW: '無法加載 PDF'
+  },
+  'pdfViewer.prevPage': {
+    en: 'Previous page',
+    zh_CN: '上一页',
+    zh_TW: '上一頁'
+  },
+  'pdfViewer.nextPage': {
+    en: 'Next page',
+    zh_CN: '下一页',
+    zh_TW: '下一頁'
+  },
+  'pdfViewer.zoomIn': {
+    en: 'Zoom in',
+    zh_CN: '放大',
+    zh_TW: '放大'
+  },
+  'pdfViewer.zoomOut': {
+    en: 'Zoom out',
+    zh_CN: '缩小',
+    zh_TW: '縮小'
+  },
+  'pdfViewer.rotate': {
+    en: 'Rotate',
+    zh_CN: '旋转',
+    zh_TW: '旋轉'
+  },
+  'pdfViewer.download': {
+    en: 'Download',
+    zh_CN: '下载',
+    zh_TW: '下載'
+  },
+  'docxViewer.loading': {
+    en: 'Loading...',
+    zh_CN: '加载中...',
+    zh_TW: '加載中...'
+  },
+  'docxViewer.error': {
+    en: 'Failed to load DOCX file',
+    zh_CN: '无法加载 DOCX 文件',
+    zh_TW: '無法加載 DOCX 文件'
+  },
+  'docxViewer.download': {
+    en: 'Download',
+    zh_CN: '下载',
+    zh_TW: '下載'
+  },
+  'docxViewer.more': {
     en: 'More',
     zh_CN: '更多',
     zh_TW: '更多'

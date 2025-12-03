@@ -49,7 +49,9 @@ export default function FileTree({ onFileSelect }: FileTreeProps) {
       type: 'folder',
       children: [
         { id: 'data-analysis-2025-12', name: t('fileTree.analyticsReport') + '.md', type: 'file' },
-        { id: 'sales-forecast', name: t('fileTree.salesForecast') + '.xlsx', type: 'file' }
+        { id: 'sales-forecast', name: t('fileTree.salesForecast') + '.xlsx', type: 'file' },
+        { id: 'report-2025-01', name: '報告-2025-01.pdf', type: 'file' },
+        { id: 'document-2025-01', name: '文檔-2025-01.docx', type: 'file' }
       ]
     },
     {
@@ -71,6 +73,31 @@ export default function FileTree({ onFileSelect }: FileTreeProps) {
         ? prev.filter(id => id !== folderId)
         : [...prev, folderId]
     );
+  };
+
+  // 根據文件擴展名獲取對應的圖標
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'md':
+      case 'markdown':
+        return <i className="fa-solid mr-2 fa-file-lines text-blue-400"></i>;
+      case 'pdf':
+        return <i className="fa-solid mr-2 fa-file-pdf text-red-400"></i>;
+      case 'docx':
+      case 'doc':
+        return <i className="fa-solid mr-2 fa-file-word text-blue-500"></i>;
+      case 'xlsx':
+      case 'xls':
+        return <i className="fa-solid mr-2 fa-file-excel text-green-400"></i>;
+      case 'pptx':
+      case 'ppt':
+        return <i className="fa-solid mr-2 fa-file-powerpoint text-orange-400"></i>;
+      case 'txt':
+        return <i className="fa-solid mr-2 fa-file-lines text-gray-400"></i>;
+      default:
+        return <i className="fa-solid mr-2 fa-file text-gray-400"></i>;
+    }
   };
 
   const renderFileNode = (node: FileNode, level = 0) => {
@@ -101,7 +128,7 @@ export default function FileTree({ onFileSelect }: FileTreeProps) {
           onClick={() => onFileSelect(node.name)}
           style={{ paddingLeft: `${level * 16 + 8}px` }}
         >
-          <i className="fa-solid mr-2 fa-file-lines text-blue-400"></i>
+          {getFileIcon(node.name)}
           <span>{node.name}</span>
         </div>
       );

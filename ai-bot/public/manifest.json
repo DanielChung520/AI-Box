@@ -1,0 +1,45 @@
+{
+  "name": "AI GenAI Chat Room",
+  "short_name": "AI Chat",
+  "description": "AI 生成式聊天室 - 智能對話助手平台",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#9333ea",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/SmartQ-IEE.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "開始聊天",
+      "short_name": "聊天",
+      "description": "開始新的對話",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/SmartQ-IEE.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
