@@ -19,6 +19,7 @@ except ImportError:
     logging.warning("Redis not available, using in-memory storage")
 
 from database.chromadb.client import ChromaDBClient
+from agents.services.resource_controller import get_resource_controller, ResourceType
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,9 @@ class MemoryManager:
         self.chromadb_client = chromadb_client
         self.short_term_ttl = short_term_ttl
 
+        # 資源訪問控制器
+        self._resource_controller = get_resource_controller()
+
         # 如果 Redis 不可用，使用內存存儲
         if not REDIS_AVAILABLE or redis_client is None:
             self._in_memory_storage: Dict[str, Any] = {}
@@ -54,6 +58,8 @@ class MemoryManager:
         key: str,
         value: Any,
         ttl: Optional[int] = None,
+        agent_id: Optional[str] = None,
+        namespace: Optional[str] = None,
     ) -> bool:
         """
         存儲短期記憶
@@ -62,10 +68,20 @@ class MemoryManager:
             key: 記憶鍵
             value: 記憶值
             ttl: 過期時間（秒），如果為 None 則使用默認值
+            agent_id: Agent ID（可選，用於權限檢查）
+            namespace: 記憶命名空間（可選，用於權限檢查）
 
         Returns:
             是否成功存儲
         """
+        # 資源訪問權限檢查
+        if agent_id and namespace:
+            if not self._resource_controller.check_memory_access(agent_id, namespace):
+                logger.warning(
+                    f"Agent '{agent_id}' does not have permission to access memory namespace '{namespace}'"
+                )
+                return False
+
         try:
             ttl = ttl or self.short_term_ttl
 
@@ -89,16 +105,31 @@ class MemoryManager:
             logger.error(f"Failed to store short-term memory: {e}")
             return False
 
-    def retrieve_short_term(self, key: str) -> Optional[Any]:
+    def retrieve_short_term(
+        self,
+        key: str,
+        agent_id: Optional[str] = None,
+        namespace: Optional[str] = None,
+    ) -> Optional[Any]:
         """
         檢索短期記憶
 
         Args:
             key: 記憶鍵
+            agent_id: Agent ID（可選，用於權限檢查）
+            namespace: 記憶命名空間（可選，用於權限檢查）
 
         Returns:
             記憶值，如果不存在或已過期則返回 None
         """
+        # 資源訪問權限檢查
+        if agent_id and namespace:
+            if not self._resource_controller.check_memory_access(agent_id, namespace):
+                logger.warning(
+                    f"Agent '{agent_id}' does not have permission to access memory namespace '{namespace}'"
+                )
+                return None
+
         try:
             if self.redis_client:
                 # 從 Redis 檢索
@@ -128,6 +159,7 @@ class MemoryManager:
         content: str,
         metadata: Optional[Dict[str, Any]] = None,
         collection_name: str = "long_term_memory",
+        agent_id: Optional[str] = None,
     ) -> Optional[str]:
         """
         存儲長期記憶到向量數據庫
@@ -135,11 +167,22 @@ class MemoryManager:
         Args:
             content: 記憶內容
             metadata: 元數據
-            collection_name: 集合名稱
+            collection_name: 集合名稱（作為命名空間）
+            agent_id: Agent ID（可選，用於權限檢查）
 
         Returns:
             記憶ID，如果失敗則返回 None
         """
+        # 資源訪問權限檢查（collection_name 作為命名空間）
+        if agent_id:
+            if not self._resource_controller.check_memory_access(
+                agent_id, collection_name
+            ):
+                logger.warning(
+                    f"Agent '{agent_id}' does not have permission to access memory namespace '{collection_name}'"
+                )
+                return None
+
         try:
             if not self.chromadb_client:
                 logger.warning(
@@ -171,18 +214,30 @@ class MemoryManager:
         query: str,
         collection_name: str = "long_term_memory",
         n_results: int = 5,
+        agent_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         從向量數據庫檢索長期記憶
 
         Args:
             query: 查詢文本
-            collection_name: 集合名稱
+            collection_name: 集合名稱（作為命名空間）
             n_results: 返回結果數量
+            agent_id: Agent ID（可選，用於權限檢查）
 
         Returns:
             檢索結果列表
         """
+        # 資源訪問權限檢查（collection_name 作為命名空間）
+        if agent_id:
+            if not self._resource_controller.check_memory_access(
+                agent_id, collection_name
+            ):
+                logger.warning(
+                    f"Agent '{agent_id}' does not have permission to access memory namespace '{collection_name}'"
+                )
+                return []
+
         try:
             if not self.chromadb_client:
                 logger.warning(
@@ -203,16 +258,31 @@ class MemoryManager:
             logger.error(f"Failed to retrieve long-term memory: {e}")
             return []
 
-    def delete_short_term(self, key: str) -> bool:
+    def delete_short_term(
+        self,
+        key: str,
+        agent_id: Optional[str] = None,
+        namespace: Optional[str] = None,
+    ) -> bool:
         """
         刪除短期記憶
 
         Args:
             key: 記憶鍵
+            agent_id: Agent ID（可選，用於權限檢查）
+            namespace: 記憶命名空間（可選，用於權限檢查）
 
         Returns:
             是否成功刪除
         """
+        # 資源訪問權限檢查
+        if agent_id and namespace:
+            if not self._resource_controller.check_memory_access(agent_id, namespace):
+                logger.warning(
+                    f"Agent '{agent_id}' does not have permission to access memory namespace '{namespace}'"
+                )
+                return False
+
         try:
             if self.redis_client:
                 self.redis_client.delete(key)

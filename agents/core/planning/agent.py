@@ -1,7 +1,7 @@
 # 代碼功能說明: Planning Agent 核心實現
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-01-27
 
 """Planning Agent - 實現計劃生成和驗證"""
 
@@ -15,13 +15,19 @@ from agents.core.planning.models import (
     PlanStep,
     PlanStepStatus,
 )
+from agents.services.protocol.base import (
+    AgentServiceProtocol,
+    AgentServiceRequest,
+    AgentServiceResponse,
+    AgentServiceStatus,
+)
 from genai.prompt import PromptManager
 from agents.infra.memory import MemoryManager
 
 logger = logging.getLogger(__name__)
 
 
-class PlanningAgent:
+class PlanningAgent(AgentServiceProtocol):
     """Planning Agent - 規劃代理"""
 
     def __init__(
@@ -343,3 +349,75 @@ class PlanningAgent:
                 return True
 
         return False
+
+    async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
+        """
+        執行計劃生成任務（實現 AgentServiceProtocol 接口）
+
+        Args:
+            request: Agent 服務請求
+
+        Returns:
+            Agent 服務響應
+        """
+        try:
+            # 從 task_data 中提取 PlanRequest 數據
+            task_data = request.task_data
+            plan_request = PlanRequest(**task_data)
+
+            # 調用原有的 generate_plan 方法
+            plan_result = self.generate_plan(plan_request)
+
+            # 轉換為 AgentServiceResponse
+            return AgentServiceResponse(
+                task_id=request.task_id,
+                status="completed",
+                result=plan_result.model_dump(),
+                error=None,
+                metadata=request.metadata,
+            )
+
+        except Exception as e:
+            logger.error(f"Planning Agent execution failed: {e}")
+            return AgentServiceResponse(
+                task_id=request.task_id,
+                status="error",
+                result=None,
+                error=str(e),
+                metadata=request.metadata,
+            )
+
+    async def health_check(self) -> AgentServiceStatus:
+        """
+        健康檢查（實現 AgentServiceProtocol 接口）
+
+        Returns:
+            服務狀態
+        """
+        try:
+            # 檢查 prompt_manager 和 memory_manager 是否可用
+            if self.prompt_manager:
+                return AgentServiceStatus.AVAILABLE
+            return AgentServiceStatus.UNAVAILABLE
+        except Exception as e:
+            logger.error(f"Health check failed: {e}")
+            return AgentServiceStatus.ERROR
+
+    async def get_capabilities(self) -> Dict[str, Any]:
+        """
+        獲取服務能力（實現 AgentServiceProtocol 接口）
+
+        Returns:
+            服務能力描述
+        """
+        return {
+            "name": "Planning Agent",
+            "description": "任務計劃生成和驗證服務",
+            "capabilities": [
+                "plan_generation",  # 計劃生成
+                "plan_validation",  # 計劃驗證
+                "task_analysis",  # 任務分析
+                "step_management",  # 步驟管理
+            ],
+            "version": "1.0.0",
+        }

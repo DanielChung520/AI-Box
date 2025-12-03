@@ -65,12 +65,12 @@ async def get_agent_catalog(
             required_capabilities=capabilities,
             agent_type=agent_type,
             category=category,
-            status=AgentStatus.ACTIVE,
+            status=AgentStatus.ONLINE,
             user_id=user_id,
             user_roles=user_roles,
         )
 
-        # 構建目錄結構
+        # 構建目錄結構（區分內部/外部 Agent）
         catalog = _build_catalog(agents)
 
         return APIResponse.success(
@@ -115,7 +115,7 @@ async def discover_agents(
             required_capabilities=capabilities,
             agent_type=agent_type,
             category=category,
-            status=AgentStatus.ACTIVE,
+            status=AgentStatus.ONLINE,
             user_id=user_id,
             user_roles=user_roles,
         )
@@ -164,7 +164,7 @@ def _build_catalog(agents: List) -> Dict[str, Any]:
         all_agents.append(agent_dict)
 
         # 按分類組織
-        category = agent.metadata.category
+        category = agent_dict.get("category") or "uncategorized"
         if category not in categories:
             categories[category] = []
         categories[category].append(agent_dict)

@@ -6,6 +6,9 @@
 """MCP Agent Service Client - 通過 MCP Protocol 調用 Agent 服務"""
 
 import logging
+import hashlib
+import hmac
+import json
 from typing import Any, Dict, Optional
 
 from mcp.client.client import MCPClient
@@ -31,6 +34,10 @@ class MCPAgentServiceClient(AgentServiceProtocol):
         self,
         server_url: str,
         server_name: str = "agent-service",
+        api_key: Optional[str] = None,
+        server_certificate: Optional[str] = None,
+        ip_whitelist: Optional[list[str]] = None,
+        server_fingerprint: Optional[str] = None,
     ):
         """
         初始化 MCP Agent Service Client
@@ -38,9 +45,17 @@ class MCPAgentServiceClient(AgentServiceProtocol):
         Args:
             server_url: MCP Server 的 URL（例如：ws://agent-planning-service:8002）
             server_name: MCP Server 名稱
+            api_key: API 密鑰（可選，用於認證）
+            server_certificate: 服務器證書（可選，用於 mTLS 認證）
+            ip_whitelist: IP 白名單列表（可選）
+            server_fingerprint: 服務器指紋（可選，用於身份驗證）
         """
         self.server_url = server_url
         self.server_name = server_name
+        self.api_key = api_key
+        self.server_certificate = server_certificate
+        self.ip_whitelist = ip_whitelist or []
+        self.server_fingerprint = server_fingerprint
         self._connection_manager: Optional[MCPConnectionManager] = None
         self._client: Optional[MCPClient] = None
 
@@ -62,34 +77,88 @@ class MCPAgentServiceClient(AgentServiceProtocol):
             raise RuntimeError("Failed to connect to MCP server")
         return self._client
 
+    def _generate_request_signature(
+        self, request_body: Dict[str, Any]
+    ) -> Optional[str]:
+        """
+        生成請求簽名（HMAC-SHA256）
+
+        Args:
+            request_body: 請求體
+
+        Returns:
+            簽名字符串，如果沒有 API Key 則返回 None
+        """
+        if not self.api_key:
+            return None
+
+        try:
+            # 將請求體轉換為字符串（按鍵排序以確保一致性）
+            request_str = json.dumps(
+                request_body, sort_keys=True, separators=(",", ":")
+            )
+
+            # 計算 HMAC-SHA256 簽名
+            signature = hmac.new(
+                self.api_key.encode("utf-8"),
+                request_str.encode("utf-8"),
+                hashlib.sha256,
+            ).hexdigest()
+
+            return signature
+        except Exception as e:
+            logger.error(f"Failed to generate request signature: {e}")
+            return None
+
     async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
-        """執行任務"""
+        """
+        執行任務（帶認證支持）
+
+        認證機制：
+        1. API Key（通過 MCP 連接參數）
+        2. 請求簽名（如果配置了 API Key）
+        3. mTLS（通過 MCP 連接配置）
+        """
         try:
             client = await self._get_client()
+
+            # 準備請求參數
+            request_body = {
+                "task_id": request.task_id,
+                "task_data": request.task_data,
+                "context": request.context or {},
+                "metadata": request.metadata or {},
+            }
+
+            # 生成並添加請求簽名（如果配置了 API Key）
+            if self.api_key:
+                signature = self._generate_request_signature(request_body)
+                if signature:
+                    request_body["signature"] = signature
+                    request_body["api_key"] = self.api_key  # 也可以通過其他方式傳遞
+
             # 調用 MCP Tool
             tool_name = f"{request.task_type}_execute"
             result = await client.call_tool(
                 tool_name,
-                arguments={
-                    "task_id": request.task_id,
-                    "task_data": request.task_data,
-                    "context": request.context or {},
-                    "metadata": request.metadata or {},
-                },
+                arguments=request_body,
             )
 
             return AgentServiceResponse(
                 task_id=request.task_id,
-                status="success",
+                status="success" if result.get("status") != "error" else "error",
                 result=result.get("result"),
-                metadata=result.get("metadata"),
+                error=result.get("error"),
+                metadata=result.get("metadata") or request.metadata,
             )
         except Exception as e:
             logger.error(f"MCP error calling agent service: {e}")
             return AgentServiceResponse(
                 task_id=request.task_id,
                 status="error",
+                result=None,
                 error=str(e),
+                metadata=request.metadata,
             )
 
     async def health_check(self) -> AgentServiceStatus:

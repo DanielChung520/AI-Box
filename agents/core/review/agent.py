@@ -1,7 +1,7 @@
 # 代碼功能說明: Review Agent 核心實現
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-01-27
 
 """Review Agent - 實現結果驗證和反饋生成"""
 
@@ -10,13 +10,19 @@ import logging
 from typing import Dict, Any, Optional, List
 
 from agents.core.review.models import ReviewRequest, ReviewResult, ReviewStatus
+from agents.services.protocol.base import (
+    AgentServiceProtocol,
+    AgentServiceRequest,
+    AgentServiceResponse,
+    AgentServiceStatus,
+)
 from genai.prompt import PromptManager
 from agents.infra.memory import MemoryManager
 
 logger = logging.getLogger(__name__)
 
 
-class ReviewAgent:
+class ReviewAgent(AgentServiceProtocol):
     """Review Agent - 審查代理"""
 
     def __init__(
@@ -329,3 +335,75 @@ class ReviewAgent:
             return ReviewStatus.NEEDS_REVISION
         else:
             return ReviewStatus.REJECTED
+
+    async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
+        """
+        執行審查任務（實現 AgentServiceProtocol 接口）
+
+        Args:
+            request: Agent 服務請求
+
+        Returns:
+            Agent 服務響應
+        """
+        try:
+            # 從 task_data 中提取 ReviewRequest 數據
+            task_data = request.task_data
+            review_request = ReviewRequest(**task_data)
+
+            # 調用原有的 review 方法
+            review_result = self.review(review_request)
+
+            # 轉換為 AgentServiceResponse
+            return AgentServiceResponse(
+                task_id=request.task_id,
+                status=review_result.status.value,
+                result=review_result.model_dump(),
+                error=None,
+                metadata=request.metadata,
+            )
+
+        except Exception as e:
+            logger.error(f"Review Agent execution failed: {e}")
+            return AgentServiceResponse(
+                task_id=request.task_id,
+                status="error",
+                result=None,
+                error=str(e),
+                metadata=request.metadata,
+            )
+
+    async def health_check(self) -> AgentServiceStatus:
+        """
+        健康檢查（實現 AgentServiceProtocol 接口）
+
+        Returns:
+            服務狀態
+        """
+        try:
+            # 檢查 prompt_manager 和 memory_manager 是否可用
+            if self.prompt_manager:
+                return AgentServiceStatus.AVAILABLE
+            return AgentServiceStatus.UNAVAILABLE
+        except Exception as e:
+            logger.error(f"Health check failed: {e}")
+            return AgentServiceStatus.ERROR
+
+    async def get_capabilities(self) -> Dict[str, Any]:
+        """
+        獲取服務能力（實現 AgentServiceProtocol 接口）
+
+        Returns:
+            服務能力描述
+        """
+        return {
+            "name": "Review Agent",
+            "description": "結果驗證和反饋生成服務",
+            "capabilities": [
+                "result_validation",  # 結果驗證
+                "quality_scoring",  # 質量評分
+                "feedback_generation",  # 反饋生成
+                "issue_identification",  # 問題識別
+            ],
+            "version": "1.0.0",
+        }

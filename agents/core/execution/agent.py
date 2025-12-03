@@ -1,7 +1,7 @@
 # 代碼功能說明: Execution Agent 核心實現
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-01-27
 
 """Execution Agent - 實現工具執行"""
 
@@ -16,13 +16,19 @@ from agents.core.execution.models import (
     ExecutionResult,
     ExecutionStatus,
 )
+from agents.services.protocol.base import (
+    AgentServiceProtocol,
+    AgentServiceRequest,
+    AgentServiceResponse,
+    AgentServiceStatus,
+)
 from agents.infra.tools import ToolRegistry
 from agents.infra.memory import MemoryManager
 
 logger = logging.getLogger(__name__)
 
 
-class ExecutionAgent:
+class ExecutionAgent(AgentServiceProtocol):
     """Execution Agent - 執行代理"""
 
     def __init__(
@@ -40,7 +46,7 @@ class ExecutionAgent:
         self.tool_registry = tool_registry or ToolRegistry()
         self.memory_manager = memory_manager
 
-    def execute(self, request: ExecutionRequest) -> ExecutionResult:
+    def execute_task(self, request: ExecutionRequest) -> ExecutionResult:
         """
         執行任務
 
@@ -212,3 +218,75 @@ class ExecutionAgent:
             handler=handler,
             config=config,
         )
+
+    async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
+        """
+        執行任務（實現 AgentServiceProtocol 接口）
+
+        Args:
+            request: Agent 服務請求
+
+        Returns:
+            Agent 服務響應
+        """
+        try:
+            # 從 task_data 中提取 ExecutionRequest 數據
+            task_data = request.task_data
+            execution_request = ExecutionRequest(**task_data)
+
+            # 調用原有的 execute_task 方法
+            execution_result = self.execute_task(execution_request)
+
+            # 轉換為 AgentServiceResponse
+            return AgentServiceResponse(
+                task_id=request.task_id,
+                status=execution_result.status.value,
+                result=execution_result.model_dump(),
+                error=execution_result.error,
+                metadata=request.metadata,
+            )
+
+        except Exception as e:
+            logger.error(f"Execution Agent execution failed: {e}")
+            return AgentServiceResponse(
+                task_id=request.task_id,
+                status="error",
+                result=None,
+                error=str(e),
+                metadata=request.metadata,
+            )
+
+    async def health_check(self) -> AgentServiceStatus:
+        """
+        健康檢查（實現 AgentServiceProtocol 接口）
+
+        Returns:
+            服務狀態
+        """
+        try:
+            # 檢查 tool_registry 是否可用
+            if self.tool_registry:
+                return AgentServiceStatus.AVAILABLE
+            return AgentServiceStatus.UNAVAILABLE
+        except Exception as e:
+            logger.error(f"Health check failed: {e}")
+            return AgentServiceStatus.ERROR
+
+    async def get_capabilities(self) -> Dict[str, Any]:
+        """
+        獲取服務能力（實現 AgentServiceProtocol 接口）
+
+        Returns:
+            服務能力描述
+        """
+        return {
+            "name": "Execution Agent",
+            "description": "工具執行和任務執行服務",
+            "capabilities": [
+                "tool_execution",  # 工具執行
+                "auto_tool_selection",  # 自動工具選擇
+                "task_execution",  # 任務執行
+                "tool_registration",  # 工具註冊
+            ],
+            "version": "1.0.0",
+        }

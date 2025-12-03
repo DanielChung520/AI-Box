@@ -1,9 +1,12 @@
 # 代碼功能說明: Agent Orchestrator 核心實現
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-01-27
 
-"""Agent Orchestrator - 實現 Agent 協調、調度、任務分發和結果聚合"""
+"""Agent Orchestrator - 實現 Agent 協調、調度、任務分發和結果聚合
+
+使用 AgentRegistry 管理 Agent，支持內部/外部 Agent 統一調度。
+"""
 
 import uuid
 import logging
@@ -12,89 +15,46 @@ from datetime import datetime
 from collections import deque
 
 from .models import (
-    AgentInfo,
+    AgentRegistryInfo,
     AgentStatus,
     TaskRequest,
     TaskResult,
     TaskStatus,
+)
+from agents.services.registry.registry import get_agent_registry
+from agents.services.registry.discovery import AgentDiscovery
+from agents.services.protocol.base import (
+    AgentServiceProtocol,
+    AgentServiceRequest,
+    AgentServiceResponse,
 )
 
 logger = logging.getLogger(__name__)
 
 
 class AgentOrchestrator:
-    """Agent 協調器"""
+    """Agent 協調器
 
-    def __init__(self):
-        """初始化 Agent 協調器"""
-        self._agents: Dict[str, AgentInfo] = {}
+    使用 AgentRegistry 管理 Agent，支持內部/外部 Agent 統一調度。
+    """
+
+    def __init__(self, registry: Optional[Any] = None):
+        """
+        初始化 Agent 協調器
+
+        Args:
+            registry: AgentRegistry 實例（可選，默認使用全局實例）
+        """
+        self._registry = registry or get_agent_registry()
+        self._discovery = AgentDiscovery(registry=self._registry)
         self._tasks: Dict[str, TaskRequest] = {}
         self._task_results: Dict[str, TaskResult] = {}
         self._task_queue: deque = deque()
-        self._agent_loads: Dict[str, int] = {}  # Agent 負載計數
+        self._agent_loads: Dict[str, int] = {}  # Agent 負載計數（從 Registry 獲取）
 
-    def register_agent(
-        self,
-        agent_id: str,
-        agent_type: str,
-        capabilities: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> bool:
+    def get_agent(self, agent_id: str) -> Optional[AgentRegistryInfo]:
         """
-        註冊 Agent
-
-        Args:
-            agent_id: Agent ID
-            agent_type: Agent 類型
-            capabilities: 能力列表
-            metadata: 元數據
-
-        Returns:
-            是否成功註冊
-        """
-        try:
-            agent_info = AgentInfo(
-                agent_id=agent_id,
-                agent_type=agent_type,
-                status=AgentStatus.IDLE,
-                last_heartbeat=None,
-                capabilities=capabilities or [],
-                metadata=metadata or {},
-            )
-
-            self._agents[agent_id] = agent_info
-            self._agent_loads[agent_id] = 0
-
-            logger.info(f"Registered agent: {agent_id} (type: {agent_type})")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to register agent '{agent_id}': {e}")
-            return False
-
-    def unregister_agent(self, agent_id: str) -> bool:
-        """
-        取消註冊 Agent
-
-        Args:
-            agent_id: Agent ID
-
-        Returns:
-            是否成功取消註冊
-        """
-        try:
-            if agent_id in self._agents:
-                del self._agents[agent_id]
-            if agent_id in self._agent_loads:
-                del self._agent_loads[agent_id]
-            logger.info(f"Unregistered agent: {agent_id}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to unregister agent '{agent_id}': {e}")
-            return False
-
-    def get_agent(self, agent_id: str) -> Optional[AgentInfo]:
-        """
-        獲取 Agent 信息
+        獲取 Agent 信息（從 Registry）
 
         Args:
             agent_id: Agent ID
@@ -102,15 +62,15 @@ class AgentOrchestrator:
         Returns:
             Agent 信息，如果不存在則返回 None
         """
-        return self._agents.get(agent_id)
+        return self._registry.get_agent_info(agent_id)
 
     def list_agents(
         self,
         agent_type: Optional[str] = None,
         status: Optional[AgentStatus] = None,
-    ) -> List[AgentInfo]:
+    ) -> List[AgentRegistryInfo]:
         """
-        列出 Agent
+        列出 Agent（從 Registry）
 
         Args:
             agent_type: Agent 類型過濾器
@@ -119,22 +79,15 @@ class AgentOrchestrator:
         Returns:
             Agent 列表
         """
-        agents = list(self._agents.values())
-
-        if agent_type:
-            agents = [a for a in agents if a.agent_type == agent_type]
-        if status:
-            agents = [a for a in agents if a.status == status]
-
-        return agents
+        return self._discovery.discover_agents(agent_type=agent_type, status=status)
 
     def discover_agents(
         self,
         required_capabilities: Optional[List[str]] = None,
         agent_type: Optional[str] = None,
-    ) -> List[AgentInfo]:
+    ) -> List[AgentRegistryInfo]:
         """
-        發現可用的 Agent
+        發現可用的 Agent（從 Registry）
 
         Args:
             required_capabilities: 需要的能力列表
@@ -143,16 +96,11 @@ class AgentOrchestrator:
         Returns:
             匹配的 Agent 列表
         """
-        agents = self.list_agents(agent_type=agent_type, status=AgentStatus.IDLE)
-
-        if required_capabilities:
-            matched_agents = []
-            for agent in agents:
-                if all(cap in agent.capabilities for cap in required_capabilities):
-                    matched_agents.append(agent)
-            return matched_agents
-
-        return agents
+        return self._discovery.discover_agents(
+            required_capabilities=required_capabilities,
+            agent_type=agent_type,
+            status=AgentStatus.ONLINE,  # 使用 ONLINE 狀態（對應原來的 IDLE）
+        )
 
     def submit_task(
         self,
@@ -225,9 +173,9 @@ class AgentOrchestrator:
                 self._assign_task(task_id, agent.agent_id)
                 self._task_queue.remove((priority, task_id))
 
-    def _select_agent(self, task_request: TaskRequest) -> Optional[AgentInfo]:
+    def _select_agent(self, task_request: TaskRequest) -> Optional[AgentRegistryInfo]:
         """
-        選擇合適的 Agent
+        選擇合適的 Agent（優先選擇內部 Agent）
 
         Args:
             task_request: 任務請求
@@ -238,45 +186,44 @@ class AgentOrchestrator:
         # 如果指定了需要的 Agent
         if task_request.required_agents:
             for agent_id in task_request.required_agents:
-                agent = self._agents.get(agent_id)
-                if agent and agent.status == AgentStatus.IDLE:
-                    return agent
+                agent_info = self._registry.get_agent_info(agent_id)
+                if agent_info and agent_info.status == AgentStatus.ONLINE:
+                    return agent_info
             return None
 
         # 根據任務類型選擇 Agent
         agent_type_mapping = {
-            "planning": "planning_agent",
-            "execution": "execution_agent",
-            "review": "review_agent",
+            "planning": "planning",
+            "execution": "execution",
+            "review": "review",
         }
 
         preferred_type = agent_type_mapping.get(task_request.task_type)
 
-        # 優先選擇空閒且負載最低的 Agent
-        idle_agents = [
-            agent for agent in self._agents.values() if agent.status == AgentStatus.IDLE
-        ]
+        # 發現可用的 Agent
+        available_agents = self.discover_agents(agent_type=preferred_type)
 
-        if preferred_type:
-            preferred_agents = [
-                agent for agent in idle_agents if agent.agent_type == preferred_type
-            ]
-            if preferred_agents:
-                idle_agents = preferred_agents
-
-        if not idle_agents:
+        if not available_agents:
             return None
 
-        # 選擇負載最低的 Agent
+        # 優先選擇內部 Agent（性能更好）
+        internal_agents = [
+            agent for agent in available_agents if agent.endpoints.is_internal
+        ]
+        if internal_agents:
+            available_agents = internal_agents
+
+        # 選擇負載最低的 Agent（從 Registry 獲取負載信息）
         selected_agent = min(
-            idle_agents, key=lambda a: self._agent_loads.get(a.agent_id, 0)
+            available_agents,
+            key=lambda a: self._agent_loads.get(a.agent_id, a.load),
         )
 
         return selected_agent
 
     def _assign_task(self, task_id: str, agent_id: str) -> bool:
         """
-        分配任務給 Agent
+        分配任務給 Agent 並執行
 
         Args:
             task_id: 任務ID
@@ -287,9 +234,9 @@ class AgentOrchestrator:
         """
         try:
             task_request = self._tasks.get(task_id)
-            agent = self._agents.get(agent_id)
+            agent_info = self._registry.get_agent_info(agent_id)
 
-            if not task_request or not agent:
+            if not task_request or not agent_info:
                 return False
 
             # 更新任務狀態
@@ -304,17 +251,119 @@ class AgentOrchestrator:
             )
             self._task_results[task_id] = task_result
 
-            # 更新 Agent 狀態
-            agent.status = AgentStatus.BUSY
+            # 更新負載計數
             self._agent_loads[agent_id] = self._agent_loads.get(agent_id, 0) + 1
 
             logger.info(f"Assigned task {task_id} to agent {agent_id}")
+
+            # 異步執行任務（這裡先標記為已分配，實際執行由調用方處理）
+            # 或者可以在這裡直接執行任務
             return True
         except Exception as e:
             logger.error(
                 f"Failed to assign task '{task_id}' to agent '{agent_id}': {e}"
             )
             return False
+
+    async def execute_task(
+        self,
+        task_id: str,
+        agent_id: Optional[str] = None,
+    ) -> Optional[TaskResult]:
+        """
+        執行任務（使用 AgentServiceProtocol 接口）
+
+        Args:
+            task_id: 任務ID
+            agent_id: Agent ID（可選，如果不提供則自動選擇）
+
+        Returns:
+            任務結果，如果失敗則返回 None
+        """
+        try:
+            task_request = self._tasks.get(task_id)
+            if not task_request:
+                logger.error(f"Task not found: {task_id}")
+                return None
+
+            # 如果未指定 Agent，自動選擇
+            if not agent_id:
+                agent_info = self._select_agent(task_request)
+                if not agent_info:
+                    logger.error(f"No available agent for task {task_id}")
+                    return None
+                agent_id = agent_info.agent_id
+            else:
+                agent_info = self._registry.get_agent_info(agent_id)
+                if not agent_info:
+                    logger.error(f"Agent not found: {agent_id}")
+                    return None
+
+            # 獲取 Agent 實例或客戶端
+            agent = self._registry.get_agent(agent_id)
+            if not agent:
+                logger.error(f"Failed to get agent instance: {agent_id}")
+                return None
+
+            # 構建 AgentServiceRequest
+            service_request = AgentServiceRequest(
+                task_id=task_id,
+                task_type=task_request.task_type,
+                task_data=task_request.task_data,
+                context=task_request.metadata.get("context"),
+                metadata=task_request.metadata,
+            )
+
+            # 執行任務
+            task_result = self._task_results.get(task_id)
+            if task_result:
+                task_result.status = TaskStatus.RUNNING
+
+            logger.info(f"Executing task {task_id} on agent {agent_id}")
+            service_response: AgentServiceResponse = await agent.execute(
+                service_request
+            )
+
+            # 更新任務結果
+            if task_result:
+                if service_response.status == "completed":
+                    task_result.status = TaskStatus.COMPLETED
+                    task_result.result = service_response.result
+                else:
+                    task_result.status = TaskStatus.FAILED
+                    task_result.error = service_response.error
+                task_result.completed_at = datetime.now()
+            else:
+                # 創建新的任務結果
+                task_result = TaskResult(
+                    task_id=task_id,
+                    status=TaskStatus.COMPLETED
+                    if service_response.status == "completed"
+                    else TaskStatus.FAILED,
+                    agent_id=agent_id,
+                    started_at=datetime.now(),
+                    completed_at=datetime.now(),
+                    result=service_response.result,
+                    error=service_response.error,
+                )
+                self._task_results[task_id] = task_result
+
+            # 更新負載計數
+            self._agent_loads[agent_id] = max(0, self._agent_loads.get(agent_id, 0) - 1)
+
+            logger.info(
+                f"Task {task_id} completed with status: {service_response.status}"
+            )
+            return task_result
+
+        except Exception as e:
+            logger.error(f"Failed to execute task '{task_id}': {e}")
+            task_result = self._task_results.get(task_id)
+            if task_result:
+                task_result.status = TaskStatus.FAILED
+                task_result.error = str(e)
+                task_result.completed_at = datetime.now()
+            return None
 
     def complete_task(
         self,
@@ -349,14 +398,11 @@ class AgentOrchestrator:
 
             task_result.completed_at = datetime.now()
 
-            # 更新 Agent 狀態
+            # 更新負載計數（Agent 狀態由 Registry 管理）
             if task_result.agent_id:
-                agent = self._agents.get(task_result.agent_id)
-                if agent:
-                    agent.status = AgentStatus.IDLE
-                    self._agent_loads[task_result.agent_id] = max(
-                        0, self._agent_loads.get(task_result.agent_id, 0) - 1
-                    )
+                self._agent_loads[task_result.agent_id] = max(
+                    0, self._agent_loads.get(task_result.agent_id, 0) - 1
+                )
 
             logger.info(f"Completed task: {task_id}")
             return True
@@ -418,7 +464,7 @@ class AgentOrchestrator:
         status: AgentStatus,
     ) -> bool:
         """
-        更新 Agent 狀態
+        更新 Agent 狀態（通過 Registry）
 
         Args:
             agent_id: Agent ID
@@ -426,11 +472,13 @@ class AgentOrchestrator:
 
         Returns:
             是否成功更新
+
+        注意：Agent 狀態應由 Registry 管理，此方法僅為向後兼容保留。
         """
-        agent = self._agents.get(agent_id)
-        if agent:
-            agent.status = status
-            agent.last_heartbeat = datetime.now()
-            logger.debug(f"Updated agent {agent_id} status to {status.value}")
+        agent_info = self._registry.get_agent_info(agent_id)
+        if agent_info:
+            # Agent 狀態由 Registry 管理，這裡僅記錄日誌
+            logger.debug(f"Agent {agent_id} status update requested: {status.value}")
+            # 實際狀態更新應通過 Registry 的心跳機制完成
             return True
         return False

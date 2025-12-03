@@ -1,23 +1,24 @@
 # 代碼功能說明: Agent Orchestrator 數據模型
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-01-27
 
-"""Agent Orchestrator 數據模型定義"""
+"""Agent Orchestrator 數據模型定義
+
+注意：此模組中的 AgentInfo 已被 AgentRegistryInfo 替代。
+保留 AgentInfo 僅為向後兼容，新代碼應使用 AgentRegistryInfo。
+"""
 
 from enum import Enum
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 from datetime import datetime
 
-
-class AgentStatus(str, Enum):
-    """Agent 狀態枚舉"""
-
-    IDLE = "idle"  # 空閒
-    BUSY = "busy"  # 忙碌
-    ERROR = "error"  # 錯誤
-    OFFLINE = "offline"  # 離線
+# 從 Registry 導入 AgentRegistryInfo 和 AgentStatus
+from agents.services.registry.models import (
+    AgentRegistryInfo,
+    AgentStatus,
+)
 
 
 class TaskStatus(str, Enum):
@@ -31,16 +32,9 @@ class TaskStatus(str, Enum):
     CANCELLED = "cancelled"  # 已取消
 
 
-class AgentInfo(BaseModel):
-    """Agent 信息模型"""
-
-    agent_id: str = Field(..., description="Agent ID")
-    agent_type: str = Field(..., description="Agent 類型")
-    status: AgentStatus = Field(..., description="Agent 狀態")
-    capabilities: List[str] = Field(default_factory=list, description="能力列表")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
-    registered_at: datetime = Field(default_factory=datetime.now, description="註冊時間")
-    last_heartbeat: Optional[datetime] = Field(None, description="最後心跳時間")
+# 向後兼容：保留 AgentInfo 作為 AgentRegistryInfo 的別名
+# 新代碼應直接使用 AgentRegistryInfo
+AgentInfo = AgentRegistryInfo  # type: ignore[misc,assignment]
 
 
 class TaskRequest(BaseModel):

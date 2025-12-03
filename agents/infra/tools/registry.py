@@ -6,6 +6,7 @@
 """Tool Registry - 實現工具註冊、發現和管理功能"""
 
 import logging
+from agents.services.resource_controller import get_resource_controller, ResourceType
 from enum import Enum
 from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field
@@ -58,6 +59,8 @@ class ToolRegistry:
         self._tools_by_type: Dict[ToolType, List[str]] = {
             tool_type: [] for tool_type in ToolType
         }
+        # 資源訪問控制器
+        self._resource_controller = get_resource_controller()
 
     def register(
         self,
@@ -236,6 +239,7 @@ class ToolRegistry:
         self,
         name: str,
         *args,
+        agent_id: Optional[str] = None,
         **kwargs,
     ) -> Any:
         """
@@ -244,11 +248,22 @@ class ToolRegistry:
         Args:
             name: 工具名稱
             *args: 位置參數
+            agent_id: Agent ID（可選，用於權限檢查）
             **kwargs: 關鍵字參數
 
         Returns:
             工具執行結果
         """
+        # 資源訪問權限檢查
+        if agent_id:
+            if not self._resource_controller.check_tool_access(agent_id, name):
+                logger.warning(
+                    f"Agent '{agent_id}' does not have permission to execute tool '{name}'"
+                )
+                raise PermissionError(
+                    f"Agent '{agent_id}' does not have permission to execute tool '{name}'"
+                )
+
         tool = self.get(name)
         if not tool:
             raise ValueError(f"Tool '{name}' not found")

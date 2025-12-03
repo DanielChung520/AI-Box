@@ -35,7 +35,10 @@ class AgentServiceClientFactory:
             endpoint: 服務端點 URL
             **kwargs: 其他參數
                 - timeout: HTTP 超時時間（僅 HTTP）
-                - api_key: API 密鑰（僅 HTTP）
+                - api_key: API 密鑰（用於認證）
+                - server_certificate: 服務器證書（用於 mTLS 認證）
+                - ip_whitelist: IP 白名單列表
+                - server_fingerprint: 服務器指紋（用於身份驗證）
                 - server_name: MCP Server 名稱（僅 MCP）
 
         Returns:
@@ -49,11 +52,18 @@ class AgentServiceClientFactory:
                 base_url=endpoint,
                 timeout=kwargs.get("timeout", 60.0),
                 api_key=kwargs.get("api_key"),
+                server_certificate=kwargs.get("server_certificate"),
+                ip_whitelist=kwargs.get("ip_whitelist"),
+                server_fingerprint=kwargs.get("server_fingerprint"),
             )
         elif protocol == AgentServiceProtocolType.MCP:
             return MCPAgentServiceClient(
                 server_url=endpoint,
                 server_name=kwargs.get("server_name", "agent-service"),
+                api_key=kwargs.get("api_key"),
+                server_certificate=kwargs.get("server_certificate"),
+                ip_whitelist=kwargs.get("ip_whitelist"),
+                server_fingerprint=kwargs.get("server_fingerprint"),
             )
         else:
             raise ValueError(f"Unsupported protocol: {protocol}")

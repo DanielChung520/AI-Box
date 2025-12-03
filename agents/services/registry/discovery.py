@@ -55,14 +55,16 @@ class AgentDiscovery:
         Returns:
             匹配的 Agent 列表
         """
-        # 默認只返回活躍的 Agent
+        # 默認只返回在線的 Agent
         if status is None:
-            status = AgentStatus.ACTIVE
+            status = AgentStatus.ONLINE
 
         # 獲取基礎 Agent 列表
-        agents = self._registry.list_agents(
-            agent_type=agent_type, status=status, category=category
-        )
+        agents = self._registry.list_agents(agent_type=agent_type, status=status)
+
+        # 過濾分類（如果提供）
+        if category:
+            agents = [a for a in agents if category in (a.metadata.tags or [])]
 
         # 過濾能力
         if required_capabilities:
@@ -129,30 +131,20 @@ class AgentDiscovery:
         for agent in agents:
             permissions = agent.permissions
 
-            # 公開 Agent，所有人可訪問
-            if permissions.permission_type == AgentPermission.PUBLIC:
+            # 公開 Agent：沒有 secret_id 或 api_key 的視為公開
+            # 已認證用戶可訪問：有 secret_id 或 api_key 且提供了 user_id
+            # 基於角色的權限：檢查 allowed_roles（如果存在）
+            # 特定用戶權限：檢查 allowed_users（如果存在）
+
+            # 如果沒有認證要求（沒有 secret_id 和 api_key），視為公開
+            if not permissions.secret_id and not permissions.api_key:
                 accessible_agents.append(agent)
                 continue
 
-            # 已認證用戶可訪問（如果提供了 user_id）
-            if permissions.permission_type == AgentPermission.AUTHENTICATED and user_id:
+            # 如果有認證要求且提供了 user_id，允許訪問
+            if user_id and (permissions.secret_id or permissions.api_key):
                 accessible_agents.append(agent)
                 continue
-
-            # 基於角色的權限
-            if permissions.permission_type == AgentPermission.ROLE_BASED:
-                if permissions.allowed_roles:
-                    allowed_roles_set = set(permissions.allowed_roles)
-                    if user_roles_set.intersection(allowed_roles_set):
-                        accessible_agents.append(agent)
-                        continue
-
-            # 特定用戶權限
-            if permissions.permission_type == AgentPermission.USER_SPECIFIC:
-                if user_id and permissions.allowed_users:
-                    if user_id in permissions.allowed_users:
-                        accessible_agents.append(agent)
-                        continue
 
         return accessible_agents
 
@@ -174,8 +166,8 @@ class AgentDiscovery:
         timeout_threshold = now - timedelta(seconds=heartbeat_timeout)
 
         for agent in agents:
-            # 如果 Agent 狀態不是 ACTIVE，跳過健康檢查
-            if agent.status != AgentStatus.ACTIVE:
+            # 如果 Agent 狀態不是在線，跳過健康檢查
+            if agent.status != AgentStatus.ONLINE:
                 continue
 
             # 如果沒有心跳記錄，視為不健康（除非剛註冊）
@@ -215,4 +207,4 @@ class AgentDiscovery:
         Returns:
             該分類下的 Agent 列表
         """
-        return self.discover_agents(category=category, status=AgentStatus.ACTIVE)
+        return self.discover_agents(category=category, status=AgentStatus.ONLINE)

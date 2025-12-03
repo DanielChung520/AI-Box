@@ -1,7 +1,7 @@
 # 代碼功能說明: Agent Orchestrator API 路由
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-01-27
 
 """Agent Orchestrator API 路由"""
 
@@ -13,15 +13,15 @@ from pydantic import BaseModel
 
 from api.core.response import APIResponse
 from agents.services.orchestrator.orchestrator import AgentOrchestrator
-from agents.services.orchestrator.models import (
-    AgentRegistrationRequest,
-    AgentStatus,
-)
+from agents.services.registry.models import AgentRegistrationRequest, AgentStatus
+from agents.services.registry.registry import get_agent_registry
 
 router = APIRouter()
 
 # 初始化 Agent Orchestrator
 orchestrator = AgentOrchestrator()
+# 獲取 Agent Registry（用於 Agent 註冊）
+registry = get_agent_registry()
 
 
 class SubmitTaskRequest(BaseModel):
@@ -44,21 +44,19 @@ class AggregateResultsRequest(BaseModel):
 @router.post("/orchestrator/agents/register", status_code=http_status.HTTP_200_OK)
 async def register_agent(request: AgentRegistrationRequest) -> JSONResponse:
     """
-    註冊 Agent
+    註冊 Agent（通過 Registry）
 
     Args:
         request: Agent 註冊請求
 
     Returns:
         註冊結果
+
+    注意：Agent 註冊現在由 Registry 統一管理，Orchestrator 不再直接管理 Agent。
     """
     try:
-        success = orchestrator.register_agent(
-            agent_id=request.agent_id,
-            agent_type=request.agent_type,
-            capabilities=request.capabilities,
-            metadata=request.metadata,
-        )
+        # 直接使用 Registry 註冊 Agent
+        success = registry.register_agent(request)
 
         if success:
             return APIResponse.success(

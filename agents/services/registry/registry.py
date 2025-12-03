@@ -36,15 +36,21 @@ class AgentRegistry:
             storage: 持久化存儲接口（可選，暫時使用內存存儲）
         """
         self._agents: Dict[str, AgentRegistryInfo] = {}
+        self._agent_instances: Dict[str, AgentServiceProtocol] = {}
         self._storage = storage
         self._logger = logger
 
-    def register_agent(self, request: AgentRegistrationRequest) -> bool:
+    def register_agent(
+        self,
+        request: AgentRegistrationRequest,
+        instance: Optional[AgentServiceProtocol] = None,
+    ) -> bool:
         """
         註冊 Agent
 
         Args:
             request: Agent 註冊請求
+            instance: Agent 服務實例（可選，僅用於內部 Agent）
 
         Returns:
             是否成功註冊
@@ -65,14 +71,50 @@ class AgentRegistry:
                 if request.permissions:
                     existing.permissions = request.permissions
                 existing.last_updated = datetime.now()
+
+                # 如果是內部 Agent 且提供了新實例，更新實例
+                if request.endpoints.is_internal and instance:
+                    self._agent_instances[request.agent_id] = instance
+                    self._logger.debug(
+                        f"Updated agent instance for internal agent '{request.agent_id}'"
+                    )
+
                 return True
+
+            # 驗證外部 Agent 認證配置
+            if not request.endpoints.is_internal:
+                if request.permissions:
+                    # 延遲導入以避免循環導入
+                    from agents.services.auth.external_auth import (
+                        validate_external_agent_config,
+                    )
+                    from agents.services.auth.models import ExternalAuthConfig
+
+                    auth_config = ExternalAuthConfig(
+                        api_key=request.permissions.api_key,
+                        server_certificate=request.permissions.server_certificate,
+                        ip_whitelist=request.permissions.ip_whitelist,
+                        server_fingerprint=request.permissions.server_fingerprint,
+                    )
+                    if not validate_external_agent_config(auth_config):
+                        self._logger.error(
+                            f"Invalid authentication config for external agent '{request.agent_id}'"
+                        )
+                        return False
+
+            # 如果是內部 Agent 但未提供實例，記錄警告
+            if request.endpoints.is_internal and not instance:
+                self._logger.warning(
+                    f"Internal agent '{request.agent_id}' registered without instance. "
+                    f"Instance should be provided for direct access."
+                )
 
             # 創建新的 Agent 註冊信息
             agent_info = AgentRegistryInfo(
                 agent_id=request.agent_id,
                 agent_type=request.agent_type,
                 name=request.name,
-                status=AgentStatus.OFFLINE,  # 默認為離線狀態，等待心跳激活
+                status=AgentStatus.REGISTERING,  # 默認為註冊中狀態，等待管理單位核准
                 capabilities=request.capabilities,
                 metadata=request.metadata or AgentMetadata(),
                 endpoints=request.endpoints,
@@ -81,6 +123,13 @@ class AgentRegistry:
             )
 
             self._agents[request.agent_id] = agent_info
+
+            # 如果是內部 Agent 且提供了實例，存儲實例
+            if request.endpoints.is_internal and instance:
+                self._agent_instances[request.agent_id] = instance
+                self._logger.debug(
+                    f"Stored agent instance for internal agent '{request.agent_id}'"
+                )
 
             # 持久化存儲（如果有）
             if self._storage:
@@ -91,7 +140,8 @@ class AgentRegistry:
 
             self._logger.info(
                 f"Registered agent: {request.agent_id} "
-                f"(type: {request.agent_type}, name: {request.name})"
+                f"(type: {request.agent_type}, name: {request.name}, "
+                f"internal: {request.endpoints.is_internal})"
             )
             return True
 
@@ -111,9 +161,36 @@ class AgentRegistry:
         """
         try:
             if agent_id in self._agents:
-                # 標記為離線狀態而非刪除
-                self._agents[agent_id].status = AgentStatus.OFFLINE
+                # 標記為已作廢狀態而非刪除
+                self._agents[agent_id].status = AgentStatus.DEPRECATED
                 self._agents[agent_id].last_updated = datetime.now()
+
+                # 清理實例存儲（如果存在）
+                if agent_id in self._agent_instances:
+                    instance = self._agent_instances[agent_id]
+                    try:
+                        # 如果實例支持 close() 方法，調用它
+                        if hasattr(instance, "close"):
+                            if callable(instance.close):
+                                # 檢查是否是異步方法
+                                import inspect
+
+                                if inspect.iscoroutinefunction(instance.close):
+                                    # 注意：這裡不能直接 await，因為這是同步方法
+                                    # 實際的清理應該在調用方進行
+                                    self._logger.debug(
+                                        f"Agent instance '{agent_id}' has async close method"
+                                    )
+                                else:
+                                    instance.close()
+                    except Exception as e:
+                        self._logger.warning(
+                            f"Failed to close agent instance '{agent_id}': {e}"
+                        )
+
+                    # 從實例字典中刪除
+                    del self._agent_instances[agent_id]
+                    self._logger.debug(f"Removed agent instance for '{agent_id}'")
 
                 if self._storage:
                     try:
@@ -131,30 +208,82 @@ class AgentRegistry:
             self._logger.error(f"Failed to unregister agent '{agent_id}': {e}")
             return False
 
-    def get_agent(self, agent_id: str) -> Optional[AgentRegistryInfo]:
+    def get_agent_info(self, agent_id: str) -> Optional[AgentRegistryInfo]:
         """
-        獲取 Agent 信息
+        獲取 Agent 註冊信息
 
         Args:
             agent_id: Agent ID
 
         Returns:
-            Agent 信息，如果不存在則返回 None
+            Agent 註冊信息，如果不存在則返回 None
         """
         return self._agents.get(agent_id)
 
+    def get_agent(self, agent_id: str) -> Optional[AgentServiceProtocol]:
+        """
+        獲取 Agent 服務實例或 Client（智能路由）
+
+        根據 Agent 的 `is_internal` 標誌智能返回：
+        - 內部 Agent：返回實例（從 `_agent_instances`）
+        - 外部 Agent：返回 Client（通過 `get_agent_client()`）
+
+        Args:
+            agent_id: Agent ID
+
+        Returns:
+            Agent 服務實例或 Client，如果不存在則返回 None
+
+        示例：
+            # 內部 Agent：返回實例（直接調用）
+            agent = registry.get_agent("planning-agent-1")
+            result = await agent.execute(request)
+
+            # 外部 Agent：返回 Client（Protocol 調用）
+            client = registry.get_agent("partner-agent-1")
+            result = await client.execute(request)
+        """
+        agent_info = self.get_agent_info(agent_id)
+        if not agent_info:
+            return None
+
+        # 內部 Agent：返回實例
+        if agent_info.endpoints.is_internal:
+            instance = self._agent_instances.get(agent_id)
+            if instance:
+                return instance
+            else:
+                self._logger.warning(
+                    f"Internal agent '{agent_id}' instance not found. "
+                    f"Agent may not have been registered with an instance."
+                )
+                return None
+
+        # 外部 Agent：返回 Client
+        return self.get_agent_client(agent_id)
+
     def get_agent_client(self, agent_id: str) -> Optional[AgentServiceProtocol]:
         """
-        獲取 Agent Service Client
+        獲取 Agent Service Client（僅用於外部 Agent）
 
         Args:
             agent_id: Agent ID
 
         Returns:
             Agent Service Client 實例，如果不存在返回 None
+
+        注意：此方法僅用於外部 Agent。內部 Agent 應該使用 `get_agent()` 獲取實例。
         """
-        agent_info = self.get_agent(agent_id)
+        agent_info = self.get_agent_info(agent_id)
         if not agent_info:
+            return None
+
+        # 檢查是否為外部 Agent
+        if agent_info.endpoints.is_internal:
+            self._logger.warning(
+                f"Attempted to get client for internal agent '{agent_id}'. "
+                f"Use get_agent() instead to get the instance."
+            )
             return None
 
         # 根據協議類型創建對應的 Client
@@ -171,9 +300,38 @@ class AgentRegistry:
             )
             return None
 
+        # 從權限配置獲取認證信息
+        permissions = agent_info.permissions
+
+        # 驗證外部 Agent 認證配置（可選，用於檢查配置完整性）
+        # 注意：實際的認證驗證在服務器端進行（當外部 Agent 調用我們的服務時）
+        # 這裡僅驗證配置是否完整
+        from agents.services.auth.external_auth import validate_external_agent_config
+        from agents.services.auth.models import ExternalAuthConfig
+
+        auth_config = ExternalAuthConfig(
+            api_key=permissions.api_key,
+            server_certificate=permissions.server_certificate,
+            ip_whitelist=permissions.ip_whitelist,
+            server_fingerprint=permissions.server_fingerprint,
+            require_mtls=bool(permissions.server_certificate),
+            require_signature=bool(permissions.api_key),
+            require_ip_check=bool(permissions.ip_whitelist),
+        )
+
+        if not validate_external_agent_config(auth_config):
+            self._logger.warning(
+                f"External agent '{agent_id}' authentication config validation failed. "
+                f"Client will be created but authentication may fail."
+            )
+
         return AgentServiceClientFactory.create(
             protocol=protocol,
             endpoint=endpoint,
+            api_key=permissions.api_key,
+            server_certificate=permissions.server_certificate,
+            ip_whitelist=permissions.ip_whitelist,
+            server_fingerprint=permissions.server_fingerprint,
         )
 
     def list_agents(
@@ -239,8 +397,8 @@ class AgentRegistry:
         agent = self._agents.get(agent_id)
         if agent:
             agent.last_heartbeat = datetime.now()
-            # 如果之前是離線狀態，自動恢復為在線狀態
-            if agent.status == AgentStatus.OFFLINE:
+            # 如果之前是維修中狀態，自動恢復為在線狀態
+            if agent.status == AgentStatus.MAINTENANCE:
                 agent.status = AgentStatus.ONLINE
 
             if self._storage:

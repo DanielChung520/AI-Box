@@ -40,6 +40,8 @@ from api.routers import (
     agent_files,
     reports,
 )
+from api.routers import agent_auth
+from api.routers import agent_secret
 
 from api.core.version import get_version_info, API_PREFIX
 from system.security.config import get_security_settings
@@ -191,6 +193,8 @@ async def get_version():
 app.include_router(agents.router, prefix=API_PREFIX, tags=["Agents"])
 app.include_router(agent_registry.router, prefix=API_PREFIX, tags=["Agent Registry"])
 app.include_router(agent_catalog.router, prefix=API_PREFIX, tags=["Agent Catalog"])
+app.include_router(agent_auth.router, prefix=API_PREFIX, tags=["Agent Authentication"])
+app.include_router(agent_secret.router, prefix=API_PREFIX, tags=["Agent Secret"])
 app.include_router(task_analyzer.router, prefix=API_PREFIX, tags=["Task Analyzer"])
 app.include_router(orchestrator.router, prefix=API_PREFIX, tags=["Agent Orchestrator"])
 app.include_router(planning.router, prefix=API_PREFIX, tags=["Planning Agent"])
@@ -230,6 +234,28 @@ app.include_router(reports.router, prefix=API_PREFIX, tags=["Reports"])
 async def startup_event():
     """應用啟動事件"""
     logger.info(f"AI Box API Gateway starting up... Version: {version_info['version']}")
+
+    # 初始化内建 Agent（无需注册到 Registry）
+    try:
+        from agents.builtin import initialize_builtin_agents
+
+        builtin_agents = initialize_builtin_agents()
+        logger.info(
+            f"Initialized {len(builtin_agents)} builtin agents: {list(builtin_agents.keys())}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize builtin agents: {e}")
+
+    # 註冊核心 Agent（註冊為內部 Agent）
+    try:
+        from agents.core import register_core_agents
+
+        core_agents = register_core_agents()
+        logger.info(
+            f"Registered {len(core_agents)} core agents: {list(core_agents.keys())}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to register core agents: {e}")
 
     # 啟動 Agent 健康監控（可選，根據配置啟用）
     try:

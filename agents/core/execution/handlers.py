@@ -23,7 +23,7 @@ mcp_server = MCPServer(
 async def execute_task_handler(arguments: dict) -> dict:
     """執行任務工具處理器"""
     request = ExecutionRequest(**arguments)
-    result = execution_agent.execute(request)
+    result = execution_agent.execute_task(request)  # 使用 execute_task 方法
     return result.model_dump()
 
 

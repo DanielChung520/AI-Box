@@ -49,7 +49,7 @@ class AgentTaskExecutor:
         """
         try:
             # 獲取 Agent 信息
-            agent_info = self._registry.get_agent(agent_id)
+            agent_info = self._registry.get_agent_info(agent_id)
             if not agent_info:
                 raise ValueError(f"Agent not found: {agent_id}")
 

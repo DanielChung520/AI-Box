@@ -63,7 +63,7 @@ async def execute_task(request: ExecutionAPIRequest) -> JSONResponse:
         )
 
         # 執行任務
-        result = execution_agent.execute(execution_request)
+        result = execution_agent.execute_task(execution_request)  # 使用 execute_task 方法
 
         return APIResponse.success(
             data=result.model_dump(mode="json"),
