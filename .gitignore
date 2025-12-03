@@ -22,6 +22,10 @@ yarn-error.log*
 .npm
 .yarn/
 
+# Vite build outputs
+dist/
+dev-dist/
+
 # IDE
 .vscode/
 .idea/
