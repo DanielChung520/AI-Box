@@ -42,6 +42,26 @@ export default function Home() {
     return new Map();
   });
 
+  // 代理收藏状态管理 - 使用 Map 存储 ID 和名称的映射
+  const [favoriteAgents, setFavoriteAgents] = useState<Map<string, string>>(() => {
+    // 从 localStorage 加载收藏的代理
+    const saved = localStorage.getItem('favoriteAgents');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        // 兼容旧格式（数组）
+        if (Array.isArray(data)) {
+          return new Map<string, string>();
+        }
+        // 新格式（对象）
+        return new Map(Object.entries(data));
+      } catch {
+        return new Map();
+      }
+    }
+    return new Map();
+  });
+
   // 更新收藏助理的名称（当语言切换或组件加载时）
   useEffect(() => {
     setFavoriteAssistants(prev => {
@@ -57,11 +77,40 @@ export default function Home() {
     });
   }, [language, updateCounter, t]);
 
+  // 更新收藏代理的名称（当语言切换或组件加载时）
+  useEffect(() => {
+    setFavoriteAgents(prev => {
+      const updated = new Map(prev);
+      // 为所有收藏的代理更新名称
+      prev.forEach((oldName, id) => {
+        const newName = getAgentName(id);
+        if (newName !== id) { // 如果找到了名称，更新它
+          updated.set(id, newName);
+        }
+      });
+      return updated;
+    });
+  }, [language, updateCounter, t]);
+
   // 保存收藏状态到 localStorage
   useEffect(() => {
     const data = Object.fromEntries(favoriteAssistants);
     localStorage.setItem('favoriteAssistants', JSON.stringify(data));
+    // 触发自定义事件，通知其他组件更新
+    window.dispatchEvent(new CustomEvent('favoritesUpdated', {
+      detail: { type: 'favoriteAssistants' }
+    }));
   }, [favoriteAssistants]);
+
+  // 保存代理收藏状态到 localStorage
+  useEffect(() => {
+    const data = Object.fromEntries(favoriteAgents);
+    localStorage.setItem('favoriteAgents', JSON.stringify(data));
+    // 触发自定义事件，通知其他组件更新
+    window.dispatchEvent(new CustomEvent('favoritesUpdated', {
+      detail: { type: 'favoriteAgents' }
+    }));
+  }, [favoriteAgents]);
 
   // 设置页面标题 - 使用language和updateCounter确保语言变更时更新
   useEffect(() => {
@@ -136,18 +185,80 @@ export default function Home() {
 
   // 处理助理选择
   const handleAssistantSelect = (assistantId: string) => {
-    setExecutorModalType('assistant');
-    setSelectedExecutorId(assistantId);
-    setSelectedExecutorName(getAssistantName(assistantId));
-    setShowExecutorModal(true);
+    // 如果已经有选中的任务，直接更新任务的执行配置，不打开模态框
+    if (selectedTask) {
+      setSelectedTask({
+        ...selectedTask,
+        executionConfig: {
+          ...selectedTask.executionConfig,
+          mode: 'assistant',
+          assistantId: assistantId,
+          agentId: undefined, // 清除代理ID
+        }
+      });
+      console.log('[Home] Updated task assistant:', assistantId);
+      return;
+    }
+
+    // 如果没有选中的任务，直接创建新任务并设置助理（不打开模态框）
+    const newTask: Task = {
+      id: Date.now(), // 临时 ID，实际应该由后端生成
+      title: getAssistantName(assistantId), // 使用助理名称作为初始标题
+      status: 'in-progress',
+      dueDate: new Date().toISOString().split('T')[0],
+      messages: [],
+      executionConfig: {
+        mode: 'assistant',
+        assistantId: assistantId,
+      },
+    };
+
+    setSelectedTask(newTask);
+    console.log('[Home] Created new task with assistant:', assistantId);
+
+    // 如果正在预览Markdown，切换回聊天视图
+    if (isMarkdownView) {
+      setIsMarkdownView(false);
+    }
   };
 
   // 处理代理选择
   const handleAgentSelect = (agentId: string) => {
-    setExecutorModalType('agent');
-    setSelectedExecutorId(agentId);
-    setSelectedExecutorName(getAgentName(agentId));
-    setShowExecutorModal(true);
+    // 如果已经有选中的任务，直接更新任务的执行配置，不打开模态框
+    if (selectedTask) {
+      setSelectedTask({
+        ...selectedTask,
+        executionConfig: {
+          ...selectedTask.executionConfig,
+          mode: 'agent',
+          agentId: agentId,
+          assistantId: undefined, // 清除助理ID
+        }
+      });
+      console.log('[Home] Updated task agent:', agentId);
+      return;
+    }
+
+    // 如果没有选中的任务，直接创建新任务并设置代理（不打开模态框）
+    const newTask: Task = {
+      id: Date.now(), // 临时 ID，实际应该由后端生成
+      title: getAgentName(agentId), // 使用代理名称作为初始标题
+      status: 'in-progress',
+      dueDate: new Date().toISOString().split('T')[0],
+      messages: [],
+      executionConfig: {
+        mode: 'agent',
+        agentId: agentId,
+      },
+    };
+
+    setSelectedTask(newTask);
+    console.log('[Home] Created new task with agent:', agentId);
+
+    // 如果正在预览Markdown，切换回聊天视图
+    if (isMarkdownView) {
+      setIsMarkdownView(false);
+    }
   };
 
   // 创建新任务并绑定执行者
@@ -206,7 +317,21 @@ export default function Home() {
     });
   };
 
-  // 生成收藏列表（包含收藏的助理）- 使用 useMemo 确保语言切换时更新
+  // 处理代理收藏
+  const handleAgentFavorite = (agentId: string, isFavorite: boolean, agentName?: string) => {
+    setFavoriteAgents(prev => {
+      const newMap = new Map(prev);
+      if (isFavorite) {
+        // 保存时使用传入的名称，如果没有则使用 getAgentName 获取
+        newMap.set(agentId, agentName || getAgentName(agentId));
+      } else {
+        newMap.delete(agentId);
+      }
+      return newMap;
+    });
+  };
+
+  // 生成收藏列表（包含收藏的助理和代理）- 使用 useMemo 确保语言切换时更新
   const favorites: FavoriteItem[] = useMemo(() => [
     // 保留原有的任务收藏
     { id: 'fav-1', name: t('sidebar.favorite1'), type: 'task' as const, itemId: '1', icon: 'fa-tasks' },
@@ -219,8 +344,16 @@ export default function Home() {
       type: 'assistant' as const,
       itemId: assistantId,
       icon: 'fa-robot'
+    })),
+    // 添加收藏的代理 - 使用保存的名称，如果名称不存在则尝试获取
+    ...Array.from(favoriteAgents.entries()).map(([agentId, agentName]) => ({
+      id: `fav-agent-${agentId}`,
+      name: agentName || getAgentName(agentId),
+      type: 'agent' as const,
+      itemId: agentId,
+      icon: 'fa-user-tie'
     }))
-  ], [favoriteAssistants, language, updateCounter, t]);
+  ], [favoriteAssistants, favoriteAgents, language, updateCounter, t]);
 
   return (
     <div className="flex h-screen bg-primary text-primary overflow-hidden theme-transition">
@@ -249,6 +382,13 @@ export default function Home() {
           onResultPanelToggle={() => setResultPanelCollapsed(!resultPanelCollapsed)}
           onAssistantFavorite={handleAssistantFavorite}
           favoriteAssistants={favoriteAssistants}
+          onAgentFavorite={handleAgentFavorite}
+          favoriteAgents={favoriteAgents}
+          onTaskUpdate={(updatedTask) => {
+            // 更新任务（包括标题）
+            setSelectedTask(updatedTask);
+            console.log('[Home] Task updated:', updatedTask);
+          }}
         />
       </div>
 

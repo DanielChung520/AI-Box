@@ -1,6 +1,6 @@
 /**
  * Agent 卡片組件
- * 功能：顯示 Agent 信息卡片，支持編輯和刪除操作
+ * 功能：顯示 Agent 信息卡片，支持編輯、刪除和收藏操作
  * 創建日期：2025-01-27
  * 創建人：Daniel Chung
  * 最後修改日期：2025-01-27
@@ -8,6 +8,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { FiMoreVertical, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import { cn } from '../lib/utils';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../contexts/languageContext';
@@ -26,11 +27,15 @@ interface AgentProps {
 interface AgentCardProps extends AgentProps {
   onEdit?: (agentId: string) => void;
   onDelete?: (agentId: string) => void;
+  onClick?: () => void;
+  onFavorite?: (agentId: string, isFavorite: boolean) => void;
+  isFavorite?: boolean;
 }
 
-export default function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
+export default function AgentCard({ agent, onEdit, onDelete, onClick, onFavorite, isFavorite: initialIsFavorite = false }: AgentCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
   const menuRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const { t } = useLanguage();
@@ -73,12 +78,13 @@ export default function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
   return (
     <div
     className={cn(
-      'bg-secondary rounded-xl p-4 border border-primary transition-all duration-300 theme-transition',
+      'bg-secondary rounded-xl p-4 border border-primary transition-all duration-300 theme-transition cursor-pointer',
       theme === 'light' && 'shadow-xl shadow-gray-300/80', // 增强浅色模式下的阴影效果
       isHovered ? 'border-blue-500/50 shadow-2xl shadow-blue-500/20' : ''
     )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
     >
       {/* 卡片头部 */}
       <div className="flex items-center justify-between mb-3">
@@ -89,6 +95,30 @@ export default function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
           <h3 className="font-medium text-primary">{agent.name}</h3>
         </div>
         <div className="flex items-center gap-2">
+          {/* 收藏圖標 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const newFavoriteState = !isFavorite;
+              setIsFavorite(newFavoriteState);
+              onFavorite?.(agent.id, newFavoriteState);
+            }}
+            className="p-1.5 rounded-lg hover:bg-tertiary transition-colors"
+            title={isFavorite ? t('agent.favorite.remove', '取消收藏') : t('agent.favorite.add', '加入收藏')}
+          >
+            {isFavorite ? (
+              <FaHeart
+                size={18}
+                className="text-yellow-400"
+              />
+            ) : (
+              <FaRegHeart
+                size={18}
+                className="text-gray-400 hover:text-yellow-400 transition-colors"
+              />
+            )}
+          </button>
+
           <span className={`text-xs px-2 py-0.5 rounded-full ${statusInfo.color} text-white`}>
             {statusInfo.text}
           </span>

@@ -50,8 +50,6 @@ interface SidebarProps {
 export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSelect, onAssistantSelect, onBrowseAssistants, onBrowseAgents, selectedTask, browseMode, favorites: externalFavorites }: SidebarProps) {
   const [activeSection, setActiveSection] = useState<'favorites' | 'tasks'>('tasks');
   const [activeItemId, setActiveItemId] = useState<string | number | null>(null); // 跟踪当前选中的具体 item ID
-  const [showAddTask, setShowAddTask] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
   const { t, updateCounter, language } = useLanguage();
 
   // 可收合区域的状态管理
@@ -230,14 +228,30 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     }
   };
 
-  // 添加新任务
+  // 添加新任务 - 直接创建任务，不需要输入标题
   const handleAddTask = () => {
-    if (newTaskTitle.trim()) {
-      // 这里可以添加实际添加任务的逻辑
-      console.log('添加新任务:', newTaskTitle);
-      setNewTaskTitle('');
-      setShowAddTask(false);
+    // 直接创建新任务，使用默认标题（后续聊天时会自动生成）
+    // 代理和助理初始化为 undefined（显示"選擇代理"和"選擇助理"）
+    // 模型初始化为"自動"
+    const newTask: Task = {
+      id: Date.now(), // 临时 ID，实际应该由后端生成
+      title: t('sidebar.newTask', '新任務'), // 默认标题，后续会自动更新
+      status: 'in-progress',
+      dueDate: new Date().toISOString().split('T')[0],
+      messages: [],
+      executionConfig: {
+        mode: 'free', // 默认自由模式
+        // agentId 和 assistantId 不设置，保持 undefined
+        // 这样 ChatInput 会显示"選擇代理"和"選擇助理"
+      },
+    };
+
+    // 通知父组件创建新任务
+    if (onTaskSelect) {
+      onTaskSelect(newTask);
     }
+
+    console.log('[Sidebar] Created new task:', newTask);
   };
 
   // 处理任务点击
@@ -443,52 +457,17 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
           {/* 任务区域内容 */}
           {expandedSections.tasks && (
             <>
-              {/* 新增任务按钮 */}
+              {/* 新增任务按钮 - 直接创建任务，不需要输入框 */}
               {!collapsed && (
                 <button
                   className="w-full text-left p-2 rounded-lg flex items-center justify-between hover:bg-orange-500/10 hover:text-orange-300 transition-all duration-200 mb-2"
-                  onClick={() => setShowAddTask(!showAddTask)}
+                  onClick={handleAddTask}
                 >
                    <div className="flex items-center">
                      <i className="fa-solid fa-plus-circle mr-2 text-orange-500"></i>
                      <span className="text-sm">{translations.addTask}</span>
                    </div>
-                  <i className={`fa-solid fa-chevron-down transition-transform ${showAddTask ? 'rotate-180' : ''}`}></i>
                 </button>
-              )}
-
-              {/* 新增任务输入框 */}
-              {!collapsed && showAddTask && (
-                <div className="bg-tertiary rounded-lg p-2 mb-2">
-                     <input
-                    type="text"
-                    placeholder={translations.inputPlaceholder}
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    className="w-full bg-secondary border border-primary rounded p-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleAddTask();
-                    }}
-                    autoFocus
-                  />
-                  <div className="flex justify-end mt-1.5">
-                    <button
-                      className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 rounded mr-1"
-                       onClick={handleAddTask}
-                    >
-                      {translations.buttonAdd}
-                    </button>
-                    <button
-                      className="px-2 py-1 text-xs bg-tertiary hover:bg-hover rounded"
-                      onClick={() => {
-                        setNewTaskTitle('');
-                        setShowAddTask(false);
-                       }}
-                    >
-                      {translations.buttonCancel}
-                    </button>
-                  </div>
-                </div>
               )}
 
               {/* 历史任务列表 */}

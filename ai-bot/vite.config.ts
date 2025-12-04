@@ -12,7 +12,7 @@ function getPlugins() {
     react(),
     tsconfigPaths(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt", // 改为 prompt，让用户手动更新，避免自动缓存
       // 排除大文件，使用 runtime caching 处理
       includeAssets: [],
       workbox: {
@@ -86,7 +86,7 @@ function getPlugins() {
         start_url: "/",
         icons: [
           {
-            src: "/SmartQ-IEE.svg",
+            src: "/SmartQ.-logo.svg",
             sizes: "any",
             type: "image/svg+xml",
             purpose: "any maskable",
@@ -100,7 +100,7 @@ function getPlugins() {
             url: "/",
             icons: [
               {
-                src: "/SmartQ-IEE.svg",
+                src: "/SmartQ.-logo.svg",
                 sizes: "any",
                 type: "image/svg+xml",
               },
@@ -110,7 +110,7 @@ function getPlugins() {
         categories: ["productivity", "utilities"],
       },
       devOptions: {
-        enabled: true,
+        enabled: false, // 暂时禁用开发时的 PWA，确保修改能及时生效
         type: "module",
       },
     }),

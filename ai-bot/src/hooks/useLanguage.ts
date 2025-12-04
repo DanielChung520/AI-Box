@@ -1232,6 +1232,18 @@ export const translations: Translations = {
     zh_CN: '取消收藏',
     zh_TW: '取消收藏'
   },
+
+  // 代理相關翻譯
+  'agent.favorite.add': {
+    en: 'Add to Favorites',
+    zh_CN: '加入收藏',
+    zh_TW: '加入收藏'
+  },
+  'agent.favorite.remove': {
+    en: 'Remove from Favorites',
+    zh_CN: '取消收藏',
+    zh_TW: '取消收藏'
+  },
   'assistant.actions.maintain': {
     en: 'Maintain',
     zh_CN: '维护',
@@ -1274,6 +1286,56 @@ export const translations: Translations = {
     zh_CN: '代理',
     zh_TW: '代理'
   },
+  'chatInput.agent.auto': {
+    en: 'Auto',
+    zh_CN: '自动',
+    zh_TW: '自動'
+  },
+  'chatInput.agent.autoDesc': {
+    en: 'Automatically select agent',
+    zh_CN: '自动选择代理',
+    zh_TW: '自動選擇代理'
+  },
+  'chatInput.agent.smartqIEE': {
+    en: 'SmartQ IEE',
+    zh_CN: 'SmartQ IEE',
+    zh_TW: 'SmartQ IEE'
+  },
+  'chatInput.agent.smartqIEEDesc': {
+    en: 'SmartQ IEE Agent',
+    zh_CN: 'SmartQ IEE 代理',
+    zh_TW: 'SmartQ IEE 代理'
+  },
+  'chatInput.agent.smartqHCI': {
+    en: 'SmartQ HCI',
+    zh_CN: 'SmartQ HCI',
+    zh_TW: 'SmartQ HCI'
+  },
+  'chatInput.agent.smartqHCIDesc': {
+    en: 'SmartQ HCI Agent',
+    zh_CN: 'SmartQ HCI 代理',
+    zh_TW: 'SmartQ HCI 代理'
+  },
+  'chatInput.agent.dynamicAgents': {
+    en: 'Dynamic Agents',
+    zh_CN: '动态代理',
+    zh_TW: '動態代理'
+  },
+  'chatInput.agent.favoriteAgents': {
+    en: 'Favorite Agents',
+    zh_CN: '收藏的代理',
+    zh_TW: '收藏的代理'
+  },
+  'chatInput.agent.noFavoriteAgents': {
+    en: 'No favorite agents',
+    zh_CN: '暂无收藏的代理',
+    zh_TW: '暫無收藏的代理'
+  },
+  'chatInput.noFavoriteAssistants': {
+    en: 'No favorite assistants',
+    zh_CN: '暂无收藏的助理',
+    zh_TW: '暫無收藏的助理'
+  },
   'chatInput.selectAgent': {
     en: 'Select Agent',
     zh_CN: '选择代理',
@@ -1283,6 +1345,16 @@ export const translations: Translations = {
     en: 'Auto',
     zh_CN: '自动',
     zh_TW: '自動'
+  },
+  'chatInput.model.smartqIEE': {
+    en: 'SmartQ IEE',
+    zh_CN: 'SmartQ IEE',
+    zh_TW: 'SmartQ IEE'
+  },
+  'chatInput.model.smartqHCI': {
+    en: 'SmartQ HCI',
+    zh_CN: 'SmartQ HCI',
+    zh_TW: 'SmartQ HCI'
   },
   'chatInput.selectModel': {
     en: 'Select Model',

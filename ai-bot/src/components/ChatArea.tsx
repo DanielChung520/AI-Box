@@ -52,9 +52,11 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     onResultPanelToggle?: () => void;
     onAssistantFavorite?: (assistantId: string, isFavorite: boolean, assistantName?: string) => void;
     favoriteAssistants?: Map<string, string> | Set<string>;
+    onAgentFavorite?: (agentId: string, isFavorite: boolean, agentName?: string) => void;
+    favoriteAgents?: Map<string, string> | Set<string>;
   }
 
-  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map() }: ChatAreaProps) {
+  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate }: ChatAreaProps) {
     const [activeTab, setActiveTab] = useState('human-resource');
     const [activeAssistantTab, setActiveAssistantTab] = useState('human-resource');
     const { theme, toggleTheme } = useTheme();
@@ -417,6 +419,11 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     return agentCategories.flatMap(category => category.agents);
   }, [agentCategories]);
 
+  // 获取所有Assistant（用于聊天输入框的助理选择器）
+  const allAssistants = useMemo(() => {
+    return assistantCategories.flatMap(category => category.assistants);
+  }, [assistantCategories]);
+
   // 获取当前选中分类的Assistant
   const currentAssistants = assistantCategories.find(category => category.id === activeAssistantTab)?.assistants || [];
 
@@ -637,9 +644,35 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
 
             {/* Agent卡片展示区域 */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {currentAgents.map(agent => (
-                <AgentCard key={agent.id} agent={agent} />
-              ))}
+              {currentAgents.map(agent => {
+                // 检查是否收藏 - 兼容 Set 和 Map
+                const isFavorite = favoriteAgents instanceof Map
+                  ? favoriteAgents.has(agent.id)
+                  : favoriteAgents.has(agent.id);
+
+                return (
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    isFavorite={isFavorite}
+                    onEdit={(agentId) => {
+                      // 可以在这里添加编辑代理的逻辑
+                    }}
+                    onDelete={(agentId) => {
+                      // 可以在这里添加删除代理的逻辑
+                    }}
+                    onClick={() => {
+                      if (onAgentSelect) {
+                        onAgentSelect(agent.id);
+                      }
+                    }}
+                    onFavorite={(agentId, isFav) => {
+                      // 传递代理名称
+                      onAgentFavorite?.(agentId, isFav, agent.name);
+                    }}
+                  />
+                );
+              })}
             </div>
           </>
         )}
@@ -648,9 +681,31 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
       {/* 聊天输入区域 */}
       <div className="p-4 border-t border-primary">
         <ChatInput
-          agents={selectedTask ? allAgents : []}
+          agents={allAgents}
+          assistants={allAssistants}
           onAgentSelect={onAgentSelect}
+          onAssistantSelect={onAssistantSelect}
           selectedAgentId={selectedTask?.executionConfig?.agentId}
+          selectedAssistantId={selectedTask?.executionConfig?.assistantId}
+          selectedModelId={selectedTask?.executionConfig?.modelId || 'auto'}
+          favoriteAgents={favoriteAgents}
+          favoriteAssistants={favoriteAssistants}
+          onMessageSend={(message) => {
+            // 处理消息发送
+            console.log('[ChatArea] Message sent:', message);
+            // 这里可以添加实际的消息处理逻辑
+          }}
+          onTaskTitleGenerate={(title) => {
+            // 生成任务标题（只在任务标题还是默认值时更新）
+            if (selectedTask && (selectedTask.title === '新任務' || selectedTask.title === '新任务' || selectedTask.title === 'New Task')) {
+              const updatedTask: Task = {
+                ...selectedTask,
+                title: title,
+              };
+              console.log('[ChatArea] Task title generated:', title);
+              onTaskUpdate?.(updatedTask);
+            }
+          }}
         />
       </div>
 

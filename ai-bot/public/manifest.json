@@ -10,7 +10,7 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/SmartQ-IEE.svg",
+      "src": "/SmartQ.-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -26,7 +26,7 @@
       "url": "/",
       "icons": [
         {
-          "src": "/SmartQ-IEE.svg",
+          "src": "/SmartQ.-logo.svg",
           "sizes": "any",
           "type": "image/svg+xml"
         }
@@ -36,6 +36,7 @@
   "share_target": {
     "action": "/",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "title",
       "text": "text",
