@@ -209,11 +209,6 @@ export default function FileTree({
       return;
     }
 
-      folderName: newFolderInput.trim(),
-      parentTaskId: newFolderParentId,
-      isRootLevel: newFolderParentId === null
-    });
-
     // 如果 newFolderParentId 是 null，传递 null 给后端（在根节点创建）
     // 如果 newFolderParentId 是 undefined，传递 undefined（使用默认值）
     // 如果 newFolderParentId 有值，传递该值（在指定文件夹下创建）
