@@ -335,7 +335,6 @@ export async function uploadMockFile(
         localStorage.setItem(storageKey, JSON.stringify(existingFiles));
 
         // 記錄上傳成功的文件 ID
-        console.log(`File uploaded - file_id: ${mockFile.file_id}`);
         resolve(mockFile);
       } catch (error) {
         console.error('Failed to upload mock file:', error);

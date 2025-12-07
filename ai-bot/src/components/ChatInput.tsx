@@ -712,7 +712,7 @@ export default function ChatInput({
         if (response.data.uploaded && response.data.uploaded.length > 0) {
           // 記錄上傳成功的文件 ID
           response.data.uploaded.forEach((u: any) => {
-            console.log(`File uploaded - file_id: ${u.file_id}`);
+            // 文件上傳成功
           });
 
           window.dispatchEvent(new CustomEvent('filesUploaded', {
@@ -776,7 +776,7 @@ export default function ChatInput({
 
           // 記錄上傳成功的文件 ID
           result.uploaded.forEach((u) => {
-            console.log(`File uploaded - file_id: ${u.file_id}`);
+            // 文件上傳成功
           });
 
           // 觸發文件樹更新事件，通知父組件更新文件樹

@@ -113,7 +113,6 @@ export async function apiRequest<T = any>(
   }
 
   try {
-    console.log(`[apiRequest] Making request to: ${url}`, { method: fetchOptions.method, headers: fetchOptions.headers });
     const startTime = Date.now();
 
     // 添加超时控制
@@ -127,7 +126,6 @@ export async function apiRequest<T = any>(
 
     clearTimeout(timeoutId);
     const duration = Date.now() - startTime;
-    console.log(`[apiRequest] Response received (${duration}ms):`, { status: response.status, statusText: response.statusText, ok: response.ok });
 
     if (!response.ok) {
       // 404 錯誤特別處理

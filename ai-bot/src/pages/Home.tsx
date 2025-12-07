@@ -655,13 +655,11 @@ export default function Home() {
               // 2. 如果任務沒有 fileTree 但需要從後端獲取，傳遞 taskId
               // 3. 新任務（剛創建，沒有文件、沒有消息、標題為"新任務"）不傳遞 taskId，避免不必要的 API 調用
               if (!selectedTask) {
-                console.log('[Home] No selectedTask, taskId = undefined');
                 return undefined;
               }
 
               // 如果已經有 fileTree，不調用 API，使用 prop
               if (selectedTask.fileTree?.length) {
-                console.log('[Home] Task has fileTree, taskId = undefined', { taskId: selectedTask.id, fileTreeLength: selectedTask.fileTree.length });
                 return undefined;
               }
 
@@ -673,13 +671,11 @@ export default function Home() {
               );
 
               if (isNewTask) {
-                console.log('[Home] New task detected, taskId = undefined', { taskId: selectedTask.id });
                 return undefined;
               }
 
               // 其他情況都傳遞 taskId，讓 FileTree 從後端獲取文件
               const taskId = String(selectedTask.id);
-              console.log('[Home] Passing taskId to ResultPanel', { taskId, taskTitle: selectedTask.title });
               return taskId;
             })()}
             userId={localStorage.getItem('userEmail') || undefined}

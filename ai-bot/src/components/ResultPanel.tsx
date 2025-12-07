@@ -184,7 +184,6 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewC
     // FileTree 會根據 focus 狀態決定新增位置：
     // - 如果 focus 在資料夾上，在該資料夾下新增（parent_task_id = focusedFolderId）
     // - 如果沒有 focus，在與「任務工作區」同級目錄新增（parent_task_id = null）
-    console.log('[ResultPanel] Triggering new folder', { focusedFolderId });
     setTriggerNewFolder(true);
   };
 

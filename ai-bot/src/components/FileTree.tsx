@@ -96,13 +96,6 @@ export default function FileTree({
       return;
     }
 
-    console.log('[FileTree] handleRenameConfirm', {
-      type: renameTarget.type,
-      id: renameTarget.id,
-      name: renameTarget.name,
-      newName: renameInput.trim(),
-      isTempWorkspace: renameTarget.id === TEMP_WORKSPACE_ID
-    });
 
     // 檢查是否為 temp-workspace（只有資料夾需要檢查，文件不需要）
     // 文件重命名時，renameTarget.id 是 file_id，不會是 temp-workspace
@@ -142,7 +135,7 @@ export default function FileTree({
         });
     } else if (renameTarget.type === 'file') {
       // 文件重命名：絕對不會檢查 temp-workspace，因為文件 ID 不可能是 temp-workspace
-      console.log('[FileTree] Renaming file (not folder, no temp-workspace check)', {
+      // 文件重命名
         fileId: renameTarget.id,
         oldName: renameTarget.name,
         newName: renameInput.trim()
@@ -204,7 +197,6 @@ export default function FileTree({
       // 1. 如果 focus 在資料夾上（包括「任務工作區」），在該資料夾下新增（parent_task_id = focusedFolderId）
       // 2. 如果沒有 focus（focusedFolderId 為 null），在根節點新增（parent_task_id = null，與任務工作區同級）
       const parentId = focusedFolderId; // 如果 focusedFolderId 為 null，則 parentId 也是 null
-      console.log('[FileTree] External trigger new folder', { focusedFolderId, parentId, willCreateAtRoot: !focusedFolderId });
       setNewFolderParentId(parentId);
       setNewFolderInput('');
       setShowNewFolderModal(true);
@@ -222,7 +214,6 @@ export default function FileTree({
       return;
     }
 
-    console.log('[FileTree] Creating new folder', {
       folderName: newFolderInput.trim(),
       parentTaskId: newFolderParentId,
       isRootLevel: newFolderParentId === null
@@ -268,7 +259,6 @@ export default function FileTree({
       return;
     }
 
-    console.log('[FileTree] Deleting folder', { taskId: deleteFolderTarget.taskId, taskName: deleteFolderTarget.taskName });
 
     try {
       const result = await deleteFolder(deleteFolderTarget.taskId);
@@ -329,7 +319,6 @@ export default function FileTree({
       if (e.key === 'F2' && selectedFileId) {
         e.preventDefault();
         // 觸發重新命名（需要實現）
-        console.log('重新命名:', selectedFileId);
       }
 
       // Delete: 刪除選中的文件或資料夾（需要確認）
@@ -585,17 +574,10 @@ export default function FileTree({
       return;
     }
 
-    console.log('[FileTree] handleMenuAction called', { action, fileId: contextMenu.fileId, fileName: contextMenu.fileName });
 
     switch (action) {
       case 'rename':
         // 實現重新命名文件功能
-        console.log('[FileTree] ===== FILE RENAME REQUESTED =====', {
-          fileId: contextMenu.fileId,
-          fileName: contextMenu.fileName,
-          isTempWorkspace: contextMenu.fileId === TEMP_WORKSPACE_ID,
-          type: 'FILE (not folder)'
-        });
         // 確保文件 ID 不是 temp-workspace（文件 ID 不應該是 temp-workspace，但為了安全起見還是檢查）
         if (contextMenu.fileId === TEMP_WORKSPACE_ID) {
           console.error('[FileTree] Invalid: fileId is temp-workspace, this should not happen');
@@ -603,26 +585,21 @@ export default function FileTree({
           setTimeout(() => setNotification(null), 3000);
           break;
         }
-        console.log('[FileTree] Setting renameTarget for FILE', {
-          id: contextMenu.fileId,
-          name: contextMenu.fileName,
-          type: 'file'
-        });
         setRenameTarget({ id: contextMenu.fileId, name: contextMenu.fileName, type: 'file' });
         setRenameInput(contextMenu.fileName);
         setShowRenameModal(true);
         break;
       case 'move':
         // TODO: 實現移動目錄功能
-        console.log('移動目錄:', contextMenu.fileId, contextMenu.fileName);
+        // TODO: 實現移動目錄功能
         break;
       case 'delete':
         // TODO: 實現刪除文件功能
-        console.log('刪除文件:', contextMenu.fileId, contextMenu.fileName);
+        // TODO: 實現刪除文件功能
         break;
       case 'copy':
         // TODO: 實現複製功能
-        console.log('複製:', contextMenu.fileId, contextMenu.fileName);
+        // TODO: 實現複製功能
         break;
       case 'copyPath':
         // 實現複製路徑功能
@@ -676,23 +653,23 @@ export default function FileTree({
         break;
       case 'cut':
         // TODO: 實現剪下功能
-        console.log('剪下文件:', contextMenu.fileId, contextMenu.fileName);
+        // TODO: 實現剪下功能
         break;
       case 'paste':
         // TODO: 實現貼上功能
-        console.log('貼上文件:', contextMenu.fileId, contextMenu.fileName);
+        // TODO: 實現貼上功能
         break;
       case 'attachToChat':
         // TODO: 實現標註到AI任務指令區功能
-        console.log('標註到AI任務指令區:', contextMenu.fileId, contextMenu.fileName);
+        // TODO: 實現標註到AI任務指令區功能
         break;
       case 'viewVectors':
         // TODO: 實現查看向量資料功能
-        console.log('查看向量資料:', contextMenu.fileId, contextMenu.fileName);
+        // TODO: 實現查看向量資料功能
         break;
       case 'viewGraph':
         // TODO: 實現查看圖譜資料功能
-        console.log('查看圖譜資料:', contextMenu.fileId, contextMenu.fileName);
+        // TODO: 實現查看圖譜資料功能
         break;
       case 'fileInfo':
         // 顯示文件信息對話框
@@ -713,12 +690,10 @@ export default function FileTree({
       return;
     }
 
-    console.log('[FileTree] handleFolderMenuAction called', { action, taskId: folderContextMenu.taskId, taskName: folderContextMenu.taskName });
 
     switch (action) {
       case 'newFolder':
         // 實現新增資料夾功能
-        console.log('[FileTree] New folder requested', { parentTaskId: folderContextMenu.taskId });
         // 打開新增資料夾對話框
         // 注意：即使是 temp-workspace，也應該傳遞給後端作為 parent_task_id
         setNewFolderParentId(folderContextMenu.taskId);
@@ -730,7 +705,7 @@ export default function FileTree({
         if (onNewFile) {
           onNewFile(folderContextMenu.taskId);
         } else {
-        console.log('新增檔案:', folderContextMenu.taskId);
+        // TODO: 實現新增檔案功能
         }
         break;
       case 'copyPath':
@@ -770,19 +745,18 @@ export default function FileTree({
         break;
       case 'info':
         // TODO: 實現資料夾信息功能
-        console.log('資料夾信息:', folderContextMenu.taskId, folderContextMenu.taskName);
+        // TODO: 實現查看資料夾信息功能
         break;
       case 'cut':
         // TODO: 實現剪下功能
-        console.log('剪下資料夾:', folderContextMenu.taskId);
+        // TODO: 實現剪下資料夾功能
         break;
       case 'paste':
         // TODO: 實現貼上功能
-        console.log('貼上到資料夾:', folderContextMenu.taskId);
+        // TODO: 實現貼上到資料夾功能
         break;
       case 'rename':
         // 檢查是否為 temp-workspace（不允許重命名）
-        console.log('[FileTree] ===== FOLDER RENAME REQUESTED =====', {
           taskId: folderContextMenu.taskId,
           taskName: folderContextMenu.taskName,
           isTempWorkspace: folderContextMenu.taskId === TEMP_WORKSPACE_ID,
@@ -802,7 +776,6 @@ export default function FileTree({
           break;
         }
         // 打開重命名對話框
-        console.log('[FileTree] Setting renameTarget for FOLDER (allowed)', {
           id: folderContextMenu.taskId,
           name: folderContextMenu.taskName,
           type: 'folder'
@@ -813,7 +786,6 @@ export default function FileTree({
         break;
       case 'delete':
         // 實現刪除資料夾功能
-        console.log('[FileTree] Delete folder requested', { taskId: folderContextMenu.taskId, taskName: folderContextMenu.taskName });
         // 檢查是否是 temp-workspace，如果是則不允許刪除
         if (folderContextMenu.taskId === TEMP_WORKSPACE_ID) {
           setNotification({ message: '任務工作區是系統預設的工作區，無法刪除。', type: 'error' });
@@ -887,7 +859,6 @@ export default function FileTree({
     setLoading(true);
     setError(null);
     try {
-      console.log('[FileTree] Calling getFileTree API', { userId, taskId });
       const startTime = Date.now();
       const response = await Promise.race([
         getFileTree({ user_id: userId, task_id: taskId }),
@@ -895,15 +866,7 @@ export default function FileTree({
           setTimeout(() => reject(new Error('API request timeout after 30 seconds')), 30000)
         )
       ]) as any;
-      const duration = Date.now() - startTime;
-      console.log(`[FileTree] getFileTree response received (${duration}ms):`, response);
       if (response.success && response.data) {
-        console.log('[FileTree] File tree loaded successfully', {
-          tree: response.data.tree,
-          folders: response.data.folders,
-          total_tasks: response.data.total_tasks,
-          total_files: response.data.total_files
-        });
         setTreeData(response);
       } else {
         console.error('[FileTree] Failed to load file tree:', response);
@@ -933,24 +896,13 @@ export default function FileTree({
       }
     } finally {
       setLoading(false);
-      console.log('[FileTree] loadTree completed, loading set to false');
     }
   }, [userId, taskId, fileTree]);
 
   useEffect(() => {
-    console.log('[FileTree] useEffect triggered', {
-      taskId,
-      userId,
-      hasFileTree: !!fileTree,
-      fileTreeType: typeof fileTree,
-      fileTreeIsArray: Array.isArray(fileTree),
-      fileTreeLength: fileTree?.length,
-      fileTreeValue: fileTree
-    });
 
     // 如果已經有 fileTree prop，直接返回，不調用 API
     if (fileTree && fileTree.length > 0) {
-      console.log('[FileTree] Using fileTree prop, skipping API call', { fileTreeLength: fileTree.length });
       setTreeData(null);
       setLoading(false);
       setError(null);
@@ -959,28 +911,23 @@ export default function FileTree({
 
     // 如果沒有任務 ID，直接返回，不調用 loadTree
     if (!taskId) {
-      console.log('[FileTree] No taskId, skipping loadTree');
       setTreeData(null);
       setLoading(false);
       setError(null);
       return;
     }
 
-    console.log('[FileTree] Calling loadTree for taskId:', taskId);
     loadTree();
   }, [loadTree, taskId, fileTree]);
 
   // 監聽文件樹更新事件
   useEffect(() => {
     const handleFileTreeUpdate = () => {
-      console.log('[FileTree] fileTreeUpdated event received, reloading tree', { fileTree, taskId, fileTreeLength: fileTree?.length });
       // 如果 fileTree 是空數組或未定義，重新加載
       // 因為即使有 fileTree prop，如果它是空的，也需要刷新
       if (!fileTree || (Array.isArray(fileTree) && fileTree.length === 0)) {
-        console.log('[FileTree] Reloading tree because fileTree prop is not provided or is empty');
         loadTree();
       } else {
-        console.log('[FileTree] Skipping reload because fileTree prop is provided and not empty');
       }
     };
 
@@ -1182,7 +1129,6 @@ export default function FileTree({
   // 獲取子資料夾列表（用於在 temp-workspace 或其他資料夾下顯示）
   const getSubFolders = (parentTaskId: string): TreeNode[] => {
     const subFolders: TreeNode[] = [];
-    console.log('[FileTree] getSubFolders called', { parentTaskId, foldersInfo, foldersInfoKeys: Object.keys(foldersInfo) });
     Object.entries(foldersInfo).forEach(([folderTaskId, folderInfo]) => {
       // 處理 parent_task_id 可能為 null、undefined 或字符串的情況
       const folderParentId = folderInfo.parent_task_id;
@@ -1191,7 +1137,6 @@ export default function FileTree({
       // 2. 如果 folderParentId 是 null/undefined 且 parentTaskId 是 TEMP_WORKSPACE_ID，匹配（頂級資料夾顯示在暫存工作區下）
       const isMatch = folderParentId === parentTaskId ||
                       ((folderParentId === null || folderParentId === undefined) && parentTaskId === TEMP_WORKSPACE_ID);
-      console.log('[FileTree] Checking folder', {
         folderTaskId,
         folderInfo,
         folderParentId,
@@ -1209,7 +1154,6 @@ export default function FileTree({
         });
       }
     });
-    console.log('[FileTree] getSubFolders result', { parentTaskId, subFolders, subFoldersCount: subFolders.length });
     return subFolders;
   };
 
