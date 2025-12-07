@@ -135,11 +135,6 @@ export default function FileTree({
         });
     } else if (renameTarget.type === 'file') {
       // 文件重命名：絕對不會檢查 temp-workspace，因為文件 ID 不可能是 temp-workspace
-      // 文件重命名
-        fileId: renameTarget.id,
-        oldName: renameTarget.name,
-        newName: renameInput.trim()
-      });
       renameFile(renameTarget.id, renameInput.trim())
         .then((result) => {
           if (result.success) {
