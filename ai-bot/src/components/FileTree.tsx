@@ -759,11 +759,7 @@ export default function FileTree({
           setTimeout(() => setNotification(null), 5000);
           break;
         }
-        // 打開重命名對話框
-          id: folderContextMenu.taskId,
-          name: folderContextMenu.taskName,
-          type: 'folder'
-        });
+          // 打開重命名對話框
         setRenameTarget({ id: folderContextMenu.taskId, name: folderContextMenu.taskName, type: 'folder' });
         setRenameInput(folderContextMenu.taskName);
         setShowRenameModal(true);
