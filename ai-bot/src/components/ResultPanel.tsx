@@ -24,6 +24,10 @@ interface ResultPanelProps {
 
 export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewChange, fileTree, onFileTreeChange, taskId, userId }: ResultPanelProps) {
   const [activeTab, setActiveTab] = useState<'files' | 'preview'>('files');
+
+  useEffect(() => {
+    console.log('[ResultPanel] Component mounted/updated', { taskId, userId, activeTab, hasFileTree: !!fileTree });
+  }, [taskId, userId, activeTab, fileTree]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -641,23 +645,26 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewC
 
       {/* 结果面板内容 */}
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 'files' && (
-          <FileTree
-            taskId={taskId ? String(taskId) : undefined}
-            userId={userId}
-            onFileSelect={handleFileSelect}
-            fileTree={fileTree}
-            onFileTreeChange={onFileTreeChange}
-            onFolderFocus={setFocusedFolderId}
-            onNewFile={(targetTaskId) => {
-              // 設置聚焦狀態並打開上傳對話框
-              setFocusedFolderId(targetTaskId);
-              setShowFileUploadModal(true);
-            }}
-            triggerNewFolder={triggerNewFolder}
-            onNewFolderTriggered={handleNewFolderTriggered}
-          />
-        )}
+        {activeTab === 'files' && (() => {
+          console.log('[ResultPanel] Rendering FileTree', { taskId, userId, hasFileTree: !!fileTree, fileTreeLength: fileTree?.length });
+          return (
+            <FileTree
+              taskId={taskId ? String(taskId) : undefined}
+              userId={userId}
+              onFileSelect={handleFileSelect}
+              fileTree={fileTree}
+              onFileTreeChange={onFileTreeChange}
+              onFolderFocus={setFocusedFolderId}
+              onNewFile={(targetTaskId) => {
+                // 設置聚焦狀態並打開上傳對話框
+                setFocusedFolderId(targetTaskId);
+                setShowFileUploadModal(true);
+              }}
+              triggerNewFolder={triggerNewFolder}
+              onNewFolderTriggered={handleNewFolderTriggered}
+            />
+          );
+        })()}
         {activeTab === 'preview' && selectedFile && (() => {
           // 優先使用保存的文件名，如果沒有則嘗試從多個來源查找
           let displayFileName = selectedFileName || selectedFile;
