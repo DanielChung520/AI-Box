@@ -747,12 +747,6 @@ export default function FileTree({
         break;
       case 'rename':
         // 檢查是否為 temp-workspace（不允許重命名）
-          taskId: folderContextMenu.taskId,
-          taskName: folderContextMenu.taskName,
-          isTempWorkspace: folderContextMenu.taskId === TEMP_WORKSPACE_ID,
-          TEMP_WORKSPACE_ID: TEMP_WORKSPACE_ID,
-          type: 'FOLDER (not file)'
-        });
         if (folderContextMenu.taskId === TEMP_WORKSPACE_ID) {
           console.warn('[FileTree] Attempted to rename temp-workspace folder - BLOCKED', {
             taskId: folderContextMenu.taskId,
