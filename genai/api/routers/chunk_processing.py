@@ -77,6 +77,24 @@ def get_parser(file_type: str):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="DOCX 解析器未安裝，請安裝 python-docx",
             )
+    elif file_type_lower.startswith("image/") or file_type_lower.endswith(
+        (".png", ".jpg", ".jpeg", ".bmp", ".svg", ".gif", ".webp")
+    ):
+        # 圖片文件解析器
+        try:
+            from services.api.processors.parsers.image_parser import ImageParser
+
+            return ImageParser()
+        except ImportError as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"圖片解析器未安裝或配置錯誤: {str(e)}",
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"圖片解析器初始化失敗: {str(e)}",
+            )
     else:
         # 默認使用文本解析器
         return TxtParser()

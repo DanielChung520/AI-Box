@@ -24,8 +24,13 @@ TODO (WBS 1.6.2): 實現 API Key 管理
 from fastapi import Request
 from typing import Optional
 
+import structlog
+
 from system.security.config import get_security_settings
 from system.security.models import User
+from system.security.jwt_service import get_jwt_service
+
+logger = structlog.get_logger(__name__)
 
 
 async def verify_jwt_token(token: str) -> Optional[User]:
@@ -36,16 +41,35 @@ async def verify_jwt_token(token: str) -> Optional[User]:
 
     Returns:
         User 對象，如果驗證失敗則返回 None
-
-    TODO (WBS 1.6.1): 實現 JWT Token 驗證邏輯
-      - 解析 JWT Token
-      - 驗證簽名和過期時間
-      - 檢查 Token 黑名單
-      - 從 Token payload 構建 User 對象
     """
-    # 目前僅返回 None，表示未實現
-    # 後續在 WBS 1.6.1 中實現
-    return None
+    jwt_service = get_jwt_service()
+    payload = jwt_service.verify_token(token, token_type="access")
+
+    if payload is None:
+        return None
+
+    # 從 Token payload 構建 User 對象
+    try:
+        user_id = payload.get("sub") or payload.get("user_id")
+        if not user_id:
+            logger.warning("Token payload missing user_id")
+            return None
+
+        user = User(
+            user_id=str(user_id),
+            username=payload.get("username"),
+            email=payload.get("email"),
+            roles=payload.get("roles", []),
+            permissions=payload.get("permissions", []),
+            is_active=payload.get("is_active", True),
+            metadata=payload.get("metadata", {}),
+        )
+
+        return user
+
+    except Exception as e:
+        logger.error("Failed to build User from token payload", error=str(e))
+        return None
 
 
 async def verify_api_key(api_key: str) -> Optional[User]:
@@ -107,7 +131,6 @@ async def authenticate_request(request: Request) -> Optional[User]:
     Returns:
         User 對象，如果認證失敗則返回 None
 
-    TODO (WBS 1.6.1, WBS 1.6.2): 實現完整的認證邏輯
     """
     settings = get_security_settings()
 

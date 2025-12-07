@@ -1,6 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/languageContext';
+import { saveTask, getAllTasks } from '../lib/taskStorage';
+import { saveMockFiles } from '../lib/mockFileStorage';
 
 // 定义消息接口
 export interface Message {
@@ -9,6 +12,14 @@ export interface Message {
   content: string;
   timestamp: string;
   containsMermaid?: boolean;
+}
+
+// 定义文件节点接口
+export interface FileNode {
+  id: string;
+  name: string;
+  type: 'folder' | 'file';
+  children?: FileNode[];
 }
 
 // 定义任务接口
@@ -23,6 +34,7 @@ export interface Task {
     assistantId?: string;
     agentId?: string;
   };
+  fileTree?: FileNode[]; // 每個任務的文件目錄結構
 }
 
 // 定义收藏项接口
@@ -51,6 +63,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   const [activeSection, setActiveSection] = useState<'favorites' | 'tasks'>('tasks');
   const [activeItemId, setActiveItemId] = useState<string | number | null>(null); // 跟踪当前选中的具体 item ID
   const { t, updateCounter, language } = useLanguage();
+  const navigate = useNavigate();
 
   // 可收合区域的状态管理
   const [expandedSections, setExpandedSections] = useState({
@@ -72,6 +85,38 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     { id: 'agent-4', name: t('sidebar.agent4') },
   ], [language, updateCounter, t]);
 
+  // 當 selectedTask 變化時，更新焦點
+  useEffect(() => {
+    if (selectedTask) {
+      setActiveSection('tasks');
+      setActiveItemId(selectedTask.id);
+    }
+  }, [selectedTask]);
+
+  // 監聽任務創建和刪除事件，更新焦點
+  useEffect(() => {
+    const handleTaskCreated = (event: CustomEvent) => {
+      const { taskId } = event.detail;
+      setActiveSection('tasks');
+      setActiveItemId(taskId);
+    };
+
+    const handleTaskDeleted = (event: CustomEvent) => {
+      const { taskId } = event.detail;
+      if (activeItemId === taskId) {
+        setActiveItemId(null);
+      }
+    };
+
+    window.addEventListener('taskCreated', handleTaskCreated as EventListener);
+    window.addEventListener('taskDeleted', handleTaskDeleted as EventListener);
+
+    return () => {
+      window.removeEventListener('taskCreated', handleTaskCreated as EventListener);
+      window.removeEventListener('taskDeleted', handleTaskDeleted as EventListener);
+    };
+  }, [activeItemId]);
+
   // 使用 useMemo 和 language 作为依赖，确保语言变更时重新计算这些数据
   // 如果外部传入了收藏列表，使用外部的；否则使用默认的
   const favorites: FavoriteItem[] = useMemo(() => {
@@ -91,6 +136,38 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   }, [externalFavorites, language, updateCounter, t, assistants, agents]);
 
 
+  // 從 localStorage 加載保存的任務
+  const [savedTasks, setSavedTasks] = useState<Task[]>([]);
+
+  // 加載保存的任務
+  useEffect(() => {
+    const loadSavedTasks = () => {
+      try {
+        const loadedTasks = getAllTasks();
+        // 過濾掉歷史任務（ID 1-4）
+        const newTasks = loadedTasks.filter((task: Task) => task.id > 4);
+        setSavedTasks(newTasks);
+      } catch (error) {
+        console.error('Failed to load saved tasks:', error);
+      }
+    };
+
+    loadSavedTasks();
+
+    // 監聽任務創建事件，重新加載任務列表
+    const handleTaskCreated = () => {
+      loadSavedTasks();
+    };
+
+    window.addEventListener('taskCreated', handleTaskCreated as EventListener);
+    window.addEventListener('storage', loadSavedTasks);
+
+    return () => {
+      window.removeEventListener('taskCreated', handleTaskCreated as EventListener);
+      window.removeEventListener('storage', loadSavedTasks);
+    };
+  }, []);
+
   // 模拟历史任务数据，包含对话内容
   // 使用 useMemo 确保语言变更时重新计算任务数据
   const tasks: Task[] = useMemo(() => [
@@ -99,6 +176,47 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
        title: t('sidebar.favorite1'),
       status: 'completed' as const,
       dueDate: '2025-12-01',
+      fileTree: [
+        {
+          id: 'sales-reports',
+          name: '銷售報告',
+          type: 'folder' as const,
+          children: [
+            {
+              id: 'sales-trend-2025',
+              name: '近三個月銷售趨勢分析.md',
+              type: 'file' as const
+            },
+            {
+              id: 'region-sales',
+              name: '各地區銷售占比分析.md',
+              type: 'file' as const
+            },
+            {
+              id: 'sales-data',
+              name: '銷售數據統計.xlsx',
+              type: 'file' as const
+            }
+          ]
+        },
+        {
+          id: 'charts',
+          name: '圖表資料',
+          type: 'folder' as const,
+          children: [
+            {
+              id: 'sales-trend-chart',
+              name: '銷售趨勢圖.png',
+              type: 'file' as const
+            },
+            {
+              id: 'region-pie-chart',
+              name: '地區占比餅圖.png',
+              type: 'file' as const
+            }
+          ]
+        }
+      ],
       messages: [
         {
           id: '1-1',
@@ -133,6 +251,47 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
        title: t('sidebar.favorite2'),
       status: 'in-progress' as const,
       dueDate: '2025-12-03',
+      fileTree: [
+        {
+          id: 'meeting-materials',
+          name: '周會演示材料',
+          type: 'folder' as const,
+          children: [
+            {
+              id: 'project-progress',
+              name: '項目進度報告.md',
+              type: 'file' as const
+            },
+            {
+              id: 'team-allocation',
+              name: '團隊工作分配.md',
+              type: 'file' as const
+            },
+            {
+              id: 'presentation',
+              name: '演示簡報.pptx',
+              type: 'file' as const
+            }
+          ]
+        },
+        {
+          id: 'project-docs',
+          name: '項目文檔',
+          type: 'folder' as const,
+          children: [
+            {
+              id: 'progress-flowchart',
+              name: '項目進度流程圖.png',
+              type: 'file' as const
+            },
+            {
+              id: 'team-structure',
+              name: '團隊結構圖.png',
+              type: 'file' as const
+            }
+          ]
+        }
+      ],
       messages: [
         {
           id: '2-1',
@@ -154,6 +313,59 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
        title: t('sidebar.favorite3'),
       status: 'pending' as const,
       dueDate: '2025-12-05',
+      fileTree: [
+        {
+          id: 'customer-service',
+          name: '客服流程優化',
+          type: 'folder' as const,
+          children: [
+            {
+              id: 'current-process',
+              name: '當前客服流程分析.md',
+              type: 'file' as const
+            },
+            {
+              id: 'optimization-plan',
+              name: '流程優化方案.md',
+              type: 'file' as const
+            },
+            {
+              id: 'improvement-suggestions',
+              name: '改進建議書.docx',
+              type: 'file' as const
+            }
+          ]
+        },
+        {
+          id: 'process-diagrams',
+          name: '流程圖',
+          type: 'folder' as const,
+          children: [
+            {
+              id: 'current-flowchart',
+              name: '當前流程圖.png',
+              type: 'file' as const
+            },
+            {
+              id: 'optimized-flowchart',
+              name: '優化後流程圖.png',
+              type: 'file' as const
+            }
+          ]
+        },
+        {
+          id: 'data-analysis',
+          name: '數據分析',
+          type: 'folder' as const,
+          children: [
+            {
+              id: 'response-time-data',
+              name: '響應時間數據.xlsx',
+              type: 'file' as const
+            }
+          ]
+        }
+      ],
       messages: [
         {
           id: '3-1',
@@ -175,6 +387,74 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
        title: t('sidebar.assistant3'),
       status: 'pending' as const,
       dueDate: '2025-12-10',
+      fileTree: [
+        {
+          id: 'product-docs',
+          name: '產品文檔',
+          type: 'folder' as const,
+          children: [
+            {
+              id: 'overview',
+              name: '產品概述.md',
+              type: 'file' as const
+            },
+            {
+              id: 'quick-start',
+              name: '快速開始指南.md',
+              type: 'file' as const
+            },
+            {
+              id: 'features',
+              name: '功能介紹',
+              type: 'folder' as const,
+              children: [
+                {
+                  id: 'feature-a',
+                  name: '功能A使用指南.md',
+                  type: 'file' as const
+                },
+                {
+                  id: 'feature-b',
+                  name: '功能B使用指南.md',
+                  type: 'file' as const
+                },
+                {
+                  id: 'feature-c',
+                  name: '功能C使用指南.md',
+                  type: 'file' as const
+                }
+              ]
+            },
+            {
+              id: 'tutorials',
+              name: '使用教程',
+              type: 'folder' as const,
+              children: [
+                {
+                  id: 'tutorial-basic',
+                  name: '基礎教程.md',
+                  type: 'file' as const
+                },
+                {
+                  id: 'tutorial-advanced',
+                  name: '進階教程.md',
+                  type: 'file' as const
+                }
+              ]
+            },
+            {
+              id: 'faq',
+              name: '常見問題.md',
+              type: 'file' as const
+            }
+          ]
+        },
+        {
+          id: 'document-structure',
+          name: '文檔結構圖.png',
+          type: 'file' as const
+        }
+      ],
       messages: [
         {
           id: '4-1',
@@ -191,7 +471,9 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
         }
       ]
     },
-  ], [language, updateCounter]);
+    // 添加從 localStorage 加載的任務
+    ...savedTasks,
+  ], [language, updateCounter, savedTasks]);
 
   // 使用 useMemo 缓存所有直接使用的翻译文本，确保语言变更时正确更新
   const translations = useMemo(() => {
@@ -244,20 +526,35 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
         // agentId 和 assistantId 不设置，保持 undefined
         // 这样 ChatInput 会显示"選擇代理"和"選擇助理"
       },
+      fileTree: [], // 初始化文件樹為空
     };
+
+    // 設置焦點到新任務
+    setActiveSection('tasks');
+    setActiveItemId(newTask.id);
 
     // 通知父组件创建新任务
     if (onTaskSelect) {
       onTaskSelect(newTask);
     }
 
-    console.log('[Sidebar] Created new task:', newTask);
   };
 
   // 处理任务点击
   const handleTaskClick = (task: Task) => {
     setActiveSection('tasks');
     setActiveItemId(task.id); // 设置选中的任务 ID
+
+    // 保存任務數據到 localStorage（模擬後台存儲）
+    saveTask(task);
+
+    // 如果有文件樹，創建模擬文件記錄
+    if (task.fileTree && task.fileTree.length > 0) {
+      const userId = localStorage.getItem('userEmail') || undefined;
+      saveMockFiles(String(task.id), task.fileTree, userId);
+    }
+
+
     if (onTaskSelect) {
       onTaskSelect(task);
     }
@@ -501,6 +798,19 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
         </div>
 
       </div>
+
+      {/* 文件管理入口 */}
+      {!collapsed && (
+        <div className="p-4 border-t border-primary">
+          <button
+            onClick={() => navigate('/files')}
+            className="w-full text-left p-2 rounded-lg flex items-center gap-2 hover:bg-blue-500/10 hover:text-blue-300 transition-all duration-200"
+          >
+            <i className="fa-solid fa-folder-open text-blue-500"></i>
+            <span className="text-sm">文件管理</span>
+          </button>
+        </div>
+      )}
 
       {/* 侧边栏底部 */}
       <div className="p-4 border-t border-primary" key={`sidebar-footer-${language}-${updateCounter}`}>

@@ -141,7 +141,13 @@ class OllamaNERModel(BaseNERModel):
         """檢查 Ollama 模型是否可用"""
         return self.client is not None
 
-    async def extract_entities(self, text: str) -> List[Entity]:
+    async def extract_entities(
+        self,
+        text: str,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
+    ) -> List[Entity]:
         """使用 Ollama 提取實體"""
         if self.client is None:
             raise RuntimeError(
@@ -155,6 +161,10 @@ class OllamaNERModel(BaseNERModel):
                 prompt,
                 model=self.model_name,
                 format="json",
+                user_id=user_id,
+                file_id=file_id,
+                task_id=task_id,
+                purpose="ner",
             )
 
             if response is None:
@@ -400,14 +410,27 @@ class NERService:
         return None
 
     async def extract_entities(
-        self, text: str, model_type: Optional[str] = None
+        self,
+        text: str,
+        model_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[Entity]:
         """提取實體"""
         model = self._get_model(model_type)
         if not model:
             raise RuntimeError("No available NER model")
 
-        return await model.extract_entities(text)
+        # 只有Ollama模型支持追踪参数
+        from genai.api.services.ner_service import OllamaNERModel
+
+        if isinstance(model, OllamaNERModel):
+            return await model.extract_entities(
+                text, user_id=user_id, file_id=file_id, task_id=task_id
+            )
+        else:
+            return await model.extract_entities(text)
 
     async def extract_entities_batch(
         self, texts: List[str], model_type: Optional[str] = None

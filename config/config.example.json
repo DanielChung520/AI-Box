@@ -65,13 +65,38 @@
         "enabled": false,
         "secret_key": "SECURITY_JWT_SECRET_KEY",
         "algorithm": "HS256",
-        "expiration_hours": 24
+        "expiration_hours": 24,
+        "refresh_expiration_days": 7
       },
       "api_key": {
         "enabled": false
       },
       "rbac": {
         "enabled": false
+      }
+    },
+    "embedding": {
+      "ollama_url": "http://localhost:11434",
+      "model": "nomic-embed-text",
+      "batch_size": 10,
+      "max_retries": 3,
+      "timeout": 60.0
+    },
+    "chromadb": {
+      "host": "localhost",
+      "port": 8001,
+      "mode": "http",
+      "persist_directory": "./data/chroma_data",
+      "collection_naming": "file_based"
+    },
+    "kg_extraction": {
+      "enabled": true,
+      "mode": "all_chunks",
+      "min_confidence": 0.5,
+      "chunk_filter": {
+        "min_length": 100,
+        "max_chunks": 100,
+        "importance_threshold": null
       }
     }
   },

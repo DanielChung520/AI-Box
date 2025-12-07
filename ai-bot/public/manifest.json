@@ -1,7 +1,7 @@
 {
-  "name": "AI GenAI Chat Room",
-  "short_name": "AI Chat",
-  "description": "AI 生成式聊天室 - 智能對話助手平台",
+  "name": "SmartQ 智慧任務文件編輯",
+  "short_name": "SmartQ IEE",
+  "description": "SmartQ 智慧任務文件編輯 - 智能任務文件編輯助手平台",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a1a",

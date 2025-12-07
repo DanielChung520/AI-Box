@@ -83,19 +83,37 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     def _add_security_headers(self, response: Response) -> Response:
         """添加安全相關的 HTTP 頭。
 
-        TODO (WBS 1.6.6): 完善安全頭設置
-          - Content-Security-Policy (CSP)
-          - X-Frame-Options
-          - X-Content-Type-Options
-          - Strict-Transport-Security (HSTS)
-          - Referrer-Policy
+        設置基本的安全 HTTP 頭，包括：
+        - X-Content-Type-Options: 防止 MIME 類型嗅探
+        - X-Frame-Options: 防止點擊劫持
+        - Content-Security-Policy: 內容安全策略（基本配置）
+        - Referrer-Policy: 控制引用信息
+        - Strict-Transport-Security: 強制 HTTPS（僅在生產環境）
         """
-        # 基本安全頭（目前僅設置部分）
+        # 基本安全頭
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
 
-        # TODO (WBS 1.6.6): 添加更多安全頭
-        # response.headers["Content-Security-Policy"] = "..."
-        # response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        # Content-Security-Policy（基本配置，允許自定義）
+        # 注意：嚴格的 CSP 可能會影響應用功能，建議根據實際需求調整
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data:; "
+            "connect-src 'self'"
+        )
+        response.headers["Content-Security-Policy"] = csp
+
+        # Referrer-Policy
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+        # Strict-Transport-Security (HSTS) - 僅在生產環境啟用
+        settings = get_security_settings()
+        if not settings.is_development_mode:
+            response.headers[
+                "Strict-Transport-Security"
+            ] = "max-age=31536000; includeSubDomains; preload"
 
         return response

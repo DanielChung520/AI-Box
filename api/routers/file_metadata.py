@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件元數據路由
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27 23:30 (UTC+8)
+# 最後修改日期: 2025-12-06
 
 """文件元數據路由 - 提供元數據查詢、更新和搜索功能"""
 
@@ -46,6 +46,7 @@ async def get_file_metadata(file_id: str) -> JSONResponse:
 async def list_file_metadata(
     file_type: Optional[str] = Query(None, description="文件類型篩選"),
     user_id: Optional[str] = Query(None, description="用戶 ID 篩選"),
+    task_id: Optional[str] = Query(None, description="任務 ID 篩選"),
     tags: Optional[List[str]] = Query(None, description="標籤篩選"),
     limit: int = Query(100, ge=1, le=1000, description="返回數量限制"),
     offset: int = Query(0, ge=0, description="偏移量"),
@@ -57,6 +58,7 @@ async def list_file_metadata(
     results = service.list(
         file_type=file_type,
         user_id=user_id,
+        task_id=task_id,
         tags=tags,
         limit=limit,
         offset=offset,
@@ -94,11 +96,15 @@ async def update_file_metadata(
 @router.post("/metadata/search")
 async def search_file_metadata(
     query: str = Query(..., description="搜索關鍵字"),
+    user_id: Optional[str] = Query(None, description="用戶 ID 篩選"),
+    file_type: Optional[str] = Query(None, description="文件類型篩選"),
     limit: int = Query(100, ge=1, le=1000, description="返回數量限制"),
 ) -> JSONResponse:
     """全文搜索文件元數據"""
     service = get_service()
-    results = service.search(query=query, limit=limit)
+    results = service.search(
+        query=query, user_id=user_id, file_type=file_type, limit=limit
+    )
 
     return APIResponse.success(
         data={

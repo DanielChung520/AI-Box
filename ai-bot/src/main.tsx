@@ -1,15 +1,41 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { HashRouter } from "react-router-dom";
 import { Toaster } from 'sonner';
 import App from "./App.tsx";
 import "./index.css";
+import { performanceMonitor } from "./lib/performance.ts";
 
-createRoot(document.getElementById("root")!).render(
+// 記錄 React 應用啟動時間
+performanceMonitor.markReactAppStart();
+
+// 隱藏內聯歡迎頁的函數
+function hideInitialWelcome() {
+  const initialWelcome = document.getElementById('initial-welcome');
+  if (initialWelcome) {
+    initialWelcome.classList.add('hidden');
+    // 動畫完成後移除元素
+    setTimeout(() => {
+      initialWelcome.remove();
+    }, 500);
+  }
+}
+
+const root = createRoot(document.getElementById("root")!);
+
+root.render(
   <StrictMode>
-    <BrowserRouter>
+    <HashRouter>
       <App />
       <Toaster />
-    </BrowserRouter>
+    </HashRouter>
   </StrictMode>
 );
+
+// React 應用渲染完成後，隱藏內聯歡迎頁
+// 使用 requestAnimationFrame 確保 DOM 更新完成
+requestAnimationFrame(() => {
+  setTimeout(() => {
+    hideInitialWelcome();
+  }, 100);
+});

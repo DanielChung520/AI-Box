@@ -40,6 +40,19 @@ class Permission(str, Enum):
     ARANGODB_READ = "arangodb:read"
     ARANGODB_WRITE = "arangodb:write"
 
+    # File 相關權限
+    FILE_UPLOAD = "file:upload"
+    FILE_READ = "file:read"
+    FILE_READ_OWN = "file:read:own"
+    FILE_READ_SHARED = "file:read:shared"
+    FILE_DELETE = "file:delete"
+    FILE_DELETE_OWN = "file:delete:own"
+    FILE_UPDATE = "file:update"
+    FILE_UPDATE_OWN = "file:update:own"
+    FILE_SHARE = "file:share"
+    FILE_DOWNLOAD = "file:download"
+    FILE_DOWNLOAD_OWN = "file:download:own"
+
 
 class Role(str, Enum):
     """角色枚舉 - 預定義常用角色"""

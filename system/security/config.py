@@ -1,7 +1,7 @@
 # 代碼功能說明: 安全模組配置管理
 # 創建日期: 2025-11-26 01:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-26 01:30 (UTC+8)
+# 最後修改日期: 2025-12-06 01:30 (UTC+8)
 
 """安全模組配置管理 - 讀取 config.json 和環境變數。"""
 
@@ -22,6 +22,7 @@ class JWTConfig:
     secret_key: str
     algorithm: str
     expiration_hours: int
+    refresh_expiration_days: int
 
     @classmethod
     def from_dict(cls, data: dict, env_prefix: str = "SECURITY_JWT") -> "JWTConfig":
@@ -41,6 +42,12 @@ class JWTConfig:
             expiration_hours=int(
                 os.getenv(
                     f"{env_prefix}_EXPIRATION_HOURS", data.get("expiration_hours", 24)
+                )
+            ),
+            refresh_expiration_days=int(
+                os.getenv(
+                    f"{env_prefix}_REFRESH_EXPIRATION_DAYS",
+                    data.get("refresh_expiration_days", 7),
                 )
             ),
         )

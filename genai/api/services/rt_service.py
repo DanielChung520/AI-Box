@@ -106,6 +106,9 @@ class OllamaRTModel(BaseRTModel):
         relation_text: str,
         subject_text: Optional[str] = None,
         object_text: Optional[str] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[RelationType]:
         """使用 Ollama 分類關係類型"""
         if self.client is None:
@@ -134,6 +137,10 @@ class OllamaRTModel(BaseRTModel):
                 prompt,
                 model=self.model_name,
                 format="json",
+                user_id=user_id,
+                file_id=file_id,
+                task_id=task_id,
+                purpose="rt",
             )
 
             if response is None:

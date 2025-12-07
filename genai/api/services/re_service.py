@@ -39,7 +39,12 @@ class BaseREModel(ABC):
 
     @abstractmethod
     async def extract_relations(
-        self, text: str, entities: Optional[List[Entity]] = None
+        self,
+        text: str,
+        entities: Optional[List[Entity]] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[Relation]:
         """提取關係"""
         pass
@@ -90,7 +95,12 @@ class TransformersREModel(BaseREModel):
         return self._model is not None and self._tokenizer is not None
 
     async def extract_relations(
-        self, text: str, entities: Optional[List[Entity]] = None
+        self,
+        text: str,
+        entities: Optional[List[Entity]] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[Relation]:
         """使用 transformers 提取關係（簡化實現）"""
         if self._model is None or self._tokenizer is None:
@@ -167,7 +177,12 @@ class OllamaREModel(BaseREModel):
         return self.client is not None
 
     async def extract_relations(
-        self, text: str, entities: Optional[List[Entity]] = None
+        self,
+        text: str,
+        entities: Optional[List[Entity]] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[Relation]:
         """使用 Ollama 提取關係"""
         if self.client is None:
@@ -190,6 +205,10 @@ class OllamaREModel(BaseREModel):
                 prompt,
                 model=self.model_name,
                 format="json",
+                user_id=user_id,
+                file_id=file_id,
+                task_id=task_id,
+                purpose="re",
             )
 
             if response is None:
@@ -299,7 +318,12 @@ class GeminiREModel(BaseREModel):
         return self.client is not None and self.client.is_available()
 
     async def extract_relations(
-        self, text: str, entities: Optional[List[Entity]] = None
+        self,
+        text: str,
+        entities: Optional[List[Entity]] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[Relation]:
         """使用 Gemini 提取關係"""
         if self.client is None or not self.client.is_available():

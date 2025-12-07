@@ -1,16 +1,20 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLanguage } from '../contexts/languageContext';
 import Sidebar from '../components/Sidebar';
 import ChatArea from '../components/ChatArea';
 import ResultPanel from '../components/ResultPanel';
 import ExecutorSelectorModal from '../components/ExecutorSelectorModal';
-import { Task, FavoriteItem } from '../components/Sidebar';
+import { Task, FavoriteItem, FileNode } from '../components/Sidebar';
+import { saveTask, deleteTask, getTask } from '../lib/taskStorage';
+import '../lib/debugStorage'; // 加載調試工具
+import '../lib/checkFiles'; // 加載文件檢查工具
 
 export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [resultPanelCollapsed, setResultPanelCollapsed] = useState(false);
   const [isMarkdownView, setIsMarkdownView] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
+  const prevResultPanelCollapsedRef = useRef<boolean>(false);
   const { t, updateCounter, language } = useLanguage();
 
   // 执行者选择相关状态
@@ -117,6 +121,11 @@ export default function Home() {
     document.title = t('app.title');
   }, [language, updateCounter, t]);
 
+  // 追蹤 resultPanelCollapsed 的變化
+  useEffect(() => {
+    prevResultPanelCollapsedRef.current = resultPanelCollapsed;
+  }, [resultPanelCollapsed]);
+
   // 模拟助理和代理数据（实际应该从 API 或 context 获取）
   // 获取助理名称 - 需要匹配 ChatArea 中的助理 ID
   const getAssistantName = (id: string): string => {
@@ -146,24 +155,233 @@ export default function Home() {
   };
 
   const getAgentName = (id: string): string => {
-    const agents: Record<string, string> = {
+    // HR 类别
+    if (id === 'hr-1') {
+      return t('agent.category.humanResource') + t('agent.hr.assistant');
+    }
+    if (id === 'hr-2') {
+      return t('agent.hr.trainingManager');
+    }
+    if (id === 'hr-3') {
+      return t('agent.hr.performanceAnalysis');
+    }
+    if (id === 'hr-4') {
+      return t('agent.hr.employeeRelations');
+    }
+    if (id === 'hr-5') {
+      return t('agent.hr.compensationBenefits');
+    }
+    if (id === 'hr-6') {
+      return t('agent.hr.talentDevelopment');
+    }
+
+    // Logistics 类别
+    if (id === 'log-1') {
+      return t('agent.logistics.supplyChainOptimization');
+    }
+    if (id === 'log-2') {
+      return t('agent.logistics.inventoryManagement');
+    }
+    if (id === 'log-3') {
+      return t('agent.logistics.routePlanning');
+    }
+    if (id === 'log-4') {
+      return t('agent.logistics.dataAnalysis');
+    }
+    if (id === 'log-5') {
+      return t('agent.logistics.supplierManagement');
+    }
+
+    // Finance 类别
+    if (id === 'fin-1') {
+      return t('agent.finance.financialAnalyst');
+    }
+    if (id === 'fin-2') {
+      return t('agent.finance.budgetPlanning');
+    }
+    if (id === 'fin-3') {
+      return t('agent.finance.costControl');
+    }
+    if (id === 'fin-4') {
+      return t('agent.finance.financialReportGeneration');
+    }
+    if (id === 'fin-5') {
+      return t('agent.finance.taxPlanning');
+    }
+    if (id === 'fin-6') {
+      return t('agent.finance.investmentAnalysis');
+    }
+
+    // MES 类别
+    if (id === 'mes-1') {
+      return t('agent.mes.productionMonitoring');
+    }
+    if (id === 'mes-2') {
+      return t('agent.mes.qualityControl');
+    }
+    if (id === 'mes-3') {
+      return t('agent.mes.efficiencyAnalysis');
+    }
+    if (id === 'mes-4') {
+      return t('agent.mes.equipmentMaintenance');
+    }
+    if (id === 'mes-5') {
+      return t('agent.mes.productionScheduling');
+    }
+    if (id === 'mes-6') {
+      return t('agent.mes.materialManagement');
+    }
+    if (id === 'mes-7') {
+      return t('agent.mes.processOptimization');
+    }
+
+    // 兼容旧 ID
+    const legacyAgents: Record<string, string> = {
       'agent-1': t('sidebar.agent1'),
       'agent-2': t('sidebar.agent2'),
       'agent-3': t('sidebar.agent3'),
       'agent-4': t('sidebar.agent4'),
     };
-    return agents[id] || id;
+
+    return legacyAgents[id] || id;
   };
 
   // 处理任务选择
   const handleTaskSelect = (task: Task) => {
-    setSelectedTask(task);
+    // 從 localStorage 重新加載任務數據，確保文件樹是最新的
+    const savedTask = getTask(task.id);
+    const taskToSelect = savedTask || task;
+
+    setSelectedTask(taskToSelect);
     setBrowseMode(null); // 清除浏览模式
     // 如果正在预览Markdown，切换回聊天视图
     if (isMarkdownView) {
       setIsMarkdownView(false);
     }
+    // 任務的文件目錄會自動從 task.fileTree 恢復
   };
+
+  // 處理任務創建（用於文件上傳時創建新任務）
+  const handleTaskCreate = (task: Task) => {
+    setSelectedTask(task);
+    // 保存任務到 localStorage
+    saveTask(task);
+    // 觸發事件通知 Sidebar 更新焦點
+    window.dispatchEvent(new CustomEvent('taskCreated', {
+      detail: { taskId: task.id }
+    }));
+  };
+
+  // 處理任務刪除（用於文件上傳失敗時清除任務）
+  const handleTaskDelete = (taskId: number) => {
+    if (selectedTask && selectedTask.id === taskId) {
+      setSelectedTask(undefined);
+      // 從 localStorage 刪除任務
+      deleteTask(taskId);
+      // 觸發事件通知 Sidebar 清除焦點
+      window.dispatchEvent(new CustomEvent('taskDeleted', {
+        detail: { taskId: taskId }
+      }));
+    }
+  };
+
+  // 處理文件樹變化
+  const handleFileTreeChange = (fileTree: FileNode[]) => {
+    if (selectedTask) {
+      // 更新當前任務的文件樹
+      setSelectedTask({
+        ...selectedTask,
+        fileTree: fileTree,
+      });
+    }
+  };
+
+  // 監聽文件上傳事件（包括模擬和真實上傳）
+  useEffect(() => {
+    const handleFilesUploaded = (event: CustomEvent) => {
+      const { taskId, files } = event.detail;
+
+
+      // 使用函數式更新，確保獲取最新的 selectedTask
+      setSelectedTask((currentTask) => {
+        if (!currentTask) {
+          return currentTask;
+        }
+
+        // 檢查任務ID是否匹配（支持字符串和數字比較）
+        const taskIdMatch = String(currentTask.id) === String(taskId);
+
+        if (taskIdMatch) {
+          // 將文件轉換為 FileNode 格式
+          const newFileNodes: FileNode[] = files.map((file: any) => ({
+            id: file.file_id,
+            name: file.filename,
+            type: 'file' as const,
+          }));
+
+          // 更新任務的文件樹
+          const updatedFileTree = currentTask.fileTree ? [...currentTask.fileTree, ...newFileNodes] : newFileNodes;
+          const updatedTask = {
+            ...currentTask,
+            fileTree: updatedFileTree,
+          };
+
+          // 同時更新 localStorage 中的任務數據
+          saveTask(updatedTask);
+
+          return updatedTask;
+        } else {
+          return currentTask;
+        }
+      });
+    };
+
+    const handleMockFilesUploaded = (event: CustomEvent) => {
+      const { taskId, files } = event.detail;
+
+
+      // 使用函數式更新，確保獲取最新的 selectedTask
+      setSelectedTask((currentTask) => {
+        if (!currentTask) {
+          return currentTask;
+        }
+
+        // 檢查任務ID是否匹配（支持字符串和數字比較）
+        const taskIdMatch = String(currentTask.id) === String(taskId);
+
+        if (taskIdMatch) {
+          // 將模擬文件轉換為 FileNode 格式
+          const newFileNodes: FileNode[] = files.map((file: any) => ({
+            id: file.file_id,
+            name: file.filename,
+            type: 'file' as const,
+          }));
+
+          // 更新任務的文件樹
+          const updatedFileTree = currentTask.fileTree ? [...currentTask.fileTree, ...newFileNodes] : newFileNodes;
+          const updatedTask = {
+            ...currentTask,
+            fileTree: updatedFileTree,
+          };
+
+          // 同時更新 localStorage 中的任務數據
+          saveTask(updatedTask);
+
+          return updatedTask;
+        } else {
+          return currentTask;
+        }
+      });
+    };
+
+    window.addEventListener('filesUploaded', handleFilesUploaded as EventListener);
+    window.addEventListener('mockFilesUploaded', handleMockFilesUploaded as EventListener);
+
+    return () => {
+      window.removeEventListener('filesUploaded', handleFilesUploaded as EventListener);
+      window.removeEventListener('mockFilesUploaded', handleMockFilesUploaded as EventListener);
+    };
+  }, []); // 移除 selectedTask 依賴，使用函數式更新
 
   // 处理浏览助理
   const handleBrowseAssistants = () => {
@@ -196,7 +414,10 @@ export default function Home() {
           agentId: undefined, // 清除代理ID
         }
       });
-      console.log('[Home] Updated task assistant:', assistantId);
+      // 清除浏览模式（如果正在浏览）
+      if (browseMode) {
+        setBrowseMode(null);
+      }
       return;
     }
 
@@ -211,10 +432,12 @@ export default function Home() {
         mode: 'assistant',
         assistantId: assistantId,
       },
+      fileTree: [], // 新增任務時清空文件目錄
     };
 
     setSelectedTask(newTask);
-    console.log('[Home] Created new task with assistant:', assistantId);
+    // 清除浏览模式（从浏览模式创建任务时）
+    setBrowseMode(null);
 
     // 如果正在预览Markdown，切换回聊天视图
     if (isMarkdownView) {
@@ -235,7 +458,10 @@ export default function Home() {
           assistantId: undefined, // 清除助理ID
         }
       });
-      console.log('[Home] Updated task agent:', agentId);
+      // 清除浏览模式（如果正在浏览）
+      if (browseMode) {
+        setBrowseMode(null);
+      }
       return;
     }
 
@@ -250,10 +476,12 @@ export default function Home() {
         mode: 'agent',
         agentId: agentId,
       },
+      fileTree: [], // 新增任務時清空文件目錄
     };
 
     setSelectedTask(newTask);
-    console.log('[Home] Created new task with agent:', agentId);
+    // 清除浏览模式（从浏览模式创建任务时）
+    setBrowseMode(null);
 
     // 如果正在预览Markdown，切换回聊天视图
     if (isMarkdownView) {
@@ -371,39 +599,90 @@ export default function Home() {
         favorites={favorites}
       />
 
-      {/* 中间聊天区域 - 根据右侧是否显示Markdown预览调整宽度 */}
-      <div className={`${isMarkdownView ? 'w-1/3' : 'flex-1'} flex flex-col overflow-hidden transition-all duration-300`}>
+      {/* 中间聊天区域 - 根据右侧是否显示Markdown预览和面板收拢状态调整宽度 */}
+      <div className={`${resultPanelCollapsed || !isMarkdownView ? 'flex-1' : 'w-1/3'} flex flex-col overflow-hidden transition-all duration-300`}>
         <ChatArea
           selectedTask={selectedTask}
           browseMode={browseMode}
           onAssistantSelect={handleAssistantSelect}
           onAgentSelect={handleAgentSelect}
           resultPanelCollapsed={resultPanelCollapsed}
-          onResultPanelToggle={() => setResultPanelCollapsed(!resultPanelCollapsed)}
+          onResultPanelToggle={() => {
+            const newCollapsed = !resultPanelCollapsed;
+            setResultPanelCollapsed(newCollapsed);
+            // 當收攏面板時，重置預覽狀態
+            if (newCollapsed) {
+              setIsMarkdownView(false);
+            }
+          }}
           onAssistantFavorite={handleAssistantFavorite}
           favoriteAssistants={favoriteAssistants}
           onAgentFavorite={handleAgentFavorite}
           favoriteAgents={favoriteAgents}
-          onTaskUpdate={(updatedTask) => {
+          onTaskUpdate={(updatedTask: Task) => {
             // 更新任务（包括标题）
             setSelectedTask(updatedTask);
-            console.log('[Home] Task updated:', updatedTask);
           }}
+          currentTaskId={selectedTask ? String(selectedTask.id) : undefined}
+          onTaskCreate={handleTaskCreate}
+          onTaskDelete={handleTaskDelete}
         />
       </div>
 
-      {/* 右侧结果面板 - 预览文件时完全展开，收合时完全隐藏 */}
-      {!resultPanelCollapsed && (
+      {/* 右侧结果面板 - 预览文件时完全展开，收合时完全隐藏。在代理浏览或助理浏览模式下，只有建立task后才显示 */}
+      {!resultPanelCollapsed && selectedTask !== undefined && (
         <div className={`transition-all duration-300 ${isMarkdownView ? 'w-2/3' : 'w-80'}`}>
           <ResultPanel
             collapsed={false}
+            wasCollapsed={prevResultPanelCollapsedRef.current}
+            onToggle={() => {
+              setResultPanelCollapsed(true);
+            }}
             onViewChange={(isViewing) => {
               setIsMarkdownView(isViewing);
-              // 当进入Markdown预览时，清除选中的任务
-              if (isViewing) {
-                setSelectedTask(undefined);
+              // 注意：不應該在預覽文件時清除選中的任務
+              // 預覽文件時應該保持任務選中狀態，這樣聊天區域才能正常顯示
+              // 但是需要清除瀏覽模式，確保顯示任務內容而不是瀏覽頁面
+              if (isViewing && browseMode) {
+                setBrowseMode(null);
               }
             }}
+            fileTree={selectedTask?.fileTree}
+            onFileTreeChange={handleFileTreeChange}
+            taskId={(() => {
+              // 邏輯說明：
+              // 1. 如果任務已經有 fileTree（從 prop 傳入），不傳遞 taskId，FileTree 會使用 fileTree prop
+              // 2. 如果任務沒有 fileTree 但需要從後端獲取，傳遞 taskId
+              // 3. 新任務（剛創建，沒有文件、沒有消息、標題為"新任務"）不傳遞 taskId，避免不必要的 API 調用
+              if (!selectedTask) {
+                console.log('[Home] No selectedTask, taskId = undefined');
+                return undefined;
+              }
+
+              // 如果已經有 fileTree，不調用 API，使用 prop
+              if (selectedTask.fileTree?.length) {
+                console.log('[Home] Task has fileTree, taskId = undefined', { taskId: selectedTask.id, fileTreeLength: selectedTask.fileTree.length });
+                return undefined;
+              }
+
+                // 檢查是否為新任務：標題為"新任務"且沒有消息和文件
+              const isNewTask = (
+                (selectedTask.title === '新任務' || selectedTask.title === '新任务' || selectedTask.title === 'New Task') &&
+                (!selectedTask.messages || selectedTask.messages.length === 0) &&
+                (!selectedTask.fileTree || selectedTask.fileTree.length === 0)
+              );
+
+              if (isNewTask) {
+                console.log('[Home] New task detected, taskId = undefined', { taskId: selectedTask.id });
+                return undefined;
+              }
+
+              // 其他情況都傳遞 taskId，讓 FileTree 從後端獲取文件
+              const taskId = String(selectedTask.id);
+              console.log('[Home] Passing taskId to ResultPanel', { taskId, taskTitle: selectedTask.title });
+              return taskId;
+            })()}
+            userId={localStorage.getItem('userEmail') || undefined}
           />
         </div>
       )}

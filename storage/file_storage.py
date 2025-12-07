@@ -101,16 +101,38 @@ class FileStorage(ABC):
 class LocalFileStorage(FileStorage):
     """本地文件系統存儲"""
 
-    def __init__(self, storage_path: str = "./data/datasets/files"):
+    def __init__(
+        self,
+        storage_path: str = "./data/datasets/files",
+        enable_encryption: bool = False,
+    ):
         """
         初始化本地文件存儲
 
         Args:
             storage_path: 存儲路徑
+            enable_encryption: 是否啟用文件加密（默認 False）
         """
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
-        self.logger = logger.bind(storage_path=str(self.storage_path))
+        self.enable_encryption = enable_encryption
+        self.logger = logger.bind(
+            storage_path=str(self.storage_path), encryption_enabled=enable_encryption
+        )
+
+        # 如果啟用加密，初始化加密服務
+        self._encryption_service = None
+        if self.enable_encryption:
+            try:
+                from services.api.services.encryption_service import (
+                    get_encryption_service,
+                )
+
+                self._encryption_service = get_encryption_service()
+                self.logger.info("文件加密已啟用")
+            except Exception as e:
+                self.logger.warning("無法初始化加密服務，將禁用加密", error=str(e))
+                self.enable_encryption = False
 
     def _get_file_path(self, file_id: str, filename: Optional[str] = None) -> Path:
         """
@@ -158,9 +180,29 @@ class LocalFileStorage(FileStorage):
             # 確保目錄存在
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
+            # 如果啟用加密，先加密文件內容
+            content_to_write = file_content
+            if self.enable_encryption and self._encryption_service:
+                try:
+                    content_to_write = self._encryption_service.encrypt(file_content)
+                    self.logger.debug(
+                        "文件已加密",
+                        file_id=file_id,
+                        original_size=len(file_content),
+                        encrypted_size=len(content_to_write),
+                    )
+                except Exception as e:
+                    self.logger.error(
+                        "文件加密失敗，將保存未加密文件",
+                        file_id=file_id,
+                        error=str(e),
+                    )
+                    # 加密失敗時，保存未加密文件（可選：也可以拋出異常）
+                    content_to_write = file_content
+
             # 寫入文件
             with open(file_path, "wb") as f:
-                f.write(file_content)
+                f.write(content_to_write)
 
             self.logger.info(
                 "文件保存成功",
@@ -168,6 +210,8 @@ class LocalFileStorage(FileStorage):
                 filename=filename,
                 file_path=str(file_path),
                 file_size=len(file_content),
+                encrypted=self.enable_encryption
+                and self._encryption_service is not None,
             )
 
             return file_id, str(file_path)
@@ -221,7 +265,39 @@ class LocalFileStorage(FileStorage):
 
         try:
             with open(file_path, "rb") as f:
-                return f.read()
+                encrypted_content = f.read()
+
+            # 如果啟用加密，嘗試解密文件內容
+            if self.enable_encryption and self._encryption_service:
+                try:
+                    # 檢查是否已加密
+                    if self._encryption_service.is_encrypted(encrypted_content):
+                        decrypted_content = self._encryption_service.decrypt(
+                            encrypted_content
+                        )
+                        self.logger.debug(
+                            "文件已解密",
+                            file_id=file_id,
+                            encrypted_size=len(encrypted_content),
+                            decrypted_size=len(decrypted_content),
+                        )
+                        return decrypted_content
+                    else:
+                        # 文件未加密，直接返回
+                        self.logger.debug("文件未加密，直接返回", file_id=file_id)
+                        return encrypted_content
+                except Exception as e:
+                    self.logger.error(
+                        "文件解密失敗",
+                        file_id=file_id,
+                        error=str(e),
+                        exc_info=True,
+                    )
+                    # 解密失敗時，返回 None（可選：也可以返回原始內容）
+                    return None
+
+            # 未啟用加密，直接返回
+            return encrypted_content
         except Exception as e:
             self.logger.error("文件讀取失敗", file_id=file_id, error=str(e))
             return None
@@ -306,9 +382,12 @@ def create_storage_from_config(config: dict) -> FileStorage:
     """
     storage_backend = config.get("storage_backend", "local")
     storage_path = config.get("storage_path", "./data/datasets/files")
+    enable_encryption = config.get("encryption", {}).get("enabled", False)
 
     if storage_backend == "local":
-        return LocalFileStorage(storage_path=storage_path)
+        return LocalFileStorage(
+            storage_path=storage_path, enable_encryption=enable_encryption
+        )
     elif storage_backend == "s3":
         raise NotImplementedError("S3 存儲尚未實現")
     elif storage_backend == "oss":

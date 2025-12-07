@@ -5,7 +5,14 @@
 
 """API 服務適配器 - 重新導出 api 模組的內容"""
 
-# 重新導出 main 應用
-from api.main import app
 
-__all__ = ["app"]
+# 延遲導入以避免循環導入
+# 如果需要在模組級別訪問 app，請使用 get_app() 函數
+def get_app():
+    """獲取 FastAPI 應用實例（延遲導入以避免循環導入）"""
+    from api.main import app
+
+    return app
+
+
+__all__ = ["get_app"]

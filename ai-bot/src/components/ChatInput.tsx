@@ -2,12 +2,16 @@
  * 代碼功能說明: AI 聊天輸入框組件, 包含代理, 助理, 模型選擇器
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-01-27
+ * 最後修改日期: 2025-12-06
  */
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useLanguage } from '../contexts/languageContext';
 import { createPortal } from 'react-dom';
+import FileUploadModal, { FileWithMetadata } from './FileUploadModal';
+import UploadProgress from './UploadProgress';
+import { uploadFiles } from '../lib/api';
+import { Task } from './Sidebar';
 
 // 從 localStorage 讀取收藏數據的輔助函數
 const loadFavoritesFromStorage = (key: string): Map<string, string> => {
@@ -81,6 +85,10 @@ interface ChatInputProps {
   selectedModelId?: string;
   onMessageSend?: (message: string) => void;
   onTaskTitleGenerate?: (title: string) => void;
+  currentTaskId?: string; // 當前任務ID，用於文件上傳
+  selectedTask?: Task; // 當前選中的任務，用於判斷是否為新任務
+  onTaskCreate?: (task: Task) => void; // 創建任務回調
+  onTaskDelete?: (taskId: number) => void; // 刪除任務回調
 }
 
 export default function ChatInput({
@@ -94,6 +102,10 @@ export default function ChatInput({
   selectedModelId: selectedModelIdProp = 'auto',
   onMessageSend,
   onTaskTitleGenerate,
+  currentTaskId,
+  selectedTask,
+  onTaskCreate,
+  onTaskDelete,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [showAssistantSelector, setShowAssistantSelector] = useState(false);
@@ -134,6 +146,10 @@ export default function ChatInput({
     return selectedModelIdProp ?? saved ?? 'auto';
   });
 
+  // 文件上傳相關狀態
+  const [showFileUploadModal, setShowFileUploadModal] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<FileWithMetadata[]>([]);
+
   // 不再需要初始化默认值
 
   // 當 prop 變化時更新狀態（但不要覆蓋用戶的選擇）
@@ -143,11 +159,9 @@ export default function ChatInput({
     // 如果 prop 变为 undefined（新任务），重置用户选择标志
     if (selectedAgentIdProp === undefined) {
       if (hasUserSelectedAgent.current) {
-        console.log('[ChatInput] Resetting hasUserSelectedAgent (new task, prop is undefined)');
         hasUserSelectedAgent.current = false;
       }
       if (selectedAgentId !== undefined) {
-        console.log('[ChatInput] Clearing selectedAgentId (new task, prop is undefined)');
         setSelectedAgentId(undefined);
       }
       return;
@@ -155,13 +169,11 @@ export default function ChatInput({
 
     // 如果用户已经选择过，完全忽略 prop 更新
     if (hasUserSelectedAgent.current) {
-      console.log('[ChatInput] Ignoring prop update for agent (user has selected)');
       return;
     }
 
     // 只在 prop 有值且与当前状态不同时才更新
     if (selectedAgentIdProp !== selectedAgentId) {
-      console.log('[ChatInput] Updating selectedAgentId from prop:', selectedAgentIdProp, 'current:', selectedAgentId);
       setSelectedAgentId(selectedAgentIdProp);
     }
   }, [selectedAgentIdProp, selectedAgentId]);
@@ -170,34 +182,28 @@ export default function ChatInput({
     // 如果 prop 变为 undefined（新任务），重置用户选择标志
     if (selectedAssistantIdProp === undefined) {
       if (hasUserSelectedAssistant.current) {
-        console.log('[ChatInput] Resetting hasUserSelectedAssistant (new task, prop is undefined)');
         hasUserSelectedAssistant.current = false;
       }
       if (selectedAssistantId !== undefined) {
-        console.log('[ChatInput] Clearing selectedAssistantId (new task, prop is undefined)');
         setSelectedAssistantId(undefined);
       }
       return;
     }
 
     if (hasUserSelectedAssistant.current) {
-      console.log('[ChatInput] Ignoring prop update for assistant (user has selected)');
       return;
     }
 
     if (selectedAssistantIdProp !== selectedAssistantId) {
-      console.log('[ChatInput] Updating selectedAssistantId from prop:', selectedAssistantIdProp, 'current:', selectedAssistantId);
       setSelectedAssistantId(selectedAssistantIdProp);
     }
   }, [selectedAssistantIdProp, selectedAssistantId]);
 
   useEffect(() => {
     if (hasUserSelectedModel.current) {
-      console.log('[ChatInput] Ignoring prop update for model (user has selected)');
       return;
     }
     if (selectedModelIdProp !== undefined && selectedModelIdProp !== selectedModelId) {
-      console.log('[ChatInput] Updating selectedModelId from prop:', selectedModelIdProp, 'current:', selectedModelId);
       setSelectedModelId(selectedModelIdProp);
       saveSelectedToStorage('selectedModelId', selectedModelIdProp);
     }
@@ -304,23 +310,19 @@ export default function ChatInput({
 
       // 如果点击在下拉菜单内或按钮上，不关闭
       if (clickedDropdown || clickedButton) {
-        console.log('[ChatInput] Click inside dropdown or button, not closing');
         return;
       }
 
       // 否则关闭所有下拉菜单
       if (showAssistantSelector) {
-        console.log('[ChatInput] Closing assistant selector (click outside)');
         setShowAssistantSelector(false);
         setAssistantPosition(null);
       }
       if (showAgentSelector) {
-        console.log('[ChatInput] Closing agent selector (click outside)');
         setShowAgentSelector(false);
         setAgentPosition(null);
       }
       if (showModelSelector) {
-        console.log('[ChatInput] Closing model selector (click outside)');
         setShowModelSelector(false);
         setModelPosition(null);
       }
@@ -457,43 +459,19 @@ export default function ChatInput({
 
   // 從 localStorage 讀取的收藏代理列表
   const favoriteAgentsList = useMemo(() => {
-    console.log('[ChatInput] Computing favoriteAgentsList:', {
-      agentsLength: agents?.length || 0,
-      favoriteAgentsSize: favoriteAgents.size,
-      favoriteAgentsKeys: Array.from(favoriteAgents.keys())
-    });
     if (!agents || agents.length === 0 || favoriteAgents.size === 0) {
-      console.log('[ChatInput] favoriteAgentsList is empty - no agents or no favorites');
       return [];
     }
     const filtered = agents.filter(agent => favoriteAgents.has(agent.id));
-    console.log('[ChatInput] favoriteAgentsList filtered result:', {
-      totalAgents: agents.length,
-      filteredCount: filtered.length,
-      filteredIds: filtered.map(a => a.id),
-      filteredNames: filtered.map(a => a.name)
-    });
     return filtered;
   }, [agents, favoriteAgents]);
 
   // 從 localStorage 讀取的收藏助理列表
   const favoriteAssistantsList = useMemo(() => {
-    console.log('[ChatInput] Computing favoriteAssistantsList:', {
-      assistantsLength: assistants?.length || 0,
-      favoriteAssistantsSize: favoriteAssistants.size,
-      favoriteAssistantsKeys: Array.from(favoriteAssistants.keys())
-    });
     if (!assistants || assistants.length === 0 || favoriteAssistants.size === 0) {
-      console.log('[ChatInput] favoriteAssistantsList is empty - no assistants or no favorites');
       return [];
     }
     const filtered = assistants.filter(assistant => favoriteAssistants.has(assistant.id));
-    console.log('[ChatInput] favoriteAssistantsList filtered result:', {
-      totalAssistants: assistants.length,
-      filteredCount: filtered.length,
-      filteredIds: filtered.map(a => a.id),
-      filteredNames: filtered.map(a => a.name)
-    });
     return filtered;
   }, [assistants, favoriteAssistants]);
 
@@ -549,48 +527,15 @@ export default function ChatInput({
   const selectedModel = llmModels.find(m => m.id === selectedModelId);
   const selectedModelName = selectedModel ? selectedModel.name : t('chatInput.model.auto', 'Auto');
 
-  // 跟踪选中状态变化
-  useEffect(() => {
-    console.log('[ChatInput] selectedAgentId changed:', {
-      selectedAgentId,
-      type: typeof selectedAgentId,
-      fromStorage: loadSelectedFromStorage('selectedAgentId'),
-      hasUserSelected: hasUserSelectedAgent.current
-    });
-  }, [selectedAgentId]);
-
-  useEffect(() => {
-    console.log('[ChatInput] selectedAssistantId changed:', {
-      selectedAssistantId,
-      type: typeof selectedAssistantId,
-      fromStorage: loadSelectedFromStorage('selectedAssistantId'),
-      hasUserSelected: hasUserSelectedAssistant.current
-    });
-  }, [selectedAssistantId]);
-
-  useEffect(() => {
-    console.log('[ChatInput] selectedModelId changed:', {
-      selectedModelId,
-      type: typeof selectedModelId,
-      fromStorage: loadSelectedFromStorage('selectedModelId'),
-      hasUserSelected: hasUserSelectedModel.current
-    });
-  }, [selectedModelId]);
+  // 跟踪选中状态变化（已移除調試日誌）
 
   // 處理代理選擇
   const handleAgentSelect = (agentId: string) => {
-    console.log('[ChatInput] ===== handleAgentSelect START =====');
-    console.log('[ChatInput] User selecting agent:', agentId);
-    console.log('[ChatInput] Current selectedAgentId before update:', selectedAgentId);
-    console.log('[ChatInput] hasUserSelectedAgent before update:', hasUserSelectedAgent.current);
 
     hasUserSelectedAgent.current = true; // 标记用户已选择
     setSelectedAgentId(agentId);
     saveSelectedToStorage('selectedAgentId', agentId);
 
-    console.log('[ChatInput] After setState - selectedAgentId should be:', agentId);
-    console.log('[ChatInput] Saved to localStorage:', loadSelectedFromStorage('selectedAgentId'));
-    console.log('[ChatInput] hasUserSelectedAgent after update:', hasUserSelectedAgent.current);
 
     onAgentSelect?.(agentId);
     setShowAgentSelector(false);
@@ -599,26 +544,16 @@ export default function ChatInput({
     // 验证状态更新（使用闭包捕获最新的 agentId）
     const capturedAgentId = agentId;
     setTimeout(() => {
-      console.log('[ChatInput] After state update (next render) - expected selectedAgentId:', capturedAgentId);
-      console.log('[ChatInput] Actual selectedAgentId from state:', selectedAgentId);
-      console.log('[ChatInput] From localStorage:', loadSelectedFromStorage('selectedAgentId'));
-      console.log('[ChatInput] ===== handleAgentSelect END =====');
     }, 100);
   };
 
   // 處理助理選擇
   const handleAssistantSelect = (assistantId: string) => {
-    console.log('[ChatInput] ===== handleAssistantSelect START =====');
-    console.log('[ChatInput] User selecting assistant:', assistantId);
-    console.log('[ChatInput] Current selectedAssistantId before update:', selectedAssistantId);
-    console.log('[ChatInput] hasUserSelectedAssistant before update:', hasUserSelectedAssistant.current);
 
     hasUserSelectedAssistant.current = true; // 标记用户已选择
     setSelectedAssistantId(assistantId);
     // 不再保存到 localStorage，只通过 props 传递
 
-    console.log('[ChatInput] After setState - selectedAssistantId should be:', assistantId);
-    console.log('[ChatInput] hasUserSelectedAssistant after update:', hasUserSelectedAssistant.current);
 
     onAssistantSelect?.(assistantId);
     setShowAssistantSelector(false);
@@ -627,26 +562,16 @@ export default function ChatInput({
     // 验证状态更新（使用闭包捕获最新的 assistantId）
     const capturedAssistantId = assistantId;
     setTimeout(() => {
-      console.log('[ChatInput] After state update (next render) - expected selectedAssistantId:', capturedAssistantId);
-      console.log('[ChatInput] Actual selectedAssistantId from state:', selectedAssistantId);
-      console.log('[ChatInput] ===== handleAssistantSelect END =====');
     }, 100);
   };
 
   // 處理模型選擇
   const handleModelSelect = (modelId: string) => {
-    console.log('[ChatInput] ===== handleModelSelect START =====');
-    console.log('[ChatInput] User selecting model:', modelId);
-    console.log('[ChatInput] Current selectedModelId before update:', selectedModelId);
-    console.log('[ChatInput] hasUserSelectedModel before update:', hasUserSelectedModel.current);
 
     hasUserSelectedModel.current = true; // 标记用户已选择
     setSelectedModelId(modelId);
     saveSelectedToStorage('selectedModelId', modelId);
 
-    console.log('[ChatInput] After setState - selectedModelId should be:', modelId);
-    console.log('[ChatInput] Saved to localStorage:', loadSelectedFromStorage('selectedModelId'));
-    console.log('[ChatInput] hasUserSelectedModel after update:', hasUserSelectedModel.current);
 
     onModelSelect?.(modelId);
     setShowModelSelector(false);
@@ -655,17 +580,12 @@ export default function ChatInput({
     // 验证状态更新（使用闭包捕获最新的 modelId）
     const capturedModelId = modelId;
     setTimeout(() => {
-      console.log('[ChatInput] After state update (next render) - expected selectedModelId:', capturedModelId);
-      console.log('[ChatInput] Actual selectedModelId from state:', selectedModelId);
-      console.log('[ChatInput] From localStorage:', loadSelectedFromStorage('selectedModelId'));
-      console.log('[ChatInput] ===== handleModelSelect END =====');
     }, 100);
   };
 
   const handleSend = () => {
     if (message.trim()) {
       const messageText = message.trim();
-      console.log('[ChatInput] Sending message:', messageText);
 
       // 发送消息
       onMessageSend?.(messageText);
@@ -676,12 +596,234 @@ export default function ChatInput({
         const title = messageText.length > 30
           ? messageText.substring(0, 30) + '...'
           : messageText;
-        console.log('[ChatInput] Generating task title from message:', title);
         onTaskTitleGenerate(title);
       }
 
       setMessage('');
     }
+  };
+
+  // 文件上傳處理函數
+  const handlePaperclipClick = () => {
+    setShowFileUploadModal(true);
+  };
+
+  const handleFileUpload = async (files: File[], taskId?: string) => {
+    if (files.length === 0) return;
+
+    // 檢查是否為新任務：
+    // 1. 必須有 selectedTask
+    // 2. 任務標題必須是"新任務"（表示是剛創建的空白任務）
+    // 3. 沒有消息和文件
+    const isNewTask = selectedTask &&
+      (selectedTask.title === '新任務' || selectedTask.title === '新任务' || selectedTask.title === 'New Task') &&
+      (!selectedTask.messages || selectedTask.messages.length === 0) &&
+      (!selectedTask.fileTree || selectedTask.fileTree.length === 0);
+
+    let createdTaskId: number | null = null;
+    let createdTask: Task | null = null;
+
+    // 如果是新任務，創建任務並使用第一個文件名作為任務名稱
+    if (isNewTask && onTaskCreate && selectedTask) {
+      const firstFileName = files[0]?.name || '新任務';
+      // 移除文件擴展名作為任務名稱
+      const taskTitle = firstFileName.replace(/\.[^/.]+$/, '') || '新任務';
+
+      createdTask = {
+        ...selectedTask,
+        id: Date.now(), // 生成新的任務ID
+        title: taskTitle,
+        fileTree: [], // 初始化文件樹
+      };
+
+      createdTaskId = createdTask.id;
+      onTaskCreate(createdTask);
+    }
+
+    // 創建文件元數據
+    const filesWithMetadata: FileWithMetadata[] = files.map((file) => ({
+      file,
+      id: `${Date.now()}-${Math.random()}`,
+      status: 'pending',
+      progress: 0,
+    }));
+
+    setUploadingFiles(filesWithMetadata);
+
+    // 確定要使用的任務ID：
+    // 1. 如果是新任務且已創建，使用新創建的任務ID
+    // 2. 如果已有選中的任務（不是新任務），使用現有任務ID
+    // 3. 否則使用傳遞的 taskId 或默認的 "temp-workspace"
+    const finalTaskId = createdTaskId
+      ? String(createdTaskId)
+      : (selectedTask && !isNewTask
+          ? String(selectedTask.id)
+          : (taskId || 'temp-workspace'));
+
+    try {
+      // 更新所有文件狀態為上傳中
+      setUploadingFiles((prev) =>
+        prev.map((f) => ({ ...f, status: 'uploading' }))
+      );
+
+      const response = await uploadFiles(files, (progress) => {
+        // 更新總體進度到所有文件
+        setUploadingFiles((prev) =>
+          prev.map((f) => ({ ...f, progress }))
+        );
+      }, finalTaskId);
+
+      // 處理上傳結果
+      if (response.success && response.data) {
+        const uploadedMap = new Map(
+          response.data.uploaded?.map((u) => [u.filename, u]) || []
+        );
+        const errorsMap = new Map(
+          response.data.errors?.map((e) => [e.filename, e.error]) || []
+        );
+
+        // 更新每個文件的狀態
+        setUploadingFiles((prev) =>
+          prev.map((f) => {
+            if (uploadedMap.has(f.file.name)) {
+              return { ...f, status: 'success', progress: 100 };
+            } else if (errorsMap.has(f.file.name)) {
+              return {
+                ...f,
+                status: 'error',
+                error: errorsMap.get(f.file.name) || '上傳失敗',
+              };
+            } else {
+              return {
+                ...f,
+                status: 'error',
+                error: '未知錯誤',
+              };
+            }
+          })
+        );
+
+        // 觸發文件上傳完成事件，通知文件管理頁面刷新
+        window.dispatchEvent(new CustomEvent('fileUploaded', {
+          detail: { fileIds: response.data.uploaded?.map((u: any) => u.file_id) || [] }
+        }));
+
+        // 觸發文件樹更新事件，通知父組件更新文件樹（真實上傳成功）
+        if (response.data.uploaded && response.data.uploaded.length > 0) {
+          // 記錄上傳成功的文件 ID
+          response.data.uploaded.forEach((u: any) => {
+            console.log(`File uploaded - file_id: ${u.file_id}`);
+          });
+
+          window.dispatchEvent(new CustomEvent('filesUploaded', {
+            detail: {
+              taskId: finalTaskId,
+              files: response.data.uploaded.map((u: any) => ({
+                file_id: u.file_id,
+                filename: u.filename,
+                file_type: u.file_type,
+                file_size: u.file_size,
+              }))
+            }
+          }));
+        }
+
+        // 所有文件處理完成後，等待3秒後清除（給用戶時間查看結果）
+        setTimeout(() => {
+          setUploadingFiles([]);
+        }, 3000);
+      } else {
+        // 整體失敗
+        setUploadingFiles((prev) =>
+          prev.map((f) => ({
+            ...f,
+            status: 'error',
+            error: response.message || response.error || '上傳失敗',
+          }))
+        );
+      }
+    } catch (error: any) {
+      console.error('File upload error:', error);
+
+      // 如果後端不可用，嘗試使用模擬文件上傳
+      if (error.message?.includes('網絡錯誤') || error.message?.includes('ERR_CONNECTION_TIMED_OUT') || error.message?.includes('Failed to fetch')) {
+
+        try {
+          const { uploadMockFiles } = await import('../lib/mockFileStorage');
+          const userId = localStorage.getItem('userEmail') || undefined;
+          const result = await uploadMockFiles(files, String(finalTaskId), userId);
+
+          // 更新文件狀態
+          setUploadingFiles((prev) =>
+            prev.map((f) => {
+              const uploaded = result.uploaded.find((u) => u.filename === f.file.name);
+              const error = result.errors.find((e) => e.filename === f.file.name);
+
+              if (uploaded) {
+                return { ...f, status: 'success', progress: 100 };
+              } else if (error) {
+                return { ...f, status: 'error', error: error.error };
+              } else {
+                return { ...f, status: 'error', error: '上傳失敗' };
+              }
+            })
+          );
+
+          // 觸發文件上傳完成事件
+          window.dispatchEvent(new CustomEvent('fileUploaded', {
+            detail: { fileIds: result.uploaded.map((u) => u.file_id) }
+          }));
+
+          // 記錄上傳成功的文件 ID
+          result.uploaded.forEach((u) => {
+            console.log(`File uploaded - file_id: ${u.file_id}`);
+          });
+
+          // 觸發文件樹更新事件，通知父組件更新文件樹
+          window.dispatchEvent(new CustomEvent('mockFilesUploaded', {
+            detail: { taskId: finalTaskId, files: result.uploaded }
+          }));
+
+          // 所有文件處理完成後，等待3秒後清除
+          setTimeout(() => {
+            setUploadingFiles([]);
+          }, 3000);
+
+          // 模擬上傳成功，不需要繼續處理錯誤
+          return;
+        } catch (mockError: any) {
+          console.error('Mock file upload error:', mockError);
+          // 如果模擬上傳也失敗，繼續執行下面的錯誤處理
+          // 如果是新任務且模擬上傳失敗，清除任務
+          if (isNewTask && createdTaskId && onTaskDelete) {
+            onTaskDelete(createdTaskId);
+          }
+        }
+      }
+
+      // 處理錯誤（只有在不是網絡錯誤或模擬上傳失敗時才執行）
+      setUploadingFiles((prev) =>
+        prev.map((f) => ({
+          ...f,
+          status: 'error',
+          error: error.message || '上傳失敗',
+        }))
+      );
+
+      // 如果是新任務且上傳失敗，清除任務
+      if (isNewTask && createdTaskId && onTaskDelete) {
+        onTaskDelete(createdTaskId);
+      }
+    }
+  };
+
+  const handleCancelUpload = (fileId: string) => {
+    // TODO: 實現取消上傳功能
+    setUploadingFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
+  const handleDismissUpload = (fileId: string) => {
+    setUploadingFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -748,15 +890,6 @@ export default function ChatInput({
               {favoriteAssistantsList.length > 0 ? (
                 favoriteAssistantsList.map((assistant, index) => {
                   const isSelected = selectedAssistantId === assistant.id;
-                  console.log('[ChatInput] Rendering assistant item:', {
-                    index,
-                    assistantId: assistant.id,
-                    assistantName: assistant.name,
-                    selectedAssistantId,
-                    isSelected,
-                    comparison: `${selectedAssistantId} === ${assistant.id}`,
-                    types: { selectedType: typeof selectedAssistantId, itemType: typeof assistant.id }
-                  });
                   return (
                     <button
                       key={assistant.id}
@@ -767,14 +900,12 @@ export default function ChatInput({
                         // 使用 onMouseDown 而不是 onClick，确保在 handleClickOutside 之前触发
                         e.stopPropagation();
                         e.preventDefault();
-                        console.log('[ChatInput] Assistant item clicked (mousedown):', assistant.id, assistant.name);
                         handleAssistantSelect(assistant.id);
                       }}
                       onClick={(e) => {
                         // 保留 onClick 作为备用
                         e.stopPropagation();
                         e.preventDefault();
-                        console.log('[ChatInput] Assistant item clicked (click):', assistant.id, assistant.name);
                       }}
                     >
                     <i className={`fa-solid ${assistant.icon} mr-2 ${
@@ -844,15 +975,6 @@ export default function ChatInput({
               {/* 固定代理選項 */}
               {fixedAgents.map((agent, index) => {
                 const isSelected = selectedAgentId === agent.id;
-                console.log('[ChatInput] Rendering fixed agent item:', {
-                  index,
-                  agentId: agent.id,
-                  agentName: agent.name,
-                  selectedAgentId,
-                  isSelected,
-                  comparison: `${selectedAgentId} === ${agent.id}`,
-                  types: { selectedType: typeof selectedAgentId, itemType: typeof agent.id }
-                });
                 return (
                   <button
                     key={agent.id}
@@ -863,14 +985,12 @@ export default function ChatInput({
                       // 使用 onMouseDown 而不是 onClick，确保在 handleClickOutside 之前触发
                       e.stopPropagation();
                       e.preventDefault();
-                      console.log('[ChatInput] Fixed agent item clicked (mousedown):', agent.id, agent.name);
                       handleAgentSelect(agent.id);
                     }}
                     onClick={(e) => {
                       // 保留 onClick 作为备用
                       e.stopPropagation();
                       e.preventDefault();
-                      console.log('[ChatInput] Fixed agent item clicked (click):', agent.id, agent.name);
                     }}
                   >
                   <i className={`fa-solid ${agent.icon} mr-2 ${
@@ -901,15 +1021,6 @@ export default function ChatInput({
               {favoriteAgentsList.length > 0 ? (
                 favoriteAgentsList.map((agent, index) => {
                   const isSelected = selectedAgentId === agent.id;
-                  console.log('[ChatInput] Rendering favorite agent item:', {
-                    index,
-                    agentId: agent.id,
-                    agentName: agent.name,
-                    selectedAgentId,
-                    isSelected,
-                    comparison: `${selectedAgentId} === ${agent.id}`,
-                    types: { selectedType: typeof selectedAgentId, itemType: typeof agent.id }
-                  });
                   return (
                     <button
                       key={agent.id}
@@ -919,7 +1030,6 @@ export default function ChatInput({
                       onClick={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
-                        console.log('[ChatInput] Favorite agent item clicked:', agent.id, agent.name);
                         handleAgentSelect(agent.id);
                       }}
                     >
@@ -988,15 +1098,6 @@ export default function ChatInput({
               </div>
               {llmModels.map((model, index) => {
                 const isSelected = selectedModelId === model.id;
-                console.log('[ChatInput] Rendering model item:', {
-                  index,
-                  modelId: model.id,
-                  modelName: model.name,
-                  selectedModelId,
-                  isSelected,
-                  comparison: `${selectedModelId} === ${model.id}`,
-                  types: { selectedType: typeof selectedModelId, itemType: typeof model.id }
-                });
                 return (
                   <button
                     key={model.id}
@@ -1007,14 +1108,12 @@ export default function ChatInput({
                       // 使用 onMouseDown 而不是 onClick，确保在 handleClickOutside 之前触发
                       e.stopPropagation();
                       e.preventDefault();
-                      console.log('[ChatInput] Model item clicked (mousedown):', model.id, model.name);
                       handleModelSelect(model.id);
                     }}
                     onClick={(e) => {
                       // 保留 onClick 作为备用
                       e.stopPropagation();
                       e.preventDefault();
-                      console.log('[ChatInput] Model item clicked (click):', model.id, model.name);
                     }}
                   >
                   <i className={`fa-solid ${
@@ -1048,8 +1147,44 @@ export default function ChatInput({
           )}
         </div>
 
-        <div className="ml-auto flex items-center space-x-1">
+        <div className="ml-auto flex items-center space-x-1 relative">
+          {/* @ 提及按鈕 - 放在回纹针左侧 */}
           <button
+            onClick={handleMentionClick}
+            className="p-2 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
+            title={t('chatInput.mention.title', '提及 (@)')}
+            aria-label={t('chatInput.mention.title', '提及 (@)')}
+          >
+            <span className="text-lg font-semibold">@</span>
+          </button>
+
+          {/* 提及菜單 */}
+          {showMentionMenu && (
+            <div
+              ref={mentionMenuRef}
+              className="absolute bottom-full right-0 mb-2 w-64 bg-secondary border border-primary rounded-lg shadow-lg z-[9999] theme-transition max-h-80 overflow-y-auto"
+            >
+              <div className="p-2 border-b border-primary text-sm font-medium text-primary sticky top-0 bg-secondary">
+                {t('chatInput.mention.title', '提及')}
+              </div>
+              {mentionOptions.map(option => (
+                <button
+                  key={option.id}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-tertiary transition-colors flex items-center gap-3"
+                  onClick={() => insertMention(option)}
+                >
+                  <i className={`fa-solid ${option.icon} text-blue-400 w-5`}></i>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-secondary font-medium">{option.label}</div>
+                    <div className="text-xs text-tertiary truncate">{option.description}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <button
+            onClick={handlePaperclipClick}
             className="p-2 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
             aria-label="上傳文件"
           >
@@ -1082,41 +1217,6 @@ export default function ChatInput({
           rows={3}
         />
 
-        {/* @ 提及按鈕 */}
-        <button
-          onClick={handleMentionClick}
-          className="ml-2 p-2 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
-          title={t('chatInput.mention.title', '提及 (@)')}
-          aria-label={t('chatInput.mention.title', '提及 (@)')}
-        >
-          <span className="text-lg font-semibold">@</span>
-        </button>
-
-        {/* 提及菜單 */}
-        {showMentionMenu && (
-          <div
-            ref={mentionMenuRef}
-            className="absolute bottom-full right-0 mb-2 w-64 bg-secondary border border-primary rounded-lg shadow-lg z-[9999] theme-transition max-h-80 overflow-y-auto"
-          >
-            <div className="p-2 border-b border-primary text-sm font-medium text-primary sticky top-0 bg-secondary">
-              {t('chatInput.mention.title', '提及')}
-            </div>
-            {mentionOptions.map(option => (
-              <button
-                key={option.id}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-tertiary transition-colors flex items-center gap-3"
-                onClick={() => insertMention(option)}
-              >
-                <i className={`fa-solid ${option.icon} text-blue-400 w-5`}></i>
-                <div className="flex-1 min-w-0">
-                  <div className="text-secondary font-medium">{option.label}</div>
-                  <div className="text-xs text-tertiary truncate">{option.description}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-
         <button
           className="ml-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center"
           onClick={handleSend}
@@ -1125,6 +1225,23 @@ export default function ChatInput({
           <i className="fa-solid fa-paper-plane ml-2"></i>
         </button>
       </div>
+
+      {/* 文件上傳模態框 */}
+      <FileUploadModal
+        isOpen={showFileUploadModal}
+        onClose={() => setShowFileUploadModal(false)}
+        onUpload={handleFileUpload}
+        defaultTaskId={currentTaskId || 'temp-workspace'}
+      />
+
+      {/* 上傳進度顯示 */}
+      {uploadingFiles.length > 0 && (
+        <UploadProgress
+          files={uploadingFiles}
+          onCancel={handleCancelUpload}
+          onDismiss={handleDismissUpload}
+        />
+      )}
     </div>
   );
 }

@@ -27,9 +27,9 @@ interface Translations {
 export const translations: Translations = {
   // 应用标题和欢迎信息
   'app.title': {
-    en: 'AI GenAI Chat Room',
-    zh_CN: 'AI智能聊天助手',
-    zh_TW: 'AI智能聊天助手'
+    en: 'SmartQ IEE',
+    zh_CN: 'SmartQ 智慧任務文件編輯',
+    zh_TW: 'SmartQ 智慧任務文件編輯'
   },
   'welcome.message': {
     en: 'Welcome to GenAI Chat Assistant! Please select an Agent from the left or browse available Agents from the categories below.',
@@ -39,9 +39,9 @@ export const translations: Translations = {
 
   // 聊天区域
   'chat.title': {
-    en: 'AI Chat Assistant',
-    zh_CN: 'AI聊天助手',
-    zh_TW: 'AI聊天助手'
+    en: 'Smart Task File Editor',
+    zh_CN: '智慧任务文件编辑',
+    zh_TW: '智慧任務文件編輯'
   },
   'chat.task': {
     en: 'Task: ',
@@ -207,6 +207,46 @@ export const translations: Translations = {
     en: 'Please select a file to preview',
     zh_CN: '请选择一个文件进行预览',
     zh_TW: '請選擇一個文件進行預覽'
+  },
+  'resultPanel.newFolder': {
+    en: 'New Folder',
+    zh_CN: '新建文件夹',
+    zh_TW: '新增目錄'
+  },
+  'resultPanel.newFile': {
+    en: 'New File',
+    zh_CN: '新建文件',
+    zh_TW: '新增檔案'
+  },
+  'resultPanel.search': {
+    en: 'Search Files',
+    zh_CN: '搜索文件',
+    zh_TW: '搜尋文件'
+  },
+  'resultPanel.more': {
+    en: 'More Options',
+    zh_CN: '更多选项',
+    zh_TW: '更多選項'
+  },
+  'resultPanel.uploadFromLibrary': {
+    en: 'Upload from Library',
+    zh_CN: '从文件库上传',
+    zh_TW: '從文件庫上傳'
+  },
+  'resultPanel.sendToLibrary': {
+    en: 'Send to Library',
+    zh_CN: '传回文件库',
+    zh_TW: '傳回文件庫'
+  },
+  'resultPanel.syncFiles': {
+    en: 'Sync Files',
+    zh_CN: '同步文件',
+    zh_TW: '同步文件'
+  },
+  'resultPanel.searchLibrary': {
+    en: 'Search Library',
+    zh_CN: '搜索文件库',
+    zh_TW: '搜尋文件庫'
   },
 
   // 主题切换

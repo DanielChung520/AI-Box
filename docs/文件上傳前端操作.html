@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上傳流程圖</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 24px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .workflow {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .stage {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stage-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            color: white;
+        }
+
+        .stage-1 .stage-title { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .stage-2 .stage-title { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .stage-3 .stage-title { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .stage-4 .stage-title { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+
+        .step {
+            color: #333;
+            background: white;
+            padding: 8px 10px;
+            margin: 6px 0;
+            border-radius: 6px;
+            font-size: 13px;
+            border-left: 4px solid;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .step::after {
+            content: '↓';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            color: #999;
+        }
+
+        .step:last-child::after { content: ''; }
+
+        .step.start {
+            border-left-color: #2e7d32;
+            background: #e8f5e9;
+        }
+
+        .step.process {
+            border-left-color: #1976d2;
+            background: #e3f2fd;
+        }
+
+        .step.decision {
+            border-left-color: #f57f17;
+            background: #fff9c4;
+            clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+            padding: 10px 15px;
+            text-align: center;
+        }
+
+        .step.api {
+            border-left-color: #2e7d32;
+            background: #e8f5e9;
+        }
+
+        .step.success {
+            border-left-color: #2e7d32;
+            background: #c8e6c9;
+        }
+
+        .step.error {
+            border-left-color: #c62828;
+            background: #ffebee;
+        }
+
+        .step.end {
+            border-left-color: #c62828;
+            background: #ffcdd2;
+            font-weight: bold;
+        }
+
+        .branch {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 6px 0;
+        }
+
+        .branch-label {
+            font-size: 11px;
+            color: #333;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .icon {
+            margin-right: 6px;
+        }
+
+                small {
+            color: #555;
+        }
+
+        .arrow {
+            text-align: center;
+            color: #999;
+            font-size: 20px;
+            margin: 5px 0;
+        }
+
+        @media (max-width: 1200px) {
+            .workflow {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .workflow {
+                grid-template-columns: 1fr;
+            }
+            h1 { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📤 文件上傳完整流程圖</h1>
+
+        <div class="workflow">
+            <!-- 階段 1: 前端流程 -->
+            <div class="stage stage-1">
+                <div class="stage-title">🖥️ 前端流程</div>
+
+                <div class="step start">
+                    <span class="icon">👤</span>用戶點擊上傳
+                </div>
+
+                <div class="step process">
+                    <span class="icon">📋</span>打開模態框
+                </div>
+
+                <div class="step process">
+                    <span class="icon">📁</span>選擇文件<br>
+                    <small>拖拽或點擊選擇</small>
+                </div>
+
+                <div class="step decision">
+                    前端驗證<br>類型/大小
+                </div>
+
+                <div class="branch">
+                    <div>
+                        <div class="branch-label">✓ 通過</div>
+                        <div class="step success">驗證通過</div>
+                    </div>
+                    <div>
+                        <div class="branch-label">✗ 失敗</div>
+                        <div class="step error">顯示錯誤<br><small>返回選擇</small></div>
+                    </div>
+                </div>
+
+                <div class="step process">
+                    <span class="icon">⚙️</span>選擇目標<br>
+                    <small>暫存區/任務目錄</small>
+                </div>
+
+                <div class="step process">
+                    <span class="icon">🚀</span>點擊上傳
+                </div>
+            </div>
+
+            <!-- 階段 2: API 調用 -->
+            <div class="stage stage-2">
+                <div class="stage-title">🌐 API 調用</div>
+
+                <div class="step api">
+                    <span class="icon">📡</span>POST API<br>
+                    <code style="font-size:11px">/api/v1/files/upload</code><br>
+                    <small>multipart/form-data</small>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div class="step process">
+                    <span class="icon">📊</span>顯示上傳進度<br>
+                    <small>WebSocket/輪詢</small><br>
+                    <div style="background:#ddd;height:8px;border-radius:4px;margin-top:5px">
+                        <div style="background:#4caf50;width:60%;height:100%;border-radius:4px"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 階段 3: 後端處理 -->
+            <div class="stage stage-3">
+                <div class="stage-title">⚙️ 後端處理</div>
+
+                <div class="step process">
+                    <span class="icon">📥</span>接收文件
+                </div>
+
+                <div class="step decision">
+                    後端驗證<br>格式/大小/權限
+                </div>
+
+                <div class="branch">
+                    <div>
+                        <div class="branch-label">✓ 通過</div>
+                        <div class="step success" style="font-size:12px">保存臨時位置</div>
+                    </div>
+                    <div>
+                        <div class="branch-label">✗ 失敗</div>
+                        <div class="step error" style="font-size:12px">返回 400 錯誤</div>
+                    </div>
+                </div>
+
+                <div class="step process">
+                    <span class="icon">🛡️</span>病毒掃描
+                </div>
+
+                <div class="step decision">
+                    安全檢查
+                </div>
+
+                <div class="branch">
+                    <div>
+                        <div class="branch-label">✓ 安全</div>
+                        <div class="step success" style="font-size:12px">移動到目標</div>
+                    </div>
+                    <div>
+                        <div class="branch-label">✗ 危險</div>
+                        <div class="step error" style="font-size:12px">刪除文件<br>返回 403</div>
+                    </div>
+                </div>
+
+                <div class="step process">
+                    <span class="icon">💾</span>創建元數據記錄
+                </div>
+
+                <div class="step process">
+                    <span class="icon">⚡</span>觸發異步處理任務
+                </div>
+
+                <div class="step success">
+                    <span class="icon">✅</span>返回成功 200
+                </div>
+            </div>
+
+            <!-- 階段 4: 結果展示 -->
+            <div class="stage stage-4">
+                <div class="stage-title">📋 結果展示</div>
+
+                <div class="step decision">
+                    響應狀態碼
+                </div>
+
+                <div class="branch">
+                    <div>
+                        <div class="branch-label">200 成功</div>
+                        <div class="step success">
+                            <span class="icon">✅</span>上傳成功<br>
+                            <small>
+                                • 更新文件列表<br>
+                                • 顯示成功提示<br>
+                                • 開始處理狀態
+                            </small>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="branch-label">4xx/5xx</div>
+                        <div class="step error">
+                            <span class="icon">❌</span>上傳失敗<br>
+                            <small>
+                                • 顯示錯誤訊息<br>
+                                • 提供重試按鈕
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="step decision">
+                    是否重試?
+                </div>
+
+                <div class="branch">
+                    <div>
+                        <div class="branch-label">是</div>
+                        <div class="step process" style="font-size:12px">返回選擇文件</div>
+                    </div>
+                    <div>
+                        <div class="branch-label">否</div>
+                        <div class="step end">
+                            <span class="icon">✅</span>完成
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 圖例 -->
+        <div style="display:flex;justify-content:center;gap:15px;flex-wrap:wrap;font-size:12px;margin-top:10px;padding:10px;background:#f5f5f5;border-radius:8px;color:#333">
+            <div style="display:flex;align-items:center;gap:5px">
+                <div style="width:20px;height:20px;background:#e8f5e9;border-left:4px solid #2e7d32;border-radius:3px"></div>
+                <span>開始/成功</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px">
+                <div style="width:20px;height:20px;background:#e3f2fd;border-left:4px solid #1976d2;border-radius:3px"></div>
+                <span>處理步驟</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px">
+                <div style="width:20px;height:20px;background:#fff9c4;border-left:4px solid #f57f17;border-radius:3px"></div>
+                <span>判斷決策</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px">
+                <div style="width:20px;height:20px;background:#ffebee;border-left:4px solid #c62828;border-radius:3px"></div>
+                <span>錯誤/結束</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

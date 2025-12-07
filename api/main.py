@@ -28,6 +28,8 @@ from api.routers import (
     file_upload,
     chunk_processing,
     file_metadata,
+    file_management,
+    data_quality,
     ner,
     re,
     rt,
@@ -39,7 +41,17 @@ from api.routers import (
     agent_catalog,
     agent_files,
     reports,
+    auth,
+    data_consent,
+    audit_log,
+    model_usage,
 )
+
+# 可選導入 governance 路由
+try:
+    from api.routers import governance
+except ImportError:
+    governance = None
 from api.routers import agent_auth
 from api.routers import agent_secret
 
@@ -165,16 +177,28 @@ app.add_middleware(LoggingMiddleware)
 app.add_middleware(ErrorHandlerMiddleware)
 
 # 配置 CORS（最後添加，確保在所有中間件之後）
+# 注意：文件上傳需要支持 multipart/form-data，這已經通過 allow_headers=["*"] 支持
+# 允許的來源：支持本地開發和生產環境
+cors_origins_env = os.getenv("CORS_ORIGINS", "*")
+if cors_origins_env == "*":
+    allow_origins = ["*"]
+else:
+    allow_origins = [origin.strip() for origin in cors_origins_env.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+    allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # 包括 POST（用於文件上傳）
+    allow_headers=["*"],  # 包括 Content-Type（multipart/form-data）
+    expose_headers=["*"],  # 暴露所有響應頭，包括自定義頭
 )
 
 # 註冊路由
 app.include_router(health.router, tags=["Health"])
+app.include_router(auth.router, prefix=API_PREFIX, tags=["Authentication"])
+app.include_router(data_consent.router, prefix=API_PREFIX, tags=["Data Consent"])
+app.include_router(audit_log.router, prefix=API_PREFIX, tags=["Audit Logs"])
 
 
 # 添加版本信息端點
@@ -210,11 +234,18 @@ if CREWAI_AVAILABLE and crewai is not None and crewai_tasks is not None:
     logger.info("CrewAI 路由已註冊")
 else:
     logger.warning("CrewAI 路由未註冊（模組不可用）")
+# 注意：file_management.router 必須在 file_upload.router 之前註冊
+# 因為 file_management 包含 /tree 路由，需要優先匹配，避免被 file_upload 的 /{file_id} 路由匹配
+app.include_router(file_management.router, prefix=API_PREFIX, tags=["File Management"])
 app.include_router(file_upload.router, prefix=API_PREFIX, tags=["File Upload"])
 app.include_router(
     chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Processing"]
 )
 app.include_router(file_metadata.router, prefix=API_PREFIX, tags=["File Metadata"])
+app.include_router(model_usage.router, prefix=API_PREFIX, tags=["Model Usage"])
+app.include_router(data_quality.router, prefix=API_PREFIX, tags=["Data Quality"])
+if governance:
+    app.include_router(governance.router, prefix=API_PREFIX, tags=["AI Governance"])
 app.include_router(ner.router, prefix=API_PREFIX, tags=["NER"])
 app.include_router(re.router, prefix=API_PREFIX, tags=["RE"])
 app.include_router(rt.router, prefix=API_PREFIX, tags=["RT"])

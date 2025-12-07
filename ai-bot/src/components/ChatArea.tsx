@@ -54,9 +54,13 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     favoriteAssistants?: Map<string, string> | Set<string>;
     onAgentFavorite?: (agentId: string, isFavorite: boolean, agentName?: string) => void;
     favoriteAgents?: Map<string, string> | Set<string>;
+    currentTaskId?: string; // 當前任務ID，用於文件上傳
+    onTaskUpdate?: (task: Task) => void; // 任務更新回調
+    onTaskCreate?: (task: Task) => void; // 任務創建回調
+    onTaskDelete?: (taskId: number) => void; // 任務刪除回調
   }
 
-  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate }: ChatAreaProps) {
+  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete }: ChatAreaProps) {
     const [activeTab, setActiveTab] = useState('human-resource');
     const [activeAssistantTab, setActiveAssistantTab] = useState('human-resource');
     const { theme, toggleTheme } = useTheme();
@@ -506,7 +510,23 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
 
       {/* 聊天内容区域 */}
       <div className="flex-1 overflow-y-auto p-4">
-        {browseMode === 'assistants' ? (
+        {/* 優先顯示任務內容：如果有選中的任務，優先顯示任務內容，而不是瀏覽頁面 */}
+        {selectedTask && selectedTask.messages ? (
+          // 显示任务相关的对话
+          <div className="space-y-6">
+            {selectedTask.messages.map(message => (
+              <ChatMessage key={message.id} message={message} />
+            ))}
+          </div>
+        ) : selectedTask ? (
+          // 显示任务但还没有消息
+          <div className="space-y-6">
+            <div className="text-center text-tertiary py-8">
+              <i className="fa-solid fa-comments text-4xl mb-4"></i>
+              <p>{t('chat.noMessages', '還沒有消息，開始對話吧！')}</p>
+            </div>
+          </div>
+        ) : browseMode === 'assistants' ? (
           // 显示助理列表（使用分类 Tabs，与 Agent 相同的方式）
           <>
             {/* 欢迎消息 */}
@@ -584,23 +604,8 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
               })}
             </div>
           </>
-        ) : selectedTask && selectedTask.messages ? (
-          // 显示任务相关的对话
-          <div className="space-y-6">
-            {selectedTask.messages.map(message => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-          </div>
-        ) : selectedTask ? (
-          // 显示任务但还没有消息
-          <div className="space-y-6">
-            <div className="text-center text-tertiary py-8">
-              <i className="fa-solid fa-comments text-4xl mb-4"></i>
-              <p>{t('chat.noMessages', '還沒有消息，開始對話吧！')}</p>
-            </div>
-          </div>
-        ) : (
-          // 显示默认的Agent列表（带分类 Tabs：HR、Logistics、Finance 等）
+        ) : browseMode === 'agents' ? (
+          // 显示代理列表（带分类 Tabs：HR、Logistics、Finance 等）
           <>
             {/* 欢迎消息 */}
             <div className="mb-8">
@@ -675,10 +680,12 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
               })}
             </div>
           </>
-        )}
+        ) : null}
       </div>
 
-      {/* 聊天输入区域 */}
+      {/* 聊天输入区域 - 在代理浏览或助理浏览模式下，只有建立task后才显示 */}
+      {/* 当没有选中任务时，如果browseMode为null但显示的是代理列表时，也应该隐藏 */}
+      {selectedTask !== undefined && (
       <div className="p-4 border-t border-primary">
         <ChatInput
           agents={allAgents}
@@ -690,9 +697,12 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
           selectedModelId={selectedTask?.executionConfig?.modelId || 'auto'}
           favoriteAgents={favoriteAgents}
           favoriteAssistants={favoriteAssistants}
+          currentTaskId={currentTaskId}
+          selectedTask={selectedTask}
+          onTaskCreate={onTaskCreate}
+          onTaskDelete={onTaskDelete}
           onMessageSend={(message) => {
             // 处理消息发送
-            console.log('[ChatArea] Message sent:', message);
             // 这里可以添加实际的消息处理逻辑
           }}
           onTaskTitleGenerate={(title) => {
@@ -702,12 +712,12 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
                 ...selectedTask,
                 title: title,
               };
-              console.log('[ChatArea] Task title generated:', title);
               onTaskUpdate?.(updatedTask);
             }
           }}
         />
       </div>
+      )}
 
       {/* Agent 註冊模態框 */}
       <AgentRegistrationModal
@@ -729,7 +739,6 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
           setMaintainingAssistantId(null);
         }}
         onSave={(data) => {
-          console.log('Assistant maintenance data:', data);
           // TODO: 調用 API 保存助理維護數據
           setShowAssistantMaintenanceModal(false);
           setMaintainingAssistantId(null);
@@ -759,7 +768,6 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
                 className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
                 onClick={() => {
                   if (deletingAssistantId) {
-                    console.log('Delete assistant:', deletingAssistantId);
                     // TODO: 調用 API 刪除助理
                     setShowDeleteConfirm(false);
                     setDeletingAssistantId(null);

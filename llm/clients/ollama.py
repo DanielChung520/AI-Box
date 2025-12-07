@@ -19,6 +19,95 @@ from .base import BaseLLMClient
 
 logger = logging.getLogger(__name__)
 
+# 模型使用追蹤（可選，避免循環導入）
+_model_usage_service = None
+
+
+def _get_model_usage_service():
+    """獲取模型使用服務（延遲導入避免循環依賴）"""
+    global _model_usage_service
+    if _model_usage_service is None:
+        try:
+            from services.api.services.model_usage_service import (
+                get_model_usage_service,
+            )
+
+            _model_usage_service = get_model_usage_service()
+        except Exception:
+            # 如果服務不可用，返回None（不影響正常功能）
+            return None
+    return _model_usage_service
+
+
+def _track_model_usage(
+    model_name: str,
+    user_id: str,
+    input_length: int,
+    output_length: int,
+    latency_ms: int,
+    purpose: str,
+    success: bool = True,
+    error_message: Optional[str] = None,
+    file_id: Optional[str] = None,
+    task_id: Optional[str] = None,
+    model_version: Optional[str] = None,
+    cost: Optional[float] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+):
+    """
+    追蹤模型使用（異步記錄，不阻塞主流程）
+
+    Args:
+        model_name: 模型名稱
+        user_id: 用戶ID
+        input_length: 輸入長度
+        output_length: 輸出長度
+        latency_ms: 延遲時間（毫秒）
+        purpose: 使用目的
+        success: 是否成功
+        error_message: 錯誤消息
+        file_id: 文件ID
+        task_id: 任務ID
+        model_version: 模型版本
+        cost: 成本
+        metadata: 額外元數據
+    """
+    try:
+        service = _get_model_usage_service()
+        if service is None:
+            return  # 服務不可用，跳過追蹤
+
+        from services.api.models.model_usage import ModelUsageCreate, ModelPurpose
+
+        # 確定使用目的
+        purpose_enum = ModelPurpose.OTHER
+        try:
+            purpose_enum = ModelPurpose(purpose.lower())
+        except ValueError:
+            pass
+
+        usage = ModelUsageCreate(
+            model_name=model_name,
+            model_version=model_version,
+            user_id=user_id,
+            file_id=file_id,
+            task_id=task_id,
+            input_length=input_length,
+            output_length=output_length,
+            purpose=purpose_enum,
+            cost=cost,
+            latency_ms=latency_ms,
+            success=success,
+            error_message=error_message,
+            metadata=metadata or {},
+        )
+
+        # 異步記錄（不阻塞）
+        service.create(usage)
+    except Exception as e:
+        # 追蹤失敗不應影響主流程
+        logger.warning(f"Failed to track model usage: {e}")
+
 
 class OllamaClientError(Exception):
     """Ollama 客戶端基礎錯誤。"""
@@ -219,6 +308,11 @@ class OllamaClient(BaseLLMClient):
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        images: Optional[List[str]] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
+        purpose: str = "chat",
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """
@@ -229,6 +323,11 @@ class OllamaClient(BaseLLMClient):
             model: 模型名稱（可選）
             temperature: 溫度參數
             max_tokens: 最大 token 數
+            images: base64 編碼的圖片列表（可選，用於多模態模型）
+            user_id: 用戶ID（用於追蹤）
+            file_id: 文件ID（用於追蹤）
+            task_id: 任務ID（用於追蹤）
+            purpose: 使用目的（用於追蹤）
             **kwargs: 其他參數
 
         Returns:
@@ -241,7 +340,13 @@ class OllamaClient(BaseLLMClient):
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
-            formatted_messages.append({"role": role, "content": content})
+            formatted_msg = {"role": role, "content": content}
+
+            # 如果提供了圖片，且當前消息是用戶消息，添加圖片
+            if images and role == "user":
+                formatted_msg["images"] = images
+
+            formatted_messages.append(formatted_msg)
 
         payload: Dict[str, Any] = {
             "model": model,
@@ -299,6 +404,10 @@ class OllamaClient(BaseLLMClient):
         text: str,
         *,
         model: Optional[str] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
+        purpose: str = "embedding",
         **kwargs: Any,
     ) -> List[float]:
         """
@@ -307,29 +416,63 @@ class OllamaClient(BaseLLMClient):
         Args:
             text: 輸入文本
             model: 嵌入模型名稱（可選）
+            user_id: 用戶ID（用於追蹤）
+            file_id: 文件ID（用於追蹤）
+            task_id: 任務ID（用於追蹤）
+            purpose: 使用目的（用於追蹤）
             **kwargs: 其他參數
 
         Returns:
             嵌入向量列表
         """
+        import time
+
         # 使用默認嵌入模型或提供的模型
         model = model or self.settings.embedding_model
 
         payload: Dict[str, Any] = {"model": model, "prompt": text}
         payload.update(kwargs)
 
+        start_time = time.time()
+        input_length = len(text)
+        success = True
+        error_message = None
+        embedding: List[float] = []
+
         try:
             response = await self._post("/api/embeddings", payload)
 
             # 提取嵌入向量
             if "embedding" in response:
-                return response["embedding"]
+                embedding = response["embedding"]
+                return embedding
 
             return []
 
         except Exception as exc:
+            success = False
+            error_message = str(exc)
             logger.error(f"Ollama embeddings error: {exc}")
             raise OllamaClientError(f"Failed to generate embeddings: {exc}") from exc
+        finally:
+            # 追蹤模型使用
+            if user_id:
+                latency_ms = int((time.time() - start_time) * 1000)
+                output_length = len(embedding) if embedding else 0
+                _track_model_usage(
+                    model_name=model,
+                    user_id=user_id,
+                    input_length=input_length,
+                    output_length=output_length,
+                    latency_ms=latency_ms,
+                    purpose=purpose,
+                    success=success,
+                    error_message=error_message,
+                    file_id=file_id,
+                    task_id=task_id,
+                    model_version=kwargs.get("model_version"),
+                    metadata={},
+                )
 
     def is_available(self) -> bool:
         """

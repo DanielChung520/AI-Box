@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" width="512" height="512">
+  <!-- 白色背景 -->
+  <rect width="512" height="512" fill="#ffffff"/>
+  <!-- 添加 padding: 15% 的边距 (76.8px on each side) -->
+  <!-- Logo 区域: 358.4x358.4, 居中 -->
+  <g transform="translate(76.8, 76.8)">
+    <image xlink:href="/SmartQ.-logo.svg" href="/SmartQ.-logo.svg" width="358.4" height="358.4" preserveAspectRatio="xMidYMid meet" x="0" y="0"/>
+  </g>
+</svg>

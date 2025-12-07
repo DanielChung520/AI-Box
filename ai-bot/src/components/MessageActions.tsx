@@ -29,7 +29,6 @@ export default function MessageActions({
 
   const handleLike = () => {
     // TODO: 實現點讚功能
-    console.log('點讚消息:', messageId);
     setLiked(!liked);
     setDisliked(false);
     if (onLike) {
@@ -39,7 +38,6 @@ export default function MessageActions({
 
   const handleDislike = () => {
     // TODO: 實現倒讚功能
-    console.log('倒讚消息:', messageId);
     setDisliked(!disliked);
     setLiked(false);
     if (onDislike) {
