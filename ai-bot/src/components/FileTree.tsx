@@ -847,8 +847,11 @@ export default function FileTree({
   }, [folderContextMenu, closeFolderContextMenu, onNewFile]);
 
   const loadTree = useCallback(async () => {
+    console.log('[FileTree] loadTree called', { taskId, userId, hasFileTree: !!fileTree, fileTreeLength: fileTree?.length });
+
     // 如果已經有 fileTree prop，不調用 API（使用本地數據）
     if (fileTree && fileTree.length > 0) {
+      console.log('[FileTree] Using fileTree prop, skipping API call');
       setTreeData(null);
       setLoading(false);
       setError(null);
@@ -857,6 +860,7 @@ export default function FileTree({
 
     // 如果沒有任務 ID，不調用 API
     if (!taskId) {
+      console.log('[FileTree] No taskId, skipping API call');
       setTreeData(null);
       setLoading(false);
       return;
@@ -899,6 +903,7 @@ export default function FileTree({
     setLoading(true);
     setError(null);
     try {
+      console.log('[FileTree] Calling getFileTree API', { userId, taskId });
       const startTime = Date.now();
       const response = await Promise.race([
         getFileTree({ user_id: userId, task_id: taskId }),
@@ -906,7 +911,14 @@ export default function FileTree({
           setTimeout(() => reject(new Error('API request timeout after 30 seconds')), 30000)
         )
       ]) as any;
+      const duration = Date.now() - startTime;
+      console.log(`[FileTree] getFileTree response received (${duration}ms):`, { success: response?.success, hasData: !!response?.data });
       if (response.success && response.data) {
+        console.log('[FileTree] File tree loaded successfully', {
+          totalTasks: response.data.total_tasks,
+          totalFiles: response.data.total_files,
+          treeKeys: Object.keys(response.data.tree || {}),
+        });
         setTreeData(response);
       } else {
         console.error('[FileTree] Failed to load file tree:', response);
@@ -940,9 +952,11 @@ export default function FileTree({
   }, [userId, taskId, fileTree]);
 
   useEffect(() => {
+    console.log('[FileTree] useEffect triggered', { taskId, userId, hasFileTree: !!fileTree, fileTreeLength: fileTree?.length });
 
     // 如果已經有 fileTree prop，直接返回，不調用 API
     if (fileTree && fileTree.length > 0) {
+      console.log('[FileTree] Using fileTree prop, skipping API call', { fileTreeLength: fileTree.length });
       setTreeData(null);
       setLoading(false);
       setError(null);
@@ -951,12 +965,14 @@ export default function FileTree({
 
     // 如果沒有任務 ID，直接返回，不調用 loadTree
     if (!taskId) {
+      console.log('[FileTree] No taskId, skipping loadTree');
       setTreeData(null);
       setLoading(false);
       setError(null);
       return;
     }
 
+    console.log('[FileTree] Calling loadTree for taskId:', taskId);
     loadTree();
   }, [loadTree, taskId, fileTree]);
 
@@ -1108,6 +1124,7 @@ export default function FileTree({
   }
 
   if (!treeData || !treeData.data) {
+    console.log('[FileTree] No treeData or treeData.data', { treeData, hasTreeData: !!treeData, hasData: treeData?.data });
     return (
       <div className="p-4 text-sm text-tertiary theme-transition">
         暫無文件
@@ -1116,6 +1133,7 @@ export default function FileTree({
   }
 
   const { tree, total_tasks, total_files, folders } = treeData.data;
+  console.log('[FileTree] Rendering tree', { total_tasks, total_files, treeKeys: Object.keys(tree || {}), foldersCount: Object.keys(folders || {}).length });
   const foldersInfo = folders || {};
 
   // 構建任務列表（優先顯示任務工作區）
