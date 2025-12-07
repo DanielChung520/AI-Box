@@ -10,6 +10,7 @@ import structlog
 
 from genai.api.models.ner_models import Entity
 from genai.api.models.re_models import Relation
+from genai.api.models.rt_models import RelationType
 
 logger = structlog.get_logger(__name__)
 
@@ -134,7 +135,7 @@ class ExplainabilityService:
         return explanations
 
     def explain_rt_result(
-        self, relation_types: List[str], relation_text: str
+        self, relation_types: List[RelationType], relation_text: str
     ) -> List[Explanation]:
         """
         為關係類型分類結果生成解釋

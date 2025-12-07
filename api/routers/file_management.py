@@ -647,11 +647,19 @@ async def rename_file(
             raise RuntimeError("ArangoDB client is not connected")
 
         collection = arangodb_client.db.collection("file_metadata")
+        file_doc = collection.get(file_id)
+        if file_doc is None:
+            return APIResponse.error(
+                message="文件不存在",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
         update_data = {
             "filename": new_name,
             "updated_at": datetime.utcnow().isoformat(),
         }
-        collection.update(file_id, update_data)
+        # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数
+        file_doc.update(update_data)
+        collection.update(file_doc)
 
         # 獲取更新後的文件元數據
         updated_doc = collection.get(file_id)
@@ -2083,11 +2091,17 @@ async def upload_from_library(
                     raise RuntimeError("ArangoDB client is not connected")
 
                 collection = arangodb_client.db.collection("file_metadata")
+                file_doc = collection.get(file_id)
+                if file_doc is None:
+                    failed_files.append({"file_id": file_id, "error": "文件不存在"})
+                    continue
                 update_data = {
                     "task_id": target_task_id,
                     "updated_at": datetime.utcnow().isoformat(),
                 }
-                collection.update(file_id, update_data)
+                # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数
+                file_doc.update(update_data)
+                collection.update(file_doc)
 
                 # 獲取更新後的文件元數據
                 updated_doc = collection.get(file_id)
@@ -2184,11 +2198,17 @@ async def return_to_library(
                     raise RuntimeError("ArangoDB client is not connected")
 
                 collection = arangodb_client.db.collection("file_metadata")
+                file_doc = collection.get(file_id)
+                if file_doc is None:
+                    failed_files.append({"file_id": file_id, "error": "文件不存在"})
+                    continue
                 update_data = {
                     "task_id": LIBRARY_TASK_ID,
                     "updated_at": datetime.utcnow().isoformat(),
                 }
-                collection.update(file_id, update_data)
+                # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数
+                file_doc.update(update_data)
+                collection.update(file_doc)
 
                 # 獲取更新後的文件元數據
                 updated_doc = collection.get(file_id)

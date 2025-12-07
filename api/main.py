@@ -48,10 +48,13 @@ from api.routers import (
 )
 
 # 可選導入 governance 路由
+from types import ModuleType
+from typing import Optional
+
 try:
     from api.routers import governance
 except ImportError:
-    governance = None
+    governance: Optional[ModuleType] = None
 from api.routers import agent_auth
 from api.routers import agent_secret
 
