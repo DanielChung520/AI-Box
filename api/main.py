@@ -51,10 +51,11 @@ from api.routers import (
 from types import ModuleType
 from typing import Optional
 
+governance: Optional[ModuleType] = None
 try:
-    from api.routers import governance
+    from api.routers import governance  # type: ignore[no-redef]
 except ImportError:
-    governance: Optional[ModuleType] = None
+    pass
 from api.routers import agent_auth
 from api.routers import agent_secret
 

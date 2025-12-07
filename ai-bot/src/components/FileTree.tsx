@@ -13,10 +13,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Folder, FolderOpen, File as FileIcon, ChevronRight, ChevronDown, X } from 'lucide-react';
-import { getFileTree, FileTreeResponse, getFileList, deleteFile, renameFile, copyFile, moveFile, renameFolder, createFolder, deleteFolder } from '../lib/api';
+import { getFileTree, FileTreeResponse, getFileList, deleteFile, renameFile, copyFile, moveFile, renameFolder, createFolder, deleteFolder, moveFolder } from '../lib/api';
 import { FileNode } from './Sidebar';
 import { getMockFiles, hasMockFiles, getMockFile } from '../lib/mockFileStorage';
-import { useClipboardState, useBatchSelection, saveClipboardState, loadClipboardState, ClipboardItem } from '../lib/fileOperationState';
+import { useClipboardState, useBatchSelection, saveClipboardState, loadClipboardState, clearClipboardState, ClipboardItem } from '../lib/fileOperationState';
 
 // 導出 FileNode 類型供其他組件使用
 export type { FileNode };
@@ -87,7 +87,7 @@ export default function FileTree({
   const folderRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // 使用剪貼板和批量選擇功能
-  const { setClipboard } = useClipboardState();
+  const { setClipboard, cutItems } = useClipboardState();
   const batchSelection = useBatchSelection();
 
   // 處理重命名確認
@@ -738,12 +738,72 @@ export default function FileTree({
         // TODO: 實現查看資料夾信息功能
         break;
       case 'cut':
-        // TODO: 實現剪下功能
-        // TODO: 實現剪下資料夾功能
+        // 實現剪下資料夾功能
+        if (folderContextMenu.taskId === TEMP_WORKSPACE_ID) {
+          setNotification({ message: '任務工作區是系統預設的工作區，無法剪下。', type: 'error' });
+          setTimeout(() => setNotification(null), 3000);
+          break;
+        }
+        // 將資料夾保存到剪貼板（類型為 cut）
+        const folderClipboardItems: ClipboardItem[] = [{
+          id: folderContextMenu.taskId,
+          type: 'folder',
+          name: folderContextMenu.taskName,
+        }];
+        cutItems(folderClipboardItems);
+        setNotification({ message: '資料夾已剪下', type: 'success' });
+        setTimeout(() => setNotification(null), 3000);
         break;
       case 'paste':
-        // TODO: 實現貼上功能
-        // TODO: 實現貼上到資料夾功能
+        // 實現貼上到資料夾功能
+        const clipboardState = loadClipboardState();
+        if (!clipboardState || clipboardState.items.length === 0) {
+          setNotification({ message: '剪貼板為空', type: 'warning' });
+          setTimeout(() => setNotification(null), 3000);
+          break;
+        }
+
+        // 目標父資料夾ID（當前資料夾）
+        const targetParentId = folderContextMenu.taskId === TEMP_WORKSPACE_ID ? null : folderContextMenu.taskId;
+
+        // 處理剪貼板中的每個項目
+        clipboardState.items.forEach((item) => {
+          if (item.type === 'folder') {
+            // 檢查是否嘗試移動到自己或子資料夾
+            if (item.id === folderContextMenu.taskId) {
+              setNotification({ message: '不能將資料夾移動到自己內部', type: 'error' });
+              setTimeout(() => setNotification(null), 3000);
+              return;
+            }
+
+            if (clipboardState.type === 'cut') {
+              // 移動資料夾
+              moveFolder(item.id, targetParentId)
+                .then((result) => {
+                  if (result.success) {
+                    setNotification({ message: '資料夾已移動', type: 'success' });
+                    setTimeout(() => setNotification(null), 3000);
+                    // 清除剪貼板
+                    clearClipboardState();
+                    // 觸發文件樹更新
+                    window.dispatchEvent(new CustomEvent('fileTreeUpdated'));
+                  } else {
+                    setNotification({ message: result.message || '移動資料夾失敗', type: 'error' });
+                    setTimeout(() => setNotification(null), 3000);
+                  }
+                })
+                .catch((error) => {
+                  console.error('移動資料夾失敗:', error);
+                  setNotification({ message: error.message || '移動資料夾失敗', type: 'error' });
+                  setTimeout(() => setNotification(null), 3000);
+                });
+            } else if (clipboardState.type === 'copy') {
+              // TODO: 實現複製資料夾功能（需要創建新資料夾並複製所有文件）
+              setNotification({ message: '複製資料夾功能尚未實現', type: 'warning' });
+              setTimeout(() => setNotification(null), 3000);
+            }
+          }
+        });
         break;
       case 'rename':
         // 檢查是否為 temp-workspace（不允許重命名）

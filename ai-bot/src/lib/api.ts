@@ -113,8 +113,6 @@ export async function apiRequest<T = any>(
   }
 
   try {
-    const startTime = Date.now();
-
     // 添加超时控制
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
@@ -125,7 +123,6 @@ export async function apiRequest<T = any>(
     });
 
     clearTimeout(timeoutId);
-    const duration = Date.now() - startTime;
 
     if (!response.ok) {
       // 404 錯誤特別處理
@@ -202,6 +199,19 @@ export async function apiPut<T = any>(endpoint: string, data?: any): Promise<T> 
  */
 export async function apiDelete<T = any>(endpoint: string): Promise<T> {
   return apiRequest<T>(endpoint, { method: 'DELETE' });
+}
+
+/**
+ * PATCH 請求
+ */
+export async function apiPatch<T = any>(
+  endpoint: string,
+  data?: any
+): Promise<T> {
+  return apiRequest<T>(endpoint, {
+    method: 'PATCH',
+    body: data ? JSON.stringify(data) : undefined,
+  });
 }
 
 /**
@@ -869,6 +879,18 @@ export async function deleteFolder(
 }
 
 /**
+ * 移動資料夾（更改父資料夾）
+ */
+export async function moveFolder(
+  folderId: string,
+  parentTaskId: string | null
+): Promise<{ success: boolean; data?: any; message?: string }> {
+  return apiPatch(`/files/folders/${folderId}/move`, {
+    parent_task_id: parentTaskId,
+  });
+}
+
+/**
  * 附加文件到聊天
  */
 export async function attachFileToChat(
@@ -1170,6 +1192,7 @@ export const api = {
   createFolder,
   renameFolder,
   deleteFolder,
+  moveFolder,
   attachFileToChat,
   getFileVectors,
   getFileGraph,

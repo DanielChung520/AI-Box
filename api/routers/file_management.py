@@ -76,6 +76,12 @@ class FolderRenameRequest(BaseModel):
     new_name: str = Field(..., description="新資料夾名稱", min_length=1, max_length=255)
 
 
+class FolderMoveRequest(BaseModel):
+    """移動資料夾請求模型"""
+
+    parent_task_id: Optional[str] = Field(None, description="目標父任務ID（None 表示移動到根節點）")
+
+
 class BatchDownloadRequest(BaseModel):
     """批量下載請求模型"""
 
@@ -1518,6 +1524,114 @@ async def rename_folder(
         )
         return APIResponse.error(
             message=f"重命名資料夾失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.patch("/folders/{folder_id}/move")
+@audit_log(
+    action=AuditAction.FILE_UPDATE,
+    resource_type="folder",
+    get_resource_id=lambda body: body.get("data", {}).get("task_id"),
+)
+async def move_folder(
+    folder_id: str,
+    request_body: FolderMoveRequest = Body(...),
+    request: Optional[Request] = None,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """移動資料夾（更改父資料夾）
+
+    Args:
+        folder_id: 資料夾ID（task_id）
+        request_body: 移動請求體
+        request: FastAPI Request對象
+        current_user: 當前認證用戶
+
+    Returns:
+        更新後的資料夾信息
+    """
+    try:
+        # 確保資料夾集合存在
+        _ensure_folder_collection()
+
+        # 檢查資料夾是否存在並獲取資料夾信息
+        arangodb_client = get_arangodb_client()
+        if arangodb_client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+
+        collection = arangodb_client.db.collection(FOLDER_COLLECTION_NAME)
+        folder_doc = collection.get(folder_id)
+
+        if folder_doc is None:
+            return APIResponse.error(
+                message="資料夾不存在",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 檢查權限（只有所有者可以移動）
+        if folder_doc.get("user_id") != current_user.user_id:
+            if not current_user.has_permission(Permission.ALL.value):
+                return APIResponse.error(
+                    message="無權移動此資料夾",
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+
+        # 檢查是否嘗試移動到自己或子資料夾（防止循環引用）
+        target_parent_id = request_body.parent_task_id
+        if target_parent_id == folder_id:
+            return APIResponse.error(
+                message="不能將資料夾移動到自己內部",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 檢查是否嘗試移動到子資料夾（遞歸檢查）
+        if target_parent_id:
+            # 獲取目標父資料夾
+            target_parent_doc = collection.get(target_parent_id)
+            if target_parent_doc:
+                # 檢查目標父資料夾的 parent_task_id 是否等於當前資料夾ID（防止間接循環）
+                current_parent_id = target_parent_doc.get("parent_task_id")
+                if current_parent_id == folder_id:
+                    return APIResponse.error(
+                        message="不能將資料夾移動到其子資料夾中",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                    )
+
+        # 更新資料夾的 parent_task_id
+        old_parent_id = folder_doc.get("parent_task_id")
+        folder_doc["parent_task_id"] = target_parent_id
+        folder_doc["updated_at"] = datetime.utcnow().isoformat()
+
+        # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数
+        collection.update(folder_doc)
+
+        # 獲取更新後的資料夾信息
+        updated_doc = collection.get(folder_id)
+
+        logger.info(
+            "Folder moved successfully",
+            folder_id=folder_id,
+            old_parent_id=old_parent_id,
+            new_parent_id=target_parent_id,
+            user_id=current_user.user_id,
+        )
+
+        return APIResponse.success(
+            data={
+                "task_id": folder_id,
+                "folder_name": updated_doc.get("folder_name"),
+                "user_id": updated_doc.get("user_id"),
+                "parent_task_id": updated_doc.get("parent_task_id"),
+            },
+            message="資料夾移動成功",
+        )
+    except Exception as e:
+        logger.error(
+            "Failed to move folder", folder_id=folder_id, error=str(e), exc_info=True
+        )
+        return APIResponse.error(
+            message=f"移動資料夾失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
