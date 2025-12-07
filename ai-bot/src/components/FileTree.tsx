@@ -1117,14 +1117,6 @@ export default function FileTree({
       // 2. 如果 folderParentId 是 null/undefined 且 parentTaskId 是 TEMP_WORKSPACE_ID，匹配（頂級資料夾顯示在暫存工作區下）
       const isMatch = folderParentId === parentTaskId ||
                       ((folderParentId === null || folderParentId === undefined) && parentTaskId === TEMP_WORKSPACE_ID);
-        folderTaskId,
-        folderInfo,
-        folderParentId,
-        parentTaskId,
-        isMatch,
-        folderParentIdType: typeof folderParentId,
-        parentTaskIdType: typeof parentTaskId
-      });
       if (isMatch) {
         subFolders.push({
           taskId: folderTaskId,
