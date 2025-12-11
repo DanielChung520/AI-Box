@@ -1,0 +1,337 @@
+{
+  "file_path": "data/tasks/1765262713060/workspace/877c57a1-8ea0-47be-8616-3482fbc499f5.md",
+  "model": "mistral-nemo:12b",
+  "ontology": {
+    "base": "base.json",
+    "domain": [
+      "domain-administration.json"
+    ],
+    "major": [
+      "major-notioneditor.json"
+    ]
+  },
+  "chunks_count": 6,
+  "triples_count": 21,
+  "extracted_triples": [
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Software",
+      "relation": "Used for",
+      "object": "Finding and downloading pages",
+      "object_type": "Task"
+    },
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Software",
+      "relation": "Has command",
+      "object": "find",
+      "object_type": "Command"
+    },
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Software",
+      "relation": "Has command",
+      "object": "download",
+      "object_type": "Command"
+    },
+    {
+      "subject": "功能：",
+      "subject_type": "Feature",
+      "relation": "includes",
+      "object": "带进度条显示下载进度",
+      "object_type": "Functionality"
+    },
+    {
+      "subject": "功能：",
+      "subject_type": "Feature",
+      "relation": "includes",
+      "object": "自动创建输出目录",
+      "object_type": "Functionality"
+    },
+    {
+      "subject": "功能：",
+      "subject_type": "Feature",
+      "relation": "includes",
+      "object": "显示文件大小和路径",
+      "object_type": "Functionality"
+    },
+    {
+      "subject": "命令：",
+      "subject_type": "Command",
+      "relation": "has_options",
+      "object": "-f, --force: 强制更新（如果页面已存在）",
+      "object_type": "Option"
+    },
+    {
+      "subject": "Notion API",
+      "subject_type": "Software",
+      "relation": "uses",
+      "object": "HTTP",
+      "object_type": "Protocol"
+    },
+    {
+      "subject": "Notion API",
+      "subject_type": "Software",
+      "relation": "supports",
+      "object": "Markdown",
+      "object_type": "Markup Language"
+    },
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Command Line Tool",
+      "relation": "implements",
+      "object": "Notion API",
+      "object_type": "Software"
+    },
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Software",
+      "relation": "can be used to",
+      "object": "find pages in Notion",
+      "object_type": "Task"
+    },
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Software",
+      "relation": "can be used to",
+      "object": "sync pages from Notion to local machine",
+      "object_type": "Task"
+    },
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Software",
+      "relation": "can be used to",
+      "object": "edit pages in Cursor text editor",
+      "object_type": "Task"
+    },
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Software",
+      "relation": "can be used to",
+      "object": "upload pages from local machine to Notion",
+      "object_type": "Task"
+    },
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Software",
+      "relation": "can be used to",
+      "object": "create new pages in Notion",
+      "object_type": "Task"
+    },
+    {
+      "subject": "Notion CLI",
+      "subject_type": "Software",
+      "relation": "can be used to",
+      "object": "list all pages in Notion",
+      "object_type": "Task"
+    },
+    {
+      "subject": "页面1",
+      "subject_type": "NotionPage",
+      "relation": "包含",
+      "object": "页面2",
+      "object_type": "NotionPage"
+    },
+    {
+      "subject": "页面1",
+      "subject_type": "NotionPage",
+      "relation": "包含",
+      "object": "页面3",
+      "object_type": "NotionPage"
+    },
+    {
+      "subject": "John",
+      "subject_type": "Person",
+      "relation": "works_for",
+      "object": "Microsoft",
+      "object_type": "Organization"
+    },
+    {
+      "subject": "John",
+      "subject_type": "Person",
+      "relation": "lives_in",
+      "object": "Seattle",
+      "object_type": "City"
+    },
+    {
+      "subject": "Microsoft",
+      "subject_type": "Organization",
+      "relation": "headquartered_in",
+      "object": "Redmond",
+      "object_type": "City"
+    }
+  ],
+  "raw_responses": [
+    {
+      "extracted_triples": [
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Software",
+          "relation": "Used for",
+          "object": "Finding and downloading pages",
+          "object_type": "Task"
+        },
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Software",
+          "relation": "Has command",
+          "object": "find",
+          "object_type": "Command"
+        },
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Software",
+          "relation": "Has command",
+          "object": "download",
+          "object_type": "Command"
+        }
+      ]
+    },
+    {
+      "extracted_triples": [
+        {
+          "subject": "功能：",
+          "subject_type": "Feature",
+          "relation": "includes",
+          "object": "带进度条显示下载进度",
+          "object_type": "Functionality"
+        },
+        {
+          "subject": "功能：",
+          "subject_type": "Feature",
+          "relation": "includes",
+          "object": "自动创建输出目录",
+          "object_type": "Functionality"
+        },
+        {
+          "subject": "功能：",
+          "subject_type": "Feature",
+          "relation": "includes",
+          "object": "显示文件大小和路径",
+          "object_type": "Functionality"
+        },
+        {
+          "subject": "命令：",
+          "subject_type": "Command",
+          "relation": "has_options",
+          "object": "-f, --force: 强制更新（如果页面已存在）",
+          "object_type": "Option"
+        }
+      ]
+    },
+    {
+      "extracted_triples": [
+        {
+          "subject": "Notion API",
+          "subject_type": "Software",
+          "relation": "uses",
+          "object": "HTTP",
+          "object_type": "Protocol"
+        },
+        {
+          "subject": "Notion API",
+          "subject_type": "Software",
+          "relation": "supports",
+          "object": "Markdown",
+          "object_type": "Markup Language"
+        },
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Command Line Tool",
+          "relation": "implements",
+          "object": "Notion API",
+          "object_type": "Software"
+        }
+      ]
+    },
+    {
+      "extracted_triples": [
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Software",
+          "relation": "can be used to",
+          "object": "find pages in Notion",
+          "object_type": "Task"
+        },
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Software",
+          "relation": "can be used to",
+          "object": "sync pages from Notion to local machine",
+          "object_type": "Task"
+        },
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Software",
+          "relation": "can be used to",
+          "object": "edit pages in Cursor text editor",
+          "object_type": "Task"
+        },
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Software",
+          "relation": "can be used to",
+          "object": "upload pages from local machine to Notion",
+          "object_type": "Task"
+        },
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Software",
+          "relation": "can be used to",
+          "object": "create new pages in Notion",
+          "object_type": "Task"
+        },
+        {
+          "subject": "Notion CLI",
+          "subject_type": "Software",
+          "relation": "can be used to",
+          "object": "list all pages in Notion",
+          "object_type": "Task"
+        }
+      ]
+    },
+    {
+      "extracted_triples": [
+        {
+          "subject": "页面1",
+          "subject_type": "NotionPage",
+          "relation": "包含",
+          "object": "页面2",
+          "object_type": "NotionPage"
+        },
+        {
+          "subject": "页面1",
+          "subject_type": "NotionPage",
+          "relation": "包含",
+          "object": "页面3",
+          "object_type": "NotionPage"
+        }
+      ]
+    },
+    {
+      "extracted_triples": [
+        {
+          "subject": "John",
+          "subject_type": "Person",
+          "relation": "works_for",
+          "object": "Microsoft",
+          "object_type": "Organization"
+        },
+        {
+          "subject": "John",
+          "subject_type": "Person",
+          "relation": "lives_in",
+          "object": "Seattle",
+          "object_type": "City"
+        },
+        {
+          "subject": "Microsoft",
+          "subject_type": "Organization",
+          "relation": "headquartered_in",
+          "object": "Redmond",
+          "object_type": "City"
+        }
+      ]
+    }
+  ]
+}

@@ -224,14 +224,24 @@ class JWTService:
     def is_blacklisted(self, token: str) -> bool:
         """檢查 Token 是否在黑名單中。
 
+        修改時間：2025-12-09 - 修復 Redis 連接失敗時的錯誤處理
+
         Args:
             token: JWT Token 字符串
 
         Returns:
             如果 Token 在黑名單中則返回 True
         """
+        # 修改時間：2025-12-09 - 開發模式下跳過黑名單檢查
+        settings = get_security_settings()
+        if settings.should_bypass_auth:
+            logger.debug("Bypassing blacklist check in development mode")
+            return False
+        
         if self.redis is None:
-            # Redis 不可用時，假設 Token 不在黑名單中（不應該發生在生產環境）
+            # Redis 不可用時，假設 Token 不在黑名單中
+            # 這允許系統在 Redis 不可用時繼續工作（用於開發/測試環境）
+            logger.debug("Redis not available, assuming token is not blacklisted")
             return False
 
         try:
@@ -242,8 +252,15 @@ class JWTService:
 
         except Exception as e:
             logger.warning("Failed to check blacklist", error=str(e))
-            # 發生錯誤時，為了安全起見，認為 Token 在黑名單中
-            return True
+            # 修改時間：2025-12-09 - 修復：當 Redis 連接失敗時，不應該阻止所有 token 驗證
+            # 如果 Redis 連接失敗，假設 token 不在黑名單中，允許驗證繼續
+            # 這樣可以在 Redis 不可用時（如開發環境或網絡問題）系統仍能正常工作
+            # 在生產環境中，應該確保 Redis 可用，但這裡採用寬鬆策略以確保系統可用性
+            logger.warning(
+                "Redis blacklist check failed, allowing token verification to proceed",
+                error=str(e)
+            )
+            return False  # 連接失敗時，假設 token 不在黑名單中
 
     @staticmethod
     def _hash_token(token: str) -> str:

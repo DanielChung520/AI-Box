@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import os
+import json
 from typing import List, Dict, Any, Optional
 import structlog
 
@@ -30,21 +31,36 @@ class VectorStoreService:
         Args:
             client: ChromaDB 客戶端，如果不提供則創建新實例
         """
-        config = get_config_section("chromadb", default={}) or {}
-
-        mode_value = config.get("mode") or os.getenv("CHROMADB_MODE", "http")
+        # 優先從 datastores.chromadb 讀取配置，然後從 chromadb 讀取（向後兼容）
+        datastores_config = get_config_section("datastores", default={}) or {}
+        chromadb_config = datastores_chromadb_config.get("chromadb", {}) if datastores_config else {}
+        
+        # 如果 datastores.chromadb 沒有配置，嘗試直接讀取 chromadb 配置（向後兼容）
+        if not chromadb_config:
+            chromadb_config = get_config_section("chromadb", default={}) or {}
+        
+        # 合併配置：優先使用 datastores.chromadb，然後使用環境變量
+        mode_value = chromadb_config.get("mode") or os.getenv("CHROMADB_MODE", "http")
         if not isinstance(mode_value, str):
             mode_value = "http"
+        
+        # persist_directory 優先使用 mount_path（datastores 配置），然後使用 persist_directory，最後使用環境變量
+        persist_dir = (
+            chromadb_config.get("mount_path") or  # datastores.chromadb.mount_path
+            chromadb_config.get("persist_directory") or  # chromadb.persist_directory（向後兼容）
+            os.getenv("CHROMADB_PERSIST_DIR") or  # 環境變量
+            "./data/datasets/chromadb"  # 默認值：統一使用 data/datasets 目錄
+        )
+        
         self.client = client or ChromaDBClient(
-            host=config.get("host") or os.getenv("CHROMADB_HOST"),
-            port=config.get("port") or int(os.getenv("CHROMADB_PORT", "8001")),
+            host=chromadb_config.get("host") or os.getenv("CHROMADB_HOST"),
+            port=chromadb_config.get("port") or int(os.getenv("CHROMADB_PORT", "8001")),
             mode=mode_value,
-            persist_directory=config.get("persist_directory")
-            or os.getenv("CHROMADB_PERSIST_DIR"),
+            persist_directory=persist_dir,
         )
 
         # Collection 命名策略
-        self.collection_naming = config.get(
+        self.collection_naming = chromadb_config.get(
             "collection_naming", "file_based"
         )  # file_based 或 user_based
 
@@ -144,15 +160,30 @@ class VectorStoreService:
 
                 # 合併 chunk 的直接字段和 metadata 字段
                 # 圖片文件的元數據（如 image_path, image_format 等）可能在 chunk 的直接字段中
-                direct_metadata = {
-                    k: v
-                    for k, v in chunk.items()
-                    if k not in ["text", "metadata"] and v is not None
-                }
+                # ChromaDB 只支持 str, int, float, bool, SparseVector, None 类型的 metadata
+                # 需要过滤掉列表和字典类型
+                direct_metadata = {}
+                for k, v in chunk.items():
+                    if k not in ["text", "metadata"] and v is not None:
+                        # 过滤掉列表和字典类型（ChromaDB 不支持）
+                        # ChromaDB 只支持 str, int, float, bool, SparseVector, None 类型
+                        if isinstance(v, (list, dict)):
+                            # 将列表或字典转换为 JSON 字符串
+                            direct_metadata[k] = json.dumps(v, ensure_ascii=False)
+                        else:
+                            direct_metadata[k] = v
+
+                # 处理 chunk_metadata 中的列表和字典
+                cleaned_chunk_metadata = {}
+                for k, v in chunk_metadata.items():
+                    if isinstance(v, (list, dict)):
+                        cleaned_chunk_metadata[k] = json.dumps(v, ensure_ascii=False)
+                    else:
+                        cleaned_chunk_metadata[k] = v
 
                 # 添加標準元數據
                 metadata = {
-                    **chunk_metadata,
+                    **cleaned_chunk_metadata,
                     **direct_metadata,  # 優先使用直接字段（如 image_path）
                     "file_id": file_id,
                     "chunk_index": chunk.get("chunk_index", i),
@@ -161,7 +192,12 @@ class VectorStoreService:
 
                 # 如果 chunk 有 content_type，保留它
                 if "content_type" in chunk:
-                    metadata["content_type"] = chunk["content_type"]
+                    content_type = chunk["content_type"]
+                    # 确保 content_type 不是列表或字典
+                    if isinstance(content_type, (list, dict)):
+                        metadata["content_type"] = json.dumps(content_type, ensure_ascii=False)
+                    else:
+                        metadata["content_type"] = content_type
 
                 if user_id:
                     metadata["user_id"] = user_id
@@ -394,13 +430,48 @@ class VectorStoreService:
 
             count = collection.count()
 
-            return {
+            stats = {
                 "collection_name": collection.name,
                 "file_id": file_id,
                 "user_id": user_id,
                 "vector_count": count,
             }
 
+            # 如果有向量，获取更多统计信息
+            if count > 0:
+                try:
+                    # 获取一个向量来检查维度
+                    results = collection.get(limit=1, include=["embeddings", "documents"])
+                    embeddings = results.get("embeddings", [])
+
+                    if embeddings is not None and len(embeddings) > 0:
+                        # 确保 embeddings[0] 是列表或数组
+                        first_embedding = embeddings[0]
+                        if hasattr(first_embedding, '__len__'):
+                            stats["dimension"] = len(first_embedding)
+
+                    # 获取所有文档来计算统计
+                    if count <= 1000:  # 只对小于1000的集合计算详细统计
+                        all_results = collection.get(limit=count, include=["documents"])
+                        all_documents = all_results.get("documents", [])
+
+                        if all_documents and len(all_documents) > 0:
+                            total_chars = sum(len(doc) for doc in all_documents)
+                            total_words = sum(len(doc.split()) for doc in all_documents)
+
+                            stats["total_chars"] = total_chars
+                            stats["avg_chars_per_chunk"] = round(total_chars / count, 0)
+                            stats["total_words"] = total_words
+                            stats["avg_words_per_chunk"] = round(total_words / count, 0)
+                except Exception as e:
+                    logger.warning(
+                        "Failed to get detailed stats",
+                        file_id=file_id,
+                        error=str(e),
+                    )
+                    # 继续返回基础统计
+
+            return stats
         except Exception as e:
             logger.error(
                 "Failed to get collection stats",

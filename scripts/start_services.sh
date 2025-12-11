@@ -10,7 +10,7 @@ fi
 
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-08 08:57:04 UTC+8
 
 set -e
 
@@ -25,7 +25,9 @@ NC='\033[0m' # No Color
 ARANGODB_PORT=8529
 CHROMADB_PORT=8001
 FASTAPI_PORT=8000
+REDIS_PORT=6379
 MCP_SERVER_PORT=8002
+FRONTEND_PORT=3000
 
 # 項目根目錄
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -295,6 +297,126 @@ start_chromadb() {
 }
 
 
+
+# 函數：啟動 Redis
+start_redis() {
+    echo -e "${BLUE}=== 啟動 Redis ===${NC}"
+
+    # 檢查 Docker 是否安裝
+    if ! command -v docker &> /dev/null; then
+        echo -e "${RED}錯誤: Docker 未安裝${NC}"
+        echo -e "${YELLOW}請先安裝 Docker Desktop: https://www.docker.com/products/docker-desktop${NC}"
+        return 1
+    fi
+
+    # 檢查 Docker daemon 是否運行
+    if ! docker ps &> /dev/null 2>&1; then
+        echo -e "${RED}錯誤: Docker daemon 未運行${NC}"
+        echo -e "${YELLOW}請執行以下操作之一：${NC}"
+        echo -e "${YELLOW}  1. 啟動 Docker Desktop 應用程式${NC}"
+        echo -e "${YELLOW}  2. 或運行: open -a Docker${NC}"
+        echo ""
+
+        # 嘗試自動啟動 Docker Desktop (macOS)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            echo -e "${BLUE}嘗試自動啟動 Docker Desktop...${NC}"
+            if open -a Docker 2>/dev/null; then
+                echo -e "${GREEN}已嘗試啟動 Docker Desktop，請等待其完全啟動後重新運行此命令${NC}"
+                echo -e "${YELLOW}提示: Docker Desktop 通常需要 10-30 秒才能完全啟動${NC}"
+            else
+                echo -e "${YELLOW}無法自動啟動 Docker Desktop，請手動啟動${NC}"
+            fi
+        fi
+
+        return 1
+    fi
+
+    # 檢查是否使用 docker-compose
+    if [ -f "docker-compose.yml" ]; then
+        echo -e "${GREEN}發現 docker-compose.yml，使用 docker-compose 管理 Redis${NC}"
+        
+        # 檢查 Redis 容器是否已在運行
+        if docker-compose ps redis 2>/dev/null | grep -q "Up"; then
+            echo -e "${GREEN}✅ Redis 已在運行 (端口 $REDIS_PORT)${NC}"
+            echo -e "${GREEN}   使用 docker-compose 管理: docker-compose ps redis${NC}"
+            return 0
+        fi
+
+        # 啟動 Redis 容器
+        echo -e "${GREEN}啟動 Redis 容器...${NC}"
+        if docker-compose up -d redis 2>/dev/null; then
+            sleep 3
+            
+            # 檢查容器狀態
+            if docker-compose ps redis 2>/dev/null | grep -q "Up"; then
+                echo -e "${GREEN}✅ Redis 已啟動 (端口 $REDIS_PORT)${NC}"
+                echo -e "${GREEN}   使用 docker-compose 管理: docker-compose ps redis${NC}"
+                return 0
+            else
+                echo -e "${YELLOW}⚠️  Redis 容器已啟動，但狀態檢查失敗${NC}"
+                echo -e "${YELLOW}   請檢查: docker-compose logs redis${NC}"
+                return 0
+            fi
+        else
+            echo -e "${RED}❌ 啟動 Redis 容器失敗${NC}"
+            echo -e "${YELLOW}   請檢查: docker-compose logs redis${NC}"
+            return 1
+        fi
+    fi
+
+    # 查找 Redis 容器（不使用 docker-compose）
+    local container=$(docker ps -a --format '{{.Names}}' | grep -i redis | head -1)
+    if [ -n "$container" ]; then
+        echo -e "${GREEN}發現 Redis Docker 容器: $container${NC}"
+
+        # 檢查容器是否已在運行
+        if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
+            echo -e "${GREEN}✅ Redis 已在運行 (端口 $REDIS_PORT)${NC}"
+            return 0
+        fi
+
+        # 啟動容器
+        echo -e "${GREEN}啟動 Redis 容器...${NC}"
+        docker start "$container"
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}❌ 啟動 Redis 容器失敗${NC}"
+            echo -e "${YELLOW}請檢查日誌: docker logs $container${NC}"
+            return 1
+        fi
+
+        sleep 3
+
+        if check_port $REDIS_PORT; then
+            echo -e "${GREEN}✅ Redis 已啟動 (端口 $REDIS_PORT)${NC}"
+            return 0
+        else
+            echo -e "${YELLOW}⚠️  Redis 容器已啟動，但端口尚未就緒${NC}"
+            echo -e "${YELLOW}請檢查日誌: docker logs $container${NC}"
+            return 0
+        fi
+    else
+        echo -e "${YELLOW}未找到 Redis Docker 容器${NC}"
+        echo -e "${BLUE}正在創建 Redis 容器...${NC}"
+
+        if docker run -d             -p $REDIS_PORT:6379             --name redis             redis:7-alpine; then
+            echo -e "${GREEN}✅ Redis 容器已創建${NC}"
+            sleep 3
+
+            if check_port $REDIS_PORT; then
+                echo -e "${GREEN}✅ Redis 已啟動 (端口 $REDIS_PORT)${NC}"
+                return 0
+            else
+                echo -e "${YELLOW}⚠️ 容器已創建，但端口尚未就緒，請稍後檢查${NC}"
+                return 0
+            fi
+        else
+            echo -e "${RED}❌ 創建 Redis 容器失敗${NC}"
+            return 1
+        fi
+    fi
+}
+
 # 函數：啟動 FastAPI
 start_fastapi() {
     echo -e "${BLUE}=== 啟動 FastAPI ===${NC}"
@@ -428,7 +550,77 @@ start_mcp_server() {
     fi
 }
 
-# 函數：顯示使用說明
+# 函數：啟動前端服務 (Vite)
+start_frontend() {
+    echo -e "${BLUE}=== 啟動前端服務 (Vite) ===${NC}"
+
+    kill_port $FRONTEND_PORT "Frontend"
+
+    # 檢查前端目錄是否存在
+    if [ ! -d "$PROJECT_ROOT/ai-bot" ]; then
+        echo -e "${RED}錯誤: 前端目錄不存在${NC}"
+        echo -e "${YELLOW}請檢查項目結構是否完整${NC}"
+        return 1
+    fi
+
+    cd "$PROJECT_ROOT/ai-bot"
+
+    # 檢查 node_modules 是否存在
+    if [ ! -d "node_modules" ]; then
+        echo -e "${YELLOW}警告: node_modules 不存在，正在安裝依賴...${NC}"
+        if command -v pnpm &> /dev/null; then
+            pnpm install
+        elif command -v npm &> /dev/null; then
+            npm install
+        else
+            echo -e "${RED}錯誤: 未找到 pnpm 或 npm${NC}"
+            echo -e "${YELLOW}請安裝 Node.js 和包管理器${NC}"
+            return 1
+        fi
+    fi
+
+    # 檢查 pnpm 或 npm
+    local PKG_MANAGER="pnpm"
+    if ! command -v pnpm &> /dev/null; then
+        if command -v npm &> /dev/null; then
+            PKG_MANAGER="npm"
+        else
+            echo -e "${RED}錯誤: 未找到 pnpm 或 npm${NC}"
+            return 1
+        fi
+    fi
+
+    echo -e "${GREEN}啟動前端服務 (端口 $FRONTEND_PORT)...${NC}"
+    nohup $PKG_MANAGER dev         > "$LOG_DIR/frontend.log" 2>&1 &
+
+    # 等待服務啟動
+    local max_attempts=15
+    local attempt=0
+    local started=false
+
+    while [ $attempt -lt $max_attempts ]; do
+        sleep 1
+        if check_port $FRONTEND_PORT; then
+            started=true
+            break
+        fi
+        attempt=$((attempt + 1))
+    done
+
+    if [ "$started" = true ]; then
+        echo -e "${GREEN}✅ 前端服務已啟動 (端口 $FRONTEND_PORT)${NC}"
+        echo -e "${GREEN}   日誌文件: $LOG_DIR/frontend.log${NC}"
+        echo -e "${GREEN}   本地訪問: http://localhost:$FRONTEND_PORT${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ 前端服務啟動失敗${NC}"
+        echo -e "${YELLOW}請檢查日誌: $LOG_DIR/frontend.log${NC}"
+        echo -e "${YELLOW}最後 20 行日誌:${NC}"
+        tail -20 "$LOG_DIR/frontend.log" 2>/dev/null || echo "無法讀取日誌文件"
+        return 1
+    fi
+}
+
 show_usage() {
     echo -e "${BLUE}AI-Box 服務啟動腳本${NC}"
     echo ""
@@ -440,7 +632,9 @@ show_usage() {
     echo "  chromadb   啟動 ChromaDB"
     echo "  fastapi    啟動 FastAPI"
     echo "  mcp        啟動 MCP Server"
+    echo "  frontend   啟動前端服務 (Vite)"
     echo "  status     檢查服務狀態"
+    echo "  monitor    實時監控 FastAPI 運行狀態"
     echo "  stop       停止所有服務"
     echo "  help       顯示此幫助信息"
     echo ""
@@ -458,8 +652,10 @@ check_status() {
     services=(
         "ArangoDB:$ARANGODB_PORT"
         "ChromaDB:$CHROMADB_PORT"
+        "Redis:$REDIS_PORT"
         "FastAPI:$FASTAPI_PORT"
         "MCP Server:$MCP_SERVER_PORT"
+        "Frontend:$FRONTEND_PORT"
     )
 
     for service_info in "${services[@]}"; do
@@ -473,12 +669,163 @@ check_status() {
     done
 }
 
+# 函數：實時監控 FastAPI 運行狀態
+monitor_fastapi() {
+    echo -e "${BLUE}=== FastAPI 實時監控 ===${NC}"
+    echo -e "${YELLOW}按 Ctrl+C 退出監控${NC}"
+    echo ""
+
+    local FASTAPI_URL="http://localhost:$FASTAPI_PORT"
+    local LOG_FILE="$LOG_DIR/fastapi.log"
+    local UPDATE_INTERVAL=2  # 更新間隔（秒）
+
+    # 檢查 FastAPI 是否運行
+    if ! check_port $FASTAPI_PORT; then
+        echo -e "${RED}❌ FastAPI 未運行 (端口 $FASTAPI_PORT)${NC}"
+        echo -e "${YELLOW}請先啟動 FastAPI: $0 fastapi${NC}"
+        return 1
+    fi
+
+    # 獲取進程 PID
+    local pid=$(lsof -ti :$FASTAPI_PORT | head -1)
+    if [ -z "$pid" ]; then
+        echo -e "${RED}❌ 無法獲取 FastAPI 進程 ID${NC}"
+        return 1
+    fi
+
+    echo -e "${GREEN}✅ FastAPI 運行中 (PID: $pid, 端口: $FASTAPI_PORT)${NC}"
+    echo ""
+
+    # 監控循環
+    while true; do
+        clear
+        echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BLUE}║          FastAPI 實時監控 - $(date '+%Y-%m-%d %H:%M:%S')          ║${NC}"
+        echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+
+        # 1. 進程狀態
+        echo -e "${YELLOW}📊 進程狀態:${NC}"
+        if ps -p $pid > /dev/null 2>&1; then
+            local cpu=$(ps -p $pid -o %cpu= | tr -d ' ')
+            local mem=$(ps -p $pid -o %mem= | tr -d ' ')
+            local vsz=$(ps -p $pid -o vsz= | tr -d ' ')
+            local rss=$(ps -p $pid -o rss= | tr -d ' ')
+            local mem_mb=$((rss / 1024))
+            local vsz_mb=$((vsz / 1024))
+            
+            echo -e "  PID: ${GREEN}$pid${NC}"
+            echo -e "  CPU 使用率: ${GREEN}${cpu}%${NC}"
+            echo -e "  內存使用率: ${GREEN}${mem}%${NC}"
+            echo -e "  虛擬內存: ${GREEN}${vsz_mb} MB${NC}"
+            echo -e "  實際內存: ${GREEN}${mem_mb} MB${NC}"
+        else
+            echo -e "  ${RED}❌ 進程不存在${NC}"
+            break
+        fi
+        echo ""
+
+        # 2. 端口狀態
+        echo -e "${YELLOW}🔌 端口狀態:${NC}"
+        if check_port $FASTAPI_PORT; then
+            echo -e "  端口 $FASTAPI_PORT: ${GREEN}✅ 監聽中${NC}"
+        else
+            echo -e "  端口 $FASTAPI_PORT: ${RED}❌ 未監聽${NC}"
+        fi
+        echo ""
+
+        # 3. 健康檢查
+        echo -e "${YELLOW}🏥 健康檢查:${NC}"
+        local health_response=$(curl -s -w "
+%{http_code}" --max-time 2 "$FASTAPI_URL/api/v1/health" 2>/dev/null || echo -e "
+000")
+        local health_code=$(echo "$health_response" | tail -1)
+        if [ "$health_code" = "200" ]; then
+            echo -e "  API 端點: ${GREEN}✅ 正常 (HTTP $health_code)${NC}"
+        elif [ "$health_code" = "404" ]; then
+            echo -e "  API 端點: ${YELLOW}⚠️  端點不存在 (HTTP $health_code)${NC}"
+        elif [ "$health_code" = "000" ]; then
+            echo -e "  API 端點: ${RED}❌ 無法連接${NC}"
+        else
+            echo -e "  API 端點: ${YELLOW}⚠️  HTTP $health_code${NC}"
+        fi
+        
+        # 測試登錄端點
+        local login_response=$(curl -s -w "
+%{http_code}" --max-time 2 -X POST "$FASTAPI_URL/api/v1/auth/login" \
+            -H "Content-Type: application/json" \
+            -d '{"username":"test","password":"test"}' 2>/dev/null || echo -e "
+000")
+        local login_code=$(echo "$login_response" | tail -1)
+        if [ "$login_code" = "200" ] || [ "$login_code" = "401" ]; then
+            echo -e "  登錄端點: ${GREEN}✅ 響應正常 (HTTP $login_code)${NC}"
+        elif [ "$login_code" = "000" ]; then
+            echo -e "  登錄端點: ${RED}❌ 無法連接${NC}"
+        else
+            echo -e "  登錄端點: ${YELLOW}⚠️  HTTP $login_code${NC}"
+        fi
+        echo ""
+
+        # 4. 日誌統計
+        echo -e "${YELLOW}📝 日誌統計 (最近 100 行):${NC}"
+        if [ -f "$LOG_FILE" ]; then
+            local total_lines=$(wc -l < "$LOG_FILE" 2>/dev/null || echo "0")
+            local error_count=$(tail -100 "$LOG_FILE" 2>/dev/null | grep -i "ERROR\|Exception\|Traceback" | wc -l | tr -d ' ')
+            local warn_count=$(tail -100 "$LOG_FILE" 2>/dev/null | grep -i "WARNING\|WARN" | wc -l | tr -d ' ')
+            local info_count=$(tail -100 "$LOG_FILE" 2>/dev/null | grep -i "INFO" | wc -l | tr -d ' ')
+            
+            echo -e "  總日誌行數: ${GREEN}$total_lines${NC}"
+            echo -e "  錯誤數量: ${RED}$error_count${NC}"
+            echo -e "  警告數量: ${YELLOW}$warn_count${NC}"
+            echo -e "  信息數量: ${GREEN}$info_count${NC}"
+        else
+            echo -e "  ${RED}❌ 日誌文件不存在: $LOG_FILE${NC}"
+        fi
+        echo ""
+
+        # 5. 最近的錯誤（如果有）
+        if [ -f "$LOG_FILE" ] && [ "$error_count" -gt 0 ]; then
+            echo -e "${YELLOW}⚠️  最近的錯誤 (最後 3 條):${NC}"
+            tail -100 "$LOG_FILE" 2>/dev/null | grep -i "ERROR\|Exception\|Traceback" | tail -3 | while IFS= read -r line; do
+                echo -e "  ${RED}$line${NC}" | cut -c1-80
+            done
+            echo ""
+        fi
+
+        # 6. 最近的日誌（最後 5 行）
+        echo -e "${YELLOW}📋 最近的日誌 (最後 5 行):${NC}"
+        if [ -f "$LOG_FILE" ]; then
+            tail -5 "$LOG_FILE" 2>/dev/null | while IFS= read -r line; do
+                if echo "$line" | grep -qi "ERROR\|Exception"; then
+                    echo -e "  ${RED}$line${NC}" | cut -c1-80
+                elif echo "$line" | grep -qi "WARNING\|WARN"; then
+                    echo -e "  ${YELLOW}$line${NC}" | cut -c1-80
+                else
+                    echo -e "  ${GREEN}$line${NC}" | cut -c1-80
+                fi
+            done
+        fi
+        echo ""
+
+        # 7. 系統資源
+        echo -e "${YELLOW}💻 系統資源:${NC}"
+        local load_avg=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
+        echo -e "  系統負載: ${GREEN}$load_avg${NC}"
+        echo ""
+
+        echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}更新間隔: ${UPDATE_INTERVAL} 秒 | 按 Ctrl+C 退出${NC}"
+        
+        sleep $UPDATE_INTERVAL
+    done
+}
+
 # 函數：停止所有服務
 stop_all() {
     echo -e "${BLUE}=== 停止所有服務 ===${NC}"
 
-    ports=($ARANGODB_PORT $CHROMADB_PORT $FASTAPI_PORT $MCP_SERVER_PORT)
-    service_names=("ArangoDB" "ChromaDB" "FastAPI" "MCP Server")
+    ports=($ARANGODB_PORT $CHROMADB_PORT $REDIS_PORT $FASTAPI_PORT $MCP_SERVER_PORT $FRONTEND_PORT)
+    service_names=("ArangoDB" "ChromaDB" "Redis" "FastAPI" "MCP Server" "Frontend")
 
     for i in "${!ports[@]}"; do
         port=${ports[$i]}
@@ -506,7 +853,9 @@ main() {
                 echo -e "${BLUE}啟動所有服務...${NC}"
                 start_arangodb || true
                 start_chromadb || true
+                start_redis || true
                 start_fastapi || true
+                start_frontend || true
                 echo -e "${GREEN}=== 啟動完成 ===${NC}"
                 check_status
                 ;;
@@ -516,14 +865,23 @@ main() {
             chromadb)
                 start_chromadb
                 ;;
+            redis)
+                start_redis
+                ;;
             fastapi)
                 start_fastapi
                 ;;
             mcp)
                 start_mcp_server
                 ;;
+            frontend)
+                start_frontend
+                ;;
             status)
                 check_status
+                ;;
+            monitor)
+                monitor_fastapi
                 ;;
             stop)
                 stop_all

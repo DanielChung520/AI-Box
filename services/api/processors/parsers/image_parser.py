@@ -1,7 +1,7 @@
 # 代碼功能說明: 圖片文件解析器
 # 創建日期: 2025-12-06 16:01 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-06 16:01 (UTC+8)
+# 最後修改日期: 2025-12-10
 
 """圖片文件解析器 - 使用視覺模型生成圖片描述"""
 
@@ -58,18 +58,69 @@ class ImageParser(BaseParser):
         """
         try:
             img = Image.open(BytesIO(image_content))
+            
+            # 對於 GIF 文件（特別是動畫 GIF），需要特殊處理
+            is_gif = img.format == "GIF"
+            is_animated = False
+            frame_count = 1
+            
+            if is_gif:
+                try:
+                    # 檢查是否為動畫 GIF
+                    img.seek(0)  # 確保在第一幀
+                    frame_count = 0
+                    try:
+                        while True:
+                            frame_count += 1
+                            img.seek(img.tell() + 1)
+                    except EOFError:
+                        pass
+                    img.seek(0)  # 重置到第一幀
+                    is_animated = frame_count > 1
+                except Exception as e:
+                    # 如果無法讀取多幀，可能是靜態 GIF 或文件損壞
+                    self.logger.debug("無法讀取 GIF 幀數", error=str(e))
+                    img.seek(0)  # 確保在第一幀
+            
+            # 安全地獲取尺寸（對於某些格式可能需要特殊處理）
+            try:
+                width = img.width
+                height = img.height
+            except Exception as e:
+                # 如果無法獲取尺寸，嘗試使用 size 屬性
+                self.logger.debug("無法通過 width/height 獲取尺寸，使用 size 屬性", error=str(e))
+                try:
+                    width, height = img.size
+                except Exception:
+                    width = None
+                    height = None
+            
             metadata = {
-                "width": img.width,
-                "height": img.height,
+                "width": width,
+                "height": height,
                 "format": img.format,
                 "mode": img.mode,
                 "size_bytes": len(image_content),
             }
+            
+            # 對於 GIF，添加動畫相關信息
+            if is_gif:
+                metadata["is_animated"] = is_animated
+                metadata["frame_count"] = frame_count if is_animated else 1
 
             # 嘗試提取 EXIF 數據（如果可用）
-            if hasattr(img, "_getexif") and img._getexif():
+            # 注意：GIF 不支持 EXIF，但其他格式可能支持
+            if not is_gif and hasattr(img, "_getexif") and img._getexif():
                 try:
                     metadata["exif"] = dict(img._getexif())
+                except Exception:
+                    pass
+            elif hasattr(img, "getexif"):
+                # PIL 10.0+ 使用 getexif() 方法
+                try:
+                    exif_data = img.getexif()
+                    if exif_data:
+                        metadata["exif"] = dict(exif_data)
                 except Exception:
                     pass
 
@@ -111,17 +162,48 @@ class ImageParser(BaseParser):
         try:
             # 提取圖片元數據
             image_metadata = self._extract_image_metadata(file_content)
+            
+            # 對於動畫 GIF，提取第一幀用於描述生成
+            image_format = image_metadata.get("format")
+            is_animated_gif = image_format == "GIF" and image_metadata.get("is_animated", False)
+            image_content_for_vision = file_content
+            
+            if is_animated_gif:
+                try:
+                    # 提取 GIF 第一幀作為靜態圖像用於視覺模型
+                    img = Image.open(BytesIO(file_content))
+                    img.seek(0)  # 確保在第一幀
+                    
+                    # 將第一幀轉換為 PNG 格式（視覺模型通常更好地支持 PNG）
+                    frame_buffer = BytesIO()
+                    img.save(frame_buffer, format="PNG")
+                    image_content_for_vision = frame_buffer.getvalue()
+                    
+                    self.logger.info(
+                        "動畫 GIF 檢測到，使用第一幀生成描述",
+                        file_id=file_id,
+                        frame_count=image_metadata.get("frame_count", 1),
+                    )
+                except Exception as e:
+                    self.logger.warning(
+                        "無法提取 GIF 第一幀，使用原始文件",
+                        file_id=file_id,
+                        error=str(e),
+                    )
+                    # 如果提取失敗，使用原始文件內容
+                    image_content_for_vision = file_content
 
             # 調用視覺模型生成描述
             self.logger.info(
                 "開始生成圖片描述",
                 file_id=file_id,
-                image_format=image_metadata.get("format"),
+                image_format=image_format,
                 image_size=f"{image_metadata.get('width')}x{image_metadata.get('height')}",
+                is_animated_gif=is_animated_gif,
             )
 
             description_result = await self.vision_client.describe_image(
-                image_content=file_content,
+                image_content=image_content_for_vision,
                 model=self.vision_model,
                 user_id=user_id,
                 file_id=file_id,

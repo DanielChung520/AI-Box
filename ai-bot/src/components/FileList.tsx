@@ -94,9 +94,10 @@ export default function FileList({ userId, taskId, onFileSelect, viewMode = 'tab
     setLoading(true);
     setError(null);
     try {
+      // 修改時間：2025-12-09 - 如果 taskId 是 'temp-workspace'，不傳遞 task_id 參數，避免 403 錯誤
       const response = await getFileList({
         user_id: userId,
-        task_id: taskId,
+        task_id: taskId && taskId !== 'temp-workspace' ? taskId : undefined,
         file_type: filterType || undefined,
         limit: pageSize,
         offset: (currentPage - 1) * pageSize,

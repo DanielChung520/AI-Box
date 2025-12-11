@@ -720,6 +720,7 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewC
             fileUrl={getFileUrl(selectedFile)}
             fileName={displayFileName}
             content={fileContent}
+            fileId={selectedFile}
           />
           );
         })()}

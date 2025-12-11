@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件驗證工具
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-06
+# 最後修改日期: 2025-12-10
 
 """文件驗證工具 - 提供 MIME 類型、擴展名、大小和內容驗證"""
 
@@ -28,6 +28,13 @@ ALLOWED_MIME_TYPES = {
     "text/html": [".html"],
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
     "application/vnd.ms-excel": [".xls"],  # .xls
+    # 圖像格式
+    "image/png": [".png"],
+    "image/jpeg": [".jpg", ".jpeg"],
+    "image/gif": [".gif"],
+    "image/bmp": [".bmp"],
+    "image/webp": [".webp"],
+    "image/svg+xml": [".svg"],
 }
 
 # 擴展名到 MIME 類型的映射
@@ -42,6 +49,14 @@ EXTENSION_TO_MIME = {
     ".html": "text/html",
     ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ".xls": "application/vnd.ms-excel",
+    # 圖像格式
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".bmp": "image/bmp",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
 }
 
 # 允許的擴展名列表
@@ -52,6 +67,15 @@ FILE_SIGNATURES = {
     b"%PDF": [".pdf"],  # PDF 文件
     b"PK\x03\x04": [".docx", ".xlsx"],  # ZIP-based formats (DOCX, XLSX)
     b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1": [".doc", ".xls"],  # OLE2 (DOC, XLS)
+    # 圖像格式簽名
+    b"\x89PNG\r\n\x1a\n": [".png"],  # PNG 文件
+    b"\xff\xd8\xff": [".jpg", ".jpeg"],  # JPEG 文件
+    b"GIF87a": [".gif"],  # GIF 87a 格式
+    b"GIF89a": [".gif"],  # GIF 89a 格式
+    b"BM": [".bmp"],  # BMP 文件
+    b"RIFF": [".webp"],  # WebP 文件（需要進一步檢查）
+    b"<svg": [".svg"],  # SVG 文件（XML 格式）
+    b"<?xml": [".svg"],  # SVG 文件（XML 格式，可能以 <?xml 開頭）
 }
 
 
@@ -95,6 +119,36 @@ def validate_file_signature(
     if ext in [".doc", ".xls"]:
         if not file_content.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
             return False, f"{ext[1:].upper()} 文件簽名驗證失敗，文件可能損壞"
+
+    # 檢查圖像格式
+    if ext in [".png"]:
+        if not file_content.startswith(b"\x89PNG\r\n\x1a\n"):
+            return False, "PNG 文件簽名驗證失敗，文件可能損壞"
+
+    if ext in [".jpg", ".jpeg"]:
+        if not file_content.startswith(b"\xff\xd8\xff"):
+            return False, "JPEG 文件簽名驗證失敗，文件可能損壞"
+
+    if ext == ".gif":
+        # GIF 可以是 GIF87a 或 GIF89a
+        if not (file_content.startswith(b"GIF87a") or file_content.startswith(b"GIF89a")):
+            return False, "GIF 文件簽名驗證失敗，文件可能損壞"
+
+    if ext == ".bmp":
+        if not file_content.startswith(b"BM"):
+            return False, "BMP 文件簽名驗證失敗，文件可能損壞"
+
+    if ext == ".webp":
+        # WebP 文件以 RIFF 開頭，但需要進一步檢查 WEBP 標識
+        if not (file_content.startswith(b"RIFF") and b"WEBP" in file_content[:12]):
+            return False, "WebP 文件簽名驗證失敗，文件可能損壞"
+
+    if ext == ".svg":
+        # SVG 是 XML 格式，可能以 <svg 或 <?xml 開頭
+        header_str = file_content[:100].decode("utf-8", errors="ignore").strip()
+        if not (header_str.startswith("<svg") or header_str.startswith("<?xml")):
+            # 對於 SVG，如果無法解析為文本，可能是二進制文件，跳過嚴格驗證
+            pass  # SVG 驗證較寬鬆，因為可能是壓縮的 SVGZ
 
     return True, None
 

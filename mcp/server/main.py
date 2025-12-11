@@ -19,11 +19,19 @@ from .tools.registry import get_registry
 from .tools.task_analyzer import TaskAnalyzerTool
 from .tools.file_tool import FileTool
 
-# 配置日誌
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+# 修改時間：2025-12-08 12:30:00 UTC+8 - 使用統一的日誌配置模組
+import sys
+from pathlib import Path
+
+# 添加項目根目錄到 Python 路徑
+project_root = Path(__file__).parent.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from system.logging_config import setup_mcp_server_logging
+
+# 配置 MCP Server 日誌（使用 RotatingFileHandler，最大 500KB，保留 4 個備份）
+setup_mcp_server_logging()
 logger = logging.getLogger(__name__)
 
 # 全局應用實例

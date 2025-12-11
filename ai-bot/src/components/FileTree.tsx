@@ -2,7 +2,7 @@
  * 代碼功能說明: 文件樹組件
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-06
+ * 最後修改日期: 2025-12-08 09:32:31 UTC+8
  *
  * 功能說明:
  * - 顯示按 task_id 組織的文件目錄結構
@@ -13,10 +13,15 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Folder, FolderOpen, File as FileIcon, ChevronRight, ChevronDown, X } from 'lucide-react';
-import { getFileTree, FileTreeResponse, getFileList, deleteFile, renameFile, copyFile, moveFile, renameFolder, createFolder, deleteFolder, moveFolder } from '../lib/api';
+import { getFileTree, FileTreeResponse, getFileList, deleteFile, renameFile, copyFile, moveFile, renameFolder, createFolder, deleteFolder, moveFolder, getFileVectors, getFileGraph, FileMetadata } from '../lib/api';
 import { FileNode } from './Sidebar';
 import { getMockFiles, hasMockFiles, getMockFile } from '../lib/mockFileStorage';
-import { useClipboardState, useBatchSelection, saveClipboardState, loadClipboardState, clearClipboardState, ClipboardItem } from '../lib/fileOperationState';
+// 修改時間：2025-12-08 08:46:00 UTC+8 - 添加 clearFileTreeCache 導入，用於登錄時清除緩存
+import { useClipboardState, useBatchSelection, saveClipboardState, loadClipboardState, clearClipboardState, ClipboardItem, clearFileTreeCache } from '../lib/fileOperationState';
+// 修改時間：2025-12-08 09:29:49 UTC+8 - 添加文件移動目錄選擇彈窗組件
+import FileMoveModal from './FileMoveModal';
+// 修改時間：2025-12-09 - 添加文件數據預覽組件
+import FileDataPreview from './FileDataPreview';
 
 // 導出 FileNode 類型供其他組件使用
 export type { FileNode };
@@ -44,6 +49,32 @@ interface TreeNode {
 
 const TEMP_WORKSPACE_ID = 'temp-workspace';
 const TEMP_WORKSPACE_NAME = '任務工作區';
+const EXPANDED_TASKS_STORAGE_KEY = 'fileTree_expandedTasks';
+
+// 修改時間：2025-12-08 10:32:00 UTC+8 - 從 localStorage 加載展開狀態
+const loadExpandedTasksFromStorage = (): Set<string> => {
+  try {
+    const stored = localStorage.getItem(EXPANDED_TASKS_STORAGE_KEY);
+    if (stored) {
+      const array = JSON.parse(stored);
+      return new Set(array);
+    }
+  } catch (error) {
+    console.error('[FileTree] Failed to load expanded tasks from storage:', error);
+  }
+  // 默認展開任務工作區
+  return new Set([TEMP_WORKSPACE_ID]);
+};
+
+// 修改時間：2025-12-08 10:32:00 UTC+8 - 保存展開狀態到 localStorage
+const saveExpandedTasksToStorage = (expandedTasks: Set<string>) => {
+  try {
+    const array = Array.from(expandedTasks);
+    localStorage.setItem(EXPANDED_TASKS_STORAGE_KEY, JSON.stringify(array));
+  } catch (error) {
+    console.error('[FileTree] Failed to save expanded tasks to storage:', error);
+  }
+};
 
 export default function FileTree({
   userId,
@@ -61,13 +92,14 @@ export default function FileTree({
   const [treeData, setTreeData] = useState<FileTreeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set([TEMP_WORKSPACE_ID])); // 默認展開任務工作區
+  // 修改時間：2025-12-08 10:32:00 UTC+8 - 從 localStorage 加載展開狀態
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(loadExpandedTasksFromStorage());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; fileId: string; fileName: string } | null>(null);
   const [folderContextMenu, setFolderContextMenu] = useState<{ x: number; y: number; taskId: string; taskName: string } | null>(null);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null); // 選中的文件ID
   const [showFileInfoModal, setShowFileInfoModal] = useState(false);
   const [fileInfo, setFileInfo] = useState<{ fileId: string; fileName: string } | null>(null);
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number>(-1); // 鍵盤導航選中的索引
   const [keyboardSelectedType, setKeyboardSelectedType] = useState<'file' | 'folder' | null>(null); // 鍵盤選中的類型
   const [focusedFolderId, setFocusedFolderId] = useState<string | null>(null); // 當前聚焦的資料夾ID
@@ -79,16 +111,238 @@ export default function FileTree({
   const [newFolderInput, setNewFolderInput] = useState(''); // 新增資料夾輸入值
   const [showDeleteFolderModal, setShowDeleteFolderModal] = useState(false); // 顯示刪除資料夾確認對話框
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<{ taskId: string; taskName: string } | null>(null); // 要刪除的資料夾
+  const [showMoveModal, setShowMoveModal] = useState(false); // 顯示移動目錄彈窗
+  const [moveFileTarget, setMoveFileTarget] = useState<{ fileId: string; fileName: string; currentTaskId: string | null } | null>(null); // 要移動的文件
+  const [showDeleteFileModal, setShowDeleteFileModal] = useState(false); // 顯示刪除文件確認對話框
+  const [deleteFileTarget, setDeleteFileTarget] = useState<{ fileId: string; fileName: string } | null>(null); // 要刪除的文件
+  const [showReuploadModal, setShowReuploadModal] = useState(false); // 顯示重新上傳文件確認對話框
+  const [reuploadFileTarget, setReuploadFileTarget] = useState<{ fileId: string; fileName: string; taskId: string | null } | null>(null); // 要重新上傳的文件
+  // 修改時間：2025-12-09 - 添加文件數據預覽狀態
+  const [showDataPreview, setShowDataPreview] = useState(false); // 顯示數據預覽對話框
+  const [previewFile, setPreviewFile] = useState<FileMetadata | null>(null); // 預覽的文件
+  const [previewMode, setPreviewMode] = useState<'text' | 'vector' | 'graph'>('text'); // 預覽模式
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const folderContextMenuRef = useRef<HTMLDivElement>(null);
   const fileTreeRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  // 修改時間：2025-01-27 - 使用 useRef 存儲最新的 fileTree prop，確保事件監聽器始終使用最新值
+  const fileTreeRef_current = useRef<FileNode[] | undefined>(fileTree);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
   const folderRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // 使用剪貼板和批量選擇功能
   const { setClipboard, cutItems } = useClipboardState();
   const batchSelection = useBatchSelection();
+  const [latestTreeData, setLatestTreeData] = useState<FileTreeResponse | null>(null);
+  const [isReloadingTree, setIsReloadingTree] = useState(false);
+  const [suppressPropFallback, setSuppressPropFallback] = useState(false); // 移動/重載期間避免回退到舊 fileTree
+
+  // 修改時間：2025-12-09 - 將 FileTreeResponse 轉換為 FileNode[]（用於更新父組件的 fileTree prop）
+  const convertTreeDataToFileTree = useCallback(
+    (treeData: FileTreeResponse): FileNode[] => {
+      if (!treeData.data) {
+        return [];
+      }
+
+      const { tree, folders } = treeData.data;
+      const folderMap = new Map<string, FileNode>();
+      const processedFolders = new Set<string>();
+
+      console.log('[FileTree] Converting treeData to fileTree', {
+        treeKeys: Object.keys(tree || {}),
+        foldersKeys: Object.keys(folders || {}),
+        treeStructure: Object.entries(tree || {}).map(([k, v]) => ({ key: k, fileCount: (v as any[]).length })),
+      });
+
+      // 先創建所有資料夾節點
+      Object.entries(folders || {}).forEach(([folderId, folderInfo]) => {
+        folderMap.set(folderId, {
+          id: folderId,
+          name: folderInfo.folder_name || folderId,
+          type: 'folder',
+          children: [],
+        });
+      });
+
+      // 建立資料夾的父子關係
+      Object.entries(folders || {}).forEach(([folderId, folderInfo]) => {
+        const folderNode = folderMap.get(folderId);
+        if (!folderNode) return;
+
+        const parentId = folderInfo.parent_task_id;
+        if (parentId) {
+          if (folderMap.has(parentId)) {
+            const parentNode = folderMap.get(parentId);
+            if (parentNode && parentNode.type === 'folder') {
+              parentNode.children = parentNode.children || [];
+              parentNode.children.push(folderNode);
+              processedFolders.add(folderId);
+              console.log('[FileTree] Added child folder to parent', {
+                childId: folderId,
+                childName: folderNode.name,
+                parentId: parentId,
+                parentName: parentNode.name,
+              });
+            }
+          } else {
+            console.warn('[FileTree] Parent folder not found in folderMap', {
+              folderId,
+              folderName: folderNode.name,
+              parentId,
+            });
+          }
+        }
+      });
+
+      // 將文件添加到對應的資料夾（根據 tree 中的 key，即 folder_id）
+      Object.entries(tree || {}).forEach(([folderId, files]) => {
+        const folderNode = folderMap.get(folderId);
+        if (folderNode && folderNode.type === 'folder') {
+          folderNode.children = folderNode.children || [];
+          const fileCount = (files as any[]).length;
+          (files as any[]).forEach((file: any) => {
+            folderNode.children!.push({
+              id: file.file_id || file.id,
+              name: file.filename || file.name,
+              type: 'file',
+            });
+          });
+          console.log('[FileTree] Added files to folder', {
+            folderId,
+            folderName: folderNode.name,
+            fileCount,
+            fileIds: (files as any[]).map(f => f.file_id || f.id),
+            totalChildrenCount: folderNode.children.length,
+          });
+        } else if (!folderMap.has(folderId)) {
+          // 如果資料夾不存在，可能是 workspace 或其他特殊節點，記錄警告
+          console.warn('[FileTree] Folder not found in folders map, files will be lost', { 
+            folderId, 
+            fileCount: (files as any[]).length 
+          });
+        } else {
+          console.warn('[FileTree] Folder node exists but is not a folder type', {
+            folderId,
+            nodeType: folderNode?.type,
+          });
+        }
+      });
+
+      // 返回根節點（parent_task_id 為 null 或不在 folders 中的節點）
+      const rootNodes: FileNode[] = [];
+      Object.entries(folders || {}).forEach(([folderId, folderInfo]) => {
+        const isProcessed = processedFolders.has(folderId);
+        const hasParent = folderInfo.parent_task_id && folderMap.has(folderInfo.parent_task_id);
+        const shouldBeRoot = !isProcessed && (!folderInfo.parent_task_id || !folderMap.has(folderInfo.parent_task_id));
+        
+        if (shouldBeRoot) {
+          const node = folderMap.get(folderId);
+          if (node) {
+            rootNodes.push(node);
+            console.log('[FileTree] Added root node', {
+              folderId,
+              folderName: node.name,
+              isProcessed,
+              hasParent,
+              childrenCount: node.children?.length || 0,
+            });
+          }
+        } else {
+          console.log('[FileTree] Skipped non-root node', {
+            folderId,
+            folderName: folderMap.get(folderId)?.name,
+            isProcessed,
+            hasParent,
+            parentId: folderInfo.parent_task_id,
+          });
+        }
+      });
+
+      console.log('[FileTree] Converted fileTree', {
+        rootNodesCount: rootNodes.length,
+        rootNodeIds: rootNodes.map(n => n.id),
+        rootNodesWithChildren: rootNodes.map(n => ({
+          id: n.id,
+          name: n.name,
+          childrenCount: n.children?.length || 0,
+          childrenIds: n.children?.map(c => c.id) || [],
+        })),
+      });
+
+      return rootNodes;
+    },
+    []
+  );
+
+  // 修改時間：2025-12-09 - 當使用 fileTree prop 時，為移動彈窗構建兼容的 treeData 結構
+  const buildTreeDataFromFileTree = useCallback(
+    (nodes: FileNode[]): FileTreeResponse => {
+      const tree: Record<string, any[]> = {};
+      const folders: Record<
+        string,
+        {
+          folder_name: string;
+          parent_task_id?: string | null;
+          user_id: string;
+          folder_type?: string;
+          task_id?: string;
+        }
+      > = {};
+
+      const effectiveUserId =
+        userId || localStorage.getItem('user_id') || localStorage.getItem('userEmail') || '';
+
+      const traverse = (node: FileNode, parentId: string | null, currentTaskId: string | null) => {
+        // 嘗試從節點 ID 推斷任務 ID（如果是任務工作區，格式為 {taskId}_workspace）
+        let nextTaskId = currentTaskId;
+        if (node.type === 'folder' && node.id.endsWith('_workspace')) {
+          nextTaskId = node.id.replace('_workspace', '');
+        }
+
+        if (node.type === 'folder') {
+          folders[node.id] = {
+            folder_name: node.name,
+            parent_task_id: parentId,
+            user_id: effectiveUserId,
+            task_id: nextTaskId || undefined,
+            folder_type: node.id.endsWith('_workspace') ? 'workspace' : undefined,
+          };
+          if (!tree[node.id]) {
+            tree[node.id] = [];
+          }
+          if (node.children && node.children.length > 0) {
+            node.children.forEach((child) => traverse(child, node.id, nextTaskId));
+          }
+        } else {
+          const key = parentId ?? TEMP_WORKSPACE_ID;
+          if (!tree[key]) {
+            tree[key] = [];
+          }
+          tree[key].push({
+            file_id: node.id,
+            filename: node.name,
+          });
+        }
+      };
+
+      nodes.forEach((n) => traverse(n, null, null));
+
+      return {
+        success: true,
+        data: {
+          tree,
+          folders,
+          total_tasks: Object.keys(tree).length,
+          total_files: Object.values(tree).reduce((sum, arr) => sum + arr.length, 0),
+        },
+      };
+    },
+    [userId],
+  );
+
+  // 構建提供給移動彈窗使用的 treeData（優先使用 API treeData，若無則用 fileTree prop 構建）
+  const modalTreeData: FileTreeResponse | null =
+    treeData || (fileTree && fileTree.length > 0 ? buildTreeDataFromFileTree(fileTree) : null);
 
   // 處理重命名確認
   const handleRenameConfirm = useCallback(() => {
@@ -216,17 +470,38 @@ export default function FileTree({
     createFolder(newFolderInput.trim(), parentIdToSend)
       .then((result) => {
         if (result.success) {
+          console.log('[FileTree] Folder created successfully', { 
+            folderName: newFolderInput.trim(), 
+            parentId: parentIdToSend,
+            result: result.data 
+          });
           setNotification({ message: '資料夾創建成功', type: 'success' });
           setTimeout(() => setNotification(null), 3000);
-          // 觸發文件樹更新
-          window.dispatchEvent(new CustomEvent('fileTreeUpdated'));
+          
+          // 修改時間：2025-01-27 - 如果使用 fileTree prop，需要觸發事件通知父組件更新
+          // 觸發文件樹更新事件，讓 Home 組件重新加載文件樹
+          window.dispatchEvent(new CustomEvent('fileTreeUpdated', {
+            detail: { 
+              taskId: taskId,
+              folderCreated: true,
+              folderName: newFolderInput.trim(),
+              parentId: parentIdToSend
+            }
+          }));
+          
+          // 如果使用 fileTree prop，並且有 onFileTreeChange 回調，嘗試從 API 重新加載
+          if (fileTree && fileTree.length > 0 && onFileTreeChange) {
+            console.log('[FileTree] Using fileTree prop, triggering reload via onFileTreeChange');
+            // 觸發父組件重新加載文件樹
+            // 這裡我們觸發事件，讓 Home 組件處理重新加載
+          }
         } else {
           setNotification({ message: result.message || '資料夾創建失敗', type: 'error' });
           setTimeout(() => setNotification(null), 3000);
         }
       })
       .catch((error) => {
-        console.error('資料夾創建失敗:', error);
+        console.error('[FileTree] Folder creation failed:', error);
         setNotification({ message: error.message || '資料夾創建失敗', type: 'error' });
         setTimeout(() => setNotification(null), 3000);
       });
@@ -234,7 +509,7 @@ export default function FileTree({
     setShowNewFolderModal(false);
     setNewFolderParentId(null);
     setNewFolderInput('');
-  }, [newFolderParentId, newFolderInput]);
+  }, [newFolderParentId, newFolderInput, taskId, fileTree, onFileTreeChange]);
 
   // 處理新增資料夾取消
   const handleNewFolderCancel = useCallback(() => {
@@ -242,6 +517,147 @@ export default function FileTree({
     setNewFolderParentId(null);
     setNewFolderInput('');
   }, []);
+  
+  // 修改時間：2025-12-08 10:32:00 UTC+8 - 展開指定的目錄（用於文件移動後）
+  const expandTask = useCallback((taskId: string) => {
+    setExpandedTasks((prev) => {
+      if (prev.has(taskId)) {
+        return prev; // 已經展開，不需要更新
+      }
+      const newSet = new Set(prev);
+      newSet.add(taskId);
+      // 保存到 localStorage
+      saveExpandedTasksToStorage(newSet);
+      return newSet;
+    });
+  }, []);
+
+  // 修改時間：2025-12-08 10:32:00 UTC+8 - 處理文件移動確認，移動後自動展開目標目錄
+  const handleMoveConfirm = useCallback((targetTaskId: string | null, targetFolderId: string | null) => {
+    if (!moveFileTarget) {
+      return;
+    }
+
+    // 驗證 targetTaskId
+    if (!targetTaskId || typeof targetTaskId !== 'string') {
+      setNotification({ message: '請選擇有效的目標目錄', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    // 移動期間避免回退到舊的 fileTree prop
+    setSuppressPropFallback(true);
+
+    moveFile(moveFileTarget.fileId, targetTaskId, targetFolderId)
+      .then((result) => {
+        if (result.success) {
+          setNotification({ message: '文件已移動', type: 'success' });
+          setTimeout(() => setNotification(null), 3000);
+          
+          // 修改時間：2025-12-08 10:32:00 UTC+8 - 自動展開目標目錄
+          // 如果移動到 temp-workspace，展開它
+          if (targetTaskId === 'temp-workspace') {
+            expandTask(TEMP_WORKSPACE_ID);
+          } else {
+            // 展開目標目錄
+            expandTask(targetTaskId);
+          }
+          
+          // 觸發文件樹更新：清除本地緩存並強制從後端重載
+          try {
+            if (userId) {
+              clearFileTreeCache(userId, taskId);
+            }
+            // 如果有 fileTree prop，清空 ref 讓監聽器/後續渲染可以重載
+            fileTreeRef_current.current = undefined;
+            // 直接從 API 重新拉取最新樹
+            if (taskId) {
+              setIsReloadingTree(true);
+              setLoading(true);
+              setError(null);
+              getFileTree({ user_id: userId, task_id: taskId })
+                .then((response) => {
+                  if (response.success && response.data) {
+                    // 先本地更新樹，避免等待重載期間閃回舊工作區
+                    if (treeData && treeData.data) {
+                      const cloned = JSON.parse(JSON.stringify(treeData)) as FileTreeResponse;
+                      const filesByFolder = cloned.data.tree || {};
+                      const srcKeys = Object.keys(filesByFolder);
+                      // 移除舊位置
+                      srcKeys.forEach((k) => {
+                        filesByFolder[k] = (filesByFolder[k] || []).filter((f: any) => f.file_id !== moveFileTarget.fileId);
+                      });
+                      // 添加到新資料夾
+                      const targetKey = targetFolderId || `${targetTaskId}_workspace`;
+                      if (!filesByFolder[targetKey]) {
+                        filesByFolder[targetKey] = [];
+                      }
+                      const fileStub = filesByFolder[targetKey].find((f: any) => f.file_id === moveFileTarget.fileId);
+                      if (!fileStub) {
+                        filesByFolder[targetKey].push({
+                          file_id: moveFileTarget.fileId,
+                          filename: moveFileTarget.fileName,
+                          file_type: '',
+                          file_size: 0,
+                          upload_time: '',
+                          tags: [],
+                        });
+                      }
+                      cloned.data.tree = filesByFolder;
+                      setTreeData(cloned);
+                      setLatestTreeData(cloned);
+                    }
+                    // 再寫入最新後端樹
+                    setTreeData(response);
+                    setLatestTreeData(response);
+                    
+                    // 修改時間：2025-12-09 - 將新的 treeData 轉換為 FileNode[] 並更新父組件的 fileTree
+                    // 這樣可以確保 fileTree prop 與 treeData 同步，避免渲染時使用舊的 fileTree
+                    if (onFileTreeChange) {
+                      try {
+                        const newFileTree = convertTreeDataToFileTree(response);
+                        console.log('[FileTree] Updating parent fileTree after move', {
+                          newFileTreeLength: newFileTree.length,
+                          newFileTreeIds: newFileTree.map(f => f.id),
+                        });
+                        onFileTreeChange(newFileTree);
+                      } catch (e) {
+                        console.error('[FileTree] Failed to convert treeData to fileTree', e);
+                      }
+                    }
+                  } else {
+                    setError('無法加載文件樹');
+                  }
+                })
+                .catch((err: any) => {
+                  console.error('[FileTree] Error reloading after move:', err);
+                  setError(err.message || '加載文件樹失敗');
+                })
+                .finally(() => {
+                  setLoading(false);
+                  setIsReloadingTree(false);
+              setSuppressPropFallback(false);
+                });
+            }
+            // 廣播事件給其他監聽者
+            window.dispatchEvent(new CustomEvent('fileTreeUpdated', { detail: { forceReload: true } }));
+          } catch (e) {
+            console.warn('[FileTree] failed to refresh after move', e);
+          }
+        } else {
+          setNotification({ message: result.message || '移動文件失敗', type: 'error' });
+          setTimeout(() => setNotification(null), 3000);
+        }
+      })
+      .catch((error) => {
+        console.error('移動文件失敗:', error);
+        setNotification({ message: error.message || '移動文件失敗', type: 'error' });
+        setTimeout(() => setNotification(null), 3000);
+      });
+
+    setShowMoveModal(false);
+    setMoveFileTarget(null);
+  }, [moveFileTarget, expandTask, convertTreeDataToFileTree, onFileTreeChange, taskId, userId]);
 
   // 處理刪除資料夾確認
   const handleDeleteFolderConfirm = useCallback(async () => {
@@ -277,7 +693,91 @@ export default function FileTree({
     setDeleteFolderTarget(null);
   }, []);
 
-  // 切換文件夾展開/折疊狀態
+  // 修改時間：2025-12-08 13:30:00 UTC+8 - 處理刪除文件確認
+  const handleDeleteFileConfirm = useCallback(async () => {
+    if (!deleteFileTarget) {
+      return;
+    }
+
+    try {
+      const result = await deleteFile(deleteFileTarget.fileId);
+      if (result.success) {
+        setNotification({ message: '文件刪除成功', type: 'success' });
+        setTimeout(() => setNotification(null), 3000);
+        
+        // 觸發文件樹更新
+        window.dispatchEvent(new CustomEvent('fileTreeUpdated'));
+        
+        // 如果刪除的是當前選中的文件，清除選中狀態
+        if (selectedFileId === deleteFileTarget.fileId) {
+          setSelectedFileId(null);
+        }
+      } else {
+        setNotification({ message: result.message || '文件刪除失敗', type: 'error' });
+        setTimeout(() => setNotification(null), 3000);
+      }
+    } catch (error: any) {
+      console.error('文件刪除失敗:', error);
+      setNotification({ message: error.message || '文件刪除失敗', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
+    }
+
+    setShowDeleteFileModal(false);
+    setDeleteFileTarget(null);
+  }, [deleteFileTarget, selectedFileId]);
+
+  // 處理刪除文件取消
+  const handleDeleteFileCancel = useCallback(() => {
+    setShowDeleteFileModal(false);
+    setDeleteFileTarget(null);
+  }, []);
+
+  // 修改時間：2025-12-08 13:30:00 UTC+8 - 處理重新上傳文件確認
+  const handleReuploadConfirm = useCallback(async () => {
+    if (!reuploadFileTarget) {
+      return;
+    }
+
+    try {
+      // 1. 先刪除原文件的所有數據（ChromaDB、ArangoDB、文件存儲）
+      const deleteResult = await deleteFile(reuploadFileTarget.fileId);
+      if (!deleteResult.success) {
+        setNotification({ message: '刪除原文件失敗，無法重新上傳', type: 'error' });
+        setTimeout(() => setNotification(null), 3000);
+        setShowReuploadModal(false);
+        setReuploadFileTarget(null);
+        return;
+      }
+
+      // 2. 觸發文件樹更新
+      window.dispatchEvent(new CustomEvent('fileTreeUpdated'));
+
+      // 3. 調用文件上傳功能（通過 onNewFile 回調）
+      if (onNewFile) {
+        // 使用原文件的 taskId 作為目標目錄，如果沒有則使用當前選中的 taskId 或 TEMP_WORKSPACE_ID（任務工作區）
+        const targetTaskId = reuploadFileTarget.taskId || taskId || TEMP_WORKSPACE_ID;
+        onNewFile(targetTaskId);
+      }
+
+      setNotification({ message: '原文件已刪除，請選擇新文件上傳', type: 'success' });
+      setTimeout(() => setNotification(null), 3000);
+    } catch (error: any) {
+      console.error('重新上傳文件失敗:', error);
+      setNotification({ message: error.message || '重新上傳文件失敗', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
+    }
+
+    setShowReuploadModal(false);
+    setReuploadFileTarget(null);
+  }, [reuploadFileTarget, onNewFile, taskId]);
+
+  // 處理重新上傳文件取消
+  const handleReuploadCancel = useCallback(() => {
+    setShowReuploadModal(false);
+    setReuploadFileTarget(null);
+  }, []);
+
+  // 修改時間：2025-12-08 10:32:00 UTC+8 - 切換文件夾展開/折疊狀態，並保存到 localStorage
   const toggleTask = useCallback((taskId: string) => {
     setExpandedTasks((prev) => {
       const newSet = new Set(prev);
@@ -286,6 +786,8 @@ export default function FileTree({
       } else {
         newSet.add(taskId);
       }
+      // 保存到 localStorage
+      saveExpandedTasksToStorage(newSet);
       return newSet;
     });
   }, []);
@@ -303,7 +805,9 @@ export default function FileTree({
       if (isInputFocused) return;
 
       // 如果有右鍵選單打開，不響應快捷鍵
-      if (contextMenu || folderContextMenu) return;
+      const currentContextMenu = contextMenu;
+      const currentFolderContextMenu = folderContextMenu;
+      if (currentContextMenu || currentFolderContextMenu) return;
 
       // F2: 重新命名選中的文件或資料夾
       if (e.key === 'F2' && selectedFileId) {
@@ -338,10 +842,22 @@ export default function FileTree({
       // Cmd/Ctrl + C: 複製選中的文件或資料夾
       if ((e.metaKey || e.ctrlKey) && e.key === 'c' && selectedFileId) {
         e.preventDefault();
+        // 修改時間：2025-12-08 09:32:31 UTC+8 - 修復類型錯誤，從 treeData 中查找文件名
+        let fileName = selectedFileId;
+        // 從 treeData 中查找文件名（不依賴 contextMenu，因為快捷鍵可能在任何時候觸發）
+        if (treeData?.data?.tree) {
+          for (const files of Object.values(treeData.data.tree)) {
+            const file = files.find((f: any) => f.file_id === selectedFileId);
+            if (file) {
+              fileName = file.filename || selectedFileId;
+              break;
+            }
+          }
+        }
         const clipboardItems: ClipboardItem[] = [{
           id: selectedFileId,
           type: 'file',
-          name: contextMenu?.fileName || selectedFileId,
+          name: fileName,
         }];
         setClipboard({
           type: 'copy',
@@ -355,10 +871,22 @@ export default function FileTree({
       // Cmd/Ctrl + X: 剪下選中的文件或資料夾
       if ((e.metaKey || e.ctrlKey) && e.key === 'x' && selectedFileId) {
         e.preventDefault();
+        // 修改時間：2025-12-08 09:32:31 UTC+8 - 修復類型錯誤，從 treeData 中查找文件名
+        let fileName = selectedFileId;
+        // 從 treeData 中查找文件名（不依賴 contextMenu，因為快捷鍵可能在任何時候觸發）
+        if (treeData?.data?.tree) {
+          for (const files of Object.values(treeData.data.tree)) {
+            const file = files.find((f: any) => f.file_id === selectedFileId);
+            if (file) {
+              fileName = file.filename || selectedFileId;
+              break;
+            }
+          }
+        }
         const clipboardItems: ClipboardItem[] = [{
           id: selectedFileId,
           type: 'file',
-          name: contextMenu?.fileName || selectedFileId,
+          name: fileName,
         }];
         setClipboard({
           type: 'cut',
@@ -580,34 +1108,111 @@ export default function FileTree({
         setShowRenameModal(true);
         break;
       case 'move':
-        // TODO: 實現移動目錄功能
-        // TODO: 實現移動目錄功能
+        // 修改時間：2025-12-08 09:29:49 UTC+8 - 實現移動目錄功能，打開移動目錄選擇彈窗
+        // 查找文件所在的 taskId
+        let moveFileTaskId: string | null = null;
+        if (treeData?.data?.tree) {
+          for (const [taskId, files] of Object.entries(treeData.data.tree)) {
+            if (files.some((f: any) => f.file_id === contextMenu.fileId)) {
+              moveFileTaskId = taskId;
+              break;
+            }
+          }
+        }
+        setMoveFileTarget({
+          fileId: contextMenu.fileId,
+          fileName: contextMenu.fileName,
+          currentTaskId: moveFileTaskId,
+        });
+        setShowMoveModal(true);
         break;
       case 'delete':
-        // TODO: 實現刪除文件功能
-        // TODO: 實現刪除文件功能
+        // 修改時間：2025-12-08 13:30:00 UTC+8 - 實現刪除文件功能，顯示確認對話框
+        setDeleteFileTarget({
+          fileId: contextMenu.fileId,
+          fileName: contextMenu.fileName,
+        });
+        setShowDeleteFileModal(true);
+        break;
+      case 'reupload':
+        // 修改時間：2025-12-08 13:30:00 UTC+8 - 實現重新上傳文件功能
+        // 查找文件所在的 taskId
+        let reuploadFileTaskId: string | null = null;
+        if (treeData?.data?.tree) {
+          for (const [taskId, files] of Object.entries(treeData.data.tree)) {
+            if (files.some((f: any) => f.file_id === contextMenu.fileId)) {
+              reuploadFileTaskId = taskId;
+              break;
+            }
+          }
+        }
+        setReuploadFileTarget({
+          fileId: contextMenu.fileId,
+          fileName: contextMenu.fileName,
+          taskId: reuploadFileTaskId,
+        });
+        setShowReuploadModal(true);
         break;
       case 'copy':
         // TODO: 實現複製功能
         // TODO: 實現複製功能
         break;
       case 'copyPath':
-        // 實現複製路徑功能
+        // 修改時間：2025-12-08 11:10:00 UTC+8 - 複製可見的文件目錄架構路徑
         // 從 treeData 中查找文件所屬的 task_id
-        let fileTaskId: string | null = null;
+        let copyPathFileTaskId: string | null = null;
         if (treeData?.data?.tree) {
           for (const [taskId, files] of Object.entries(treeData.data.tree)) {
             if (files.some((f: any) => f.file_id === contextMenu.fileId)) {
-              fileTaskId = taskId;
+              copyPathFileTaskId = taskId;
               break;
             }
           }
         }
 
-        // 構建文件路徑字符串
-        const filePath = fileTaskId
-          ? `${fileTaskId}/${contextMenu.fileId}`
-          : contextMenu.fileId;
+        // 構建完整的目錄路徑（遞歸查找父資料夾）
+        const buildFolderPath = (taskId: string, folders: Record<string, any>): string[] => {
+          const path: string[] = [];
+          let currentTaskId: string | null = taskId;
+          
+          // 如果是 temp-workspace，直接返回
+          if (currentTaskId === TEMP_WORKSPACE_ID) {
+            return [TEMP_WORKSPACE_NAME];
+          }
+          
+          // 遞歸查找父資料夾
+          const visited = new Set<string>(); // 防止循環引用
+          while (currentTaskId && currentTaskId !== TEMP_WORKSPACE_ID && !visited.has(currentTaskId)) {
+            visited.add(currentTaskId);
+            const folderInfo: any = folders[currentTaskId];
+            if (folderInfo) {
+              path.unshift(folderInfo.folder_name); // 從前面插入，保持順序
+              currentTaskId = folderInfo.parent_task_id;
+            } else {
+              // 如果找不到資料夾信息，使用 taskId 作為名稱
+              path.unshift(currentTaskId);
+              break;
+            }
+          }
+          
+          // 如果父資料夾是 null 或 temp-workspace，在路徑前面加上「任務工作區」
+          if (currentTaskId === null || currentTaskId === TEMP_WORKSPACE_ID) {
+            path.unshift(TEMP_WORKSPACE_NAME);
+          }
+          
+          return path;
+        };
+
+        // 構建文件路徑
+        let filePath: string;
+        if (copyPathFileTaskId) {
+          const folders = treeData?.data?.folders || {};
+          const folderPath = buildFolderPath(copyPathFileTaskId, folders);
+          filePath = folderPath.join('/') + '/' + contextMenu.fileName;
+        } else {
+          // 如果找不到 taskId，只顯示文件名
+          filePath = contextMenu.fileName;
+        }
 
         // 複製到剪貼板
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -650,16 +1255,192 @@ export default function FileTree({
         // TODO: 實現貼上功能
         break;
       case 'attachToChat':
-        // TODO: 實現標註到AI任務指令區功能
-        // TODO: 實現標註到AI任務指令區功能
+        // 修改時間：2025-12-08 10:40:00 UTC+8 - 實現標註到AI任務指令區功能
+        // 查找文件所在的 taskId 和路徑
+        let attachFileTaskId: string | null = null;
+        let attachFilePath: string = '';
+        
+        if (treeData?.data?.tree) {
+          for (const [taskId, files] of Object.entries(treeData.data.tree)) {
+            const file = files.find((f: any) => f.file_id === contextMenu.fileId);
+            if (file) {
+              attachFileTaskId = taskId === TEMP_WORKSPACE_ID ? null : taskId;
+              
+              // 構建文件路徑
+              if (taskId === TEMP_WORKSPACE_ID) {
+                attachFilePath = TEMP_WORKSPACE_NAME;
+              } else {
+                // 查找資料夾信息
+                const folderInfo = treeData.data.folders?.[taskId];
+                if (folderInfo) {
+                  attachFilePath = folderInfo.folder_name;
+                } else {
+                  attachFilePath = taskId;
+                }
+              }
+              break;
+            }
+          }
+        }
+        
+        // 觸發文件附加事件
+        window.dispatchEvent(new CustomEvent('fileAttachToChat', {
+          detail: {
+            fileId: contextMenu.fileId,
+            fileName: contextMenu.fileName,
+            filePath: attachFilePath,
+            taskId: attachFileTaskId,
+          },
+        }));
+        
+        setNotification({ message: `已將「${contextMenu.fileName}」標註到任務指令區`, type: 'success' });
+        setTimeout(() => setNotification(null), 3000);
         break;
       case 'viewVectors':
-        // TODO: 實現查看向量資料功能
-        // TODO: 實現查看向量資料功能
+        // 修改時間：2025-12-09 - 實現查看向量資料功能
+        // 從 treeData 或 fileTree 中查找文件元數據
+        let vectorFileMetadata: FileMetadata | null = null;
+        
+        // 優先從 treeData 中查找
+        if (treeData?.data?.tree) {
+          for (const files of Object.values(treeData.data.tree)) {
+            const file = (files as any[]).find((f: any) => f.file_id === contextMenu.fileId);
+            if (file) {
+              vectorFileMetadata = {
+                file_id: file.file_id,
+                filename: file.filename || contextMenu.fileName,
+                file_type: file.file_type || 'application/octet-stream',
+                file_size: file.file_size || 0,
+                user_id: file.user_id || '',
+                task_id: file.task_id || undefined,
+                tags: file.tags || [],
+                upload_time: file.created_at || file.upload_time || new Date().toISOString(),
+                created_at: file.created_at,
+                updated_at: file.updated_at,
+              };
+              break;
+            }
+          }
+        }
+        
+        // 如果 treeData 中找不到，嘗試從 fileTree prop 中查找
+        if (!vectorFileMetadata && fileTree) {
+          const findFileInTree = (nodes: FileNode[]): FileNode | null => {
+            for (const node of nodes) {
+              if (node.id === contextMenu.fileId && node.type === 'file') {
+                return node;
+              }
+              if (node.children) {
+                const found = findFileInTree(node.children);
+                if (found) return found;
+              }
+            }
+            return null;
+          };
+          const fileNode = findFileInTree(fileTree);
+          if (fileNode) {
+            vectorFileMetadata = {
+              file_id: fileNode.id,
+              filename: fileNode.name,
+              file_type: 'application/octet-stream',
+              file_size: 0,
+              user_id: '',
+              task_id: taskId || undefined,
+              tags: [],
+              upload_time: new Date().toISOString(),
+            };
+          }
+        }
+        
+        // 如果都找不到，使用基本信息創建
+        if (!vectorFileMetadata) {
+          vectorFileMetadata = {
+            file_id: contextMenu.fileId,
+            filename: contextMenu.fileName,
+            file_type: 'application/octet-stream',
+            file_size: 0,
+            user_id: '',
+            task_id: taskId || undefined,
+            tags: [],
+            upload_time: new Date().toISOString(),
+          };
+        }
+        setPreviewFile(vectorFileMetadata);
+        setPreviewMode('vector');
+        setShowDataPreview(true);
         break;
       case 'viewGraph':
-        // TODO: 實現查看圖譜資料功能
-        // TODO: 實現查看圖譜資料功能
+        // 修改時間：2025-12-09 - 實現查看圖譜資料功能
+        // 從 treeData 或 fileTree 中查找文件元數據
+        let graphFileMetadata: FileMetadata | null = null;
+        
+        // 優先從 treeData 中查找
+        if (treeData?.data?.tree) {
+          for (const files of Object.values(treeData.data.tree)) {
+            const file = (files as any[]).find((f: any) => f.file_id === contextMenu.fileId);
+            if (file) {
+              graphFileMetadata = {
+                file_id: file.file_id,
+                filename: file.filename || contextMenu.fileName,
+                file_type: file.file_type || 'application/octet-stream',
+                file_size: file.file_size || 0,
+                user_id: file.user_id || '',
+                task_id: file.task_id || undefined,
+                tags: file.tags || [],
+                upload_time: file.created_at || file.upload_time || new Date().toISOString(),
+                created_at: file.created_at,
+                updated_at: file.updated_at,
+              };
+              break;
+            }
+          }
+        }
+        
+        // 如果 treeData 中找不到，嘗試從 fileTree prop 中查找
+        if (!graphFileMetadata && fileTree) {
+          const findFileInTree = (nodes: FileNode[]): FileNode | null => {
+            for (const node of nodes) {
+              if (node.id === contextMenu.fileId && node.type === 'file') {
+                return node;
+              }
+              if (node.children) {
+                const found = findFileInTree(node.children);
+                if (found) return found;
+              }
+            }
+            return null;
+          };
+          const fileNode = findFileInTree(fileTree);
+          if (fileNode) {
+            graphFileMetadata = {
+              file_id: fileNode.id,
+              filename: fileNode.name,
+              file_type: 'application/octet-stream',
+              file_size: 0,
+              user_id: '',
+              task_id: taskId || undefined,
+              tags: [],
+              upload_time: new Date().toISOString(),
+            };
+          }
+        }
+        
+        // 如果都找不到，使用基本信息創建
+        if (!graphFileMetadata) {
+          graphFileMetadata = {
+            file_id: contextMenu.fileId,
+            filename: contextMenu.fileName,
+            file_type: 'application/octet-stream',
+            file_size: 0,
+            user_id: '',
+            task_id: taskId || undefined,
+            tags: [],
+            upload_time: new Date().toISOString(),
+          };
+        }
+        setPreviewFile(graphFileMetadata);
+        setPreviewMode('graph');
+        setShowDataPreview(true);
         break;
       case 'fileInfo':
         // 顯示文件信息對話框
@@ -671,7 +1452,7 @@ export default function FileTree({
     }
 
     closeContextMenu();
-  }, [contextMenu, closeContextMenu]);
+  }, [contextMenu, closeContextMenu, treeData, fileTree, taskId]);
 
   // 處理資料夾菜單項點擊
   const handleFolderMenuAction = useCallback((action: string) => {
@@ -699,8 +1480,44 @@ export default function FileTree({
         }
         break;
       case 'copyPath':
-        // 複製資料夾路徑到剪貼板
-        const folderPath = folderContextMenu.taskId;
+        // 修改時間：2025-12-08 11:10:00 UTC+8 - 複製可見的資料夾目錄架構路徑
+        // 構建完整的目錄路徑（遞歸查找父資料夾）
+        const buildFolderPathForCopy = (taskId: string, folders: Record<string, any>): string[] => {
+          const path: string[] = [];
+          let currentTaskId: string | null = taskId;
+          
+          // 如果是 temp-workspace，直接返回
+          if (currentTaskId === TEMP_WORKSPACE_ID) {
+            return [TEMP_WORKSPACE_NAME];
+          }
+          
+          // 遞歸查找父資料夾
+          const visited = new Set<string>(); // 防止循環引用
+          while (currentTaskId && currentTaskId !== TEMP_WORKSPACE_ID && !visited.has(currentTaskId)) {
+            visited.add(currentTaskId);
+            const folderInfo: any = folders[currentTaskId];
+            if (folderInfo) {
+              path.unshift(folderInfo.folder_name); // 從前面插入，保持順序
+              currentTaskId = folderInfo.parent_task_id;
+            } else {
+              // 如果找不到資料夾信息，使用 taskId 作為名稱
+              path.unshift(currentTaskId);
+              break;
+            }
+          }
+          
+          // 如果父資料夾是 null 或 temp-workspace，在路徑前面加上「任務工作區」
+          if (currentTaskId === null || currentTaskId === TEMP_WORKSPACE_ID) {
+            path.unshift(TEMP_WORKSPACE_NAME);
+          }
+          
+          return path;
+        };
+
+        // 構建資料夾路徑
+        const folders = treeData?.data?.folders || {};
+        const folderPathArray = buildFolderPathForCopy(folderContextMenu.taskId, folders);
+        const folderPath = folderPathArray.join('/');
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(folderPath)
@@ -847,37 +1664,55 @@ export default function FileTree({
   }, [folderContextMenu, closeFolderContextMenu, onNewFile]);
 
   const loadTree = useCallback(async () => {
-    console.log('[FileTree] loadTree called', { taskId, userId, hasFileTree: !!fileTree, fileTreeLength: fileTree?.length });
+    // 修改時間：2025-12-09 - 在函數開始時立即檢查 fileTree prop
+    // 使用最新的 fileTree 值（通過閉包獲取）
+    const currentFileTree = fileTree; // 從閉包獲取最新的 fileTree
+    console.log('[FileTree] loadTree called', { 
+      taskId, 
+      userId, 
+      hasFileTree: !!currentFileTree, 
+      fileTreeLength: currentFileTree?.length,
+      fileTreeIsUndefined: currentFileTree === undefined,
+      fileTreeIds: currentFileTree?.map(f => f.id) || []
+    });
 
-    // 如果已經有 fileTree prop，不調用 API（使用本地數據）
-    if (fileTree && fileTree.length > 0) {
-      console.log('[FileTree] Using fileTree prop, skipping API call');
+    // 修改時間：2025-12-09 - 如果有 fileTree prop 且不為空，絕對不調用 API
+    // fileTree prop 是數據源，不需要從 API 獲取
+    // 但如果 fileTree 為 undefined 或空數組，應該從 API 加載
+    if (currentFileTree !== undefined && currentFileTree.length > 0) {
+      console.log('[FileTree] Using fileTree prop, skipping API call in loadTree', {
+        fileTreeLength: currentFileTree.length,
+        fileIds: currentFileTree.map(f => f.id)
+      });
       setTreeData(null);
       setLoading(false);
       setError(null);
       return;
     }
 
-    // 如果沒有任務 ID，不調用 API
-    if (!taskId) {
-      console.log('[FileTree] No taskId, skipping API call');
+    // 修改時間：2025-12-08 13:30:00 UTC+8 - 始終加載所有文件，不管是否有 taskId
+    // 這樣可以確保文件樹始終顯示完整的目錄結構，包括任務工作區和其他文件夾
+    // 如果沒有 userId，不調用 API
+    if (!userId) {
+      console.log('[FileTree] No userId, skipping API call');
       setTreeData(null);
       setLoading(false);
       return;
     }
 
-    // 檢查是否有模擬文件（歷史任務）
-    if (hasMockFiles(taskId)) {
+    // 檢查是否有模擬文件（歷史任務）- 只在有 taskId 時檢查
+    if (taskId && hasMockFiles(taskId)) {
       setLoading(true);
       setError(null);
       try {
         const mockFiles = getMockFiles(taskId);
         // 將模擬文件轉換為 FileTreeResponse 格式
+        // 修改時間：2025-12-08 09:32:31 UTC+8 - 修復類型錯誤，添加缺少的 tags 屬性
         const mockResponse: FileTreeResponse = {
           success: true,
           data: {
             tree: {
-              [taskId]: mockFiles.map(file => ({
+              [taskId as string]: mockFiles.map(file => ({
                 file_id: file.file_id,
                 filename: file.filename,
                 file_type: file.file_type,
@@ -885,6 +1720,7 @@ export default function FileTree({
                 user_id: file.user_id,
                 task_id: file.task_id,
                 upload_time: file.upload_time,
+                tags: (file as any).tags || [], // 修改時間：2025-12-08 09:32:31 UTC+8 - MockFileMetadata 沒有 tags 屬性，使用類型斷言
               })),
             },
             total_tasks: 1,
@@ -903,10 +1739,21 @@ export default function FileTree({
     setLoading(true);
     setError(null);
     try {
+      // 修改時間：2025-01-27 - 重構任務工作區邏輯
+      // 必須提供 taskId 才能查詢文件（文件必須關聯到任務工作區）
+      // 如果沒有 taskId，不應該調用 API（新任務尚未創建）
+      if (!taskId) {
+        console.log('[FileTree] No taskId provided, skipping API call (new task not yet created)');
+        setTreeData(null);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
       console.log('[FileTree] Calling getFileTree API', { userId, taskId });
       const startTime = Date.now();
       const response = await Promise.race([
-        getFileTree({ user_id: userId, task_id: taskId }),
+        getFileTree({ user_id: userId, task_id: taskId }), // taskId 必須存在
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('API request timeout after 30 seconds')), 30000)
         )
@@ -949,52 +1796,276 @@ export default function FileTree({
     } finally {
       setLoading(false);
     }
-  }, [userId, taskId, fileTree]);
+  }, [userId, taskId]); // 移除 fileTree 依賴，避免在 loadTree 內部檢查
 
+  // 修改時間：2025-12-09 - 監聽文件上傳完成事件，不自動刷新（由父組件通過 fileTree prop 更新）
+  // 如果有 fileTree prop，不需要監聽這些事件，因為父組件會通過 prop 更新文件樹
+  // 如果沒有 fileTree prop，才需要從 API 重新加載
   useEffect(() => {
-    console.log('[FileTree] useEffect triggered', { taskId, userId, hasFileTree: !!fileTree, fileTreeLength: fileTree?.length });
-
-    // 如果已經有 fileTree prop，直接返回，不調用 API
-    if (fileTree && fileTree.length > 0) {
-      console.log('[FileTree] Using fileTree prop, skipping API call', { fileTreeLength: fileTree.length });
-      setTreeData(null);
-      setLoading(false);
-      setError(null);
+    // 修改時間：2025-01-27 - 使用 useRef 獲取最新的 fileTree prop 值
+    const currentFileTree = fileTreeRef_current.current;
+    
+    // 如果有 fileTree prop，不監聽上傳事件（由父組件管理）
+    if (currentFileTree && currentFileTree.length > 0) {
+      console.log('[FileTree] Has fileTree prop, skipping upload event listeners', {
+        fileTreeLength: currentFileTree.length
+      });
       return;
     }
 
-    // 如果沒有任務 ID，直接返回，不調用 loadTree
-    if (!taskId) {
-      console.log('[FileTree] No taskId, skipping loadTree');
-      setTreeData(null);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    console.log('[FileTree] Calling loadTree for taskId:', taskId);
-    loadTree();
-  }, [loadTree, taskId, fileTree]);
-
-  // 監聽文件樹更新事件
-  useEffect(() => {
-    const handleFileTreeUpdate = () => {
-      // 如果 fileTree 是空數組或未定義，重新加載
-      // 因為即使有 fileTree prop，如果它是空的，也需要刷新
-      if (!fileTree || (Array.isArray(fileTree) && fileTree.length === 0)) {
-        loadTree();
-      } else {
+    const handleFileUploaded = (event: CustomEvent) => {
+      const detail = event.detail;
+      // fileUploaded 事件只包含 fileIds，沒有 taskId
+      // 如果當前有 taskId，可能是上傳到當前任務，也刷新
+      if (taskId) {
+        console.log('[FileTree] File uploaded event received, reloading tree', { taskId, fileIds: detail.fileIds });
+        // 延遲一小段時間，確保後端數據已保存
+        setTimeout(() => {
+          loadTree();
+        }, 500);
       }
     };
 
-    window.addEventListener('fileTreeUpdated', handleFileTreeUpdate);
-    return () => {
-      window.removeEventListener('fileTreeUpdated', handleFileTreeUpdate);
+    const handleFilesUploaded = (event: CustomEvent) => {
+      const detail = event.detail;
+      // filesUploaded 事件包含 taskId，這是主要的刷新觸發點
+      if (detail.taskId) {
+        // 如果指定了 taskId，檢查是否匹配當前任務
+        if (taskId && detail.taskId === taskId) {
+          console.log('[FileTree] Files uploaded to current task, reloading tree', { taskId: detail.taskId, fileCount: detail.files?.length });
+          setTimeout(() => {
+            loadTree();
+          }, 500);
+        } else if (!taskId) {
+          // 如果當前沒有 taskId，但有上傳事件（可能是新任務創建），也刷新
+          console.log('[FileTree] Files uploaded (new task), reloading tree', { uploadedTaskId: detail.taskId });
+          setTimeout(() => {
+            loadTree();
+          }, 500);
+        }
+      }
     };
-  }, [loadTree, taskId, fileTree]);
 
-  // 如果沒有任務 ID 且沒有 fileTree，顯示空白
-  if (!taskId && (!fileTree || fileTree.length === 0)) {
+    // 監聽文件上傳完成事件
+    window.addEventListener('fileUploaded', handleFileUploaded as EventListener);
+    window.addEventListener('filesUploaded', handleFilesUploaded as EventListener);
+
+    return () => {
+      window.removeEventListener('fileUploaded', handleFileUploaded as EventListener);
+      window.removeEventListener('filesUploaded', handleFilesUploaded as EventListener);
+    };
+  }, [taskId, loadTree]); // 移除 fileTree 依賴，使用 fileTreeRef_current.current 獲取最新值
+
+  // 修改時間：2025-12-09 - 監聽 fileTree prop 的變化，強制重新渲染
+  // 當 fileTree prop 更新時，FileTree 組件應該自動重新渲染（React 會處理 prop 變化）
+  // 但為了確保文件樹能正確顯示，我們記錄 fileTree 的變化
+  // 修改時間：2025-12-09 - 監聽 fileTree prop 的變化，強制清除 treeData 以觸發重新渲染
+  // 使用 ref 來追蹤 fileTree 的變化
+  const prevFileTreeHashRef = useRef<string>('');
+  
+  useEffect(() => {
+    if (fileTree && fileTree.length > 0) {
+      const currentHash = fileTree.map(f => `${f.id}:${f.name}`).sort().join('|');
+      const hashChanged = currentHash !== prevFileTreeHashRef.current;
+      
+      console.log('[FileTree] fileTree prop updated (useEffect)', { 
+        taskId, 
+        fileTreeLength: fileTree.length, 
+        fileIds: fileTree.map(f => f.id),
+        fileNames: fileTree.map(f => f.name),
+        fileTreeHash: currentHash,
+        previousHash: prevFileTreeHashRef.current,
+        hashChanged,
+        timestamp: Date.now()
+      });
+      
+      // 更新 hash 引用
+      prevFileTreeHashRef.current = currentHash;
+      
+      // 清除 treeData，強制使用 fileTree prop（避免混用兩種數據源）
+      setTreeData(null);
+      setLoading(false);
+      setError(null);
+    } else if (!fileTree || fileTree.length === 0) {
+      // 如果 fileTree prop 為空或不存在，清除 treeData，讓組件從 API 獲取
+      if (taskId) {
+        console.log('[FileTree] fileTree prop is empty, will load from API', { taskId });
+        // 不立即調用 loadTree，讓下面的 useEffect 處理
+      } else {
+        console.log('[FileTree] No fileTree prop and no taskId, clearing treeData');
+        setTreeData(null);
+        setLoading(false);
+        setError(null);
+      }
+      prevFileTreeHashRef.current = '';
+    }
+  }, [fileTree, taskId]);
+
+  // 修改時間：2025-01-27 - 更新 fileTreeRef_current 當 fileTree prop 變化時
+  useEffect(() => {
+    fileTreeRef_current.current = fileTree;
+  }, [fileTree]);
+
+  useEffect(() => {
+    console.log('[FileTree] useEffect triggered (loadTree check)', { 
+      taskId, 
+      userId, 
+      hasFileTree: !!fileTree, 
+      fileTreeLength: fileTree?.length,
+      fileTreeIsUndefined: fileTree === undefined,
+      hasTreeData: !!treeData
+    });
+
+    // 修改時間：2025-12-09 - 如果有 fileTree prop 且不為空，絕對不調用 API
+    // fileTree prop 是數據源，不需要從 API 獲取
+    // 但如果 fileTree 為 undefined 或空數組，應該從 API 加載
+    if (fileTree !== undefined && fileTree.length > 0) {
+      console.log('[FileTree] Using fileTree prop, skipping API call completely', { 
+        fileTreeLength: fileTree.length,
+        fileIds: fileTree.map(f => f.id)
+      });
+      setLoading(false);
+      setError(null);
+      // 確保 treeData 為 null，強制使用 fileTree prop
+      if (treeData !== null) {
+        console.log('[FileTree] Clearing treeData to force use of fileTree prop');
+        setTreeData(null);
+      }
+      return;
+    }
+
+    // 修改時間：2025-01-27 - 新任務尚未創建時，不調用 API
+    // 如果沒有 taskId（新任務尚未真正創建），且沒有 fileTree prop，直接返回空狀態
+    if (!taskId) {
+      console.log('[FileTree] No taskId provided (new task not yet created), skipping API call');
+      setTreeData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    // 如果沒有 userId，不調用 loadTree
+    if (!userId) {
+      console.log('[FileTree] No userId, skipping loadTree');
+      setTreeData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    // 修改時間：2025-12-09 - 如果 fileTree 為 undefined 或空數組，從 API 加載
+    // 這樣可以確保清除 localStorage 後，文件樹能正確從後端加載
+    if (fileTree === undefined || (Array.isArray(fileTree) && fileTree.length === 0)) {
+      console.log('[FileTree] fileTree is undefined or empty, calling loadTree from API', { 
+        userId, 
+        taskId,
+        fileTreeIsUndefined: fileTree === undefined,
+        fileTreeIsArray: Array.isArray(fileTree),
+        fileTreeLength: fileTree?.length || 0,
+        fileTreeValue: fileTree
+      });
+      // 確保調用 loadTree
+      loadTree().catch((error) => {
+        console.error('[FileTree] loadTree failed:', error);
+        setError(error.message || '加載文件樹失敗');
+        setLoading(false);
+      });
+    } else {
+      console.log('[FileTree] fileTree has content, skipping API call', {
+        fileTreeLength: fileTree?.length,
+        fileTreeIsUndefined: fileTree === undefined
+      });
+    }
+  }, [userId, taskId, fileTree, loadTree]); // 添加 loadTree 依賴
+
+  // 監聽文件樹更新事件
+  useEffect(() => {
+    const handleFileTreeUpdate = (event: Event) => {
+      // 修改時間：2025-01-27 - 使用 useRef 獲取最新的 fileTree prop 值
+      // 這樣可以確保即使事件監聽器中的閉包是舊的，也能訪問到最新的 fileTree
+      const currentFileTree = fileTreeRef_current.current;
+      console.log('[FileTree] handleFileTreeUpdate triggered', { 
+        taskId, 
+        hasFileTree: !!currentFileTree, 
+        fileTreeLength: currentFileTree?.length,
+        fileTreeIds: currentFileTree?.map(f => f.id) || []
+      });
+      
+      // 如果有 fileTree prop，但處於強制重載/抑制回退模式，仍允許重載
+      const forceReload = (event as CustomEvent)?.detail?.forceReload;
+      if (currentFileTree && currentFileTree.length > 0 && !forceReload && !suppressPropFallback) {
+        console.log('[FileTree] Has fileTree prop, skipping API reload (fileTree managed by parent)', {
+          fileTreeLength: currentFileTree.length,
+          fileTreeIds: currentFileTree.map(f => f.id)
+        });
+        return;
+      }
+      
+      // 如果沒有 taskId，不能調用 API（後端要求必須提供 task_id）
+      if (!taskId) {
+        console.log('[FileTree] No taskId, cannot reload from API');
+        return;
+      }
+      
+      // 只有在沒有 fileTree prop 時，才從 API 重新加載
+      console.log('[FileTree] Reloading file tree from API (no fileTree prop or forceReload)', { taskId, userId, forceReload, suppressPropFallback });
+      setLoading(true);
+      setError(null);
+      getFileTree({ user_id: userId, task_id: taskId })
+        .then((response) => {
+          console.log('[FileTree] File tree reloaded after update', { success: response.success });
+          if (response.success && response.data) {
+            setTreeData(response);
+            setLatestTreeData(response);
+          } else {
+            setError('無法加載文件樹');
+          }
+        })
+        .catch((err: any) => {
+          console.error('[FileTree] Error loading file tree:', err);
+          setError(err.message || '加載文件樹失敗');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    };
+
+    // 修改時間：2025-12-08 08:46:00 UTC+8 - 添加用戶登錄事件監聽，登錄後清除緩存並重新加載文件樹
+    // 監聽用戶登錄事件，登錄後清除緩存並重新加載文件樹
+    const handleUserLoggedIn = () => {
+      // 修改時間：2025-01-27 - 使用 useRef 獲取最新的 fileTree prop 值
+      const currentFileTree = fileTreeRef_current.current;
+      console.log('[FileTree] User logged in, clearing cache and reloading file tree', { 
+        hasFileTree: !!currentFileTree, 
+        fileTreeLength: currentFileTree?.length 
+      });
+      // 如果有 fileTree prop，不需要重新加載（由父組件管理）
+      if (currentFileTree && currentFileTree.length > 0) {
+        console.log('[FileTree] Has fileTree prop, skipping reload on user login');
+        return;
+      }
+      // 清除文件樹緩存，強制從後台加載最新數據
+      if (userId) {
+        clearFileTreeCache(userId, taskId);
+      }
+      // 重新加載文件樹（只有在沒有 fileTree prop 時）
+      if (taskId) {
+        loadTree();
+      }
+    };
+
+    window.addEventListener('fileTreeUpdated', handleFileTreeUpdate as EventListener);
+    window.addEventListener('userLoggedIn', handleUserLoggedIn as EventListener);
+    return () => {
+      window.removeEventListener('fileTreeUpdated', handleFileTreeUpdate as EventListener);
+      window.removeEventListener('userLoggedIn', handleUserLoggedIn as EventListener);
+    };
+  }, [taskId, userId, loadTree]); // 移除 fileTree 依賴，使用 fileTreeRef_current.current 獲取最新值
+
+  // 修改時間：2025-12-08 13:30:00 UTC+8 - 移除 taskId 檢查，始終顯示文件樹
+  // 即使沒有 taskId，也應該顯示文件樹（包括任務工作區）
+  // 如果沒有 userId 且沒有 fileTree，顯示空白
+  if (!userId && (!fileTree || fileTree.length === 0)) {
     return (
       <div className="p-4 text-sm text-tertiary text-center theme-transition">
         暫無文件
@@ -1004,8 +2075,29 @@ export default function FileTree({
     );
   }
 
-  // 如果有 fileTree prop，優先使用它（不調用 API）
-  if (fileTree && fileTree.length > 0) {
+  // 修改時間：2025-12-09 - 渲染時優先使用 API 拉到的 treeData，其次使用最近成功的 latestTreeData；
+  // 僅在都沒有時才回退到 fileTree prop，避免移動/上傳時暫時顯示舊資料
+  const renderTreeData: FileTreeResponse | null =
+    (treeData && treeData.data)
+      ? treeData
+      : (isReloadingTree && latestTreeData ? latestTreeData : null) ||
+        (suppressPropFallback ? null : (fileTree && fileTree.length > 0 ? buildTreeDataFromFileTree(fileTree) : null));
+
+  // 如果有 renderTreeData，渲染文件樹
+  if (renderTreeData?.data) {
+    const fileTreeHash = fileTree ? fileTree.map(f => `${f.id}:${f.name}`).sort().join('|') : 'api-tree';
+    console.log('[FileTree] Rendering tree', { 
+      taskId, 
+      from: treeData ? 'api' : 'prop',
+      fileTreeLength: fileTree?.length,
+      treeKeys: Object.keys(renderTreeData.data.tree || {}),
+      foldersCount: Object.keys(renderTreeData.data.folders || {}).length,
+      fileTreeHash,
+      timestamp: Date.now(),
+      renderKey: `filetree-${taskId}-${fileTreeHash}`
+    });
+    const modalTreeData = renderTreeData;
+    
     // 遞歸渲染文件樹節點
     const renderFileNode = (node: FileNode, level: number = 0): React.ReactNode => {
       const isExpanded = expandedTasks.has(node.id);
@@ -1023,6 +2115,11 @@ export default function FileTree({
               }`}
               style={{ paddingLeft: `${level * 1 + 0.5}rem` }}
               onClick={handleFolderClick}
+              onContextMenu={(e) => {
+                // 修改時間：2025-01-27 - 為 fileTree prop 渲染路徑添加右鍵菜單支持
+                // 對於文件夾，使用 node.id 作為 taskId，node.name 作為 taskName
+                handleFolderContextMenu(e, node.id, node.name);
+              }}
             >
               <div
                 className="p-0.5 hover:bg-hover rounded theme-transition flex-shrink-0 flex items-center justify-center"
@@ -1065,6 +2162,10 @@ export default function FileTree({
                 onFileSelect(node.id, node.name);
               }
             }}
+            onContextMenu={(e) => {
+              // 修改時間：2025-01-27 - 為 fileTree prop 渲染路徑添加右鍵菜單支持
+              handleContextMenu(e, node.id, node.name);
+            }}
           >
             <FileIcon className="w-3 h-3 text-tertiary" />
             <span className="flex-1 truncate text-primary">{node.name}</span>
@@ -1074,17 +2175,447 @@ export default function FileTree({
     };
 
     return (
-      <div className="h-full overflow-y-auto">
-        <div className="p-4 border-b border-primary theme-transition">
-          <h3 className="text-sm font-semibold text-primary mb-1 theme-transition">文件目錄</h3>
-          <p className="text-xs text-tertiary theme-transition">
-            本地任務文件
-          </p>
+      <>
+        <div className="h-full overflow-y-auto">
+          <div className="p-4 border-b border-primary theme-transition">
+            <h3 className="text-sm font-semibold text-primary mb-1 theme-transition">文件目錄</h3>
+            <p className="text-xs text-tertiary theme-transition">
+              本地任務文件
+            </p>
+          </div>
+          {(() => {
+            const safeFileTree = fileTree ?? [];
+            const hash = safeFileTree.map(f => `${f.id}:${f.name}`).sort().join('|');
+            return (
+          <div 
+            className="p-2" 
+            key={`filetree-content-${taskId || 'no-task'}-${hash}`}
+          >
+            {safeFileTree.map((node, index) => (
+              <div key={`filetree-node-${node.id}-${index}-${safeFileTree.length}`}>
+                {renderFileNode(node, 0)}
+              </div>
+            ))}
+            {safeFileTree.length === 0 && (
+              <div className="p-4 text-sm text-tertiary text-center theme-transition">
+                暫無文件
+              </div>
+            )}
+          </div>
+            );
+          })()}
         </div>
-        <div className="p-2">
-          {fileTree.map((node) => renderFileNode(node, 0))}
-        </div>
-      </div>
+
+        {/* 修改時間：2025-01-27 - 為 fileTree prop 渲染路徑添加右鍵菜單支持 */}
+        {/* 文件右鍵菜單 */}
+        {contextMenu && (
+          <div
+            ref={contextMenuRef}
+            className="fixed z-50 bg-secondary border border-primary rounded-lg shadow-lg py-1 min-w-[180px] theme-transition"
+            style={{
+              left: `${contextMenu.x}px`,
+              top: `${contextMenu.y}px`,
+            }}
+          >
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('rename')}
+            >
+              <i className="fa-solid fa-pen w-4"></i>
+              <span>重新命名</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('move')}
+            >
+              <i className="fa-solid fa-folder-open w-4"></i>
+              <span>移動文件目錄</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('copy')}
+            >
+              <i className="fa-solid fa-copy w-4"></i>
+              <span>複製</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('copyPath')}
+            >
+              <i className="fa-solid fa-link w-4"></i>
+              <span>複製路徑</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('cut')}
+            >
+              <i className="fa-solid fa-cut w-4"></i>
+              <span>剪下</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('paste')}
+            >
+              <i className="fa-solid fa-paste w-4"></i>
+              <span>貼上</span>
+            </button>
+            <div className="border-t border-primary my-1"></div>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('attachToChat')}
+            >
+              <i className="fa-solid fa-paperclip w-4"></i>
+              <span>標註到任務指令區</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('viewVectors')}
+            >
+              <i className="fa-solid fa-database w-4"></i>
+              <span>查看向量資料</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('viewGraph')}
+            >
+              <i className="fa-solid fa-project-diagram w-4"></i>
+              <span>查看圖譜資料</span>
+            </button>
+            <div className="border-t border-primary my-1"></div>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('fileInfo')}
+            >
+              <i className="fa-solid fa-info-circle w-4"></i>
+              <span>查看文件信息</span>
+            </button>
+            <div className="border-t border-primary my-1"></div>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/20 hover:text-red-300 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('delete')}
+            >
+              <i className="fa-solid fa-trash w-4"></i>
+              <span>刪除文件</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('reupload')}
+            >
+              <i className="fa-solid fa-upload w-4"></i>
+              <span>重新上傳文件</span>
+            </button>
+          </div>
+        )}
+
+        {/* 資料夾右鍵菜單 */}
+        {folderContextMenu && (
+          <div
+            ref={folderContextMenuRef}
+            className="fixed z-50 bg-secondary border border-primary rounded-lg shadow-lg py-1 min-w-[180px] theme-transition"
+            style={{
+              left: `${folderContextMenu.x}px`,
+              top: `${folderContextMenu.y}px`,
+            }}
+          >
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleFolderMenuAction('newFolder')}
+            >
+              <i className="fa-solid fa-folder-plus w-4"></i>
+              <span>新增資料夾</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleFolderMenuAction('newFile')}
+            >
+              <i className="fa-solid fa-file-plus w-4"></i>
+              <span>新增檔案</span>
+            </button>
+            <div className="border-t border-primary my-1"></div>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleFolderMenuAction('copyPath')}
+            >
+              <i className="fa-solid fa-link w-4"></i>
+              <span>複製資料夾路徑</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleFolderMenuAction('info')}
+            >
+              <i className="fa-solid fa-info-circle w-4"></i>
+              <span>資料夾信息</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleFolderMenuAction('cut')}
+            >
+              <i className="fa-solid fa-cut w-4"></i>
+              <span>剪下</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleFolderMenuAction('paste')}
+            >
+              <i className="fa-solid fa-paste w-4"></i>
+              <span>貼上</span>
+            </button>
+            <div className="border-t border-primary my-1"></div>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleFolderMenuAction('rename')}
+            >
+              <i className="fa-solid fa-pen w-4"></i>
+              <span>資料夾重命名</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/20 hover:text-red-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleFolderMenuAction('delete')}
+            >
+              <i className="fa-solid fa-trash w-4"></i>
+              <span>刪除資料夾</span>
+            </button>
+          </div>
+        )}
+
+        {/* 文件信息對話框 */}
+        {/* 修改時間：2025-12-09 - 添加文件數據預覽組件 */}
+        {showDataPreview && previewFile && (
+          <FileDataPreview
+            file={previewFile}
+            initialMode={previewMode}
+            isOpen={showDataPreview}
+            onClose={() => {
+              setShowDataPreview(false);
+              setPreviewFile(null);
+            }}
+          />
+        )}
+
+        {showFileInfoModal && fileInfo && (
+          <FileInfoModal
+            fileId={fileInfo.fileId}
+            fileName={fileInfo.fileName}
+            taskId={taskId}
+            treeData={treeData}
+            onClose={() => {
+              setShowFileInfoModal(false);
+              setFileInfo(null);
+            }}
+          />
+        )}
+
+        {/* 重命名對話框 */}
+        {showRenameModal && renameTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 theme-transition">
+            <div className="bg-secondary border border-primary rounded-lg shadow-lg w-full max-w-md p-6 theme-transition">
+              <h2 className="text-lg font-semibold text-primary mb-4 theme-transition">
+                重命名{renameTarget.type === 'folder' ? '資料夾' : '文件'}
+              </h2>
+              <input
+                ref={renameInputRef}
+                type="text"
+                value={renameInput}
+                onChange={(e) => setRenameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRenameConfirm();
+                  } else if (e.key === 'Escape') {
+                    handleRenameCancel();
+                  }
+                }}
+                className="w-full px-4 py-2 bg-tertiary border border-primary rounded-lg text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500 theme-transition mb-4"
+                placeholder="請輸入新名稱"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleRenameCancel}
+                  className="px-4 py-2 bg-tertiary hover:bg-hover text-primary rounded-lg transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleRenameConfirm}
+                  disabled={!renameInput.trim() || renameInput.trim() === renameTarget.name}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  確定
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 新增資料夾對話框 */}
+        {showNewFolderModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 theme-transition">
+            <div className="bg-secondary border border-primary rounded-lg shadow-lg w-full max-w-md p-6 theme-transition">
+              <h2 className="text-lg font-semibold text-primary mb-4 theme-transition">
+                新增資料夾
+              </h2>
+              <input
+                ref={newFolderInputRef}
+                type="text"
+                value={newFolderInput}
+                onChange={(e) => setNewFolderInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleNewFolderConfirm();
+                  } else if (e.key === 'Escape') {
+                    handleNewFolderCancel();
+                  }
+                }}
+                className="w-full px-4 py-2 bg-tertiary border border-primary rounded-lg text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500 theme-transition mb-4"
+                placeholder="請輸入資料夾名稱"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleNewFolderCancel}
+                  className="px-4 py-2 bg-tertiary hover:bg-hover text-primary rounded-lg transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleNewFolderConfirm}
+                  disabled={!newFolderInput.trim()}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  確定
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 刪除資料夾確認對話框 */}
+        {showDeleteFolderModal && deleteFolderTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 theme-transition">
+            <div className="bg-secondary border border-primary rounded-lg shadow-lg w-full max-w-md p-6 theme-transition">
+              <h2 className="text-lg font-semibold text-primary mb-4 theme-transition">
+                刪除資料夾
+              </h2>
+              <p className="text-sm text-tertiary mb-6 theme-transition">
+                確定要刪除資料夾「<span className="text-primary font-semibold">{deleteFolderTarget.taskName}</span>」嗎？
+                <br />
+                <span className="text-red-400">此操作將永久刪除該資料夾及其下的所有文件，且無法復原。</span>
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleDeleteFolderCancel}
+                  className="px-4 py-2 bg-tertiary hover:bg-hover text-primary rounded-lg transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleDeleteFolderConfirm}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                >
+                  確定刪除
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 刪除文件確認對話框 */}
+        {showDeleteFileModal && deleteFileTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 theme-transition">
+            <div className="bg-secondary border border-primary rounded-lg shadow-lg w-full max-w-md p-6 theme-transition">
+              <h2 className="text-lg font-semibold text-primary mb-4 theme-transition">
+                刪除文件
+              </h2>
+              <p className="text-sm text-tertiary mb-6 theme-transition">
+                確定要刪除文件「<span className="text-primary font-semibold">{deleteFileTarget.fileName}</span>」嗎？
+                <br />
+                <span className="text-red-400">此操作將永久刪除該文件及其相關數據（向量、圖譜、元數據），且無法復原。</span>
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleDeleteFileCancel}
+                  className="px-4 py-2 bg-tertiary hover:bg-hover text-primary rounded-lg transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleDeleteFileConfirm}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                >
+                  確定刪除
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 重新上傳文件確認對話框 */}
+        {showReuploadModal && reuploadFileTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 theme-transition">
+            <div className="bg-secondary border border-primary rounded-lg shadow-lg w-full max-w-md p-6 theme-transition">
+              <h2 className="text-lg font-semibold text-primary mb-4 theme-transition">
+                重新上傳文件
+              </h2>
+              <p className="text-sm text-tertiary mb-6 theme-transition">
+                確定要重新上傳文件「<span className="text-primary font-semibold">{reuploadFileTarget.fileName}</span>」嗎？
+                <br />
+                <span className="text-yellow-400">此操作將先刪除原文件的所有數據（向量、圖譜、元數據、文件），然後打開文件上傳對話框供您選擇新文件。</span>
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleReuploadCancel}
+                  className="px-4 py-2 bg-tertiary hover:bg-hover text-primary rounded-lg transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleReuploadConfirm}
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                >
+                  確定重新上傳
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 通知提示 */}
+        {notification && (
+          <div
+            className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg theme-transition ${
+              notification.type === 'success'
+                ? 'bg-green-500/90 text-white'
+                : 'bg-red-500/90 text-white'
+            }`}
+            style={{ animation: 'fadeIn 0.3s ease-in' }}
+          >
+            <div className="flex items-center gap-2">
+              <i
+                className={`fa-solid ${
+                  notification.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'
+                }`}
+              ></i>
+              <span className="text-sm font-medium">{notification.message}</span>
+            </div>
+          </div>
+        )}
+
+        {/* 修改時間：2025-12-08 09:29:49 UTC+8 - 添加文件移動目錄選擇彈窗 */}
+        {showMoveModal && moveFileTarget && (
+          <FileMoveModal
+            isOpen={showMoveModal}
+            onClose={() => {
+              setShowMoveModal(false);
+              setMoveFileTarget(null);
+            }}
+            onConfirm={handleMoveConfirm}
+            fileId={moveFileTarget.fileId}
+            fileName={moveFileTarget.fileName}
+            treeData={modalTreeData}
+            currentTaskId={moveFileTarget.currentTaskId}
+          />
+        )}
+      </>
     );
   }
 
@@ -1133,47 +2664,95 @@ export default function FileTree({
   }
 
   const { tree, total_tasks, total_files, folders } = treeData.data;
-  console.log('[FileTree] Rendering tree', { total_tasks, total_files, treeKeys: Object.keys(tree || {}), foldersCount: Object.keys(folders || {}).length });
+  console.log('[FileTree] Rendering tree', { 
+    total_tasks, 
+    total_files, 
+    treeKeys: Object.keys(tree || {}), 
+    foldersCount: Object.keys(folders || {}).length,
+    hasTempWorkspace: TEMP_WORKSPACE_ID in (tree || {}),
+    tempWorkspaceFiles: tree?.[TEMP_WORKSPACE_ID]?.length || 0,
+    folders: Object.entries(folders || {}).map(([id, info]: [string, any]) => ({
+      id,
+      name: info.folder_name,
+      parent: info.parent_task_id
+    }))
+  });
   const foldersInfo = folders || {};
+
+  // 修改時間：2025-12-08 09:32:31 UTC+8 - 將函數定義移到使用之前，修復變數宣告順序錯誤
+  // 修改時間：2025-01-27 - 修復頂級資料夾邏輯
+  // 獲取頂級資料夾列表（同一任務下的根目錄資料夾，如「任務工作區」和「排程任務」）
+  // 修改時間：2025-01-27 - 添加資料夾排序功能（確保 workspace 在前）
+  const getTopLevelFolders = (): TreeNode[] => {
+    const topLevelFolders: TreeNode[] = [];
+    Object.entries(foldersInfo).forEach(([folderTaskId, folderInfo]) => {
+      // 修改時間：2025-01-27 - 頂級資料夾的判斷邏輯
+      // 頂級資料夾：parent_task_id 為 null 或 undefined，並且屬於當前任務
+      // 包括「任務工作區」(folder_type='workspace') 和「排程任務」(folder_type='scheduled')
+      const isTopLevel = (folderInfo.parent_task_id === null || folderInfo.parent_task_id === undefined);
+      // 修改時間：2025-01-27 - 使用類型斷言訪問 folder_type（API 可能返回但類型定義中未包含）
+      const folderType = (folderInfo as any).folder_type || '';
+      
+      // 如果指定了 taskId，只顯示該任務的頂級資料夾
+      if (isTopLevel) {
+        // 檢查是否屬於當前任務（透過 _key 判斷）
+        const belongsToCurrentTask = taskId ? folderTaskId.startsWith(taskId) : true;
+        
+        if (belongsToCurrentTask) {
+          topLevelFolders.push({
+            taskId: folderTaskId,
+            taskName: folderInfo.folder_name,
+            fileCount: tree[folderTaskId]?.length || 0,
+            isExpanded: expandedTasks.has(folderTaskId),
+          });
+        }
+      }
+    });
+    
+    // 修改時間：2025-01-27 - 添加資料夾排序：workspace 在前，scheduled 在後
+    topLevelFolders.sort((a, b) => {
+      // 修改時間：2025-01-27 - 使用類型斷言訪問 folder_type（API 可能返回但類型定義中未包含）
+      const aType = (foldersInfo[a.taskId] as any)?.folder_type || '';
+      const bType = (foldersInfo[b.taskId] as any)?.folder_type || '';
+      
+      // workspace 排在前面
+      if (aType === 'workspace' && bType !== 'workspace') return -1;
+      if (aType !== 'workspace' && bType === 'workspace') return 1;
+      
+      // scheduled 排在 workspace 後面
+      if (aType === 'scheduled' && bType !== 'scheduled' && bType !== 'workspace') return -1;
+      if (aType !== 'scheduled' && aType !== 'workspace' && bType === 'scheduled') return 1;
+      
+      // 其他情況按名稱排序
+      return a.taskName.localeCompare(b.taskName);
+    });
+    
+    return topLevelFolders;
+  };
 
   // 構建任務列表（優先顯示任務工作區）
   const taskList: TreeNode[] = [];
 
-  // 首先添加任務工作區（如果存在）
-  if (tree[TEMP_WORKSPACE_ID]) {
-    taskList.push({
-      taskId: TEMP_WORKSPACE_ID,
-      taskName: TEMP_WORKSPACE_NAME,
-      fileCount: tree[TEMP_WORKSPACE_ID].length,
-      isExpanded: expandedTasks.has(TEMP_WORKSPACE_ID),
+  // 修改時間：2025-01-27 - 重構任務工作區顯示邏輯
+  // 顯示該任務的所有頂級資料夾（「任務工作區」和「排程任務」並列）
+  if (taskId) {
+    // 指定了 taskId，顯示該任務的所有頂級資料夾
+    const topLevelFolders = getTopLevelFolders();
+    
+    // 將頂級資料夾添加到列表（它們應該並列顯示）
+    topLevelFolders.forEach((folder) => {
+      taskList.push(folder);
     });
   } else {
-    // 即使沒有文件，也顯示任務工作區（空目錄）
-    taskList.push({
-      taskId: TEMP_WORKSPACE_ID,
-      taskName: TEMP_WORKSPACE_NAME,
-      fileCount: 0,
-      isExpanded: expandedTasks.has(TEMP_WORKSPACE_ID),
-    });
-  }
-
-  // 如果指定了 taskId，只顯示任務工作區，不顯示其他任務文件夾
-  // 這樣符合規劃：上傳的資料都放在任務id的上傳資料暫存區
-  if (!taskId) {
-    // 只有在沒有指定 taskId 時，才顯示其他任務文件夾
-    // 包括：
-    // 1. 頂級資料夾（parent_task_id 為 null 的資料夾，與任務工作區同級）
-    // 2. 其他任務文件夾（在 folders 中但不在 temp-workspace 下的資料夾）
+    // 未指定 taskId，顯示所有任務的資料夾（向後兼容）
     const topLevelFolders = getTopLevelFolders();
     topLevelFolders.forEach((folder) => {
-      if (folder.taskId !== TEMP_WORKSPACE_ID) {
-        taskList.push(folder);
-      }
+      taskList.push(folder);
     });
 
     // 顯示其他任務文件夾（不在 folders 中的，可能是舊的任務ID）
     Object.entries(tree).forEach(([taskIdKey, files]) => {
-      if (taskIdKey !== TEMP_WORKSPACE_ID && !foldersInfo[taskIdKey]) {
+      if (!foldersInfo[taskIdKey]) {
         taskList.push({
           taskId: taskIdKey,
           taskName: taskIdKey,
@@ -1185,17 +2764,22 @@ export default function FileTree({
   }
 
   // 獲取子資料夾列表（用於在 temp-workspace 或其他資料夾下顯示）
+  // 修改時間：2025-01-27 - 修復資料夾層級邏輯，根據 folder_type 區分
   const getSubFolders = (parentTaskId: string): TreeNode[] => {
     const subFolders: TreeNode[] = [];
     Object.entries(foldersInfo).forEach(([folderTaskId, folderInfo]) => {
       // 處理 parent_task_id 可能為 null、undefined 或字符串的情況
       const folderParentId = folderInfo.parent_task_id;
-      // 匹配邏輯：
-      // 1. 如果 folderParentId === parentTaskId，直接匹配
-      // 2. 如果 folderParentId 是 null/undefined 且 parentTaskId 是 TEMP_WORKSPACE_ID，匹配（頂級資料夾顯示在暫存工作區下）
-      const isMatch = folderParentId === parentTaskId ||
-                      ((folderParentId === null || folderParentId === undefined) && parentTaskId === TEMP_WORKSPACE_ID);
-      if (isMatch) {
+      // 修改時間：2025-01-27 - 使用類型斷言訪問 folder_type（API 可能返回但類型定義中未包含）
+      const folderType = (folderInfo as any).folder_type || '';
+      
+      // 修改時間：2025-01-27 - 修復邏輯
+      // 不應該將所有 parent_task_id === null 的資料夾都當作子資料夾
+      // 「任務工作區」(folder_type='workspace') 和「排程任務」(folder_type='scheduled') 應該是並列的根目錄
+      // 只有當 parent_task_id 明確等於 parentTaskId 時才是子資料夾
+      
+      // 匹配邏輯：只匹配 parent_task_id 等於 parentTaskId 的資料夾（真正的子資料夾）
+      if (folderParentId === parentTaskId) {
         subFolders.push({
           taskId: folderTaskId,
           taskName: folderInfo.folder_name,
@@ -1205,23 +2789,6 @@ export default function FileTree({
       }
     });
     return subFolders;
-  };
-
-  // 獲取頂級資料夾列表（parent_task_id 為 null 的資料夾，與暫存工作區同級）
-  const getTopLevelFolders = (): TreeNode[] => {
-    const topLevelFolders: TreeNode[] = [];
-    Object.entries(foldersInfo).forEach(([folderTaskId, folderInfo]) => {
-      // 頂級資料夾：parent_task_id 為 null 或 undefined
-      if (folderInfo.parent_task_id === null || folderInfo.parent_task_id === undefined) {
-        topLevelFolders.push({
-          taskId: folderTaskId,
-          taskName: folderInfo.folder_name,
-          fileCount: tree[folderTaskId]?.length || 0,
-          isExpanded: expandedTasks.has(folderTaskId),
-        });
-      }
-    });
-    return topLevelFolders;
   };
 
   return (
@@ -1234,10 +2801,31 @@ export default function FileTree({
       </div>
 
       <div className="p-2">
-        {taskList.map((task) => {
-          const isSelected = selectedTaskId === task.taskId;
-          const isExpanded = expandedTasks.has(task.taskId);
-          const files = tree[task.taskId] || [];
+        {taskList.length === 0 ? (
+          <div className="p-4 text-sm text-tertiary theme-transition text-center">
+            暫無工作區
+            <br />
+            <span className="text-xs text-muted theme-transition">請創建任務或上傳文件</span>
+          </div>
+        ) : (
+          taskList.map((task) => {
+            const isSelected = selectedTaskId === task.taskId;
+            const isExpanded = expandedTasks.has(task.taskId);
+            const files = tree[task.taskId] || [];
+            const subFolders = getSubFolders(task.taskId);
+            
+            // 修改時間：2025-12-08 13:40:00 UTC+8 - 添加調試信息
+            if (task.taskId === TEMP_WORKSPACE_ID) {
+              console.log('[FileTree] Rendering task workspace', {
+                taskId: task.taskId,
+                taskName: task.taskName,
+                fileCount: task.fileCount,
+                isExpanded,
+                filesCount: files.length,
+                subFoldersCount: subFolders.length,
+                subFolders: subFolders.map(f => ({ id: f.taskId, name: f.taskName, files: tree[f.taskId]?.length || 0 }))
+              });
+            }
 
           return (
             <div key={task.taskId} className="mb-1">
@@ -1301,17 +2889,61 @@ export default function FileTree({
                 </span>
               </div>
 
-              {/* 子資料夾列表（展開時顯示） */}
+              {/* 修改時間：2025-01-27 - 文件應該直接顯示在資料夾節點下 */}
+              {/* 展開時顯示：1) 文件列表（如果有） 2) 子資料夾列表（如果有） */}
               {isExpanded && (() => {
+                // 文件直接屬於這個資料夾
+                const filesInFolder = files || [];
                 const subFolders = getSubFolders(task.taskId);
-                if (subFolders.length === 0) return null;
+                
+                // 如果沒有文件也沒有子資料夾，不顯示任何內容
+                if (filesInFolder.length === 0 && subFolders.length === 0) {
+                  return null;
+                }
+                
                 return (
                   <div className="ml-6 mt-1 space-y-0.5">
-                    {subFolders.map((subFolder) => {
-                      const isSubExpanded = expandedTasks.has(subFolder.taskId);
-                      const subFiles = tree[subFolder.taskId] || [];
-                      return (
-                        <div key={subFolder.taskId} className="mb-1">
+                    {/* 文件列表（直接屬於這個資料夾） */}
+                    {filesInFolder.length > 0 && (
+                      <div className="mb-1">
+                        {filesInFolder.slice(0, 20).map((file: any) => (
+                          <div
+                            key={file.file_id}
+                            className={`flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition ${
+                              selectedFileId === file.file_id
+                                ? 'bg-blue-500/30 text-blue-300 border-l-4 border-blue-500 shadow-md'
+                                : 'text-secondary hover:bg-blue-500/25 hover:text-blue-300 hover:border-l-4 hover:border-blue-500 hover:shadow-md'
+                            }`}
+                            onClick={() => {
+                              setSelectedFileId(file.file_id);
+                              if (onFileSelect) {
+                                onFileSelect(file.file_id, file.filename);
+                              }
+                            }}
+                            onContextMenu={(e) => {
+                              handleContextMenu(e, file.file_id, file.filename);
+                            }}
+                          >
+                            <FileIcon className="w-3 h-3 text-tertiary flex-shrink-0" />
+                            <span className={`flex-1 truncate ${selectedFileId === file.file_id ? 'text-blue-400' : 'text-primary'}`}>{file.filename}</span>
+                          </div>
+                        ))}
+                        {filesInFolder.length > 20 && (
+                          <div className="px-2 py-1 text-xs text-tertiary theme-transition">
+                            ...還有 {filesInFolder.length - 20} 個文件
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* 子資料夾列表（如果有子資料夾） */}
+                    {subFolders.length > 0 && (
+                      <div className="mt-1">
+                        {subFolders.map((subFolder) => {
+                          const isSubExpanded = expandedTasks.has(subFolder.taskId);
+                          const subFiles = tree[subFolder.taskId] || [];
+                          return (
+                            <div key={subFolder.taskId} className="mb-1">
                           <div
                             ref={(el) => {
                               if (el) {
@@ -1495,47 +3127,18 @@ export default function FileTree({
                               )}
                             </div>
                           )}
-                        </div>
-                      );
-                    })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })()}
-
-              {/* 文件列表（展開時顯示） */}
-              {isExpanded && files.length > 0 && (
-                <div className="ml-6 mt-1 space-y-0.5">
-                  {files.slice(0, 10).map((file) => (
-                    <div
-                      key={file.file_id}
-                      className={`flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition ${
-                        selectedFileId === file.file_id
-                          ? 'bg-blue-500/30 text-blue-300 border-l-4 border-blue-500 shadow-md'
-                          : 'text-secondary hover:bg-blue-500/25 hover:text-blue-300 hover:border-l-4 hover:border-blue-500 hover:shadow-md'
-                      }`}
-                      onClick={() => {
-                        setSelectedFileId(file.file_id);
-                        if (onFileSelect) {
-                          // 傳遞 file_id 和 filename，確保能正確識別文件
-                          onFileSelect(file.file_id, file.filename);
-                        }
-                      }}
-                      onContextMenu={(e) => handleContextMenu(e, file.file_id, file.filename)}
-                    >
-                      <FileIcon className={`w-3 h-3 ${selectedFileId === file.file_id ? 'text-blue-400' : 'text-tertiary'}`} />
-                      <span className={`flex-1 truncate ${selectedFileId === file.file_id ? 'text-blue-400' : 'text-primary'}`}>{file.filename}</span>
-                    </div>
-                  ))}
-                  {files.length > 10 && (
-                    <div className="px-2 py-1 text-xs text-tertiary theme-transition">
-                      ...還有 {files.length - 10} 個文件
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           );
-        })}
+          })
+        )}
       </div>
 
       {/* 右鍵菜單 */}
@@ -1560,14 +3163,7 @@ export default function FileTree({
             onClick={() => handleMenuAction('move')}
           >
             <i className="fa-solid fa-folder-open w-4"></i>
-            <span>移動目錄</span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-red-500/20 hover:text-red-400 theme-transition flex items-center gap-2 transition-colors duration-200"
-            onClick={() => handleMenuAction('delete')}
-          >
-            <i className="fa-solid fa-trash w-4"></i>
-            <span>刪除文件</span>
+            <span>移動文件目錄</span>
           </button>
           <button
             className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
@@ -1603,7 +3199,7 @@ export default function FileTree({
             onClick={() => handleMenuAction('attachToChat')}
           >
             <i className="fa-solid fa-paperclip w-4"></i>
-            <span>標註到AI任務指令區</span>
+            <span>標註到任務指令區</span>
           </button>
           <button
             className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
@@ -1627,7 +3223,35 @@ export default function FileTree({
             <i className="fa-solid fa-info-circle w-4"></i>
             <span>查看文件信息</span>
           </button>
+          <div className="border-t border-primary my-1"></div>
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/20 hover:text-red-300 theme-transition flex items-center gap-2 transition-colors duration-200"
+            onClick={() => handleMenuAction('delete')}
+          >
+            <i className="fa-solid fa-trash w-4"></i>
+            <span>刪除文件</span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+            onClick={() => handleMenuAction('reupload')}
+          >
+            <i className="fa-solid fa-upload w-4"></i>
+            <span>重新上傳文件</span>
+          </button>
         </div>
+      )}
+
+      {/* 修改時間：2025-12-09 - 添加文件數據預覽組件（treeData 路徑） */}
+      {showDataPreview && previewFile && (
+        <FileDataPreview
+          file={previewFile}
+          initialMode={previewMode}
+          isOpen={showDataPreview}
+          onClose={() => {
+            setShowDataPreview(false);
+            setPreviewFile(null);
+          }}
+        />
       )}
 
       {/* 文件信息對話框 */}
@@ -1636,6 +3260,7 @@ export default function FileTree({
           fileId={fileInfo.fileId}
           fileName={fileInfo.fileName}
           taskId={taskId}
+          treeData={treeData}
           onClose={() => {
             setShowFileInfoModal(false);
             setFileInfo(null);
@@ -1757,6 +3382,66 @@ export default function FileTree({
         </div>
       )}
 
+      {/* 刪除文件確認對話框 */}
+      {showDeleteFileModal && deleteFileTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 theme-transition">
+          <div className="bg-secondary border border-primary rounded-lg shadow-lg w-full max-w-md p-6 theme-transition">
+            <h2 className="text-lg font-semibold text-primary mb-4 theme-transition">
+              刪除文件
+            </h2>
+            <p className="text-sm text-tertiary mb-6 theme-transition">
+              確定要刪除文件「<span className="text-primary font-semibold">{deleteFileTarget.fileName}</span>」嗎？
+              <br />
+              <span className="text-red-400">此操作將永久刪除該文件及其相關數據（向量、圖譜、元數據），且無法復原。</span>
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleDeleteFileCancel}
+                className="px-4 py-2 bg-tertiary hover:bg-hover text-primary rounded-lg transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDeleteFileConfirm}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+              >
+                確定刪除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 重新上傳文件確認對話框 */}
+      {showReuploadModal && reuploadFileTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 theme-transition">
+          <div className="bg-secondary border border-primary rounded-lg shadow-lg w-full max-w-md p-6 theme-transition">
+            <h2 className="text-lg font-semibold text-primary mb-4 theme-transition">
+              重新上傳文件
+            </h2>
+            <p className="text-sm text-tertiary mb-6 theme-transition">
+              確定要重新上傳文件「<span className="text-primary font-semibold">{reuploadFileTarget.fileName}</span>」嗎？
+              <br />
+              <span className="text-yellow-400">此操作將先刪除原文件的所有數據（向量、圖譜、元數據、文件），然後打開文件上傳對話框供您選擇新文件。</span>
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleReuploadCancel}
+                className="px-4 py-2 bg-tertiary hover:bg-hover text-primary rounded-lg transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleReuploadConfirm}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+              >
+                確定重新上傳
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 通知提示 */}
       {notification && (
         <div
@@ -1776,6 +3461,22 @@ export default function FileTree({
             <span className="text-sm font-medium">{notification.message}</span>
           </div>
         </div>
+      )}
+
+      {/* 修改時間：2025-12-08 09:29:49 UTC+8 - 添加文件移動目錄選擇彈窗 */}
+      {showMoveModal && moveFileTarget && (
+        <FileMoveModal
+          isOpen={showMoveModal}
+          onClose={() => {
+            setShowMoveModal(false);
+            setMoveFileTarget(null);
+          }}
+          onConfirm={handleMoveConfirm}
+          fileId={moveFileTarget.fileId}
+          fileName={moveFileTarget.fileName}
+          treeData={modalTreeData}
+          currentTaskId={moveFileTarget.currentTaskId}
+        />
       )}
 
       {/* 資料夾右鍵菜單 */}
@@ -1858,13 +3559,20 @@ interface FileInfoModalProps {
   fileName: string;
   taskId?: string;
   onClose: () => void;
+  // 修改時間：2025-12-08 12:00:00 UTC+8 - 添加 treeData 用於構建路徑
+  treeData?: FileTreeResponse | null;
 }
 
-function FileInfoModal({ fileId, fileName, taskId, onClose }: FileInfoModalProps) {
+function FileInfoModal({ fileId, fileName, taskId, onClose, treeData }: FileInfoModalProps) {
   const [fileMetadata, setFileMetadata] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasVectors, setHasVectors] = useState<boolean | null>(null);
   const [hasGraph, setHasGraph] = useState<boolean | null>(null);
+  // 修改時間：2025-12-08 12:00:00 UTC+8 - 添加向量和圖譜詳細信息
+  const [vectorInfo, setVectorInfo] = useState<{ chunkCount?: number; dimension?: number } | null>(null);
+  const [graphInfo, setGraphInfo] = useState<{ nodeCount?: number; tripleCount?: number } | null>(null);
+  const [filePath, setFilePath] = useState<string>('');
+  const [fileTaskId, setFileTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadFileInfo = async () => {
@@ -1883,6 +3591,7 @@ function FileInfoModal({ fileId, fileName, taskId, onClose }: FileInfoModalProps
               task_id: mockFile.task_id,
               user_id: mockFile.user_id,
             });
+            setFileTaskId(mockFile.task_id);
             setHasVectors(false); // 模擬文件暫時不檢查向量
             setHasGraph(false); // 模擬文件暫時不檢查圖譜
             setLoading(false);
@@ -1898,12 +3607,63 @@ function FileInfoModal({ fileId, fileName, taskId, onClose }: FileInfoModalProps
             const file = response.data.files.find((f: any) => f.file_id === fileId);
             if (file) {
               setFileMetadata(file);
+              setFileTaskId(file.task_id || null);
+              
+              // 構建文件路徑
+              if (treeData?.data?.tree && file.task_id) {
+                const buildFolderPath = (taskId: string, folders: Record<string, any>): string[] => {
+                  const path: string[] = [];
+                  let currentTaskId: string | null = taskId;
+                  
+                  if (currentTaskId === TEMP_WORKSPACE_ID) {
+                    return [TEMP_WORKSPACE_NAME];
+                  }
+                  
+                  const visited = new Set<string>();
+                  while (currentTaskId && currentTaskId !== TEMP_WORKSPACE_ID && !visited.has(currentTaskId)) {
+                    visited.add(currentTaskId);
+                    const folderInfo: any = folders[currentTaskId];
+                    if (folderInfo) {
+                      path.unshift(folderInfo.folder_name);
+                      currentTaskId = folderInfo.parent_task_id;
+                    } else {
+                      path.unshift(currentTaskId);
+                      break;
+                    }
+                  }
+                  
+                  if (currentTaskId === null || currentTaskId === TEMP_WORKSPACE_ID) {
+                    path.unshift(TEMP_WORKSPACE_NAME);
+                  }
+                  
+                  return path;
+                };
+                
+                const folders = treeData.data.folders || {};
+                const folderPath = buildFolderPath(file.task_id, folders);
+                const fullPath = folderPath.join('/') + '/' + (file.filename || fileName);
+                setFilePath(fullPath);
+              } else {
+                setFilePath(file.task_id ? `${file.task_id}/${fileName}` : fileName);
+              }
+              
               // 檢查向量和圖譜數據狀態
-              // 從文件元數據中獲取狀態
               if (file.vector_count !== undefined && file.vector_count > 0) {
                 setHasVectors(true);
+                // 獲取向量詳細信息
+                try {
+                  const vectorResponse = await getFileVectors(fileId, 1, 0);
+                  if (vectorResponse.success && vectorResponse.data) {
+                    const vectorData = vectorResponse.data;
+                    setVectorInfo({
+                      chunkCount: vectorData.total || file.vector_count || file.chunk_count,
+                      dimension: vectorData.stats?.dimension || (vectorData.vectors && vectorData.vectors.length > 0 && vectorData.vectors[0].vector ? vectorData.vectors[0].vector.length : undefined),
+                    });
+                  }
+                } catch (error) {
+                  console.error('Failed to load vector info:', error);
+                }
               } else if (file.processing_status === 'completed' || file.status === 'processed') {
-                // 如果處理狀態為已完成，但沒有向量計數，可能還在處理中
                 setHasVectors(null);
               } else {
                 setHasVectors(false);
@@ -1911,6 +3671,19 @@ function FileInfoModal({ fileId, fileName, taskId, onClose }: FileInfoModalProps
 
               if (file.kg_status === 'completed' || file.kg_status === 'extracted') {
                 setHasGraph(true);
+                // 獲取圖譜詳細信息
+                try {
+                  const graphResponse = await getFileGraph(fileId, 1, 0);
+                  if (graphResponse.success && graphResponse.data) {
+                    const graphData = graphResponse.data;
+                    setGraphInfo({
+                      nodeCount: graphData.stats?.node_count || graphData.total_nodes,
+                      tripleCount: graphData.stats?.triple_count || graphData.total_triples || graphData.total,
+                    });
+                  }
+                } catch (error) {
+                  console.error('Failed to load graph info:', error);
+                }
               } else if (file.processing_status === 'completed' || file.status === 'processed') {
                 setHasGraph(null);
               } else {
@@ -1927,7 +3700,7 @@ function FileInfoModal({ fileId, fileName, taskId, onClose }: FileInfoModalProps
     };
 
     loadFileInfo();
-  }, [fileId, taskId]);
+  }, [fileId, taskId, treeData, fileName]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B';
@@ -1952,12 +3725,7 @@ function FileInfoModal({ fileId, fileName, taskId, onClose }: FileInfoModalProps
     }
   };
 
-  const getCurrentPath = (): string => {
-    if (taskId) {
-      return taskId === TEMP_WORKSPACE_ID ? '暫存工作區' : `任務: ${taskId}`;
-    }
-    return fileMetadata?.task_id || '未知路徑';
-  };
+  // 修改時間：2025-12-08 12:00:00 UTC+8 - 移除 getCurrentPath，使用 filePath 狀態
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 theme-transition" onClick={onClose}>
@@ -2010,10 +3778,16 @@ function FileInfoModal({ fileId, fileName, taskId, onClose }: FileInfoModalProps
                 <div className="text-primary">{formatDate(fileMetadata.upload_time || new Date().toISOString())}</div>
               </div>
 
-              {/* 目前路徑 */}
+              {/* 任務ID */}
               <div>
-                <label className="text-sm font-medium text-tertiary block mb-1">目前路徑</label>
-                <div className="text-primary">{getCurrentPath()}</div>
+                <label className="text-sm font-medium text-tertiary block mb-1">任務ID</label>
+                <div className="text-primary font-mono text-sm break-all">{fileTaskId || fileMetadata.task_id || '無'}</div>
+              </div>
+
+              {/* 路徑 */}
+              <div>
+                <label className="text-sm font-medium text-tertiary block mb-1">路徑</label>
+                <div className="text-primary break-words">{filePath || (fileMetadata.task_id ? `${fileMetadata.task_id}/${fileName}` : fileName)}</div>
               </div>
 
               {/* 文件類型 */}
@@ -2024,50 +3798,46 @@ function FileInfoModal({ fileId, fileName, taskId, onClose }: FileInfoModalProps
                 </div>
               )}
 
-              {/* 向量資料狀態 */}
+              {/* 向量資料 */}
               <div>
-                <label className="text-sm font-medium text-tertiary block mb-1">向量資料</label>
-                <div className="flex items-center gap-2">
-                  {hasVectors === true ? (
-                    <>
-                      <i className="fa-solid fa-check-circle text-green-500"></i>
-                      <span className="text-green-500">已產生</span>
-                    </>
+                <label className="text-sm font-medium text-tertiary block mb-1">向量</label>
+                {hasVectors === true && vectorInfo ? (
+                  <div className="space-y-1">
+                    <div className="text-primary">
+                      <span className="text-tertiary">塊數：</span>
+                      {vectorInfo.chunkCount !== undefined ? vectorInfo.chunkCount : '無'}
+                    </div>
+                    <div className="text-primary">
+                      <span className="text-tertiary">維度：</span>
+                      {vectorInfo.dimension !== undefined ? vectorInfo.dimension : '無'}
+                    </div>
+                  </div>
                   ) : hasVectors === false ? (
-                    <>
-                      <i className="fa-solid fa-times-circle text-red-500"></i>
-                      <span className="text-red-500">未產生</span>
-                    </>
+                  <div className="text-tertiary">無</div>
                   ) : (
-                    <>
-                      <i className="fa-solid fa-question-circle text-tertiary"></i>
-                      <span className="text-tertiary">未知</span>
-                    </>
+                  <div className="text-tertiary">載入中...</div>
                   )}
-                </div>
               </div>
 
-              {/* 圖譜資料狀態 */}
+              {/* 圖譜資料 */}
               <div>
-                <label className="text-sm font-medium text-tertiary block mb-1">圖譜資料</label>
-                <div className="flex items-center gap-2">
-                  {hasGraph === true ? (
-                    <>
-                      <i className="fa-solid fa-check-circle text-green-500"></i>
-                      <span className="text-green-500">已產生</span>
-                    </>
+                <label className="text-sm font-medium text-tertiary block mb-1">圖譜</label>
+                {hasGraph === true && graphInfo ? (
+                  <div className="space-y-1">
+                    <div className="text-primary">
+                      <span className="text-tertiary">節點數：</span>
+                      {graphInfo.nodeCount !== undefined ? graphInfo.nodeCount : '無'}
+                    </div>
+                    <div className="text-primary">
+                      <span className="text-tertiary">關係三元組：</span>
+                      {graphInfo.tripleCount !== undefined ? graphInfo.tripleCount : '無'}
+                    </div>
+                  </div>
                   ) : hasGraph === false ? (
-                    <>
-                      <i className="fa-solid fa-times-circle text-red-500"></i>
-                      <span className="text-red-500">未產生</span>
-                    </>
+                  <div className="text-tertiary">無</div>
                   ) : (
-                    <>
-                      <i className="fa-solid fa-question-circle text-tertiary"></i>
-                      <span className="text-tertiary">未知</span>
-                    </>
+                  <div className="text-tertiary">載入中...</div>
                   )}
-                </div>
               </div>
             </div>
           ) : (

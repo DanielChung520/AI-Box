@@ -57,7 +57,7 @@ class KGBuilderService:
         return f"{entity_type.lower()}_{key_hash}"
 
     def _find_or_create_entity(
-        self, text: str, entity_type: str, start: int, end: int
+        self, text: str, entity_type: str, start: int, end: int, file_id: Optional[str] = None
     ) -> str:
         """查找或創建實體（實體去重）"""
         if self.client is None or self.client.db is None:
@@ -69,11 +69,17 @@ class KGBuilderService:
         try:
             existing = collection.get(entity_key)
             if existing:
-                # 更新實體（合併信息）
+                # 更新實體（合併信息，添加file_id到file_ids數組）
                 update_data = {
                     "_key": entity_key,
                     "updated_at": datetime.utcnow().isoformat(),
                 }
+                # 如果提供了file_id，添加到file_ids數組
+                if file_id:
+                    file_ids = existing.get("file_ids", [])
+                    if file_id not in file_ids:
+                        file_ids.append(file_id)
+                        update_data["file_ids"] = file_ids
                 collection.update(update_data)
                 return f"{ENTITIES_COLLECTION}/{entity_key}"
         except Exception:
@@ -90,6 +96,11 @@ class KGBuilderService:
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
         }
+        
+        # 如果提供了file_id，添加到文檔
+        if file_id:
+            entity_doc["file_id"] = file_id
+            entity_doc["file_ids"] = [file_id]
 
         collection.insert(entity_doc)
         return f"{ENTITIES_COLLECTION}/{entity_key}"
@@ -101,6 +112,7 @@ class KGBuilderService:
         relation_type: str,
         confidence: float,
         context: str,
+        file_id: Optional[str] = None,
     ) -> Optional[str]:
         """查找或創建關係（關係去重）"""
         if self.client is None or self.client.db is None:
@@ -126,6 +138,12 @@ class KGBuilderService:
                     "confidence": max(existing.get("confidence", 0), confidence),
                     "updated_at": datetime.utcnow().isoformat(),
                 }
+                # 如果提供了file_id，添加到file_ids數組
+                if file_id:
+                    file_ids = existing.get("file_ids", [])
+                    if file_id not in file_ids:
+                        file_ids.append(file_id)
+                        update_data["file_ids"] = file_ids
                 collection.update(update_data)
                 return f"{RELATIONS_COLLECTION}/{relation_key}"
         except Exception:
@@ -143,11 +161,18 @@ class KGBuilderService:
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
         }
+        
+        # 如果提供了file_id，添加到文檔
+        if file_id:
+            relation_doc["file_id"] = file_id
+            relation_doc["file_ids"] = [file_id]
 
         collection.insert(relation_doc)
         return f"{RELATIONS_COLLECTION}/{relation_key}"
 
-    async def build_from_triples(self, triples: List[Triple]) -> Dict:
+    async def build_from_triples(
+        self, triples: List[Triple], file_id: Optional[str] = None, user_id: Optional[str] = None
+    ) -> Dict:
         """從三元組構建知識圖譜"""
         entities_created = 0
         entities_updated = 0
@@ -162,6 +187,7 @@ class KGBuilderService:
                     triple.subject.type,
                     triple.subject.start,
                     triple.subject.end,
+                    file_id=file_id,
                 )
                 entities_created += 1
 
@@ -171,6 +197,7 @@ class KGBuilderService:
                     triple.object.type,
                     triple.object.start,
                     triple.object.end,
+                    file_id=file_id,
                 )
                 entities_created += 1
 
@@ -181,6 +208,7 @@ class KGBuilderService:
                     triple.relation.type,
                     triple.confidence,
                     triple.context,
+                    file_id=file_id,
                 )
                 if relation_id:
                     relations_created += 1

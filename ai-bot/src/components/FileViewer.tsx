@@ -12,9 +12,10 @@ interface FileViewerProps {
   fileUrl: string;
   fileName: string;
   content?: string; // 對於 Markdown，可以直接傳入內容
+  fileId?: string; // 文件 ID，用於獲取向量和圖譜數據
 }
 
-export default function FileViewer({ fileUrl, fileName, content }: FileViewerProps) {
+export default function FileViewer({ fileUrl, fileName, content, fileId }: FileViewerProps) {
   // 根據文件擴展名判斷文件類型
   const fileType = useMemo(() => {
     const extension = fileName.split('.').pop()?.toLowerCase();
@@ -29,6 +30,7 @@ export default function FileViewer({ fileUrl, fileName, content }: FileViewerPro
         <MarkdownViewer
           content={content || ''}
           fileName={fileName}
+          fileId={fileId}
         />
       );
 

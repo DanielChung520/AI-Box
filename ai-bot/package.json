@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev:client": "vite --host --port 3000",
-    "dev": "pnpm dev:client",
+    "dev": "./start-dev.sh",
+    "dev:simple": "pnpm dev:client",
     "build:client": "vite build --outDir dist/static",
     "build": "rm -rf dist && pnpm build:client && cp package.json dist && touch dist/build.flag"
   },
   "dependencies": {
+    "@antv/g6": "^5.0.50",
     "clsx": "^2.1.1",
     "framer-motion": "^12.9.2",
     "lucide-react": "^0.555.0",

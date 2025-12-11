@@ -1,8 +1,8 @@
 /**
  * 代碼功能說明: 歡迎頁面組件，帶動態影像效果
- * 創建日期: 2025-01-27
+ * 創建日期: 2025-12-05
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-01-27
+ * 最後修改日期: 2025-12-07 17:00
  */
 
 import { useEffect, useState, useRef } from 'react';
@@ -11,8 +11,11 @@ import { performanceMonitor } from '@/lib/performance';
 
 export default function WelcomePage() {
   const [showContent, setShowContent] = useState(false);
+  const [logoAnimationComplete, setLogoAnimationComplete] = useState(false);
   const navigate = useNavigate();
   const pageStartTime = useRef<number>(performance.now());
+  const logoImageRef = useRef<HTMLImageElement>(null);
+  const animationStartedRef = useRef<boolean>(false);
 
   useEffect(() => {
     // 記錄歡迎頁組件掛載時間
@@ -31,6 +34,7 @@ export default function WelcomePage() {
     }, 300);
 
     // 記錄 Logo 動畫完成時間（動畫持續 1.5 秒，亮光動畫在 1.5 秒後開始，持續 2 秒）
+    // 注意：實際的動畫完成處理由 animationend 事件處理，這裡只記錄性能指標
     const logoAnimationTimer = setTimeout(() => {
       performanceMonitor.markLogoAnimationComplete();
       // 輸出性能報告（在亮光動畫完成後）
@@ -51,6 +55,52 @@ export default function WelcomePage() {
       clearTimeout(timer);
       clearTimeout(logoAnimationTimer);
       clearTimeout(redirectTimer);
+    };
+  }, []);
+
+  // 當動畫完成狀態改變時，確保 DOM 元素保持最終狀態
+  useEffect(() => {
+    if (logoAnimationComplete && logoImageRef.current) {
+      // 強制設置最終狀態，防止任何重新渲染導致動畫重新觸發
+      const img = logoImageRef.current;
+      // 使用 requestAnimationFrame 確保在下一幀設置，避免與動畫衝突
+      requestAnimationFrame(() => {
+        if (img) {
+          img.style.animation = 'none';
+          img.style.transform = 'scale(1)';
+          img.style.opacity = '1';
+          // 移除 will-change 以優化性能
+          img.style.willChange = 'auto';
+        }
+      });
+    }
+  }, [logoAnimationComplete]);
+
+  // 監聽 logo 圖片元素，確保動畫完成後立即設置最終狀態
+  useEffect(() => {
+    if (!logoImageRef.current || animationStartedRef.current) return;
+    
+    animationStartedRef.current = true;
+    
+    // 監聽動畫結束事件
+    const handleAnimationEnd = () => {
+      if (logoImageRef.current) {
+        const img = logoImageRef.current;
+        img.style.animation = 'none';
+        img.style.transform = 'scale(1)';
+        img.style.opacity = '1';
+        img.style.willChange = 'auto';
+        setLogoAnimationComplete(true);
+      }
+    };
+
+    const img = logoImageRef.current;
+    img.addEventListener('animationend', handleAnimationEnd);
+    
+    return () => {
+      if (img) {
+        img.removeEventListener('animationend', handleAnimationEnd);
+      }
     };
   }, []);
 
@@ -110,11 +160,12 @@ export default function WelcomePage() {
       </div>
 
       {/* 主要內容 */}
-      <div className={`relative z-10 text-center px-4 transition-opacity duration-1000 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`relative z-10 text-center px-2 transition-opacity duration-1000 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
         {/* Logo 動畫 */}
-        <div className="mb-2">
-          <div className="logo-container w-36 h-36 mx-auto flex items-center justify-center p-1 relative">
+        <div className="mb-1">
+          <div className="logo-container w-56 h-56 mx-auto flex items-center justify-center p-1 relative">
             <img
+              ref={logoImageRef}
               src="/SmartQ.-logo.svg"
               alt="SmartQ Logo"
               className="logo-image object-contain"
@@ -143,7 +194,7 @@ export default function WelcomePage() {
         </p>
 
         {/* 動態圖標展示 */}
-        <div className="flex justify-center gap-8 mb-12 animate-fade-in-up-delay-3">
+        <div className="flex justify-center gap-4 mb-6 animate-fade-in-up-delay-3">
           <div className="text-center">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-2 backdrop-blur-sm">
               <i className="fa-solid fa-file-lines text-2xl text-white"></i>
@@ -241,22 +292,32 @@ export default function WelcomePage() {
         .animate-pulse-slow {
           animation: pulse-slow 2s ease-in-out infinite;
         }
-        /* Logo 縮放動畫 - 從 3 倍縮放到 0.8 倍 */
+        /* Logo 縮放動畫 - 從 3 倍縮放到1倍 */
         @keyframes logo-scale-down {
           0% {
-            transform: scale(3);
+            transform: scale(4);
             opacity: 0;
           }
           10% {
             opacity: 1;
           }
           100% {
-            transform: scale(0.8);
+            transform: scale(1);
             opacity: 1;
           }
         }
         .logo-image {
           animation: logo-scale-down 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation-fill-mode: forwards;
+          will-change: transform, opacity;
+        }
+        /* 動畫完成後通過內聯樣式保持最終狀態，防止重新縮小 */
+        .logo-image[style*="animation: none"],
+        .logo-image[style*="animation:none"] {
+          animation: none !important;
+          transform: scale(1) !important;
+          opacity: 1 !important;
+          will-change: auto !important;
         }
         /* 橫向亮光掃過動畫 */
         .light-beam-container {

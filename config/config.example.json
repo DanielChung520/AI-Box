@@ -1,282 +1,284 @@
 {
-  "project": {
-    "name": "AI-Box",
-    "environment": "development",
-    "datasets_root": "./datasets"
-  },
-  "services": {
-    "api": {
-      "host": "0.0.0.0",
-      "port": 8000,
-      "cors_origins": "*"
+    "project": {
+        "name": "AI-Box",
+        "environment": "development",
+        "datasets_root": "./data/datasets"
     },
-    "mcp_server": {
-      "host": "0.0.0.0",
-      "port": 8002
-    },
-    "ollama": {
-      "scheme": "http",
-      "host": "olm.k84.org",
-      "port": 11434,
-      "health_timeout": 10,
-      "request_timeout": 60,
-      "default_model": "gpt-oss:20b",
-      "embedding_model": "nomic-embed-text",
-      "nodes": [
-        {
-          "name": "olm-primary",
-          "host": "olm.k84.org",
-          "port": 11434,
-          "weight": 3
+    "services": {
+        "api": {
+            "host": "0.0.0.0",
+            "port": 8000,
+            "cors_origins": "*"
         },
-        {
-          "name": "olm-fallback",
-          "host": "localhost",
-          "port": 11435,
-          "weight": 1
+        "mcp_server": {
+            "host": "0.0.0.0",
+            "port": 8002
+        },
+        "ollama": {
+            "scheme": "http",
+            "host": "olm.k84.org",
+            "port": 11434,
+            "health_timeout": 10,
+            "request_timeout": 60,
+            "default_model": "gpt-oss:20b",
+            "embedding_model": "nomic-embed-text",
+            "nodes": [
+                {
+                    "name": "olm-primary",
+                    "host": "olm.k84.org",
+                    "port": 11434,
+                    "weight": 3
+                },
+                {
+                    "name": "olm-fallback",
+                    "host": "localhost",
+                    "port": 11435,
+                    "weight": 1
+                }
+            ],
+            "router": {
+                "strategy": "weighted",
+                "cooldown_seconds": 45
+            },
+            "baseline_models": [
+                "gpt-oss:20b",
+                "qwen3-coder:30b"
+            ],
+            "fallback_models": [
+                "llama3.1:8b",
+                "mistral-nemo:12b"
+            ],
+            "download": {
+                "data_root": "~/.ollama",
+                "retry": {
+                    "max_attempts": 3,
+                    "backoff_seconds": 20
+                },
+                "allowed_window": "02:00-06:00 UTC+8",
+                "max_parallel_jobs": 1
+            }
+        },
+        "security": {
+            "enabled": false,
+            "mode": "development",
+            "jwt": {
+                "enabled": false,
+                "secret_key": "SECURITY_JWT_SECRET_KEY",
+                "algorithm": "HS256",
+                "expiration_hours": 24,
+                "refresh_expiration_days": 7
+            },
+            "api_key": {
+                "enabled": false
+            },
+            "rbac": {
+                "enabled": false
+            }
+        },
+        "embedding": {
+            "ollama_url": "http://localhost:11434",
+            "model": "nomic-embed-text",
+            "batch_size": 10,
+            "max_retries": 3,
+            "timeout": 60.0
+        },
+        "chromadb": {
+            "host": "localhost",
+            "port": 8001,
+            "mode": "http",
+            "persist_directory": "./data/chroma_data",
+            "collection_naming": "file_based"
+        },
+        "kg_extraction": {
+            "enabled": true,
+            "mode": "all_chunks",
+            "min_confidence": 0.5,
+            "chunk_filter": {
+                "min_length": 100,
+                "max_chunks": 100,
+                "importance_threshold": null
+            }
         }
-      ],
-      "router": {
-        "strategy": "weighted",
-        "cooldown_seconds": 45
-      },
-      "baseline_models": [
-        "gpt-oss:20b",
-        "qwen3-coder:30b"
-      ],
-      "fallback_models": [
-        "llama3.1:8b",
-        "mistral-nemo:12b"
-      ],
-      "download": {
-        "data_root": "~/.ollama",
-        "retry": {
-          "max_attempts": 3,
-          "backoff_seconds": 20
+    },
+    "workflows": {
+        "langchain_graph": {
+            "enable_memory": true,
+            "enable_rag": true,
+            "enable_tools": true,
+            "max_iterations": 10,
+            "default_llm": "gpt-oss:20b",
+            "state_store": {
+                "backend": "redis",
+                "redis_url": "redis://localhost:6379/5",
+                "namespace": "ai-box:workflow:langgraph",
+                "ttl_seconds": 3600
+            },
+            "telemetry": {
+                "emit_metrics": true,
+                "emit_traces": true,
+                "emit_logs": true
+            },
+            "prompt_template_path": null
         },
-        "allowed_window": "02:00-06:00 UTC+8",
-        "max_parallel_jobs": 1
-      }
+        "crewai": {
+            "enable_crew": true,
+            "max_agents": 5,
+            "collaboration_mode": "sequential",
+            "token_budget": 100000,
+            "default_llm": "gpt-oss:20b",
+            "enable_tools": true,
+            "enable_memory": true,
+            "process_timeout": 3600,
+            "max_iterations": 20
+        },
+        "autogen": {
+            "enable_planning": true,
+            "max_steps": 20,
+            "planning_mode": "auto",
+            "auto_retry": true,
+            "max_rounds": 10,
+            "budget_tokens": 100000,
+            "default_llm": "gpt-oss:20b",
+            "enable_tools": true,
+            "enable_memory": true,
+            "checkpoint_enabled": true,
+            "checkpoint_dir": "./data/datasets/autogen/checkpoints"
+        }
     },
-    "security": {
-      "enabled": false,
-      "mode": "development",
-      "jwt": {
-        "enabled": false,
-        "secret_key": "SECURITY_JWT_SECRET_KEY",
-        "algorithm": "HS256",
-        "expiration_hours": 24,
-        "refresh_expiration_days": 7
-      },
-      "api_key": {
-        "enabled": false
-      },
-      "rbac": {
-        "enabled": false
-      }
+    "file_upload": {
+        "max_file_size": 104857600,
+        "allowed_extensions": [
+            ".pdf",
+            ".docx",
+            ".txt",
+            ".md",
+            ".csv",
+            ".json",
+            ".html",
+            ".xlsx"
+        ],
+        "storage_backend": "local",
+        "storage_path": "./data/datasets/files",
+        "enable_virus_scan": false,
+        "storage_root": "./data",
+        "tasks_path": "./data/tasks"
     },
-    "embedding": {
-      "ollama_url": "http://localhost:11434",
-      "model": "nomic-embed-text",
-      "batch_size": 10,
-      "max_retries": 3,
-      "timeout": 60.0
+    "datastores": {
+        "chromadb": {
+            "mount_path": "./data/datasets/chromadb",
+            "mode": "persistent",
+            "http_port": 8001
+        },
+        "arangodb": {
+            "host": "127.0.0.1",
+            "port": 8529,
+            "protocol": "http",
+            "database": "ai_box_kg",
+            "data_path": "./data/datasets/arangodb/data",
+            "apps_path": "./data/datasets/arangodb/apps",
+            "storage_class": "fast-ssd",
+            "request_timeout": 30,
+            "credentials": {
+                "username": "ARANGODB_USERNAME",
+                "password": "ARANGODB_PASSWORD"
+            },
+            "retry": {
+                "enabled": true,
+                "max_attempts": 3,
+                "backoff_factor": 1.5,
+                "max_backoff_seconds": 10
+            },
+            "pool": {
+                "connections": 10,
+                "max_size": 10,
+                "timeout": 5
+            },
+            "tls": {
+                "enabled": false,
+                "verify": true,
+                "ca_file": null
+            }
+        }
     },
-    "chromadb": {
-      "host": "localhost",
-      "port": 8001,
-      "mode": "http",
-      "persist_directory": "./data/chroma_data",
-      "collection_naming": "file_based"
+    "kubernetes": {
+        "namespace": "ai-box",
+        "monitoring_namespace": "ai-box-monitoring"
     },
-    "kg_extraction": {
-      "enabled": true,
-      "mode": "all_chunks",
-      "min_confidence": 0.5,
-      "chunk_filter": {
-        "min_length": 100,
-        "max_chunks": 100,
-        "importance_threshold": null
-      }
+    "monitoring": {
+        "prometheus_enabled": true,
+        "grafana_enabled": true
+    },
+    "jobs": {
+        "ollama_sync": {
+            "enabled": true,
+            "schedule_cron": "0 3 * * *",
+            "manifest_path": "docs/deployment/ollama-models-manifest.json"
+        }
+    },
+    "text_analysis": {
+        "ner": {
+            "model_type": "spacy",
+            "model_name": "zh_core_web_sm",
+            "fallback_model": "ollama:qwen3-coder:30b",
+            "enable_gpu": false,
+            "batch_size": 32
+        },
+        "re": {
+            "model_type": "transformers",
+            "model_name": "bert-base-chinese",
+            "fallback_model": "ollama:qwen3-coder:30b",
+            "enable_gpu": false,
+            "max_relation_length": 128
+        },
+        "rt": {
+            "model_type": "ollama",
+            "model_name": "qwen3-coder:30b",
+            "enable_gpu": false,
+            "classification_threshold": 0.7
+        }
+    },
+    "aam": {
+        "enable_short_term": true,
+        "enable_long_term": true,
+        "short_term_ttl": 3600,
+        "long_term_retention_days": 30,
+        "memory_priority_threshold": 0.7,
+        "enable_hybrid_retrieval": true,
+        "redis": {
+            "key_prefix": "aam:memory:",
+            "ttl": 3600
+        },
+        "chromadb": {
+            "collection_name": "aam_memories"
+        },
+        "arangodb": {
+            "collection_name": "aam_memories",
+            "graph_name": "memory_graph"
+        }
+    },
+    "llm": {
+        "load_balancer": {
+            "strategy": "round_robin",
+            "providers": [
+                "chatgpt",
+                "gemini",
+                "qwen",
+                "grok",
+                "ollama"
+            ],
+            "weights": {
+                "chatgpt": 3,
+                "gemini": 2,
+                "qwen": 2,
+                "grok": 1,
+                "ollama": 1
+            },
+            "cooldown_seconds": 30
+        },
+        "health_check": {
+            "interval": 60.0,
+            "timeout": 5.0,
+            "failure_threshold": 3
+        }
     }
-  },
-  "workflows": {
-    "langchain_graph": {
-      "enable_memory": true,
-      "enable_rag": true,
-      "enable_tools": true,
-      "max_iterations": 10,
-      "default_llm": "gpt-oss:20b",
-      "state_store": {
-        "backend": "redis",
-        "redis_url": "redis://localhost:6379/5",
-        "namespace": "ai-box:workflow:langgraph",
-        "ttl_seconds": 3600
-      },
-      "telemetry": {
-        "emit_metrics": true,
-        "emit_traces": true,
-        "emit_logs": true
-      },
-      "prompt_template_path": null
-    },
-    "crewai": {
-      "enable_crew": true,
-      "max_agents": 5,
-      "collaboration_mode": "sequential",
-      "token_budget": 100000,
-      "default_llm": "gpt-oss:20b",
-      "enable_tools": true,
-      "enable_memory": true,
-      "process_timeout": 3600,
-      "max_iterations": 20
-    },
-    "autogen": {
-      "enable_planning": true,
-      "max_steps": 20,
-      "planning_mode": "auto",
-      "auto_retry": true,
-      "max_rounds": 10,
-      "budget_tokens": 100000,
-      "default_llm": "gpt-oss:20b",
-      "enable_tools": true,
-      "enable_memory": true,
-      "checkpoint_enabled": true,
-      "checkpoint_dir": "./datasets/autogen/checkpoints"
-    }
-  },
-  "file_upload": {
-    "max_file_size": 104857600,
-    "allowed_extensions": [
-      ".pdf",
-      ".docx",
-      ".txt",
-      ".md",
-      ".csv",
-      ".json",
-      ".html",
-      ".xlsx"
-    ],
-    "storage_backend": "local",
-    "storage_path": "./datasets/files",
-    "enable_virus_scan": false
-  },
-  "datastores": {
-    "chromadb": {
-      "mount_path": "./datasets/chromadb",
-      "mode": "persistent",
-      "http_port": 8001
-    },
-    "arangodb": {
-      "host": "127.0.0.1",
-      "port": 8529,
-      "protocol": "http",
-      "database": "ai_box_kg",
-      "data_path": "./datasets/arangodb/data",
-      "apps_path": "./datasets/arangodb/apps",
-      "storage_class": "fast-ssd",
-      "request_timeout": 30,
-      "credentials": {
-        "username": "ARANGODB_USERNAME",
-        "password": "ARANGODB_PASSWORD"
-      },
-      "retry": {
-        "enabled": true,
-        "max_attempts": 3,
-        "backoff_factor": 1.5,
-        "max_backoff_seconds": 10
-      },
-      "pool": {
-        "connections": 10,
-        "max_size": 10,
-        "timeout": 5
-      },
-      "tls": {
-        "enabled": false,
-        "verify": true,
-        "ca_file": null
-      }
-    }
-  },
-  "kubernetes": {
-    "namespace": "ai-box",
-    "monitoring_namespace": "ai-box-monitoring"
-  },
-  "monitoring": {
-    "prometheus_enabled": true,
-    "grafana_enabled": true
-  },
-  "jobs": {
-    "ollama_sync": {
-      "enabled": true,
-      "schedule_cron": "0 3 * * *",
-      "manifest_path": "docs/deployment/ollama-models-manifest.json"
-    }
-  },
-  "text_analysis": {
-    "ner": {
-      "model_type": "spacy",
-      "model_name": "zh_core_web_sm",
-      "fallback_model": "ollama:qwen3-coder:30b",
-      "enable_gpu": false,
-      "batch_size": 32
-    },
-    "re": {
-      "model_type": "transformers",
-      "model_name": "bert-base-chinese",
-      "fallback_model": "ollama:qwen3-coder:30b",
-      "enable_gpu": false,
-      "max_relation_length": 128
-    },
-    "rt": {
-      "model_type": "ollama",
-      "model_name": "qwen3-coder:30b",
-      "enable_gpu": false,
-      "classification_threshold": 0.7
-    }
-  },
-  "aam": {
-    "enable_short_term": true,
-    "enable_long_term": true,
-    "short_term_ttl": 3600,
-    "long_term_retention_days": 30,
-    "memory_priority_threshold": 0.7,
-    "enable_hybrid_retrieval": true,
-    "redis": {
-      "key_prefix": "aam:memory:",
-      "ttl": 3600
-    },
-    "chromadb": {
-      "collection_name": "aam_memories"
-    },
-    "arangodb": {
-      "collection_name": "aam_memories",
-      "graph_name": "memory_graph"
-    }
-  },
-  "llm": {
-    "load_balancer": {
-      "strategy": "round_robin",
-      "providers": [
-        "chatgpt",
-        "gemini",
-        "qwen",
-        "grok",
-        "ollama"
-      ],
-      "weights": {
-        "chatgpt": 3,
-        "gemini": 2,
-        "qwen": 2,
-        "grok": 1,
-        "ollama": 1
-      },
-      "cooldown_seconds": 30
-    },
-    "health_check": {
-      "interval": 60.0,
-      "timeout": 5.0,
-      "failure_threshold": 3
-    }
-  }
 }

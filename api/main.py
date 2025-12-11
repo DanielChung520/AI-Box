@@ -6,6 +6,16 @@
 """FastAPI 應用主入口文件"""
 
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 加載環境變數（在導入其他模組之前）
+# 修改時間：2025-01-27 - 確保 .env 文件在應用啟動時被加載
+project_root = Path(__file__).parent.parent
+env_file = project_root / ".env"
+if env_file.exists():
+    load_dotenv(env_file, override=True)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -45,6 +55,8 @@ from api.routers import (
     data_consent,
     audit_log,
     model_usage,
+    user_tasks,
+    rq_monitor,
 )
 
 # 可選導入 governance 路由
@@ -63,11 +75,11 @@ from api.core.version import get_version_info, API_PREFIX
 from system.security.config import get_security_settings
 from system.security.middleware import SecurityMiddleware
 
-# 配置日誌
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+# 修改時間：2025-12-08 12:30:00 UTC+8 - 使用統一的日誌配置模組
+from system.logging_config import setup_fastapi_logging
+
+# 配置 FastAPI 日誌（使用 RotatingFileHandler，最大 500KB，保留 4 個備份）
+setup_fastapi_logging()
 logger = logging.getLogger(__name__)
 
 # 可選導入 CrewAI 路由（如果模組未安裝則跳過）
@@ -241,7 +253,9 @@ else:
 # 注意：file_management.router 必須在 file_upload.router 之前註冊
 # 因為 file_management 包含 /tree 路由，需要優先匹配，避免被 file_upload 的 /{file_id} 路由匹配
 app.include_router(file_management.router, prefix=API_PREFIX, tags=["File Management"])
+app.include_router(user_tasks.router, prefix=API_PREFIX, tags=["User Tasks"])
 app.include_router(file_upload.router, prefix=API_PREFIX, tags=["File Upload"])
+app.include_router(rq_monitor.router, prefix=API_PREFIX, tags=["RQ Monitor"])
 app.include_router(
     chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Processing"]
 )

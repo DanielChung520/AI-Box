@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件上傳路由
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-06
+# 最後修改日期: 2025-01-27
 
 """文件上傳路由 - 提供文件上傳、驗證和存儲功能"""
 
@@ -15,7 +15,6 @@ from fastapi import (
     Form,
     status,
     Depends,
-    BackgroundTasks,
     Query,
 )
 from fastapi.responses import JSONResponse
@@ -46,7 +45,14 @@ from services.api.services.vector_store_service import get_vector_store_service
 from services.api.services.kg_extraction_service import get_kg_extraction_service
 from services.api.services.file_permission_service import get_file_permission_service
 from services.api.services.file_scanner import get_file_scanner
+from services.api.services.user_task_service import get_user_task_service
+from services.api.models.user_task import UserTaskCreate
+from services.api.services.task_workspace_service import get_task_workspace_service
 from system.security.models import Permission
+from datetime import datetime
+import uuid
+from database.rq.queue import get_task_queue, FILE_PROCESSING_QUEUE
+from workers.tasks import process_file_chunking_and_vectorization_task
 
 logger = structlog.get_logger(__name__)
 
@@ -442,11 +448,28 @@ async def process_file_chunking_and_vectorization(
 
             if kg_enabled:
                 try:
+                    # 獲取文件元數據用於 Ontology 選擇
+                    file_metadata_obj = metadata_service.get(file_id)
+                    file_metadata_dict = None
+                    if file_metadata_obj:
+                        file_metadata_dict = {
+                            "file_name": file_metadata_obj.filename,
+                            "file_type": file_metadata_obj.file_type,
+                            "file_size": file_metadata_obj.file_size,
+                        }
+                    
+                    # 將文件信息添加到 options 中
+                    kg_config_with_metadata = {
+                        **kg_config,
+                        "file_name": file_metadata_obj.filename if file_metadata_obj else None,
+                        "file_metadata": file_metadata_dict,
+                    }
+                    
                     await process_kg_extraction(
                         file_id=file_id,
                         chunks=chunks,
                         user_id=user_id,
-                        options=kg_config,
+                        options=kg_config_with_metadata,
                     )
                 except Exception as e:
                     logger.error(
@@ -505,6 +528,345 @@ async def process_file_chunking_and_vectorization(
             overall_progress=0,
             message=f"處理失敗: {str(e)}",
         )
+
+
+async def process_vectorization_only(
+    file_id: str,
+    file_path: str,
+    file_type: Optional[str],
+    user_id: str,
+) -> None:
+    """
+    異步處理文件向量化（只執行分塊+向量化+存儲，跳過知識圖譜提取）
+
+    Args:
+        file_id: 文件ID
+        file_path: 文件路徑
+        file_type: 文件類型（MIME類型）
+        user_id: 用戶ID
+    """
+    try:
+        # 初始化狀態
+        _update_processing_status(
+            file_id=file_id,
+            overall_status="processing",
+            overall_progress=0,
+            message="開始向量化處理",
+        )
+
+        # 導入分塊處理相關模塊
+        from genai.api.routers.chunk_processing import (
+            get_parser,
+            get_chunk_processor,
+            get_storage as get_chunk_storage,
+        )
+
+        # ========== 階段1: 文件解析和分塊 (0-50%) ==========
+        _update_processing_status(
+            file_id=file_id,
+            chunking={"status": "processing", "progress": 0, "message": "開始解析文件"},
+            overall_progress=10,
+        )
+
+        # 獲取解析器
+        if file_type is None:
+            file_type = "text/plain"
+        parser = get_parser(file_type)
+
+        # 解析文件
+        # 從文件元數據獲取 task_id 和 storage_path（如果可用）
+        metadata_service = get_metadata_service()
+        file_metadata_obj = metadata_service.get(file_id)
+        task_id = file_metadata_obj.task_id if file_metadata_obj else None
+        metadata_storage_path = file_metadata_obj.storage_path if file_metadata_obj else None
+        
+        storage = get_chunk_storage()
+        # 使用 task_id 和 metadata_storage_path 來正確讀取文件
+        file_content = storage.read_file(
+            file_id=file_id,
+            task_id=task_id,
+            metadata_storage_path=metadata_storage_path
+        )
+        if file_content is None:
+            raise ValueError(f"無法讀取文件: {file_id}")
+
+        # 檢查是否為圖片文件
+        is_image_file = file_type and file_type.startswith("image/")
+
+        # 解析文件（圖片解析器是異步的）
+        if hasattr(parser, "parse_from_bytes"):
+            # 檢查是否是異步方法
+            import inspect
+
+            if inspect.iscoroutinefunction(parser.parse_from_bytes):
+                parse_result = await parser.parse_from_bytes(
+                    file_content,
+                    file_id=file_id,
+                    user_id=user_id,
+                    task_id=task_id,  # 使用從元數據獲取的 task_id
+                )
+            else:
+                parse_result = parser.parse_from_bytes(file_content)
+        elif hasattr(parser, "parse"):
+            parse_result = parser.parse(file_path)
+        else:
+            raise ValueError(f"解析器不支持此文件類型: {file_type}")
+
+        _update_processing_status(
+            file_id=file_id,
+            chunking={
+                "status": "processing",
+                "progress": 50,
+                "message": "文件解析完成，開始分塊" if not is_image_file else "圖片描述生成完成",
+            },
+            overall_progress=25,
+        )
+
+        # 獲取分塊處理器
+        chunk_processor = get_chunk_processor()
+
+        # 圖片文件特殊處理：描述文本作為單個 chunk，不需要分塊
+        if is_image_file:
+            # 圖片描述作為單個 chunk
+            image_metadata = parse_result.get("metadata", {})
+            chunks = [
+                {
+                    "text": parse_result.get("text", ""),
+                    "chunk_index": 0,
+                    "file_id": file_id,
+                    "content_type": "image",
+                    "image_path": file_path,
+                    "image_format": image_metadata.get("format"),
+                    "image_width": image_metadata.get("width"),
+                    "image_height": image_metadata.get("height"),
+                    "vision_model": image_metadata.get("vision_model"),
+                    "description_confidence": image_metadata.get(
+                        "description_confidence"
+                    ),
+                    **image_metadata,
+                }
+            ]
+        else:
+            # 文本文件正常分塊
+            chunks = chunk_processor.process(
+                text=parse_result["text"],
+                file_id=file_id,
+                metadata=parse_result.get("metadata", {}),
+            )
+
+        _update_processing_status(
+            file_id=file_id,
+            chunking={
+                "status": "completed",
+                "progress": 100,
+                "message": "分塊處理完成",
+                "chunk_count": len(chunks),
+            },
+            overall_progress=50,
+        )
+
+        logger.info(
+            "文件分塊處理完成",
+            file_id=file_id,
+            chunk_count=len(chunks),
+        )
+
+        # ========== 階段2: 向量化 (50-90%) ==========
+        _update_processing_status(
+            file_id=file_id,
+            vectorization={"status": "processing", "progress": 0, "message": "開始向量化"},
+            overall_progress=50,
+        )
+
+        embedding_service = get_embedding_service()
+
+        # 批量生成向量
+        chunk_texts = [chunk.get("text", "") for chunk in chunks]
+        embeddings = await embedding_service.generate_embeddings_batch(chunk_texts)
+
+        _update_processing_status(
+            file_id=file_id,
+            vectorization={
+                "status": "completed",
+                "progress": 100,
+                "message": "向量化完成",
+                "vector_count": len(embeddings),
+            },
+            overall_progress=90,
+        )
+
+        logger.info(
+            "文件向量化完成",
+            file_id=file_id,
+            vector_count=len(embeddings),
+        )
+
+        # ========== 階段3: 存儲到 ChromaDB (90-100%) ==========
+        _update_processing_status(
+            file_id=file_id,
+            storage={"status": "processing", "progress": 0, "message": "開始存儲向量"},
+            overall_progress=90,
+        )
+
+        vector_store_service = get_vector_store_service()
+
+        # 為圖片文件添加圖片路徑到元數據
+        if is_image_file and chunks:
+            if "image_path" not in chunks[0]:
+                chunks[0]["image_path"] = file_path
+
+        # 將 task_id 添加到每個 chunk 的元數據中（task_id 已在上面從元數據獲取）
+        if task_id:
+            for chunk in chunks:
+                if "metadata" not in chunk:
+                    chunk["metadata"] = {}
+                chunk["metadata"]["task_id"] = task_id
+
+        vector_store_service.store_vectors(
+            file_id=file_id,
+            chunks=chunks,
+            embeddings=embeddings,
+            user_id=user_id,
+        )
+
+        # 獲取存儲統計信息
+        stats = vector_store_service.get_collection_stats(file_id, user_id)
+
+        _update_processing_status(
+            file_id=file_id,
+            storage={
+                "status": "completed",
+                "progress": 100,
+                "message": "向量存儲完成",
+                "collection_name": stats["collection_name"],
+                "vector_count": stats["vector_count"],
+            },
+            overall_progress=100,
+        )
+
+        logger.info(
+            "向量存儲完成",
+            file_id=file_id,
+            chunk_count=len(chunks),
+            vector_count=len(embeddings),
+            collection_name=stats["collection_name"],
+        )
+
+        # 更新最終狀態（跳過 KG 提取）
+        final_message = "向量化處理完成"
+        if is_image_file:
+            final_message = "圖片文件向量化完成（描述已生成並向量化）"
+
+        _update_processing_status(
+            file_id=file_id,
+            overall_status="completed",
+            overall_progress=100,
+            message=final_message,
+        )
+
+        logger.info(
+            "向量化處理完成（分塊+向量化+存儲）",
+            file_id=file_id,
+            chunk_count=len(chunks),
+            vector_count=len(embeddings),
+            collection_name=stats["collection_name"],
+        )
+
+    except Exception as e:
+        logger.error(
+            "向量化處理失敗",
+            file_id=file_id,
+            error=str(e),
+            exc_info=True,
+        )
+        _update_processing_status(
+            file_id=file_id,
+            overall_status="failed",
+            overall_progress=0,
+            message=f"向量化處理失敗: {str(e)}",
+        )
+        raise
+
+
+async def _reconstruct_chunks_from_vectors(
+    file_id: str,
+    user_id: str,
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    從 ChromaDB 中已存在的向量重構 chunks
+
+    Args:
+        file_id: 文件ID
+        user_id: 用戶ID
+
+    Returns:
+        chunks 列表，如果沒有向量數據則返回 None
+    """
+    try:
+        vector_store_service = get_vector_store_service()
+
+        # 獲取所有向量
+        vectors = vector_store_service.get_vectors_by_file_id(
+            file_id=file_id,
+            user_id=user_id,
+            limit=None,
+        )
+
+        if not vectors or len(vectors) == 0:
+            return None
+
+        # 從向量重構 chunks
+        chunks = []
+        for vector in vectors:
+            chunk = {
+                "text": vector.get("document", ""),
+                "file_id": file_id,
+            }
+
+            # 從 metadata 提取信息
+            metadata = vector.get("metadata", {})
+            if metadata:
+                chunk["chunk_index"] = metadata.get("chunk_index", 0)
+                chunk["content_type"] = metadata.get("content_type", "text")
+                
+                # 保留其他元數據
+                chunk_metadata = {}
+                for key, value in metadata.items():
+                    if key not in ["chunk_index", "content_type", "file_id", "user_id"]:
+                        chunk_metadata[key] = value
+                
+                if chunk_metadata:
+                    chunk["metadata"] = chunk_metadata
+
+                # 圖片文件特殊處理
+                if metadata.get("content_type") == "image":
+                    chunk["image_path"] = metadata.get("image_path", "")
+                    chunk["image_format"] = metadata.get("image_format")
+                    chunk["image_width"] = metadata.get("image_width")
+                    chunk["image_height"] = metadata.get("image_height")
+                    chunk["vision_model"] = metadata.get("vision_model")
+                    chunk["description_confidence"] = metadata.get("description_confidence")
+
+            chunks.append(chunk)
+
+        # 按 chunk_index 排序
+        chunks.sort(key=lambda x: x.get("chunk_index", 0))
+
+        logger.info(
+            "從向量重構 chunks 完成",
+            file_id=file_id,
+            chunk_count=len(chunks),
+        )
+
+        return chunks
+
+    except Exception as e:
+        logger.warning(
+            "從向量重構 chunks 失敗",
+            file_id=file_id,
+            error=str(e),
+        )
+        return None
 
 
 async def process_kg_extraction(
@@ -605,6 +967,220 @@ async def process_kg_extraction(
         raise
 
 
+async def process_kg_extraction_only(
+    file_id: str,
+    file_path: str,
+    file_type: Optional[str],
+    user_id: str,
+    force_rechunk: bool = False,
+) -> None:
+    """
+    異步處理知識圖譜提取（只執行圖譜提取，嘗試重用已存在的 chunks）
+
+    Args:
+        file_id: 文件ID
+        file_path: 文件路徑
+        file_type: 文件類型（MIME類型）
+        user_id: 用戶ID
+        force_rechunk: 是否強制重新分塊（即使有已存在的 chunks）
+    """
+    try:
+        # 檢查是否為圖片文件（圖片文件跳過 KG 提取）
+        if file_type and file_type.startswith("image/"):
+            logger.info(
+                "圖片文件跳過知識圖譜提取",
+                file_id=file_id,
+            )
+            _update_processing_status(
+                file_id=file_id,
+                kg_extraction={
+                    "status": "skipped",
+                    "progress": 100,
+                    "message": "圖片文件不適合提取知識圖譜",
+                },
+            )
+            return
+
+        # 初始化狀態
+        _update_processing_status(
+            file_id=file_id,
+            overall_status="processing",
+            overall_progress=0,
+            message="開始圖譜提取處理",
+        )
+
+        chunks = None
+
+        # 嘗試從已存在的向量中獲取 chunks
+        if not force_rechunk:
+            chunks = await _reconstruct_chunks_from_vectors(file_id, user_id)
+            if chunks:
+                logger.info(
+                    "重用已存在的 chunks 進行圖譜提取",
+                    file_id=file_id,
+                    chunk_count=len(chunks),
+                )
+
+        # 如果無法獲取已存在的 chunks，則重新解析和分塊
+        if chunks is None or len(chunks) == 0:
+            logger.info(
+                "重新解析和分塊以進行圖譜提取",
+                file_id=file_id,
+            )
+
+            # 導入分塊處理相關模塊
+            from genai.api.routers.chunk_processing import (
+                get_parser,
+                get_chunk_processor,
+                get_storage as get_chunk_storage,
+            )
+
+            # 獲取解析器
+            if file_type is None:
+                file_type = "text/plain"
+            parser = get_parser(file_type)
+
+            # 解析文件
+            # 優先從文件元數據獲取 task_id 和 storage_path
+            # 如果元數據不存在，嘗試從文件路徑直接讀取
+            task_id = None
+            metadata_storage_path = None
+            file_content = None
+            
+            try:
+                metadata_service = get_metadata_service()
+                file_metadata_obj = metadata_service.get(file_id)
+                if file_metadata_obj:
+                    task_id = file_metadata_obj.task_id
+                    metadata_storage_path = file_metadata_obj.storage_path
+            except Exception as e:
+                logger.warning(
+                    "無法獲取文件元數據，將嘗試直接讀取文件",
+                    file_id=file_id,
+                    error=str(e),
+                )
+            
+            # 嘗試從存儲讀取文件
+            if task_id or metadata_storage_path:
+                try:
+                    storage = get_chunk_storage()
+                    file_content = storage.read_file(
+                        file_id=file_id,
+                        task_id=task_id,
+                        metadata_storage_path=metadata_storage_path
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "從存儲讀取文件失敗，嘗試直接讀取文件系統",
+                        file_id=file_id,
+                        error=str(e),
+                    )
+            
+            # 如果無法從存儲讀取，嘗試直接從文件系統讀取
+            if file_content is None and file_path and os.path.exists(file_path):
+                logger.info(
+                    "直接從文件系統讀取文件",
+                    file_id=file_id,
+                    file_path=file_path,
+                )
+                with open(file_path, "rb") as f:
+                    file_content = f.read()
+            
+            if file_content is None:
+                raise ValueError(f"無法讀取文件: {file_id}，請檢查文件是否存在")
+
+            # 解析文件
+            if hasattr(parser, "parse_from_bytes"):
+                import inspect
+
+                if inspect.iscoroutinefunction(parser.parse_from_bytes):
+                    parse_result = await parser.parse_from_bytes(
+                        file_content,
+                        file_id=file_id,
+                        user_id=user_id,
+                        task_id=None,
+                    )
+                else:
+                    parse_result = parser.parse_from_bytes(file_content)
+            elif hasattr(parser, "parse"):
+                parse_result = parser.parse(file_path)
+            else:
+                raise ValueError(f"解析器不支持此文件類型: {file_type}")
+
+            # 獲取分塊處理器
+            chunk_processor = get_chunk_processor()
+
+            # 文本文件正常分塊
+            chunks = chunk_processor.process(
+                text=parse_result["text"],
+                file_id=file_id,
+                metadata=parse_result.get("metadata", {}),
+            )
+
+            logger.info(
+                "文件重新分塊完成",
+                file_id=file_id,
+                chunk_count=len(chunks),
+            )
+
+        # 讀取 KG 提取配置
+        services_config = get_config_section("services", default={}) or {}
+        kg_config = services_config.get("kg_extraction", {})
+        if not kg_config:
+            kg_config = {
+                "enabled": True,
+                "mode": "all_chunks",
+                "min_confidence": 0.5,
+                "chunk_filter": {},
+            }
+
+        # 獲取文件元數據用於 Ontology 選擇
+        file_metadata_obj = metadata_service.get(file_id)
+        file_metadata_dict = None
+        if file_metadata_obj:
+            file_metadata_dict = {
+                "file_name": file_metadata_obj.filename,
+                "file_type": file_metadata_obj.file_type,
+                "file_size": file_metadata_obj.file_size,
+            }
+        
+        # 將文件信息添加到 options 中
+        kg_config_with_metadata = {
+            **kg_config,
+            "file_name": file_metadata_obj.filename if file_metadata_obj else None,
+            "file_metadata": file_metadata_dict,
+            }
+
+        # 執行知識圖譜提取
+        await process_kg_extraction(
+            file_id=file_id,
+            chunks=chunks,
+            user_id=user_id,
+            options=kg_config_with_metadata,
+        )
+
+        logger.info(
+            "圖譜提取處理完成",
+            file_id=file_id,
+            chunk_count=len(chunks),
+        )
+
+    except Exception as e:
+        logger.error(
+            "圖譜提取處理失敗",
+            file_id=file_id,
+            error=str(e),
+            exc_info=True,
+        )
+        _update_processing_status(
+            file_id=file_id,
+            overall_status="failed",
+            overall_progress=0,
+            message=f"圖譜提取處理失敗: {str(e)}",
+        )
+        raise
+
+
 @router.post("/upload")
 @audit_log(
     action=AuditAction.FILE_UPLOAD,
@@ -613,11 +1189,20 @@ async def process_kg_extraction(
 )
 async def upload_files(
     request: Request,
-    background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
     task_id: Optional[str] = Form(None, description="任務ID（可選，用於組織文件到工作區）"),
+    target_folder_id: Optional[str] = Form(None, description="目標資料夾ID（可選，未提供則放任務工作區）"),
     current_user: User = Depends(require_consent(ConsentType.FILE_UPLOAD)),
 ) -> JSONResponse:
+    # 修改時間：2025-01-27 - 添加日誌記錄以便調試 JWT 認證問題
+    logger.debug(
+        "File upload request received",
+        user_id=current_user.user_id,
+        username=current_user.username,
+        task_id=task_id,
+        file_count=len(files) if files else 0,
+        request_path=request.url.path
+    )
     """
     上傳文件（支持多文件上傳）
 
@@ -629,6 +1214,17 @@ async def upload_files(
     Returns:
         上傳結果，包含文件 ID 和元數據
     """
+    # 修改時間：2025-01-27 - 添加日誌記錄以便調試 JWT 認證問題
+    logger.info(
+        "File upload request received",
+        user_id=current_user.user_id,
+        username=getattr(current_user, 'username', None),
+        task_id=task_id,
+        file_count=len(files) if files else 0,
+        request_path=request.url.path,
+        request_method=request.method,
+    )
+    
     if not files:
         return APIResponse.error(
             message="未提供文件",
@@ -639,16 +1235,158 @@ async def upload_files(
     permission_service = get_file_permission_service()
     permission_service.check_upload_permission(current_user)
 
-    # 如果提供了task_id，檢查任務文件訪問權限
+    # 修改時間：2025-01-27 - 重構任務工作區邏輯，移除 temp-workspace
+    # 任務創建邏輯：如果沒有提供 task_id，必須創建新任務
+    # 任務命名：如果是第一次上傳文件，使用第一個文件名（不含擴展名）作為任務標題
+    task_service = get_user_task_service()
+    final_task_id: Optional[str] = None
+    task_title: Optional[str] = None
+    final_folder_id: Optional[str] = target_folder_id
+    
     if task_id:
+        # 提供了 task_id，檢查任務是否存在
+        existing_task = task_service.get(
+            user_id=current_user.user_id,
+            task_id=task_id,
+        )
+        
+        if existing_task is None:
+            # 任務不存在，自動創建新任務及任務工作區
+            # 使用第一個文件名（不含擴展名）作為任務標題
+            if files and len(files) > 0:
+                first_filename = files[0].filename or "新任務"
+                # 移除文件擴展名作為任務名稱
+                task_title = os.path.splitext(first_filename)[0] or "新任務"
+            else:
+                task_title = "新任務"
+            
+            logger.info(
+                "任務不存在，自動創建新任務及任務工作區",
+                task_id=task_id,
+                user_id=current_user.user_id,
+                task_title=task_title,
+            )
+            try:
+                # 創建新任務（任務工作區會自動創建）
+                new_task = task_service.create(
+                    UserTaskCreate(
+                        task_id=task_id,
+                        user_id=current_user.user_id,
+                        title=task_title,
+                        status="pending",
+                        messages=[],
+                        fileTree=[],
+                    )
+                )
+                final_task_id = task_id
+                logger.info(
+                    "新任務及任務工作區創建成功",
+                    task_id=task_id,
+                    user_id=current_user.user_id,
+                    task_title=task_title,
+                )
+            except Exception as e:
+                logger.error(
+                    "自動創建任務失敗",
+                    task_id=task_id,
+                    user_id=current_user.user_id,
+                    error=str(e),
+                    exc_info=True,
+                )
+                return APIResponse.error(
+                    message=f"創建任務失敗: {str(e)}",
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        else:
+            # 任務已存在，直接使用該任務的任務工作區
+            final_task_id = task_id
+            logger.debug(
+                "任務已存在，使用現有任務工作區",
+                task_id=task_id,
+                user_id=current_user.user_id,
+            )
+        
+        # 檢查任務文件訪問權限
         permission_service.check_task_file_access(
             user=current_user,
             task_id=task_id,
             required_permission=Permission.FILE_UPLOAD.value,
         )
+    else:
+        # 未提供 task_id，必須創建新任務
+        # 生成新的 task_id
+        final_task_id = str(uuid.uuid4())
+        
+        # 使用第一個文件名（不含擴展名）作為任務標題
+        if files and len(files) > 0:
+            first_filename = files[0].filename or "新任務"
+            # 移除文件擴展名作為任務名稱
+            task_title = os.path.splitext(first_filename)[0] or "新任務"
+        else:
+            task_title = "新任務"
+        
+        logger.info(
+            "未提供 task_id，創建新任務及任務工作區",
+            task_id=final_task_id,
+            user_id=current_user.user_id,
+            task_title=task_title,
+        )
+        try:
+            # 創建新任務（任務工作區會自動創建）
+            new_task = task_service.create(
+                UserTaskCreate(
+                    task_id=final_task_id,
+                    user_id=current_user.user_id,
+                    title=task_title,
+                    status="pending",
+                    messages=[],
+                    fileTree=[],
+                )
+            )
+            logger.info(
+                "新任務及任務工作區創建成功",
+                task_id=final_task_id,
+                user_id=current_user.user_id,
+                task_title=task_title,
+            )
+        except Exception as e:
+            logger.error(
+                "創建任務失敗",
+                task_id=final_task_id,
+                user_id=current_user.user_id,
+                error=str(e),
+                exc_info=True,
+            )
+            return APIResponse.error(
+                message=f"創建任務失敗: {str(e)}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     validator = get_validator()
     storage = get_storage()
+
+    # 確保任務工作區存在
+    workspace_service = get_task_workspace_service()
+    workspace_service.create_workspace(task_id=final_task_id, user_id=current_user.user_id)
+
+    # 驗證目標資料夾；若未提供，預設為該任務的工作區
+    if final_folder_id:
+        arangodb_client = get_arangodb_client()
+        if arangodb_client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+        folder_col = arangodb_client.db.collection("folder_metadata")
+        folder_doc = folder_col.get(final_folder_id)
+        if (
+            folder_doc is None
+            or folder_doc.get("user_id") != current_user.user_id
+            or folder_doc.get("task_id") != final_task_id
+        ):
+            return APIResponse.error(
+                message="目標資料夾不存在或不屬於當前用戶/任務",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+    else:
+        final_folder_id = f"{final_task_id}_workspace"
 
     results = []
     errors = []
@@ -685,8 +1423,18 @@ async def upload_files(
             sanitized_filename = sanitized_filename.replace("/", "_").replace("\\", "_")
             sanitized_filename = sanitized_filename.replace("..", "_")
 
-            # 保存文件（使用清理後的文件名）
-            file_id, file_path = storage.save_file(file_content, sanitized_filename)
+            # 修改時間：2025-01-27 - 確保任務工作區存在
+            if final_task_id:
+                workspace_service = get_task_workspace_service()
+                workspace_service.ensure_workspace_exists(
+                    task_id=final_task_id,
+                    user_id=current_user.user_id,
+                )
+
+            # 保存文件（使用清理後的文件名，傳遞 task_id）
+            file_id, file_path = storage.save_file(
+                file_content, sanitized_filename, task_id=final_task_id
+            )
 
             # 更新進度：文件保存完成
             _update_upload_progress(file_id, 50, "uploading", "文件已保存，正在處理...")
@@ -697,15 +1445,21 @@ async def upload_files(
             # 創建元數據
             try:
                 metadata_service = get_metadata_service()
-                # 如果未提供 task_id，默認使用 "temp-workspace"（任務工作區）
-                default_task_id = task_id or "temp-workspace"
+                # 修改時間：2025-01-27 - 移除 temp-workspace，所有文件必須關聯到任務工作區
+                # final_task_id 已在上方確保存在（如果沒有則已創建）
+                if not final_task_id:
+                    raise ValueError("任務ID不能為空，文件必須關聯到任務工作區")
+                
+                # 確保文件放在任務工作區下（task_id 就是任務工作區的標識）
                 metadata_create = FileMetadataCreate(
                     file_id=file_id,
                     filename=sanitized_filename,  # 使用清理後的文件名
                     file_type=file_type or "application/octet-stream",
                     file_size=len(file_content),
                     user_id=current_user.user_id,
-                    task_id=default_task_id,
+                    task_id=final_task_id,  # 文件位置在該任務的任務工作區下
+                    folder_id=final_folder_id,
+                    storage_path=str(file_path),  # 保存文件存儲路徑
                 )
                 metadata_service.create(metadata_create)
             except Exception as e:
@@ -736,14 +1490,62 @@ async def upload_files(
                 file_size=len(file_content),
             )
 
-            # 觸發異步處理任務（分塊+向量化）
-            background_tasks.add_task(
-                process_file_chunking_and_vectorization,
-                file_id=file_id,
-                file_path=file_path,
-                file_type=file_type,
-                user_id=current_user.user_id,
-            )
+            # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄文件創建操作日誌
+            try:
+                from services.api.services.operation_log_service import get_operation_log_service
+                operation_log_service = get_operation_log_service()
+                
+                # 獲取文件元數據以獲取創建時間
+                try:
+                    file_metadata = metadata_service.get(file_id)
+                    file_created_at = None
+                    if file_metadata and hasattr(file_metadata, 'created_at') and file_metadata.created_at:
+                        if isinstance(file_metadata.created_at, datetime):
+                            file_created_at = file_metadata.created_at.isoformat() + 'Z'
+                        elif isinstance(file_metadata.created_at, str):
+                            file_created_at = file_metadata.created_at if file_metadata.created_at.endswith('Z') else file_metadata.created_at + 'Z'
+                except:
+                    file_created_at = datetime.utcnow().isoformat() + 'Z'
+                
+                operation_log_service.log_operation(
+                    user_id=current_user.user_id,
+                    resource_id=file_id,
+                    resource_type="document",
+                    resource_name=sanitized_filename,
+                    operation_type="create",
+                    created_at=file_created_at or datetime.utcnow().isoformat() + 'Z',
+                    updated_at=None,
+                    archived_at=None,
+                    deleted_at=None,
+                    notes=f"文件上傳，任務ID: {final_task_id}，任務標題: {task_title or 'N/A'}",
+                )
+            except Exception as e:
+                logger.warning("記錄文件創建操作日誌失敗", file_id=file_id, error=str(e))
+
+            # 觸發異步處理任務（分塊+向量化+圖譜）- 使用 RQ 隊列
+            # 注意：task_id 會從文件元數據中獲取，不需要額外傳遞
+            try:
+                queue = get_task_queue(FILE_PROCESSING_QUEUE)
+                job = queue.enqueue(
+                    process_file_chunking_and_vectorization_task,
+                    file_id=file_id,
+                    file_path=file_path,
+                    file_type=file_type,
+                    user_id=current_user.user_id,
+                )
+                logger.info(
+                    "文件處理任務已提交到 RQ 隊列",
+                    file_id=file_id,
+                    job_id=job.id,
+                    queue=FILE_PROCESSING_QUEUE,
+                )
+            except Exception as e:
+                logger.error(
+                    "提交文件處理任務到 RQ 隊列失敗",
+                    file_id=file_id,
+                    error=str(e),
+                )
+                # 不拋出異常，讓文件上傳成功，但記錄錯誤
 
         except Exception as e:
             error_message = f"上傳失敗: {str(e)}"

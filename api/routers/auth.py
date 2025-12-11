@@ -1,7 +1,7 @@
 # 代碼功能說明: 認證路由
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-06
+# 最後修改日期: 2025-12-08 09:15:21 UTC+8
 
 """認證路由 - 提供登錄、Token刷新、登出等功能。"""
 
@@ -61,7 +61,7 @@ def _authenticate_user(username: str, password: str) -> Optional[User]:
     - 檢查用戶狀態（是否啟用、是否鎖定等）
 
     Args:
-        username: 用戶名
+        username: 用戶名（可以是 email）
         password: 密碼
 
     Returns:
@@ -69,22 +69,26 @@ def _authenticate_user(username: str, password: str) -> Optional[User]:
     """
     settings = get_security_settings()
 
-    # 開發模式下，接受任何用戶名/密碼組合，返回開發用戶
-    if settings.should_bypass_auth:
-        return User.create_dev_user()
-
+    # 修改時間：2025-12-08 09:15:21 UTC+8 - 修復開發模式下的用戶認證，使用實際用戶 ID
+    # 開發模式下，接受任何用戶名/密碼組合，但使用實際的用戶名/email 作為 user_id
     # TODO: 實現真實的用戶認證邏輯
     # 這裡暫時實現一個簡單的驗證（僅用於演示）
     # 在生產環境中，應該從數據庫查詢用戶並驗證密碼
     if username and password:
+        # 使用 email 作為 user_id（如果 username 是 email）
+        # 否則使用 username 作為 user_id
+        user_id = username if "@" in username else f"user_{username}"
+        email = username if "@" in username else f"{username}@example.com"
+
         # 創建一個臨時用戶對象
         # 實際應用中應該從數據庫讀取用戶信息
+        # 修改時間：2025-12-09 - 為測試用戶添加文件上傳權限
         return User(
-            user_id=f"user_{username}",
+            user_id=user_id,
             username=username,
-            email=f"{username}@example.com",
+            email=email,
             roles=["user"],
-            permissions=[],
+            permissions=["file:upload", "file:read", "file:read:own", "file:delete:own"],  # 添加基本文件操作權限
             is_active=True,
         )
 
@@ -124,13 +128,19 @@ async def login(
     jwt_service = get_jwt_service()
 
     # 構建 Token payload
+    # 修改時間：2025-12-09 - 確保權限列表不為空，添加基本文件操作權限
+    permissions = user.permissions or []
+    # 如果沒有權限，添加基本文件操作權限（用於測試環境）
+    if not permissions:
+        permissions = ["file:upload", "file:read", "file:read:own", "file:delete:own"]
+    
     token_data = {
         "sub": user.user_id,
         "user_id": user.user_id,
         "username": user.username,
         "email": user.email,
         "roles": user.roles,
-        "permissions": user.permissions,
+        "permissions": permissions,
         "is_active": user.is_active,
         "metadata": user.metadata,
     }

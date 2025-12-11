@@ -42,8 +42,36 @@ class EmbeddingService:
             max_retries: 最大重試次數
             timeout: 請求超時時間（秒）
         """
-        config = get_config_section("embedding", default={}) or {}
-
+        # 直接读取配置文件
+        import json
+        from pathlib import Path
+        # 计算配置文件路径（从项目根目录）
+        import os
+        current_file = Path(__file__).resolve()
+        # 向上查找直到找到项目根目录（有 config 目录）
+        config_path = None
+        for parent in [current_file.parent] + list(current_file.parents):
+            potential_config = parent / "config" / "config.json"
+            if potential_config.exists():
+                config_path = potential_config
+                break
+        if not config_path:
+            # 如果找不到，使用相对路径（从项目根目录）
+            project_root = Path(__file__).parent.parent.parent.parent.parent
+            config_path = project_root / "config" / "config.json"
+        config = {}
+        if config_path.exists():
+            with open(config_path, "r", encoding="utf-8") as f:
+                full_config = json.load(f)
+                config = full_config.get("embedding", {})
+                # 如果 embedding 不存在，从 services.ollama 读取
+                if not config and "services" in full_config:
+                    ollama_config = full_config["services"].get("ollama", {})
+                    if ollama_config:
+                        config = {
+                            "ollama_url": f"http://{ollama_config.get('host', 'localhost')}:{ollama_config.get('port', 11434)}",
+                            "model": ollama_config.get("embedding_model", "nomic-embed-text"),
+                        }
         self.ollama_url = (
             ollama_url
             or os.getenv("OLLAMA_URL")

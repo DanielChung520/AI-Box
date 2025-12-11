@@ -184,7 +184,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /Users/daniel/GitHub/AI-Box/datasets/chromadb
+      device: /Users/daniel/GitHub/AI-Box/data/datasets/chromadb
   arangodb_data:
     driver: local
     driver_opts:

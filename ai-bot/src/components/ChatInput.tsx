@@ -5,13 +5,15 @@
  * 最後修改日期: 2025-12-06
  */
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useLanguage } from '../contexts/languageContext';
 import { createPortal } from 'react-dom';
 import FileUploadModal, { FileWithMetadata } from './FileUploadModal';
 import UploadProgress from './UploadProgress';
 import { uploadFiles } from '../lib/api';
 import { Task } from './Sidebar';
+// 修改時間：2025-12-08 10:40:00 UTC+8 - 添加文件引用組件
+import FileReference, { FileReferenceData } from './FileReference';
 
 // 從 localStorage 讀取收藏數據的輔助函數
 const loadFavoritesFromStorage = (key: string): Map<string, string> => {
@@ -89,6 +91,8 @@ interface ChatInputProps {
   selectedTask?: Task; // 當前選中的任務，用於判斷是否為新任務
   onTaskCreate?: (task: Task) => void; // 創建任務回調
   onTaskDelete?: (taskId: number) => void; // 刪除任務回調
+  // 修改時間：2025-12-08 11:30:00 UTC+8 - 添加預覽模式狀態，用於控制按鈕顯示
+  isPreviewMode?: boolean; // 是否處於預覽模式（右側文件預覽展開時為 true）
 }
 
 export default function ChatInput({
@@ -106,6 +110,7 @@ export default function ChatInput({
   selectedTask,
   onTaskCreate,
   onTaskDelete,
+  isPreviewMode = false, // 修改時間：2025-12-08 11:30:00 UTC+8 - 預覽模式狀態
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [showAssistantSelector, setShowAssistantSelector] = useState(false);
@@ -149,6 +154,9 @@ export default function ChatInput({
   // 文件上傳相關狀態
   const [showFileUploadModal, setShowFileUploadModal] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<FileWithMetadata[]>([]);
+  
+  // 修改時間：2025-12-08 10:40:00 UTC+8 - 文件引用相關狀態
+  const [fileReferences, setFileReferences] = useState<FileReferenceData[]>([]);
 
   // 不再需要初始化默认值
 
@@ -583,25 +591,147 @@ export default function ChatInput({
     }, 100);
   };
 
-  const handleSend = () => {
-    if (message.trim()) {
+  // 修改時間：2025-12-08 10:40:00 UTC+8 - 發送消息時包含文件引用信息
+  const handleSend = async () => {
+    if (message.trim() || fileReferences.length > 0) {
       const messageText = message.trim();
-
-      // 发送消息
-      onMessageSend?.(messageText);
-
-      // 如果是第一条消息，自动生成任务标题（从消息内容中提取前30个字符）
-      if (onTaskTitleGenerate) {
-        // 生成任务标题：取消息的前30个字符，如果超过则添加省略号
-        const title = messageText.length > 30
+      
+      // 修改時間：2025-01-27 - 重構任務創建邏輯
+      // 如果沒有選中任務，必須創建新任務
+      if (!selectedTask && onTaskCreate) {
+        // 生成任務標題：取消息的前30個字符，如果超過則添加省略號
+        const taskTitle = messageText.length > 30
           ? messageText.substring(0, 30) + '...'
-          : messageText;
-        onTaskTitleGenerate(title);
+          : (messageText || '新任務');
+        
+        const newTaskId = Date.now();
+        const newTask: Task = {
+          id: newTaskId,
+          title: taskTitle,
+          status: 'pending',
+          dueDate: new Date().toISOString().split('T')[0],
+          messages: [],
+          executionConfig: {
+            mode: 'free',
+          },
+          fileTree: [],
+        };
+
+        try {
+          await onTaskCreate(newTask);
+          // 等待任務保存完成
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error('[ChatInput] Failed to create task:', error);
+          // 如果任務創建失敗，不發送消息
+          return;
+        }
+      } else if (selectedTask && onTaskTitleGenerate) {
+        // 如果是第一條消息，自動生成任務標題（從消息內容中提取前30個字符）
+        // 檢查是否為新任務（標題為"新任務"且沒有消息）
+        const isNewTask = (
+          (selectedTask.title === '新任務' || selectedTask.title === '新任务' || selectedTask.title === 'New Task') &&
+          (!selectedTask.messages || selectedTask.messages.length === 0)
+        );
+        
+        if (isNewTask) {
+          // 生成任務標題：取消息的前30個字符，如果超過則添加省略號
+          const title = messageText.length > 30
+            ? messageText.substring(0, 30) + '...'
+            : (messageText || '新任務');
+          onTaskTitleGenerate(title);
+        }
       }
+      
+      // 構建包含文件引用的消息對象
+      const messageWithFiles = {
+        text: messageText,
+        fileReferences: fileReferences.map(ref => ({
+          fileId: ref.fileId,
+          fileName: ref.fileName,
+          filePath: ref.filePath,
+          taskId: ref.taskId,
+        })),
+      };
+
+      // 发送消息（傳遞包含文件引用的對象）
+      onMessageSend?.(JSON.stringify(messageWithFiles));
 
       setMessage('');
+      setFileReferences([]); // 清空文件引用
     }
   };
+
+  // 修改時間：2025-12-08 10:40:00 UTC+8 - 監聽文件附加到聊天事件
+  useEffect(() => {
+    const handleFileAttach = (event: CustomEvent) => {
+      const { fileId, fileName, filePath, taskId } = event.detail;
+      
+      // 檢查是否已經附加過這個文件
+      if (fileReferences.some(ref => ref.fileId === fileId)) {
+        return; // 已經附加過，不重複添加
+      }
+      
+      // 創建文件引用
+      const newFileRef: FileReferenceData = {
+        fileId,
+        fileName,
+        filePath,
+        taskId,
+      };
+      
+      // 添加到文件引用列表
+      setFileReferences(prev => [...prev, newFileRef]);
+      
+      // 插入文件引用到輸入框的光標位置
+      const textarea = textareaRef.current;
+      if (textarea) {
+        const cursorPos = textarea.selectionStart;
+        const textBeforeCursor = textarea.value.substring(0, cursorPos);
+        const textAfterCursor = textarea.value.substring(cursorPos);
+        
+        // 在光標位置插入文件引用標記（類似 @文件名）
+        const fileMark = `@${fileName} `;
+        const newText = textBeforeCursor + fileMark + textAfterCursor;
+        setMessage(newText);
+        
+        // 設置光標位置到插入文本之後
+        setTimeout(() => {
+          const newCursorPos = cursorPos + fileMark.length;
+          textarea.setSelectionRange(newCursorPos, newCursorPos);
+          textarea.focus();
+        }, 0);
+      }
+    };
+    
+    window.addEventListener('fileAttachToChat', handleFileAttach as EventListener);
+    return () => {
+      window.removeEventListener('fileAttachToChat', handleFileAttach as EventListener);
+    };
+  }, [fileReferences]);
+  
+  // 修改時間：2025-12-08 10:40:00 UTC+8 - 移除文件引用
+  const handleRemoveFileReference = useCallback((fileId: string) => {
+    setFileReferences(prev => {
+      // 找到要移除的文件引用
+      const fileRef = prev.find(ref => ref.fileId === fileId);
+      
+      // 從輸入框中移除對應的文件標記
+      if (fileRef) {
+        const textarea = textareaRef.current;
+        if (textarea) {
+          // 移除 @文件名 標記
+          const fileMark = `@${fileRef.fileName} `;
+          setMessage(currentMessage => 
+            currentMessage.replace(new RegExp(fileMark.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '')
+          );
+        }
+      }
+      
+      // 從列表中移除
+      return prev.filter(ref => ref.fileId !== fileId);
+    });
+  }, []);
 
   // 文件上傳處理函數
   const handlePaperclipClick = () => {
@@ -611,7 +741,8 @@ export default function ChatInput({
   const handleFileUpload = async (files: File[], taskId?: string) => {
     if (files.length === 0) return;
 
-    // 檢查是否為新任務：
+    // 修改時間：2025-01-27 - 重構文件上傳邏輯，移除 temp-workspace
+    // 檢查是否為新任務（第一次上傳文件）：
     // 1. 必須有 selectedTask
     // 2. 任務標題必須是"新任務"（表示是剛創建的空白任務）
     // 3. 沒有消息和文件
@@ -620,8 +751,7 @@ export default function ChatInput({
       (!selectedTask.messages || selectedTask.messages.length === 0) &&
       (!selectedTask.fileTree || selectedTask.fileTree.length === 0);
 
-    let createdTaskId: number | null = null;
-    let createdTask: Task | null = null;
+    let finalTaskId: string | undefined = undefined;
 
     // 如果是新任務，創建任務並使用第一個文件名作為任務名稱
     if (isNewTask && onTaskCreate && selectedTask) {
@@ -629,15 +759,72 @@ export default function ChatInput({
       // 移除文件擴展名作為任務名稱
       const taskTitle = firstFileName.replace(/\.[^/.]+$/, '') || '新任務';
 
-      createdTask = {
+      // 生成新的任務ID（使用時間戳確保唯一性）
+      const newTaskId = Date.now();
+
+      const createdTask: Task = {
         ...selectedTask,
-        id: Date.now(), // 生成新的任務ID
+        id: newTaskId,
         title: taskTitle,
         fileTree: [], // 初始化文件樹
+        // 確保 executionConfig 存在
+        executionConfig: selectedTask.executionConfig || {
+          mode: 'free',
+        },
       };
 
-      createdTaskId = createdTask.id;
-      onTaskCreate(createdTask);
+      // 先創建任務，確保任務ID已生成並保存到後台
+      // 使用 await 確保任務創建完成後再上傳文件
+      try {
+        await onTaskCreate(createdTask);
+        // 等待任務保存完成（給後台同步一些時間）
+        await new Promise(resolve => setTimeout(resolve, 100));
+        finalTaskId = String(newTaskId);
+      } catch (error) {
+        console.error('[ChatInput] Failed to create task:', error);
+        // 如果任務創建失敗，返回錯誤
+        setUploadingFiles([]);
+        return;
+      }
+    } else if (selectedTask && !isNewTask) {
+      // 已有任務，使用現有任務ID
+      finalTaskId = String(selectedTask.id);
+    } else if (taskId) {
+      // 使用傳遞的 taskId
+      finalTaskId = taskId;
+    } else {
+      // 沒有任務且未提供 taskId，必須創建新任務
+      const firstFileName = files[0]?.name || '新任務';
+      const taskTitle = firstFileName.replace(/\.[^/.]+$/, '') || '新任務';
+      const newTaskId = Date.now();
+
+      const newTask: Task = {
+        id: newTaskId,
+        title: taskTitle,
+        status: 'pending',
+        dueDate: new Date().toISOString().split('T')[0],
+        messages: [],
+        executionConfig: {
+          mode: 'free',
+        },
+        fileTree: [],
+      };
+
+      if (onTaskCreate) {
+        try {
+          await onTaskCreate(newTask);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          finalTaskId = String(newTaskId);
+        } catch (error) {
+          console.error('[ChatInput] Failed to create task:', error);
+          setUploadingFiles([]);
+          return;
+        }
+      } else {
+        console.error('[ChatInput] onTaskCreate callback not available');
+        setUploadingFiles([]);
+        return;
+      }
     }
 
     // 創建文件元數據
@@ -649,16 +836,6 @@ export default function ChatInput({
     }));
 
     setUploadingFiles(filesWithMetadata);
-
-    // 確定要使用的任務ID：
-    // 1. 如果是新任務且已創建，使用新創建的任務ID
-    // 2. 如果已有選中的任務（不是新任務），使用現有任務ID
-    // 3. 否則使用傳遞的 taskId 或默認的 "temp-workspace"
-    const finalTaskId = createdTaskId
-      ? String(createdTaskId)
-      : (selectedTask && !isNewTask
-          ? String(selectedTask.id)
-          : (taskId || 'temp-workspace'));
 
     try {
       // 更新所有文件狀態為上傳中
@@ -811,8 +988,15 @@ export default function ChatInput({
       );
 
       // 如果是新任務且上傳失敗，清除任務
-      if (isNewTask && createdTaskId && onTaskDelete) {
-        onTaskDelete(createdTaskId);
+      if (isNewTask && finalTaskId && onTaskDelete) {
+        try {
+          const taskIdNum = parseInt(finalTaskId);
+          if (!isNaN(taskIdNum)) {
+            onTaskDelete(taskIdNum);
+          }
+        } catch (e) {
+          console.error('[ChatInput] Failed to delete task after upload error:', e);
+        }
       }
     }
   };
@@ -1205,6 +1389,21 @@ export default function ChatInput({
         </div>
       </div>
 
+      {/* 修改時間：2025-12-08 10:40:00 UTC+8 - 文件引用顯示區域 */}
+      {fileReferences.length > 0 && (
+        <div className="px-3 pt-3 pb-2 border-b border-primary/50">
+          <div className="flex flex-wrap gap-2">
+            {fileReferences.map((fileRef) => (
+              <FileReference
+                key={fileRef.fileId}
+                file={fileRef}
+                onRemove={handleRemoveFileReference}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 輸入框 */}
       <div className="flex items-end p-3 relative">
         <textarea
@@ -1217,13 +1416,34 @@ export default function ChatInput({
           rows={3}
         />
 
-        <button
-          className="ml-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center"
-          onClick={handleSend}
-        >
-          <span>{t('chatInput.send', '發送')}</span>
-          <i className="fa-solid fa-paper-plane ml-2"></i>
-        </button>
+        {/* 修改時間：2025-12-08 11:20:00 UTC+8 - 右側按鈕區域（清除和發送按鈕） */}
+        <div className="ml-2 flex flex-col gap-2">
+          {/* 清除按鈕 */}
+          <button
+            className={`px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors flex items-center justify-center ${isPreviewMode ? 'px-2' : ''}`}
+            onClick={() => {
+              setMessage('');
+              setFileReferences([]); // 同時清除文件引用
+              if (textareaRef.current) {
+                textareaRef.current.focus();
+              }
+            }}
+            title="清除輸入內容"
+            aria-label="清除輸入內容"
+          >
+            {!isPreviewMode && <span>{t('chatInput.clear', '清除')}</span>}
+            <i className={`fa-solid fa-xmark ${!isPreviewMode ? 'ml-2' : ''}`}></i>
+          </button>
+          
+          {/* 發送按鈕 */}
+          <button
+            className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center ${isPreviewMode ? 'px-2' : ''}`}
+            onClick={handleSend}
+          >
+            {!isPreviewMode && <span>{t('chatInput.send', '發送')}</span>}
+            <i className={`fa-solid fa-paper-plane ${!isPreviewMode ? 'ml-2' : ''}`}></i>
+          </button>
+        </div>
       </div>
 
       {/* 文件上傳模態框 */}

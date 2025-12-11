@@ -58,9 +58,11 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     onTaskUpdate?: (task: Task) => void; // 任務更新回調
     onTaskCreate?: (task: Task) => void; // 任務創建回調
     onTaskDelete?: (taskId: number) => void; // 任務刪除回調
+    // 修改時間：2025-12-08 11:30:00 UTC+8 - 添加預覽模式狀態
+    isPreviewMode?: boolean; // 是否處於預覽模式（右側文件預覽展開時為 true）
   }
 
-  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete }: ChatAreaProps) {
+  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete, isPreviewMode = false }: ChatAreaProps) {
     const [activeTab, setActiveTab] = useState('human-resource');
     const [activeAssistantTab, setActiveAssistantTab] = useState('human-resource');
     const { theme, toggleTheme } = useTheme();
@@ -701,6 +703,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
           selectedTask={selectedTask}
           onTaskCreate={onTaskCreate}
           onTaskDelete={onTaskDelete}
+          isPreviewMode={isPreviewMode}
           onMessageSend={(message) => {
             // 处理消息发送
             // 这里可以添加实际的消息处理逻辑

@@ -19,7 +19,7 @@ export default function FileManagement() {
   const [showSearch, setShowSearch] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>('temp-workspace'); // 默認選中任務工作區
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null); // 修改時間：2025-12-09 - 移除 temp-workspace 默認值，避免 403 錯誤
   const fileListRef = useRef<{ refresh: () => void } | null>(null);
 
   // 從 localStorage 獲取當前用戶ID（實際應用中應該從認證上下文獲取）

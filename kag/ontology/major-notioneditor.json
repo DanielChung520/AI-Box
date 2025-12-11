@@ -1,0 +1,194 @@
+{
+    "ontology_name": "Notion_Editor_Major_Ontology",
+    "version": "1.0",
+    "inherits_from": ["5W1H_Base_Ontology_OWL", "Administration_Domain_Ontology"],
+    "description": "Notion 編輯器專業本體論，專注於知識管理、文檔協作、資料庫管理和內容組織。",
+    "last_modified": "2025-12-10",
+    "author": "Daniel Chung",
+  
+    "entity_classes": [
+        {
+            "name": "Notion_Workspace",
+            "base_class": "Organization",
+            "description": "Notion 工作區，包含多個頁面和資料庫的協作空間。"
+        },
+        {
+            "name": "Notion_Page",
+            "base_class": "Document",
+            "description": "Notion 頁面，包含內容、區塊和子頁面的文檔。"
+        },
+        {
+            "name": "Notion_Database",
+            "base_class": "Concept",
+            "description": "Notion 資料庫，結構化的資料集合，如任務列表、專案追蹤、知識庫等。"
+        },
+        {
+            "name": "Notion_Block",
+            "base_class": "Concept",
+            "description": "Notion 區塊，頁面中的基本內容單元，如文字、標題、列表、圖片等。"
+        },
+        {
+            "name": "Notion_User",
+            "base_class": "Person",
+            "description": "Notion 用戶，可以訪問、編輯或管理工作區的個人。"
+        },
+        {
+            "name": "Notion_Template",
+            "base_class": "Document",
+            "description": "Notion 模板，可重複使用的頁面或資料庫結構。"
+        },
+        {
+            "name": "Notion_View",
+            "base_class": "Concept",
+            "description": "Notion 視圖，資料庫的不同展示方式，如表格式、看板式、日曆式等。"
+        },
+        {
+            "name": "Notion_Property",
+            "base_class": "Concept",
+            "description": "Notion 屬性，資料庫中的欄位定義，如標題、日期、選擇、關係等。"
+        },
+        {
+            "name": "Notion_Comment",
+            "base_class": "Document",
+            "description": "Notion 評論，頁面或區塊上的註解、討論或反饋。"
+        },
+        {
+            "name": "Notion_Relation",
+            "base_class": "Concept",
+            "description": "Notion 關係，資料庫之間的連結或關聯。"
+        },
+        {
+            "name": "Content_Update",
+            "base_class": "Event",
+            "description": "內容更新事件，頁面或區塊的編輯、修改或版本變更。"
+        },
+        {
+            "name": "Collaboration_Activity",
+            "base_class": "Event",
+            "description": "協作活動，如分享、評論、@提及等協作行為。"
+        }
+    ],
+  
+    "object_properties": [
+        {
+            "name": "contains_page",
+            "description": "表示工作區或頁面包含子頁面。",
+            "domain": ["Notion_Workspace", "Notion_Page"],
+            "range": ["Notion_Page"]
+        },
+        {
+            "name": "contains_database",
+            "description": "表示工作區或頁面包含資料庫。",
+            "domain": ["Notion_Workspace", "Notion_Page"],
+            "range": ["Notion_Database"]
+        },
+        {
+            "name": "contains_block",
+            "description": "表示頁面包含區塊。",
+            "domain": ["Notion_Page"],
+            "range": ["Notion_Block"]
+        },
+        {
+            "name": "has_view",
+            "description": "表示資料庫具有視圖。",
+            "domain": ["Notion_Database"],
+            "range": ["Notion_View"]
+        },
+        {
+            "name": "has_property",
+            "description": "表示資料庫具有屬性欄位。",
+            "domain": ["Notion_Database"],
+            "range": ["Notion_Property"]
+        },
+        {
+            "name": "has_comment",
+            "description": "表示頁面或區塊有評論。",
+            "domain": ["Notion_Page", "Notion_Block"],
+            "range": ["Notion_Comment"]
+        },
+        {
+            "name": "created_by_user",
+            "description": "表示頁面、資料庫或區塊由某個用戶創建。",
+            "domain": ["Notion_Page", "Notion_Database", "Notion_Block"],
+            "range": ["Notion_User"]
+        },
+        {
+            "name": "edited_by_user",
+            "description": "表示頁面或區塊由某個用戶編輯。",
+            "domain": ["Notion_Page", "Notion_Block", "Content_Update"],
+            "range": ["Notion_User"]
+        },
+        {
+            "name": "shared_with",
+            "description": "表示工作區、頁面或資料庫與某個用戶分享。",
+            "domain": ["Notion_Workspace", "Notion_Page", "Notion_Database"],
+            "range": ["Notion_User"]
+        },
+        {
+            "name": "based_on_template",
+            "description": "表示頁面或資料庫基於某個模板創建。",
+            "domain": ["Notion_Page", "Notion_Database"],
+            "range": ["Notion_Template"]
+        },
+        {
+            "name": "relates_to",
+            "description": "表示資料庫通過關係屬性連結到另一個資料庫。",
+            "domain": ["Notion_Database"],
+            "range": ["Notion_Database", "Notion_Relation"]
+        },
+        {
+            "name": "mentions_user",
+            "description": "表示頁面、區塊或評論中@提及某個用戶。",
+            "domain": ["Notion_Page", "Notion_Block", "Notion_Comment"],
+            "range": ["Notion_User"]
+        },
+        {
+            "name": "references_page",
+            "description": "表示區塊、評論或資料庫引用、連結到某個頁面。",
+            "domain": ["Notion_Block", "Notion_Comment", "Notion_Database"],
+            "range": ["Notion_Page"]
+        },
+        {
+            "name": "has_update",
+            "description": "表示頁面或區塊有更新記錄。",
+            "domain": ["Notion_Page", "Notion_Block"],
+            "range": ["Content_Update"]
+        },
+        {
+            "name": "involves_collaboration",
+            "description": "表示頁面、資料庫或工作區涉及協作活動。",
+            "domain": ["Notion_Page", "Notion_Database", "Notion_Workspace"],
+            "range": ["Collaboration_Activity"]
+        },
+        {
+            "name": "participates_in",
+            "description": "表示用戶參與協作活動。",
+            "domain": ["Notion_User"],
+            "range": ["Collaboration_Activity"]
+        },
+        {
+            "name": "organizes_content",
+            "description": "表示資料庫或視圖組織、分類內容。",
+            "domain": ["Notion_Database", "Notion_View"],
+            "range": ["Notion_Page", "Concept"]
+        },
+        {
+            "name": "filters_by",
+            "description": "表示視圖根據屬性過濾資料。",
+            "domain": ["Notion_View"],
+            "range": ["Notion_Property"]
+        },
+        {
+            "name": "sorts_by",
+            "description": "表示視圖根據屬性排序資料。",
+            "domain": ["Notion_View"],
+            "range": ["Notion_Property"]
+        },
+        {
+            "name": "stored_in_workspace",
+            "description": "表示頁面、資料庫或模板存儲在工作區中。",
+            "domain": ["Notion_Page", "Notion_Database", "Notion_Template"],
+            "range": ["Notion_Workspace"]
+        }
+    ]
+}

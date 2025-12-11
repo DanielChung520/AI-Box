@@ -1,0 +1,28 @@
+{
+  "file_path": "data/tasks/1765262713060/workspace/877c57a1-8ea0-47be-8616-3482fbc499f5.md",
+  "model": "gpt-oss:20b",
+  "start_time": "2025-12-10T16:55:51.001143",
+  "end_time": "2025-12-10T16:56:33.259978",
+  "ontology": {
+    "base": "base.json",
+    "domain": [
+      "domain-administration.json"
+    ],
+    "major": [
+      "major-notioneditor.json"
+    ],
+    "selection_method": "document_type",
+    "document_type": "Notion 文檔"
+  },
+  "chunks_count": 6,
+  "triples_count": 0,
+  "extracted_triples": [],
+  "raw_responses": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ]
+}

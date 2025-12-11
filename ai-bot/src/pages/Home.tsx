@@ -5,7 +5,7 @@ import ChatArea from '../components/ChatArea';
 import ResultPanel from '../components/ResultPanel';
 import ExecutorSelectorModal from '../components/ExecutorSelectorModal';
 import { Task, FavoriteItem, FileNode } from '../components/Sidebar';
-import { saveTask, deleteTask, getTask } from '../lib/taskStorage';
+import { saveTask, deleteTask, getTask, getFavorites } from '../lib/taskStorage';
 import '../lib/debugStorage'; // 加載調試工具
 import '../lib/checkFiles'; // 加載文件檢查工具
 
@@ -261,11 +261,14 @@ export default function Home() {
     // 任務的文件目錄會自動從 task.fileTree 恢復
   };
 
+  // 修改時間：2025-12-08 09:04:21 UTC+8 - 任務保存時同步到後台
   // 處理任務創建（用於文件上傳時創建新任務）
   const handleTaskCreate = (task: Task) => {
     setSelectedTask(task);
-    // 保存任務到 localStorage
-    saveTask(task);
+    // 保存任務到 localStorage 並同步到後台（異步執行，不阻塞）
+    saveTask(task, true).catch((error) => {
+      console.error('[Home] Failed to save task:', error);
+    });
     // 觸發事件通知 Sidebar 更新焦點
     window.dispatchEvent(new CustomEvent('taskCreated', {
       detail: { taskId: task.id }
@@ -289,16 +292,72 @@ export default function Home() {
   const handleFileTreeChange = (fileTree: FileNode[]) => {
     if (selectedTask) {
       // 更新當前任務的文件樹
-      setSelectedTask({
+      const updatedTask = {
         ...selectedTask,
         fileTree: fileTree,
+      };
+      setSelectedTask(updatedTask);
+      // 保存到 localStorage
+      saveTask(updatedTask, false).catch((error) => {
+        console.error('[Home] Failed to save task:', error);
       });
     }
   };
 
+  // 修改時間：2025-12-09 - 處理文件樹更新事件
+  const handleFileTreeUpdated = (event: CustomEvent) => {
+    const { taskId, fileTree } = event.detail;
+    setSelectedTask((currentTask) => {
+      if (!currentTask || String(currentTask.id) !== String(taskId)) {
+        return currentTask;
+      }
+      const updatedTask = {
+        ...currentTask,
+        fileTree: fileTree,
+      };
+      // 保存到 localStorage
+      saveTask(updatedTask, false).catch((error) => {
+        console.error('[Home] Failed to save task:', error);
+      });
+      return updatedTask;
+    });
+  };
+
+  // 修改時間：2025-12-09 - 處理文件上傳完成事件
+  const handleFilesUploaded = (event: CustomEvent) => {
+    const { taskId } = event.detail;
+    setSelectedTask((currentTask) => {
+      if (!currentTask || String(currentTask.id) !== String(taskId)) {
+        return currentTask;
+      }
+      // 重新獲取文件樹（從 API）
+      // 這個邏輯會在 ResultPanel 中處理，這裡只需要觸發更新
+      return currentTask;
+    });
+  };
+
+  // 修改時間：2025-12-09 - 處理文件重新排序事件
+  const handleFilesReordered = (event: CustomEvent) => {
+    const { taskId, fileTree } = event.detail;
+    setSelectedTask((currentTask) => {
+      if (!currentTask || String(currentTask.id) !== String(taskId)) {
+        return currentTask;
+      }
+      const updatedTask = {
+        ...currentTask,
+        fileTree: fileTree,
+      };
+      // 保存到 localStorage
+      saveTask(updatedTask, false).catch((error) => {
+        console.error('[Home] Failed to save task:', error);
+      });
+      return updatedTask;
+    });
+  };
+
   // 監聽文件上傳事件（包括模擬和真實上傳）
   useEffect(() => {
-    const handleFilesUploaded = (event: CustomEvent) => {
+    const handleFilesUploadedEvent = (event: CustomEvent) => {
       const { taskId, files } = event.detail;
 
 
@@ -326,8 +385,11 @@ export default function Home() {
             fileTree: updatedFileTree,
           };
 
-          // 同時更新 localStorage 中的任務數據
-          saveTask(updatedTask);
+          // 修改時間：2025-12-08 09:04:21 UTC+8 - 任務保存時同步到後台
+          // 同時更新 localStorage 中的任務數據並同步到後台（異步執行，不阻塞）
+          saveTask(updatedTask, true).catch((error) => {
+            console.error('[Home] Failed to save task:', error);
+          });
 
           return updatedTask;
         } else {
@@ -364,8 +426,11 @@ export default function Home() {
             fileTree: updatedFileTree,
           };
 
-          // 同時更新 localStorage 中的任務數據
-          saveTask(updatedTask);
+          // 修改時間：2025-12-08 09:04:21 UTC+8 - 任務保存時同步到後台
+          // 同時更新 localStorage 中的任務數據並同步到後台（異步執行，不阻塞）
+          saveTask(updatedTask, true).catch((error) => {
+            console.error('[Home] Failed to save task:', error);
+          });
 
           return updatedTask;
         } else {
@@ -374,12 +439,16 @@ export default function Home() {
       });
     };
 
-    window.addEventListener('filesUploaded', handleFilesUploaded as EventListener);
+    window.addEventListener('filesUploaded', handleFilesUploadedEvent as EventListener);
     window.addEventListener('mockFilesUploaded', handleMockFilesUploaded as EventListener);
+    window.addEventListener('fileTreeUpdated', handleFileTreeUpdated as EventListener);
+    window.addEventListener('filesReordered', handleFilesReordered as EventListener);
 
     return () => {
-      window.removeEventListener('filesUploaded', handleFilesUploaded as EventListener);
+      window.removeEventListener('filesUploaded', handleFilesUploadedEvent as EventListener);
       window.removeEventListener('mockFilesUploaded', handleMockFilesUploaded as EventListener);
+      window.removeEventListener('fileTreeUpdated', handleFileTreeUpdated as EventListener);
+      window.removeEventListener('filesReordered', handleFilesReordered as EventListener);
     };
   }, []); // 移除 selectedTask 依賴，使用函數式更新
 
@@ -559,29 +628,32 @@ export default function Home() {
     });
   };
 
-  // 生成收藏列表（包含收藏的助理和代理）- 使用 useMemo 确保语言切换时更新
-  const favorites: FavoriteItem[] = useMemo(() => [
-    // 保留原有的任务收藏
-    { id: 'fav-1', name: t('sidebar.favorite1'), type: 'task' as const, itemId: '1', icon: 'fa-tasks' },
-    { id: 'fav-2', name: t('sidebar.favorite2'), type: 'task' as const, itemId: '2', icon: 'fa-tasks' },
-    { id: 'fav-3', name: t('sidebar.favorite3'), type: 'task' as const, itemId: '3', icon: 'fa-tasks' },
-    // 添加收藏的助理 - 使用保存的名称，如果名称不存在则尝试获取
-    ...Array.from(favoriteAssistants.entries()).map(([assistantId, assistantName]) => ({
+  // 生成收藏列表（包含收藏的任務、助理和代理）- 使用 useMemo 確保語言切換時更新
+  const favorites: FavoriteItem[] = useMemo(() => {
+    // 從 localStorage 讀取收藏的任務
+    const favoriteTasks = getFavorites().filter(fav => fav.type === 'task');
+
+    // 添加收藏的助理 - 使用保存的名稱，如果名稱不存在則嘗試獲取
+    const favoriteAssistantsList = Array.from(favoriteAssistants.entries()).map(([assistantId, assistantName]) => ({
       id: `fav-assistant-${assistantId}`,
       name: assistantName || getAssistantName(assistantId),
       type: 'assistant' as const,
       itemId: assistantId,
       icon: 'fa-robot'
-    })),
-    // 添加收藏的代理 - 使用保存的名称，如果名称不存在则尝试获取
-    ...Array.from(favoriteAgents.entries()).map(([agentId, agentName]) => ({
+    }));
+
+    // 添加收藏的代理 - 使用保存的名稱，如果名稱不存在則嘗試獲取
+    const favoriteAgentsList = Array.from(favoriteAgents.entries()).map(([agentId, agentName]) => ({
       id: `fav-agent-${agentId}`,
       name: agentName || getAgentName(agentId),
       type: 'agent' as const,
       itemId: agentId,
       icon: 'fa-user-tie'
-    }))
-  ], [favoriteAssistants, favoriteAgents, language, updateCounter, t]);
+    }));
+
+    // 合併所有收藏：任務 + 助理 + 代理
+    return [...favoriteTasks, ...favoriteAssistantsList, ...favoriteAgentsList];
+  }, [favoriteAssistants, favoriteAgents, language, updateCounter, t]);
 
   return (
     <div className="flex h-screen bg-primary text-primary overflow-hidden theme-transition">
@@ -626,6 +698,7 @@ export default function Home() {
           currentTaskId={selectedTask ? String(selectedTask.id) : undefined}
           onTaskCreate={handleTaskCreate}
           onTaskDelete={handleTaskDelete}
+          isPreviewMode={isMarkdownView && !resultPanelCollapsed}
         />
       </div>
 
@@ -655,17 +728,15 @@ export default function Home() {
               // 2. 如果任務沒有 fileTree 但需要從後端獲取，傳遞 taskId
               // 3. 新任務（剛創建，沒有文件、沒有消息、標題為"新任務"）不傳遞 taskId，避免不必要的 API 調用
               if (!selectedTask) {
-                console.log('[Home] No selectedTask, taskId = undefined');
                 return undefined;
               }
 
               // 如果已經有 fileTree，不調用 API，使用 prop
               if (selectedTask.fileTree?.length) {
-                console.log('[Home] Task has fileTree, taskId = undefined', { taskId: selectedTask.id, fileTreeLength: selectedTask.fileTree.length });
                 return undefined;
               }
 
-                // 檢查是否為新任務：標題為"新任務"且沒有消息和文件
+              // 檢查是否為新任務：標題為"新任務"且沒有消息和文件
               const isNewTask = (
                 (selectedTask.title === '新任務' || selectedTask.title === '新任务' || selectedTask.title === 'New Task') &&
                 (!selectedTask.messages || selectedTask.messages.length === 0) &&
@@ -673,16 +744,16 @@ export default function Home() {
               );
 
               if (isNewTask) {
-                console.log('[Home] New task detected, taskId = undefined', { taskId: selectedTask.id });
                 return undefined;
               }
 
               // 其他情況都傳遞 taskId，讓 FileTree 從後端獲取文件
-              const taskId = String(selectedTask.id);
-              console.log('[Home] Passing taskId to ResultPanel', { taskId, taskTitle: selectedTask.title });
-              return taskId;
+              return String(selectedTask.id);
             })()}
-            userId={localStorage.getItem('userEmail') || undefined}
+            userId={
+              // 修改時間：2025-12-08 08:46:00 UTC+8 - 優先使用 user_id，確保正確從後台加載文件樹
+              localStorage.getItem('user_id') || localStorage.getItem('userEmail') || undefined
+            }
           />
         </div>
       )}

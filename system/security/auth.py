@@ -46,29 +46,45 @@ async def verify_jwt_token(token: str) -> Optional[User]:
     payload = jwt_service.verify_token(token, token_type="access")
 
     if payload is None:
+        logger.warning(
+            "JWT token verification failed",
+            token_length=len(token) if token else 0,
+            token_preview=token[:20] + "..." if token and len(token) > 20 else token
+        )
         return None
 
     # 從 Token payload 構建 User 對象
     try:
         user_id = payload.get("sub") or payload.get("user_id")
         if not user_id:
-            logger.warning("Token payload missing user_id")
+            logger.warning("Token payload missing user_id", payload_keys=list(payload.keys()))
             return None
 
+        # 修改時間：2025-12-09 - 如果 JWT token 中沒有權限，添加默認權限
+        permissions = payload.get("permissions", [])
+        # 如果沒有權限，添加基本文件操作權限（用於測試環境）
+        if not permissions:
+            permissions = ["file:upload", "file:read", "file:read:own", "file:delete:own"]
+        
         user = User(
             user_id=str(user_id),
             username=payload.get("username"),
             email=payload.get("email"),
             roles=payload.get("roles", []),
-            permissions=payload.get("permissions", []),
+            permissions=permissions,
             is_active=payload.get("is_active", True),
             metadata=payload.get("metadata", {}),
         )
 
+        logger.debug(
+            "JWT token verified successfully",
+            user_id=user.user_id,
+            username=user.username
+        )
         return user
 
     except Exception as e:
-        logger.error("Failed to build User from token payload", error=str(e))
+        logger.error("Failed to build User from token payload", error=str(e), exc_info=True)
         return None
 
 
@@ -108,13 +124,17 @@ async def extract_token_from_request(request: Request) -> Optional[str]:
     # 檢查 Authorization header (Bearer token)
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        return auth_header[7:]  # 移除 "Bearer " 前綴
+        token = auth_header[7:]  # 移除 "Bearer " 前綴
+        logger.debug("Token extracted from Authorization header", token_length=len(token))
+        return token
 
     # 檢查 X-API-Key header
     api_key = request.headers.get("X-API-Key")
     if api_key:
+        logger.debug("API Key extracted from X-API-Key header")
         return api_key
 
+    logger.debug("No token found in request headers")
     return None
 
 
@@ -134,25 +154,61 @@ async def authenticate_request(request: Request) -> Optional[User]:
     """
     settings = get_security_settings()
 
-    # 開發模式或安全模組未啟用時，返回開發用戶
-    if settings.should_bypass_auth:
-        return User.create_dev_user()
-
-    # 提取 Token
+    # 修改時間：2025-01-27 - 優先從 JWT token 解析用戶信息，即使在開發模式下
+    # 提取 Token（即使在開發模式下也嘗試提取）
     token = await extract_token_from_request(request)
-    if not token:
-        return None
 
-    # 嘗試 JWT 認證
-    if settings.jwt.enabled:
+    # 如果提供了 token，始終嘗試從 token 中解析用戶信息
+    if token:
+        # 嘗試 JWT 認證（即使 JWT 被禁用，也嘗試解析）
         user = await verify_jwt_token(token)
         if user:
+            logger.debug(
+                "User authenticated via JWT token",
+                user_id=user.user_id,
+                path=request.url.path,
+                method=request.method
+            )
             return user
+        else:
+            logger.warning(
+                "JWT token verification failed",
+                path=request.url.path,
+                method=request.method,
+                token_length=len(token)
+            )
 
-    # 嘗試 API Key 認證
-    if settings.api_key.enabled:
-        user = await verify_api_key(token)
-        if user:
-            return user
+        # 嘗試 API Key 認證
+        if settings.api_key.enabled:
+            user = await verify_api_key(token)
+            if user:
+                logger.debug("User authenticated via API Key", user_id=user.user_id)
+                return user
 
+    # 修改時間：2025-01-27 - 正式測試：移除 dev_user fallback
+    # 只有在 SECURITY_ENABLED=false 時才允許繞過認證
+    if settings.should_bypass_auth:
+        logger.warning(
+            "Security is disabled, allowing unauthenticated access",
+            path=request.url.path,
+            method=request.method,
+            has_token=bool(token)
+        )
+        # 返回一個臨時用戶（用於測試，但不會使用 dev_user）
+        return User(
+            user_id="unauthenticated",
+            username="unauthenticated",
+            email=None,
+            roles=[],
+            permissions=[],
+            is_active=True,
+            metadata={"bypass_auth": True},
+        )
+
+    # 正式測試環境：認證失敗返回 None
+    logger.debug(
+        "No valid token and security enabled, returning None",
+        path=request.url.path,
+        method=request.method
+    )
     return None

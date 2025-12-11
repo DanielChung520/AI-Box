@@ -120,7 +120,7 @@ class AuditLogService:
             logger.debug(
                 "Audit log recorded",
                 user_id=log_create.user_id,
-                action=log_create.action.value,
+                action=action_value,
             )
         except Exception as e:
             logger.error("Failed to log audit event", error=str(e))

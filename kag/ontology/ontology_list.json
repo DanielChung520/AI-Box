@@ -1,0 +1,177 @@
+{
+    "metadata": {
+        "version": "1.0",
+        "last_updated": "2025-12-10",
+        "author": "Daniel Chung",
+        "description": "Ontology 註冊表，用於 LLM 分析任務時快速索引和選擇合適的 Ontology 文件",
+        "base_path": "kag/ontology/",
+        "usage": "LLM 可根據文件內容特徵，從此列表快速查找並選擇合適的 domain 和 major ontology 進行知識圖譜提取"
+    },
+    "base_ontology": {
+        "file_name": "base.json",
+        "ontology_name": "5W1H_Base_Ontology_OWL",
+        "version": "3.0",
+        "type": "base",
+        "required": true,
+        "description": "知識圖譜基礎本體論，基於 OWL 標準定義的類別與物件屬性。遵循 5W1H 框架（Who, What, When, Where, Why, How）構建完整的知識表示體系。所有知識圖譜提取任務都必須載入此基礎 Ontology。",
+        "tags": ["基礎", "5W1H", "通用", "核心", "必需"],
+        "file_path": "kag/ontology/base.json"
+    },
+    "domain_ontologies": [
+        {
+            "file_name": "domain-enterprise.json",
+            "ontology_name": "Enterprise_Domain_Ontology",
+            "version": "1.0",
+            "type": "domain",
+            "description": "企業領域通用本體論，定義組織、財務與專案的核心概念。適用於企業文件、組織架構、財務報表、專案管理等場景。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL"],
+            "tags": ["企業", "組織", "財務", "專案", "商業", "公司"],
+            "use_cases": [
+                "企業文件分析",
+                "組織架構文檔",
+                "財務報表處理",
+                "專案管理文檔",
+                "商業計劃書",
+                "公司治理文檔"
+            ],
+            "file_path": "kag/ontology/domain-enterprise.json"
+        },
+        {
+            "file_name": "domain-administration.json",
+            "ontology_name": "Administration_Domain_Ontology",
+            "version": "1.0",
+            "type": "domain",
+            "description": "行政管理領域通用本體論，定義行政流程、政策法規、審批流程與組織管理的核心概念。適用於行政文件、政策法規、審批流程、組織管理等場景。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL"],
+            "tags": ["行政", "管理", "政策", "審批", "流程", "組織", "法規"],
+            "use_cases": [
+                "行政文件處理",
+                "政策法規文檔",
+                "審批流程文檔",
+                "組織管理文檔",
+                "會議記錄",
+                "預算文件",
+                "合同文檔",
+                "申請文件"
+            ],
+            "file_path": "kag/ontology/domain-administration.json"
+        }
+    ],
+    "major_ontologies": [
+        {
+            "file_name": "major-manufacture.json",
+            "ontology_name": "Manufacture_Major_Ontology",
+            "version": "1.0",
+            "type": "major",
+            "description": "製造業專業本體論，專注於生產、品質控制和設備維護。適用於製造業技術文檔、生產流程、品質控制、設備維護等專業場景。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL", "Enterprise_Domain_Ontology"],
+            "compatible_domains": ["domain-enterprise.json"],
+            "tags": ["製造", "生產", "品質", "設備", "供應鏈", "工廠", "工業"],
+            "use_cases": [
+                "製造業技術文檔",
+                "生產流程文檔",
+                "品質控制報告",
+                "設備維護手冊",
+                "供應鏈管理文檔",
+                "生產計劃",
+                "工藝流程"
+            ],
+            "file_path": "kag/ontology/major-manufacture.json"
+        },
+        {
+            "file_name": "major-notioneditor.json",
+            "ontology_name": "Notion_Editor_Major_Ontology",
+            "version": "1.0",
+            "type": "major",
+            "description": "Notion 編輯器專業本體論，專注於知識管理、文檔協作、資料庫管理和內容組織。適用於 Notion 工作區分析、知識庫文檔、協作文檔等場景。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL", "Administration_Domain_Ontology"],
+            "compatible_domains": ["domain-administration.json"],
+            "tags": ["Notion", "知識管理", "協作", "資料庫", "文檔管理", "工作區", "頁面"],
+            "use_cases": [
+                "Notion 工作區分析",
+                "知識庫文檔",
+                "協作文檔",
+                "資料庫結構分析",
+                "內容組織分析",
+                "模板分析"
+            ],
+            "file_path": "kag/ontology/major-notioneditor.json"
+        }
+    ],
+    "selection_guide": {
+        "for_llm": {
+            "description": "LLM 分析任務時選擇 Ontology 的指南",
+            "step1": "必須載入 base.json（基礎 Ontology）",
+            "step2": "根據文件內容判斷領域，選擇一個或多個 domain ontology",
+            "step3": "根據文件專業特性，選擇對應的 major ontology（可選）",
+            "step4": "確認 major ontology 與 domain ontology 的兼容性",
+            "example": {
+                "scenario": "分析製造業生產報告",
+                "analysis": "文件涉及製造業生產流程，屬於企業領域",
+                "selected": {
+                    "base": "base.json",
+                    "domain": ["domain-enterprise.json"],
+                    "major": ["major-manufacture.json"]
+                },
+                "reasoning": "製造業屬於企業領域，major-manufacture.json 與 domain-enterprise.json 兼容"
+            }
+        },
+        "compatibility_rules": {
+            "major-manufacture.json": {
+                "recommended_domain": "domain-enterprise.json",
+                "reason": "製造業屬於企業領域"
+            },
+            "major-notioneditor.json": {
+                "recommended_domain": "domain-administration.json",
+                "reason": "Notion 編輯器用於知識管理和行政協作"
+            }
+        }
+    },
+    "quick_index": {
+        "by_keywords": {
+            "企業": ["domain-enterprise.json"],
+            "公司": ["domain-enterprise.json"],
+            "財務": ["domain-enterprise.json"],
+            "專案": ["domain-enterprise.json"],
+            "行政": ["domain-administration.json"],
+            "管理": ["domain-administration.json", "domain-enterprise.json"],
+            "政策": ["domain-administration.json"],
+            "審批": ["domain-administration.json"],
+            "流程": ["domain-administration.json"],
+            "製造": ["major-manufacture.json"],
+            "生產": ["major-manufacture.json"],
+            "品質": ["major-manufacture.json"],
+            "設備": ["major-manufacture.json"],
+            "Notion": ["major-notioneditor.json"],
+            "知識管理": ["major-notioneditor.json"],
+            "協作": ["major-notioneditor.json"],
+            "資料庫": ["major-notioneditor.json"]
+        },
+        "by_document_type": {
+            "財務報表": {
+                "domain": ["domain-enterprise.json"],
+                "major": []
+            },
+            "專案計劃": {
+                "domain": ["domain-enterprise.json"],
+                "major": []
+            },
+            "生產報告": {
+                "domain": ["domain-enterprise.json"],
+                "major": ["major-manufacture.json"]
+            },
+            "政策文件": {
+                "domain": ["domain-administration.json"],
+                "major": []
+            },
+            "審批文件": {
+                "domain": ["domain-administration.json"],
+                "major": []
+            },
+            "Notion 文檔": {
+                "domain": ["domain-administration.json"],
+                "major": ["major-notioneditor.json"]
+            }
+        }
+    }
+}

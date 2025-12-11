@@ -33,17 +33,17 @@ const getDefaultApiUrl = () => {
 let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || getDefaultApiUrl();
 
 // 特殊處理：如果前端從 HTTPS 頁面訪問，但 API_BASE_URL 是 HTTP 的 localhost，
-// 這會被 Chrome 阻止。在這種情況下，如果沒有設置 VITE_API_BASE_URL，使用當前域名
+// 這會被 Chrome 阻止。在這種情況下，使用當前域名（通過反向代理）
 if (window.location.protocol === 'https:' &&
     API_BASE_URL.startsWith('http://localhost')) {
-  // 如果明確設置了 VITE_API_BASE_URL，使用它（用戶可能配置了反向代理）
-  if (import.meta.env.VITE_API_BASE_URL) {
-    // 使用用戶設置的值（可能配置了反向代理）
-    API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-  } else {
-    // 沒有設置，使用當前域名（需要配置反向代理）
-    API_BASE_URL = window.location.origin;
-  }
+  // 從 HTTPS 頁面訪問 localhost 會被瀏覽器阻止（混合內容策略）
+  // 解決方案：使用當前域名，通過反向代理訪問後端
+  console.warn(
+    `[API Config] HTTPS page detected, but API_BASE_URL is ${API_BASE_URL}. ` +
+    `Using current origin ${window.location.origin} instead. ` +
+    `Make sure reverse proxy is configured.`
+  );
+  API_BASE_URL = window.location.origin;
 }
 const API_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v1';
 
@@ -90,14 +90,20 @@ export async function apiRequest<T = any>(
 
   // 獲取認證 token
   const token = localStorage.getItem('access_token');
+  
+  // 調試日誌：檢查 token 是否存在（僅在開發環境或調試時輸出）
+  if (!token && !endpoint.includes('/auth/login')) {
+    console.warn(`[apiRequest] No access_token found for request to ${endpoint}`);
+  }
 
   // 為本地網絡請求添加 targetAddressSpace 選項（Chrome 安全策略兼容）
+  // 重要：Authorization header 必須最後設置，確保不被覆蓋
   const fetchOptions: RequestInit = {
     ...options,
     headers: {
       ...apiConfig.headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
+      ...options.headers, // 先設置用戶自定義 headers
+      ...(token ? { Authorization: `Bearer ${token}` } : {}), // 最後設置 Authorization，確保不被覆蓋
     },
   };
 
@@ -125,6 +131,50 @@ export async function apiRequest<T = any>(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      // 401 未授權錯誤：token 無效或過期，提示用戶重新登錄
+      if (response.status === 401) {
+        console.warn(`[apiRequest] Authentication failed for ${url}. Token may be missing, invalid, or expired.`);
+        
+        // 檢查是否為登錄相關的請求（不應該清除登錄頁面的 token）
+        const isAuthEndpoint = endpoint.includes('/auth/');
+        const isLoginEndpoint = endpoint.includes('/auth/login');
+        
+        // 只有非登錄相關的請求才清除 token（避免登錄過程中的誤清除）
+        if (!isLoginEndpoint) {
+          // 檢查 token 是否存在（如果不存在，可能是剛登錄還沒保存）
+          const existingToken = localStorage.getItem('access_token');
+          
+          // 重要：登錄後的前幾秒內，如果 token 存在但驗證失敗，可能是：
+          // 1. Token 剛保存，後端還未完全處理
+          // 2. 網絡延遲導致 token 驗證時序問題
+          // 3. 後端服務重啟導致 token 驗證邏輯異常
+          // 
+          // 因此，在登錄後的短時間內（5 秒），我們不立即清除 token
+          // 而是記錄警告，讓用戶重試
+          const loginTime = localStorage.getItem('loginTime');
+          const isRecentLogin = loginTime && (Date.now() - new Date(loginTime).getTime()) < 5000; // 5 秒內
+          
+          if (existingToken) {
+            if (isRecentLogin) {
+              console.warn(`[apiRequest] Token exists but authentication failed shortly after login. This may be a timing issue. Not clearing token yet.`);
+              // 不清除 token，可能是時序問題，給後端一點時間
+            } else {
+              console.warn(`[apiRequest] Token exists but authentication failed. Clearing token.`);
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+              localStorage.removeItem('isAuthenticated');
+              
+              // 觸發認證狀態變化事件，讓前端組件處理（如跳轉到登錄頁）
+              window.dispatchEvent(new CustomEvent('authStateChanged', {
+                detail: { isAuthenticated: false, reason: 'token_expired' }
+              }));
+            }
+          } else {
+            console.warn(`[apiRequest] No token found. Request may have been made before token was saved.`);
+          }
+        }
+      }
+      
       // 404 錯誤特別處理
       if (response.status === 404) {
         console.warn(`API endpoint not found: ${url}. Make sure the backend server is running and the endpoint exists.`);
@@ -464,9 +514,11 @@ export async function uploadFiles(
     formData.append('files', file);
   });
 
-  // 添加 task_id（如果提供，否則使用默認的 "temp-workspace"）
-  const finalTaskId = taskId || 'temp-workspace';
-  formData.append('task_id', finalTaskId);
+  // 修改時間：2025-01-27 - 移除 temp-workspace，task_id 必須提供
+  // 如果未提供 task_id，後端會自動創建新任務
+  if (taskId) {
+    formData.append('task_id', taskId);
+  }
 
   const url = `${API_URL}/files/upload`;
 
@@ -504,6 +556,17 @@ export async function uploadFiles(
           errorMessage = xhr.statusText || errorMessage;
         }
 
+        // 401 未授權錯誤：清除無效 token 並觸發認證狀態變化
+        if (xhr.status === 401) {
+          console.warn('[uploadFiles] Authentication failed. Token may be missing, invalid, or expired.');
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('isAuthenticated');
+          window.dispatchEvent(new CustomEvent('authStateChanged', {
+            detail: { isAuthenticated: false, reason: 'token_expired' }
+          }));
+        }
+
         const error = new Error(errorMessage);
         (error as any).status = xhr.status;
         reject(error);
@@ -522,10 +585,13 @@ export async function uploadFiles(
 
     xhr.open('POST', url);
 
-    // 添加認證頭
+    // 添加認證頭（必須在 open() 之後設置）
     const token = getAuthToken();
     if (token) {
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      console.log('[uploadFiles] Authorization header set with token');
+    } else {
+      console.warn('[uploadFiles] No access token found in localStorage. Upload may fail with 401 error.');
     }
 
     // 不設置 Content-Type，讓瀏覽器自動設置 multipart/form-data 邊界
@@ -616,6 +682,7 @@ export interface FileTreeResponse {
       folder_name: string;
       parent_task_id?: string | null;
       user_id: string;
+      folder_type?: string; // 修改時間：2025-01-27 - 添加 folder_type 屬性（workspace, scheduled 等）
     }>;
     total_tasks: number;
     total_files: number;
@@ -675,7 +742,10 @@ export async function getFileTree(params?: {
 }): Promise<FileTreeResponse> {
   const queryParams = new URLSearchParams();
   if (params?.user_id) queryParams.append('user_id', params.user_id);
-  if (params?.task_id) queryParams.append('task_id', params.task_id);
+  // 修改時間：2025-12-09 - 如果 task_id 是 'temp-workspace'，不傳遞 task_id 參數，避免 403 錯誤
+  if (params?.task_id && params.task_id !== 'temp-workspace') {
+    queryParams.append('task_id', params.task_id);
+  }
 
   const query = queryParams.toString();
   return apiGet<FileTreeResponse>(`/files/tree${query ? `?${query}` : ''}`);
@@ -836,9 +906,13 @@ export async function copyFile(
  */
 export async function moveFile(
   fileId: string,
-  targetTaskId: string
+  targetTaskId: string,
+  targetFolderId?: string | null
 ): Promise<{ success: boolean; data?: any; message?: string }> {
-  return apiPut(`/files/${fileId}/move`, { target_task_id: targetTaskId });
+  return apiPut(`/files/${fileId}/move`, {
+    target_task_id: targetTaskId,
+    target_folder_id: targetFolderId ?? undefined,
+  });
 }
 
 /**
@@ -919,6 +993,18 @@ export async function getFileGraph(
   offset: number = 0
 ): Promise<{ success: boolean; data?: any; message?: string }> {
   return apiGet(`/files/${fileId}/graph?limit=${limit}&offset=${offset}`);
+}
+
+/**
+ * 重新生成文件的向量或圖譜數據
+ * @param fileId 文件ID
+ * @param type 重新生成的類型：'vector' 或 'graph'
+ */
+export async function regenerateFileData(
+  fileId: string,
+  type: 'vector' | 'graph'
+): Promise<{ success: boolean; data?: any; message?: string }> {
+  return apiPost(`/files/${fileId}/regenerate`, { type });
 }
 
 /**
@@ -1342,4 +1428,137 @@ export async function searchLibrary(
   if (params.limit) queryParams.append('limit', params.limit.toString());
 
   return apiGet<LibrarySearchResponse>(`/files/library/search?${queryParams.toString()}`);
+}
+
+/**
+ * 用戶任務同步相關 API
+ */
+
+export interface UserTask {
+  task_id: string;
+  user_id: string;
+  title: string;
+  status: 'pending' | 'in-progress' | 'completed';
+  dueDate?: string;
+  messages?: Array<{
+    id: string;
+    sender: 'user' | 'ai';
+    content: string;
+    timestamp: string;
+    containsMermaid?: boolean;
+  }>;
+  executionConfig?: {
+    mode: 'free' | 'assistant' | 'agent';
+    assistantId?: string;
+    agentId?: string;
+  };
+  fileTree?: Array<{
+    id: string;
+    name: string;
+    type: 'folder' | 'file';
+    children?: Array<any>;
+  }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ListUserTasksResponse {
+  success: boolean;
+  data?: {
+    tasks: UserTask[];
+    total: number;
+  };
+  message?: string;
+}
+
+export interface SyncTasksRequest {
+  tasks: Array<{
+    id: number | string;
+    task_id?: number | string;
+    title: string;
+    status?: 'pending' | 'in-progress' | 'completed';
+    dueDate?: string;
+    messages?: Array<any>;
+    executionConfig?: any;
+    fileTree?: Array<any>;
+  }>;
+}
+
+export interface SyncTasksResponse {
+  success: boolean;
+  data?: {
+    created: number;
+    updated: number;
+    errors: number;
+    total: number;
+  };
+  message?: string;
+}
+
+/**
+ * 列出用戶的所有任務
+ */
+export async function listUserTasks(): Promise<ListUserTasksResponse> {
+  return apiGet<ListUserTasksResponse>('/user-tasks');
+}
+
+/**
+ * 同步任務列表到後台
+ */
+export async function syncTasks(
+  tasks: SyncTasksRequest['tasks']
+): Promise<SyncTasksResponse> {
+  return apiPost<SyncTasksResponse>('/user-tasks/sync', { tasks });
+}
+
+/**
+ * 獲取指定任務
+ */
+export async function getUserTask(taskId: string): Promise<{ success: boolean; data?: UserTask; message?: string }> {
+  return apiGet(`/user-tasks/${taskId}`);
+}
+
+/**
+ * 創建用戶任務
+ */
+// 修改時間：2025-01-27 - user_id 改為可選，後端會自動使用當前認證用戶的 user_id
+export async function createUserTask(task: {
+  task_id: string;
+  user_id?: string; // 可選，後端會自動使用當前認證用戶的 user_id
+  title: string;
+  status?: 'pending' | 'in-progress' | 'completed';
+  dueDate?: string;
+  messages?: Array<any>;
+  executionConfig?: any;
+  fileTree?: Array<any>;
+}): Promise<{ success: boolean; data?: UserTask; message?: string }> {
+  // 不傳遞 user_id，後端會自動使用當前認證用戶的 user_id
+  const { user_id, ...taskWithoutUserId } = task;
+  return apiPost('/user-tasks', taskWithoutUserId);
+}
+
+/**
+ * 更新用戶任務
+ */
+export async function updateUserTask(
+  taskId: string,
+  update: {
+    title?: string;
+    status?: 'pending' | 'in-progress' | 'completed';
+    task_status?: 'activate' | 'archive'; // 修改時間：2025-12-09 - 添加任務顯示狀態
+    label_color?: string | null; // 修改時間：2025-12-09 - 添加任務顏色標籤
+    dueDate?: string;
+    messages?: Array<any>;
+    executionConfig?: any;
+    fileTree?: Array<any>;
+  }
+): Promise<{ success: boolean; data?: UserTask; message?: string }> {
+  return apiPut(`/user-tasks/${taskId}`, update);
+}
+
+/**
+ * 刪除用戶任務
+ */
+export async function deleteUserTask(taskId: string): Promise<{ success: boolean; message?: string }> {
+  return apiDelete(`/user-tasks/${taskId}`);
 }

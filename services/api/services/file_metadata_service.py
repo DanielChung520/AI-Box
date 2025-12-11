@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件元數據服務
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-06
+# 最後修改日期: 2025-12-09
 
 """文件元數據服務 - 實現 ArangoDB CRUD 和全文搜索"""
 
@@ -49,6 +49,7 @@ class FileMetadataService:
             collection.add_index({"type": "persistent", "fields": ["upload_time"]})
             collection.add_index({"type": "persistent", "fields": ["user_id"]})
             collection.add_index({"type": "persistent", "fields": ["task_id"]})
+            collection.add_index({"type": "persistent", "fields": ["folder_id"]})
             collection.add_index({"type": "persistent", "fields": ["status"]})
 
     def create(self, metadata: FileMetadataCreate) -> FileMetadata:
@@ -63,6 +64,8 @@ class FileMetadataService:
             "file_size": metadata.file_size,
             "user_id": metadata.user_id,
             "task_id": metadata.task_id,
+            "folder_id": metadata.folder_id,
+            "storage_path": metadata.storage_path,
             "tags": metadata.tags,
             "description": metadata.description,
             "custom_metadata": metadata.custom_metadata,
@@ -107,8 +110,15 @@ class FileMetadataService:
 
         update_data: dict = {"updated_at": datetime.utcnow().isoformat()}
 
-        if update.task_id is not None:
+        # 修改時間：2025-12-08 10:21:00 UTC+8 - 支持將 task_id 更新為 None
+        # Pydantic 模型中，即使 task_id=None，model.task_id 也存在
+        # 所以需要檢查是否在 model_dump 中包含 'task_id' 鍵
+        update_dict = update.model_dump(exclude_unset=True)
+        if 'task_id' in update_dict:
+            # 即使是 None 也要更新（表示移動到任務工作區）
             update_data["task_id"] = update.task_id
+        if 'folder_id' in update_dict:
+            update_data["folder_id"] = update.folder_id
         if update.tags is not None:
             update_data["tags"] = update.tags
         if update.description is not None:
@@ -126,7 +136,12 @@ class FileMetadataService:
         if update.kg_status is not None:
             update_data["kg_status"] = update.kg_status
 
-        collection.update(file_id, update_data)
+        # ArangoDB collection.update() 需要 {'_key': ...} 或 {'_id': ...} 作為第一個參數
+        # 將 file_id 作為 _key 傳遞
+        doc_to_update = {"_key": file_id}
+        doc_to_update.update(update_data)
+        
+        collection.update(doc_to_update)
         updated_doc = collection.get(file_id)
 
         return FileMetadata(**updated_doc) if updated_doc else None
@@ -153,11 +168,23 @@ class FileMetadataService:
         sort_by: str = "upload_time",
         sort_order: str = "desc",
     ) -> List[FileMetadata]:
-        """查詢文件元數據列表"""
+        """查詢文件元數據列表
+        
+        修改時間：2025-01-27 - task_id 改為必填，移除 task_id=None 的查詢
+        """
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
         if self.client.db.aql is None:
             raise RuntimeError("ArangoDB AQL is not available")
+
+        # 修改時間：2025-01-27 - task_id 必須提供
+        if task_id is None:
+            # 如果未提供 task_id，返回空列表（不再查詢所有文件）
+            self.logger.warning(
+                "文件查詢未提供 task_id，返回空列表",
+                user_id=user_id,
+            )
+            return []
 
         # 構建 AQL 查詢
         filter_conditions = []
@@ -171,9 +198,9 @@ class FileMetadataService:
             filter_conditions.append("doc.user_id == @user_id")
             bind_vars["user_id"] = user_id
 
-        if task_id:
-            filter_conditions.append("doc.task_id == @task_id")
-            bind_vars["task_id"] = task_id
+        # task_id 必須提供（已在上方檢查）
+        filter_conditions.append("doc.task_id == @task_id")
+        bind_vars["task_id"] = task_id
 
         if tags:
             filter_conditions.append("LENGTH(INTERSECTION(doc.tags, @tags)) > 0")
@@ -210,9 +237,13 @@ class FileMetadataService:
         query: str,
         user_id: Optional[str] = None,
         file_type: Optional[str] = None,
+        task_id: Optional[str] = None,
         limit: int = 100,
     ) -> List[FileMetadata]:
-        """全文搜索"""
+        """全文搜索
+        
+        修改時間：2025-01-27 - 添加 task_id 參數，支持在指定任務工作區中搜索
+        """
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
         if self.client.db.aql is None:
@@ -235,6 +266,11 @@ class FileMetadataService:
         if file_type:
             aql += " AND doc.file_type == @file_type"
             bind_vars["file_type"] = file_type
+
+        # 修改時間：2025-01-27 - 如果提供了 task_id，只搜索該任務工作區的文件
+        if task_id:
+            aql += " AND doc.task_id == @task_id"
+            bind_vars["task_id"] = task_id
 
         aql += " LIMIT @limit"
 

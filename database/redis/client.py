@@ -58,8 +58,11 @@ def get_redis_client() -> redis.Redis[str]:
         # 測試連接
         try:
             _redis_client.ping()
+            # 獲取實際連接的主機和端口（用於日誌）
+            actual_host = redis_host if 'redis_host' in locals() else os.getenv("REDIS_HOST", "localhost")
+            actual_port = redis_port if 'redis_port' in locals() else int(os.getenv("REDIS_PORT", "6379"))
             logger.info(
-                "Redis connection established", host=redis_host, port=redis_port
+                "Redis connection established", host=actual_host, port=actual_port
             )
         except redis.ConnectionError as e:
             logger.error("Redis connection failed", error=str(e))

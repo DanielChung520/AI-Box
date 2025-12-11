@@ -82,8 +82,22 @@ def audit_log(
             # 注意：對於登錄等不需要認證的端點，如果獲取失敗則記錄為匿名
             if current_user is None and request:
                 try:
-                    # 嘗試獲取用戶（在開發模式下會返回開發用戶，不會失敗）
-                    current_user = await get_current_user(request)
+                    # 修改時間：2025-12-08 14:30:00 UTC+8 - 添加超時保護，避免阻塞
+                    # 對於登錄端點，不需要獲取用戶，直接跳過
+                    import asyncio
+                    try:
+                        # 設置 1 秒超時，避免阻塞
+                        current_user = await asyncio.wait_for(
+                            get_current_user(request),
+                            timeout=1.0
+                        )
+                    except asyncio.TimeoutError:
+                        # 超時時記錄為匿名用戶（對於登錄端點這是正常的）
+                        logger.debug(
+                            "Timeout getting current user for audit log (this is normal for login endpoints)",
+                            action=action.value,
+                        )
+                        current_user = None
                 except Exception as e:
                     # 如果獲取用戶失敗（如登錄端點不需要認證），記錄為匿名
                     # 這是正常的，因為登錄端點不需要認證
@@ -112,16 +126,37 @@ def audit_log(
 
             # 提取資源ID（如果提供了函數）
             resource_id: Optional[str] = None
-            if get_resource_id and response:
+            if get_resource_id:
                 try:
-                    if hasattr(response, "body"):
-                        # 處理 JSONResponse
-                        import json
-
-                        body = json.loads(response.body.decode())
-                        resource_id = get_resource_id(body)
-                    elif isinstance(response, dict):
-                        resource_id = get_resource_id(response)
+                    # 首先嘗試從函數參數中提取（用於 DELETE 等沒有 body 的請求）
+                    # 檢查是否有 task_id, file_id, folder_id 等參數
+                    for key, value in kwargs.items():
+                        if key in ("task_id", "file_id", "folder_id", "resource_id") and value:
+                            resource_id = str(value)
+                            break
+                    
+                    # 如果沒有從參數中找到，嘗試從響應中提取
+                    if not resource_id and response:
+                        if hasattr(response, "body"):
+                            # 處理 JSONResponse
+                            import json
+                            try:
+                                if response.body is not None:
+                                    body = json.loads(response.body.decode())
+                                    if body and isinstance(body, dict):
+                                        try:
+                                            resource_id = get_resource_id(body)
+                                        except (AttributeError, TypeError):
+                                            # get_resource_id 可能返回 None 或出錯，這是正常的
+                                            pass
+                            except (json.JSONDecodeError, AttributeError, TypeError):
+                                pass
+                        elif isinstance(response, dict) and response:
+                            try:
+                                resource_id = get_resource_id(response)
+                            except (AttributeError, TypeError):
+                                # get_resource_id 可能返回 None 或出錯，這是正常的
+                                pass
                 except Exception as e:
                     logger.warning("Failed to extract resource_id", error=str(e))
 
