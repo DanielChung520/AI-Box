@@ -33,25 +33,29 @@ class VectorStoreService:
         """
         # 優先從 datastores.chromadb 讀取配置，然後從 chromadb 讀取（向後兼容）
         datastores_config = get_config_section("datastores", default={}) or {}
-        chromadb_config = datastores_chromadb_config.get("chromadb", {}) if datastores_config else {}
-        
+        chromadb_config = (
+            datastores_chromadb_config.get("chromadb", {}) if datastores_config else {}
+        )
+
         # 如果 datastores.chromadb 沒有配置，嘗試直接讀取 chromadb 配置（向後兼容）
         if not chromadb_config:
             chromadb_config = get_config_section("chromadb", default={}) or {}
-        
+
         # 合併配置：優先使用 datastores.chromadb，然後使用環境變量
         mode_value = chromadb_config.get("mode") or os.getenv("CHROMADB_MODE", "http")
         if not isinstance(mode_value, str):
             mode_value = "http"
-        
+
         # persist_directory 優先使用 mount_path（datastores 配置），然後使用 persist_directory，最後使用環境變量
         persist_dir = (
-            chromadb_config.get("mount_path") or  # datastores.chromadb.mount_path
-            chromadb_config.get("persist_directory") or  # chromadb.persist_directory（向後兼容）
-            os.getenv("CHROMADB_PERSIST_DIR") or  # 環境變量
-            "./data/datasets/chromadb"  # 默認值：統一使用 data/datasets 目錄
+            chromadb_config.get("mount_path")  # datastores.chromadb.mount_path
+            or chromadb_config.get(
+                "persist_directory"
+            )  # chromadb.persist_directory（向後兼容）
+            or os.getenv("CHROMADB_PERSIST_DIR")  # 環境變量
+            or "./data/datasets/chromadb"  # 默認值：統一使用 data/datasets 目錄
         )
-        
+
         self.client = client or ChromaDBClient(
             host=chromadb_config.get("host") or os.getenv("CHROMADB_HOST"),
             port=chromadb_config.get("port") or int(os.getenv("CHROMADB_PORT", "8001")),
@@ -195,7 +199,9 @@ class VectorStoreService:
                     content_type = chunk["content_type"]
                     # 确保 content_type 不是列表或字典
                     if isinstance(content_type, (list, dict)):
-                        metadata["content_type"] = json.dumps(content_type, ensure_ascii=False)
+                        metadata["content_type"] = json.dumps(
+                            content_type, ensure_ascii=False
+                        )
                     else:
                         metadata["content_type"] = content_type
 
@@ -441,13 +447,15 @@ class VectorStoreService:
             if count > 0:
                 try:
                     # 获取一个向量来检查维度
-                    results = collection.get(limit=1, include=["embeddings", "documents"])
+                    results = collection.get(
+                        limit=1, include=["embeddings", "documents"]
+                    )
                     embeddings = results.get("embeddings", [])
 
                     if embeddings is not None and len(embeddings) > 0:
                         # 确保 embeddings[0] 是列表或数组
                         first_embedding = embeddings[0]
-                        if hasattr(first_embedding, '__len__'):
+                        if hasattr(first_embedding, "__len__"):
                             stats["dimension"] = len(first_embedding)
 
                     # 获取所有文档来计算统计

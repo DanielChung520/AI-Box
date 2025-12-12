@@ -17,7 +17,6 @@ from datetime import datetime
 # 從 Registry 導入 AgentRegistryInfo 和 AgentStatus
 from agents.services.registry.models import (
     AgentRegistryInfo,
-    AgentStatus,
 )
 
 

@@ -7,7 +7,6 @@
 
 import os
 import mimetypes
-import re
 from pathlib import Path
 from typing import List, Optional, Tuple
 import structlog
@@ -131,7 +130,9 @@ def validate_file_signature(
 
     if ext == ".gif":
         # GIF 可以是 GIF87a 或 GIF89a
-        if not (file_content.startswith(b"GIF87a") or file_content.startswith(b"GIF89a")):
+        if not (
+            file_content.startswith(b"GIF87a") or file_content.startswith(b"GIF89a")
+        ):
             return False, "GIF 文件簽名驗證失敗，文件可能損壞"
 
     if ext == ".bmp":

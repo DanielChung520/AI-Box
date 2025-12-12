@@ -46,7 +46,9 @@ class MdParser(BaseParser):
                 },
             }
         except Exception as e:
-            self.logger.error("Markdown 文件解析失敗", file_path=file_path, error=str(e))
+            self.logger.error(
+                "Markdown 文件解析失敗", file_path=file_path, error=str(e)
+            )
             raise
 
     def parse_from_bytes(

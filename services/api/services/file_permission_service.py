@@ -189,7 +189,7 @@ class FilePermissionService:
     def check_upload_permission(self, user: User) -> bool:
         """
         檢查用戶是否有權上傳文件
-        
+
         修改時間：2025-12-09 - 在測試環境中，如果用戶沒有權限，自動授予文件上傳權限
 
         Args:
@@ -208,17 +208,18 @@ class FilePermissionService:
         # 檢查是否有文件上傳權限
         if user.has_permission(Permission.FILE_UPLOAD.value):
             return True
-        
+
         # 修改時間：2025-12-09 - 在測試環境中，如果用戶沒有權限，記錄警告但允許上傳
         # 這是為了確保測試環境的可用性，避免因為權限配置問題導致功能無法使用
         from system.security.config import get_security_settings
+
         settings = get_security_settings()
-        
+
         if settings.should_bypass_auth:
             logger.warning(
                 "User missing FILE_UPLOAD permission, allowing upload (test environment)",
                 user_id=user.user_id,
-                permissions=user.permissions
+                permissions=user.permissions,
             )
             return True
 
@@ -259,7 +260,7 @@ class FilePermissionService:
         try:
             task_service = get_user_task_service()
             task = task_service.get(user_id=user.user_id, task_id=task_id)
-            
+
             if task is None:
                 # 任務不存在或任務不屬於當前用戶
                 self.logger.warning(
@@ -268,7 +269,7 @@ class FilePermissionService:
                     task_id=task_id,
                 )
                 return False
-            
+
             # 任務存在且屬於當前用戶，允許訪問
             return True
         except Exception as e:

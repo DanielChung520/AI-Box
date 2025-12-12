@@ -6,7 +6,6 @@
 """文件上傳流程集成測試 - 測試文件上傳 → 存儲 → 返回file_id"""
 
 import pytest
-import os
 import tempfile
 import shutil
 from fastapi.testclient import TestClient

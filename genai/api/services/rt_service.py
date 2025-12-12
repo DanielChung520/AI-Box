@@ -397,7 +397,12 @@ class RTService:
         self.model_type = self.config.get("model_type", "ollama")
         # 优先从环境变量读取，然后从配置读取，最后使用默认值
         import os
-        self.model_name = os.getenv("OLLAMA_NER_MODEL") or os.getenv("OLLAMA_RT_MODEL") or self.config.get("model_name", "llama3.1:8b")
+
+        self.model_name = (
+            os.getenv("OLLAMA_NER_MODEL")
+            or os.getenv("OLLAMA_RT_MODEL")
+            or self.config.get("model_name", "llama3.1:8b")
+        )
         self.classification_threshold = self.config.get("classification_threshold", 0.7)
         self.enable_gpu = self.config.get("enable_gpu", False)
 

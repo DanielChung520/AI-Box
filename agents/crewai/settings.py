@@ -34,7 +34,9 @@ class CrewAISettings(BaseModel):
     enable_memory: bool = Field(
         default=True, description="是否啟用 Working Memory/Context Recorder"
     )
-    process_timeout: int = Field(default=3600, ge=60, description="流程執行超時時間（秒）")
+    process_timeout: int = Field(
+        default=3600, ge=60, description="流程執行超時時間（秒）"
+    )
     max_iterations: int = Field(default=20, ge=1, le=100, description="最大迭代次數")
 
 

@@ -259,12 +259,12 @@ class SecretManager:
             "secret_id": secret_info.secret_id,
             "status": secret_info.status.value,
             "bound_agent_id": secret_info.bound_agent_id,
-            "created_at": secret_info.created_at.isoformat()
-            if secret_info.created_at
-            else None,
-            "bound_at": secret_info.bound_at.isoformat()
-            if secret_info.bound_at
-            else None,
+            "created_at": (
+                secret_info.created_at.isoformat() if secret_info.created_at else None
+            ),
+            "bound_at": (
+                secret_info.bound_at.isoformat() if secret_info.bound_at else None
+            ),
         }
 
     def revoke_secret(self, secret_id: str) -> bool:

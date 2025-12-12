@@ -27,7 +27,11 @@ class TestAMMModule:
         try:
             response = await client.post(
                 "/api/v1/aam/rag/retrieve",
-                json={"query": "蘋果公司的創始人是誰？", "use_vector": True, "use_graph": True},
+                json={
+                    "query": "蘋果公司的創始人是誰？",
+                    "use_vector": True,
+                    "use_graph": True,
+                },
             )
             assert response.status_code in [
                 200,
@@ -47,7 +51,10 @@ class TestAMMModule:
         try:
             response = await client.post(
                 "/api/v1/aam/realtime/retrieve",
-                json={"query": "最近的對話內容是什麼？", "session_id": "test_session_realtime"},
+                json={
+                    "query": "最近的對話內容是什麼？",
+                    "session_id": "test_session_realtime",
+                },
             )
             assert response.status_code in [
                 200,

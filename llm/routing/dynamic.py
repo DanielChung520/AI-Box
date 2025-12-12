@@ -147,7 +147,9 @@ class DynamicRouter:
             if len(self._switch_history) > self._max_history_size:
                 self._switch_history = self._switch_history[-self._max_history_size :]
 
-            logger.info(f"路由策略已切換: {old_strategy} -> {strategy_name} (原因: {reason})")
+            logger.info(
+                f"路由策略已切換: {old_strategy} -> {strategy_name} (原因: {reason})"
+            )
 
     def reload_strategy_config(
         self, strategy_name: str, config: Dict[str, Any]

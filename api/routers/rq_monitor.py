@@ -5,7 +5,7 @@
 
 """RQ 隊列監控 API - 提供隊列狀態查詢接口"""
 
-from typing import Optional, List
+from typing import Optional
 from fastapi import APIRouter, Query, Depends, status
 from fastapi.responses import JSONResponse
 import structlog
@@ -107,7 +107,9 @@ async def get_queue_statistics(
 @router.get("/queues/{queue_name}/jobs")
 async def list_queue_jobs(
     queue_name: str,
-    status: Optional[str] = Query(None, description="任務狀態 (queued/started/finished/failed)"),
+    status: Optional[str] = Query(
+        None, description="任務狀態 (queued/started/finished/failed)"
+    ),
     limit: int = Query(10, ge=1, le=100, description="返回任務數量限制"),
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:

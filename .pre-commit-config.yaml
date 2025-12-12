@@ -1,46 +1,73 @@
+# Pre-commit hooks 配置
+# 功能說明：代碼提交前的自動檢查和格式化
+# 創建日期：2024-12-03
+# 創建人：Daniel Chung
+# 最後修改日期：2025-12-12
+
+# 默認配置：只檢查修改的文件，提高提交速度
+default_language_version:
+  python: python3
+
+# 只對修改的文件運行 hooks，大幅提升速度
+default_stages: [pre-commit]
+
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
-  hooks:
-  - id: trailing-whitespace
-  - id: end-of-file-fixer
-  - id: check-yaml
-    args:
-    - --unsafe
-  - id: check-added-large-files
-    args:
-    - --maxkb=1000
-    exclude: \.svg$
-  - id: check-json
-    exclude: tsconfig.json
-  - id: check-toml
-  - id: check-merge-conflict
-  - id: check-case-conflict
-- repo: https://github.com/psf/black
-  rev: 23.12.1
-  hooks:
-  - id: black
-    language_version: python3
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.1.8
-  hooks:
-  - id: ruff
-    args:
-    - --fix
-    - --exit-non-zero-on-fix
-    - --ignore
-    - F401,F841
-    - tests_backup/
-    - tests/
-    - --exclude
-    - tests/
-    - --exclude
-    - tests_backup/
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.8.0
-  hooks:
-  - id: mypy
-    args:
-    - --ignore-missing-imports
-    - --explicit-package-bases
-    exclude: ^(tests/|tests_backup/).*\.py$
+  # 基礎檢查 hooks（快速）
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        files: ^
+      - id: end-of-file-fixer
+        files: ^
+      - id: check-yaml
+        args: [--unsafe]
+        files: \.(yaml|yml)$
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+        exclude: \.svg$
+      - id: check-json
+        exclude: tsconfig\.json$
+        files: \.json$
+      - id: check-toml
+        files: \.(toml|pyproject\.toml)$
+      - id: check-merge-conflict
+        files: ^
+      - id: check-case-conflict
+        files: ^
+
+  # Black 代碼格式化（只檢查修改的 Python 文件）
+  - repo: https://github.com/psf/black
+    rev: 25.12.0
+    hooks:
+      - id: black
+        language_version: python3
+        files: \.py$
+        pass_filenames: true
+
+  # Ruff 代碼檢查（快速，只檢查修改的文件）
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.9
+    hooks:
+      - id: ruff
+        args:
+          - --fix
+          - --exit-non-zero-on-fix
+          - --ignore=F401,F841
+        files: \.py$
+        exclude: ^(tests/|tests_backup/).*\.py$
+
+  # Mypy 類型檢查（優化配置，只檢查修改的文件）
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.0
+    hooks:
+      - id: mypy
+        args:
+          - --ignore-missing-imports
+          - --explicit-package-bases
+          - --incremental
+          - --cache-dir=.mypy_cache
+          - --skip-cache-mtime-checks
+        files: \.py$
+        exclude: ^(tests/|tests_backup/).*\.py$
+        timeout: 300

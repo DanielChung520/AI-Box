@@ -85,11 +85,11 @@ def audit_log(
                     # 修改時間：2025-12-08 14:30:00 UTC+8 - 添加超時保護，避免阻塞
                     # 對於登錄端點，不需要獲取用戶，直接跳過
                     import asyncio
+
                     try:
                         # 設置 1 秒超時，避免阻塞
                         current_user = await asyncio.wait_for(
-                            get_current_user(request),
-                            timeout=1.0
+                            get_current_user(request), timeout=1.0
                         )
                     except asyncio.TimeoutError:
                         # 超時時記錄為匿名用戶（對於登錄端點這是正常的）
@@ -131,15 +131,19 @@ def audit_log(
                     # 首先嘗試從函數參數中提取（用於 DELETE 等沒有 body 的請求）
                     # 檢查是否有 task_id, file_id, folder_id 等參數
                     for key, value in kwargs.items():
-                        if key in ("task_id", "file_id", "folder_id", "resource_id") and value:
+                        if (
+                            key in ("task_id", "file_id", "folder_id", "resource_id")
+                            and value
+                        ):
                             resource_id = str(value)
                             break
-                    
+
                     # 如果沒有從參數中找到，嘗試從響應中提取
                     if not resource_id and response:
                         if hasattr(response, "body"):
                             # 處理 JSONResponse
                             import json
+
                             try:
                                 if response.body is not None:
                                     body = json.loads(response.body.decode())

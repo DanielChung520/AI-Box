@@ -40,14 +40,15 @@ async def get_current_user(request: Request) -> User:
       - 實現 JWT Token 和 API Key 的完整驗證流程
     """
     import structlog
+
     logger = structlog.get_logger(__name__)
-    
+
     settings = get_security_settings()
 
     # 修改時間：2025-01-27 - 修復開發模式下從 JWT token 解析用戶信息
     # 優先嘗試從 JWT token 解析用戶信息（即使在開發模式下）
     user = await authenticate_request(request)
-    
+
     # 修改時間：2025-01-27 - 添加日誌記錄以便調試
     if user:
         # 如果成功解析到用戶信息，使用該用戶
@@ -55,33 +56,33 @@ async def get_current_user(request: Request) -> User:
             "User authenticated from token",
             user_id=user.user_id,
             username=user.username,
-            has_token=True
+            has_token=True,
         )
         return user
-    
+
     # 修改時間：2025-01-27 - 移除 dev_user fallback，正式測試環境要求真實認證
     # 檢查是否有 token
     from system.security.auth import extract_token_from_request
+
     token = await extract_token_from_request(request)
     if token:
         logger.warning(
             "Token provided but authentication failed",
             token_length=len(token),
-            should_bypass_auth=settings.should_bypass_auth
+            should_bypass_auth=settings.should_bypass_auth,
         )
     else:
         logger.debug(
-            "No token provided",
-            should_bypass_auth=settings.should_bypass_auth
+            "No token provided", should_bypass_auth=settings.should_bypass_auth
         )
-    
+
     # 修改時間：2025-01-27 - 正式測試：移除 dev_user fallback
     # 只有在 SECURITY_ENABLED=false 時才允許繞過認證
     if settings.should_bypass_auth:
         # 只有在安全功能完全禁用時才允許繞過
         logger.warning(
             "Security is disabled, allowing unauthenticated access",
-            should_bypass_auth=True
+            should_bypass_auth=True,
         )
         # 返回一個臨時用戶（用於測試，但不會使用 dev_user）
         # 注意：這應該只在安全功能完全禁用時使用
@@ -94,7 +95,7 @@ async def get_current_user(request: Request) -> User:
             is_active=True,
             metadata={"bypass_auth": True},
         )
-    
+
     # 正式測試環境：要求真實認證，認證失敗則拋出異常
     user = await authenticate_request(request)
     if not user:

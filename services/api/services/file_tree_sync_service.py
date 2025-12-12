@@ -74,9 +74,7 @@ class FileTreeSyncService:
         files = list(
             file_metadata_collection.find({"user_id": user_id, "task_id": task_id})
         )
-        folders = list(
-            folder_collection.find({"user_id": user_id, "task_id": task_id})
-        )
+        folders = list(folder_collection.find({"user_id": user_id, "task_id": task_id}))
         return files, folders
 
     def build_file_tree(
@@ -207,13 +205,20 @@ class FileTreeSyncService:
         # 修改時間：2025-12-09 - 構建完整的 fileTree 結構（包含資料夾和文件）
         # 使用 user_task_service 的 _build_file_tree_for_task 方法構建完整的文件樹
         from services.api.services.user_task_service import get_user_task_service
+
         user_task_service = get_user_task_service()
-        complete_file_tree = user_task_service._build_file_tree_for_task(user_id, task_id)
-        
+        complete_file_tree = user_task_service._build_file_tree_for_task(
+            user_id, task_id
+        )
+
         # 重新計算哈希值（基於完整的文件樹）
-        serialized_complete_tree = json.dumps(complete_file_tree, sort_keys=True, ensure_ascii=False)
-        complete_tree_hash = hashlib.sha256(serialized_complete_tree.encode("utf-8")).hexdigest()
-        
+        serialized_complete_tree = json.dumps(
+            complete_file_tree, sort_keys=True, ensure_ascii=False
+        )
+        complete_tree_hash = hashlib.sha256(
+            serialized_complete_tree.encode("utf-8")
+        ).hexdigest()
+
         updated_doc = task_doc or {}
         updated_doc.update(
             {
@@ -260,7 +265,9 @@ class FileTreeSyncService:
             "task_id": task_id,
             "user_id": user_id,
             "fileTreeVersion": task_doc.get("fileTreeVersion", 0) if task_doc else 0,
-            "fileTreeUpdatedAt": task_doc.get("fileTreeUpdatedAt") if task_doc else None,
+            "fileTreeUpdatedAt": (
+                task_doc.get("fileTreeUpdatedAt") if task_doc else None
+            ),
             "fileTreeHash": task_doc.get("fileTreeHash") if task_doc else None,
         }
 

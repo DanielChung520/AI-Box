@@ -95,7 +95,9 @@ def update_phase5_stats(content: str, results: Dict[str, Any]) -> str:
     replacement = f"\\1✅ 已實現（測試代碼已編寫完成，測試執行完成）\n\n**執行結果** ({test_date}):\n- 總測試數: {phase5_total}\n- 通過: {phase5_passed} ({phase5_pass_rate:.1f}%)\n- 失敗: {phase5_failed} (0%)\n- 跳過: {phase5_skipped} ({phase5_skipped/phase5_total*100:.1f}%)\n- 執行時間: {phase5_duration:.2f}s\n- 通過率: {phase5_pass_rate:.1f}%"
     content = re.sub(phase5_status_pattern, replacement, content, flags=re.MULTILINE)
 
-    total_stats_pattern = r"(\| \*\*階段五\*\* \| 4 \| )⏸️( \| ✅ \| - \| - \| - \| - \|)"
+    total_stats_pattern = (
+        r"(\| \*\*階段五\*\* \| 4 \| )⏸️( \| ✅ \| - \| - \| - \| - \|)"
+    )
     total_stats_replacement = f"\\1✅\\2 {phase5_passed}/{phase5_total} | 0 | {phase5_skipped} | {phase5_pass_rate:.1f}% |"
     content = re.sub(
         total_stats_pattern, total_stats_replacement, content, flags=re.MULTILINE

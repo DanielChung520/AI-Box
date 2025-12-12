@@ -5,7 +5,7 @@
 
 """用戶任務管理路由 - 提供任務 CRUD 和同步功能"""
 
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any
 from fastapi import APIRouter, Query, status, Depends, Body
 from fastapi.responses import JSONResponse
 import structlog
@@ -14,7 +14,6 @@ from datetime import datetime
 from api.core.response import APIResponse
 from services.api.services.user_task_service import get_user_task_service
 from services.api.models.user_task import (
-    UserTask,
     UserTaskCreate,
     UserTaskUpdate,
 )
@@ -24,11 +23,12 @@ from system.security.audit_decorator import audit_log
 from services.api.models.audit_log import AuditAction
 from fastapi import Request
 from pydantic import BaseModel, Field
-from services.api.services.file_metadata_service import FileMetadataService, get_metadata_service
+from services.api.services.file_metadata_service import (
+    get_metadata_service,
+)
 from services.api.services.vector_store_service import get_vector_store_service
-from storage.file_storage import FileStorage, create_storage_from_config
+from storage.file_storage import create_storage_from_config
 from system.infra.config.config import get_config_section
-from database.arangodb import ArangoDBClient
 from api.routers.file_management import get_arangodb_client
 
 logger = structlog.get_logger(__name__)
@@ -73,8 +73,11 @@ async def list_user_tasks(
 
         # 修改時間：2025-12-09 - 只返回 task_status 為 activate 的任務（或未設置 task_status 的任務，兼容舊數據）
         filtered_tasks = [
-            task for task in tasks
-            if not hasattr(task, 'task_status') or not task.task_status or task.task_status == 'activate'
+            task
+            for task in tasks
+            if not hasattr(task, "task_status")
+            or not task.task_status
+            or task.task_status == "activate"
         ]
 
         return APIResponse.success(
@@ -164,7 +167,7 @@ async def create_user_task(
                 message="User ID mismatch",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
-        
+
         # 使用當前用戶的 user_id（如果請求體中沒有提供，自動填充）
         if not request_body.user_id:
             request_body.user_id = current_user.user_id
@@ -174,30 +177,39 @@ async def create_user_task(
 
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄任務創建操作日誌
         try:
-            from services.api.services.operation_log_service import get_operation_log_service
+            from services.api.services.operation_log_service import (
+                get_operation_log_service,
+            )
+
             operation_log_service = get_operation_log_service()
-            
+
             task_created_at = None
-            if hasattr(task, 'created_at') and task.created_at:
+            if hasattr(task, "created_at") and task.created_at:
                 if isinstance(task.created_at, datetime):
-                    task_created_at = task.created_at.isoformat() + 'Z'
+                    task_created_at = task.created_at.isoformat() + "Z"
                 elif isinstance(task.created_at, str):
-                    task_created_at = task.created_at if task.created_at.endswith('Z') else task.created_at + 'Z'
-            
+                    task_created_at = (
+                        task.created_at
+                        if task.created_at.endswith("Z")
+                        else task.created_at + "Z"
+                    )
+
             operation_log_service.log_operation(
                 user_id=current_user.user_id,
                 resource_id=request_body.task_id,
                 resource_type="task",
                 resource_name=request_body.title,
                 operation_type="create",
-                created_at=task_created_at or datetime.utcnow().isoformat() + 'Z',
+                created_at=task_created_at or datetime.utcnow().isoformat() + "Z",
                 updated_at=None,
                 archived_at=None,
                 deleted_at=None,
                 notes="任務創建",
             )
         except Exception as e:
-            logger.warning("記錄任務創建操作日誌失敗", task_id=request_body.task_id, error=str(e))
+            logger.warning(
+                "記錄任務創建操作日誌失敗", task_id=request_body.task_id, error=str(e)
+            )
 
         return APIResponse.success(
             data=task.model_dump(mode="json"),
@@ -236,7 +248,7 @@ async def update_user_task(
     """
     try:
         service = get_user_task_service()
-        
+
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 先獲取任務信息，以便記錄操作日誌
         existing_task = service.get(user_id=current_user.user_id, task_id=task_id)
         if existing_task is None:
@@ -244,7 +256,7 @@ async def update_user_task(
                 message="Task not found",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        
+
         task = service.update(
             user_id=current_user.user_id,
             task_id=task_id,
@@ -259,31 +271,38 @@ async def update_user_task(
 
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄任務更新操作日誌
         try:
-            from services.api.services.operation_log_service import get_operation_log_service
+            from services.api.services.operation_log_service import (
+                get_operation_log_service,
+            )
+
             operation_log_service = get_operation_log_service()
-            
+
             # 處理時間字段
             task_created_at = None
-            if hasattr(existing_task, 'created_at') and existing_task.created_at:
+            if hasattr(existing_task, "created_at") and existing_task.created_at:
                 if isinstance(existing_task.created_at, datetime):
-                    task_created_at = existing_task.created_at.isoformat() + 'Z'
+                    task_created_at = existing_task.created_at.isoformat() + "Z"
                 elif isinstance(existing_task.created_at, str):
-                    task_created_at = existing_task.created_at if existing_task.created_at.endswith('Z') else existing_task.created_at + 'Z'
-            
-            task_updated_at = datetime.utcnow().isoformat() + 'Z'
-            
+                    task_created_at = (
+                        existing_task.created_at
+                        if existing_task.created_at.endswith("Z")
+                        else existing_task.created_at + "Z"
+                    )
+
+            task_updated_at = datetime.utcnow().isoformat() + "Z"
+
             # 檢查是否是歸檔操作
             is_archive = False
-            if hasattr(request_body, 'status') and request_body.status:
-                is_archive = request_body.status == 'archived'
-            if hasattr(request_body, 'archived') and request_body.archived:
+            if hasattr(request_body, "status") and request_body.status:
+                is_archive = request_body.status == "archived"
+            if hasattr(request_body, "archived") and request_body.archived:
                 is_archive = True
-            
+
             operation_log_service.log_operation(
                 user_id=current_user.user_id,
                 resource_id=task_id,
                 resource_type="task",
-                resource_name=task.title if hasattr(task, 'title') else task_id,
+                resource_name=task.title if hasattr(task, "title") else task_id,
                 operation_type="archive" if is_archive else "update",
                 created_at=task_created_at,
                 updated_at=task_updated_at,
@@ -336,7 +355,7 @@ async def delete_user_task(
     """
     try:
         service = get_user_task_service()
-        
+
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 先獲取任務信息，以便記錄操作日誌
         task = service.get(user_id=current_user.user_id, task_id=task_id)
         if not task:
@@ -345,25 +364,29 @@ async def delete_user_task(
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        task_title = task.title if hasattr(task, 'title') else task_id
+        task_title = task.title if hasattr(task, "title") else task_id
         # 處理時間字段（可能是 datetime 對象或字符串）
         task_created_at = None
-        if hasattr(task, 'created_at') and task.created_at:
+        if hasattr(task, "created_at") and task.created_at:
             if isinstance(task.created_at, datetime):
                 task_created_at = task.created_at
             elif isinstance(task.created_at, str):
                 try:
-                    task_created_at = datetime.fromisoformat(task.created_at.replace('Z', '+00:00'))
+                    task_created_at = datetime.fromisoformat(
+                        task.created_at.replace("Z", "+00:00")
+                    )
                 except:
                     task_created_at = None
-        
+
         task_updated_at = None
-        if hasattr(task, 'updated_at') and task.updated_at:
+        if hasattr(task, "updated_at") and task.updated_at:
             if isinstance(task.updated_at, datetime):
                 task_updated_at = task.updated_at
             elif isinstance(task.updated_at, str):
                 try:
-                    task_updated_at = datetime.fromisoformat(task.updated_at.replace('Z', '+00:00'))
+                    task_updated_at = datetime.fromisoformat(
+                        task.updated_at.replace("Z", "+00:00")
+                    )
                 except:
                     task_updated_at = None
 
@@ -403,10 +426,15 @@ async def delete_user_task(
                 except Exception as e:
                     error_msg = f"刪除向量數據失敗: {str(e)}"
                     deletion_results["errors"].append(error_msg)
-                    logger.warning(error_msg, file_id=file_id, task_id=task_id, error=str(e))
+                    logger.warning(
+                        error_msg, file_id=file_id, task_id=task_id, error=str(e)
+                    )
 
                 # 1.2 刪除知識圖譜關聯（從 ArangoDB 中刪除與該文件相關的實體和關係）
-                if arangodb_client.db is not None and arangodb_client.db.aql is not None:
+                if (
+                    arangodb_client.db is not None
+                    and arangodb_client.db.aql is not None
+                ):
                     entities_collection = "entities"
                     relations_collection = "relations"
 
@@ -441,7 +469,9 @@ async def delete_user_task(
                             )
 
                     deletion_results["kg_deleted"] = True
-                    logger.info("知識圖譜關聯刪除成功", file_id=file_id, task_id=task_id)
+                    logger.info(
+                        "知識圖譜關聯刪除成功", file_id=file_id, task_id=task_id
+                    )
 
                 # 1.3 刪除文件元數據（從 ArangoDB）
                 try:
@@ -450,7 +480,9 @@ async def delete_user_task(
                 except Exception as e:
                     error_msg = f"刪除文件元數據失敗: {str(e)}"
                     deletion_results["errors"].append(error_msg)
-                    logger.warning(error_msg, file_id=file_id, task_id=task_id, error=str(e))
+                    logger.warning(
+                        error_msg, file_id=file_id, task_id=task_id, error=str(e)
+                    )
 
                 # 1.4 刪除實體文件（從文件系統）
                 try:
@@ -459,54 +491,88 @@ async def delete_user_task(
                 except Exception as e:
                     error_msg = f"刪除實體文件失敗: {str(e)}"
                     deletion_results["errors"].append(error_msg)
-                    logger.warning(error_msg, file_id=file_id, task_id=task_id, error=str(e))
+                    logger.warning(
+                        error_msg, file_id=file_id, task_id=task_id, error=str(e)
+                    )
 
                 deletion_results["files_deleted"] += 1
 
                 # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄文件刪除操作日誌
                 try:
-                    from services.api.services.operation_log_service import get_operation_log_service
+                    from services.api.services.operation_log_service import (
+                        get_operation_log_service,
+                    )
+
                     operation_log_service = get_operation_log_service()
                     # 處理文件時間字段
                     file_created_at = None
-                    if hasattr(file_metadata, 'created_at') and file_metadata.created_at:
+                    if (
+                        hasattr(file_metadata, "created_at")
+                        and file_metadata.created_at
+                    ):
                         if isinstance(file_metadata.created_at, datetime):
-                            file_created_at = file_metadata.created_at.isoformat() + 'Z'
+                            file_created_at = file_metadata.created_at.isoformat() + "Z"
                         elif isinstance(file_metadata.created_at, str):
-                            file_created_at = file_metadata.created_at if file_metadata.created_at.endswith('Z') else file_metadata.created_at + 'Z'
-                    
+                            file_created_at = (
+                                file_metadata.created_at
+                                if file_metadata.created_at.endswith("Z")
+                                else file_metadata.created_at + "Z"
+                            )
+
                     file_updated_at = None
-                    if hasattr(file_metadata, 'updated_at') and file_metadata.updated_at:
+                    if (
+                        hasattr(file_metadata, "updated_at")
+                        and file_metadata.updated_at
+                    ):
                         if isinstance(file_metadata.updated_at, datetime):
-                            file_updated_at = file_metadata.updated_at.isoformat() + 'Z'
+                            file_updated_at = file_metadata.updated_at.isoformat() + "Z"
                         elif isinstance(file_metadata.updated_at, str):
-                            file_updated_at = file_metadata.updated_at if file_metadata.updated_at.endswith('Z') else file_metadata.updated_at + 'Z'
-                    
+                            file_updated_at = (
+                                file_metadata.updated_at
+                                if file_metadata.updated_at.endswith("Z")
+                                else file_metadata.updated_at + "Z"
+                            )
+
                     operation_log_service.log_operation(
                         user_id=current_user.user_id,
                         resource_id=file_id,
                         resource_type="document",
-                        resource_name=file_metadata.filename if hasattr(file_metadata, 'filename') else file_id,
+                        resource_name=(
+                            file_metadata.filename
+                            if hasattr(file_metadata, "filename")
+                            else file_id
+                        ),
                         operation_type="delete",
                         created_at=file_created_at,
                         updated_at=file_updated_at,
-                        deleted_at=datetime.utcnow().isoformat() + 'Z',
+                        deleted_at=datetime.utcnow().isoformat() + "Z",
                         notes=f"任務刪除時自動刪除，任務ID: {task_id}",
                     )
                 except Exception as e:
-                    logger.warning("記錄文件刪除操作日誌失敗", file_id=file_id, error=str(e))
+                    logger.warning(
+                        "記錄文件刪除操作日誌失敗", file_id=file_id, error=str(e)
+                    )
 
             except Exception as e:
                 error_msg = f"刪除文件 {file_id} 時出錯: {str(e)}"
                 deletion_results["errors"].append(error_msg)
-                logger.error(error_msg, file_id=file_id, task_id=task_id, error=str(e), exc_info=True)
+                logger.error(
+                    error_msg,
+                    file_id=file_id,
+                    task_id=task_id,
+                    error=str(e),
+                    exc_info=True,
+                )
 
         # 修改時間：2025-12-09 - 刪除任務下的所有資料夾
         if arangodb_client.db is not None:
             try:
                 from api.routers.file_management import FOLDER_COLLECTION_NAME
-                folder_collection = arangodb_client.db.collection(FOLDER_COLLECTION_NAME)
-                
+
+                folder_collection = arangodb_client.db.collection(
+                    FOLDER_COLLECTION_NAME
+                )
+
                 # 查詢任務下的所有資料夾
                 aql_query = """
                 FOR folder IN folder_metadata
@@ -518,19 +584,30 @@ async def delete_user_task(
                     bind_vars={"task_id": task_id},
                 )
                 folder_ids = list(cursor)
-                
+
                 # 刪除所有資料夾
                 for folder_id in folder_ids:
                     try:
                         folder_collection.delete(folder_id)
                         deletion_results["folders_deleted"] += 1
-                        logger.info("資料夾刪除成功", folder_id=folder_id, task_id=task_id)
+                        logger.info(
+                            "資料夾刪除成功", folder_id=folder_id, task_id=task_id
+                        )
                     except Exception as e:
                         error_msg = f"刪除資料夾 {folder_id} 失敗: {str(e)}"
                         deletion_results["errors"].append(error_msg)
-                        logger.warning(error_msg, folder_id=folder_id, task_id=task_id, error=str(e))
-                
-                logger.info("任務資料夾刪除完成", task_id=task_id, folders_deleted=deletion_results["folders_deleted"])
+                        logger.warning(
+                            error_msg,
+                            folder_id=folder_id,
+                            task_id=task_id,
+                            error=str(e),
+                        )
+
+                logger.info(
+                    "任務資料夾刪除完成",
+                    task_id=task_id,
+                    folders_deleted=deletion_results["folders_deleted"],
+                )
             except Exception as e:
                 error_msg = f"刪除任務資料夾時出錯: {str(e)}"
                 deletion_results["errors"].append(error_msg)
@@ -543,23 +620,34 @@ async def delete_user_task(
 
             # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄任務刪除操作日誌
             try:
-                from services.api.services.operation_log_service import get_operation_log_service
+                from services.api.services.operation_log_service import (
+                    get_operation_log_service,
+                )
+
                 operation_log_service = get_operation_log_service()
                 # 處理任務時間字段
                 task_created_at_str = None
                 if task_created_at:
                     if isinstance(task_created_at, datetime):
-                        task_created_at_str = task_created_at.isoformat() + 'Z'
+                        task_created_at_str = task_created_at.isoformat() + "Z"
                     elif isinstance(task_created_at, str):
-                        task_created_at_str = task_created_at if task_created_at.endswith('Z') else task_created_at + 'Z'
-                
+                        task_created_at_str = (
+                            task_created_at
+                            if task_created_at.endswith("Z")
+                            else task_created_at + "Z"
+                        )
+
                 task_updated_at_str = None
                 if task_updated_at:
                     if isinstance(task_updated_at, datetime):
-                        task_updated_at_str = task_updated_at.isoformat() + 'Z'
+                        task_updated_at_str = task_updated_at.isoformat() + "Z"
                     elif isinstance(task_updated_at, str):
-                        task_updated_at_str = task_updated_at if task_updated_at.endswith('Z') else task_updated_at + 'Z'
-                
+                        task_updated_at_str = (
+                            task_updated_at
+                            if task_updated_at.endswith("Z")
+                            else task_updated_at + "Z"
+                        )
+
                 operation_log_service.log_operation(
                     user_id=current_user.user_id,
                     resource_id=task_id,
@@ -568,11 +656,13 @@ async def delete_user_task(
                     operation_type="delete",
                     created_at=task_created_at_str,
                     updated_at=task_updated_at_str,
-                    deleted_at=datetime.utcnow().isoformat() + 'Z',
+                    deleted_at=datetime.utcnow().isoformat() + "Z",
                     notes=f"刪除了 {deletion_results['files_deleted']} 個文件",
                 )
             except Exception as e:
-                logger.warning("記錄任務刪除操作日誌失敗", task_id=task_id, error=str(e))
+                logger.warning(
+                    "記錄任務刪除操作日誌失敗", task_id=task_id, error=str(e)
+                )
 
         if not success:
             return APIResponse.error(

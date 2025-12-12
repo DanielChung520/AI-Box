@@ -49,7 +49,9 @@ class SecurityManagerResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     action: str = Field(..., description="执行的操作类型")
     allowed: Optional[bool] = Field(None, description="是否允许访问")
-    risk_assessment: Optional[RiskAssessmentResult] = Field(None, description="风险评估结果")
+    risk_assessment: Optional[RiskAssessmentResult] = Field(
+        None, description="风险评估结果"
+    )
     audit_result: Optional[Dict[str, Any]] = Field(None, description="审计结果")
     analysis: Optional[Dict[str, Any]] = Field(None, description="分析结果")
     message: Optional[str] = Field(None, description="响应消息")

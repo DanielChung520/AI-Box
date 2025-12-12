@@ -13,7 +13,6 @@ import structlog
 from genai.api.services.triple_extraction_service import TripleExtractionService
 from genai.api.services.kg_builder_service import KGBuilderService
 from genai.api.models.triple_models import Triple
-from system.infra.config.config import get_config_section
 
 # 導入 Ontology 管理相關模組
 logger = structlog.get_logger(__name__)  # 定義 logger 在 try-except 之前
@@ -21,6 +20,7 @@ logger = structlog.get_logger(__name__)  # 定義 logger 在 try-except 之前
 try:
     from kag.kag_schema_manager import OntologyManager
     from kag.ontology_selector import OntologySelector
+
     ONTOLOGY_SUPPORT = True
 except ImportError:
     ONTOLOGY_SUPPORT = False
@@ -63,8 +63,7 @@ class KGExtractionService:
             self._current_ontology_rules = None
 
         logger.info(
-            "KGExtractionService initialized",
-            ontology_support=ONTOLOGY_SUPPORT
+            "KGExtractionService initialized", ontology_support=ONTOLOGY_SUPPORT
         )
 
     def _filter_chunks(
@@ -156,7 +155,7 @@ class KGExtractionService:
         file_name: Optional[str] = None,
         file_content: Optional[str] = None,
         file_metadata: Optional[Dict[str, Any]] = None,
-        manual_ontology: Optional[Dict[str, Any]] = None
+        manual_ontology: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         為提取任務載入合適的 Ontology
@@ -179,12 +178,12 @@ class KGExtractionService:
         try:
             # 如果手動指定了 Ontology，使用手動配置
             if manual_ontology:
-                domain_files = manual_ontology.get('domain', [])
-                major_file = manual_ontology.get('major')
+                domain_files = manual_ontology.get("domain", [])
+                major_file = manual_ontology.get("major")
                 logger.info(
                     "Using manual ontology configuration",
                     domain=domain_files,
-                    major=major_file
+                    major=major_file,
                 )
             else:
                 # 自動選擇 Ontology
@@ -196,46 +195,47 @@ class KGExtractionService:
                     selection = self.ontology_selector.select_auto(
                         file_name=file_name,
                         file_content=file_content,
-                        file_metadata=file_metadata
+                        file_metadata=file_metadata,
                     )
-                    domain_files = selection.get('domain', [])
-                    major_file = selection.get('major', [None])[0] if selection.get('major') else None
-                    
+                    domain_files = selection.get("domain", [])
+                    major_file = (
+                        selection.get("major", [None])[0]
+                        if selection.get("major")
+                        else None
+                    )
+
                     logger.info(
                         "Auto-selected ontology",
-                        method=selection.get('selection_method'),
+                        method=selection.get("selection_method"),
                         domain=domain_files,
-                        major=major_file
+                        major=major_file,
                     )
 
             # 載入並合併 Ontology
             rules = self.ontology_manager.merge_ontologies(
-                domain_files=domain_files,
-                task_file=major_file
+                domain_files=domain_files, task_file=major_file
             )
-            
+
             self._current_ontology_rules = rules
-            
+
             logger.info(
                 "Ontology loaded successfully",
-                entity_count=len(rules.get('entity_classes', [])),
-                relationship_count=len(rules.get('relationship_types', []))
+                entity_count=len(rules.get("entity_classes", [])),
+                relationship_count=len(rules.get("relationship_types", [])),
             )
-            
+
             return rules
 
         except Exception as e:
             logger.warning(
                 "Failed to load ontology, continuing without ontology constraints",
                 error=str(e),
-                exc_info=True
+                exc_info=True,
             )
             return None
 
     async def extract_triples_from_chunks(
-        self, 
-        chunks: List[Dict[str, Any]], 
-        options: Optional[Dict[str, Any]] = None
+        self, chunks: List[Dict[str, Any]], options: Optional[Dict[str, Any]] = None
     ) -> List[Triple]:
         """
         從分塊中提取三元組
@@ -270,7 +270,7 @@ class KGExtractionService:
             file_name = options.get("file_name")
             file_metadata = options.get("file_metadata")
             manual_ontology = options.get("ontology")
-            
+
             # 獲取文件內容預覽（用於 Ontology 選擇）
             file_content_preview = None
             if chunks:
@@ -279,12 +279,12 @@ class KGExtractionService:
                 file_content_preview = " ".join(
                     chunk.get("text", "")[:500] for chunk in preview_chunks
                 )
-            
+
             ontology_rules = self._load_ontology_for_extraction(
                 file_name=file_name,
                 file_content=file_content_preview,
                 file_metadata=file_metadata,
-                manual_ontology=manual_ontology
+                manual_ontology=manual_ontology,
             )
 
         # 根據模式處理分塊
@@ -301,7 +301,9 @@ class KGExtractionService:
         elif mode == "selected_chunks":
             # 過濾分塊
             filtered_chunks = self._filter_chunks(chunks, chunk_filter)
-            triples = await self._extract_from_chunks_batch(filtered_chunks, ontology_rules)
+            triples = await self._extract_from_chunks_batch(
+                filtered_chunks, ontology_rules
+            )
         else:
             # 默認：處理所有分塊
             triples = await self._extract_from_chunks_batch(chunks, ontology_rules)
@@ -318,14 +320,14 @@ class KGExtractionService:
             chunk_count=len(chunks),
             triple_count=len(triples),
             mode=mode,
-            ontology_loaded=ontology_rules is not None
+            ontology_loaded=ontology_rules is not None,
         )
         return triples
 
     async def _extract_from_chunks_batch(
-        self, 
+        self,
         chunks: List[Dict[str, Any]],
-        ontology_rules: Optional[Dict[str, Any]] = None
+        ontology_rules: Optional[Dict[str, Any]] = None,
     ) -> List[Triple]:
         """
         批量從分塊中提取三元組
@@ -348,9 +350,12 @@ class KGExtractionService:
                 prompt_template = self.ontology_manager.generate_prompt(
                     text_chunk=sample_text,
                     ontology_rules=ontology_rules,
-                    include_owl_constraints=True
+                    include_owl_constraints=True,
                 )
-                logger.debug("Generated prompt template from ontology", length=len(prompt_template))
+                logger.debug(
+                    "Generated prompt template from ontology",
+                    length=len(prompt_template),
+                )
             except Exception as e:
                 logger.warning("Failed to generate prompt template", error=str(e))
 
@@ -388,7 +393,7 @@ class KGExtractionService:
                     chunk_index=i + 1,
                     total_chunks=len(chunks),
                     triple_count=len(triples),
-                    ontology_used=ontology_rules is not None
+                    ontology_used=ontology_rules is not None,
                 )
 
             except Exception as e:

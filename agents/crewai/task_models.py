@@ -42,7 +42,9 @@ class CrewTask(BaseModel):
     description: str = Field(..., description="任務描述")
     assigned_agent: Optional[str] = Field(default=None, description="分配的 Agent 角色")
     status: TaskStatus = Field(default=TaskStatus.PENDING, description="任務狀態")
-    priority: TaskPriority = Field(default=TaskPriority.MEDIUM, description="任務優先級")
+    priority: TaskPriority = Field(
+        default=TaskPriority.MEDIUM, description="任務優先級"
+    )
     created_at: datetime = Field(default_factory=datetime.now, description="創建時間")
     updated_at: datetime = Field(default_factory=datetime.now, description="更新時間")
     started_at: Optional[datetime] = Field(default=None, description="開始時間")

@@ -5,7 +5,6 @@
 
 """MCP Server 啟動入口文件"""
 
-import os
 import logging
 import argparse
 import uvicorn
@@ -144,7 +143,9 @@ def main():
     parser = argparse.ArgumentParser(description="MCP Server")
     parser.add_argument("--host", type=str, default=None, help="服務器主機地址")
     parser.add_argument("--port", type=int, default=None, help="服務器端口")
-    parser.add_argument("--reload", action="store_true", help="啟用自動重載（開發模式）")
+    parser.add_argument(
+        "--reload", action="store_true", help="啟用自動重載（開發模式）"
+    )
     parser.add_argument("--config", type=str, default=None, help="配置文件路徑")
 
     args = parser.parse_args()

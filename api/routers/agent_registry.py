@@ -112,12 +112,14 @@ async def register_agent(
                     "agent_id": request.agent_id,
                     "status": "registering",
                     "is_internal": request.endpoints.is_internal,
-                    "protocol": request.endpoints.protocol.value
-                    if request.endpoints.protocol
-                    else None,
-                    "secret_id": request.permissions.secret_id
-                    if request.permissions
-                    else None,
+                    "protocol": (
+                        request.endpoints.protocol.value
+                        if request.endpoints.protocol
+                        else None
+                    ),
+                    "secret_id": (
+                        request.permissions.secret_id if request.permissions else None
+                    ),
                 },
                 message="Agent registered successfully. Waiting for admin approval.",
             )

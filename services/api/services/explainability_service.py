@@ -151,7 +151,8 @@ class ExplainabilityService:
 
         for rt in relation_types:
             explanation_text = (
-                f"關係「{relation_text}」被分類為「{rt.type}」，" f"置信度為 {rt.confidence:.2%}。"
+                f"關係「{relation_text}」被分類為「{rt.type}」，"
+                f"置信度為 {rt.confidence:.2%}。"
             )
 
             explanations.append(

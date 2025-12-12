@@ -9,7 +9,7 @@ import re
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 
 def load_test_results() -> Dict[str, Any]:
@@ -62,7 +62,9 @@ def update_phase5_stats(content: str, results: Dict[str, Any]) -> str:
     content = re.sub(phase5_status_pattern, replacement, content, flags=re.MULTILINE)
 
     # 更新總體統計表中的階段五狀態
-    total_stats_pattern = r"(\| \*\*階段五\*\* \| 4 \| )⏸️( \| ✅ \| - \| - \| - \| - \|)"
+    total_stats_pattern = (
+        r"(\| \*\*階段五\*\* \| 4 \| )⏸️( \| ✅ \| - \| - \| - \| - \|)"
+    )
     total_stats_replacement = f"\\1✅\\2 {phase5_passed}/{phase5_total} | 0 | {phase5_skipped} | {phase5_pass_rate:.1f}% |"
 
     content = re.sub(
@@ -94,9 +96,7 @@ def update_phase1_it15_stats(content: str, results: Dict[str, Any]) -> str:
     content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
 
     # 更新階段一統計（需要重新計算）
-    phase1_pattern = (
-        r"(\| \*\*階段一\*\* \| 5 \| ✅ \| - \| )\d+/\d+( \| 0 \| )\d+( \| \d+\.\d+% \|)"
-    )
+    phase1_pattern = r"(\| \*\*階段一\*\* \| 5 \| ✅ \| - \| )\d+/\d+( \| 0 \| )\d+( \| \d+\.\d+% \|)"
     # 這裡需要從文檔中讀取現有數據，然後更新
     # 暫時跳過，因為需要更複雜的解析
 
@@ -137,9 +137,7 @@ def update_test_progress_table(content: str, results: Dict[str, Any]) -> str:
         elif status == "部分實現":
             replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | {passed_count}/{total_count} 個測試通過，{skipped_count} 個跳過 |"
         else:
-            replacement = (
-                f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
-            )
+            replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
 
         content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
 
@@ -260,9 +258,7 @@ def update_test_progress_table_fixed(content: str, results: Dict[str, Any]) -> s
         elif status == "部分實現":
             replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | {passed_count}/{total_count} 個測試通過，{skipped_count} 個跳過 |"
         else:
-            replacement = (
-                f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
-            )
+            replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
 
         content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
 

@@ -108,12 +108,16 @@ class DecisionEngine:
                     fallback = [WorkflowType.LANGCHAIN]
                 else:
                     fallback = [WorkflowType.AUTOGEN]
-            reasoning_parts.append(f"檢測到 {len(failure_history)} 次失敗歷史，啟用備用模式")
+            reasoning_parts.append(
+                f"檢測到 {len(failure_history)} 次失敗歷史，啟用備用模式"
+            )
 
         # 根據任務類型調整策略
         if mode == "single":
             primary, fallback = self._adjust_for_task_type(task_type)
-            reasoning_parts.append(f"根據任務類型 {task_type.value} 選擇 {primary.value} 工作流")
+            reasoning_parts.append(
+                f"根據任務類型 {task_type.value} 選擇 {primary.value} 工作流"
+            )
 
         # 構建切換條件
         switch_conditions = {

@@ -58,43 +58,73 @@ class ImageParser(BaseParser):
         """
         try:
             img = Image.open(BytesIO(image_content))
-            
+
             # 對於 GIF 文件（特別是動畫 GIF），需要特殊處理
             is_gif = img.format == "GIF"
             is_animated = False
             frame_count = 1
-            
+
             if is_gif:
                 try:
                     # 檢查是否為動畫 GIF
                     img.seek(0)  # 確保在第一幀
-                    frame_count = 0
-                    try:
-                        while True:
-                            frame_count += 1
-                            img.seek(img.tell() + 1)
-                    except EOFError:
-                        pass
-                    img.seek(0)  # 重置到第一幀
-                    is_animated = frame_count > 1
+
+                    # 首先嘗試使用 PIL 的內置屬性（如果可用）
+                    if hasattr(img, "is_animated") and img.is_animated:
+                        is_animated = True
+                        frame_count = 0
+                        try:
+                            while True:
+                                frame_count += 1
+                                img.seek(
+                                    frame_count
+                                )  # 使用 frame_count 而不是 img.tell() + 1
+                        except EOFError:
+                            pass
+                        img.seek(0)  # 重置到第一幀
+                    else:
+                        # 如果沒有 is_animated 屬性，手動檢查
+                        frame_count = 1
+                        try:
+                            # 嘗試讀取第二幀
+                            img.seek(1)
+                            is_animated = True
+                            frame_count = 2
+                            # 繼續計數剩餘的幀
+                            try:
+                                while True:
+                                    frame_count += 1
+                                    img.seek(frame_count)
+                            except EOFError:
+                                pass
+                            img.seek(0)  # 重置到第一幀
+                        except EOFError:
+                            # 只有一幀，不是動畫
+                            is_animated = False
+                            frame_count = 1
+                            img.seek(0)  # 確保在第一幀
                 except Exception as e:
                     # 如果無法讀取多幀，可能是靜態 GIF 或文件損壞
                     self.logger.debug("無法讀取 GIF 幀數", error=str(e))
+                    is_animated = False
+                    frame_count = 1
                     img.seek(0)  # 確保在第一幀
-            
+
             # 安全地獲取尺寸（對於某些格式可能需要特殊處理）
             try:
                 width = img.width
                 height = img.height
             except Exception as e:
                 # 如果無法獲取尺寸，嘗試使用 size 屬性
-                self.logger.debug("無法通過 width/height 獲取尺寸，使用 size 屬性", error=str(e))
+                self.logger.debug(
+                    "無法通過 width/height 獲取尺寸，使用 size 屬性", error=str(e)
+                )
                 try:
                     width, height = img.size
                 except Exception:
                     width = None
                     height = None
-            
+
             metadata = {
                 "width": width,
                 "height": height,
@@ -102,7 +132,7 @@ class ImageParser(BaseParser):
                 "mode": img.mode,
                 "size_bytes": len(image_content),
             }
-            
+
             # 對於 GIF，添加動畫相關信息
             if is_gif:
                 metadata["is_animated"] = is_animated
@@ -162,23 +192,25 @@ class ImageParser(BaseParser):
         try:
             # 提取圖片元數據
             image_metadata = self._extract_image_metadata(file_content)
-            
+
             # 對於動畫 GIF，提取第一幀用於描述生成
             image_format = image_metadata.get("format")
-            is_animated_gif = image_format == "GIF" and image_metadata.get("is_animated", False)
+            is_animated_gif = image_format == "GIF" and image_metadata.get(
+                "is_animated", False
+            )
             image_content_for_vision = file_content
-            
+
             if is_animated_gif:
                 try:
                     # 提取 GIF 第一幀作為靜態圖像用於視覺模型
                     img = Image.open(BytesIO(file_content))
                     img.seek(0)  # 確保在第一幀
-                    
+
                     # 將第一幀轉換為 PNG 格式（視覺模型通常更好地支持 PNG）
                     frame_buffer = BytesIO()
                     img.save(frame_buffer, format="PNG")
                     image_content_for_vision = frame_buffer.getvalue()
-                    
+
                     self.logger.info(
                         "動畫 GIF 檢測到，使用第一幀生成描述",
                         file_id=file_id,

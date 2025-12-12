@@ -140,7 +140,9 @@ class ReportGenerator:
         content_parts.append(f"- 總 Agent 數量: {summary.get('total_count', 0)}\n")
         content_parts.append(f"- 成功數量: {summary.get('success_count', 0)}\n")
         content_parts.append(f"- 失敗數量: {summary.get('failure_count', 0)}\n")
-        content_parts.append(f"- 成功率: {summary.get('success_rate', 0.0) * 100:.1f}%\n")
+        content_parts.append(
+            f"- 成功率: {summary.get('success_rate', 0.0) * 100:.1f}%\n"
+        )
 
         # 詳細結果
         content_parts.append("\n## 詳細結果\n\n")

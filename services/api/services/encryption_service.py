@@ -6,7 +6,6 @@
 """文件加密服務 - 實現 AES-256-GCM 加密/解密"""
 
 import os
-import base64
 from typing import Optional
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives import hashes

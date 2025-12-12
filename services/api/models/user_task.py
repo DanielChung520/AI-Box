@@ -6,7 +6,7 @@
 """用戶任務模型 - 定義前端 UI 任務數據結構"""
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
@@ -32,7 +32,7 @@ class FileNode(BaseModel):
 class ExecutionConfig(BaseModel):
     """執行配置模型"""
 
-    mode: str = Field(default='free', description="執行模式（free/assistant/agent）")
+    mode: str = Field(default="free", description="執行模式（free/assistant/agent）")
     assistantId: Optional[str] = Field(None, description="助理 ID")
     agentId: Optional[str] = Field(None, description="代理 ID")
 
@@ -46,16 +46,22 @@ class UserTaskBase(BaseModel):
     )
     # 修改時間：2025-12-09 - 添加任務狀態字段（activate/archive），用於控制任務是否在 Sidebar 中顯示
     task_status: str = Field(
-        default="activate", description="任務顯示狀態（activate/archive），activate 表示顯示，archive 表示歸檔不顯示"
+        default="activate",
+        description="任務顯示狀態（activate/archive），activate 表示顯示，archive 表示歸檔不顯示",
     )
     # 修改時間：2025-12-09 - 添加任務顏色標籤字段（類似 Apple Mac 的顏色標籤）
     label_color: Optional[str] = Field(
-        None, description="任務顏色標籤（red/orange/yellow/green/blue/purple/gray），None 表示無顏色"
+        None,
+        description="任務顏色標籤（red/orange/yellow/green/blue/purple/gray），None 表示無顏色",
     )
     dueDate: Optional[str] = Field(None, description="截止日期")
-    messages: Optional[List[Message]] = Field(default_factory=list, description="消息列表")
+    messages: Optional[List[Message]] = Field(
+        default_factory=list, description="消息列表"
+    )
     # 修改時間：2025-01-27 - executionConfig 改為必填，默認值為 {'mode': 'free'}
-    executionConfig: ExecutionConfig = Field(default_factory=lambda: ExecutionConfig(mode='free'), description="執行配置")
+    executionConfig: ExecutionConfig = Field(
+        default_factory=lambda: ExecutionConfig(mode="free"), description="執行配置"
+    )
     fileTree: Optional[List[FileNode]] = Field(
         default_factory=list, description="文件樹結構"
     )
@@ -75,9 +81,13 @@ class UserTaskUpdate(BaseModel):
     title: Optional[str] = Field(None, description="任務標題")
     status: Optional[str] = Field(None, description="任務狀態")
     # 修改時間：2025-12-09 - 添加任務狀態字段（activate/archive）
-    task_status: Optional[str] = Field(None, description="任務顯示狀態（activate/archive）")
+    task_status: Optional[str] = Field(
+        None, description="任務顯示狀態（activate/archive）"
+    )
     # 修改時間：2025-12-09 - 添加任務顏色標籤字段
-    label_color: Optional[str] = Field(None, description="任務顏色標籤（red/orange/yellow/green/blue/purple/gray）")
+    label_color: Optional[str] = Field(
+        None, description="任務顏色標籤（red/orange/yellow/green/blue/purple/gray）"
+    )
     dueDate: Optional[str] = Field(None, description="截止日期")
     messages: Optional[List[Message]] = Field(None, description="消息列表")
     executionConfig: Optional[ExecutionConfig] = Field(None, description="執行配置")

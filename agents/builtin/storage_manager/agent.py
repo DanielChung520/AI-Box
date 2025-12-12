@@ -10,7 +10,7 @@ AI 驱动的存储管理服务，提供智能存储策略和数据管理功能�
 
 import logging
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from agents.services.protocol.base import (
     AgentServiceProtocol,

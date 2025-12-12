@@ -241,7 +241,7 @@ export default function KnowledgeGraphViewer({
     // 確保容器有寬度
     const containerWidth = containerRef.current.offsetWidth || 800;
     const containerHeight = height;
-    
+
     console.log('[KnowledgeGraphViewer] Container dimensions:', {
       width: containerWidth,
       height: containerHeight,
@@ -300,13 +300,127 @@ export default function KnowledgeGraphViewer({
 
       // 設置並渲染數據
       graph.setData(graphData);
-      
-      // G6 v5 的 render 是异步的，需要等待完成
+
+      // G6 v5 的 render 是异步的，需要等待完成後再註冊事件處理器
       isRenderingRef.current = true;
       graph.render().then(() => {
         isRenderingRef.current = false;
         if (graphRef.current === graph && !graph.destroyed) {
           console.log('[KnowledgeGraphViewer] Graph rendered successfully');
+
+          // 在渲染完成後註冊事件處理器，避免競態條件
+          try {
+            // 節點點擊事件
+            graph.on('node:click', (e: any) => {
+              try {
+                const nodeId = e.item?.getID?.() || e.item?.getModel?.()?.id || null;
+                setSelectedNode(nodeId);
+                if (e.item) {
+                  graph.setItemState(e.item, 'selected', true);
+                }
+              } catch (err) {
+                console.error('[KnowledgeGraphViewer] Error handling node click:', err);
+              }
+            });
+
+            // 節點懸停事件 - 顯示 tooltip
+            graph.on('node:mouseenter', (e: any) => {
+              try {
+                if (e.item) {
+                  graph.setItemState(e.item, 'hover', true);
+
+                  // 獲取節點數據
+                  const nodeModel = e.item.getModel();
+                  const nodeData = nodeModel.data || {};
+                  const label = nodeModel.label || nodeModel.id || '未知實體';
+                  const entityType = nodeData.entityType || nodeModel.type || 'Unknown';
+
+                  // 獲取鼠標位置（使用事件坐標）
+                  const containerRect = containerRef.current?.getBoundingClientRect();
+                  const mouseEvent = e.originalEvent || e.event;
+
+                  if (containerRect && mouseEvent) {
+                    setTooltip({
+                      visible: true,
+                      x: mouseEvent.clientX + 10,
+                      y: mouseEvent.clientY + 10,
+                      content: {
+                        label: label,
+                        entityType: entityType,
+                      },
+                    });
+                  } else {
+                    // 備用方案：使用畫布坐標
+                    const point = e.canvasPoint || e.canvas || { x: 0, y: 0 };
+                    if (containerRect) {
+                      setTooltip({
+                        visible: true,
+                        x: point.x + containerRect.left + 10,
+                        y: point.y + containerRect.top + 10,
+                        content: {
+                          label: label,
+                          entityType: entityType,
+                        },
+                      });
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error('[KnowledgeGraphViewer] Error handling node hover:', err);
+              }
+            });
+
+            // 節點移動事件 - 更新 tooltip 位置
+            graph.on('node:mousemove', (e: any) => {
+              try {
+                if (e.item) {
+                  const mouseEvent = e.originalEvent || e.event;
+                  const containerRect = containerRef.current?.getBoundingClientRect();
+
+                  if (mouseEvent && containerRect) {
+                    setTooltip((prev) => {
+                      if (!prev) return null;
+                      return {
+                        ...prev,
+                        x: mouseEvent.clientX + 10,
+                        y: mouseEvent.clientY + 10,
+                      };
+                    });
+                  }
+                }
+              } catch (err) {
+                console.error('[KnowledgeGraphViewer] Error handling node move:', err);
+              }
+            });
+
+            graph.on('node:mouseleave', (e: any) => {
+              try {
+                if (e.item) {
+                  graph.setItemState(e.item, 'hover', false);
+                }
+                setTooltip(null);
+              } catch (err) {
+                console.error('[KnowledgeGraphViewer] Error handling node leave:', err);
+              }
+            });
+
+            // 畫布點擊事件（取消選中）
+            graph.on('canvas:click', () => {
+              try {
+                setSelectedNode(null);
+                const nodes = graph.getNodes();
+                if (nodes && nodes.forEach) {
+                  nodes.forEach((node: any) => {
+                    graph.setItemState(node, 'selected', false);
+                  });
+                }
+              } catch (err) {
+                console.error('[KnowledgeGraphViewer] Error handling canvas click:', err);
+              }
+            });
+          } catch (error) {
+            console.error('[KnowledgeGraphViewer] Failed to register event handlers:', error);
+          }
         }
       }).catch((error) => {
         isRenderingRef.current = false;
@@ -317,119 +431,6 @@ export default function KnowledgeGraphViewer({
     } catch (error) {
       console.error('[KnowledgeGraphViewer] Failed to create graph:', error);
       return;
-    }
-
-    // 節點點擊事件
-    try {
-      graph.on('node:click', (e: any) => {
-        try {
-          const nodeId = e.item?.getID?.() || e.item?.getModel?.()?.id || null;
-          setSelectedNode(nodeId);
-          if (e.item) {
-            graph.setItemState(e.item, 'selected', true);
-          }
-        } catch (err) {
-          console.error('[KnowledgeGraphViewer] Error handling node click:', err);
-        }
-      });
-
-      // 節點懸停事件 - 顯示 tooltip
-      graph.on('node:mouseenter', (e: any) => {
-        try {
-          if (e.item) {
-            graph.setItemState(e.item, 'hover', true);
-            
-            // 獲取節點數據
-            const nodeModel = e.item.getModel();
-            const nodeData = nodeModel.data || {};
-            const label = nodeModel.label || nodeModel.id || '未知實體';
-            const entityType = nodeData.entityType || nodeModel.type || 'Unknown';
-            
-            // 獲取鼠標位置（使用事件坐標）
-            const containerRect = containerRef.current?.getBoundingClientRect();
-            const mouseEvent = e.originalEvent || e.event;
-            
-            if (containerRect && mouseEvent) {
-              setTooltip({
-                visible: true,
-                x: mouseEvent.clientX + 10,
-                y: mouseEvent.clientY + 10,
-                content: {
-                  label: label,
-                  entityType: entityType,
-                },
-              });
-            } else {
-              // 備用方案：使用畫布坐標
-              const point = e.canvasPoint || e.canvas || { x: 0, y: 0 };
-              if (containerRect) {
-                setTooltip({
-                  visible: true,
-                  x: point.x + containerRect.left + 10,
-                  y: point.y + containerRect.top + 10,
-                  content: {
-                    label: label,
-                    entityType: entityType,
-                  },
-                });
-              }
-            }
-          }
-        } catch (err) {
-          console.error('[KnowledgeGraphViewer] Error handling node hover:', err);
-        }
-      });
-
-      // 節點移動事件 - 更新 tooltip 位置
-      graph.on('node:mousemove', (e: any) => {
-        try {
-          if (e.item) {
-            const mouseEvent = e.originalEvent || e.event;
-            const containerRect = containerRef.current?.getBoundingClientRect();
-            
-            if (mouseEvent && containerRect) {
-              setTooltip((prev) => {
-                if (!prev) return null;
-                return {
-                  ...prev,
-                  x: mouseEvent.clientX + 10,
-                  y: mouseEvent.clientY + 10,
-                };
-              });
-            }
-          }
-        } catch (err) {
-          console.error('[KnowledgeGraphViewer] Error handling node move:', err);
-        }
-      });
-
-      graph.on('node:mouseleave', (e: any) => {
-        try {
-          if (e.item) {
-            graph.setItemState(e.item, 'hover', false);
-          }
-          setTooltip(null);
-        } catch (err) {
-          console.error('[KnowledgeGraphViewer] Error handling node leave:', err);
-        }
-      });
-
-      // 畫布點擊事件（取消選中）
-      graph.on('canvas:click', () => {
-        try {
-          setSelectedNode(null);
-          const nodes = graph.getNodes();
-          if (nodes && nodes.forEach) {
-            nodes.forEach((node: any) => {
-              graph.setItemState(node, 'selected', false);
-            });
-          }
-        } catch (err) {
-          console.error('[KnowledgeGraphViewer] Error handling canvas click:', err);
-        }
-      });
-    } catch (error) {
-      console.error('[KnowledgeGraphViewer] Failed to register event handlers:', error);
     }
 
     graphRef.current = graph;

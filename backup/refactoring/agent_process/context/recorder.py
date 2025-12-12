@@ -60,7 +60,9 @@ class ContextRecorder:
                 self._redis.ping()
                 logger.info("Context Recorder 已連接到 Redis")
             except Exception as exc:
-                logger.warning("Context Recorder 初始化 Redis 失敗，使用記憶體儲存: %s", exc)
+                logger.warning(
+                    "Context Recorder 初始化 Redis 失敗，使用記憶體儲存: %s", exc
+                )
                 self._redis = None
 
     def _key(self, session_id: str, suffix: Optional[str] = None) -> str:

@@ -1,7 +1,7 @@
 # 代碼功能說明: Redis 客戶端封裝
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-06
+# 最後修改日期: 2025-12-10
 
 """Redis 客戶端封裝，提供連線管理和單例模式。"""
 
@@ -59,8 +59,25 @@ def get_redis_client() -> redis.Redis[str]:
         try:
             _redis_client.ping()
             # 獲取實際連接的主機和端口（用於日誌）
-            actual_host = redis_host if 'redis_host' in locals() else os.getenv("REDIS_HOST", "localhost")
-            actual_port = redis_port if 'redis_port' in locals() else int(os.getenv("REDIS_PORT", "6379"))
+            # 如果使用 REDIS_URL，從 URL 中提取主機和端口；否則使用環境變數或默認值
+            if redis_url:
+                # 從 URL 解析主機和端口（例如：redis://localhost:6379/0）
+                try:
+                    from urllib.parse import urlparse
+
+                    parsed = urlparse(redis_url)
+                    actual_host = parsed.hostname or os.getenv(
+                        "REDIS_HOST", "localhost"
+                    )
+                    actual_port = parsed.port or int(os.getenv("REDIS_PORT", "6379"))
+                except Exception:
+                    # 如果解析失敗，使用環境變數或默認值
+                    actual_host = os.getenv("REDIS_HOST", "localhost")
+                    actual_port = int(os.getenv("REDIS_PORT", "6379"))
+            else:
+                # 使用已定義的變數
+                actual_host = redis_host
+                actual_port = redis_port
             logger.info(
                 "Redis connection established", host=actual_host, port=actual_port
             )

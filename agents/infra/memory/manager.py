@@ -19,7 +19,7 @@ except ImportError:
     logging.warning("Redis not available, using in-memory storage")
 
 from database.chromadb.client import ChromaDBClient
-from agents.services.resource_controller import get_resource_controller, ResourceType
+from agents.services.resource_controller import get_resource_controller
 
 logger = logging.getLogger(__name__)
 

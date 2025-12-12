@@ -7,11 +7,9 @@
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-import httpx
 
 from agents.services.protocol.base import (
     AgentServiceRequest,
-    AgentServiceResponse,
     AgentServiceProtocolType,
 )
 from agents.services.protocol.factory import AgentServiceClientFactory

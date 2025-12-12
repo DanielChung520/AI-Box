@@ -35,12 +35,10 @@ from services.api.utils.file_validator import (
 from database.arangodb import ArangoDBClient
 from database.rq.queue import (
     get_task_queue,
-    FILE_PROCESSING_QUEUE,
     VECTORIZATION_QUEUE,
     KG_EXTRACTION_QUEUE,
 )
 from workers.tasks import (
-    process_file_chunking_and_vectorization_task,
     process_vectorization_only_task,
     process_kg_extraction_only_task,
 )
@@ -81,7 +79,9 @@ class FileMoveRequest(BaseModel):
 class FolderCreateRequest(BaseModel):
     """創建資料夾請求模型"""
 
-    folder_name: str = Field(..., description="資料夾名稱", min_length=1, max_length=255)
+    folder_name: str = Field(
+        ..., description="資料夾名稱", min_length=1, max_length=255
+    )
     parent_task_id: Optional[str] = Field(None, description="父任務ID（可選）")
 
 
@@ -94,7 +94,9 @@ class FolderRenameRequest(BaseModel):
 class FolderMoveRequest(BaseModel):
     """移動資料夾請求模型"""
 
-    parent_task_id: Optional[str] = Field(None, description="目標父任務ID（None 表示移動到根節點）")
+    parent_task_id: Optional[str] = Field(
+        None, description="目標父任務ID（None 表示移動到根節點）"
+    )
 
 
 class BatchDownloadRequest(BaseModel):
@@ -327,7 +329,7 @@ async def get_file_tree(
                 message="必須提供 task_id 參數，文件必須關聯到任務工作區",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         # 修改時間：2025-12-09 - 檢查任務是否屬於當前用戶
         permission_service = get_file_permission_service()
         if not permission_service.check_task_file_access(
@@ -339,7 +341,7 @@ async def get_file_tree(
                 message=f"任務 {task_id} 不存在或不屬於當前用戶",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
-        
+
         # 只查詢指定 task_id 的文件（該任務的任務工作區）
         all_files = service.list(
             user_id=effective_user_id,
@@ -394,13 +396,13 @@ async def get_file_tree(
         workspace_key = f"{task_id}_workspace"
         if workspace_key not in tree:
             tree[workspace_key] = []
-        
+
         # 修改時間：2025-12-09 - 根據 file_metadata.folder_id 將文件添加到對應的資料夾
         # 如果 folder_id 為 None 或不存在，則添加到任務工作區
         for file_metadata in all_files:
             if file_metadata.task_id == task_id:
                 # 獲取文件的 folder_id，如果沒有則使用 workspace_key
-                folder_id = getattr(file_metadata, 'folder_id', None) or workspace_key
+                folder_id = getattr(file_metadata, "folder_id", None) or workspace_key
                 # 確保資料夾節點存在
                 if folder_id not in tree:
                     tree[folder_id] = []
@@ -424,7 +426,7 @@ async def get_file_tree(
                     "folder_type": folder_doc.get("folder_type"),  # 添加 folder_type
                     "task_id": folder_doc.get("task_id"),  # 添加 task_id
                 }
-        
+
         # 確保任務工作區和排程任務資料夾也被包含（即使它們還沒有被創建）
         workspace_key = f"{task_id}_workspace"
         scheduled_key = f"{task_id}_scheduled"
@@ -487,14 +489,16 @@ async def validate_file_tree(
                 message=f"任務 {task_id} 不存在或不屬於當前用戶",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
-        
+
         sync_service = get_file_tree_sync_service()
         result = sync_service.validate_file_tree(
             user_id=current_user.user_id, task_id=task_id
         )
         return APIResponse.success(data=result, message="文件樹驗證完成")
     except Exception as e:
-        logger.error("Failed to validate file tree", task_id=task_id, error=str(e), exc_info=True)
+        logger.error(
+            "Failed to validate file tree", task_id=task_id, error=str(e), exc_info=True
+        )
         return APIResponse.error(
             message=f"文件樹驗證失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -518,14 +522,16 @@ async def sync_file_tree(
                 message=f"任務 {task_id} 不存在或不屬於當前用戶",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
-        
+
         sync_service = get_file_tree_sync_service()
         result = sync_service.sync_file_tree(
             user_id=current_user.user_id, task_id=task_id
         )
         return APIResponse.success(data=result, message="文件樹同步完成")
     except Exception as e:
-        logger.error("Failed to sync file tree", task_id=task_id, error=str(e), exc_info=True)
+        logger.error(
+            "Failed to sync file tree", task_id=task_id, error=str(e), exc_info=True
+        )
         return APIResponse.error(
             message=f"文件樹同步失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -549,14 +555,19 @@ async def get_file_tree_version(
                 message=f"任務 {task_id} 不存在或不屬於當前用戶",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
-        
+
         sync_service = get_file_tree_sync_service()
         result = sync_service.get_file_tree_version(
             user_id=current_user.user_id, task_id=task_id
         )
         return APIResponse.success(data=result, message="文件樹版本查詢成功")
     except Exception as e:
-        logger.error("Failed to get file tree version", task_id=task_id, error=str(e), exc_info=True)
+        logger.error(
+            "Failed to get file tree version",
+            task_id=task_id,
+            error=str(e),
+            exc_info=True,
+        )
         return APIResponse.error(
             message=f"文件樹版本查詢失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -608,9 +619,9 @@ async def download_file(
         file_path = storage.get_file_path(
             file_id=file_id,
             task_id=metadata.task_id,
-            metadata_storage_path=metadata.storage_path
+            metadata_storage_path=metadata.storage_path,
         )
-        
+
         if not file_path or not os.path.exists(file_path):
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -671,9 +682,9 @@ async def preview_file(
         file_path = storage.get_file_path(
             file_id=file_id,
             task_id=metadata.task_id,
-            metadata_storage_path=metadata.storage_path
+            metadata_storage_path=metadata.storage_path,
         )
-            
+
         # 檢查文件是否存在
         if not file_path or not os.path.exists(file_path):
             return APIResponse.error(
@@ -953,9 +964,11 @@ async def copy_file(
             task_id=request_body.target_task_id or source_metadata.task_id,
             tags=source_metadata.tags.copy() if source_metadata.tags else [],
             description=source_metadata.description,
-            custom_metadata=source_metadata.custom_metadata.copy()
-            if source_metadata.custom_metadata
-            else {},
+            custom_metadata=(
+                source_metadata.custom_metadata.copy()
+                if source_metadata.custom_metadata
+                else {}
+            ),
             status="uploaded",
             processing_status=None,
             chunk_count=None,
@@ -990,9 +1003,9 @@ async def copy_file(
 @audit_log(
     action=AuditAction.FILE_UPDATE,
     resource_type="file",
-    get_resource_id=lambda body: body.get("data", {}).get("file_id")
-    if isinstance(body, dict)
-    else None,
+    get_resource_id=lambda body: (
+        body.get("data", {}).get("file_id") if isinstance(body, dict) else None
+    ),
 )
 async def move_file(
     file_id: str,
@@ -1077,18 +1090,19 @@ async def move_file(
                 message="必須提供目標任務ID，文件必須關聯到任務工作區",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         target_task_id = str(request_body.target_task_id).strip()
         if not target_task_id:
             return APIResponse.error(
                 message="目標任務ID不能為空",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         # 修改時間：2025-12-09 - 檢查源任務是否屬於當前用戶
         # 確保用戶只能移動自己任務中的文件
         if file_metadata.task_id:
             from services.api.services.user_task_service import get_user_task_service
+
             task_service = get_user_task_service()
             source_task = task_service.get(
                 user_id=current_user.user_id,
@@ -1102,6 +1116,7 @@ async def move_file(
 
         # 驗證目標任務是否存在且屬於當前用戶
         from services.api.services.user_task_service import get_user_task_service
+
         task_service = get_user_task_service()
         target_task = task_service.get(
             user_id=current_user.user_id,
@@ -1134,7 +1149,10 @@ async def move_file(
             target_folder_id = f"{target_task_id}_workspace"
 
         # 如果目標任務與資料夾都相同，直接返回
-        if file_metadata.task_id == target_task_id and getattr(file_metadata, "folder_id", None) == target_folder_id:
+        if (
+            file_metadata.task_id == target_task_id
+            and getattr(file_metadata, "folder_id", None) == target_folder_id
+        ):
             return APIResponse.success(
                 data=file_metadata.model_dump(mode="json"),
                 message="文件已在目標目錄中",
@@ -1144,7 +1162,9 @@ async def move_file(
         metadata_service = get_metadata_service()
         from services.api.models.file_metadata import FileMetadataUpdate
 
-        update_data = FileMetadataUpdate(task_id=target_task_id, folder_id=target_folder_id)
+        update_data = FileMetadataUpdate(
+            task_id=target_task_id, folder_id=target_folder_id
+        )
         updated_metadata = metadata_service.update(file_id, update_data)
 
         if updated_metadata is None:
@@ -1254,7 +1274,9 @@ async def delete_file(
                         )
                     except Exception as e:
                         logger.warning(
-                            "刪除實體時出錯（可能沒有 file_id 字段）", file_id=file_id, error=str(e)
+                            "刪除實體時出錯（可能沒有 file_id 字段）",
+                            file_id=file_id,
+                            error=str(e),
                         )
 
                 if arangodb_client.db.has_collection(relations_collection):
@@ -1270,7 +1292,9 @@ async def delete_file(
                         )
                     except Exception as e:
                         logger.warning(
-                            "刪除關係時出錯（可能沒有 file_id 字段）", file_id=file_id, error=str(e)
+                            "刪除關係時出錯（可能沒有 file_id 字段）",
+                            file_id=file_id,
+                            error=str(e),
                         )
 
                 deletion_results["kg_deleted"] = True
@@ -1308,37 +1332,54 @@ async def delete_file(
             deletion_errors.append(error_msg)
             logger.error(error_msg, file_id=file_id, error=str(e))
             # 文件實體刪除失敗，但元數據已刪除，記錄警告
-            logger.warning("文件元數據已刪除，但文件實體刪除失敗", file_id=file_id, error=str(e))
+            logger.warning(
+                "文件元數據已刪除，但文件實體刪除失敗", file_id=file_id, error=str(e)
+            )
 
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄文件刪除操作日誌
         try:
-            from services.api.services.operation_log_service import get_operation_log_service
+            from services.api.services.operation_log_service import (
+                get_operation_log_service,
+            )
+
             operation_log_service = get_operation_log_service()
-            
+
             # 處理文件時間字段
             file_created_at = None
-            if hasattr(file_metadata, 'created_at') and file_metadata.created_at:
+            if hasattr(file_metadata, "created_at") and file_metadata.created_at:
                 if isinstance(file_metadata.created_at, datetime):
-                    file_created_at = file_metadata.created_at.isoformat() + 'Z'
+                    file_created_at = file_metadata.created_at.isoformat() + "Z"
                 elif isinstance(file_metadata.created_at, str):
-                    file_created_at = file_metadata.created_at if file_metadata.created_at.endswith('Z') else file_metadata.created_at + 'Z'
-            
+                    file_created_at = (
+                        file_metadata.created_at
+                        if file_metadata.created_at.endswith("Z")
+                        else file_metadata.created_at + "Z"
+                    )
+
             file_updated_at = None
-            if hasattr(file_metadata, 'updated_at') and file_metadata.updated_at:
+            if hasattr(file_metadata, "updated_at") and file_metadata.updated_at:
                 if isinstance(file_metadata.updated_at, datetime):
-                    file_updated_at = file_metadata.updated_at.isoformat() + 'Z'
+                    file_updated_at = file_metadata.updated_at.isoformat() + "Z"
                 elif isinstance(file_metadata.updated_at, str):
-                    file_updated_at = file_metadata.updated_at if file_metadata.updated_at.endswith('Z') else file_metadata.updated_at + 'Z'
-            
+                    file_updated_at = (
+                        file_metadata.updated_at
+                        if file_metadata.updated_at.endswith("Z")
+                        else file_metadata.updated_at + "Z"
+                    )
+
             operation_log_service.log_operation(
                 user_id=current_user.user_id,
                 resource_id=file_id,
                 resource_type="document",
-                resource_name=file_metadata.filename if hasattr(file_metadata, 'filename') else file_id,
+                resource_name=(
+                    file_metadata.filename
+                    if hasattr(file_metadata, "filename")
+                    else file_id
+                ),
                 operation_type="delete",
                 created_at=file_created_at,
                 updated_at=file_updated_at,
-                deleted_at=datetime.utcnow().isoformat() + 'Z',
+                deleted_at=datetime.utcnow().isoformat() + "Z",
                 notes=f"手動刪除文件，刪除結果: {deletion_results}",
             )
         except Exception as e:
@@ -1687,14 +1728,16 @@ async def create_folder(
                 arangodb_client = get_arangodb_client()
                 if arangodb_client.db is None:
                     raise RuntimeError("ArangoDB client is not connected")
-                
-                parent_folder = arangodb_client.db.collection(FOLDER_COLLECTION_NAME).get(request_body.parent_task_id)
+
+                parent_folder = arangodb_client.db.collection(
+                    FOLDER_COLLECTION_NAME
+                ).get(request_body.parent_task_id)
                 if parent_folder:
                     actual_task_id = parent_folder.get("task_id")
                 else:
                     # 如果找不到父資料夾，嘗試將 parent_task_id 作為 task_id
                     actual_task_id = request_body.parent_task_id
-        
+
         if actual_task_id is None:
             return APIResponse.error(
                 message="無法確定資料夾所屬的任務，請確保在任務工作區內創建資料夾",
@@ -2123,20 +2166,28 @@ async def delete_folder(
                         file_id=file_id, user_id=current_user.user_id
                     )
                 except Exception as e:
-                    logger.warning("刪除向量失敗（繼續刪除文件）", file_id=file_id, error=str(e))
+                    logger.warning(
+                        "刪除向量失敗（繼續刪除文件）", file_id=file_id, error=str(e)
+                    )
 
                 # 2. 刪除文件元數據
                 try:
                     metadata_service.delete(file_id)
                 except Exception as e:
-                    logger.warning("刪除文件元數據失敗（繼續刪除文件）", file_id=file_id, error=str(e))
+                    logger.warning(
+                        "刪除文件元數據失敗（繼續刪除文件）",
+                        file_id=file_id,
+                        error=str(e),
+                    )
 
                 # 3. 刪除實際文件
                 storage.delete_file(file_id)
 
                 deleted_files.append(file_id)
             except Exception as e:
-                logger.error("刪除文件失敗", file_id=file_metadata.file_id, error=str(e))
+                logger.error(
+                    "刪除文件失敗", file_id=file_metadata.file_id, error=str(e)
+                )
                 failed_files.append(file_metadata.file_id)
 
         # 刪除資料夾元數據記錄
@@ -2175,9 +2226,11 @@ async def delete_folder(
 @audit_log(
     action=AuditAction.FILE_ACCESS,
     resource_type="file",
-    get_resource_id=lambda body: body.get("data", {}).get("file_ids", [])[0]
-    if body.get("data", {}).get("file_ids")
-    else None,
+    get_resource_id=lambda body: (
+        body.get("data", {}).get("file_ids", [])[0]
+        if body.get("data", {}).get("file_ids")
+        else None
+    ),
 )
 async def batch_download_files(
     request_body: BatchDownloadRequest = Body(...),
@@ -2232,7 +2285,9 @@ async def batch_download_files(
                     # 獲取文件路徑
                     file_path = storage.get_file_path(file_id)
                     if not file_path or not os.path.exists(file_path):
-                        failed_files.append({"file_id": file_id, "error": "文件路徑不存在"})
+                        failed_files.append(
+                            {"file_id": file_id, "error": "文件路徑不存在"}
+                        )
                         continue
 
                     # 獲取文件名
@@ -2344,10 +2399,14 @@ async def attach_file_to_chat(
             "filename": file_metadata.filename,
             "file_type": file_metadata.file_type,
             "file_size": file_metadata.file_size,
-            "upload_time": file_metadata.upload_time.isoformat()
-            if hasattr(file_metadata.upload_time, "isoformat")
-            else str(file_metadata.upload_time),
-            "preview": file_content[:1000] if file_content else None,  # 前1000字符作為預覽
+            "upload_time": (
+                file_metadata.upload_time.isoformat()
+                if hasattr(file_metadata.upload_time, "isoformat")
+                else str(file_metadata.upload_time)
+            ),
+            "preview": (
+                file_content[:1000] if file_content else None
+            ),  # 前1000字符作為預覽
             "description": file_metadata.description,
             "tags": file_metadata.tags or [],
         }
@@ -2417,7 +2476,7 @@ async def get_file_vectors(
         if not storage.file_exists(
             file_id=file_id,
             task_id=file_metadata_obj.task_id,
-            metadata_storage_path=file_metadata_obj.storage_path
+            metadata_storage_path=file_metadata_obj.storage_path,
         ):
             return APIResponse.error(
                 message="文件不存在",
@@ -2523,7 +2582,7 @@ async def regenerate_file_data(
         if not storage.file_exists(
             file_id=file_id,
             task_id=file_metadata.task_id,
-            metadata_storage_path=file_metadata.storage_path
+            metadata_storage_path=file_metadata.storage_path,
         ):
             return APIResponse.error(
                 message="文件不存在",
@@ -2534,7 +2593,7 @@ async def regenerate_file_data(
         file_path = storage.get_file_path(
             file_id=file_id,
             task_id=file_metadata.task_id,
-            metadata_storage_path=file_metadata.storage_path
+            metadata_storage_path=file_metadata.storage_path,
         )
         if not file_path or not os.path.exists(file_path):
             return APIResponse.error(
@@ -2544,7 +2603,7 @@ async def regenerate_file_data(
 
         regenerate_type = request_body.type.lower()
 
-        if regenerate_type == 'vector':
+        if regenerate_type == "vector":
             # 重新生成向量：只執行向量化流程（分塊+向量化+存儲），跳過 KG 提取
             try:
                 queue = get_task_queue(VECTORIZATION_QUEUE)
@@ -2584,7 +2643,7 @@ async def regenerate_file_data(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
-        elif regenerate_type == 'graph':
+        elif regenerate_type == "graph":
             # 重新生成圖譜：只觸發知識圖譜提取，嘗試重用已存在的 chunks
             try:
                 queue = get_task_queue(KG_EXTRACTION_QUEUE)
@@ -2688,7 +2747,7 @@ async def get_file_graph(
         if not storage.file_exists(
             file_id=file_id,
             task_id=file_metadata_obj.task_id,
-            metadata_storage_path=file_metadata_obj.storage_path
+            metadata_storage_path=file_metadata_obj.storage_path,
         ):
             return APIResponse.error(
                 message="文件不存在",
@@ -2698,8 +2757,7 @@ async def get_file_graph(
         # 優先從結果文件讀取圖譜數據
         from typing import List, Dict, Any
         import json
-        from pathlib import Path
-        
+
         nodes: List[Dict[str, Any]] = []
         edges: List[Dict[str, Any]] = []
         triples: List[Dict[str, Any]] = []
@@ -2709,50 +2767,59 @@ async def get_file_graph(
             "relations_count": 0,
             "status": "not_processed",
         }
-        
+
         # 嘗試從結果文件讀取三元組數據
         result_file_found = False
         if file_metadata_obj.task_id:
             try:
-                from services.api.services.task_workspace_service import get_task_workspace_service
+                from services.api.services.task_workspace_service import (
+                    get_task_workspace_service,
+                )
+
                 workspace_service = get_task_workspace_service()
-                workspace_path = workspace_service.get_workspace_path(file_metadata_obj.task_id)
-                
+                workspace_path = workspace_service.get_workspace_path(
+                    file_metadata_obj.task_id
+                )
+
                 if workspace_path.exists():
                     # 查找匹配的結果文件：{file_id}_kg_result*.json
-                    result_files = list(workspace_path.glob(f"{file_id}_kg_result*.json"))
-                    
+                    result_files = list(
+                        workspace_path.glob(f"{file_id}_kg_result*.json")
+                    )
+
                     if result_files:
                         # 選擇最新的結果文件（按修改時間排序）
-                        latest_result_file = max(result_files, key=lambda p: p.stat().st_mtime)
-                        
+                        latest_result_file = max(
+                            result_files, key=lambda p: p.stat().st_mtime
+                        )
+
                         logger.info(
                             "Found KG result file",
                             file_id=file_id,
                             result_file=str(latest_result_file),
                         )
-                        
+
                         # 讀取結果文件
-                        with open(latest_result_file, 'r', encoding='utf-8') as f:
+                        with open(latest_result_file, "r", encoding="utf-8") as f:
                             result_data = json.load(f)
-                        
+
                         # 提取三元組
-                        extracted_triples = result_data.get('extracted_triples', [])
-                        
+                        extracted_triples = result_data.get("extracted_triples", [])
+
                         if extracted_triples:
                             # 轉換三元組為 G6 格式
                             # 1. 提取唯一節點
                             node_map: Dict[str, Dict[str, Any]] = {}
                             edge_id_counter = 0
-                            
+
                             for triple in extracted_triples:
-                                subject = triple.get('subject', '')
-                                subject_type = triple.get('subject_type', 'Unknown')
-                                obj = triple.get('object', '')
-                                obj_type = triple.get('object_type', 'Unknown')
-                                relation = triple.get('relation', '')
-                                confidence = triple.get('confidence', 0)
-                                
+                                subject = triple.get("subject", "")
+                                subject_type = triple.get("subject_type", "Unknown")
+                                obj = triple.get("object", "")
+                                obj_type = triple.get("object_type", "Unknown")
+                                relation = triple.get("relation", "")
+                                confidence = triple.get("confidence", 0)
+
                                 # 添加主體節點
                                 if subject and subject not in node_map:
                                     node_map[subject] = {
@@ -2762,7 +2829,7 @@ async def get_file_graph(
                                         "type": subject_type,
                                         "text": subject,
                                     }
-                                
+
                                 # 添加客體節點
                                 if obj and obj not in node_map:
                                     node_map[obj] = {
@@ -2772,35 +2839,39 @@ async def get_file_graph(
                                         "type": obj_type,
                                         "text": obj,
                                     }
-                                
+
                                 # 添加邊
                                 if subject and obj and relation:
-                                    edges.append({
-                                        "id": f"edge_{edge_id_counter}",
-                                        "source": subject,
-                                        "target": obj,
-                                        "from": subject,
-                                        "to": obj,
-                                        "label": relation,
-                                        "type": relation,
-                                        "relation": relation,
-                                        "confidence": confidence,
-                                    })
+                                    edges.append(
+                                        {
+                                            "id": f"edge_{edge_id_counter}",
+                                            "source": subject,
+                                            "target": obj,
+                                            "from": subject,
+                                            "to": obj,
+                                            "label": relation,
+                                            "type": relation,
+                                            "relation": relation,
+                                            "confidence": confidence,
+                                        }
+                                    )
                                     edge_id_counter += 1
-                                
+
                                 # 添加三元組
-                                triples.append({
-                                    "subject": subject,
-                                    "subject_type": subject_type,
-                                    "relation": relation,
-                                    "object": obj,
-                                    "object_type": obj_type,
-                                    "confidence": confidence,
-                                })
-                            
+                                triples.append(
+                                    {
+                                        "subject": subject,
+                                        "subject_type": subject_type,
+                                        "relation": relation,
+                                        "object": obj,
+                                        "object_type": obj_type,
+                                        "confidence": confidence,
+                                    }
+                                )
+
                             # 轉換節點映射為列表
                             nodes = list(node_map.values())
-                            
+
                             # 更新統計信息
                             kg_stats = {
                                 "triples_count": len(triples),
@@ -2808,7 +2879,7 @@ async def get_file_graph(
                                 "relations_count": len(edges),
                                 "status": "completed",
                             }
-                            
+
                             result_file_found = True
                             logger.info(
                                 "Loaded KG data from result file",
@@ -2823,7 +2894,7 @@ async def get_file_graph(
                     file_id=file_id,
                     error=str(e),
                 )
-        
+
         # 如果結果文件不存在或讀取失敗，嘗試從 ArangoDB 查詢（保持向後兼容）
         if not result_file_found:
             arangodb_client = get_arangodb_client()
@@ -2839,10 +2910,14 @@ async def get_file_graph(
                     entities_result = list(
                         arangodb_client.db.aql.execute(
                             entities_query,
-                            bind_vars={"file_id": file_id, "limit": limit, "offset": offset},
+                            bind_vars={
+                                "file_id": file_id,
+                                "limit": limit,
+                                "offset": offset,
+                            },
                         )
                     )
-                    
+
                     # 查詢與文件相關的關係
                     relations_query = """
                     FOR relation IN relations
@@ -2853,10 +2928,14 @@ async def get_file_graph(
                     relations_result = list(
                         arangodb_client.db.aql.execute(
                             relations_query,
-                            bind_vars={"file_id": file_id, "limit": limit, "offset": offset},
+                            bind_vars={
+                                "file_id": file_id,
+                                "limit": limit,
+                                "offset": offset,
+                            },
                         )
                     )
-                    
+
                     # 統計總數
                     entities_count_query = """
                     FOR entity IN entities
@@ -2869,8 +2948,10 @@ async def get_file_graph(
                             entities_count_query, bind_vars={"file_id": file_id}
                         )
                     )
-                    entities_count = entities_count_result[0] if entities_count_result else 0
-                    
+                    entities_count = (
+                        entities_count_result[0] if entities_count_result else 0
+                    )
+
                     relations_count_query = """
                     FOR relation IN relations
                         FILTER relation.file_id == @file_id OR @file_id IN relation.file_ids
@@ -2882,37 +2963,43 @@ async def get_file_graph(
                             relations_count_query, bind_vars={"file_id": file_id}
                         )
                     )
-                    relations_count = relations_count_result[0] if relations_count_result else 0
-                    
+                    relations_count = (
+                        relations_count_result[0] if relations_count_result else 0
+                    )
+
                     # 轉換實體為節點格式
                     nodes = []
                     for entity in entities_result:
-                        nodes.append({
-                            "id": entity.get("_id", ""),
-                            "name": entity.get("name", ""),
-                            "type": entity.get("type", ""),
-                            "text": entity.get("text", ""),
-                        })
-                    
+                        nodes.append(
+                            {
+                                "id": entity.get("_id", ""),
+                                "name": entity.get("name", ""),
+                                "type": entity.get("type", ""),
+                                "text": entity.get("text", ""),
+                            }
+                        )
+
                     # 轉換關係為邊格式
                     edges = []
                     for relation in relations_result:
-                        edges.append({
-                            "id": relation.get("_id", ""),
-                            "from": relation.get("_from", ""),
-                            "to": relation.get("_to", ""),
-                            "type": relation.get("type", ""),
-                            "confidence": relation.get("confidence", 0),
-                            "weight": relation.get("weight", 0),
-                        })
-                    
+                        edges.append(
+                            {
+                                "id": relation.get("_id", ""),
+                                "from": relation.get("_from", ""),
+                                "to": relation.get("_to", ""),
+                                "type": relation.get("type", ""),
+                                "confidence": relation.get("confidence", 0),
+                                "weight": relation.get("weight", 0),
+                            }
+                        )
+
                     # 構建三元組（從實體和關係組合）
                     triples = []
                     for relation in relations_result:
                         # 從關係的_from和_to中提取實體信息
                         from_entity_id = relation.get("_from", "").split("/")[-1]
                         to_entity_id = relation.get("_to", "").split("/")[-1]
-                        
+
                         # 查找對應的實體（需要查詢所有實體以匹配）
                         all_entities_query = """
                         FOR entity IN entities
@@ -2922,34 +3009,53 @@ async def get_file_graph(
                         matching_entities = list(
                             arangodb_client.db.aql.execute(
                                 all_entities_query,
-                                bind_vars={"from_key": from_entity_id, "to_key": to_entity_id},
+                                bind_vars={
+                                    "from_key": from_entity_id,
+                                    "to_key": to_entity_id,
+                                },
                             )
                         )
-                        
+
                         from_entity = next(
-                            (e for e in matching_entities if e.get("_key") == from_entity_id), None
+                            (
+                                e
+                                for e in matching_entities
+                                if e.get("_key") == from_entity_id
+                            ),
+                            None,
                         )
                         to_entity = next(
-                            (e for e in matching_entities if e.get("_key") == to_entity_id), None
+                            (
+                                e
+                                for e in matching_entities
+                                if e.get("_key") == to_entity_id
+                            ),
+                            None,
                         )
-                        
+
                         if from_entity and to_entity:
-                            triples.append({
-                                "subject": from_entity.get("name", ""),
-                                "relation": relation.get("type", ""),
-                                "object": to_entity.get("name", ""),
-                                "confidence": relation.get("confidence", 0),
-                                "context": relation.get("context", ""),
-                            })
-                    
+                            triples.append(
+                                {
+                                    "subject": from_entity.get("name", ""),
+                                    "relation": relation.get("type", ""),
+                                    "object": to_entity.get("name", ""),
+                                    "confidence": relation.get("confidence", 0),
+                                    "context": relation.get("context", ""),
+                                }
+                            )
+
                     # 更新統計信息
                     kg_stats = {
                         "triples_count": len(triples),
                         "entities_count": entities_count,
                         "relations_count": relations_count,
-                        "status": "completed" if entities_count > 0 or relations_count > 0 else "not_processed",
+                        "status": (
+                            "completed"
+                            if entities_count > 0 or relations_count > 0
+                            else "not_processed"
+                        ),
                     }
-                    
+
                 except Exception as e:
                     logger.warning(
                         "Failed to query graph data from ArangoDB",
@@ -2959,18 +3065,25 @@ async def get_file_graph(
                     # 如果查詢失敗，嘗試從 Redis 獲取統計信息（如果可用）
                     try:
                         from database.redis import get_redis_client
+
                         redis_client = get_redis_client()
                         status_key = f"processing:status:{file_id}"
                         status_data_str = redis_client.get(status_key)
-                        
+
                         if status_data_str:
                             status_data = json.loads(status_data_str)
                             kg_extraction = status_data.get("kg_extraction", {})
                             if kg_extraction.get("status") == "completed":
                                 kg_stats = {
-                                    "triples_count": kg_extraction.get("triples_count", 0),
-                                    "entities_count": kg_extraction.get("entities_count", 0),
-                                    "relations_count": kg_extraction.get("relations_count", 0),
+                                    "triples_count": kg_extraction.get(
+                                        "triples_count", 0
+                                    ),
+                                    "entities_count": kg_extraction.get(
+                                        "entities_count", 0
+                                    ),
+                                    "relations_count": kg_extraction.get(
+                                        "relations_count", 0
+                                    ),
                                     "status": "completed",
                                 }
                     except Exception:
@@ -3014,9 +3127,11 @@ LIBRARY_TASK_ID = "library"  # 文件庫的特殊 task_id 標識
 @audit_log(
     action=AuditAction.FILE_UPDATE,
     resource_type="file",
-    get_resource_id=lambda body: body.get("data", {}).get("file_ids", [])[0]
-    if body.get("data", {}).get("file_ids")
-    else None,
+    get_resource_id=lambda body: (
+        body.get("data", {}).get("file_ids", [])[0]
+        if body.get("data", {}).get("file_ids")
+        else None
+    ),
 )
 async def upload_from_library(
     request_body: LibraryUploadRequest = Body(...),
@@ -3062,7 +3177,9 @@ async def upload_from_library(
 
                 # 檢查文件是否在文件庫中（task_id 為 "library" 或 null）
                 if file_metadata.task_id not in [None, LIBRARY_TASK_ID, ""]:
-                    failed_files.append({"file_id": file_id, "error": "文件不在文件庫中"})
+                    failed_files.append(
+                        {"file_id": file_id, "error": "文件不在文件庫中"}
+                    )
                     continue
 
                 # 重用 copy_file 的邏輯，但直接更新 task_id 而不是創建新文件
@@ -3128,9 +3245,11 @@ async def upload_from_library(
 @audit_log(
     action=AuditAction.FILE_UPDATE,
     resource_type="file",
-    get_resource_id=lambda body: body.get("data", {}).get("file_ids", [])[0]
-    if body.get("data", {}).get("file_ids")
-    else None,
+    get_resource_id=lambda body: (
+        body.get("data", {}).get("file_ids", [])[0]
+        if body.get("data", {}).get("file_ids")
+        else None
+    ),
 )
 async def return_to_library(
     request_body: LibraryReturnRequest = Body(...),

@@ -22,7 +22,9 @@ class HtmlParser(BaseParser):
     def __init__(self):
         super().__init__()
         if not HTML_AVAILABLE:
-            raise ImportError("beautifulsoup4 未安裝，請運行: pip install beautifulsoup4")
+            raise ImportError(
+                "beautifulsoup4 未安裝，請運行: pip install beautifulsoup4"
+            )
 
     def parse(self, file_path: str) -> Dict[str, Any]:
         """解析 HTML 文件"""

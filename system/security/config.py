@@ -107,7 +107,7 @@ class SecuritySettings:
     @property
     def should_bypass_auth(self) -> bool:
         """是否應該繞過認證檢查
-        
+
         修改時間：2025-01-27 - 正式測試環境下，即使 mode=development 也要求真實認證
         只有在 SECURITY_ENABLED=false 時才繞過認證
         """

@@ -6,10 +6,8 @@
 """Agent Registry 單元測試"""
 
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, MagicMock
 
-from agents.services.registry.registry import AgentRegistry, get_agent_registry
+from agents.services.registry.registry import AgentRegistry
 from agents.services.registry.models import (
     AgentRegistrationRequest,
     AgentEndpoints,

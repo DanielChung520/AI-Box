@@ -653,8 +653,8 @@ class LLMMoEManager:
 
         # 添加健康檢查狀態
         if self.failover_manager is not None:
-            metrics[
-                "health_status"
-            ] = self.failover_manager.get_provider_health_status()
+            metrics["health_status"] = (
+                self.failover_manager.get_provider_health_status()
+            )
 
         return metrics

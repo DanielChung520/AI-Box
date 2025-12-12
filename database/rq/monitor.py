@@ -101,7 +101,7 @@ def get_workers_info() -> List[Dict[str, Any]]:
     try:
         redis_conn = get_redis_connection()
         workers = Worker.all(connection=redis_conn)
-        
+
         workers_info = []
         for worker in workers:
             worker_info = {
@@ -109,10 +109,12 @@ def get_workers_info() -> List[Dict[str, Any]]:
                 "state": worker.state,
                 "queues": worker.queue_names(),
                 "current_job_id": worker.current_job.id if worker.current_job else None,
-                "birth_date": worker.birth_date.isoformat() if worker.birth_date else None,
+                "birth_date": (
+                    worker.birth_date.isoformat() if worker.birth_date else None
+                ),
             }
             workers_info.append(worker_info)
-        
+
         return workers_info
     except Exception as e:
         logger.error("Failed to get workers info", error=str(e))
@@ -137,23 +139,27 @@ def get_queue_jobs(
     try:
         redis_conn = get_redis_connection()
         queue = Queue(queue_name, connection=redis_conn)
-        
+
         jobs_info = []
-        
+
         if status is None or status == "queued":
             # 獲取等待中的任務
             job_ids = queue.get_job_ids(0, limit - 1)
             for job_id in job_ids:
                 job = queue.fetch_job(job_id)
                 if job:
-                    jobs_info.append({
-                        "job_id": job.id,
-                        "status": job.get_status(),
-                        "created_at": job.created_at.isoformat() if job.created_at else None,
-                        "func_name": job.func_name,
-                        "args": str(job.args)[:100],  # 限制長度
-                    })
-        
+                    jobs_info.append(
+                        {
+                            "job_id": job.id,
+                            "status": job.get_status(),
+                            "created_at": (
+                                job.created_at.isoformat() if job.created_at else None
+                            ),
+                            "func_name": job.func_name,
+                            "args": str(job.args)[:100],  # 限制長度
+                        }
+                    )
+
         if status is None or status == "started":
             # 獲取執行中的任務
             started_registry = StartedJobRegistry(queue_name, connection=redis_conn)
@@ -161,13 +167,17 @@ def get_queue_jobs(
             for job_id in job_ids:
                 job = queue.fetch_job(job_id)
                 if job:
-                    jobs_info.append({
-                        "job_id": job.id,
-                        "status": job.get_status(),
-                        "started_at": job.started_at.isoformat() if job.started_at else None,
-                        "func_name": job.func_name,
-                    })
-        
+                    jobs_info.append(
+                        {
+                            "job_id": job.id,
+                            "status": job.get_status(),
+                            "started_at": (
+                                job.started_at.isoformat() if job.started_at else None
+                            ),
+                            "func_name": job.func_name,
+                        }
+                    )
+
         if status is None or status == "failed":
             # 獲取失敗的任務
             failed_registry = FailedJobRegistry(queue_name, connection=redis_conn)
@@ -175,14 +185,20 @@ def get_queue_jobs(
             for job_id in job_ids:
                 job = queue.fetch_job(job_id)
                 if job:
-                    jobs_info.append({
-                        "job_id": job.id,
-                        "status": job.get_status(),
-                        "ended_at": job.ended_at.isoformat() if job.ended_at else None,
-                        "exc_info": str(job.exc_info)[:200] if job.exc_info else None,
-                        "func_name": job.func_name,
-                    })
-        
+                    jobs_info.append(
+                        {
+                            "job_id": job.id,
+                            "status": job.get_status(),
+                            "ended_at": (
+                                job.ended_at.isoformat() if job.ended_at else None
+                            ),
+                            "exc_info": (
+                                str(job.exc_info)[:200] if job.exc_info else None
+                            ),
+                            "func_name": job.func_name,
+                        }
+                    )
+
         return jobs_info[:limit]
     except Exception as e:
         logger.error(

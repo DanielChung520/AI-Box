@@ -26,7 +26,9 @@ class GenerateReportRequest(BaseModel):
     task_results: List[Dict[str, Any]] = Field(..., description="Agent 執行結果列表")
     task_id: Optional[str] = Field(None, description="任務 ID")
     report_title: Optional[str] = Field(None, description="報告標題")
-    include_output_files: bool = Field(default=True, description="是否包含產出物文件鏈接")
+    include_output_files: bool = Field(
+        default=True, description="是否包含產出物文件鏈接"
+    )
 
 
 @router.post("/reports/generate", status_code=http_status.HTTP_200_OK)

@@ -97,13 +97,13 @@ def setup_fastapi_logging() -> None:
     # 注意：不清除現有處理器，只添加文件處理器，保留控制台輸出
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
-    
+
     # 檢查是否已經有文件處理器，避免重複添加
     has_file_handler = any(
         isinstance(h, RotatingFileHandler) and h.baseFilename == str(FASTAPI_LOG_PATH)
         for h in root_logger.handlers
     )
-    
+
     if not has_file_handler:
         root_logger.addHandler(handler)
 
@@ -111,16 +111,17 @@ def setup_fastapi_logging() -> None:
     for logger_name in ["uvicorn", "uvicorn.access", "uvicorn.error", "api"]:
         logger = logging.getLogger(logger_name)
         logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
-        
+
         # 檢查是否已經有文件處理器
         has_file_handler = any(
-            isinstance(h, RotatingFileHandler) and h.baseFilename == str(FASTAPI_LOG_PATH)
+            isinstance(h, RotatingFileHandler)
+            and h.baseFilename == str(FASTAPI_LOG_PATH)
             for h in logger.handlers
         )
-        
+
         if not has_file_handler:
             logger.addHandler(handler)
-        
+
         # 允許日誌向上傳播到根記錄器（保留 uvicorn 的默認行為）
         logger.propagate = True
 
@@ -156,4 +157,3 @@ def get_logger(name: str) -> logging.Logger:
         日誌記錄器實例
     """
     return logging.getLogger(name)
-

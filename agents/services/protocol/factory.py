@@ -5,7 +5,6 @@
 
 """Agent Service Client Factory - 創建不同類型的 Agent Service Client"""
 
-from typing import Optional
 
 from agents.services.protocol.base import (
     AgentServiceProtocol,

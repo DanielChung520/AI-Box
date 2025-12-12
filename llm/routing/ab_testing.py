@@ -177,9 +177,7 @@ class ABTestManager:
         rand = (
             random.random()
             if allocation_key is None
-            else (
-                int(hashlib.md5(allocation_key.encode()).hexdigest(), 16) / (16**32)
-            )
+            else (int(hashlib.md5(allocation_key.encode()).hexdigest(), 16) / (16**32))
         )
 
         cumulative = 0.0

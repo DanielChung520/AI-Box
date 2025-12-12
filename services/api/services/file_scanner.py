@@ -5,8 +5,7 @@
 
 """文件掃描服務 - 實現文件內容掃描（病毒掃描、惡意代碼檢測）"""
 
-import re
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple
 import structlog
 
 logger = structlog.get_logger(__name__)

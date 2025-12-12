@@ -49,7 +49,7 @@ async def verify_jwt_token(token: str) -> Optional[User]:
         logger.warning(
             "JWT token verification failed",
             token_length=len(token) if token else 0,
-            token_preview=token[:20] + "..." if token and len(token) > 20 else token
+            token_preview=token[:20] + "..." if token and len(token) > 20 else token,
         )
         return None
 
@@ -57,15 +57,22 @@ async def verify_jwt_token(token: str) -> Optional[User]:
     try:
         user_id = payload.get("sub") or payload.get("user_id")
         if not user_id:
-            logger.warning("Token payload missing user_id", payload_keys=list(payload.keys()))
+            logger.warning(
+                "Token payload missing user_id", payload_keys=list(payload.keys())
+            )
             return None
 
         # 修改時間：2025-12-09 - 如果 JWT token 中沒有權限，添加默認權限
         permissions = payload.get("permissions", [])
         # 如果沒有權限，添加基本文件操作權限（用於測試環境）
         if not permissions:
-            permissions = ["file:upload", "file:read", "file:read:own", "file:delete:own"]
-        
+            permissions = [
+                "file:upload",
+                "file:read",
+                "file:read:own",
+                "file:delete:own",
+            ]
+
         user = User(
             user_id=str(user_id),
             username=payload.get("username"),
@@ -79,12 +86,14 @@ async def verify_jwt_token(token: str) -> Optional[User]:
         logger.debug(
             "JWT token verified successfully",
             user_id=user.user_id,
-            username=user.username
+            username=user.username,
         )
         return user
 
     except Exception as e:
-        logger.error("Failed to build User from token payload", error=str(e), exc_info=True)
+        logger.error(
+            "Failed to build User from token payload", error=str(e), exc_info=True
+        )
         return None
 
 
@@ -125,7 +134,9 @@ async def extract_token_from_request(request: Request) -> Optional[str]:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         token = auth_header[7:]  # 移除 "Bearer " 前綴
-        logger.debug("Token extracted from Authorization header", token_length=len(token))
+        logger.debug(
+            "Token extracted from Authorization header", token_length=len(token)
+        )
         return token
 
     # 檢查 X-API-Key header
@@ -167,7 +178,7 @@ async def authenticate_request(request: Request) -> Optional[User]:
                 "User authenticated via JWT token",
                 user_id=user.user_id,
                 path=request.url.path,
-                method=request.method
+                method=request.method,
             )
             return user
         else:
@@ -175,7 +186,7 @@ async def authenticate_request(request: Request) -> Optional[User]:
                 "JWT token verification failed",
                 path=request.url.path,
                 method=request.method,
-                token_length=len(token)
+                token_length=len(token),
             )
 
         # 嘗試 API Key 認證
@@ -192,7 +203,7 @@ async def authenticate_request(request: Request) -> Optional[User]:
             "Security is disabled, allowing unauthenticated access",
             path=request.url.path,
             method=request.method,
-            has_token=bool(token)
+            has_token=bool(token),
         )
         # 返回一個臨時用戶（用於測試，但不會使用 dev_user）
         return User(
@@ -209,6 +220,6 @@ async def authenticate_request(request: Request) -> Optional[User]:
     logger.debug(
         "No valid token and security enabled, returning None",
         path=request.url.path,
-        method=request.method
+        method=request.method,
     )
     return None

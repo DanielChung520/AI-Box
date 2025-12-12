@@ -6,7 +6,7 @@
 """操作日誌記錄服務 - 記錄所有任務和文件操作的詳細信息"""
 
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional
 import structlog
 from database.arangodb import ArangoDBClient
 
@@ -99,7 +99,8 @@ class OperationLogService:
                 "archived_at": archived_at,
                 "deleted_at": deleted_at,
                 "notes": notes,
-                "log_timestamp": datetime.utcnow().isoformat() + 'Z',  # 記錄日誌的時間戳
+                "log_timestamp": datetime.utcnow().isoformat()
+                + "Z",  # 記錄日誌的時間戳
             }
 
             # 插入日誌文檔
@@ -136,4 +137,3 @@ def get_operation_log_service() -> OperationLogService:
     if _operation_log_service is None:
         _operation_log_service = OperationLogService()
     return _operation_log_service
-

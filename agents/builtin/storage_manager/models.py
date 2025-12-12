@@ -6,7 +6,7 @@
 """Storage Manager Agent 數據模型定義"""
 
 from enum import Enum
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 
 

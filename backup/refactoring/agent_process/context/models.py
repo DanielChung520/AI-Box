@@ -45,7 +45,9 @@ class ContextConfig(BaseModel):
     redis_url: Optional[str] = Field(default=None, description="Redis 連接 URL")
     namespace: str = Field(default="agent_process:context", description="命名空間")
     ttl_seconds: int = Field(default=3600, ge=60, description="TTL 秒數")
-    max_messages_per_session: int = Field(default=1000, ge=1, description="每個會話最大消息數")
+    max_messages_per_session: int = Field(
+        default=1000, ge=1, description="每個會話最大消息數"
+    )
     enable_persistence: bool = Field(default=False, description="是否啟用持久化存儲")
     arangodb_collection: Optional[str] = Field(
         default=None, description="ArangoDB 集合名稱"

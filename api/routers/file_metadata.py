@@ -90,7 +90,9 @@ async def update_file_metadata(
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    return APIResponse.success(data=metadata.model_dump(mode="json"), message="元數據更新成功")
+    return APIResponse.success(
+        data=metadata.model_dump(mode="json"), message="元數據更新成功"
+    )
 
 
 @router.post("/metadata/search")

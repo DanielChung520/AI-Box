@@ -31,9 +31,9 @@ class TestKGBuilderService:
         )
         db.create_collection = Mock()
         db.collection = Mock(
-            side_effect=lambda name: entities_collection
-            if name == "entities"
-            else relations_collection
+            side_effect=lambda name: (
+                entities_collection if name == "entities" else relations_collection
+            )
         )
 
         entities_collection.get = Mock(return_value=None)

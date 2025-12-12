@@ -195,7 +195,9 @@ class ExecutionPlanner:
 """
 
         if context:
-            prompt += f"\n上下文信息：\n{json.dumps(context, ensure_ascii=False, indent=2)}"
+            prompt += (
+                f"\n上下文信息：\n{json.dumps(context, ensure_ascii=False, indent=2)}"
+            )
 
         return prompt
 

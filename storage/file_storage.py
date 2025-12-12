@@ -20,7 +20,11 @@ class FileStorage(ABC):
 
     @abstractmethod
     def save_file(
-        self, file_content: bytes, filename: str, file_id: Optional[str] = None, task_id: Optional[str] = None
+        self,
+        file_content: bytes,
+        filename: str,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> Tuple[str, str]:
         """
         保存文件
@@ -135,7 +139,12 @@ class LocalFileStorage(FileStorage):
                 self.logger.warning("無法初始化加密服務，將禁用加密", error=str(e))
                 self.enable_encryption = False
 
-    def _get_file_path(self, file_id: str, filename: Optional[str] = None, task_id: Optional[str] = None) -> Path:
+    def _get_file_path(
+        self,
+        file_id: str,
+        filename: Optional[str] = None,
+        task_id: Optional[str] = None,
+    ) -> Path:
         """
         獲取文件路徑
 
@@ -151,11 +160,14 @@ class LocalFileStorage(FileStorage):
         if task_id:
             # 如果提供了 task_id，文件存儲在任務工作區
             # 路徑結構：data/tasks/{task_id}/workspace/{file_id}.{ext}
-            from services.api.services.task_workspace_service import get_task_workspace_service
+            from services.api.services.task_workspace_service import (
+                get_task_workspace_service,
+            )
+
             workspace_service = get_task_workspace_service()
             workspace_path = workspace_service.get_workspace_path(task_id)
             workspace_path.mkdir(parents=True, exist_ok=True)
-            
+
             if filename:
                 # 保留原始擴展名
                 ext = Path(filename).suffix
@@ -177,7 +189,11 @@ class LocalFileStorage(FileStorage):
                 return subdir_path / file_id
 
     def save_file(
-        self, file_content: bytes, filename: str, file_id: Optional[str] = None, task_id: Optional[str] = None
+        self,
+        file_content: bytes,
+        filename: str,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> Tuple[str, str]:
         """
         保存文件到本地文件系統
@@ -245,7 +261,12 @@ class LocalFileStorage(FileStorage):
             )
             raise
 
-    def get_file_path(self, file_id: str, task_id: Optional[str] = None, metadata_storage_path: Optional[str] = None) -> Optional[str]:
+    def get_file_path(
+        self,
+        file_id: str,
+        task_id: Optional[str] = None,
+        metadata_storage_path: Optional[str] = None,
+    ) -> Optional[str]:
         """
         獲取文件路徑
 
@@ -267,14 +288,17 @@ class LocalFileStorage(FileStorage):
         # 修改時間：2025-01-27 - 優先使用 metadata 中的 storage_path
         if metadata_storage_path and os.path.exists(metadata_storage_path):
             return metadata_storage_path
-        
+
         # 修改時間：2025-01-27 - 如果提供了 task_id，在任務工作區中查找
         if task_id:
             try:
-                from services.api.services.task_workspace_service import get_task_workspace_service
+                from services.api.services.task_workspace_service import (
+                    get_task_workspace_service,
+                )
+
                 workspace_service = get_task_workspace_service()
                 workspace_path = workspace_service.get_workspace_path(task_id)
-                
+
                 if workspace_path.exists():
                     # 查找以 file_id 開頭的文件
                     for file_path in workspace_path.iterdir():
@@ -285,9 +309,9 @@ class LocalFileStorage(FileStorage):
                     "Failed to get file path from workspace",
                     file_id=file_id,
                     task_id=task_id,
-                    error=str(e)
+                    error=str(e),
                 )
-        
+
         # 修改時間：2025-01-27 - 向後兼容：在舊的目錄結構中查找
         subdir = file_id[:2]
         subdir_path = self.storage_path / subdir
@@ -300,7 +324,12 @@ class LocalFileStorage(FileStorage):
 
         return None
 
-    def read_file(self, file_id: str, task_id: Optional[str] = None, metadata_storage_path: Optional[str] = None) -> Optional[bytes]:
+    def read_file(
+        self,
+        file_id: str,
+        task_id: Optional[str] = None,
+        metadata_storage_path: Optional[str] = None,
+    ) -> Optional[bytes]:
         """
         讀取文件內容
 
@@ -357,7 +386,12 @@ class LocalFileStorage(FileStorage):
             self.logger.error("文件讀取失敗", file_id=file_id, error=str(e))
             return None
 
-    def delete_file(self, file_id: str, task_id: Optional[str] = None, metadata_storage_path: Optional[str] = None) -> bool:
+    def delete_file(
+        self,
+        file_id: str,
+        task_id: Optional[str] = None,
+        metadata_storage_path: Optional[str] = None,
+    ) -> bool:
         """
         刪除文件
 
@@ -383,7 +417,12 @@ class LocalFileStorage(FileStorage):
             self.logger.error("文件刪除失敗", file_id=file_id, error=str(e))
             return False
 
-    def file_exists(self, file_id: str, task_id: Optional[str] = None, metadata_storage_path: Optional[str] = None) -> bool:
+    def file_exists(
+        self,
+        file_id: str,
+        task_id: Optional[str] = None,
+        metadata_storage_path: Optional[str] = None,
+    ) -> bool:
         """
         檢查文件是否存在
 
@@ -446,11 +485,15 @@ def create_storage_from_config(config: Optional[dict] = None) -> FileStorage:
     # 修改時間：2025-12-09 - 處理 config 為 None 的情況
     if config is None:
         config = {}
-    
+
     storage_backend = config.get("storage_backend", "local")
     storage_path = config.get("storage_path", "./data/datasets/files")
     encryption_config = config.get("encryption", {}) if config.get("encryption") else {}
-    enable_encryption = encryption_config.get("enabled", False) if isinstance(encryption_config, dict) else False
+    enable_encryption = (
+        encryption_config.get("enabled", False)
+        if isinstance(encryption_config, dict)
+        else False
+    )
 
     if storage_backend == "local":
         return LocalFileStorage(

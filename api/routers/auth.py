@@ -88,7 +88,12 @@ def _authenticate_user(username: str, password: str) -> Optional[User]:
             username=username,
             email=email,
             roles=["user"],
-            permissions=["file:upload", "file:read", "file:read:own", "file:delete:own"],  # 添加基本文件操作權限
+            permissions=[
+                "file:upload",
+                "file:read",
+                "file:read:own",
+                "file:delete:own",
+            ],  # 添加基本文件操作權限
             is_active=True,
         )
 
@@ -133,7 +138,7 @@ async def login(
     # 如果沒有權限，添加基本文件操作權限（用於測試環境）
     if not permissions:
         permissions = ["file:upload", "file:read", "file:read:own", "file:delete:own"]
-    
+
     token_data = {
         "sub": user.user_id,
         "user_id": user.user_id,

@@ -31,7 +31,9 @@ class AuthenticationResult(BaseModel):
 class InternalAuthConfig(BaseModel):
     """內部 Agent 認證配置"""
 
-    service_identity: Optional[str] = Field(None, description="服務標識（可選，用於額外驗證）")
+    service_identity: Optional[str] = Field(
+        None, description="服務標識（可選，用於額外驗證）"
+    )
     require_identity: bool = Field(False, description="是否要求服務標識")
 
 
@@ -39,7 +41,9 @@ class ExternalAuthConfig(BaseModel):
     """外部 Agent 認證配置"""
 
     api_key: Optional[str] = Field(None, description="API Key")
-    server_certificate: Optional[str] = Field(None, description="服務器證書（PEM 格式）")
+    server_certificate: Optional[str] = Field(
+        None, description="服務器證書（PEM 格式）"
+    )
     ip_whitelist: List[str] = Field(default_factory=list, description="IP 白名單列表")
     server_fingerprint: Optional[str] = Field(None, description="服務器指紋")
     require_mtls: bool = Field(False, description="是否要求 mTLS")

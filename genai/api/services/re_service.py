@@ -420,7 +420,12 @@ class REService:
         self.model_type = self.config.get("model_type", "ollama")
         # 优先从环境变量读取，然后从配置读取，最后使用默认值
         import os
-        self.model_name = os.getenv("OLLAMA_NER_MODEL") or os.getenv("OLLAMA_RE_MODEL") or self.config.get("model_name", "llama3.1:8b")
+
+        self.model_name = (
+            os.getenv("OLLAMA_NER_MODEL")
+            or os.getenv("OLLAMA_RE_MODEL")
+            or self.config.get("model_name", "llama3.1:8b")
+        )
         # Fallback 順序：本地模型優先，外部 provider 作為最後備選
         self.fallback_model = self.config.get("fallback_model", "gemini:gemini-pro")
         self.max_relation_length = self.config.get("max_relation_length", 128)

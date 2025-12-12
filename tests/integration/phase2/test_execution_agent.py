@@ -53,7 +53,9 @@ class TestExecutionAgent:
             data = response.json()
             result_data = data.get("data", {})
             # 驗證響應包含工具信息
-            assert "tool_name" in result_data or "tool_id" in result_data, "響應缺少工具信息"
+            assert (
+                "tool_name" in result_data or "tool_id" in result_data
+            ), "響應缺少工具信息"
 
     async def test_tool_discovery(self, client: AsyncClient):
         """步驟 2: 工具發現測試"""

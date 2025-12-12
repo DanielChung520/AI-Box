@@ -28,7 +28,9 @@ class WorkflowExecuteRequest(BaseModel):
     task: str = Field(..., description="任務描述")
     workflow_type: Optional[str] = Field(default="langchain", description="工作流類型")
     user_id: Optional[str] = Field(default=None, description="用戶ID")
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
+    context: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="上下文信息"
+    )
     workflow_config: Optional[Dict[str, Any]] = Field(
         default_factory=dict, description="工作流配置"
     )
@@ -45,7 +47,9 @@ class HybridWorkflowExecuteRequest(BaseModel):
         default=None, description="備用模式列表"
     )
     user_id: Optional[str] = Field(default=None, description="用戶ID")
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
+    context: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="上下文信息"
+    )
     workflow_config: Optional[Dict[str, Any]] = Field(
         default_factory=dict, description="工作流配置"
     )
@@ -55,7 +59,9 @@ class AutoGenPlanRequest(BaseModel):
     """AutoGen 規劃請求模型"""
 
     task: str = Field(..., description="任務描述")
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
+    context: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="上下文信息"
+    )
     user_id: Optional[str] = Field(default=None, description="用戶ID")
     max_steps: Optional[int] = Field(default=10, description="最大步驟數")
     workflow_config: Optional[Dict[str, Any]] = Field(

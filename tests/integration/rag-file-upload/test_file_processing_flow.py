@@ -6,8 +6,6 @@
 """文件處理流程集成測試 - 測試上傳 → 分塊 → 向量化 → 存儲到ChromaDB"""
 
 import pytest
-import asyncio
-from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 
 from api.main import app

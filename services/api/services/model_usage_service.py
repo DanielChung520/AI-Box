@@ -16,7 +16,6 @@ from services.api.models.model_usage import (
     ModelUsageCreate,
     ModelUsageQuery,
     ModelUsageStats,
-    ModelPurpose,
 )
 
 logger = structlog.get_logger(__name__)

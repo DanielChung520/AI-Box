@@ -90,11 +90,15 @@ def generate_test_texts(count: int = 100) -> List[str]:
 async def main():
     """主函數"""
     parser = argparse.ArgumentParser(description="NER 性能測試")
-    parser.add_argument("--texts", type=int, default=100, help="測試文本數量（默認：100）")
+    parser.add_argument(
+        "--texts", type=int, default=100, help="測試文本數量（默認：100）"
+    )
     parser.add_argument(
         "--model-type", type=str, default=None, help="模型類型（spacy/ollama）"
     )
-    parser.add_argument("--output", type=str, default=None, help="輸出結果文件路徑（JSON）")
+    parser.add_argument(
+        "--output", type=str, default=None, help="輸出結果文件路徑（JSON）"
+    )
 
     args = parser.parse_args()
 

@@ -50,9 +50,12 @@ Desktop.ini
 
 # Project specific
 *.log
+*.log.*
+logs/
 .env
 .env.local
 .env.*.local
+.env.backup*
 *.pem
 *.key
 *.cert

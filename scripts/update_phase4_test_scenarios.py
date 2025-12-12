@@ -9,7 +9,7 @@ import re
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 
 def load_test_results() -> Dict[str, Any]:
@@ -47,7 +47,9 @@ def update_phase4_stats(content: str, results: Dict[str, Any]) -> str:
     content = re.sub(phase4_status_pattern, replacement, content, flags=re.MULTILINE)
 
     # 更新總體統計表中的階段四狀態
-    total_stats_pattern = r"(\| \*\*階段四\*\* \| 4 \| )⏸️( \| ✅ \| - \| - \| - \| - \|)"
+    total_stats_pattern = (
+        r"(\| \*\*階段四\*\* \| 4 \| )⏸️( \| ✅ \| - \| - \| - \| - \|)"
+    )
     pass_count = results.get("passed", 0)
     skip_count = results.get("skipped", 0)
     total_count = results.get("total", 0)
@@ -96,9 +98,7 @@ def update_test_progress_table(content: str, results: Dict[str, Any]) -> str:
         elif status == "部分實現":
             replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | {passed_count}/{total_count} 個測試通過，{skipped_count} 個跳過 |"
         else:
-            replacement = (
-                f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
-            )
+            replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
 
         content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
 
@@ -179,7 +179,9 @@ def update_test_scenario_steps(
             note_text = "測試通過"
         elif status == "skipped":
             status_mark = "⏭️ 跳過"
-            reason_short = reason.split("\n")[0][:80] if reason else "API 端點未實現或不可用"
+            reason_short = (
+                reason.split("\n")[0][:80] if reason else "API 端點未實現或不可用"
+            )
             result_text = f"**測試結果**: ⏭️ 跳過（{reason_short}）\n**實際響應時間**: {duration:.3f}s\n**實際響應內容**:\n```\n{reason_short}\n```"
             note_text = reason_short
         else:

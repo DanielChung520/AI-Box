@@ -41,7 +41,9 @@ class MCPServerConfig(BaseSettings):
     metrics_endpoint: str = Field(default="/metrics", description="指標端點")
 
     # 工具配置
-    tools_config_path: Optional[str] = Field(default=None, description="工具配置文件路徑")
+    tools_config_path: Optional[str] = Field(
+        default=None, description="工具配置文件路徑"
+    )
 
     # 優雅關閉配置
     shutdown_timeout: int = Field(default=30, description="關閉超時時間（秒）")

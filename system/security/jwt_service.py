@@ -237,7 +237,7 @@ class JWTService:
         if settings.should_bypass_auth:
             logger.debug("Bypassing blacklist check in development mode")
             return False
-        
+
         if self.redis is None:
             # Redis 不可用時，假設 Token 不在黑名單中
             # 這允許系統在 Redis 不可用時繼續工作（用於開發/測試環境）
@@ -258,7 +258,7 @@ class JWTService:
             # 在生產環境中，應該確保 Redis 可用，但這裡採用寬鬆策略以確保系統可用性
             logger.warning(
                 "Redis blacklist check failed, allowing token verification to proceed",
-                error=str(e)
+                error=str(e),
             )
             return False  # 連接失敗時，假設 token 不在黑名單中
 

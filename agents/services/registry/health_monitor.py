@@ -7,7 +7,7 @@
 
 import asyncio
 import logging
-from typing import Dict, Optional
+from typing import Optional
 from datetime import datetime, timedelta
 import httpx
 

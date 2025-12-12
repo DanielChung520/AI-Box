@@ -57,7 +57,12 @@ class KGBuilderService:
         return f"{entity_type.lower()}_{key_hash}"
 
     def _find_or_create_entity(
-        self, text: str, entity_type: str, start: int, end: int, file_id: Optional[str] = None
+        self,
+        text: str,
+        entity_type: str,
+        start: int,
+        end: int,
+        file_id: Optional[str] = None,
     ) -> str:
         """查找或創建實體（實體去重）"""
         if self.client is None or self.client.db is None:
@@ -96,7 +101,7 @@ class KGBuilderService:
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
         }
-        
+
         # 如果提供了file_id，添加到文檔
         if file_id:
             entity_doc["file_id"] = file_id
@@ -161,7 +166,7 @@ class KGBuilderService:
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
         }
-        
+
         # 如果提供了file_id，添加到文檔
         if file_id:
             relation_doc["file_id"] = file_id
@@ -171,7 +176,10 @@ class KGBuilderService:
         return f"{RELATIONS_COLLECTION}/{relation_key}"
 
     async def build_from_triples(
-        self, triples: List[Triple], file_id: Optional[str] = None, user_id: Optional[str] = None
+        self,
+        triples: List[Triple],
+        file_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> Dict:
         """從三元組構建知識圖譜"""
         entities_created = 0

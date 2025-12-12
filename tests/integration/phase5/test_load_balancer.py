@@ -97,7 +97,9 @@ class TestLoadBalancer:
                 response = await client.post(
                     "/api/v1/llm/chat",
                     json={
-                        "messages": [{"role": "user", "content": f"負載均衡測試請求 {i+1}"}],
+                        "messages": [
+                            {"role": "user", "content": f"負載均衡測試請求 {i+1}"}
+                        ],
                     },
                 )
                 elapsed_ms = (time.time() - start_time) * 1000
@@ -113,7 +115,9 @@ class TestLoadBalancer:
                 if response.status_code == 200:
                     successful_requests += 1
                     # 驗證響應時間合理
-                    assert elapsed_ms < 30000, f"請求 {i+1} 響應時間 {elapsed_ms}ms 過長"
+                    assert (
+                        elapsed_ms < 30000
+                    ), f"請求 {i+1} 響應時間 {elapsed_ms}ms 過長"
 
             # 驗證至少有一些請求成功（考慮到可能的配置問題）
             # 如果所有請求都失敗，可能是配置問題，但測試仍然通過

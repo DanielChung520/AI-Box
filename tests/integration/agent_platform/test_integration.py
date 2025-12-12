@@ -6,7 +6,6 @@
 """Agent Platform 集成測試"""
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
 
 from agents.services.registry.registry import AgentRegistry
 from agents.services.registry.models import (

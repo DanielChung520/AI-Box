@@ -6,11 +6,9 @@
 """數據質量監控服務 - 實現數據完整性、一致性和準確性檢查"""
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any
 import structlog
 
-from database.arangodb import ArangoDBClient
-from services.api.models.file_metadata import FileMetadata
 from services.api.services.file_metadata_service import get_metadata_service
 
 logger = structlog.get_logger(__name__)

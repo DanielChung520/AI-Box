@@ -5,7 +5,7 @@
 
 """Agent 認證 API 路由 - 提供 Agent 認證和權限檢查接口"""
 
-from typing import Optional, Dict, Any
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from api.core.response import APIResponse
 from agents.services.auth.internal_auth import authenticate_internal_agent
 from agents.services.auth.external_auth import authenticate_external_agent
-from agents.services.auth.models import AuthenticationResult, AuthenticationStatus
+from agents.services.auth.models import AuthenticationStatus
 from agents.services.resource_controller import get_resource_controller, ResourceType
 from system.security.dependencies import get_current_user
 from system.security.models import User

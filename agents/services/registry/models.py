@@ -50,11 +50,15 @@ class AgentPermissionConfig(BaseModel):
     allowed_memory_namespaces: List[str] = Field(
         default_factory=list, description="允許訪問的 Memory 命名空間列表"
     )
-    allowed_tools: List[str] = Field(default_factory=list, description="允許使用的工具列表")
+    allowed_tools: List[str] = Field(
+        default_factory=list, description="允許使用的工具列表"
+    )
     allowed_llm_providers: List[str] = Field(
         default_factory=list, description="允許使用的 LLM Provider 列表"
     )
-    allowed_databases: List[str] = Field(default_factory=list, description="允許訪問的數據庫列表")
+    allowed_databases: List[str] = Field(
+        default_factory=list, description="允許訪問的數據庫列表"
+    )
     allowed_file_paths: List[str] = Field(
         default_factory=list, description="允許訪問的文件路徑列表"
     )
@@ -64,9 +68,13 @@ class AgentPermissionConfig(BaseModel):
         None, description="Secret ID（由 AI-Box 簽發，用於外部 Agent 身份驗證）"
     )
     api_key: Optional[str] = Field(None, description="API Key（用於外部 Agent 認證）")
-    server_certificate: Optional[str] = Field(None, description="服務器證書（用於 mTLS 認證）")
+    server_certificate: Optional[str] = Field(
+        None, description="服務器證書（用於 mTLS 認證）"
+    )
     ip_whitelist: List[str] = Field(default_factory=list, description="IP 白名單列表")
-    server_fingerprint: Optional[str] = Field(None, description="服務器指紋（用於身份驗證）")
+    server_fingerprint: Optional[str] = Field(
+        None, description="服務器指紋（用於身份驗證）"
+    )
 
 
 class AgentEndpoints(BaseModel):
@@ -88,7 +96,9 @@ class AgentMetadata(BaseModel):
     author: Optional[str] = Field(None, description="開發者/團隊")
     tags: List[str] = Field(default_factory=list, description="標籤列表")
     capabilities: Dict[str, Any] = Field(default_factory=dict, description="能力描述")
-    icon: Optional[str] = Field(None, description="圖標名稱（react-icons 圖標名稱，例如：FaRobot）")
+    icon: Optional[str] = Field(
+        None, description="圖標名稱（react-icons 圖標名稱，例如：FaRobot）"
+    )
 
 
 class AgentRegistryInfo(BaseModel):
@@ -104,7 +114,9 @@ class AgentRegistryInfo(BaseModel):
     permissions: AgentPermissionConfig = Field(
         default_factory=lambda: AgentPermissionConfig(), description="權限配置"
     )
-    registered_at: datetime = Field(default_factory=datetime.now, description="註冊時間")
+    registered_at: datetime = Field(
+        default_factory=datetime.now, description="註冊時間"
+    )
     last_heartbeat: Optional[datetime] = Field(None, description="最後心跳時間")
     load: int = Field(0, description="當前負載")
 
@@ -154,7 +166,9 @@ class AgentRegistrationRequest(BaseModel):
     agent_id: str = Field(..., description="Agent ID")
     agent_type: str = Field(..., description="Agent 類型")
     name: str = Field(..., description="Agent 名稱")
-    endpoints: AgentEndpoints = Field(..., description="Agent 端點配置（包含 is_internal 標誌）")
+    endpoints: AgentEndpoints = Field(
+        ..., description="Agent 端點配置（包含 is_internal 標誌）"
+    )
     capabilities: List[str] = Field(default_factory=list, description="能力列表")
     metadata: Optional[AgentMetadata] = Field(None, description="元數據")
     permissions: Optional[AgentPermissionConfig] = Field(

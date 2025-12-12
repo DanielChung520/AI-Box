@@ -6,8 +6,7 @@
 """知識圖譜提取服務單元測試 - 測試三元組提取、圖譜構建、去重"""
 
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
-from typing import List, Dict, Any
+from unittest.mock import patch, AsyncMock
 
 from services.api.services.kg_extraction_service import KGExtractionService
 
@@ -36,7 +35,12 @@ async def test_extract_triples_from_chunks_all_mode(kg_extraction_service):
 
     mock_triples = [
         {"subject": "蘋果", "predicate": "是", "object": "水果", "confidence": 0.9},
-        {"subject": "蘋果", "predicate": "富含", "object": "維生素C", "confidence": 0.8},
+        {
+            "subject": "蘋果",
+            "predicate": "富含",
+            "object": "維生素C",
+            "confidence": 0.8,
+        },
     ]
 
     kg_extraction_service.triple_extraction_service.extract_triples = AsyncMock(
@@ -125,7 +129,12 @@ async def test_extract_triples_min_confidence_filter(kg_extraction_service):
 
     mock_triples = [
         {"subject": "A", "predicate": "是", "object": "B", "confidence": 0.9},
-        {"subject": "C", "predicate": "是", "object": "D", "confidence": 0.3},  # 低於閾值
+        {
+            "subject": "C",
+            "predicate": "是",
+            "object": "D",
+            "confidence": 0.3,
+        },  # 低於閾值
     ]
 
     kg_extraction_service.triple_extraction_service.extract_triples = AsyncMock(
@@ -151,7 +160,12 @@ async def test_build_kg_from_file(kg_extraction_service):
     user_id = "user_456"
     triples = [
         {"subject": "蘋果", "predicate": "是", "object": "水果", "confidence": 0.9},
-        {"subject": "蘋果", "predicate": "富含", "object": "維生素C", "confidence": 0.8},
+        {
+            "subject": "蘋果",
+            "predicate": "富含",
+            "object": "維生素C",
+            "confidence": 0.8,
+        },
     ]
 
     mock_result = {

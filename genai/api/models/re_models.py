@@ -57,7 +57,9 @@ class REBatchRequest(BaseModel):
 class REResponse(BaseModel):
     """RE 響應模型"""
 
-    relations: List[Relation] = Field(default_factory=list, description="抽取出的關係列表")
+    relations: List[Relation] = Field(
+        default_factory=list, description="抽取出的關係列表"
+    )
     text: str = Field(..., description="原始文本")
     model_used: str = Field(..., description="實際使用的模型類型")
 
@@ -65,6 +67,8 @@ class REResponse(BaseModel):
 class REBatchResponse(BaseModel):
     """RE 批量響應模型"""
 
-    results: List[REResponse] = Field(default_factory=list, description="每個文本的關係抽取結果")
+    results: List[REResponse] = Field(
+        default_factory=list, description="每個文本的關係抽取結果"
+    )
     total: int = Field(..., description="總文本數")
     processed: int = Field(..., description="成功處理的文本數")

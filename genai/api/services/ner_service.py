@@ -182,17 +182,17 @@ class OllamaNERModel(BaseNERModel):
                     )
                 elif "```" in result_text:
                     result_text = result_text.split("```")[1].split("```")[0].strip()
-                
+
                 # 初始化entities_data
                 entities_data = None
-                
+
                 # 尝试多种方式解析JSON
                 # 方法1: 查找第一个 '[' 和最后一个 ']'（提取数组）
-                start_idx = result_text.find('[')
-                end_idx = result_text.rfind(']')
+                start_idx = result_text.find("[")
+                end_idx = result_text.rfind("]")
                 if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
                     # 提取数组部分
-                    array_text = result_text[start_idx:end_idx+1]
+                    array_text = result_text[start_idx : end_idx + 1]
                     try:
                         entities_data = json.loads(array_text)
                         if isinstance(entities_data, list):
@@ -203,7 +203,7 @@ class OllamaNERModel(BaseNERModel):
                     except json.JSONDecodeError:
                         # 如果解析失败，尝试其他方法
                         entities_data = None
-                
+
                 # 方法2: 如果方法1失败，尝试解析整个响应为对象
                 if entities_data is None:
                     try:
@@ -212,7 +212,9 @@ class OllamaNERModel(BaseNERModel):
                             # 如果是对象，尝试提取entities字段
                             if "entities" in parsed_obj:
                                 entities_data = parsed_obj["entities"]
-                            elif len(parsed_obj) == 1 and isinstance(list(parsed_obj.values())[0], list):
+                            elif len(parsed_obj) == 1 and isinstance(
+                                list(parsed_obj.values())[0], list
+                            ):
                                 # 如果对象只有一个键，且值是数组，使用该数组
                                 entities_data = list(parsed_obj.values())[0]
                         elif isinstance(parsed_obj, list):
@@ -221,35 +223,38 @@ class OllamaNERModel(BaseNERModel):
                     except json.JSONDecodeError:
                         # 如果整个响应不是有效JSON，尝试提取第一个有效的JSON对象
                         # 查找第一个 '{' 和对应的 '}'
-                        obj_start = result_text.find('{')
+                        obj_start = result_text.find("{")
                         if obj_start != -1:
                             # 尝试找到匹配的 '}'
                             brace_count = 0
                             obj_end = -1
                             for i in range(obj_start, len(result_text)):
-                                if result_text[i] == '{':
+                                if result_text[i] == "{":
                                     brace_count += 1
-                                elif result_text[i] == '}':
+                                elif result_text[i] == "}":
                                     brace_count -= 1
                                     if brace_count == 0:
                                         obj_end = i
                                         break
-                            
+
                             if obj_end != -1:
-                                obj_text = result_text[obj_start:obj_end+1]
+                                obj_text = result_text[obj_start : obj_end + 1]
                                 try:
                                     parsed_obj = json.loads(obj_text)
-                                    if isinstance(parsed_obj, dict) and "entities" in parsed_obj:
+                                    if (
+                                        isinstance(parsed_obj, dict)
+                                        and "entities" in parsed_obj
+                                    ):
                                         entities_data = parsed_obj["entities"]
                                 except json.JSONDecodeError:
                                     pass
-                
+
                 # 如果仍然无法解析，返回空列表
                 if entities_data is None or not isinstance(entities_data, list):
                     logger.warning(
                         "ollama_ner_no_valid_json",
                         model=self.model_name,
-                        response_preview=result_text[:300]
+                        response_preview=result_text[:300],
                     )
                     return []
 
@@ -387,7 +392,10 @@ class NERService:
         self.model_type = self.config.get("model_type", "ollama")
         # 优先从环境变量读取，然后从配置读取，最后使用默认值
         import os
-        self.model_name = os.getenv("OLLAMA_NER_MODEL") or self.config.get("model_name", "gpt-oss:20b")
+
+        self.model_name = os.getenv("OLLAMA_NER_MODEL") or self.config.get(
+            "model_name", "gpt-oss:20b"
+        )
         # Fallback 順序：本地模型優先，外部 provider 作為最後備選
         self.fallback_model = self.config.get("fallback_model", "gemini:gemini-pro")
         self.batch_size = self.config.get("batch_size", 32)

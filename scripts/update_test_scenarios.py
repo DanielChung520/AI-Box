@@ -7,9 +7,8 @@
 
 import re
 import json
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 # 測試結果數據
 TEST_RESULTS = {
@@ -235,7 +234,9 @@ def update_phase3_stats(content: str, results: Dict[str, Any]) -> str:
     content = re.sub(phase3_status_pattern, replacement, content, flags=re.MULTILINE)
 
     # 更新總體統計表中的階段三狀態
-    total_stats_pattern = r"(\| \*\*階段三\*\* \| 4 \| )⏸️( \| ✅ \| - \| - \| - \| - \|)"
+    total_stats_pattern = (
+        r"(\| \*\*階段三\*\* \| 4 \| )⏸️( \| ✅ \| - \| - \| - \| - \|)"
+    )
     pass_count = results["passed"]
     skip_count = results["skipped"]
     total_count = results["total"]
@@ -271,9 +272,7 @@ def update_test_progress_table(content: str, results: Dict[str, Any]) -> str:
         elif test_data.get("passed", 0) > 0:
             replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | {test_data.get('passed', 0)}/{test_data.get('total', 0)} 個測試通過，{test_data.get('skipped', 0)} 個跳過 |"
         else:
-            replacement = (
-                f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
-            )
+            replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
 
         content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
 

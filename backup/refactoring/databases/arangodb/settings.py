@@ -41,7 +41,9 @@ class PoolSettings(BaseModel):
 
     connections: int = Field(default=10, ge=1, description="初始連線數")
     max_size: int = Field(default=10, ge=1, description="最大連線數")
-    timeout: Optional[float] = Field(default=None, ge=0, description="等待可用連線的逾時秒數")
+    timeout: Optional[float] = Field(
+        default=None, ge=0, description="等待可用連線的逾時秒數"
+    )
 
 
 class TLSSettings(BaseModel):
@@ -49,7 +51,9 @@ class TLSSettings(BaseModel):
 
     enabled: bool = Field(default=False, description="是否啟用 TLS")
     verify: bool = Field(default=True, description="是否驗證憑證")
-    ca_file: Optional[str] = Field(default=None, description="自訂 CA 憑證路徑（可為 None）")
+    ca_file: Optional[str] = Field(
+        default=None, description="自訂 CA 憑證路徑（可為 None）"
+    )
 
 
 class ArangoDBSettings(BaseModel):

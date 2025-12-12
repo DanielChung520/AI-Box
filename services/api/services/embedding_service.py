@@ -13,7 +13,6 @@ from typing import List, Optional
 import httpx
 import structlog
 
-from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
 
@@ -45,8 +44,9 @@ class EmbeddingService:
         # 直接读取配置文件
         import json
         from pathlib import Path
+
         # 计算配置文件路径（从项目根目录）
-        import os
+
         current_file = Path(__file__).resolve()
         # 向上查找直到找到项目根目录（有 config 目录）
         config_path = None
@@ -70,7 +70,9 @@ class EmbeddingService:
                     if ollama_config:
                         config = {
                             "ollama_url": f"http://{ollama_config.get('host', 'localhost')}:{ollama_config.get('port', 11434)}",
-                            "model": ollama_config.get("embedding_model", "nomic-embed-text"),
+                            "model": ollama_config.get(
+                                "embedding_model", "nomic-embed-text"
+                            ),
                         }
         self.ollama_url = (
             ollama_url

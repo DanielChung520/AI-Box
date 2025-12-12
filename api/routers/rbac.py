@@ -5,8 +5,7 @@
 
 """RBAC 角色管理路由 - 提供角色和權限管理API"""
 
-from typing import List, Optional
-from fastapi import APIRouter, Query, status, Depends, HTTPException
+from fastapi import APIRouter, status, Depends
 from fastapi.responses import JSONResponse
 import structlog
 
@@ -17,7 +16,6 @@ from services.api.models.rbac import (
     RoleUpdate,
     UserRoleModel,
     UserRoleAssign,
-    UserRoleRevoke,
 )
 from functools import partial
 from system.security.dependencies import get_current_user, require_permission

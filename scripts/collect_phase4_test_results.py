@@ -9,7 +9,7 @@ import json
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 # 測試文件到測試劇本的映射
 TEST_MAPPING = {

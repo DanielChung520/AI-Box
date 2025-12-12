@@ -51,7 +51,9 @@ class TestLLMRouter:
                     "data" in data or "response" in data or "model" in data
                 ), "Response should contain routing result"
                 # 驗證路由決策延遲
-                assert elapsed_ms < 10000, f"路由決策延遲 {elapsed_ms}ms 超過 10s（可能是模型響應時間）"
+                assert (
+                    elapsed_ms < 10000
+                ), f"路由決策延遲 {elapsed_ms}ms 超過 10s（可能是模型響應時間）"
         except Exception as e:
             pytest.skip(f"LLM 路由功能測試跳過: {str(e)}")
 
@@ -61,8 +63,14 @@ class TestLLMRouter:
             # 測試不同複雜度的任務
             test_cases = [
                 {"content": "簡單查詢：1+1等於多少？", "expected_complexity": "low"},
-                {"content": "中等複雜度：解釋機器學習的基本概念", "expected_complexity": "medium"},
-                {"content": "複雜任務：設計一個完整的推薦系統架構", "expected_complexity": "high"},
+                {
+                    "content": "中等複雜度：解釋機器學習的基本概念",
+                    "expected_complexity": "medium",
+                },
+                {
+                    "content": "複雜任務：設計一個完整的推薦系統架構",
+                    "expected_complexity": "high",
+                },
             ]
 
             for test_case in test_cases:

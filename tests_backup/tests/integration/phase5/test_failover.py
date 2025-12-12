@@ -151,7 +151,9 @@ class TestFailover:
                 response = await client.post(
                     "/api/v1/llm/chat",
                     json={
-                        "messages": [{"role": "user", "content": f"提供商切換測試 {i+1}"}],
+                        "messages": [
+                            {"role": "user", "content": f"提供商切換測試 {i+1}"}
+                        ],
                     },
                 )
                 # 驗證每個請求都能得到響應

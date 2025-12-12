@@ -126,7 +126,9 @@ class MCPTester:
             if response.status_code == 200:
                 data = response.json()
                 assert "result" in data
-                self._record_result("工具調用", True, f"調用成功，延遲: {latency:.2f}ms")
+                self._record_result(
+                    "工具調用", True, f"調用成功，延遲: {latency:.2f}ms"
+                )
                 return True
             else:
                 self._record_result("工具調用", False, f"HTTP {response.status_code}")

@@ -32,7 +32,9 @@ class ContextRecorder:
             try:
                 self._redis = redis.Redis.from_url(redis_url)
             except Exception as exc:  # pragma: no cover - redis 啟動失敗時 fallback
-                logger.warning("Context Recorder 初始化 Redis 失敗，使用記憶體儲存: %s", exc)
+                logger.warning(
+                    "Context Recorder 初始化 Redis 失敗，使用記憶體儲存: %s", exc
+                )
 
     def _key(self, task_id: str) -> str:
         return f"{self._namespace}:{task_id}"

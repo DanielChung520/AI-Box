@@ -6,7 +6,7 @@
 """Tool Registry - 實現工具註冊、發現和管理功能"""
 
 import logging
-from agents.services.resource_controller import get_resource_controller, ResourceType
+from agents.services.resource_controller import get_resource_controller
 from enum import Enum
 from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field

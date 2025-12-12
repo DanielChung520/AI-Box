@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 import asyncio
 import json
@@ -107,9 +107,9 @@ class AuditLogService:
                 "timestamp": datetime.utcnow().isoformat(),
                 "ip_address": log_create.ip_address,
                 "user_agent": log_create.user_agent,
-                "details": json.dumps(log_create.details)
-                if log_create.details
-                else "{}",
+                "details": (
+                    json.dumps(log_create.details) if log_create.details else "{}"
+                ),
             }
 
             # 生成唯一 key（使用時間戳和用戶ID）

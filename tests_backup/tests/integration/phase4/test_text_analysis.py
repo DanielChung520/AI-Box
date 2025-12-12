@@ -75,7 +75,9 @@ class TestTextAnalysis:
                 "/api/v1/rt",
                 json={
                     "text": "張三在北京大學工作",
-                    "relations": [{"head": "張三", "tail": "北京大學", "relation": "工作於"}],
+                    "relations": [
+                        {"head": "張三", "tail": "北京大學", "relation": "工作於"}
+                    ],
                 },
             )
             assert response.status_code in [
@@ -111,9 +113,11 @@ class TestTextAnalysis:
                 error_data = response.json() if hasattr(response, "json") else {}
                 error_msg = error_data.get(
                     "message",
-                    response.text[:200]
-                    if hasattr(response, "text")
-                    else str(response.status_code),
+                    (
+                        response.text[:200]
+                        if hasattr(response, "text")
+                        else str(response.status_code)
+                    ),
                 )
                 # 如果是依賴問題（如 Gemini SDK 未安裝），跳過測試
                 if (
@@ -141,14 +145,18 @@ class TestTextAnalysis:
                     # 記錄警告，但不失敗測試
                     import warnings
 
-                    warnings.warn("三元組提取返回空結果，可能是模型配置問題或文本無法提取三元組")
+                    warnings.warn(
+                        "三元組提取返回空結果，可能是模型配置問題或文本無法提取三元組"
+                    )
             elif "triples" in data:
                 # 直接包含 triples 字段
                 triples = data.get("triples", [])
                 if len(triples) == 0:
                     import warnings
 
-                    warnings.warn("三元組提取返回空結果，可能是模型配置問題或文本無法提取三元組")
+                    warnings.warn(
+                        "三元組提取返回空結果，可能是模型配置問題或文本無法提取三元組"
+                    )
             else:
                 assert False, "Response should contain triples or data field"
         except Exception as e:

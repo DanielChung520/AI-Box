@@ -15,7 +15,6 @@ from enum import Enum
 from typing import Optional
 
 from agents.services.registry.registry import get_agent_registry
-from agents.services.registry.models import AgentRegistryInfo
 
 logger = logging.getLogger(__name__)
 

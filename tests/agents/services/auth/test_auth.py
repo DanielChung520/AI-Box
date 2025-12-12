@@ -12,10 +12,9 @@ from agents.services.auth.internal_auth import authenticate_internal_agent
 from agents.services.auth.external_auth import (
     authenticate_external_agent,
     verify_api_key,
-    verify_signature,
     check_ip_whitelist,
 )
-from agents.services.auth.models import AuthenticationStatus, ExternalAuthConfig
+from agents.services.auth.models import AuthenticationStatus
 from agents.services.registry.models import (
     AgentRegistryInfo,
     AgentEndpoints,

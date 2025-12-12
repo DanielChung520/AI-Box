@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 from agents.services.registry.models import (
     AgentRegistryInfo,
     AgentStatus,
-    AgentPermission,
 )
 from agents.services.registry.registry import AgentRegistry
 

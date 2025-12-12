@@ -76,9 +76,11 @@ class UserTaskService:
                 for msg in (task.messages or [])
             ],
             # 修改時間：2025-01-27 - 確保 executionConfig 包含 mode 字段
-            "executionConfig": task.executionConfig.model_dump()
-            if task.executionConfig and hasattr(task.executionConfig, "model_dump")
-            else (task.executionConfig or {"mode": "free"}),
+            "executionConfig": (
+                task.executionConfig.model_dump()
+                if task.executionConfig and hasattr(task.executionConfig, "model_dump")
+                else (task.executionConfig or {"mode": "free"})
+            ),
             "fileTree": [
                 node.model_dump() if hasattr(node, "model_dump") else node
                 for node in (task.fileTree or [])
@@ -132,25 +134,25 @@ class UserTaskService:
             return None
 
         # 修改時間：2025-01-27 - 獲取任務時也動態構建 fileTree
-        task_id = doc.get('task_id')
-        user_id = doc.get('user_id')
+        task_id = doc.get("task_id")
+        user_id = doc.get("user_id")
         if task_id and user_id:
             try:
                 fileTree = self._build_file_tree_for_task(user_id, task_id)
                 if fileTree:
-                    doc['fileTree'] = fileTree
+                    doc["fileTree"] = fileTree
             except Exception as e:
                 self.logger.warning(
                     "Failed to build fileTree for task",
                     task_id=task_id,
                     error=str(e),
                 )
-        
+
         return UserTask(**doc)
 
     def list(self, user_id: str, limit: int = 100, offset: int = 0) -> List[UserTask]:
         """列出用戶的所有任務
-        
+
         修改時間：2025-01-27 - 從 file_metadata 和 folder_metadata 動態構建 fileTree
         """
         if self.client.db is None:
@@ -176,49 +178,51 @@ class UserTaskService:
         tasks = []
         for doc in cursor:
             # 修改時間：2025-01-27 - 動態構建 fileTree
-            task_id = doc.get('task_id')
+            task_id = doc.get("task_id")
             if task_id:
                 try:
                     fileTree = self._build_file_tree_for_task(user_id, task_id)
                     if fileTree:
-                        doc['fileTree'] = fileTree
+                        doc["fileTree"] = fileTree
                 except Exception as e:
                     self.logger.warning(
                         "Failed to build fileTree for task",
                         task_id=task_id,
                         error=str(e),
                     )
-            
+
             tasks.append(UserTask(**doc))
 
         return tasks
 
-    def _build_file_tree_for_task(self, user_id: str, task_id: str) -> List[Dict[str, Any]]:
+    def _build_file_tree_for_task(
+        self, user_id: str, task_id: str
+    ) -> List[Dict[str, Any]]:
         """從 file_metadata 和 folder_metadata 構建 fileTree
-        
+
         修改時間：2025-01-27 - 添加動態構建 fileTree 的方法
         """
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
-        
+
         file_tree: List[Dict[str, Any]] = []
-        
+
         try:
             # 1. 獲取該任務的所有文件
-            file_metadata_collection = self.client.db.collection('file_metadata')
-            files = list(file_metadata_collection.find({
-                'user_id': user_id,
-                'task_id': task_id
-            }))
-            
+            file_metadata_collection = self.client.db.collection("file_metadata")
+            files = list(
+                file_metadata_collection.find({"user_id": user_id, "task_id": task_id})
+            )
+
             # 2. 獲取該任務的所有目錄（包括根目錄，parent_task_id == task_id 或為空）
-            folder_metadata_collection = self.client.db.collection('folder_metadata')
+            folder_metadata_collection = self.client.db.collection("folder_metadata")
             # 查找所有與任務相關的目錄（task_id 匹配的目錄）
-            folders = list(folder_metadata_collection.find({
-                'user_id': user_id,
-                'task_id': task_id
-            }))
-            
+            folders = list(
+                folder_metadata_collection.find(
+                    {"user_id": user_id, "task_id": task_id}
+                )
+            )
+
             # 3. 構建資料夾映射，支持巢狀
             folder_map: Dict[str, Dict[str, Any]] = {}
             workspace_folder_id = f"{task_id}_workspace"
@@ -282,7 +286,7 @@ class UserTaskService:
                     roots.append(node)
 
             file_tree.extend(roots)
-            
+
         except Exception as e:
             self.logger.error(
                 "Failed to build file tree",
@@ -291,7 +295,7 @@ class UserTaskService:
                 error=str(e),
                 exc_info=True,
             )
-        
+
         return file_tree
 
     def update(

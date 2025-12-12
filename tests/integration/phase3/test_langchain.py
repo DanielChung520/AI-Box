@@ -52,7 +52,10 @@ class TestLangChainIntegration:
         try:
             response = await client.post(
                 "/api/v1/workflows/langchain/execute",
-                json={"task": "執行一個簡單的狀態轉換任務", "workflow_type": "langchain"},
+                json={
+                    "task": "執行一個簡單的狀態轉換任務",
+                    "workflow_type": "langchain",
+                },
             )
             assert response.status_code in [200, 202]
 

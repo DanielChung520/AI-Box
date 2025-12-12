@@ -160,9 +160,9 @@ async def get_consent_by_type(
 @audit_log(
     action=AuditAction.CONSENT_REVOKED,
     resource_type="consent",
-    get_resource_id=lambda body: body.get("data", {}).get("consent_type")
-    if body and body.get("data")
-    else None,
+    get_resource_id=lambda body: (
+        body.get("data", {}).get("consent_type") if body and body.get("data") else None
+    ),
 )
 async def revoke_consent(
     consent_type: ConsentType,

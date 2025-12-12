@@ -39,7 +39,9 @@ class AgentInfo(BaseModel):
     status: AgentStatus = Field(..., description="Agent 狀態")
     capabilities: List[str] = Field(default_factory=list, description="能力列表")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
-    registered_at: datetime = Field(default_factory=datetime.now, description="註冊時間")
+    registered_at: datetime = Field(
+        default_factory=datetime.now, description="註冊時間"
+    )
     last_heartbeat: Optional[datetime] = Field(None, description="最後心跳時間")
 
 

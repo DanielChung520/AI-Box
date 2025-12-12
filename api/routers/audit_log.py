@@ -15,7 +15,7 @@ import structlog
 from api.core.response import APIResponse
 from services.api.models.audit_log import AuditLogResponse, AuditAction
 from services.api.services.audit_log_service import get_audit_log_service
-from system.security.dependencies import get_current_user, require_permission
+from system.security.dependencies import require_permission
 from system.security.models import User, Permission
 
 logger = structlog.get_logger(__name__)
@@ -113,7 +113,9 @@ async def query_audit_logs(
 
 @router.get("/export")
 async def export_audit_logs(
-    format: str = Query("json", regex="^(json|csv)$", description="導出格式（json 或 csv）"),
+    format: str = Query(
+        "json", regex="^(json|csv)$", description="導出格式（json 或 csv）"
+    ),
     user_id: Optional[str] = Query(None, description="用戶ID"),
     action: Optional[AuditAction] = Query(None, description="操作類型"),
     start_date: Optional[str] = Query(None, description="開始時間（ISO 8601格式）"),

@@ -6,21 +6,18 @@
 """模型使用統計API路由 - 提供模型使用追蹤和統計查詢接口"""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Query, Depends, status, HTTPException
 from fastapi.responses import JSONResponse
 import structlog
-from functools import partial
 
 from api.core.response import APIResponse
 from services.api.models.model_usage import (
-    ModelUsage,
     ModelUsageQuery,
-    ModelUsageStats,
     ModelPurpose,
 )
 from services.api.services.model_usage_service import get_model_usage_service
-from system.security.dependencies import get_current_user, require_permission
+from system.security.dependencies import get_current_user
 from system.security.models import User, Permission
 
 logger = structlog.get_logger(__name__)

@@ -24,7 +24,6 @@ from .models import (
 from agents.services.registry.registry import get_agent_registry
 from agents.services.registry.discovery import AgentDiscovery
 from agents.services.protocol.base import (
-    AgentServiceProtocol,
     AgentServiceRequest,
     AgentServiceResponse,
 )
@@ -337,9 +336,11 @@ class AgentOrchestrator:
                 # 創建新的任務結果
                 task_result = TaskResult(
                     task_id=task_id,
-                    status=TaskStatus.COMPLETED
-                    if service_response.status == "completed"
-                    else TaskStatus.FAILED,
+                    status=(
+                        TaskStatus.COMPLETED
+                        if service_response.status == "completed"
+                        else TaskStatus.FAILED
+                    ),
                     agent_id=agent_id,
                     started_at=datetime.now(),
                     completed_at=datetime.now(),

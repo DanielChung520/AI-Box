@@ -43,7 +43,9 @@ class AuditLog(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="操作時間")
     ip_address: str = Field(..., description="IP 地址")
     user_agent: str = Field(..., description="User Agent")
-    details: Dict[str, Any] = Field(default_factory=dict, description="額外詳情（JSON）")
+    details: Dict[str, Any] = Field(
+        default_factory=dict, description="額外詳情（JSON）"
+    )
 
     class Config:
         use_enum_values = True

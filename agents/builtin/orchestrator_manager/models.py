@@ -18,7 +18,9 @@ class OrchestratorManagerRequest(BaseModel):
     task_id: Optional[str] = Field(None, description="任务 ID")
     task_description: Optional[str] = Field(None, description="任务描述")
     task_type: Optional[str] = Field(None, description="任务类型")
-    required_capabilities: Optional[List[str]] = Field(None, description="需要的能力列表")
+    required_capabilities: Optional[List[str]] = Field(
+        None, description="需要的能力列表"
+    )
     context: Optional[Dict[str, Any]] = Field(None, description="上下文信息")
     metadata: Optional[Dict[str, Any]] = Field(None, description="元数据")
 
@@ -40,8 +42,12 @@ class OrchestratorManagerResponse(BaseModel):
 
     success: bool = Field(..., description="是否成功")
     action: str = Field(..., description="执行的操作类型")
-    routing_decision: Optional[TaskRoutingDecision] = Field(None, description="路由决策结果")
-    load_balance_result: Optional[Dict[str, Any]] = Field(None, description="负载均衡结果")
+    routing_decision: Optional[TaskRoutingDecision] = Field(
+        None, description="路由决策结果"
+    )
+    load_balance_result: Optional[Dict[str, Any]] = Field(
+        None, description="负载均衡结果"
+    )
     coordination_result: Optional[Dict[str, Any]] = Field(None, description="协调结果")
     analysis: Optional[Dict[str, Any]] = Field(None, description="分析结果")
     message: Optional[str] = Field(None, description="响应消息")

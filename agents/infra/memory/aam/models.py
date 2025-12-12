@@ -68,15 +68,21 @@ class Memory:
             memory_type=MemoryType(data["memory_type"]),
             priority=MemoryPriority(data.get("priority", "medium")),
             metadata=data.get("metadata", {}),
-            created_at=datetime.fromisoformat(data["created_at"])
-            if isinstance(data.get("created_at"), str)
-            else data.get("created_at", datetime.now()),
-            updated_at=datetime.fromisoformat(data["updated_at"])
-            if isinstance(data.get("updated_at"), str)
-            else data.get("updated_at", datetime.now()),
-            accessed_at=datetime.fromisoformat(data["accessed_at"])
-            if isinstance(data.get("accessed_at"), str) and data.get("accessed_at")
-            else None,
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if isinstance(data.get("created_at"), str)
+                else data.get("created_at", datetime.now())
+            ),
+            updated_at=(
+                datetime.fromisoformat(data["updated_at"])
+                if isinstance(data.get("updated_at"), str)
+                else data.get("updated_at", datetime.now())
+            ),
+            accessed_at=(
+                datetime.fromisoformat(data["accessed_at"])
+                if isinstance(data.get("accessed_at"), str) and data.get("accessed_at")
+                else None
+            ),
             access_count=data.get("access_count", 0),
             relevance_score=data.get("relevance_score", 0.0),
         )

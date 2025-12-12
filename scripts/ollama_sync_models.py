@@ -91,7 +91,9 @@ def load_config(custom_path: Optional[Path]) -> Dict[str, Any]:
     for candidate in candidates:
         if candidate and candidate.exists():
             return load_json(candidate)
-    raise FileNotFoundError("找不到 config.json 或 config.example.json，請先建立設定檔。")
+    raise FileNotFoundError(
+        "找不到 config.json 或 config.example.json，請先建立設定檔。"
+    )
 
 
 def dedupe(seq: Iterable[str]) -> List[str]:
@@ -234,7 +236,9 @@ def sync_models(
             continue
 
         if no_download:
-            print(f"[warn] {model} 無可用 digest，且 --no-download 已啟用，僅記錄缺失狀態")
+            print(
+                f"[warn] {model} 無可用 digest，且 --no-download 已啟用，僅記錄缺失狀態"
+            )
             results.append({"model": model, "status": "missing", "digest": None})
             continue
 

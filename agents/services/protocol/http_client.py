@@ -11,7 +11,6 @@ import hmac
 import json
 from typing import Any, Dict, Optional
 import httpx
-from pydantic import BaseModel
 
 from agents.services.protocol.base import (
     AgentServiceProtocol,

@@ -114,10 +114,10 @@ class FileMetadataService:
         # Pydantic 模型中，即使 task_id=None，model.task_id 也存在
         # 所以需要檢查是否在 model_dump 中包含 'task_id' 鍵
         update_dict = update.model_dump(exclude_unset=True)
-        if 'task_id' in update_dict:
+        if "task_id" in update_dict:
             # 即使是 None 也要更新（表示移動到任務工作區）
             update_data["task_id"] = update.task_id
-        if 'folder_id' in update_dict:
+        if "folder_id" in update_dict:
             update_data["folder_id"] = update.folder_id
         if update.tags is not None:
             update_data["tags"] = update.tags
@@ -140,7 +140,7 @@ class FileMetadataService:
         # 將 file_id 作為 _key 傳遞
         doc_to_update = {"_key": file_id}
         doc_to_update.update(update_data)
-        
+
         collection.update(doc_to_update)
         updated_doc = collection.get(file_id)
 
@@ -169,7 +169,7 @@ class FileMetadataService:
         sort_order: str = "desc",
     ) -> List[FileMetadata]:
         """查詢文件元數據列表
-        
+
         修改時間：2025-01-27 - task_id 改為必填，移除 task_id=None 的查詢
         """
         if self.client.db is None:
@@ -241,7 +241,7 @@ class FileMetadataService:
         limit: int = 100,
     ) -> List[FileMetadata]:
         """全文搜索
-        
+
         修改時間：2025-01-27 - 添加 task_id 參數，支持在指定任務工作區中搜索
         """
         if self.client.db is None:

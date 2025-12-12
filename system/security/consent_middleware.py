@@ -5,8 +5,6 @@
 
 """數據使用同意檢查中間件 - 提供同意檢查裝飾器和依賴函數。"""
 
-from functools import wraps
-from typing import Callable
 from fastapi import HTTPException, status, Depends
 import structlog
 
@@ -71,6 +69,7 @@ def require_consent(consent_type: ConsentType):
                 try:
                     # 嘗試自動授予 consent（用於測試環境）
                     from services.api.models.data_consent import DataConsentCreate
+
                     consent_create = DataConsentCreate(
                         consent_type=consent_type,
                         purpose=f"Auto-granted for {consent_type.value}",

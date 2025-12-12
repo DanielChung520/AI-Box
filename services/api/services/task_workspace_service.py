@@ -5,7 +5,6 @@
 
 """任務工作區服務 - 管理任務工作區和排程任務目錄的創建和管理"""
 
-import os
 from pathlib import Path
 from typing import Optional
 import structlog
@@ -19,6 +18,7 @@ logger = structlog.get_logger(__name__)
 FOLDER_COLLECTION_NAME = "folder_metadata"
 WORKSPACE_FOLDER_NAME = "任務工作區"
 SCHEDULED_FOLDER_NAME = "排程任務"
+
 
 # 修改時間：2025-01-27 - 從配置文件讀取存儲路徑
 def _get_base_storage_path() -> str:
@@ -229,7 +229,9 @@ class TaskWorkspaceService:
 
             return {
                 "task_id": task_id,
-                "folder_name": existing_folder.get("folder_name", WORKSPACE_FOLDER_NAME),
+                "folder_name": existing_folder.get(
+                    "folder_name", WORKSPACE_FOLDER_NAME
+                ),
                 "folder_type": "workspace",
                 "storage_path": str(workspace_path),
                 "folder_key": folder_key,

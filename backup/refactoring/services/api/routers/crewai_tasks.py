@@ -33,7 +33,9 @@ class CreateTaskRequest(BaseModel):
     crew_id: str = Field(..., description="隊伍 ID")
     description: str = Field(..., description="任務描述")
     assigned_agent: Optional[str] = Field(default=None, description="分配的 Agent 角色")
-    priority: TaskPriority = Field(default=TaskPriority.MEDIUM, description="任務優先級")
+    priority: TaskPriority = Field(
+        default=TaskPriority.MEDIUM, description="任務優先級"
+    )
     metadata: Optional[Dict] = Field(default_factory=dict, description="元數據")
 
 

@@ -6,6 +6,3 @@
 """Triple Extraction 服務適配器 - 重新導出 genai.api.services.triple_extraction_service 的服務"""
 
 # 從 genai 模組重新導出服務
-from genai.api.services.triple_extraction_service import (
-    TripleExtractionService,
-)  # noqa: F401

@@ -6,7 +6,7 @@
 """Agent Secret API 路由 - 提供 Secret ID/Key 驗證接口"""
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Header, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field

@@ -148,4 +148,6 @@ class TestTaskAnalyzer:
             # 簡單任務的複雜度應該較低
             if "complexity" in analysis:
                 complexity = analysis.get("complexity")
-                assert isinstance(complexity, (int, float, str)), "複雜度應該是數字或字符串"
+                assert isinstance(
+                    complexity, (int, float, str)
+                ), "複雜度應該是數字或字符串"

@@ -201,7 +201,9 @@ class LangChainGraphWorkflow:
         self, state: LangGraphState, config: RunnableConfig
     ) -> LangGraphState:
         plan = state.get("plan") or []
-        research_notes = f"為 {self._ctx.task} 執行深入研究，參考 {len(plan)} 個原子步驟。"
+        research_notes = (
+            f"為 {self._ctx.task} 執行深入研究，參考 {len(plan)} 個原子步驟。"
+        )
         self._telemetry.emit(
             "research",
             note=research_notes,
