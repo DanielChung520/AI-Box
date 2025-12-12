@@ -42,7 +42,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
           if (!executionConfig.mode) {
             executionConfig.mode = 'free';
           }
-          
+
           // 修改時間：2025-01-27 - 不傳遞 user_id，後端會自動使用當前認證用戶的 user_id
           // 修改時間：2025-12-09 - 添加 task_status 字段，默認值為 activate
           const backendTask = {
@@ -61,12 +61,12 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
           // 修改時間：2025-12-09 - 修復任務更新時序問題和 409 錯誤處理
           // 判斷是否為新任務：如果任務沒有 fileTree 或 fileTree 為空，且沒有 messages，可能是新任務
           // 對於新任務，直接創建；對於現有任務，先更新，失敗則創建
-          const isNewTask = (!task.fileTree || task.fileTree.length === 0) && 
+          const isNewTask = (!task.fileTree || task.fileTree.length === 0) &&
                            (!task.messages || task.messages.length === 0);
-          
+
           let syncResult: any = null;
           let lastError: any = null;
-          
+
           if (isNewTask) {
             // 新任務：直接創建
             console.log('[TaskStorage] New task detected, creating directly', { taskId: task.id });
@@ -152,15 +152,15 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
               }
             }
           }
-          
+
           if (syncResult && syncResult.success) {
             console.log('[TaskStorage] Task synced successfully', { taskId: task.id, method: isNewTask ? 'create' : 'update' });
           } else {
             // 如果所有嘗試都失敗了，記錄警告但不拋出錯誤（允許本地保存成功）
-            console.warn('[TaskStorage] Failed to sync task to backend (all attempts failed)', { 
-              taskId: task.id, 
+            console.warn('[TaskStorage] Failed to sync task to backend (all attempts failed)', {
+              taskId: task.id,
               isNewTask,
-              lastError: lastError?.message || lastError 
+              lastError: lastError?.message || lastError
             });
           }
         } catch (error) {
@@ -265,8 +265,8 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
   }
 
   try {
-    // 從後台獲取任務列表
-    const response = await listUserTasks();
+    // 修改時間：2025-01-27 - 從後台獲取所有任務（包括歸檔的），確保同步最新狀態
+    const response = await listUserTasks(true); // include_archived=true
     if (!response.success || !response.data) {
       console.error('[TaskStorage] Failed to fetch tasks from backend:', response.message);
       return { synced: 0, errors: 1 };
@@ -278,16 +278,29 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
     // 將後台任務轉換為前端格式並保存到 localStorage
     for (const backendTask of response.data.tasks) {
       try {
-        // 修改時間：2025-12-09 - 從 localStorage 讀取現有任務，保留本地的 label_color 和 task_status
+        // 修改時間：2025-12-09 - 從 localStorage 讀取現有任務，保留本地的 label_color
         const existingTask = getTask(Number(backendTask.task_id));
-        
+
+        // 修改時間：2025-01-27 - 優先使用後端的 task_status，確保同步最新狀態
+        // 強制使用後端的 task_status（如果後端有設置），否則使用本地的，最後默認為 activate
+        const finalTaskStatus = backendTask.task_status !== undefined && backendTask.task_status !== null
+          ? backendTask.task_status
+          : (existingTask?.task_status || 'activate');
+
+        // 調試日誌：記錄同步狀態
+        if (existingTask && existingTask.task_status !== finalTaskStatus) {
+          console.log(`[TaskStorage] Task ${backendTask.task_id} status changed: ${existingTask.task_status} -> ${finalTaskStatus}`);
+        }
+
         const frontendTask: Task = {
           id: Number(backendTask.task_id),
           title: backendTask.title,
           status: backendTask.status as 'pending' | 'in-progress' | 'completed',
-          // 修改時間：2025-12-09 - 保留本地的 task_status 和 label_color，如果後端有則使用後端的
-          task_status: backendTask.task_status || existingTask?.task_status || 'activate',
-          label_color: backendTask.label_color || existingTask?.label_color,
+          task_status: finalTaskStatus,
+          // 修改時間：2025-12-09 - 優先使用後端的 label_color，如果後端沒有則使用本地的
+          label_color: backendTask.label_color !== undefined && backendTask.label_color !== null
+            ? backendTask.label_color
+            : existingTask?.label_color,
           dueDate: backendTask.dueDate || '',
           messages: backendTask.messages,
           executionConfig: backendTask.executionConfig,
@@ -297,6 +310,7 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
         // 保存到 localStorage（不觸發後台同步，避免循環）
         const taskKey = `${STORAGE_KEY_PREFIX}${frontendTask.id}`;
         localStorage.setItem(taskKey, JSON.stringify(frontendTask));
+        console.log(`[TaskStorage] Saved task ${frontendTask.id} to localStorage with task_status: ${frontendTask.task_status}`);
 
         // 更新任務列表
         const taskList = getTaskList();
@@ -433,7 +447,7 @@ export function addTaskToFavorites(task: Task): void {
     const existingIndex = favorites.findIndex(
       fav => fav.type === 'task' && fav.itemId === String(task.id)
     );
-    
+
     if (existingIndex === -1) {
       // 添加到收藏夾
       const favoriteItem: FavoriteItem = {

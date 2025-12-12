@@ -38,11 +38,13 @@ if (window.location.protocol === 'https:' &&
     API_BASE_URL.startsWith('http://localhost')) {
   // 從 HTTPS 頁面訪問 localhost 會被瀏覽器阻止（混合內容策略）
   // 解決方案：使用當前域名，通過反向代理訪問後端
-  console.warn(
-    `[API Config] HTTPS page detected, but API_BASE_URL is ${API_BASE_URL}. ` +
-    `Using current origin ${window.location.origin} instead. ` +
-    `Make sure reverse proxy is configured.`
-  );
+  // 只在開發環境顯示警告，生產環境靜默處理
+  if (import.meta.env.DEV) {
+    console.info(
+      `[API Config] HTTPS page detected, using current origin ${window.location.origin} for API requests. ` +
+      `(Original API_BASE_URL: ${API_BASE_URL})`
+    );
+  }
   API_BASE_URL = window.location.origin;
 }
 const API_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v1';
@@ -90,7 +92,7 @@ export async function apiRequest<T = any>(
 
   // 獲取認證 token
   const token = localStorage.getItem('access_token');
-  
+
   // 調試日誌：檢查 token 是否存在（僅在開發環境或調試時輸出）
   if (!token && !endpoint.includes('/auth/login')) {
     console.warn(`[apiRequest] No access_token found for request to ${endpoint}`);
@@ -134,26 +136,26 @@ export async function apiRequest<T = any>(
       // 401 未授權錯誤：token 無效或過期，提示用戶重新登錄
       if (response.status === 401) {
         console.warn(`[apiRequest] Authentication failed for ${url}. Token may be missing, invalid, or expired.`);
-        
+
         // 檢查是否為登錄相關的請求（不應該清除登錄頁面的 token）
         const isAuthEndpoint = endpoint.includes('/auth/');
         const isLoginEndpoint = endpoint.includes('/auth/login');
-        
+
         // 只有非登錄相關的請求才清除 token（避免登錄過程中的誤清除）
         if (!isLoginEndpoint) {
           // 檢查 token 是否存在（如果不存在，可能是剛登錄還沒保存）
           const existingToken = localStorage.getItem('access_token');
-          
+
           // 重要：登錄後的前幾秒內，如果 token 存在但驗證失敗，可能是：
           // 1. Token 剛保存，後端還未完全處理
           // 2. 網絡延遲導致 token 驗證時序問題
           // 3. 後端服務重啟導致 token 驗證邏輯異常
-          // 
+          //
           // 因此，在登錄後的短時間內（5 秒），我們不立即清除 token
           // 而是記錄警告，讓用戶重試
           const loginTime = localStorage.getItem('loginTime');
           const isRecentLogin = loginTime && (Date.now() - new Date(loginTime).getTime()) < 5000; // 5 秒內
-          
+
           if (existingToken) {
             if (isRecentLogin) {
               console.warn(`[apiRequest] Token exists but authentication failed shortly after login. This may be a timing issue. Not clearing token yet.`);
@@ -163,7 +165,7 @@ export async function apiRequest<T = any>(
               localStorage.removeItem('access_token');
               localStorage.removeItem('refresh_token');
               localStorage.removeItem('isAuthenticated');
-              
+
               // 觸發認證狀態變化事件，讓前端組件處理（如跳轉到登錄頁）
               window.dispatchEvent(new CustomEvent('authStateChanged', {
                 detail: { isAuthenticated: false, reason: 'token_expired' }
@@ -174,7 +176,7 @@ export async function apiRequest<T = any>(
           }
         }
       }
-      
+
       // 404 錯誤特別處理
       if (response.status === 404) {
         console.warn(`API endpoint not found: ${url}. Make sure the backend server is running and the endpoint exists.`);
@@ -1497,9 +1499,11 @@ export interface SyncTasksResponse {
 
 /**
  * 列出用戶的所有任務
+ * @param includeArchived 是否包含歸檔的任務（默認 false，只顯示激活的任務）
  */
-export async function listUserTasks(): Promise<ListUserTasksResponse> {
-  return apiGet<ListUserTasksResponse>('/user-tasks');
+export async function listUserTasks(includeArchived: boolean = false): Promise<ListUserTasksResponse> {
+  const params = includeArchived ? '?include_archived=true' : '';
+  return apiGet<ListUserTasksResponse>(`/user-tasks${params}`);
 }
 
 /**

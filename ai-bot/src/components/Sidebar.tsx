@@ -165,7 +165,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   const [showColorMenu, setShowColorMenu] = useState(false);
   const [colorMenuPosition, setColorMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const colorMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Apple Mac 風格的顏色標籤（7 種顏色）
   const labelColors = [
     { name: '無', value: null, color: 'transparent', border: 'border-gray-400' },
@@ -192,21 +192,23 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     };
 
     // 修改時間：2025-01-27 - 初始化時先嘗試從後端同步任務
+    // 修改時間：2025-01-27 - 確保同步完成後再加載任務，避免顯示舊數據
     const initializeTasks = async () => {
       const userId = localStorage.getItem('user_id');
       const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-      
+
       if (userId && isAuthenticated) {
         console.log('[Sidebar] User authenticated, syncing tasks from backend');
         try {
           const { syncTasksBidirectional } = await import('../lib/taskStorage');
-          await syncTasksBidirectional();
+          const result = await syncTasksBidirectional();
+          console.log('[Sidebar] Tasks synced:', result);
         } catch (error) {
           console.error('[Sidebar] Failed to sync tasks on init:', error);
         }
       }
-      
-      // 無論同步成功與否，都從 localStorage 加載任務
+
+      // 同步完成後，從 localStorage 加載任務（此時應該已經是最新的）
       loadSavedTasks();
     };
 
@@ -394,7 +396,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       // 嘗試從後台獲取任務信息
       const taskId = String(contextMenu.task.id);
       const response = await getUserTask(taskId);
-      
+
       if (response.success && response.data) {
         // 轉換後台任務格式為前端任務格式
         const backendTask = response.data;
@@ -419,7 +421,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       setTaskInfo(contextMenu.task);
       setShowTaskInfoModal(true);
     }
-    
+
     closeContextMenu();
   };
 
@@ -626,7 +628,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
 
     try {
       const taskId = String(deleteTaskTarget.id);
-      
+
       // 修改時間：2025-12-08 14:15:00 UTC+8 - 調用後台刪除 API（會清除所有相關數據）
       try {
         const result = await deleteUserTask(taskId);
@@ -1033,7 +1035,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
               // 檢查滑鼠是否移動到子菜單
               const relatedTarget = e.relatedTarget as HTMLElement;
               const isMovingToSubMenu = relatedTarget && relatedTarget.closest('.fixed.bg-secondary');
-              
+
               if (!isMovingToSubMenu) {
                 // 延遲關閉，給用戶時間移動滑鼠到子菜單
                 colorMenuTimeoutRef.current = setTimeout(() => {
@@ -1070,7 +1072,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                   // 檢查滑鼠是否移動到父元素（標識顏色按鈕）
                   const relatedTarget = e.relatedTarget as HTMLElement;
                   const isMovingToParent = relatedTarget && relatedTarget.closest('.relative');
-                  
+
                   if (!isMovingToParent) {
                     // 延遲關閉，給用戶時間移動滑鼠
                     colorMenuTimeoutRef.current = setTimeout(() => {
@@ -1142,8 +1144,8 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
               <div>
                 <div className="text-xs text-tertiary mb-1">狀態</div>
                 <div className="text-sm text-primary">
-                  {taskInfo.status === 'pending' ? '待處理' : 
-                   taskInfo.status === 'in-progress' ? '進行中' : 
+                  {taskInfo.status === 'pending' ? '待處理' :
+                   taskInfo.status === 'in-progress' ? '進行中' :
                    taskInfo.status === 'completed' ? '已完成' : taskInfo.status}
                 </div>
               </div>

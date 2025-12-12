@@ -51,6 +51,7 @@ class SyncTasksRequest(BaseModel):
 async def list_user_tasks(
     limit: int = Query(100, ge=1, le=1000, description="返回數量限制"),
     offset: int = Query(0, ge=0, description="偏移量"),
+    include_archived: bool = Query(False, description="是否包含歸檔的任務"),
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """列出當前用戶的所有任務
@@ -58,6 +59,7 @@ async def list_user_tasks(
     Args:
         limit: 返回數量限制
         offset: 偏移量
+        include_archived: 是否包含歸檔的任務（默認 False，只顯示激活的任務）
         current_user: 當前認證用戶
 
     Returns:
@@ -71,14 +73,20 @@ async def list_user_tasks(
             offset=offset,
         )
 
+        # 修改時間：2025-12-12 - 添加 include_archived 參數，允許查詢歸檔任務
         # 修改時間：2025-12-09 - 只返回 task_status 為 activate 的任務（或未設置 task_status 的任務，兼容舊數據）
-        filtered_tasks = [
-            task
-            for task in tasks
-            if not hasattr(task, "task_status")
-            or not task.task_status
-            or task.task_status == "activate"
-        ]
+        if include_archived:
+            # 包含所有任務（包括歸檔的）
+            filtered_tasks = tasks
+        else:
+            # 只返回激活的任務
+            filtered_tasks = [
+                task
+                for task in tasks
+                if not hasattr(task, "task_status")
+                or not task.task_status
+                or task.task_status == "activate"
+            ]
 
         return APIResponse.success(
             data={

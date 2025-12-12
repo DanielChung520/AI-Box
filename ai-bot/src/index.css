@@ -35,6 +35,30 @@
   --danger-red: #ef4444;
 }
 
+/* 深色主题变量（当有 .dark 类时） */
+.dark {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --bg-hover: #4b5563;
+
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-tertiary: #9ca3af;
+  --text-muted: #6b7280;
+
+  --border-primary: #374151;
+  --border-secondary: #4b5563;
+
+  --accent-blue: #3b82f6;
+  --accent-blue-light: #60a5fa;
+  --accent-blue-dark: #1d4ed8;
+
+  --success-green: #10b981;
+  --warning-yellow: #f59e0b;
+  --danger-red: #ef4444;
+}
+
 /* 浅色主题变量 */
 .light {
   --bg-primary: #ffffff;
@@ -62,6 +86,27 @@
 /* 主题切换过渡动画 */
 .theme-transition {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* 确保 html 和 body 元素使用主题背景色 */
+html,
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 浅色模式下确保背景色正确 */
+.light html,
+.light body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 深色模式下确保背景色正确 */
+.dark html,
+.dark body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* 自定义滚动条 */

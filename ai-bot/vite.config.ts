@@ -129,7 +129,7 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       // 允許 Cloudflare Tunnel 域名
       allowedHosts: [
-        'bot.k84.org',
+        'iee.k84.org',
         'localhost',
         '.localhost',
       ],
@@ -144,7 +144,7 @@ export default defineConfig(({ mode }) => {
             port: 3000,
             // WebSocket 協議（wss 用於 HTTPS，ws 用於 HTTP）
             protocol: (env.VITE_HMR_PROTOCOL as 'ws' | 'wss') || 'wss',
-            // 客戶端應該連接的主機名（代理域名，如 bot.k84.org）
+            // 客戶端應該連接的主機名（代理域名，如 iee.k84.org）
             // 這告訴瀏覽器連接到代理域名而不是 localhost
             clientHost: env.VITE_HMR_CLIENT_HOST || undefined,
             // 客戶端應該連接的端口（代理端口，443 用於 HTTPS，80 用於 HTTP）

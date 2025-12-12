@@ -9,6 +9,23 @@ import { performanceMonitor } from "./lib/performance.ts";
 // 記錄 React 應用啟動時間
 performanceMonitor.markReactAppStart();
 
+// 初始化主题（在React应用启动前设置，避免闪烁）
+(function initTheme() {
+  const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+  const theme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+  // 设置主题类
+  document.documentElement.classList.remove('light', 'dark');
+  document.documentElement.classList.add(theme);
+
+  // Tailwind darkMode: "class" 需要 'dark' 类
+  if (theme === 'dark') {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+})();
+
 // 隱藏內聯歡迎頁的函數
 function hideInitialWelcome() {
   const initialWelcome = document.getElementById('initial-welcome');

@@ -41,15 +41,15 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
 
   const checkDataAvailability = async () => {
     if (!fileId) return;
-    
+
     // 檢查文本內容
     setTextAvailable(!!content);
 
     // 檢查向量數據（靜默處理 404 錯誤，因為文件可能沒有向量數據是正常的）
     try {
       const vectorResponse = await getFileVectors(fileId, 1, 0);
-      setVectorAvailable(vectorResponse.success && vectorResponse.data && 
-        (vectorResponse.data.vectors?.length > 0 || 
+      setVectorAvailable(vectorResponse.success && vectorResponse.data &&
+        (vectorResponse.data.vectors?.length > 0 ||
          vectorResponse.data.stats?.vector_count > 0 ||
          vectorResponse.data.total > 0));
     } catch (e: any) {
@@ -66,8 +66,8 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
     // 檢查圖譜數據（靜默處理 404 錯誤，因為文件可能沒有圖譜數據是正常的）
     try {
       const graphResponse = await getFileGraph(fileId, 1, 0);
-      setGraphAvailable(graphResponse.success && graphResponse.data && 
-        (graphResponse.data.nodes?.length > 0 || 
+      setGraphAvailable(graphResponse.success && graphResponse.data &&
+        (graphResponse.data.nodes?.length > 0 ||
          graphResponse.data.edges?.length > 0 ||
          graphResponse.data.triples?.length > 0 ||
          graphResponse.data.stats?.entities_count > 0 ||
@@ -87,7 +87,7 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
 
   const loadDataForMode = async (targetMode: PreviewMode) => {
     if (!fileId) return;
-    
+
     setLoading(true);
     setError(null); // 清除錯誤狀態
     try {
@@ -214,8 +214,8 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
               <button
                 onClick={() => handleModeChange('text')}
                 className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all theme-transition ${
-                  mode === 'text' 
-                    ? 'bg-blue-500 text-white shadow-md font-medium hover:bg-blue-600' 
+                  mode === 'text'
+                    ? 'bg-blue-500 text-white shadow-md font-medium hover:bg-blue-600'
                     : 'bg-secondary text-primary hover:bg-hover'
                 }`}
                 title="文件模式"
@@ -227,8 +227,8 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
               <button
                 onClick={() => handleModeChange('vector')}
                 className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all theme-transition ${
-                  mode === 'vector' 
-                    ? 'bg-blue-500 text-white shadow-md font-medium hover:bg-blue-600' 
+                  mode === 'vector'
+                    ? 'bg-blue-500 text-white shadow-md font-medium hover:bg-blue-600'
                     : 'bg-secondary text-primary hover:bg-hover'
                 }`}
                 title="向量模式"
@@ -240,8 +240,8 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
               <button
                 onClick={() => handleModeChange('graph')}
                 className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all theme-transition ${
-                  mode === 'graph' 
-                    ? 'bg-blue-500 text-white shadow-md font-medium hover:bg-blue-600' 
+                  mode === 'graph'
+                    ? 'bg-blue-500 text-white shadow-md font-medium hover:bg-blue-600'
                     : 'bg-secondary text-primary hover:bg-hover'
                 }`}
                 title="圖譜模式"
@@ -490,87 +490,14 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
                       </div>
                     </div>
 
-                    {/* 圖形視圖（上半部分） */}
-                    <div className="flex-shrink-0 border-b" style={{ height: '480px' }}>
+                    {/* 知識圖譜視圖（包含圖形、節點列表、三元組列表） */}
+                    <div className="flex-1 min-h-0" style={{ height: '100%' }}>
                       <KnowledgeGraphViewer
                         triples={graphData?.triples || []}
                         nodes={graphData?.nodes}
                         edges={graphData?.edges}
-                        height={480}
+                        height={400}
                       />
-                    </div>
-
-                    {/* 三元組列表（下半部分） */}
-                    <div className="flex-1 min-h-0 overflow-auto p-4">
-                      <h3 className="text-lg font-semibold mb-3 text-primary theme-transition">三元組列表</h3>
-                      {graphData?.triples && graphData.triples.length > 0 ? (
-                        <div className="space-y-2">
-                          {graphData.triples.map((triple: any, index: number) => (
-                            <div key={index} className="bg-tertiary p-3 rounded border border-primary theme-transition hover:bg-hover transition-colors">
-                              <div className="text-sm text-primary theme-transition">
-                                <span className="font-semibold text-blue-400">
-                                  {triple.subject || triple.subject_type || 'Unknown'}
-                                </span>
-                                {triple.subject_type && (
-                                  <span className="text-xs text-tertiary ml-1 theme-transition">({triple.subject_type})</span>
-                                )}
-                                {' → '}
-                                <span className="text-green-400 font-medium">{triple.relation}</span>
-                                {' → '}
-                                <span className="font-semibold text-purple-400">
-                                  {triple.object || triple.object_type || 'Unknown'}
-                                </span>
-                                {triple.object_type && (
-                                  <span className="text-xs text-tertiary ml-1 theme-transition">({triple.object_type})</span>
-                                )}
-                              </div>
-                              {triple.confidence !== undefined && (
-                                <div className="text-xs text-tertiary mt-1 theme-transition">
-                                  置信度: {typeof triple.confidence === 'number' ? triple.confidence.toFixed(2) : triple.confidence}
-                                </div>
-                              )}
-                              {triple.context && (
-                                <div className="text-xs text-tertiary opacity-75 mt-1 italic truncate theme-transition">
-                                  上下文: {triple.context}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : graphData?.edges && graphData.edges.length > 0 ? (
-                        // 如果沒有 triples，從 edges 構建顯示
-                        <div className="space-y-2">
-                          {graphData.edges.map((edge: any, index: number) => {
-                            const from = edge._from || edge.from || edge.source || '';
-                            const to = edge._to || edge.to || edge.target || '';
-                            const type = edge.type || edge.label || edge.relation || '';
-                            return (
-                              <div key={index} className="bg-tertiary p-3 rounded border border-primary theme-transition hover:bg-hover transition-colors">
-                                <div className="text-sm text-primary theme-transition">
-                                  <span className="font-semibold text-blue-400">
-                                    {from.split('/').pop() || from}
-                                  </span>
-                                  {' → '}
-                                  <span className="text-green-400 font-medium">{type}</span>
-                                  {' → '}
-                                  <span className="font-semibold text-purple-400">
-                                    {to.split('/').pop() || to}
-                                  </span>
-                                </div>
-                                {edge.confidence !== undefined && (
-                                  <div className="text-xs text-tertiary mt-1 theme-transition">
-                                    置信度: {typeof edge.confidence === 'number' ? edge.confidence.toFixed(2) : edge.confidence}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-tertiary theme-transition">
-                          <p>暫無三元組數據</p>
-                      </div>
-                    )}
                     </div>
                   </div>
                 )}

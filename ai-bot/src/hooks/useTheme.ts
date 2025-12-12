@@ -10,17 +10,40 @@ export function useTheme() {
     if (savedTheme) {
       return savedTheme;
     }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? 'dark' : 'light';
   });
   const { t } = useLanguage();
+
+  // 初始化时设置主题类（确保与main.tsx中的初始化一致）
+  useEffect(() => {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []); // 只在组件挂载时运行一次
 
   useEffect(() => {
     // 添加过渡效果类
     document.documentElement.classList.add('theme-transition');
 
     // 切换主题类
+    // 移除所有主题类
     document.documentElement.classList.remove('light', 'dark');
+
+    // 添加当前主题类
     document.documentElement.classList.add(theme);
+
+    // Tailwind darkMode: "class" 需要 'dark' 类来启用dark模式
+    // 当主题是 'dark' 时，添加 'dark' 类；当主题是 'light' 时，移除 'dark' 类
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
 
     // 保存主题设置
     localStorage.setItem('theme', theme);
