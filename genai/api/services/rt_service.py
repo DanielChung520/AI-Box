@@ -63,6 +63,21 @@ class BaseRTModel(ABC):
         """分類關係類型"""
         pass
 
+    async def classify_relation_types_batch(
+        self,
+        requests: List[Dict[str, Any]],
+    ) -> List[List[RelationType]]:
+        """批量分類關係類型（可選覆寫；預設為逐條調用）。"""
+        results: List[List[RelationType]] = []
+        for req in requests:
+            relation_types = await self.classify_relation_type(
+                req.get("relation_text", ""),
+                req.get("subject_text"),
+                req.get("object_text"),
+            )
+            results.append(relation_types)
+        return results
+
     @abstractmethod
     def is_available(self) -> bool:
         """檢查模型是否可用"""
@@ -190,6 +205,126 @@ class OllamaRTModel(BaseRTModel):
                 "ollama_rt_classification_failed", error=str(e), model=self.model_name
             )
             return []
+
+    async def classify_relation_types_batch(
+        self,
+        requests: List[Dict[str, Any]],
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
+    ) -> List[List[RelationType]]:
+        """使用 Ollama 批量分類關係類型（單次 LLM 呼叫）。"""
+        if self.client is None:
+            raise RuntimeError(
+                f"Ollama client is not available for model {self.model_name}"
+            )
+
+        if not requests:
+            return []
+
+        relation_types_list = "\n".join(
+            [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
+        )
+
+        # 組裝批次請求（避免 LLM 失去對應順序）
+        batch_items = []
+        for idx, req in enumerate(requests):
+            batch_items.append(
+                {
+                    "index": idx,
+                    "relation_text": req.get("relation_text", ""),
+                    "subject_text": req.get("subject_text"),
+                    "object_text": req.get("object_text"),
+                }
+            )
+
+        prompt = f"""你是一個關係類型分類器（RT）。請根據每筆 relation 的 relation_text +（可選）subject/object 上下文，從下列可選類型中選擇最合適的類型（可多選），並回傳 JSON。
+
+可選的關係類型包括：
+{relation_types_list}
+
+輸入（JSON）：
+{json.dumps(batch_items, ensure_ascii=False)}
+
+請回傳 JSON 陣列，格式如下：
+[
+  {{"index": 0, "types": [{{"type":"RELATED_TO","confidence":0.7}}]}},
+  {{"index": 1, "types": [{{"type":"LOCATED_IN","confidence":0.9}}, {{"type":"RELATED_TO","confidence":0.6}}]}}
+]
+
+規則：
+- 必須保留 index 對應
+- confidence 為 0~1
+- 若無法判斷，回傳 RELATED_TO
+"""
+
+        response = await self.client.generate(
+            prompt,
+            model=self.model_name,
+            format="json",
+            user_id=user_id,
+            file_id=file_id,
+            task_id=task_id,
+            purpose="rt_batch",
+        )
+
+        if response is None:
+            logger.error("ollama_rt_no_response", model=self.model_name)
+            return [[] for _ in requests]
+
+        result_text = response.get("text") or response.get("content", "")
+        try:
+            if "```json" in result_text:
+                result_text = result_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in result_text:
+                result_text = result_text.split("```")[1].split("```")[0].strip()
+
+            parsed = json.loads(result_text)
+            # 允許 {"results":[...]} 包裝
+            if isinstance(parsed, dict) and isinstance(parsed.get("results"), list):
+                parsed = parsed["results"]
+
+            if not isinstance(parsed, list):
+                logger.error(
+                    "ollama_rt_invalid_format",
+                    model=self.model_name,
+                    response_type=type(parsed).__name__,
+                )
+                return [[] for _ in requests]
+
+            # index -> types
+            types_by_index: Dict[int, List[RelationType]] = {}
+            for item in parsed:
+                if not isinstance(item, dict):
+                    continue
+                idx = item.get("index")
+                types = item.get("types")
+                if not isinstance(idx, int) or not isinstance(types, list):
+                    continue
+                rt_list: List[RelationType] = []
+                for t in types:
+                    if not isinstance(t, dict):
+                        continue
+                    rt_list.append(
+                        RelationType(
+                            type=t.get("type", "RELATED_TO"),
+                            confidence=float(t.get("confidence", 0.5)),
+                        )
+                    )
+                rt_list.sort(key=lambda x: x.confidence, reverse=True)
+                types_by_index[idx] = rt_list
+
+            results: List[List[RelationType]] = []
+            for idx in range(len(requests)):
+                results.append(types_by_index.get(idx, []))
+            return results
+        except json.JSONDecodeError as e:
+            logger.error(
+                "ollama_rt_json_parse_failed",
+                error=str(e),
+                response=result_text[:500],
+            )
+            return [[] for _ in requests]
 
 
 class GeminiRTModel(BaseRTModel):
@@ -544,23 +679,33 @@ class RTService:
     async def classify_relation_types_batch(
         self, requests: List[dict], model_type: Optional[str] = None
     ) -> List[List[RelationType]]:
-        """批量分類關係類型"""
+        """批量分類關係類型（優先使用模型原生 batch；否則逐條）。"""
         model = self._get_model(model_type)
         if not model:
             raise RuntimeError("No available RT model")
 
-        results = []
-        for req in requests:
-            try:
-                relation_types = await self.classify_relation_type(
-                    req.get("relation_text", ""),
-                    req.get("subject_text"),
-                    req.get("object_text"),
-                    model_type,
-                )
+        try:
+            # 模型原生 batch（單次 LLM 呼叫）
+            batch_results = await model.classify_relation_types_batch(requests)
+            results: List[List[RelationType]] = []
+            for relation_types in batch_results:
+                relation_types = self._validate_relation_types(relation_types)
+                relation_types = self._apply_type_hierarchy(relation_types)
                 results.append(relation_types)
-            except Exception as e:
-                logger.error("rt_batch_classification_failed", error=str(e))
-                results.append([])
-
-        return results
+            return results
+        except Exception as e:
+            logger.error("rt_batch_classification_failed", error=str(e))
+            # fallback：逐條
+            results: List[List[RelationType]] = []
+            for req in requests:
+                try:
+                    relation_types = await self.classify_relation_type(
+                        req.get("relation_text", ""),
+                        req.get("subject_text"),
+                        req.get("object_text"),
+                        model_type,
+                    )
+                    results.append(relation_types)
+                except Exception:
+                    results.append([])
+            return results

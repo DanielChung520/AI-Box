@@ -230,32 +230,96 @@ class OllamaREModel(BaseREModel):
                 relations_data = json.loads(result_text)
 
                 if not isinstance(relations_data, list):
-                    logger.error("ollama_re_invalid_format", model=self.model_name)
-                    return []
+                    # 修改時間：2025-12-12 - 記錄實際返回內容以便調試
+                    logger.error(
+                        "ollama_re_invalid_format",
+                        model=self.model_name,
+                        response_type=type(relations_data).__name__,
+                        response_preview=str(relations_data)[:500],
+                    )
+                    # 如果返回的是字典，嘗試轉換為列表
+                    if isinstance(relations_data, dict):
+                        # 檢查是否有常見的鍵（如 "relations", "data", "result", "extracted_triples"）
+                        for key in [
+                            "relations",
+                            "data",
+                            "result",
+                            "items",
+                            "extracted_triples",
+                        ]:
+                            if key in relations_data and isinstance(
+                                relations_data[key], list
+                            ):
+                                relations_data = relations_data[key]
+                                logger.info(
+                                    "ollama_re_format_converted",
+                                    converted_key=key,
+                                    relations_count=len(relations_data),
+                                )
+                                break
+                        else:
+                            # 如果沒有找到列表鍵，檢查是否是單個關係對象
+                            # 單個關係對象應該有 "subject", "relation", "object" 等字段
+                            if (
+                                "subject" in relations_data
+                                and "relation" in relations_data
+                                and "object" in relations_data
+                            ):
+                                # 將單個關係對象轉換為列表
+                                relations_data = [relations_data]
+                                logger.info(
+                                    "ollama_re_format_converted",
+                                    converted_key="single_relation_object",
+                                    relations_count=1,
+                                )
+                            else:
+                                # 如果沒有找到列表鍵且不是單個關係對象，返回空列表
+                                return []
+                    else:
+                        return []
 
                 relations = []
                 for item in relations_data:
                     if not isinstance(item, dict):
                         continue
 
+                    # 處理兩種格式：
+                    # 1. RE service 格式: {"subject": {"text": "...", "label": "..."}, ...}
+                    # 2. Ontology 格式: {"subject": "...", "subject_type": "...", ...}
                     subject_data = item.get("subject", {})
                     object_data = item.get("object", {})
 
-                    if not isinstance(subject_data, dict) or not isinstance(
+                    # 檢查是否是 ontology 格式（subject 是字符串）
+                    if isinstance(subject_data, str):
+                        # Ontology 格式：轉換為 RE service 格式
+                        subject_text = subject_data
+                        subject_label = item.get("subject_type", "UNKNOWN")
+                        object_text = (
+                            object_data if isinstance(object_data, str) else ""
+                        )
+                        object_label = item.get("object_type", "UNKNOWN")
+                    elif isinstance(subject_data, dict) and isinstance(
                         object_data, dict
                     ):
+                        # RE service 格式：直接使用
+                        subject_text = subject_data.get("text", "")
+                        subject_label = subject_data.get("label", "UNKNOWN")
+                        object_text = object_data.get("text", "")
+                        object_label = object_data.get("label", "UNKNOWN")
+                    else:
+                        # 格式不正確，跳過
                         continue
 
                     relations.append(
                         Relation(
                             subject=RelationEntity(
-                                text=subject_data.get("text", ""),
-                                label=subject_data.get("label", "UNKNOWN"),
+                                text=subject_text,
+                                label=subject_label,
                             ),
                             relation=item.get("relation", "RELATED_TO"),
                             object=RelationEntity(
-                                text=object_data.get("text", ""),
-                                label=object_data.get("label", "UNKNOWN"),
+                                text=object_text,
+                                label=object_label,
                             ),
                             confidence=float(item.get("confidence", 0.5)),
                             context=item.get("context", text),

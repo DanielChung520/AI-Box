@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "@/pages/Home";
 import FileManagement from "@/pages/FileManagement";
+import DocumentAssistant from "@/pages/DocumentAssistant";
 import WelcomePage from "@/pages/WelcomePage";
 import LoginPage from "@/pages/LoginPage";
 import { useState, useEffect } from "react";
@@ -69,6 +70,14 @@ function AppContent() {
           path="/files"
           element={
             isAuthenticated ? <FileManagement /> : <Navigate to="/login" replace />
+          }
+        />
+
+        {/* 文件助手 - 需要認證 */}
+        <Route
+          path="/docs"
+          element={
+            isAuthenticated ? <DocumentAssistant /> : <Navigate to="/login" replace />
           }
         />
 

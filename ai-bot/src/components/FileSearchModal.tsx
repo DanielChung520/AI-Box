@@ -2,7 +2,7 @@
  * 代碼功能說明: 文件搜尋對話框組件
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-01-27
+ * 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
  *
  * 功能說明:
  * - 仿照 Cursor 的文件搜尋功能
@@ -11,7 +11,7 @@
  * - 支持快捷鍵操作（Cmd/Ctrl + P）
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, FileText, Search } from 'lucide-react';
 
 interface FileSearchModalProps {
@@ -35,8 +35,8 @@ export default function FileSearchModal({
   isOpen,
   onClose,
   onFileSelect,
-  taskId,
-  userId,
+  taskId: _taskId,
+  userId: _userId,
   fileTree,
 }: FileSearchModalProps) {
   const [searchQuery, setSearchQuery] = useState('');

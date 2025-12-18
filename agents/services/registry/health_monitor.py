@@ -83,7 +83,8 @@ class AgentHealthMonitor:
 
         for agent in agents:
             # 跳過非活躍的 Agent
-            if agent.status not in [AgentStatus.ACTIVE, AgentStatus.PENDING]:
+            # ACTIVE/PENDING 為相容性別名（見 AgentStatus），實際上對應 ONLINE/REGISTERING
+            if agent.status not in [AgentStatus.ONLINE, AgentStatus.REGISTERING]:
                 continue
 
             # 檢查心跳

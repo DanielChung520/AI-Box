@@ -1,23 +1,25 @@
 # 代碼功能說明: RQ 任務隊列客戶端
 # 創建日期: 2025-12-10
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-10
+# 最後修改日期: 2025-12-13 22:41:48 (UTC+8)
 
 """RQ 任務隊列客戶端 - 封裝 RQ Queue 操作，提供任務隊列管理"""
 
 from __future__ import annotations
 
 import structlog
-from rq import Queue
-
-from database.redis import get_redis_client
+from typing import TYPE_CHECKING
 
 logger = structlog.get_logger(__name__)
+
+if TYPE_CHECKING:
+    from rq import Queue
 
 # 任務隊列名稱定義
 FILE_PROCESSING_QUEUE = "file_processing"  # 文件處理隊列（分塊+向量化+圖譜）
 VECTORIZATION_QUEUE = "vectorization"  # 向量化專用隊列
 KG_EXTRACTION_QUEUE = "kg_extraction"  # 知識圖譜提取專用隊列
+GENAI_CHAT_QUEUE = "genai_chat"  # GenAI Chat 非同步請求（長任務/Agent）
 
 # 全局隊列實例（懶加載）
 _queues: dict[str, Queue] = {}
@@ -29,10 +31,38 @@ def get_redis_connection():
     Returns:
         Redis 連接對象
     """
-    # 直接使用 get_redis_client() 返回的 Redis 客戶端
-    # RQ 可以直接使用 redis-py 的 Redis 客戶端
-    redis_client = get_redis_client()
-    return redis_client
+    # 修改時間：2025-12-12 - RQ 需要二進制模式（decode_responses=False）
+    # 因為 RQ 使用 pickle 序列化任務數據，需要原始字節數據
+    # 創建一個新的 Redis 連接，不使用 decode_responses
+    import os
+    import redis
+
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        # 從 URL 創建連接，但不設置 decode_responses
+        redis_conn = redis.Redis.from_url(
+            redis_url,
+            decode_responses=False,  # RQ 需要二進制模式
+            socket_connect_timeout=5,
+            socket_timeout=5,
+        )
+    else:
+        redis_host = os.getenv("REDIS_HOST", "localhost")
+        redis_port = int(os.getenv("REDIS_PORT", "6379"))
+        redis_db = int(os.getenv("REDIS_DB", "0"))
+        redis_password = os.getenv("REDIS_PASSWORD") or None
+
+        redis_conn = redis.Redis(
+            host=redis_host,
+            port=redis_port,
+            db=redis_db,
+            password=redis_password,
+            decode_responses=False,  # RQ 需要二進制模式
+            socket_connect_timeout=5,
+            socket_timeout=5,
+        )
+
+    return redis_conn
 
 
 def get_task_queue(queue_name: str = FILE_PROCESSING_QUEUE) -> Queue:
@@ -51,6 +81,13 @@ def get_task_queue(queue_name: str = FILE_PROCESSING_QUEUE) -> Queue:
 
     if queue_name not in _queues:
         try:
+            try:
+                from rq import Queue
+            except ImportError as exc:
+                raise RuntimeError(
+                    "RQ is not installed. Please install it first: pip install rq"
+                ) from exc
+
             redis_conn = get_redis_connection()
             _queues[queue_name] = Queue(queue_name, connection=redis_conn)
             logger.info("RQ queue created", queue_name=queue_name)

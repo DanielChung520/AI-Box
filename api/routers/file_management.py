@@ -2615,6 +2615,25 @@ async def regenerate_file_data(
                     user_id=current_user.user_id,
                 )
 
+                # 修改時間：2025-12-12 - 任務入隊後立即寫入處理狀態，讓前端可顯示「向量產生中」
+                try:
+                    from api.routers.file_upload import _update_processing_status
+
+                    _update_processing_status(
+                        file_id=file_id,
+                        overall_status="processing",
+                        overall_progress=0,
+                        vectorization={
+                            "status": "pending",
+                            "progress": 0,
+                            "message": "向量重新生成已提交到隊列",
+                            "job_id": job.id,
+                        },
+                        message="向量重新生成已提交到隊列",
+                    )
+                except Exception:
+                    pass
+
                 logger.info(
                     "File vector regeneration triggered via RQ",
                     file_id=file_id,
@@ -2655,6 +2674,25 @@ async def regenerate_file_data(
                     user_id=current_user.user_id,
                     force_rechunk=False,  # 嘗試重用已存在的 chunks
                 )
+
+                # 修改時間：2025-12-12 - 任務入隊後立即寫入處理狀態，讓前端可顯示「圖譜產生中」
+                try:
+                    from api.routers.file_upload import _update_processing_status
+
+                    _update_processing_status(
+                        file_id=file_id,
+                        overall_status="processing",
+                        overall_progress=0,
+                        kg_extraction={
+                            "status": "pending",
+                            "progress": 0,
+                            "message": "圖譜重新生成已提交到隊列",
+                            "job_id": job.id,
+                        },
+                        message="圖譜重新生成已提交到隊列",
+                    )
+                except Exception:
+                    pass
 
                 logger.info(
                     "File graph regeneration triggered via RQ",

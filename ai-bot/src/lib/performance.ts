@@ -2,7 +2,7 @@
  * 代碼功能說明: 前端性能監控工具，測量系統載入時間
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-01-27
+ * 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
  */
 
 export interface PerformanceMetrics {
@@ -32,7 +32,6 @@ export interface PerformanceMetrics {
 class PerformanceMonitor {
   private metrics: Partial<PerformanceMetrics> = {};
   private startTime: number = performance.now();
-  private navigationStart: number = (performance as any).timeOrigin || performance.now();
 
   constructor() {
     this.init();

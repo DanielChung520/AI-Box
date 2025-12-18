@@ -1,7 +1,7 @@
 // 代碼功能說明：消息操作按鈕組件，包含點讚、倒讚、複製等功能
 // 創建日期：2025-01-27
 // 創建人：Daniel Chung
-// 最後修改日期：2025-01-27
+// 最後修改日期：2025-12-13 18:28:38 (UTC+8)
 
 import { useState } from 'react';
 import { ThumbsUp, ThumbsDown, Copy } from 'lucide-react';
@@ -16,7 +16,7 @@ interface MessageActionsProps {
 }
 
 export default function MessageActions({
-  messageId,
+  messageId: _messageId,
   messageContent = '',
   onLike,
   onDislike,

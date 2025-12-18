@@ -1,7 +1,8 @@
 # 代碼功能說明: FastAPI 應用主入口
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-12-14 10:27:19 (UTC+8)
+# ruff: noqa: E402
 
 """FastAPI 應用主入口文件"""
 
@@ -35,6 +36,10 @@ from api.routers import (
     mcp,
     chromadb,
     llm,
+    chat,
+    docs_editing,
+    genai_tenant_config,
+    genai_user_config,
     file_upload,
     chunk_processing,
     file_metadata,
@@ -132,6 +137,10 @@ app = FastAPI(
         {
             "name": "LLM",
             "description": "Ollama 本地 LLM 推理與嵌入",
+        },
+        {
+            "name": "Chat",
+            "description": "產品級 Chat 入口（Auto/收藏/手動模型選擇）",
         },
         {
             "name": "CrewAI",
@@ -243,6 +252,15 @@ app.include_router(review.router, prefix=API_PREFIX, tags=["Review Agent"])
 app.include_router(mcp.router, prefix=API_PREFIX, tags=["MCP"])
 app.include_router(chromadb.router, prefix=API_PREFIX, tags=["ChromaDB"])
 app.include_router(llm.router, prefix=API_PREFIX, tags=["LLM"])
+# 修改時間：2025-12-13 17:28:02 (UTC+8) - 註冊產品級 Chat 入口
+app.include_router(chat.router, prefix=API_PREFIX, tags=["Chat"])
+app.include_router(docs_editing.router, prefix=API_PREFIX, tags=["Docs Editing"])
+app.include_router(
+    genai_tenant_config.router, prefix=API_PREFIX, tags=["GenAI Tenant Config"]
+)
+app.include_router(
+    genai_user_config.router, prefix=API_PREFIX, tags=["GenAI User Config"]
+)
 # 條件性註冊 CrewAI 路由
 if CREWAI_AVAILABLE and crewai is not None and crewai_tasks is not None:
     app.include_router(crewai.router, prefix=API_PREFIX, tags=["CrewAI"])

@@ -7,6 +7,8 @@ import { useMemo } from 'react';
 import MarkdownViewer from './MarkdownViewer';
 import PDFViewer from './PDFViewer';
 import DOCXViewer from './DOCXViewer';
+import ExcelViewer from './ExcelViewer';
+import { API_URL } from '../lib/api';
 
 interface FileViewerProps {
   fileUrl: string;
@@ -35,18 +37,84 @@ export default function FileViewer({ fileUrl, fileName, content, fileId }: FileV
       );
 
     case 'pdf':
+      // PDFViewer 需要 fileId 而不是 fileUrl（用於處理認證）
+      if (!fileId) {
+        // 如果沒有 fileId，嘗試從 fileUrl 中提取
+        const fileIdFromUrl = fileUrl.split('/files/')[1]?.split('/')[0];
+        if (fileIdFromUrl) {
+          return (
+            <PDFViewer
+              fileId={fileIdFromUrl}
+              fileName={fileName}
+            />
+          );
+        }
+        // 如果無法提取 fileId，使用 fileUrl（向後兼容）
+        return (
+          <PDFViewer
+            fileId=""
+            fileName={fileName}
+            fileUrl={fileUrl}
+          />
+        );
+      }
       return (
         <PDFViewer
-          fileUrl={fileUrl}
+          fileId={fileId}
           fileName={fileName}
         />
       );
 
     case 'docx':
     case 'doc':
+      // DOCXViewer 需要 fileId 而不是 fileUrl
+      if (!fileId) {
+        // 如果沒有 fileId，嘗試從 fileUrl 中提取
+        const fileIdFromUrl = fileUrl.split('/files/')[1]?.split('/')[0];
+        if (fileIdFromUrl) {
+          return (
+            <DOCXViewer
+              fileId={fileIdFromUrl}
+              fileName={fileName}
+            />
+          );
+        }
+        return (
+          <div className="p-4 h-full flex flex-col items-center justify-center theme-transition">
+            <p className="text-tertiary">無法獲取文件 ID</p>
+          </div>
+        );
+      }
       return (
         <DOCXViewer
-          fileUrl={fileUrl}
+          fileId={fileId}
+          fileName={fileName}
+        />
+      );
+
+    case 'xlsx':
+    case 'xls':
+      // ExcelViewer 需要 fileId 而不是 fileUrl
+      if (!fileId) {
+        // 如果沒有 fileId，嘗試從 fileUrl 中提取
+        const fileIdFromUrl = fileUrl.split('/files/')[1]?.split('/')[0];
+        if (fileIdFromUrl) {
+          return (
+            <ExcelViewer
+              fileId={fileIdFromUrl}
+              fileName={fileName}
+            />
+          );
+        }
+        return (
+          <div className="p-4 h-full flex flex-col items-center justify-center theme-transition">
+            <p className="text-tertiary">無法獲取文件 ID</p>
+          </div>
+        );
+      }
+      return (
+        <ExcelViewer
+          fileId={fileId}
           fileName={fileName}
         />
       );

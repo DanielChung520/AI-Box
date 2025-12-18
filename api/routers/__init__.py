@@ -1,7 +1,7 @@
 # 代碼功能說明: API 路由模組初始化文件
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-14 10:27:19 (UTC+8)
 
 """API 路由模組 - 提供所有 API 端點的路由定義"""
 
@@ -16,6 +16,10 @@ from . import (
     mcp,
     chromadb,
     llm,
+    chat,
+    docs_editing,
+    genai_tenant_config,
+    genai_user_config,
     file_upload,
     chunk_processing,
     file_metadata,
@@ -45,6 +49,10 @@ __all__ = [
     "mcp",
     "chromadb",
     "llm",
+    "chat",
+    "docs_editing",
+    "genai_tenant_config",
+    "genai_user_config",
     "file_upload",
     "chunk_processing",
     "file_metadata",

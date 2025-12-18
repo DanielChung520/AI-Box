@@ -1,14 +1,14 @@
 # 代碼功能說明: Redis 客戶端封裝
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-10
+# 最後修改日期: 2025-12-13 17:42:45 (UTC+8)
 
 """Redis 客戶端封裝，提供連線管理和單例模式。"""
 
 from __future__ import annotations
 
 import os
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import structlog
 import redis  # type: ignore[import-untyped]
@@ -16,10 +16,10 @@ import redis  # type: ignore[import-untyped]
 logger = structlog.get_logger(__name__)
 
 # 全局 Redis 客戶端實例
-_redis_client: Optional[redis.Redis[str]] = None
+_redis_client: Optional[redis.Redis] = None
 
 
-def get_redis_client() -> redis.Redis[str]:
+def get_redis_client() -> redis.Redis:
     """獲取 Redis 客戶端實例（單例模式）。
 
     Returns:
@@ -58,6 +58,60 @@ def get_redis_client() -> redis.Redis[str]:
         # 測試連接
         try:
             _redis_client.ping()
+
+            # 修改時間：2025-12-12 - 檢查並修復 Redis slave 模式
+            # 如果 Redis 被配置為 slave（只讀副本），自動將其改為 master 模式
+            try:
+                replication_info: Dict[str, Any] = _redis_client.info("replication")  # type: ignore[assignment]
+                role = str(replication_info.get("role", "unknown"))
+
+                if role == "slave":
+                    logger.warning(
+                        "Redis is configured as slave, converting to master",
+                        master_host=replication_info.get("master_host"),
+                        master_port=replication_info.get("master_port"),
+                    )
+                    # 停止複製，將 Redis 轉為 master 模式
+                    _redis_client.slaveof()  # 無參數表示停止複製
+                    logger.info("Redis successfully converted from slave to master")
+
+                    # 驗證寫入權限
+                    try:
+                        test_key = "__redis_master_test__"
+                        _redis_client.set(test_key, "test", ex=1)
+                        _redis_client.delete(test_key)
+                        logger.info("Redis write permission verified")
+                    except redis.exceptions.ReadOnlyError:
+                        logger.error(
+                            "Redis is still read-only after conversion, manual intervention may be required"
+                        )
+                        raise RuntimeError(
+                            "Redis is read-only and cannot be converted to master mode"
+                        )
+            except redis.exceptions.ReadOnlyError as e:
+                # 如果 Redis 是只讀的，嘗試修復
+                logger.warning(
+                    "Redis is read-only, attempting to convert to master mode",
+                    error=str(e),
+                )
+                try:
+                    _redis_client.slaveof()  # 停止複製
+                    logger.info("Redis read-only mode fixed")
+                except Exception as fix_error:
+                    logger.error(
+                        "Failed to fix Redis read-only mode",
+                        error=str(fix_error),
+                    )
+                    raise RuntimeError(
+                        f"Redis is read-only and cannot be fixed: {fix_error}"
+                    ) from fix_error
+            except Exception as e:
+                # 其他錯誤（如 info 命令失敗）不影響連接，只記錄警告
+                logger.warning(
+                    "Failed to check Redis replication status",
+                    error=str(e),
+                )
+
             # 獲取實際連接的主機和端口（用於日誌）
             # 如果使用 REDIS_URL，從 URL 中提取主機和端口；否則使用環境變數或默認值
             if redis_url:

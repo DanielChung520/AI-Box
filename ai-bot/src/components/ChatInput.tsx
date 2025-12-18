@@ -2,7 +2,7 @@
  * 代碼功能說明: AI 聊天輸入框組件, 包含代理, 助理, 模型選擇器
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-06
+ * 最後修改日期: 2025-12-13 17:42:45 (UTC+8)
  */
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
@@ -10,7 +10,7 @@ import { useLanguage } from '../contexts/languageContext';
 import { createPortal } from 'react-dom';
 import FileUploadModal, { FileWithMetadata } from './FileUploadModal';
 import UploadProgress from './UploadProgress';
-import { uploadFiles } from '../lib/api';
+import { uploadFiles, getFavoriteModels, setFavoriteModels } from '../lib/api';
 import { Task } from './Sidebar';
 // 修改時間：2025-12-08 10:40:00 UTC+8 - 添加文件引用組件
 import FileReference, { FileReferenceData } from './FileReference';
@@ -34,18 +34,7 @@ const loadFavoritesFromStorage = (key: string): Map<string, string> => {
   return new Map<string, string>();
 };
 
-// 從 localStorage 讀取選中狀態
-const loadSelectedFromStorage = (key: string): string | undefined => {
-  try {
-    const saved = localStorage.getItem(key);
-    return saved || undefined;
-  } catch (error) {
-    console.error(`Error loading selected from localStorage (${key}):`, error);
-    return undefined;
-  }
-};
-
-// 保存選中狀態到 localStorage
+// 保存選中狀態到 localStorage（目前僅保留 agentId 使用）
 const saveSelectedToStorage = (key: string, value: string | undefined): void => {
   try {
     if (value) {
@@ -55,6 +44,22 @@ const saveSelectedToStorage = (key: string, value: string | undefined): void => 
     }
   } catch (error) {
     console.error(`Error saving selected to localStorage (${key}):`, error);
+  }
+};
+
+// 修改時間：2025-12-13 17:28:02 (UTC+8) - 收藏模型 localStorage key（與 api.ts 一致）
+const FAVORITE_MODELS_STORAGE_KEY = 'ai-box-favorite-models';
+
+const loadFavoriteModelsFromStorage = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(FAVORITE_MODELS_STORAGE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.map(String));
+  } catch (error) {
+    console.error('Error loading favorite models from localStorage:', error);
+    return new Set();
   }
 };
 
@@ -130,11 +135,12 @@ export default function ChatInput({
   // 從 localStorage 讀取收藏數據
   const [favoriteAgents, setFavoriteAgents] = useState<Map<string, string>>(() => loadFavoritesFromStorage('favoriteAgents'));
   const [favoriteAssistants, setFavoriteAssistants] = useState<Map<string, string>>(() => loadFavoritesFromStorage('favoriteAssistants'));
+  // 修改時間：2025-12-13 17:28:02 (UTC+8) - 收藏模型（Set）
+  const [favoriteModels, setFavoriteModelsState] = useState<Set<string>>(() => loadFavoriteModelsFromStorage());
 
   // 使用 ref 跟踪用户是否手动选择过（防止 prop 覆盖用户选择）
   const hasUserSelectedAgent = useRef(false);
   const hasUserSelectedAssistant = useRef(false);
-  const hasUserSelectedModel = useRef(false);
 
   // 選中狀態：優先使用 prop，如果沒有則不從 localStorage 讀取，不設置默認值
   // 未選取時顯示"選擇代理"和"選擇助理"
@@ -147,14 +153,14 @@ export default function ChatInput({
     return selectedAssistantIdProp;
   });
   const [selectedModelId, setSelectedModelId] = useState<string>(() => {
-    const saved = loadSelectedFromStorage('selectedModelId');
-    return selectedModelIdProp ?? saved ?? 'auto';
+    // 修改時間：2025-12-13 17:28:02 (UTC+8) - 改為以 task.executionConfig.modelId 為準，避免跨任務污染
+    return selectedModelIdProp ?? 'auto';
   });
 
   // 文件上傳相關狀態
   const [showFileUploadModal, setShowFileUploadModal] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<FileWithMetadata[]>([]);
-  
+
   // 修改時間：2025-12-08 10:40:00 UTC+8 - 文件引用相關狀態
   const [fileReferences, setFileReferences] = useState<FileReferenceData[]>([]);
 
@@ -207,15 +213,27 @@ export default function ChatInput({
     }
   }, [selectedAssistantIdProp, selectedAssistantId]);
 
+  // 修改時間：2025-12-13 17:28:02 (UTC+8) - modelId 直接跟隨 props（任務切換可正確恢復）
   useEffect(() => {
-    if (hasUserSelectedModel.current) {
-      return;
-    }
-    if (selectedModelIdProp !== undefined && selectedModelIdProp !== selectedModelId) {
-      setSelectedModelId(selectedModelIdProp);
-      saveSelectedToStorage('selectedModelId', selectedModelIdProp);
-    }
-  }, [selectedModelIdProp, selectedModelId]);
+    setSelectedModelId(selectedModelIdProp ?? 'auto');
+  }, [selectedModelIdProp]);
+
+  // 修改時間：2025-12-13 17:28:02 (UTC+8) - 啟動時同步收藏模型（API 優先，失敗會 fallback localStorage）
+  useEffect(() => {
+    let cancelled = false;
+    getFavoriteModels()
+      .then((resp) => {
+        if (cancelled) return;
+        const ids = resp?.data?.model_ids || [];
+        setFavoriteModelsState(new Set(ids));
+      })
+      .catch(() => {
+        // ignore (fallback already handled)
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 監聽 localStorage 變化（跨窗口和同窗口）
   useEffect(() => {
@@ -548,11 +566,6 @@ export default function ChatInput({
     onAgentSelect?.(agentId);
     setShowAgentSelector(false);
     setAgentPosition(null);
-
-    // 验证状态更新（使用闭包捕获最新的 agentId）
-    const capturedAgentId = agentId;
-    setTimeout(() => {
-    }, 100);
   };
 
   // 處理助理選擇
@@ -566,36 +579,40 @@ export default function ChatInput({
     onAssistantSelect?.(assistantId);
     setShowAssistantSelector(false);
     setAssistantPosition(null);
-
-    // 验证状态更新（使用闭包捕获最新的 assistantId）
-    const capturedAssistantId = assistantId;
-    setTimeout(() => {
-    }, 100);
   };
 
   // 處理模型選擇
   const handleModelSelect = (modelId: string) => {
-
-    hasUserSelectedModel.current = true; // 标记用户已选择
     setSelectedModelId(modelId);
-    saveSelectedToStorage('selectedModelId', modelId);
-
-
     onModelSelect?.(modelId);
     setShowModelSelector(false);
     setModelPosition(null);
+  };
 
-    // 验证状态更新（使用闭包捕获最新的 modelId）
-    const capturedModelId = modelId;
-    setTimeout(() => {
-    }, 100);
+  // 修改時間：2025-12-13 17:28:02 (UTC+8) - 收藏/取消收藏模型（localStorage 優先，可同步後端）
+  const toggleFavoriteModel = async (modelId: string) => {
+    const next = new Set(favoriteModels);
+    if (next.has(modelId)) {
+      next.delete(modelId);
+    } else {
+      next.add(modelId);
+    }
+    setFavoriteModelsState(next);
+
+    const modelIds = Array.from(next.values());
+    try {
+      await setFavoriteModels(modelIds);
+    } catch (error) {
+      // setFavoriteModels 已經會 fallback localStorage；這裡只記錄
+      console.warn('[ChatInput] Failed to sync favorite models:', error);
+    }
   };
 
   // 修改時間：2025-12-08 10:40:00 UTC+8 - 發送消息時包含文件引用信息
   const handleSend = async () => {
     if (message.trim() || fileReferences.length > 0) {
       const messageText = message.trim();
-      
+
       // 修改時間：2025-01-27 - 重構任務創建邏輯
       // 如果沒有選中任務，必須創建新任務
       if (!selectedTask && onTaskCreate) {
@@ -603,7 +620,7 @@ export default function ChatInput({
         const taskTitle = messageText.length > 30
           ? messageText.substring(0, 30) + '...'
           : (messageText || '新任務');
-        
+
         const newTaskId = Date.now();
         const newTask: Task = {
           id: newTaskId,
@@ -633,7 +650,7 @@ export default function ChatInput({
           (selectedTask.title === '新任務' || selectedTask.title === '新任务' || selectedTask.title === 'New Task') &&
           (!selectedTask.messages || selectedTask.messages.length === 0)
         );
-        
+
         if (isNewTask) {
           // 生成任務標題：取消息的前30個字符，如果超過則添加省略號
           const title = messageText.length > 30
@@ -642,7 +659,7 @@ export default function ChatInput({
           onTaskTitleGenerate(title);
         }
       }
-      
+
       // 構建包含文件引用的消息對象
       const messageWithFiles = {
         text: messageText,
@@ -666,12 +683,12 @@ export default function ChatInput({
   useEffect(() => {
     const handleFileAttach = (event: CustomEvent) => {
       const { fileId, fileName, filePath, taskId } = event.detail;
-      
+
       // 檢查是否已經附加過這個文件
       if (fileReferences.some(ref => ref.fileId === fileId)) {
         return; // 已經附加過，不重複添加
       }
-      
+
       // 創建文件引用
       const newFileRef: FileReferenceData = {
         fileId,
@@ -679,22 +696,22 @@ export default function ChatInput({
         filePath,
         taskId,
       };
-      
+
       // 添加到文件引用列表
       setFileReferences(prev => [...prev, newFileRef]);
-      
+
       // 插入文件引用到輸入框的光標位置
       const textarea = textareaRef.current;
       if (textarea) {
         const cursorPos = textarea.selectionStart;
         const textBeforeCursor = textarea.value.substring(0, cursorPos);
         const textAfterCursor = textarea.value.substring(cursorPos);
-        
+
         // 在光標位置插入文件引用標記（類似 @文件名）
         const fileMark = `@${fileName} `;
         const newText = textBeforeCursor + fileMark + textAfterCursor;
         setMessage(newText);
-        
+
         // 設置光標位置到插入文本之後
         setTimeout(() => {
           const newCursorPos = cursorPos + fileMark.length;
@@ -703,31 +720,31 @@ export default function ChatInput({
         }, 0);
       }
     };
-    
+
     window.addEventListener('fileAttachToChat', handleFileAttach as EventListener);
     return () => {
       window.removeEventListener('fileAttachToChat', handleFileAttach as EventListener);
     };
   }, [fileReferences]);
-  
+
   // 修改時間：2025-12-08 10:40:00 UTC+8 - 移除文件引用
   const handleRemoveFileReference = useCallback((fileId: string) => {
     setFileReferences(prev => {
       // 找到要移除的文件引用
       const fileRef = prev.find(ref => ref.fileId === fileId);
-      
+
       // 從輸入框中移除對應的文件標記
       if (fileRef) {
         const textarea = textareaRef.current;
         if (textarea) {
           // 移除 @文件名 標記
           const fileMark = `@${fileRef.fileName} `;
-          setMessage(currentMessage => 
+          setMessage(currentMessage =>
             currentMessage.replace(new RegExp(fileMark.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '')
           );
         }
       }
-      
+
       // 從列表中移除
       return prev.filter(ref => ref.fileId !== fileId);
     });
@@ -887,11 +904,6 @@ export default function ChatInput({
 
         // 觸發文件樹更新事件，通知父組件更新文件樹（真實上傳成功）
         if (response.data.uploaded && response.data.uploaded.length > 0) {
-          // 記錄上傳成功的文件 ID
-          response.data.uploaded.forEach((u: any) => {
-            // 文件上傳成功
-          });
-
           window.dispatchEvent(new CustomEvent('filesUploaded', {
             detail: {
               taskId: finalTaskId,
@@ -951,11 +963,6 @@ export default function ChatInput({
             detail: { fileIds: result.uploaded.map((u) => u.file_id) }
           }));
 
-          // 記錄上傳成功的文件 ID
-          result.uploaded.forEach((u) => {
-            // 文件上傳成功
-          });
-
           // 觸發文件樹更新事件，通知父組件更新文件樹
           window.dispatchEvent(new CustomEvent('mockFilesUploaded', {
             detail: { taskId: finalTaskId, files: result.uploaded }
@@ -972,8 +979,11 @@ export default function ChatInput({
           console.error('Mock file upload error:', mockError);
           // 如果模擬上傳也失敗，繼續執行下面的錯誤處理
           // 如果是新任務且模擬上傳失敗，清除任務
-          if (isNewTask && createdTaskId && onTaskDelete) {
-            onTaskDelete(createdTaskId);
+          if (isNewTask && finalTaskId && onTaskDelete) {
+            const taskIdNum = parseInt(String(finalTaskId));
+            if (!isNaN(taskIdNum)) {
+              onTaskDelete(taskIdNum);
+            }
           }
         }
       }
@@ -1072,7 +1082,7 @@ export default function ChatInput({
                 {t('chatInput.selectAssistant', '選擇助理')}
               </div>
               {favoriteAssistantsList.length > 0 ? (
-                favoriteAssistantsList.map((assistant, index) => {
+                favoriteAssistantsList.map((assistant) => {
                   const isSelected = selectedAssistantId === assistant.id;
                   return (
                     <button
@@ -1157,7 +1167,7 @@ export default function ChatInput({
               </div>
 
               {/* 固定代理選項 */}
-              {fixedAgents.map((agent, index) => {
+              {fixedAgents.map((agent) => {
                 const isSelected = selectedAgentId === agent.id;
                 return (
                   <button
@@ -1203,7 +1213,7 @@ export default function ChatInput({
 
               {/* 收藏的代理列表 */}
               {favoriteAgentsList.length > 0 ? (
-                favoriteAgentsList.map((agent, index) => {
+                favoriteAgentsList.map((agent) => {
                   const isSelected = selectedAgentId === agent.id;
                   return (
                     <button
@@ -1280,52 +1290,105 @@ export default function ChatInput({
               <div className="p-2 border-b border-primary text-sm font-medium text-primary sticky top-0 bg-secondary">
                 {t('chatInput.selectModel', '選擇模型')}
               </div>
-              {llmModels.map((model, index) => {
-                const isSelected = selectedModelId === model.id;
+              {(() => {
+                const autoModel = llmModels.find(m => m.id === 'auto');
+                const favoriteModelItems = llmModels.filter(m => m.id !== 'auto' && favoriteModels.has(m.id));
+                const allModelItems = llmModels.filter(m => m.id !== 'auto');
+
+                const renderModelRow = (model: any, showStar: boolean = true) => {
+                  const isSelected = selectedModelId === model.id;
+                  const isFavorite = favoriteModels.has(model.id);
+
+                  return (
+                    <button
+                      key={model.id}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-tertiary transition-colors flex items-center gap-2 ${
+                        isSelected ? 'bg-tertiary font-medium' : ''
+                      }`}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleModelSelect(model.id);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                    >
+                      <i className={`fa-solid ${
+                        model.id === 'auto' ? 'fa-magic' :
+                        model.id === 'smartq-iee' ? 'fa-microchip' :
+                        model.id === 'smartq-hci' ? 'fa-robot' :
+                        model.provider === 'chatgpt' ? 'fa-robot' :
+                        model.provider === 'gemini' ? 'fa-gem' :
+                        model.provider === 'qwen' ? 'fa-code' :
+                        model.provider === 'grok' ? 'fa-bolt' :
+                        'fa-server'
+                      } ${
+                        model.id === 'auto' ? 'text-purple-400' :
+                        model.id === 'smartq-iee' ? 'text-blue-400' :
+                        model.id === 'smartq-hci' ? 'text-green-400' :
+                        model.provider === 'chatgpt' ? 'text-green-400' :
+                        model.provider === 'gemini' ? 'text-blue-400' :
+                        model.provider === 'qwen' ? 'text-orange-400' :
+                        model.provider === 'grok' ? 'text-yellow-400' :
+                        'text-gray-400'
+                      }`}></i>
+
+                      <span className="text-secondary flex-1 truncate">{model.name}</span>
+
+                      {showStar && model.id !== 'auto' && (
+                        <span
+                          className="p-1 rounded hover:bg-hover"
+                          title={isFavorite ? t('chatInput.model.unfavorite', '取消收藏') : t('chatInput.model.favorite', '收藏')}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            toggleFavoriteModel(model.id);
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
+                        >
+                          <i className={`fa-solid fa-star ${isFavorite ? 'text-yellow-400' : 'text-gray-500'}`}></i>
+                        </span>
+                      )}
+
+                      {isSelected && (
+                        <i className="fa-solid fa-check text-blue-400 ml-1" title="已選中"></i>
+                      )}
+                    </button>
+                  );
+                };
+
                 return (
-                  <button
-                    key={model.id}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-tertiary transition-colors flex items-center ${
-                      isSelected ? 'bg-tertiary font-medium' : ''
-                    }`}
-                    onMouseDown={(e) => {
-                      // 使用 onMouseDown 而不是 onClick，确保在 handleClickOutside 之前触发
-                      e.stopPropagation();
-                      e.preventDefault();
-                      handleModelSelect(model.id);
-                    }}
-                    onClick={(e) => {
-                      // 保留 onClick 作为备用
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
-                  >
-                  <i className={`fa-solid ${
-                    model.id === 'auto' ? 'fa-magic' :
-                    model.id === 'smartq-iee' ? 'fa-microchip' :
-                    model.id === 'smartq-hci' ? 'fa-robot' :
-                    model.provider === 'chatgpt' ? 'fa-robot' :
-                    model.provider === 'gemini' ? 'fa-gem' :
-                    model.provider === 'qwen' ? 'fa-code' :
-                    model.provider === 'grok' ? 'fa-bolt' :
-                    'fa-server'
-                  } mr-2 ${
-                    model.id === 'auto' ? 'text-purple-400' :
-                    model.id === 'smartq-iee' ? 'text-blue-400' :
-                    model.id === 'smartq-hci' ? 'text-green-400' :
-                    model.provider === 'chatgpt' ? 'text-green-400' :
-                    model.provider === 'gemini' ? 'text-blue-400' :
-                    model.provider === 'qwen' ? 'text-orange-400' :
-                    model.provider === 'grok' ? 'text-yellow-400' :
-                    'text-gray-400'
-                  }`}></i>
-                  <span className="text-secondary flex-1">{model.name}</span>
-                  {isSelected && (
-                    <i className="fa-solid fa-check text-blue-400 ml-2" title="已選中"></i>
-                  )}
-                </button>
+                  <>
+                    {/* Auto */}
+                    {autoModel && renderModelRow(autoModel, false)}
+
+                    {/* Favorites */}
+                    <div className="border-t border-primary my-1"></div>
+                    <div className="px-4 py-2 text-xs text-tertiary font-medium">
+                      {t('chatInput.model.favorites', '我的收藏')}
+                    </div>
+                    {favoriteModelItems.length > 0 ? (
+                      favoriteModelItems.map((m) => renderModelRow(m, true))
+                    ) : (
+                      <div className="px-4 py-2 text-xs text-tertiary">
+                        {t('chatInput.model.noFavorites', '暫無收藏模型')}
+                      </div>
+                    )}
+
+                    {/* All models */}
+                    <div className="border-t border-primary my-1"></div>
+                    <div className="px-4 py-2 text-xs text-tertiary font-medium">
+                      {t('chatInput.model.all', '所有模型')}
+                    </div>
+                    {allModelItems.map((m) => renderModelRow(m, true))}
+                  </>
                 );
-              })}
+              })()}
             </div>,
             document.body
           )}
@@ -1434,7 +1497,7 @@ export default function ChatInput({
             {!isPreviewMode && <span>{t('chatInput.clear', '清除')}</span>}
             <i className={`fa-solid fa-xmark ${!isPreviewMode ? 'ml-2' : ''}`}></i>
           </button>
-          
+
           {/* 發送按鈕 */}
           <button
             className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center ${isPreviewMode ? 'px-2' : ''}`}

@@ -48,6 +48,8 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     browseMode?: 'assistants' | 'agents' | null;
     onAssistantSelect?: (assistantId: string) => void;
     onAgentSelect?: (agentId: string) => void;
+    onModelSelect?: (modelId: string) => void; // 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：模型選擇回寫
+    onMessageSend?: (raw: string) => void; // 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：送出訊息到後端
     resultPanelCollapsed?: boolean;
     onResultPanelToggle?: () => void;
     onAssistantFavorite?: (assistantId: string, isFavorite: boolean, assistantName?: string) => void;
@@ -62,7 +64,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     isPreviewMode?: boolean; // 是否處於預覽模式（右側文件預覽展開時為 true）
   }
 
-  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete, isPreviewMode = false }: ChatAreaProps) {
+  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, onModelSelect, onMessageSend, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete, isPreviewMode = false }: ChatAreaProps) {
     const [activeTab, setActiveTab] = useState('human-resource');
     const [activeAssistantTab, setActiveAssistantTab] = useState('human-resource');
     const { theme, toggleTheme } = useTheme();
@@ -192,7 +194,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
             name: t('agent.finance.budgetPlanning'),
             description: t('agent.finance.description.budgetPlanning'),
             icon: 'fa-money-bill-wave',
-            status: 'offline',
+            status: 'maintenance',
             usageCount: 112
           },
           {
@@ -662,10 +664,10 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
                     key={agent.id}
                     agent={agent}
                     isFavorite={isFavorite}
-                    onEdit={(agentId) => {
+                    onEdit={(_agentId) => {
                       // 可以在这里添加编辑代理的逻辑
                     }}
-                    onDelete={(agentId) => {
+                    onDelete={(_agentId) => {
                       // 可以在这里添加删除代理的逻辑
                     }}
                     onClick={() => {
@@ -694,20 +696,16 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
           assistants={allAssistants}
           onAgentSelect={onAgentSelect}
           onAssistantSelect={onAssistantSelect}
+          onModelSelect={onModelSelect}
           selectedAgentId={selectedTask?.executionConfig?.agentId}
           selectedAssistantId={selectedTask?.executionConfig?.assistantId}
           selectedModelId={selectedTask?.executionConfig?.modelId || 'auto'}
-          favoriteAgents={favoriteAgents}
-          favoriteAssistants={favoriteAssistants}
           currentTaskId={currentTaskId}
           selectedTask={selectedTask}
           onTaskCreate={onTaskCreate}
           onTaskDelete={onTaskDelete}
           isPreviewMode={isPreviewMode}
-          onMessageSend={(message) => {
-            // 处理消息发送
-            // 这里可以添加实际的消息处理逻辑
-          }}
+          onMessageSend={onMessageSend}
           onTaskTitleGenerate={(title) => {
             // 生成任务标题（只在任务标题还是默认值时更新）
             if (selectedTask && (selectedTask.title === '新任務' || selectedTask.title === '新任务' || selectedTask.title === 'New Task')) {
@@ -741,7 +739,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
           setShowAssistantMaintenanceModal(false);
           setMaintainingAssistantId(null);
         }}
-        onSave={(data) => {
+        onSave={(_data) => {
           // TODO: 調用 API 保存助理維護數據
           setShowAssistantMaintenanceModal(false);
           setMaintainingAssistantId(null);

@@ -3,7 +3,7 @@
  * 功能：当用户点击收藏的助理或代理时，弹出选择界面
  * 创建日期：2025-01-27
  * 创建人：Daniel Chung
- * 最后修改日期：2025-01-27
+ * 最后修改日期：2025-12-13 18:28:38 (UTC+8)
  */
 
 import { useLanguage } from '../contexts/languageContext';
@@ -24,7 +24,7 @@ interface ExecutorSelectorModalProps {
 export default function ExecutorSelectorModal({
   isOpen,
   type,
-  executorId,
+  executorId: _executorId,
   executorName,
   executorDescription,
   hasCurrentTask,

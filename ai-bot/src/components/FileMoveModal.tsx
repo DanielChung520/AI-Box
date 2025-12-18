@@ -1,14 +1,14 @@
 // 代碼功能說明: 文件移動目錄選擇彈窗組件
 // 創建日期: 2025-12-08 09:29:49 UTC+8
 // 創建人: Daniel Chung
-// 最後修改日期: 2025-12-08 09:43:52 UTC+8
+// 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
 
 /**
  * 文件移動目錄選擇彈窗
  * 顯示目錄架構，讓用戶選擇要移動到的目標目錄
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react';
 import { FileTreeResponse } from '../lib/api';
 
@@ -37,7 +37,7 @@ export default function FileMoveModal({
   isOpen,
   onClose,
   onConfirm,
-  fileId,
+  fileId: _fileId,
   fileName,
   treeData,
   currentTaskId,
@@ -134,7 +134,7 @@ export default function FileMoveModal({
         break;
       }
     }
-    
+
     // 如果找不到，嘗試從 tree 的 key 中找（格式：{task_id}_workspace）
     if (!workspaceKey && tree) {
       for (const key of Object.keys(tree)) {
@@ -361,7 +361,7 @@ export default function FileMoveModal({
                   (n) => n.level === node.level + 1
                 );
                 const indent = node.level * 20;
-                
+
                 // 修改時間：2025-12-08 10:37:00 UTC+8 - 只顯示展開節點的子節點
                 // 如果當前節點的父節點是折疊的，不顯示
                 let shouldDisplay = true;
@@ -378,7 +378,7 @@ export default function FileMoveModal({
                     }
                   }
                 }
-                
+
                 if (!shouldDisplay) {
                   return null;
                 }

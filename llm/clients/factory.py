@@ -1,7 +1,7 @@
 # 代碼功能說明: LLM 客戶端工廠實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-13 23:34:17 (UTC+8)
 
 """LLM 客戶端工廠，根據 LLMProvider 創建對應客戶端，支持單例模式和資源訪問控制。"""
 
@@ -158,6 +158,10 @@ class LLMClientFactory:
         Raises:
             ValueError: 如果提供商不支持
         """
+        # 若提供了 api_key（多租戶/使用者自帶 key），不可使用全域單例 cache
+        if kwargs.get("api_key"):
+            use_cache = False
+
         # 如果使用緩存且已存在實例，直接返回
         if use_cache and provider in _client_cache:
             return _client_cache[provider]

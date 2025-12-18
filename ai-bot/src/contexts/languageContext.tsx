@@ -23,11 +23,6 @@ export const languageIcons: Record<Language, string> = {
   zh_TW: 'fa-language'
 };
 
-// 定义翻译内容类型
-interface Translations {
-  [key: string]: Record<Language, string>;
-}
-
 // 导入翻译内容（从 useLanguage.ts 中导入）
 import { translations } from '../hooks/useLanguage';
 

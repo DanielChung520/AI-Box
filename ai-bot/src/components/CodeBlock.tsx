@@ -1,10 +1,11 @@
 // 代碼功能說明：代碼塊組件，支持語法高亮和複製功能
 // 創建日期：2025-01-27
 // 創建人：Daniel Chung
-// 最後修改日期：2025-01-27
+// 最後修改日期：2025-12-13 18:28:38 (UTC+8)
 
 import { useState, useMemo } from 'react';
-import { Prism as SyntaxHighlighter, themes } from 'prism-react-renderer';
+import { Highlight, themes } from 'prism-react-renderer';
+import type { RenderProps, Token } from 'prism-react-renderer';
 import { Copy, Check } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../contexts/languageContext';
@@ -91,20 +92,29 @@ export default function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
 
       {/* 代碼內容 */}
       <div className="overflow-x-auto">
-        <SyntaxHighlighter
-          language={language}
-          style={prismTheme}
-          PreTag="div"
-          customStyle={{
-            margin: 0,
-            padding: '1rem',
-            backgroundColor: 'transparent',
-            fontSize: '0.875rem',
-            lineHeight: '1.5',
-          }}
-        >
-          {code}
-        </SyntaxHighlighter>
+        <Highlight theme={prismTheme as any} code={code} language={language as any}>
+          {({ className, style, tokens, getLineProps, getTokenProps }: RenderProps) => (
+            <pre
+              className={className}
+              style={{
+                ...style,
+                margin: 0,
+                padding: '1rem',
+                backgroundColor: 'transparent',
+                fontSize: '0.875rem',
+                lineHeight: '1.5',
+              }}
+            >
+              {tokens.map((line: Token[], i: number) => (
+                <div key={i} {...getLineProps({ line })}>
+                  {line.map((token: Token, key: number) => (
+                    <span key={key} {...getTokenProps({ token })} />
+                  ))}
+                </div>
+              ))}
+            </pre>
+          )}
+        </Highlight>
       </div>
     </div>
   );

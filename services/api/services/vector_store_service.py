@@ -1,7 +1,7 @@
 # 代碼功能說明: 向量存儲服務
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-06
+# 最後修改日期: 2025-12-13 20:06:02 (UTC+8)
 
 """向量存儲服務 - 封裝 ChromaDB 操作，實現向量存儲和查詢"""
 
@@ -34,7 +34,7 @@ class VectorStoreService:
         # 優先從 datastores.chromadb 讀取配置，然後從 chromadb 讀取（向後兼容）
         datastores_config = get_config_section("datastores", default={}) or {}
         chromadb_config = (
-            datastores_chromadb_config.get("chromadb", {}) if datastores_config else {}
+            datastores_config.get("chromadb", {}) if datastores_config else {}
         )
 
         # 如果 datastores.chromadb 沒有配置，嘗試直接讀取 chromadb 配置（向後兼容）

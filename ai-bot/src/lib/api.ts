@@ -1,7 +1,7 @@
 // 代碼功能說明: API 客戶端配置
 // 創建日期: 2025-01-27
 // 創建人: Daniel Chung
-// 最後修改日期: 2025-12-06
+// 最後修改日期: 2025-12-14 11:12:09 (UTC+8)
 
 /**
  * API 客戶端配置
@@ -138,7 +138,6 @@ export async function apiRequest<T = any>(
         console.warn(`[apiRequest] Authentication failed for ${url}. Token may be missing, invalid, or expired.`);
 
         // 檢查是否為登錄相關的請求（不應該清除登錄頁面的 token）
-        const isAuthEndpoint = endpoint.includes('/auth/');
         const isLoginEndpoint = endpoint.includes('/auth/login');
 
         // 只有非登錄相關的請求才清除 token（避免登錄過程中的誤清除）
@@ -488,6 +487,11 @@ export interface FileUploadResponse {
 }
 
 /**
+ * 建立空白 Markdown 檔案（不走 multipart upload）
+ */
+// 注意：新增檔案目前改為「前端草稿」；實際提交請走 /docs 的 preview-first apply
+
+/**
  * 獲取認證 Token（從 localStorage）
  */
 function getAuthToken(): string | null {
@@ -540,6 +544,51 @@ export async function uploadFiles(
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const response = JSON.parse(xhr.responseText);
+          // 修改時間：2025-12-12 - 上傳成功後通知前端刷新文件樹/列表
+          try {
+            const uploadedItems = response?.data?.uploaded || [];
+            const uploadedFileIds = Array.isArray(uploadedItems)
+              ? uploadedItems.map((i: any) => i?.file_id).filter(Boolean)
+              : [];
+            const resolvedTaskId =
+              taskId ||
+              response?.data?.task_id ||
+              (uploadedItems?.[0]?.task_id ?? undefined);
+
+            // 修改時間：2025-12-12 - 暫存最近一次上傳資訊，支援「上傳在聊天頁、切到文件頁」的刷新
+            try {
+              localStorage.setItem(
+                'lastUploadInfo',
+                JSON.stringify({
+                  taskId: resolvedTaskId,
+                  fileIds: uploadedFileIds,
+                  ts: Date.now(),
+                })
+              );
+            } catch {
+              // ignore storage errors
+            }
+
+            // 向後兼容：同時派發 fileUploaded / filesUploaded（部分組件只聽其一）
+            window.dispatchEvent(
+              new CustomEvent('fileUploaded', {
+                detail: {
+                  fileIds: uploadedFileIds,
+                  taskId: resolvedTaskId,
+                },
+              })
+            );
+            window.dispatchEvent(
+              new CustomEvent('filesUploaded', {
+                detail: {
+                  files: uploadedItems,
+                  taskId: resolvedTaskId,
+                },
+              })
+            );
+          } catch {
+            // ignore event dispatch errors
+          }
           resolve(response);
         } catch (error) {
           reject(new Error('無法解析服務器響應'));
@@ -683,6 +732,7 @@ export interface FileTreeResponse {
     folders?: Record<string, {
       folder_name: string;
       parent_task_id?: string | null;
+      task_id?: string; // 修改時間：2025-12-13 18:28:38 (UTC+8) - 兼容前端取資料夾所屬 task_id
       user_id: string;
       folder_type?: string; // 修改時間：2025-01-27 - 添加 folder_type 屬性（workspace, scheduled 等）
     }>;
@@ -760,6 +810,8 @@ export async function downloadFile(fileId: string): Promise<Blob> {
   const url = `${API_URL}/files/${fileId}/download`;
   const token = localStorage.getItem('access_token');
 
+  console.log('[downloadFile] 開始下載文件:', { fileId, url, hasToken: !!token });
+
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -767,11 +819,71 @@ export async function downloadFile(fileId: string): Promise<Blob> {
     },
   });
 
+  console.log('[downloadFile] 響應狀態:', response.status, response.statusText);
+  console.log('[downloadFile] 響應頭:', {
+    contentType: response.headers.get('content-type'),
+    contentLength: response.headers.get('content-length')
+  });
+
   if (!response.ok) {
-    throw new Error(`下載失敗: ${response.statusText}`);
+    // 嘗試讀取錯誤詳情
+    let errorMessage = `下載失敗`;
+
+    // 先檢查 Content-Type，決定如何讀取響應
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+
+    try {
+      if (isJson) {
+        // JSON 響應
+        const errorJson = await response.json();
+        errorMessage = errorJson.detail || errorJson.message || errorJson.error || errorMessage;
+        console.log('[downloadFile] JSON 錯誤響應:', errorJson);
+      } else {
+        // 文本響應
+        const errorText = await response.text();
+        if (errorText && errorText.trim()) {
+          // 嘗試解析為 JSON（有些 API 返回 JSON 但 Content-Type 不對）
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.detail || errorJson.message || errorJson.error || errorText;
+          } catch {
+            errorMessage = errorText;
+          }
+        } else {
+          // 如果沒有文本內容，使用狀態碼和狀態文本
+          if (response.statusText) {
+            errorMessage = `下載失敗: ${response.statusText}`;
+          } else {
+            errorMessage = `下載失敗 (HTTP ${response.status})`;
+          }
+        }
+        console.log('[downloadFile] 文本錯誤響應:', errorText);
+      }
+    } catch (parseError) {
+      // 如果讀取響應失敗，使用狀態碼
+      console.error('[downloadFile] 讀取錯誤響應失敗:', parseError);
+      if (response.statusText) {
+        errorMessage = `下載失敗: ${response.statusText}`;
+      } else {
+        errorMessage = `下載失敗 (HTTP ${response.status})`;
+  }
+    }
+
+    const error: any = new Error(errorMessage);
+    error.status = response.status;
+    error.statusText = response.statusText || '';
+    console.error('[downloadFile] 下載失敗:', {
+      status: response.status,
+      statusText: response.statusText,
+      errorMessage: errorMessage
+    });
+    throw error;
   }
 
-  return response.blob();
+  const blob = await response.blob();
+  console.log('[downloadFile] 下載成功，文件大小:', blob.size, 'bytes', '類型:', blob.type);
+  return blob;
 }
 
 /**
@@ -792,6 +904,110 @@ export interface FilePreviewResponse {
 
 export async function previewFile(fileId: string): Promise<FilePreviewResponse> {
   return apiGet<FilePreviewResponse>(`/files/${fileId}/preview`);
+}
+
+/**
+ * 文件助手（Doc Editing / Generation）
+ */
+export interface DocEditCreateRequest {
+  file_id: string;
+  instruction: string;
+  base_version?: number;
+}
+
+export interface DocEditCreateResponse {
+  success: boolean;
+  data: {
+    request_id: string;
+    status: string;
+  };
+}
+
+export interface DocEditStateResponse {
+  success: boolean;
+  data: {
+    request_id: string;
+    status: string;
+    file_id: string;
+    base_version: number;
+    preview?: {
+      patch_kind: 'unified_diff' | 'json_patch';
+      patch: any;
+      summary?: string;
+    };
+    apply_result?: {
+      new_version: number;
+    };
+    error_code?: string;
+    error_message?: string;
+  };
+}
+
+export async function createDocEdit(payload: DocEditCreateRequest): Promise<DocEditCreateResponse> {
+  return apiPost<DocEditCreateResponse>('/docs/edits', payload);
+}
+
+export async function getDocEditState(requestId: string): Promise<DocEditStateResponse> {
+  return apiGet<DocEditStateResponse>(`/docs/edits/${requestId}`);
+}
+
+export async function abortDocEdit(requestId: string): Promise<any> {
+  return apiPost(`/docs/edits/${requestId}/abort`);
+}
+
+export async function applyDocEdit(requestId: string): Promise<any> {
+  return apiPost(`/docs/edits/${requestId}/apply`);
+}
+
+export async function listDocVersions(fileId: string): Promise<any> {
+  return apiGet(`/docs/files/${fileId}/versions`);
+}
+
+export async function rollbackDocVersion(fileId: string, toVersion: number): Promise<any> {
+  return apiPost(`/docs/files/${fileId}/rollback?to_version=${encodeURIComponent(String(toVersion))}`);
+}
+
+export interface DocGenCreateRequest {
+  task_id: string;
+  filename: string;
+  doc_format: 'md' | 'txt' | 'json';
+  instruction: string;
+}
+
+export interface DocGenCreateResponse {
+  success: boolean;
+  data: {
+    request_id: string;
+    status: string;
+  };
+}
+
+export interface DocGenStateResponse {
+  success: boolean;
+  data: {
+    request_id: string;
+    status: string;
+    preview?: { content: string };
+    apply_result?: { file_id: string };
+    error_code?: string;
+    error_message?: string;
+  };
+}
+
+export async function createDocGeneration(payload: DocGenCreateRequest): Promise<DocGenCreateResponse> {
+  return apiPost<DocGenCreateResponse>('/docs/generations', payload);
+}
+
+export async function getDocGenerationState(requestId: string): Promise<DocGenStateResponse> {
+  return apiGet<DocGenStateResponse>(`/docs/generations/${requestId}`);
+}
+
+export async function abortDocGeneration(requestId: string): Promise<any> {
+  return apiPost(`/docs/generations/${requestId}/abort`);
+}
+
+export async function applyDocGeneration(requestId: string): Promise<any> {
+  return apiPost(`/docs/generations/${requestId}/apply`);
 }
 
 /**
@@ -834,6 +1050,14 @@ export interface ProcessingStatusResponse {
       triples_count?: number;
       entities_count?: number;
       relations_count?: number;
+      job_id?: string | null;
+      next_job_id?: string | null;
+      mode?: string;
+      total_chunks?: number;
+      completed_chunks?: number[];
+      remaining_chunks?: number[];
+      failed_chunks?: number[];
+      failed_permanent_chunks?: number[];
     };
     message?: string;
   };
@@ -845,6 +1069,32 @@ export interface ProcessingStatusResponse {
  */
 export async function getProcessingStatus(fileId: string): Promise<ProcessingStatusResponse> {
   return apiGet<ProcessingStatusResponse>(`/files/${fileId}/processing-status`);
+}
+
+/**
+ * KG 分塊狀態響應接口
+ */
+export interface KgChunkStatusResponse {
+  success: boolean;
+  data: {
+    file_id: string;
+    exists: boolean;
+    total_chunks: number;
+    completed_chunks: number[];
+    failed_chunks: number[];
+    failed_permanent_chunks: number[];
+    attempts?: Record<string, number>;
+    errors?: Record<string, { error?: string; ts?: number }>;
+    chunks?: Record<string, any>;
+  };
+  message?: string;
+}
+
+/**
+ * 獲取 KG 分塊狀態（用於可視化 chunk 進度）
+ */
+export async function getKgChunkStatus(fileId: string): Promise<KgChunkStatusResponse> {
+  return apiGet<KgChunkStatusResponse>(`/files/${fileId}/kg/chunk-status`);
 }
 
 /**
@@ -1441,6 +1691,8 @@ export interface UserTask {
   user_id: string;
   title: string;
   status: 'pending' | 'in-progress' | 'completed';
+  task_status?: 'activate' | 'archive';
+  label_color?: string | null;
   dueDate?: string;
   messages?: Array<{
     id: string;
@@ -1453,6 +1705,8 @@ export interface UserTask {
     mode: 'free' | 'assistant' | 'agent';
     assistantId?: string;
     agentId?: string;
+    modelId?: string; // 產品級 Chat：任務維度模型選擇
+    sessionId?: string; // 產品級 Chat：任務維度 session_id
   };
   fileTree?: Array<{
     id: string;
@@ -1565,4 +1819,147 @@ export async function updateUserTask(
  */
 export async function deleteUserTask(taskId: string): Promise<{ success: boolean; message?: string }> {
   return apiDelete(`/user-tasks/${taskId}`);
+}
+
+/**
+ * 產品級 Chat API（/api/v1/chat）
+ */
+
+export type ChatRole = 'system' | 'user' | 'assistant';
+export type ModelSelectorMode = 'auto' | 'manual' | 'favorite';
+
+export type ChatAction =
+  | {
+      type: 'file_created';
+      file_id: string;
+      filename: string;
+      task_id?: string;
+      folder_id?: string | null;
+      folder_path?: string | null;
+    }
+  | {
+      type: 'file_edited';
+      file_id: string;
+      filename: string;
+      request_id: string;
+      preview?: any;
+      task_id?: string;
+      is_draft?: boolean;
+    }
+  | Record<string, any>;
+
+export interface ChatProductMessage {
+  role: ChatRole;
+  content: string;
+}
+
+export interface ModelSelector {
+  mode: ModelSelectorMode;
+  model_id?: string;
+  policy_overrides?: Record<string, any>;
+}
+
+export interface ChatAttachment {
+  file_id: string;
+  file_name: string;
+  file_path?: string;
+  task_id?: string;
+}
+
+export interface ChatProductRequest {
+  messages: ChatProductMessage[];
+  session_id?: string;
+  task_id?: string;
+  model_selector: ModelSelector;
+  attachments?: ChatAttachment[];
+}
+
+export interface ChatProductResult {
+  content: string;
+  session_id: string;
+  task_id?: string;
+  actions?: ChatAction[] | null;
+  routing: {
+    provider: string;
+    model?: string | null;
+    strategy: string;
+    latency_ms?: number | null;
+    failover_used: boolean;
+    fallback_provider?: string | null;
+  };
+  observability?: Record<string, any> | null;
+}
+
+export interface ChatProductResponse {
+  success: boolean;
+  data?: ChatProductResult;
+  message?: string;
+  error_code?: string;
+  details?: any;
+}
+
+export async function chatProduct(request: ChatProductRequest): Promise<ChatProductResponse> {
+  return apiPost<ChatProductResponse>('/chat', request);
+}
+
+/**
+ * 收藏模型偏好（hybrid：API 優先，失敗 fallback localStorage）
+ */
+
+const FAVORITE_MODELS_STORAGE_KEY = 'ai-box-favorite-models';
+
+const loadFavoriteModelsLocal = (): string[] => {
+  try {
+    const raw = localStorage.getItem(FAVORITE_MODELS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveFavoriteModelsLocal = (modelIds: string[]): void => {
+  try {
+    localStorage.setItem(FAVORITE_MODELS_STORAGE_KEY, JSON.stringify(modelIds));
+  } catch {
+    // ignore
+  }
+};
+
+export interface FavoriteModelsResponse {
+  success: boolean;
+  data?: { model_ids: string[] };
+  message?: string;
+  error_code?: string;
+}
+
+export async function getFavoriteModels(): Promise<FavoriteModelsResponse> {
+  try {
+    const resp = await apiGet<FavoriteModelsResponse>('/chat/preferences/models');
+    if (resp?.success && resp.data?.model_ids) {
+      saveFavoriteModelsLocal(resp.data.model_ids);
+    }
+    return resp;
+  } catch (error: any) {
+    return {
+      success: true,
+      data: { model_ids: loadFavoriteModelsLocal() },
+      message: 'Fallback to localStorage',
+    };
+  }
+}
+
+export async function setFavoriteModels(model_ids: string[]): Promise<FavoriteModelsResponse> {
+  // 先本地保存，避免 UI 受網路波動影響
+  saveFavoriteModelsLocal(model_ids);
+  try {
+    return await apiPut<FavoriteModelsResponse>('/chat/preferences/models', { model_ids });
+  } catch (error: any) {
+    return {
+      success: true,
+      data: { model_ids },
+      message: 'Saved to localStorage (API unavailable)',
+    };
+  }
 }

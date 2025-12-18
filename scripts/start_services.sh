@@ -334,7 +334,7 @@ start_redis() {
     # 檢查是否使用 docker-compose
     if [ -f "docker-compose.yml" ]; then
         echo -e "${GREEN}發現 docker-compose.yml，使用 docker-compose 管理 Redis${NC}"
-        
+
         # 檢查 Redis 容器是否已在運行
         if docker-compose ps redis 2>/dev/null | grep -q "Up"; then
             echo -e "${GREEN}✅ Redis 已在運行 (端口 $REDIS_PORT)${NC}"
@@ -346,7 +346,7 @@ start_redis() {
         echo -e "${GREEN}啟動 Redis 容器...${NC}"
         if docker-compose up -d redis 2>/dev/null; then
             sleep 3
-            
+
             # 檢查容器狀態
             if docker-compose ps redis 2>/dev/null | grep -q "Up"; then
                 echo -e "${GREEN}✅ Redis 已啟動 (端口 $REDIS_PORT)${NC}"
@@ -633,6 +633,8 @@ show_usage() {
     echo "  fastapi    啟動 FastAPI"
     echo "  mcp        啟動 MCP Server"
     echo "  frontend   啟動前端服務 (Vite)"
+    echo "  worker     啟動 RQ Worker (後台任務處理)"
+    echo "  dashboard  啟動 RQ Dashboard (任務監控界面)"
     echo "  status     檢查服務狀態"
     echo "  monitor    實時監控 FastAPI 運行狀態"
     echo "  stop       停止所有服務"
@@ -642,6 +644,145 @@ show_usage() {
     echo "  $0 all              # 啟動所有服務"
     echo "  $0 fastapi          # 只啟動 FastAPI"
     echo "  $0 arangodb chromadb # 啟動 ArangoDB 和 ChromaDB"
+}
+
+# 函數：啟動 RQ Worker
+start_worker() {
+    echo -e "${BLUE}=== 啟動 RQ Worker ===${NC}"
+
+    # 檢查 Redis 是否運行
+    if ! check_port $REDIS_PORT; then
+        echo -e "${YELLOW}警告: Redis 未運行，Worker 需要 Redis 才能運行${NC}"
+        echo -e "${YELLOW}正在啟動 Redis...${NC}"
+        start_redis || {
+            echo -e "${RED}❌ 無法啟動 Redis，Worker 啟動失敗${NC}"
+            return 1
+        }
+        sleep 2
+    fi
+
+    # 檢查 Worker 是否已在運行
+    local worker_pids=$(ps aux | grep -E "rq worker|workers.service" | grep -v grep | awk "{print \$2}")
+    if [ -n "$worker_pids" ]; then
+        echo -e "${GREEN}✅ RQ Worker 已在運行 (PID: $worker_pids)${NC}"
+        return 0
+    fi
+
+    # 確定 Python 路徑
+    PYTHON_CMD="python3"
+    if [ -d "venv" ]; then
+        source venv/bin/activate
+        PYTHON_CMD="venv/bin/python"
+    elif [ -d ".venv" ]; then
+        source .venv/bin/activate
+        PYTHON_CMD=".venv/bin/python"
+    fi
+
+    # 檢查 RQ 是否安裝
+    if ! "$PYTHON_CMD" -c "import rq" 2>/dev/null; then
+        echo -e "${RED}錯誤: RQ 未安裝${NC}"
+        echo -e "${YELLOW}請安裝: pip install rq${NC}"
+        return 1
+    fi
+
+    # 設置 PYTHONPATH
+    export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
+
+    # 啟動 Worker Service（監聽所有隊列，啟用監控）
+    echo -e "${GREEN}啟動 RQ Worker Service...${NC}"
+    echo -e "${GREEN}  監聽隊列: kg_extraction, vectorization, file_processing${NC}"
+    echo -e "${GREEN}  監控模式: 啟用${NC}"
+    echo -e "${GREEN}  日誌文件: $LOG_DIR/worker_service.log${NC}"
+
+    nohup "$PYTHON_CMD" -m workers.service         --queues kg_extraction vectorization file_processing         --monitor         --check-interval 30         --name rq_worker_ai_box         > "$LOG_DIR/worker_service.log" 2>&1 &
+
+    local worker_pid=$!
+    sleep 2
+
+    # 檢查 Worker 是否成功啟動
+    if ps -p $worker_pid > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ RQ Worker 已啟動 (PID: $worker_pid)${NC}"
+        echo -e "${GREEN}  日誌: $LOG_DIR/worker_service.log${NC}"
+        echo -e "${YELLOW}  提示: 使用 'tail -f $LOG_DIR/worker_service.log' 查看日誌${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ RQ Worker 啟動失敗${NC}"
+        echo -e "${YELLOW}請檢查日誌: $LOG_DIR/worker_service.log${NC}"
+        return 1
+    fi
+}
+
+# 函數：啟動 RQ Dashboard
+start_rq_dashboard() {
+    echo -e "${BLUE}=== 啟動 RQ Dashboard ===${NC}"
+
+    # 檢查 Redis 是否運行
+    if ! check_port $REDIS_PORT; then
+        echo -e "${YELLOW}警告: Redis 未運行，Dashboard 需要 Redis 才能運行${NC}"
+        echo -e "${YELLOW}正在啟動 Redis...${NC}"
+        start_redis || {
+            echo -e "${RED}❌ 無法啟動 Redis，Dashboard 啟動失敗${NC}"
+            return 1
+        }
+        sleep 2
+    fi
+
+    # Dashboard 端口（可從環境變數讀取）
+    DASHBOARD_PORT=${RQ_DASHBOARD_PORT:-9181}
+
+    # 檢查 Dashboard 是否已在運行
+    if check_port $DASHBOARD_PORT; then
+        local pid=$(lsof -ti :$DASHBOARD_PORT | head -1)
+        echo -e "${GREEN}✅ RQ Dashboard 已在運行 (端口 $DASHBOARD_PORT, PID: $pid)${NC}"
+        echo -e "${GREEN}  訪問地址: http://localhost:$DASHBOARD_PORT${NC}"
+        return 0
+    fi
+
+    # 確定 Python 路徑
+    PYTHON_CMD="python3"
+    if [ -d "venv" ]; then
+        source venv/bin/activate
+        PYTHON_CMD="venv/bin/python"
+    elif [ -d ".venv" ]; then
+        source .venv/bin/activate
+        PYTHON_CMD=".venv/bin/python"
+    fi
+
+    # 檢查 rq-dashboard 是否安裝
+    if ! "$PYTHON_CMD" -c "import rq_dashboard" 2>/dev/null; then
+        echo -e "${RED}錯誤: rq-dashboard 未安裝${NC}"
+        echo -e "${YELLOW}請安裝: pip install rq-dashboard${NC}"
+        return 1
+    fi
+
+    # 設置 PYTHONPATH
+    export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
+
+    # 從環境變數讀取 Redis URL
+    REDIS_URL="${REDIS_URL:-redis://localhost:6379/0}"
+
+    # 啟動 RQ Dashboard
+    echo -e "${GREEN}啟動 RQ Dashboard...${NC}"
+    echo -e "${GREEN}  Redis URL: $REDIS_URL${NC}"
+    echo -e "${GREEN}  端口: $DASHBOARD_PORT${NC}"
+    echo -e "${GREEN}  訪問地址: http://localhost:$DASHBOARD_PORT${NC}"
+
+    nohup "$PYTHON_CMD" -m rq_dashboard         --redis-url "$REDIS_URL"         --port "$DASHBOARD_PORT"         > "$LOG_DIR/rq_dashboard.log" 2>&1 &
+
+    local dashboard_pid=$!
+    sleep 2
+
+    # 檢查 Dashboard 是否成功啟動
+    if check_port $DASHBOARD_PORT; then
+        echo -e "${GREEN}✅ RQ Dashboard 已啟動 (端口 $DASHBOARD_PORT, PID: $dashboard_pid)${NC}"
+        echo -e "${GREEN}  訪問地址: http://localhost:$DASHBOARD_PORT${NC}"
+        echo -e "${GREEN}  日誌: $LOG_DIR/rq_dashboard.log${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ RQ Dashboard 啟動失敗${NC}"
+        echo -e "${YELLOW}請檢查日誌: $LOG_DIR/rq_dashboard.log${NC}"
+        return 1
+    fi
 }
 
 # 函數：檢查服務狀態
@@ -657,6 +798,28 @@ check_status() {
         "MCP Server:$MCP_SERVER_PORT"
         "Frontend:$FRONTEND_PORT"
     )
+
+    # 檢查 Worker 狀態
+    echo -e "${BLUE}Worker 狀態:${NC}"
+    local worker_pids=$(ps aux | grep -E "rq worker|workers.service" | grep -v grep | awk "{print \$2}")
+    if [ -n "$worker_pids" ]; then
+        # 將多個 PID 用逗號分隔，避免換行
+        local formatted_pids=$(echo "$worker_pids" | tr '
+' ' ' | sed 's/ $//')
+        echo -e "${GREEN}✅ RQ Worker${NC} - 運行中 (PID: $formatted_pids)"
+    else
+        echo -e "${RED}❌ RQ Worker${NC} - 未運行"
+    fi
+    # 檢查 Dashboard 狀態
+    echo -e "${BLUE}Dashboard 狀態:${NC}"
+    local dashboard_port=${RQ_DASHBOARD_PORT:-9181}
+    if check_port $dashboard_port; then
+        local dashboard_pid=$(lsof -ti :$dashboard_port | head -1)
+        echo -e "${GREEN}✅ RQ Dashboard${NC} - 運行中 (端口 $dashboard_port, PID: $dashboard_pid)"
+        echo -e "${GREEN}  訪問地址: http://localhost:$dashboard_port${NC}"
+    else
+        echo -e "${RED}❌ RQ Dashboard${NC} - 未運行 (端口 $dashboard_port)"
+    fi
 
     for service_info in "${services[@]}"; do
         IFS=':' read -r name port <<< "$service_info"
@@ -713,7 +876,7 @@ monitor_fastapi() {
             local rss=$(ps -p $pid -o rss= | tr -d ' ')
             local mem_mb=$((rss / 1024))
             local vsz_mb=$((vsz / 1024))
-            
+
             echo -e "  PID: ${GREEN}$pid${NC}"
             echo -e "  CPU 使用率: ${GREEN}${cpu}%${NC}"
             echo -e "  內存使用率: ${GREEN}${mem}%${NC}"
@@ -749,7 +912,7 @@ monitor_fastapi() {
         else
             echo -e "  API 端點: ${YELLOW}⚠️  HTTP $health_code${NC}"
         fi
-        
+
         # 測試登錄端點
         local login_response=$(curl -s -w "
 %{http_code}" --max-time 2 -X POST "$FASTAPI_URL/api/v1/auth/login" \
@@ -773,7 +936,7 @@ monitor_fastapi() {
             local error_count=$(tail -100 "$LOG_FILE" 2>/dev/null | grep -i "ERROR\|Exception\|Traceback" | wc -l | tr -d ' ')
             local warn_count=$(tail -100 "$LOG_FILE" 2>/dev/null | grep -i "WARNING\|WARN" | wc -l | tr -d ' ')
             local info_count=$(tail -100 "$LOG_FILE" 2>/dev/null | grep -i "INFO" | wc -l | tr -d ' ')
-            
+
             echo -e "  總日誌行數: ${GREEN}$total_lines${NC}"
             echo -e "  錯誤數量: ${RED}$error_count${NC}"
             echo -e "  警告數量: ${YELLOW}$warn_count${NC}"
@@ -815,7 +978,7 @@ monitor_fastapi() {
 
         echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
         echo -e "${YELLOW}更新間隔: ${UPDATE_INTERVAL} 秒 | 按 Ctrl+C 退出${NC}"
-        
+
         sleep $UPDATE_INTERVAL
     done
 }
@@ -836,6 +999,43 @@ stop_all() {
         fi
     done
 
+    # 停止 Worker
+    echo -e "${YELLOW}停止 RQ Worker...${NC}"
+    local worker_pids=$(ps aux | grep -E "rq worker|workers.service" | grep -v grep | awk "{print \$2}")
+    if [ -n "$worker_pids" ]; then
+        for pid in $worker_pids; do
+            echo -e "${YELLOW}  停止 Worker 進程 $pid...${NC}"
+            kill -TERM $pid 2>/dev/null || true
+        done
+        sleep 2
+        # 強制終止仍在運行的 Worker
+        local remaining_pids=$(ps aux | grep -E "rq worker|workers.service" | grep -v grep | awk "{print \$2}")
+        if [ -n "$remaining_pids" ]; then
+            for pid in $remaining_pids; do
+                kill -9 $pid 2>/dev/null || true
+            done
+        fi
+    fi
+    # 停止 Dashboard
+    echo -e "${YELLOW}停止 RQ Dashboard...${NC}"
+    local dashboard_port=${RQ_DASHBOARD_PORT:-9181}
+    if check_port $dashboard_port; then
+        local dashboard_pids=$(lsof -ti :$dashboard_port)
+        if [ -n "$dashboard_pids" ]; then
+            for pid in $dashboard_pids; do
+                echo -e "${YELLOW}  停止 Dashboard 進程 $pid...${NC}"
+                kill -TERM $pid 2>/dev/null || true
+            done
+            sleep 1
+            # 強制終止仍在運行的 Dashboard
+            local remaining_pids=$(lsof -ti :$dashboard_port 2>/dev/null)
+            if [ -n "$remaining_pids" ]; then
+                for pid in $remaining_pids; do
+                    kill -9 $pid 2>/dev/null || true
+                done
+            fi
+        fi
+    fi
     echo -e "${GREEN}✅ 所有服務已停止${NC}"
 }
 
@@ -855,7 +1055,10 @@ main() {
                 start_chromadb || true
                 start_redis || true
                 start_fastapi || true
+                start_mcp || true
                 start_frontend || true
+                start_worker || true
+                start_rq_dashboard || true
                 echo -e "${GREEN}=== 啟動完成 ===${NC}"
                 check_status
                 ;;
@@ -876,6 +1079,12 @@ main() {
                 ;;
             frontend)
                 start_frontend
+                ;;
+            worker)
+                start_worker
+                ;;
+            dashboard)
+                start_rq_dashboard
                 ;;
             status)
                 check_status

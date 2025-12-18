@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件上傳路由
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-14 13:14:14 (UTC+8)
 
 """文件上傳路由 - 提供文件上傳、驗證和存儲功能"""
 
@@ -18,6 +18,7 @@ from fastapi import (
 )
 from fastapi.responses import JSONResponse
 import structlog
+from pydantic import BaseModel, Field
 
 from api.core.response import APIResponse
 from system.security.dependencies import get_current_user
@@ -51,6 +52,7 @@ from datetime import datetime
 import uuid
 from database.rq.queue import get_task_queue, FILE_PROCESSING_QUEUE
 from workers.tasks import process_file_chunking_and_vectorization_task
+from genai.api.services.kg_builder_service import KGBuilderService
 
 logger = structlog.get_logger(__name__)
 
@@ -60,6 +62,16 @@ router = APIRouter(prefix="/files", tags=["File Upload"])
 _validator: Optional[FileValidator] = None
 _storage: Optional[FileStorage] = None
 _metadata_service: Optional[FileMetadataService] = None
+
+
+class BlankMarkdownCreateRequest(BaseModel):
+    """建立空白 Markdown 檔案（不走 upload multipart）。"""
+
+    task_id: str = Field(..., description="任務ID（必填）")
+    folder_id: Optional[str] = Field(
+        None, description="資料夾ID（可選；None 表示任務工作區根目錄）"
+    )
+    filename: str = Field(..., description="檔名（會自動補 .md）")
 
 
 def get_validator() -> FileValidator:
@@ -95,6 +107,131 @@ def _extract_file_ids(response_body: dict) -> Optional[str]:
         # 返回第一個文件的ID
         return uploaded[0].get("file_id")
     return None
+
+
+@router.post("/blank-md")
+@audit_log(
+    action=AuditAction.FILE_CREATE,
+    resource_type="file",
+    get_resource_id=lambda body: body.get("data", {}).get("file_id"),
+)
+async def create_blank_markdown(
+    request: Request,
+    body: BlankMarkdownCreateRequest,
+    current_user: User = Depends(require_consent(ConsentType.FILE_UPLOAD)),
+) -> JSONResponse:
+    """
+    建立空白 Markdown 檔案（.md），不走 multipart upload 與後續向量化流程。
+    """
+    permission_service = get_file_permission_service()
+    permission_service.check_upload_permission(current_user)
+
+    task_id = (body.task_id or "").strip()
+    if not task_id:
+        return APIResponse.error(
+            message="任務ID不能為空，文件必須關聯到任務工作區",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # 若 task 不存在：比照 /files/upload 行為，自動建立任務與工作區
+    task_service = get_user_task_service()
+    existing_task = task_service.get(user_id=current_user.user_id, task_id=task_id)
+    if existing_task is None:
+        task_title = os.path.splitext((body.filename or "新任務").strip() or "新任務")[
+            0
+        ]
+        try:
+            task_service.create(
+                UserTaskCreate(
+                    task_id=task_id,
+                    user_id=current_user.user_id,
+                    title=task_title,
+                    status="pending",
+                    messages=[],
+                    fileTree=[],
+                )
+            )
+            logger.info(
+                "blank_md_task_auto_created",
+                task_id=task_id,
+                user_id=current_user.user_id,
+                task_title=task_title,
+            )
+        except Exception as exc:
+            logger.error(
+                "blank_md_task_auto_create_failed",
+                task_id=task_id,
+                user_id=current_user.user_id,
+                error=str(exc),
+                exc_info=True,
+            )
+            return APIResponse.error(
+                message=f"創建任務失敗: {str(exc)}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    permission_service.check_task_file_access(
+        user=current_user,
+        task_id=task_id,
+        required_permission=Permission.FILE_UPLOAD.value,
+    )
+
+    filename = (body.filename or "").strip()
+    if not filename:
+        return APIResponse.error(
+            message="檔名不能為空",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if not filename.lower().endswith(".md"):
+        filename = f"{os.path.splitext(filename)[0]}.md"
+
+    # 內容至少 1 byte，避免某些系統對 0 byte 的處理差異
+    content = b"\n"
+
+    storage = get_storage()
+    file_id, file_path = storage.save_file(
+        file_content=content,
+        filename=filename,
+        task_id=task_id,
+    )
+
+    metadata_service = get_metadata_service()
+    metadata_service.create(
+        FileMetadataCreate(
+            file_id=file_id,
+            filename=filename,
+            file_type="text/markdown",
+            file_size=len(content),
+            user_id=current_user.user_id,
+            task_id=task_id,
+            folder_id=body.folder_id,
+            storage_path=file_path,
+            tags=["blank", "markdown"],
+            description="Blank markdown file created from FileTree",
+            status="uploaded",
+            processing_status=None,
+        )
+    )
+
+    logger.info(
+        "blank_markdown_created",
+        file_id=file_id,
+        filename=filename,
+        task_id=task_id,
+        folder_id=body.folder_id,
+        user_id=current_user.user_id,
+        request_path=request.url.path,
+    )
+
+    return APIResponse.success(
+        data={
+            "file_id": file_id,
+            "filename": filename,
+            "task_id": task_id,
+            "folder_id": body.folder_id,
+        },
+        message="Blank markdown created",
+    )
 
 
 def _update_upload_progress(
@@ -255,7 +392,40 @@ async def process_file_chunking_and_vectorization(
 
         # 解析文件
         storage = get_chunk_storage()
-        file_content = storage.read_file(file_id)
+        # 修改時間：2025-12-12 - 從元數據取得 task_id / storage_path，避免在任務工作區存儲時讀不到文件
+        task_id_from_metadata: Optional[str] = None
+        metadata_storage_path: Optional[str] = None
+        try:
+            metadata_service = get_metadata_service()
+            file_metadata_obj = metadata_service.get(file_id)
+            if file_metadata_obj:
+                task_id_from_metadata = getattr(file_metadata_obj, "task_id", None)
+                metadata_storage_path = getattr(file_metadata_obj, "storage_path", None)
+        except Exception as e:
+            logger.warning(
+                "Failed to get file metadata for reading content",
+                file_id=file_id,
+                error=str(e),
+            )
+
+        # LocalFileStorage.read_file 支持 (task_id, metadata_storage_path)
+        try:
+            file_content = storage.read_file(  # type: ignore[call-arg]
+                file_id,
+                task_id=task_id_from_metadata,
+                metadata_storage_path=metadata_storage_path,
+            )
+        except TypeError:
+            # 向後兼容：如果 storage 不支持額外參數
+            file_content = storage.read_file(file_id)
+
+        # 最後保底：直接用 file_path 讀取（避免 metadata/路徑異常）
+        if file_content is None and file_path:
+            try:
+                with open(file_path, "rb") as f:
+                    file_content = f.read()
+            except Exception:
+                file_content = None
         if file_content is None:
             raise ValueError(f"無法讀取文件: {file_id}")
 
@@ -484,6 +654,62 @@ async def process_file_chunking_and_vectorization(
                         user_id=user_id,
                         options=kg_config_with_metadata,
                     )
+                    # 若 KG 提取因 time budget 提早結束，依最新需求自動續跑（加鎖避免重複 enqueue）
+                    try:
+                        # 讀取剛寫入的 processing status 取得 remaining_chunks
+                        redis_client = get_redis_client()
+                        status_key = f"processing:status:{file_id}"
+                        status_raw = redis_client.get(status_key)
+                        status_data = json.loads(status_raw) if status_raw else {}
+                        remaining_chunks = (status_data.get("kg_extraction") or {}).get(
+                            "remaining_chunks"
+                        ) or []
+                        if remaining_chunks:
+                            from database.rq.queue import (
+                                KG_EXTRACTION_QUEUE,
+                                get_task_queue,
+                            )
+                            from workers.tasks import process_kg_extraction_only_task
+
+                            queue = get_task_queue(KG_EXTRACTION_QUEUE)
+                            lock_key = f"kg:continue_lock:{file_id}"
+                            # 120 秒內只允許 enqueue 一次續跑
+                            got_lock = bool(
+                                redis_client.set(lock_key, "1", nx=True, ex=120)
+                            )
+                            next_job_id: Optional[str] = None
+                            if got_lock:
+                                next_job = queue.enqueue(
+                                    process_kg_extraction_only_task,
+                                    file_id=file_id,
+                                    file_path=file_path,
+                                    file_type=file_type,
+                                    user_id=user_id,
+                                    force_rechunk=False,
+                                )
+                                next_job_id = next_job.id
+
+                            _update_processing_status(
+                                file_id=file_id,
+                                kg_extraction={
+                                    "status": "processing",
+                                    "message": f"續跑已排程（剩餘 {len(remaining_chunks)} 個分塊）",
+                                    "next_job_id": next_job_id,
+                                    "remaining_chunks": remaining_chunks,
+                                },
+                            )
+                            logger.info(
+                                "KG extraction continuation enqueued (from upload pipeline)",
+                                file_id=file_id,
+                                next_job_id=next_job_id,
+                                remaining_chunks=len(remaining_chunks),
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to enqueue KG extraction continuation from upload pipeline",
+                            file_id=file_id,
+                            error=str(e),
+                        )
                 except Exception as e:
                     logger.error(
                         "知識圖譜提取失敗（不影響其他處理）",
@@ -899,7 +1125,7 @@ async def process_kg_extraction(
     chunks: List[Dict[str, Any]],
     user_id: str,
     options: Dict[str, Any],
-) -> None:
+) -> Dict[str, Any]:
     """
     異步處理知識圖譜提取
 
@@ -911,6 +1137,15 @@ async def process_kg_extraction(
     """
     try:
         # 初始化KG提取狀態
+        # 修改時間：2025-12-13 (UTC+8) - 寫入正確 job_id，方便前端追蹤
+        try:
+            from rq import get_current_job
+
+            current_job = get_current_job()
+            current_job_id = current_job.id if current_job else None
+        except Exception:
+            current_job_id = None
+
         _update_processing_status(
             file_id=file_id,
             kg_extraction={
@@ -918,60 +1153,82 @@ async def process_kg_extraction(
                 "progress": 0,
                 "message": "開始知識圖譜提取",
                 "mode": options.get("mode", "all_chunks"),
+                "job_id": current_job_id,
             },
             overall_progress=90,
         )
 
         kg_service = get_kg_extraction_service()
 
-        # 提取三元組
-        triples = await kg_service.extract_triples_from_chunks(chunks, options)
-
-        _update_processing_status(
+        # 修改時間：2025-12-13 (UTC+8) - 以「分塊可續跑」方式提取並逐塊寫入 KG（不靠拉高 timeout）
+        result = await kg_service.extract_and_build_incremental(
             file_id=file_id,
-            kg_extraction={
-                "status": "processing",
-                "progress": 50,
-                "message": "三元組提取完成，開始構建知識圖譜",
-                "triples_count": len(triples),
-            },
-            overall_progress=95,
+            chunks=chunks,
+            user_id=user_id,
+            options=options,
+            concurrency=3,
+            time_budget_seconds=150,
         )
-
-        logger.info(
-            "三元組提取完成",
-            file_id=file_id,
-            triples_count=len(triples),
-        )
-
-        # 構建知識圖譜
-        result = await kg_service.build_kg_from_file(file_id, triples, user_id)
 
         # 統計實體和關係數量
-        entities_count = result.get("entities_created", 0)
-        relations_count = result.get("relations_created", 0)
+        entities_count = int(result.get("entities_created", 0) or 0)
+        relations_count = int(result.get("relations_created", 0) or 0)
+        triples_count = int(result.get("triples_count", 0) or 0)
+        remaining = result.get("remaining_chunks") or []
 
-        _update_processing_status(
-            file_id=file_id,
-            kg_extraction={
-                "status": "completed",
-                "progress": 100,
-                "message": "知識圖譜構建完成",
-                "triples_count": len(triples),
-                "entities_count": entities_count,
-                "relations_count": relations_count,
-                "mode": options.get("mode", "all_chunks"),
-            },
-            overall_progress=100,
-        )
+        if remaining:
+            _update_processing_status(
+                file_id=file_id,
+                kg_extraction={
+                    "status": "processing",
+                    "progress": int(
+                        len(result.get("completed_chunks", []))
+                        / max(int(result.get("total_chunks", 1) or 1), 1)
+                        * 100
+                    ),
+                    "message": f"已完成部分圖譜分塊，剩餘 {len(remaining)} 個分塊等待續跑",
+                    "triples_count": triples_count,
+                    "entities_count": entities_count,
+                    "relations_count": relations_count,
+                    "remaining_chunks": remaining,
+                    "failed_chunks": result.get("failed_chunks", []),
+                    "failed_permanent_chunks": result.get(
+                        "failed_permanent_chunks", []
+                    ),
+                    "mode": options.get("mode", "all_chunks"),
+                    "job_id": current_job_id,
+                },
+                overall_progress=95,
+            )
+        else:
+            _update_processing_status(
+                file_id=file_id,
+                kg_extraction={
+                    "status": "completed",
+                    "progress": 100,
+                    "message": "知識圖譜構建完成",
+                    "triples_count": triples_count,
+                    "entities_count": entities_count,
+                    "relations_count": relations_count,
+                    "failed_chunks": result.get("failed_chunks", []),
+                    "failed_permanent_chunks": result.get(
+                        "failed_permanent_chunks", []
+                    ),
+                    "mode": options.get("mode", "all_chunks"),
+                    "job_id": current_job_id,
+                },
+                overall_progress=100,
+            )
 
         logger.info(
             "知識圖譜構建完成",
             file_id=file_id,
-            triples_count=len(triples),
+            triples_count=triples_count,
             entities_count=entities_count,
             relations_count=relations_count,
+            remaining_chunks=len(remaining),
         )
+        return result
 
     except Exception as e:
         logger.error(
@@ -1010,6 +1267,9 @@ async def process_kg_extraction_only(
         force_rechunk: 是否強制重新分塊（即使有已存在的 chunks）
     """
     try:
+        # 修改時間：2025-12-12 - 在函數開始處初始化 metadata_service，避免作用域問題
+        metadata_service = None
+
         # 檢查是否為圖片文件（圖片文件跳過 KG 提取）
         if file_type and file_type.startswith("image/"):
             logger.info(
@@ -1071,9 +1331,11 @@ async def process_kg_extraction_only(
             task_id = None
             metadata_storage_path = None
             file_content = None
+            # 修改時間：2025-12-12 - metadata_service 已在函數開始處初始化
 
             try:
-                metadata_service = get_metadata_service()
+                if metadata_service is None:
+                    metadata_service = get_metadata_service()
                 file_metadata_obj = metadata_service.get(file_id)
                 if file_metadata_obj:
                     task_id = file_metadata_obj.task_id
@@ -1160,7 +1422,20 @@ async def process_kg_extraction_only(
             }
 
         # 獲取文件元數據用於 Ontology 選擇
-        file_metadata_obj = metadata_service.get(file_id)
+        # 修改時間：2025-12-12 - 確保 metadata_service 已初始化
+        if metadata_service is None:
+            metadata_service = get_metadata_service()
+
+        file_metadata_obj = None
+        try:
+            file_metadata_obj = metadata_service.get(file_id)
+        except Exception as e:
+            logger.warning(
+                "無法獲取文件元數據用於 Ontology 選擇",
+                file_id=file_id,
+                error=str(e),
+            )
+
         file_metadata_dict = None
         if file_metadata_obj:
             file_metadata_dict = {
@@ -1180,13 +1455,62 @@ async def process_kg_extraction_only(
             "file_metadata": file_metadata_dict,
         }
 
-        # 執行知識圖譜提取
-        await process_kg_extraction(
+        # 執行知識圖譜提取（分塊可續跑）
+        result = await process_kg_extraction(
             file_id=file_id,
             chunks=chunks,
             user_id=user_id,
             options=kg_config_with_metadata,
         )
+
+        # 若未完成（time budget 到期），自動排程下一輪續跑（加鎖避免重複 enqueue）
+        remaining_chunks = (result or {}).get("remaining_chunks") or []
+        if remaining_chunks:
+            try:
+                from database.rq.queue import KG_EXTRACTION_QUEUE, get_task_queue
+                from workers.tasks import process_kg_extraction_only_task
+                from database.redis import get_redis_client
+
+                queue = get_task_queue(KG_EXTRACTION_QUEUE)
+                redis_client = get_redis_client()
+                lock_key = f"kg:continue_lock:{file_id}"
+                # 120 秒內只允許 enqueue 一次續跑，避免 worker/重試造成連環排程
+                got_lock = bool(redis_client.set(lock_key, "1", nx=True, ex=120))
+                if got_lock:
+                    next_job = queue.enqueue(
+                        process_kg_extraction_only_task,
+                        file_id=file_id,
+                        file_path=file_path,
+                        file_type=file_type,
+                        user_id=user_id,
+                        force_rechunk=False,
+                    )
+                    next_job_id = next_job.id
+                else:
+                    next_job_id = None
+
+                _update_processing_status(
+                    file_id=file_id,
+                    kg_extraction={
+                        "status": "processing",
+                        "message": f"續跑已排程（剩餘 {len(remaining_chunks)} 個分塊）",
+                        "next_job_id": next_job_id,
+                        "remaining_chunks": remaining_chunks,
+                        "job_id": current_job_id,
+                    },
+                )
+                logger.info(
+                    "KG extraction continuation enqueued",
+                    file_id=file_id,
+                    next_job_id=next_job_id,
+                    remaining_chunks=len(remaining_chunks),
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to enqueue KG extraction continuation",
+                    file_id=file_id,
+                    error=str(e),
+                )
 
         logger.info(
             "圖譜提取處理完成",
@@ -1511,6 +1835,8 @@ async def upload_files(
                 "file_type": file_type,
                 "file_size": len(file_content),
                 "file_path": file_path,
+                "task_id": final_task_id,
+                "folder_id": final_folder_id,
             }
 
             results.append(result)
@@ -1626,6 +1952,7 @@ async def upload_files(
         "total": len(files),
         "success_count": len(results),
         "error_count": len(errors),
+        "task_id": final_task_id,
     }
 
     if errors and not results:
@@ -1755,7 +2082,29 @@ async def get_processing_status(
     try:
         # 檢查文件是否存在
         storage = get_storage()
-        if not storage.file_exists(file_id):
+        # 修改時間：2025-12-12 - 任務工作區文件需要 task_id / storage_path 才能正確判斷存在
+        task_id: Optional[str] = None
+        metadata_storage_path: Optional[str] = None
+        try:
+            metadata_service = get_metadata_service()
+            file_metadata_obj = metadata_service.get(file_id)
+            if file_metadata_obj:
+                task_id = getattr(file_metadata_obj, "task_id", None)
+                metadata_storage_path = getattr(file_metadata_obj, "storage_path", None)
+        except Exception:
+            pass
+
+        file_exists = False
+        try:
+            file_exists = storage.file_exists(  # type: ignore[call-arg]
+                file_id=file_id,
+                task_id=task_id,
+                metadata_storage_path=metadata_storage_path,
+            )
+        except TypeError:
+            file_exists = storage.file_exists(file_id)
+
+        if not file_exists:
             return APIResponse.error(
                 message="文件不存在",
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -1823,6 +2172,58 @@ async def get_processing_status(
         )
 
 
+@router.get("/{file_id}/kg/chunk-status")
+async def get_kg_chunk_status(
+    file_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """獲取 KG 分塊續跑狀態（completed/failed/remaining/錯誤訊息）。"""
+    try:
+        redis_client = get_redis_client()
+        state_key = f"kg:chunk_state:{file_id}"
+        state_str = redis_client.get(state_key)
+        if not state_str:
+            return APIResponse.success(
+                data={
+                    "file_id": file_id,
+                    "exists": False,
+                    "total_chunks": 0,
+                    "completed_chunks": [],
+                    "failed_chunks": [],
+                    "failed_permanent_chunks": [],
+                    "errors": {},
+                },
+                message="KG chunk 狀態不存在（尚未開始或已過期）",
+            )
+
+        state = json.loads(state_str)
+        return APIResponse.success(
+            data={
+                "file_id": file_id,
+                "exists": True,
+                "total_chunks": state.get("total_chunks", 0),
+                "completed_chunks": state.get("completed_chunks", []) or [],
+                "failed_chunks": state.get("failed_chunks", []) or [],
+                "failed_permanent_chunks": state.get("failed_permanent_chunks", [])
+                or [],
+                "attempts": state.get("attempts", {}) or {},
+                "errors": state.get("errors", {}) or {},
+                "chunks": state.get("chunks", {}) or {},
+            },
+            message="KG chunk 狀態查詢成功",
+        )
+    except Exception as e:
+        logger.error(
+            "Failed to get KG chunk status",
+            file_id=file_id,
+            error=str(e),
+        )
+        return APIResponse.error(
+            message=f"查詢 KG chunk 狀態失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
 @router.get("/{file_id}/kg/stats")
 async def get_kg_stats(
     file_id: str,
@@ -1840,7 +2241,28 @@ async def get_kg_stats(
     try:
         # 檢查文件是否存在
         storage = get_storage()
-        if not storage.file_exists(file_id):
+        task_id: Optional[str] = None
+        metadata_storage_path: Optional[str] = None
+        try:
+            metadata_service = get_metadata_service()
+            file_metadata_obj = metadata_service.get(file_id)
+            if file_metadata_obj:
+                task_id = getattr(file_metadata_obj, "task_id", None)
+                metadata_storage_path = getattr(file_metadata_obj, "storage_path", None)
+        except Exception:
+            pass
+
+        file_exists = False
+        try:
+            file_exists = storage.file_exists(  # type: ignore[call-arg]
+                file_id=file_id,
+                task_id=task_id,
+                metadata_storage_path=metadata_storage_path,
+            )
+        except TypeError:
+            file_exists = storage.file_exists(file_id)
+
+        if not file_exists:
             return APIResponse.error(
                 message="文件不存在",
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -1911,26 +2333,51 @@ async def get_kg_triples(
         三元組列表
     """
     try:
-        # 檢查文件是否存在
-        storage = get_storage()
-        if not storage.file_exists(file_id):
+        # 權限檢查（以文件權限為準）
+        permission_service = get_file_permission_service()
+        file_metadata = permission_service.check_file_access(
+            user=current_user,
+            file_id=file_id,
+            required_permission=Permission.FILE_READ.value,
+        )
+        if not file_metadata:
             return APIResponse.error(
                 message="文件不存在",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        # TODO: 實現從ArangoDB查詢文件相關的三元組
-        # 目前需要實現文件ID與三元組的關聯機制
-        # 暫時返回空列表
+        # 檢查文件是否存在（使用正確的參數）
+        storage = get_storage()
+        try:
+            exists = storage.file_exists(  # type: ignore[call-arg]
+                file_id=file_id,
+                task_id=getattr(file_metadata, "task_id", None),
+                metadata_storage_path=getattr(file_metadata, "storage_path", None),
+            )
+        except TypeError:
+            exists = storage.file_exists(file_id)
+
+        if not exists:
+            return APIResponse.error(
+                message="文件不存在",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 從 ArangoDB 依 file_id 查詢 triples（relations edge + subject/object）
+        kg_builder = KGBuilderService()
+        result = kg_builder.list_triples_by_file_id(
+            file_id=file_id, limit=limit, offset=offset
+        )
+
         return APIResponse.success(
             data={
                 "file_id": file_id,
-                "triples": [],
-                "total": 0,
-                "limit": limit,
-                "offset": offset,
+                "triples": result.get("triples", []) or [],
+                "total": int(result.get("total", 0) or 0),
+                "limit": int(result.get("limit", limit) or limit),
+                "offset": int(result.get("offset", offset) or offset),
             },
-            message="三元組查詢成功（功能待實現）",
+            message="三元組查詢成功",
         )
 
     except Exception as e:
@@ -1968,9 +2415,32 @@ async def delete_file(
         刪除結果
     """
     try:
+        # 權限檢查（以文件權限為準）
+        permission_service = get_file_permission_service()
+        file_metadata = permission_service.check_file_access(
+            user=current_user,
+            file_id=file_id,
+            required_permission=Permission.FILE_DELETE.value,
+        )
+        if not file_metadata:
+            return APIResponse.error(
+                message="文件不存在",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
         storage = get_storage()
 
-        if not storage.file_exists(file_id):
+        # 檢查文件是否存在（使用正確的參數）
+        try:
+            exists = storage.file_exists(  # type: ignore[call-arg]
+                file_id=file_id,
+                task_id=getattr(file_metadata, "task_id", None),
+                metadata_storage_path=getattr(file_metadata, "storage_path", None),
+            )
+        except TypeError:
+            exists = storage.file_exists(file_id)
+
+        if not exists:
             return APIResponse.error(
                 message="文件不存在",
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -1988,10 +2458,15 @@ async def delete_file(
                 "刪除向量失敗（繼續刪除文件）", file_id=file_id, error=str(e)
             )
 
-        # 2. 刪除ArangoDB中的知識圖譜數據
-        # 注意：KG數據可能分散在多個集合中，這裡暫時只記錄日誌
-        # 完整的KG刪除功能可以在後續實現
-        logger.info("知識圖譜數據刪除待實現", file_id=file_id)
+        # 2. 刪除 ArangoDB 中的知識圖譜關聯（依 file_id 移除 file_ids 關聯；必要時刪除孤立點/邊）
+        try:
+            kg_builder = KGBuilderService()
+            cleanup = kg_builder.remove_file_associations(file_id=file_id)
+            logger.info("已清理文件關聯的知識圖譜資料", file_id=file_id, **cleanup)
+        except Exception as e:
+            logger.warning(
+                "清理知識圖譜失敗（繼續刪除文件）", file_id=file_id, error=str(e)
+            )
 
         # 3. 刪除文件元數據
         try:
@@ -2012,6 +2487,8 @@ async def delete_file(
                 redis_client = get_redis_client()
                 redis_client.delete(f"upload:progress:{file_id}")
                 redis_client.delete(f"processing:status:{file_id}")
+                redis_client.delete(f"kg:chunk_state:{file_id}")
+                redis_client.delete(f"kg:continue_lock:{file_id}")
                 logger.info("已刪除Redis中的處理狀態", file_id=file_id)
             except Exception as e:
                 logger.warning("刪除Redis狀態失敗", file_id=file_id, error=str(e))

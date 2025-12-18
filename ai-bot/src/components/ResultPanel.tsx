@@ -9,7 +9,8 @@ import FileLibraryModal from './FileLibraryModal';
 import UploadProgress from './UploadProgress';
 import { useKeyboardShortcuts } from '../lib/hooks/useKeyboardShortcuts';
 import { getMockFileContent, getMockFile, getMockFiles } from '../lib/mockFileStorage';
-import { getFileTree, FileTreeResponse, previewFile, uploadFiles, uploadFromLibrary, returnToLibrary, syncFiles, searchLibrary } from '../lib/api';
+import { getFileTree, FileTreeResponse, previewFile, uploadFiles, uploadFromLibrary, returnToLibrary, syncFiles } from '../lib/api';
+import { getDraftFileContent } from '../lib/fileReference';
 
 interface ResultPanelProps {
   collapsed: boolean;
@@ -22,7 +23,7 @@ interface ResultPanelProps {
   userId?: string; // 用戶 ID
 }
 
-export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewChange, fileTree, onFileTreeChange, taskId, userId }: ResultPanelProps) {
+export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onToggle, onViewChange, fileTree, onFileTreeChange, taskId, userId }: ResultPanelProps) {
   const [activeTab, setActiveTab] = useState<'files' | 'preview'>('files');
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewC
   const [uploadingFiles, setUploadingFiles] = useState<FileWithMetadata[]>([]);
   const [showFileLibraryModal, setShowFileLibraryModal] = useState(false);
   const [libraryAction, setLibraryAction] = useState<'upload' | 'return' | null>(null);
-  const [syncResult, setSyncResult] = useState<any>(null);
+  const [, setSyncResult] = useState<any>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
 
@@ -122,6 +123,30 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewC
 
     setIsLoadingContent(true);
 
+    // 修改時間：2025-12-14 14:30:00 (UTC+8) - 草稿檔（draft-*）從 localStorage 讀取內容
+    const isDraft = typeof selectedFile === 'string' && selectedFile.startsWith('draft-');
+    if (isDraft) {
+      // 草稿檔：從 localStorage 讀取內容
+      const draftContent = getDraftFileContent(selectedFile);
+      if (draftContent !== null) {
+        setFileContent(draftContent);
+      } else {
+        // 如果沒有內容，顯示空內容
+        const extension = (selectedFileName || selectedFile).split('.').pop()?.toLowerCase();
+        if (extension === 'md' || extension === 'markdown') {
+          setFileContent('');
+        } else if (extension === 'txt') {
+          setFileContent('');
+        } else if (extension === 'json') {
+          setFileContent('{}');
+        } else {
+          setFileContent(undefined);
+        }
+      }
+      setIsLoadingContent(false);
+      return;
+    }
+
     // 優先從模擬存儲中獲取文件內容
     if (taskId) {
       // 先嘗試作為 fileId 查找
@@ -129,7 +154,7 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewC
       if (!mockFile) {
         // 如果沒找到，嘗試通過文件名查找
         const mockFiles = getMockFiles(String(taskId));
-        mockFile = mockFiles.find((f: any) => f.filename === selectedFile);
+        mockFile = mockFiles.find((f: any) => f.filename === selectedFile) || null;
       }
 
       if (mockFile) {
@@ -143,16 +168,30 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewC
       }
     }
 
-    // 如果沒有模擬文件，嘗試從後端 API 獲取
+    // 檢查文件類型，判斷是否支持 previewFile API
+    const extension = (selectedFileName || selectedFile).split('.').pop()?.toLowerCase() || '';
+    const isFileTypeWithCustomViewer =
+      extension === 'pdf' ||
+      extension === 'docx' || extension === 'doc' ||
+      extension === 'xlsx' || extension === 'xls';
+
+    // 對於有專門 Viewer 的文件類型（PDF、DOCX、XLSX），不需要調用 previewFile API
+    if (isFileTypeWithCustomViewer) {
+      // 這些文件類型由 FileViewer 組件處理，不需要預覽內容
+      setFileContent(undefined);
+      setIsLoadingContent(false);
+      return;
+    }
+
+    // 如果沒有模擬文件，嘗試從後端 API 獲取（僅支持的文件類型）
     previewFile(selectedFile)
       .then((response) => {
         if (response.success && response.data) {
           setFileContent(response.data.content);
         } else {
           // 如果 API 調用失敗，使用默認內容
-          const extension = selectedFile.split('.').pop()?.toLowerCase();
           if (extension === 'md' || extension === 'markdown') {
-            setFileContent(`# ${selectedFile}\n\n## 概述\n\n無法加載文件內容。`);
+            setFileContent(`# ${selectedFileName || selectedFile}\n\n## 概述\n\n無法加載文件內容。`);
           } else {
             setFileContent(undefined);
           }
@@ -161,16 +200,41 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle, onViewC
       })
       .catch((error) => {
         // API 調用失敗，使用默認內容
-        console.warn('Failed to preview file from API:', error);
-        const extension = selectedFile.split('.').pop()?.toLowerCase();
-        if (extension === 'md' || extension === 'markdown') {
-          setFileContent(`# ${selectedFile}\n\n## 概述\n\n無法加載文件內容。`);
-        } else {
+        // 對於不支持預覽的文件類型，靜默處理（不顯示錯誤）
+        if (error.message?.includes('不支持預覽此文件類型')) {
+          console.log('[ResultPanel] 文件類型不支持預覽 API，將由 FileViewer 處理:', selectedFileName);
           setFileContent(undefined);
+        } else {
+          console.warn('Failed to preview file from API:', error);
+          if (extension === 'md' || extension === 'markdown') {
+            setFileContent(`# ${selectedFileName || selectedFile}\n\n## 概述\n\n無法加載文件內容。`);
+          } else {
+            setFileContent(undefined);
+          }
         }
         setIsLoadingContent(false);
       });
-  }, [selectedFile, taskId]);
+  }, [selectedFile, selectedFileName, taskId]);
+
+  // 修改時間：2025-12-14 14:30:00 (UTC+8) - 監聽草稿檔內容更新事件
+  useEffect(() => {
+    const handleDraftContentUpdated = (event: CustomEvent) => {
+      const detail = event?.detail || {};
+      const draftId = String(detail?.draftId || '').trim();
+      // 如果當前選中的檔案是這個草稿檔，重新加載內容
+      if (selectedFile === draftId) {
+        const draftContent = getDraftFileContent(draftId);
+        if (draftContent !== null) {
+          setFileContent(draftContent);
+        }
+      }
+    };
+
+    window.addEventListener('draftFileContentUpdated', handleDraftContentUpdated as EventListener);
+    return () => {
+      window.removeEventListener('draftFileContentUpdated', handleDraftContentUpdated as EventListener);
+    };
+  }, [selectedFile]);
 
   const handleFileSelect = (fileId: string, fileName?: string) => {
     // 保存 fileId 和 fileName，用於後續查找文件內容

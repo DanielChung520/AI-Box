@@ -1,9 +1,9 @@
 # 代碼功能說明: 知識圖譜構建服務
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27 23:30 (UTC+8)
+# 最後修改日期: 2025-12-13 13:55 (UTC+8)
 
-"""知識圖譜構建服務 - 實現三元組到圖譜的轉換、實體和關係的創建/更新"""
+"""知識圖譜構建服務 - 實現三元組到圖譜的轉換、實體和關係的創建/更新/清理"""
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -249,6 +249,218 @@ class KGBuilderService:
             "relations_created": total_relations_created,
             "total_triples": total_triples,
             "batches_processed": len(triples_list),
+        }
+
+    def list_triples_by_file_id(
+        self,
+        file_id: str,
+        *,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """依 file_id 查詢三元組（以 relations edge 為準，並回填 subject/object）。
+
+        Args:
+            file_id: 文件 ID
+            limit: 回傳上限
+            offset: 偏移量
+
+        Returns:
+            dict: { total: int, triples: List[Dict[str, Any]] }
+        """
+        if self.client is None or self.client.db is None:
+            raise RuntimeError("數據庫連接未初始化")
+        if self.client.db.aql is None:
+            raise RuntimeError("ArangoDB AQL is not available")
+
+        safe_limit = max(0, int(limit))
+        safe_offset = max(0, int(offset))
+
+        # 兼容舊資料：若沒有 file_ids，則回退到 file_id 欄位
+        query = """
+        LET total = LENGTH(
+            FOR r IN @@relations
+                LET ids = (
+                    r.file_ids != null ? r.file_ids :
+                    (r.file_id != null ? [r.file_id] : [])
+                )
+                FILTER @file_id IN ids
+                RETURN 1
+        )
+
+        LET items = (
+            FOR r IN @@relations
+                LET ids = (
+                    r.file_ids != null ? r.file_ids :
+                    (r.file_id != null ? [r.file_id] : [])
+                )
+                FILTER @file_id IN ids
+                SORT r.updated_at DESC
+                LIMIT @offset, @limit
+                LET s = DOCUMENT(r._from)
+                LET o = DOCUMENT(r._to)
+                RETURN {
+                    edge: KEEP(
+                        r,
+                        "_id",
+                        "_key",
+                        "_from",
+                        "_to",
+                        "type",
+                        "confidence",
+                        "context",
+                        "created_at",
+                        "updated_at",
+                        "file_id",
+                        "file_ids"
+                    ),
+                    subject: s == null ? null : KEEP(s, "_id", "_key", "type", "name", "file_id", "file_ids"),
+                    object: o == null ? null : KEEP(o, "_id", "_key", "type", "name", "file_id", "file_ids")
+                }
+        )
+
+        RETURN {
+            total: total,
+            items: items
+        }
+        """
+
+        bind_vars: Dict[str, Any] = {
+            "@relations": RELATIONS_COLLECTION,
+            "file_id": file_id,
+            "limit": safe_limit,
+            "offset": safe_offset,
+        }
+        result = self.client.execute_aql(query, bind_vars=bind_vars)
+        payload = (result.get("results") or [{}])[0]
+        return {
+            "total": int(payload.get("total", 0) or 0),
+            "triples": payload.get("items", []) or [],
+            "limit": safe_limit,
+            "offset": safe_offset,
+        }
+
+    def remove_file_associations(self, file_id: str) -> Dict[str, int]:
+        """移除指定 file_id 在 KG（entities/relations）的關聯。
+
+        規則：
+        - relations: 將 file_id 從 file_ids 移除；若移除後 file_ids 為空則刪除該 edge。
+        - entities: 將 file_id 從 file_ids 移除；若移除後 file_ids 為空且不再有任何關聯 edge，則刪除該 vertex。
+
+        Returns:
+            dict: {relations_deleted, relations_updated, entities_deleted, entities_updated}
+        """
+        if self.client is None or self.client.db is None:
+            raise RuntimeError("數據庫連接未初始化")
+        if self.client.db.aql is None:
+            raise RuntimeError("ArangoDB AQL is not available")
+
+        now_expr = "DATE_ISO8601(DATE_NOW())"
+
+        # 1) 清理 relations
+        rel_query = f"""
+        LET targets = (
+            FOR r IN @@relations
+                LET ids = (
+                    r.file_ids != null ? r.file_ids :
+                    (r.file_id != null ? [r.file_id] : [])
+                )
+                FILTER @file_id IN ids
+                LET new_ids = REMOVE_VALUE(ids, @file_id)
+                RETURN {{ key: r._key, new_ids: new_ids }}
+        )
+
+        LET deleted = (
+            FOR t IN targets
+                FILTER LENGTH(t.new_ids) == 0
+                REMOVE t.key IN @@relations
+                RETURN 1
+        )
+
+        LET updated = (
+            FOR t IN targets
+                FILTER LENGTH(t.new_ids) > 0
+                UPDATE t.key WITH {{
+                    file_ids: t.new_ids,
+                    file_id: FIRST(t.new_ids),
+                    updated_at: {now_expr}
+                }} IN @@relations
+                RETURN 1
+        )
+
+        RETURN {{
+            relations_deleted: LENGTH(deleted),
+            relations_updated: LENGTH(updated)
+        }}
+        """
+        rel_bind: Dict[str, Any] = {
+            "@relations": RELATIONS_COLLECTION,
+            "file_id": file_id,
+        }
+        rel_result = self.client.execute_aql(rel_query, bind_vars=rel_bind)
+        rel_payload = (rel_result.get("results") or [{}])[0]
+        relations_deleted = int(rel_payload.get("relations_deleted", 0) or 0)
+        relations_updated = int(rel_payload.get("relations_updated", 0) or 0)
+
+        # 2) 清理 entities（刪除前確認沒有任何關聯 edge）
+        ent_query = f"""
+        LET targets = (
+            FOR e IN @@entities
+                LET ids = (
+                    e.file_ids != null ? e.file_ids :
+                    (e.file_id != null ? [e.file_id] : [])
+                )
+                FILTER @file_id IN ids
+                LET new_ids = REMOVE_VALUE(ids, @file_id)
+                RETURN {{ key: e._key, id: e._id, new_ids: new_ids }}
+        )
+
+        LET deleted = (
+            FOR t IN targets
+                FILTER LENGTH(t.new_ids) == 0
+                LET has_edge = LENGTH(
+                    FOR r IN @@relations
+                        FILTER r._from == t.id OR r._to == t.id
+                        LIMIT 1
+                        RETURN 1
+                ) > 0
+                FILTER has_edge == false
+                REMOVE t.key IN @@entities
+                RETURN 1
+        )
+
+        LET updated = (
+            FOR t IN targets
+                FILTER LENGTH(t.new_ids) > 0
+                UPDATE t.key WITH {{
+                    file_ids: t.new_ids,
+                    file_id: FIRST(t.new_ids),
+                    updated_at: {now_expr}
+                }} IN @@entities
+                RETURN 1
+        )
+
+        RETURN {{
+            entities_deleted: LENGTH(deleted),
+            entities_updated: LENGTH(updated)
+        }}
+        """
+        ent_bind: Dict[str, Any] = {
+            "@entities": ENTITIES_COLLECTION,
+            "@relations": RELATIONS_COLLECTION,
+            "file_id": file_id,
+        }
+        ent_result = self.client.execute_aql(ent_query, bind_vars=ent_bind)
+        ent_payload = (ent_result.get("results") or [{}])[0]
+
+        entities_deleted = int(ent_payload.get("entities_deleted", 0) or 0)
+        entities_updated = int(ent_payload.get("entities_updated", 0) or 0)
+
+        return {
+            "relations_deleted": relations_deleted,
+            "relations_updated": relations_updated,
+            "entities_deleted": entities_deleted,
+            "entities_updated": entities_updated,
         }
 
     def get_entity(self, entity_id: str) -> Optional[Dict]:

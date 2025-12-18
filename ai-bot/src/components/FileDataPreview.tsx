@@ -2,10 +2,10 @@
  * 代碼功能說明: 文件數據預覽組件（文本、向量、圖譜）
  * 創建日期: 2025-12-09
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-09
+ * 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Loader2, FileText, Database, Network, Download } from 'lucide-react';
 import { previewFile, getFileVectors, getFileGraph, downloadFile, FileMetadata } from '../lib/api';
 
@@ -18,11 +18,11 @@ interface FileDataPreviewProps {
 
 type PreviewMode = 'text' | 'vector' | 'graph';
 
-export default function FileDataPreview({ 
-  file, 
+export default function FileDataPreview({
+  file,
   initialMode = 'text', // 默認為文件模式
-  isOpen, 
-  onClose 
+  isOpen,
+  onClose
 }: FileDataPreviewProps) {
   const [mode, setMode] = useState<PreviewMode>(initialMode);
   const [textContent, setTextContent] = useState<string>('');
@@ -34,27 +34,11 @@ export default function FileDataPreview({
   const [vectorAvailable, setVectorAvailable] = useState<boolean>(false);
   const [graphAvailable, setGraphAvailable] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (isOpen && file) {
-      setMode(initialMode);
-      // 重置狀態
-      setTextContent('');
-      setVectorData(null);
-      setGraphData(null);
-      setError(null);
-      setLoading(false);
-      // 檢查各類數據是否可用
-      checkDataAvailability();
-      // 根據模式加載數據
-      loadDataForMode(initialMode);
-    }
-  }, [isOpen, file, initialMode, checkDataAvailability, loadDataForMode]);
-
   const checkDataAvailability = useCallback(async () => {
     // 檢查文本內容
     try {
       const textResponse = await previewFile(file.file_id);
-      setTextAvailable(textResponse.success && textResponse.data?.content);
+      setTextAvailable(!!(textResponse.success && textResponse.data?.content));
     } catch (e) {
       setTextAvailable(false);
     }
@@ -62,8 +46,8 @@ export default function FileDataPreview({
     // 檢查向量數據
     try {
       const vectorResponse = await getFileVectors(file.file_id, 1, 0);
-      setVectorAvailable(vectorResponse.success && vectorResponse.data && 
-        (vectorResponse.data.vectors?.length > 0 || 
+      setVectorAvailable(vectorResponse.success && vectorResponse.data &&
+        (vectorResponse.data.vectors?.length > 0 ||
          vectorResponse.data.stats?.vector_count > 0 ||
          vectorResponse.data.total > 0));
     } catch (e) {
@@ -73,8 +57,8 @@ export default function FileDataPreview({
     // 檢查圖譜數據
     try {
       const graphResponse = await getFileGraph(file.file_id, 1, 0);
-      setGraphAvailable(graphResponse.success && graphResponse.data && 
-        (graphResponse.data.nodes?.length > 0 || 
+      setGraphAvailable(graphResponse.success && graphResponse.data &&
+        (graphResponse.data.nodes?.length > 0 ||
          graphResponse.data.edges?.length > 0 ||
          graphResponse.data.triples?.length > 0 ||
          graphResponse.data.stats?.entities_count > 0 ||
@@ -124,6 +108,22 @@ export default function FileDataPreview({
       setLoading(false);
     }
   }, [file]);
+
+  useEffect(() => {
+    if (isOpen && file) {
+      setMode(initialMode);
+      // 重置狀態
+      setTextContent('');
+      setVectorData(null);
+      setGraphData(null);
+      setError(null);
+      setLoading(false);
+      // 檢查各類數據是否可用
+      void checkDataAvailability();
+      // 根據模式加載數據
+      void loadDataForMode(initialMode);
+    }
+  }, [isOpen, file, initialMode, checkDataAvailability, loadDataForMode]);
 
   const handleModeChange = (newMode: PreviewMode) => {
     setMode(newMode);
@@ -180,7 +180,7 @@ export default function FileDataPreview({
         }
         const vectorCount = vectorData?.stats?.vector_count || vectorData?.total || vectorData?.vectors?.length || 0;
         const collectionName = vectorData?.stats?.collection_name;
-        
+
         return (
           <div className="p-4">
             <div className="mb-4">
@@ -248,7 +248,7 @@ export default function FileDataPreview({
         const entitiesCount = stats.entities_count || graphData?.nodes?.length || 0;
         const relationsCount = stats.relations_count || graphData?.edges?.length || 0;
         const triplesCount = stats.triples_count || graphData?.triples?.length || stats.triples_count || 0;
-        
+
         return (
           <div className="p-4">
             <div className="mb-4">
@@ -348,8 +348,8 @@ export default function FileDataPreview({
               <button
                 onClick={() => handleModeChange('text')}
                 className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all ${
-                  mode === 'text' 
-                    ? 'bg-blue-500 text-white shadow-md font-medium' 
+                  mode === 'text'
+                    ? 'bg-blue-500 text-white shadow-md font-medium'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
                 title="文件模式"
@@ -361,8 +361,8 @@ export default function FileDataPreview({
               <button
                 onClick={() => handleModeChange('vector')}
                 className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all ${
-                  mode === 'vector' 
-                    ? 'bg-blue-500 text-white shadow-md font-medium' 
+                  mode === 'vector'
+                    ? 'bg-blue-500 text-white shadow-md font-medium'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
                 title="向量模式"
@@ -374,8 +374,8 @@ export default function FileDataPreview({
               <button
                 onClick={() => handleModeChange('graph')}
                 className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all ${
-                  mode === 'graph' 
-                    ? 'bg-blue-500 text-white shadow-md font-medium' 
+                  mode === 'graph'
+                    ? 'bg-blue-500 text-white shadow-md font-medium'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
                 title="圖譜模式"

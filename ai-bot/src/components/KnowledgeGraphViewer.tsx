@@ -2,10 +2,10 @@
  * 代碼功能說明: 知識圖譜可視化組件，使用 AntV G6 渲染知識圖譜
  * 創建日期: 2025-12-10
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-10
+ * 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Graph } from '@antv/g6';
 import { Network, LayoutGrid, Circle } from 'lucide-react';
 
@@ -67,7 +67,7 @@ export default function KnowledgeGraphViewer({
   height = 400,
 }: KnowledgeGraphViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const graphRef = useRef<Graph | null>(null);
+  const graphRef = useRef<any>(null);
   const isRenderingRef = useRef<boolean>(false);
   const hoveredNodeRef = useRef<any>(null); // 追蹤當前懸停的節點
   const [layoutType, setLayoutType] = useState<LayoutType>('force');
@@ -269,7 +269,7 @@ export default function KnowledgeGraphViewer({
     });
 
     // 創建圖形實例
-    let graph: Graph;
+    let graph: any;
     try {
       graph = new Graph({
         container: containerRef.current,
@@ -317,7 +317,7 @@ export default function KnowledgeGraphViewer({
             lineWidth: 2,
           },
         },
-      });
+      } as any);
 
       // 設置並渲染數據
       graph.setData(graphData);
@@ -337,7 +337,7 @@ export default function KnowledgeGraphViewer({
                 const nodeId = e.item?.getID?.() || e.item?.getModel?.()?.id || null;
                 setSelectedNode(nodeId);
                 if (e.item) {
-                  graph.setItemState(e.item, 'selected', true);
+                  (graph as any).setItemState?.(e.item, 'selected', true);
                 }
               } catch (err) {
                 console.error('[KnowledgeGraphViewer] Error handling node click:', err);
@@ -356,7 +356,7 @@ export default function KnowledgeGraphViewer({
                   return; // 靜默返回，不輸出警告
                 }
 
-                graph.setItemState(e.item, 'hover', true);
+                (graph as any).setItemState?.(e.item, 'hover', true);
 
                 // 獲取節點數據
                 const nodeModel = e.item.getModel();
@@ -476,7 +476,7 @@ export default function KnowledgeGraphViewer({
             const handleNodeLeave = (e: any) => {
               try {
                 if (e.item) {
-                  graph.setItemState(e.item, 'hover', false);
+                (graph as any).setItemState?.(e.item, 'hover', false);
                   setTooltip(null);
                 }
               } catch (err) {
@@ -503,7 +503,7 @@ export default function KnowledgeGraphViewer({
                       if (nodeDataItem?.id) {
                         const node = (graph as any).findById?.(nodeDataItem.id);
                         if (node) {
-                          graph.setItemState(node, 'selected', false);
+                          (graph as any).setItemState?.(node, 'selected', false);
                         }
                       }
                     });
@@ -514,7 +514,7 @@ export default function KnowledgeGraphViewer({
                     const nodes = (graph as any).getNodes?.();
                     if (nodes && Array.isArray(nodes)) {
                       nodes.forEach((node: any) => {
-                        graph.setItemState(node, 'selected', false);
+                        (graph as any).setItemState?.(node, 'selected', false);
                       });
                     }
                   } catch (fallbackError) {
@@ -530,7 +530,7 @@ export default function KnowledgeGraphViewer({
             console.error('[KnowledgeGraphViewer] Failed to register event handlers:', error);
           }
         }
-      }).catch((error) => {
+      }).catch((error: any) => {
         isRenderingRef.current = false;
         if (graphRef.current === graph && !graph.destroyed) {
           console.error('[KnowledgeGraphViewer] Graph render failed:', error);
@@ -716,7 +716,7 @@ export default function KnowledgeGraphViewer({
         ref={containerRef}
         className="border relative flex-shrink-0"
         style={{ width: '100%', height: `${height}px` }}
-        onMouseMove={(e) => {
+        onMouseMove={(_e) => {
           // 圖形區的 hover 由於 G6 v5 API 限制（節點數據沒有渲染後的 x/y 坐標）
           // 暫時無法實現。請使用下方的節點列表進行 hover 和選擇操作。
         }}
@@ -727,7 +727,7 @@ export default function KnowledgeGraphViewer({
           // 清除當前懸停節點的 hover 狀態
           if (hoveredNodeRef.current && graphRef.current && !graphRef.current.destroyed) {
             try {
-              graphRef.current.setItemState(hoveredNodeRef.current, 'hover', false);
+              (graphRef.current as any)?.setItemState?.(hoveredNodeRef.current, 'hover', false);
               hoveredNodeRef.current = null;
             } catch (err) {
               // 靜默處理錯誤

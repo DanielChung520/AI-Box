@@ -2,7 +2,7 @@
  * 代碼功能說明: 文件上傳模態框組件
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-06
+ * 最後修改日期: 2025-12-14 12:58:00 (UTC+8)
  *
  * 功能說明:
  * - 支持文檔文件上傳（PDF, Word, Excel, Markdown, CSV, TXT）
@@ -12,8 +12,9 @@
  * - 文件類型驗證和大小限制
  */
 
-import React, { useState, useRef, useCallback, DragEvent, useEffect } from 'react';
-import { X, Upload, File as FileIcon, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import type { DragEvent } from 'react';
+import { X, Upload, File as FileIcon, AlertCircle } from 'lucide-react';
 
 export interface FileWithMetadata {
   file: File;
@@ -30,6 +31,8 @@ interface FileUploadModalProps {
   maxFileSize?: number; // bytes, default 50MB
   allowedTypes?: string[]; // MIME types or extensions
   defaultTaskId?: string; // 默認任務ID（用於組織文件到工作區）
+  forceTaskId?: string; // 強制使用指定 taskId（忽略「上傳到任務工作區」toggle）
+  hideUploadToWorkspaceToggle?: boolean; // 隱藏「上傳到任務工作區」toggle（通常用於文件樹）
 }
 
 const DEFAULT_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -92,7 +95,9 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   onUpload,
   maxFileSize = DEFAULT_MAX_FILE_SIZE,
   allowedTypes = DEFAULT_ALLOWED_TYPES,
-  defaultTaskId = 'temp-workspace', // 默認使用任務工作區
+  defaultTaskId, // 默認使用任務工作區（可選；若不提供則由後端自行創建 task）
+  forceTaskId,
+  hideUploadToWorkspaceToggle = false,
 }) => {
   const [files, setFiles] = useState<FileWithMetadata[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -100,6 +105,13 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
   const [uploadToWorkspace, setUploadToWorkspace] = useState(true); // 默認上傳到任務工作區
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // 開啟時清空錯誤，避免上一次狀態干擾
+      setDragError(null);
+    }
+  }, [isOpen]);
 
   const validateFiles = (fileList: File[]): { valid: File[]; errors: string[] } => {
     const valid: File[] = [];
@@ -211,12 +223,16 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
     setFiles((prev) => prev.filter((f) => f.id !== id));
   }, [imageUrls]);
 
+  const resolveTaskIdToUse = useCallback((): string | undefined => {
+    return forceTaskId ?? (uploadToWorkspace ? defaultTaskId : undefined);
+  }, [forceTaskId, uploadToWorkspace, defaultTaskId]);
+
   const handleUpload = useCallback(async () => {
     if (files.length === 0) return;
 
     const filesToUpload = files.map((f) => f.file);
     // 如果選擇上傳到任務工作區，使用 defaultTaskId
-    const taskId = uploadToWorkspace ? defaultTaskId : undefined;
+    const taskId = resolveTaskIdToUse();
     try {
       await onUpload(filesToUpload, taskId);
       // 清理图片 URL
@@ -229,7 +245,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
     } catch (error) {
       console.error('Upload failed:', error);
     }
-  }, [files, onUpload, onClose, imageUrls, uploadToWorkspace, defaultTaskId]);
+  }, [files, onUpload, onClose, imageUrls, resolveTaskIdToUse]);
 
   // 清理图片 URL（组件卸载时）
   useEffect(() => {
@@ -301,21 +317,23 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
             </p>
 
             {/* 工作區選擇 */}
-            <div className="mt-4 flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <input
-                type="checkbox"
-                id="upload-to-workspace"
-                checked={uploadToWorkspace}
-                onChange={(e) => setUploadToWorkspace(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label
-                htmlFor="upload-to-workspace"
-                className="text-sm text-gray-700 cursor-pointer flex-1"
-              >
-                上傳到任務工作區
-              </label>
-            </div>
+            {!hideUploadToWorkspaceToggle && (
+              <div className="mt-4 flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <input
+                  type="checkbox"
+                  id="upload-to-workspace"
+                  checked={uploadToWorkspace}
+                  onChange={(e) => setUploadToWorkspace(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="upload-to-workspace"
+                  className="text-sm text-gray-700 cursor-pointer flex-1"
+                >
+                  上傳到任務工作區
+                </label>
+              </div>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -325,14 +343,6 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
               accept={ALLOWED_EXTENSIONS.join(',')}
             />
           </div>
-
-          {/* Error Message */}
-          {dragError && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{dragError}</p>
-            </div>
-          )}
 
           {/* File List */}
           {files.length > 0 && (
@@ -389,6 +399,16 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Error Message */}
+        {dragError && (
+          <div className="px-6 pb-4">
+            <div className="p-3 bg-red-50 border border-red-200 rounded flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{dragError}</p>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end gap-3">

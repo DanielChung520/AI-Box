@@ -1,7 +1,7 @@
 # 代碼功能說明: 多 LLM 負載均衡器實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-29
+# 最後修改日期: 2025-12-13 21:20:53 (UTC+8)
 
 """多 LLM 負載均衡器，擴展現有 LLMNodeRouter，支持多 LLM 提供商負載均衡。"""
 
@@ -113,6 +113,10 @@ class MultiLLMLoadBalancer:
         ]
         return healthy or list(self._provider_nodes.values())
 
+    def get_providers(self) -> List[LLMProvider]:
+        """回傳此 load balancer 管理的 provider 列表。"""
+        return list(self._provider_nodes.keys())
+
     def select_provider(self) -> LLMProvider:
         """
         根據策略選擇 LLM 提供商。
@@ -175,6 +179,66 @@ class MultiLLMLoadBalancer:
                 self._request_count.get(selected_node.provider, 0) + 1
             )
 
+            return selected_node.provider
+
+    def select_provider_filtered(self, allowed: List[LLMProvider]) -> LLMProvider:
+        """
+        根據策略選擇 LLM 提供商（限定在 allowed 集合內）。
+
+        Args:
+            allowed: 允許的 provider 列表
+
+        Returns:
+            選中的 LLM 提供商
+        """
+        allowed_set = set(allowed)
+        if not allowed_set:
+            raise ValueError("No allowed providers provided")
+
+        with self._lock:
+            candidates = [
+                n for n in self._eligible_providers() if n.provider in allowed_set
+            ]
+            if not candidates:
+                # 若 allowed 與現有 provider 無交集，回退為第一個 allowed
+                return list(allowed_set)[0]
+
+            if self.strategy == "weighted":
+                pool: List[LLMProviderNode] = []
+                for node in candidates:
+                    pool.extend([node] * node.weight)
+                selected_node = pool[self._rr_index % len(pool)]
+                self._rr_index = (self._rr_index + 1) % len(pool)
+            elif self.strategy == "least_connections":
+                selected_node = min(candidates, key=lambda n: n.active_connections)
+            elif self.strategy == "latency_based":
+                selected_node = min(
+                    candidates,
+                    key=lambda n: (
+                        n.average_latency if n.average_latency > 0 else float("inf")
+                    ),
+                )
+            elif self.strategy == "response_time_based":
+                selected_node = min(
+                    candidates,
+                    key=lambda n: (
+                        n.last_latency
+                        if n.last_latency > 0
+                        else (
+                            n.average_latency if n.average_latency > 0 else float("inf")
+                        )
+                    ),
+                )
+            else:
+                selected_node = candidates[self._rr_index % len(candidates)]
+                self._rr_index = (self._rr_index + 1) % len(candidates)
+
+            selected_node.last_used = time.time()
+            selected_node.active_connections += 1
+            self._total_requests += 1
+            self._request_count[selected_node.provider] = (
+                self._request_count.get(selected_node.provider, 0) + 1
+            )
             return selected_node.provider
 
     def mark_success(

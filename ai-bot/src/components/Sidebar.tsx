@@ -36,6 +36,8 @@ export interface Task {
     mode: 'free' | 'assistant' | 'agent';
     assistantId?: string;
     agentId?: string;
+    modelId?: string; // 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：模型選擇（任務維度）
+    sessionId?: string; // 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：session_id（任務維度）
   };
   fileTree?: FileNode[]; // 每個任務的文件目錄結構
 }

@@ -10,8 +10,8 @@ export function useTheme() {
     if (savedTheme) {
       return savedTheme;
     }
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return prefersDark ? 'dark' : 'light';
+    // 修改時間：2025-12-12 - 將登錄後的默認主題設置為深色
+    return 'dark';
   });
   const { t } = useLanguage();
 

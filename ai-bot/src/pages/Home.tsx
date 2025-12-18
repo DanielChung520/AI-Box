@@ -4,8 +4,13 @@ import Sidebar from '../components/Sidebar';
 import ChatArea from '../components/ChatArea';
 import ResultPanel from '../components/ResultPanel';
 import ExecutorSelectorModal from '../components/ExecutorSelectorModal';
+import FileEditPreviewModal from '../components/FileEditPreviewModal';
 import { Task, FavoriteItem, FileNode } from '../components/Sidebar';
 import { saveTask, deleteTask, getTask, getFavorites } from '../lib/taskStorage';
+// 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：串接 /api/v1/chat
+import { chatProduct, ChatProductMessage } from '../lib/api';
+import { parseFileReference, updateDraftFileContent } from '../lib/fileReference';
+import { getDocEditState } from '../lib/api';
 import '../lib/debugStorage'; // 加載調試工具
 import '../lib/checkFiles'; // 加載文件檢查工具
 
@@ -17,11 +22,44 @@ export default function Home() {
   const prevResultPanelCollapsedRef = useRef<boolean>(false);
   const { t, updateCounter, language } = useLanguage();
 
+  // 修改時間：2025-12-13 17:28:02 (UTC+8) - 收藏模型 localStorage key（與 api.ts 一致）
+  const FAVORITE_MODELS_STORAGE_KEY = 'ai-box-favorite-models';
+
+  const loadFavoriteModelsLocal = (): string[] => {
+    try {
+      const raw = localStorage.getItem(FAVORITE_MODELS_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const generateSessionId = (): string => {
+    // 優先使用瀏覽器原生 UUID
+    // @ts-ignore
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      // @ts-ignore
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  };
+
   // 执行者选择相关状态
   const [showExecutorModal, setShowExecutorModal] = useState(false);
-  const [executorModalType, setExecutorModalType] = useState<'assistant' | 'agent'>('assistant');
-  const [selectedExecutorId, setSelectedExecutorId] = useState<string>('');
-  const [selectedExecutorName, setSelectedExecutorName] = useState<string>('');
+  const [executorModalType] = useState<'assistant' | 'agent'>('assistant');
+  const [selectedExecutorId] = useState<string>('');
+  const [selectedExecutorName] = useState<string>('');
+
+  // 修改時間：2025-12-14 14:30:00 (UTC+8) - 檔案編輯預覽 Modal 狀態
+  const [editPreviewModal, setEditPreviewModal] = useState<{
+    isOpen: boolean;
+    fileId: string;
+    filename: string;
+    requestId: string;
+    taskId: string;
+  } | null>(null);
 
   // 浏览模式状态
   const [browseMode, setBrowseMode] = useState<'assistants' | 'agents' | null>(null);
@@ -71,7 +109,7 @@ export default function Home() {
     setFavoriteAssistants(prev => {
       const updated = new Map(prev);
       // 为所有收藏的助理更新名称
-      prev.forEach((oldName, id) => {
+      prev.forEach((_oldName, id) => {
         const newName = getAssistantName(id);
         if (newName !== id) { // 如果找到了名称，更新它
           updated.set(id, newName);
@@ -86,7 +124,7 @@ export default function Home() {
     setFavoriteAgents(prev => {
       const updated = new Map(prev);
       // 为所有收藏的代理更新名称
-      prev.forEach((oldName, id) => {
+      prev.forEach((_oldName, id) => {
         const newName = getAgentName(id);
         if (newName !== id) { // 如果找到了名称，更新它
           updated.set(id, newName);
@@ -261,6 +299,398 @@ export default function Home() {
     // 任務的文件目錄會自動從 task.fileTree 恢復
   };
 
+  // 修改時間：2025-12-13 17:28:02 (UTC+8) - 模型選擇寫回 task.executionConfig.modelId 並持久化
+  const handleModelSelect = (modelId: string) => {
+    if (!selectedTask) {
+      return;
+    }
+
+    const updatedTask: Task = {
+      ...selectedTask,
+      executionConfig: {
+        ...(selectedTask.executionConfig || { mode: 'free' }),
+        modelId,
+      },
+    };
+
+    setSelectedTask(updatedTask);
+    saveTask(updatedTask, true).catch((error) => {
+      console.error('[Home] Failed to save task after model select:', error);
+    });
+  };
+
+  // 修改時間：2025-12-13 17:28:02 (UTC+8) - 送出訊息：呼叫 /api/v1/chat 並把回覆寫回 task.messages
+  const handleMessageSend = async (raw: string) => {
+    if (!selectedTask) {
+      return;
+    }
+
+    let text = '';
+    let fileReferences: Array<any> = [];
+
+    try {
+      const parsed = JSON.parse(raw);
+      text = String(parsed?.text ?? '').trim();
+      fileReferences = Array.isArray(parsed?.fileReferences) ? parsed.fileReferences : [];
+    } catch {
+      text = String(raw ?? '').trim();
+    }
+
+    const now = new Date();
+    const timestamp = now.toLocaleString();
+
+    const sessionId =
+      selectedTask.executionConfig?.sessionId || generateSessionId();
+    const modelId = selectedTask.executionConfig?.modelId || 'auto';
+
+    const userMessage = {
+      id: `msg-${Date.now()}-user`,
+      sender: 'user' as const,
+      content: text || '(no text)',
+      timestamp,
+    };
+
+    const taskWithUserMessage: Task = {
+      ...selectedTask,
+      status: 'in-progress',
+      messages: [...(selectedTask.messages || []), userMessage],
+      executionConfig: {
+        ...(selectedTask.executionConfig || { mode: 'free' }),
+        sessionId,
+        modelId,
+      },
+    };
+
+    setSelectedTask(taskWithUserMessage);
+    saveTask(taskWithUserMessage, true).catch((error) => {
+      console.error('[Home] Failed to save task after user message:', error);
+    });
+
+    // 修改時間：2025-12-14 14:30:00 (UTC+8) - 檢測是否為編輯草稿檔意圖
+    const lastUserMessage = (taskWithUserMessage.messages || []).slice(-1)[0];
+    const userText = lastUserMessage?.content || '';
+    const fileRef = parseFileReference(userText, String(taskWithUserMessage.id));
+
+    // 如果是草稿檔編輯，直接更新草稿檔內容，不調用後端
+    if (fileRef && fileRef.isDraft && fileRef.fileId) {
+      // 先發送聊天請求獲取 AI 回復
+      const history = (taskWithUserMessage.messages || []).slice(-20);
+      const chatMessages: ChatProductMessage[] = history.map((m) => ({
+        role: (m.sender === 'ai' ? 'assistant' : 'user'),
+        content: m.content,
+      }));
+
+      const attachments = fileReferences.map((ref) => ({
+        file_id: String(ref.fileId ?? ''),
+        file_name: String(ref.fileName ?? ''),
+        file_path: ref.filePath ? String(ref.filePath) : undefined,
+        task_id: ref.taskId ? String(ref.taskId) : undefined,
+      })).filter((a) => a.file_id && a.file_name);
+
+      const favoriteModels = loadFavoriteModelsLocal();
+      const mode =
+        modelId === 'auto'
+          ? 'auto'
+          : favoriteModels.includes(modelId)
+            ? 'favorite'
+            : 'manual';
+
+      const model_selector: any =
+        mode === 'auto'
+          ? { mode: 'auto' }
+          : { mode, model_id: modelId };
+
+      try {
+        const resp = await chatProduct({
+          messages: chatMessages,
+          session_id: sessionId,
+          task_id: String(taskWithUserMessage.id),
+          model_selector,
+          attachments: attachments.length ? attachments : undefined,
+        });
+
+        if (resp?.success && resp.data?.content !== undefined) {
+          const aiMessage = {
+            id: `msg-${Date.now()}-ai`,
+            sender: 'ai' as const,
+            content: String(resp.data.content ?? ''),
+            timestamp: new Date().toLocaleString(),
+          };
+
+          // 直接更新草稿檔內容
+          updateDraftFileContent(
+            fileRef.fileId,
+            String(resp.data.content ?? ''),
+            fileRef.filename,
+            fileRef.taskId || String(taskWithUserMessage.id),
+            fileRef.containerKey || null,
+          );
+
+          const editActionMessage = {
+            id: `msg-${Date.now()}-ai-edit-action`,
+            sender: 'ai' as const,
+            content: `✅ 已更新草稿檔：${fileRef.filename}`,
+            timestamp: new Date().toLocaleString(),
+          };
+
+          const finalTask: Task = {
+            ...taskWithUserMessage,
+            messages: [
+              ...(taskWithUserMessage.messages || []),
+              aiMessage,
+              editActionMessage,
+            ],
+          };
+
+          setSelectedTask(finalTask);
+          saveTask(finalTask, true).catch((error) => {
+            console.error('[Home] Failed to save task after ai message:', error);
+          });
+
+          // 通知 FileTree 更新
+          window.dispatchEvent(
+            new CustomEvent('draftFileContentUpdated', {
+              detail: {
+                draftId: fileRef.fileId,
+                filename: fileRef.filename,
+                taskId: fileRef.taskId || String(taskWithUserMessage.id),
+              },
+            })
+          );
+
+          return; // 提前返回，不執行後續的正式檔案處理
+        }
+      } catch (error: any) {
+        console.error('[Home] chatProduct request failed for draft edit:', error);
+        // 如果失敗，繼續執行正常的流程
+      }
+    }
+
+    const history = (taskWithUserMessage.messages || []).slice(-20);
+    const chatMessages: ChatProductMessage[] = history.map((m) => ({
+      role: (m.sender === 'ai' ? 'assistant' : 'user'),
+      content: m.content,
+    }));
+
+    const attachments = fileReferences.map((ref) => ({
+      file_id: String(ref.fileId ?? ''),
+      file_name: String(ref.fileName ?? ''),
+      file_path: ref.filePath ? String(ref.filePath) : undefined,
+      task_id: ref.taskId ? String(ref.taskId) : undefined,
+    })).filter((a) => a.file_id && a.file_name);
+
+    const favoriteModels = loadFavoriteModelsLocal();
+    const mode =
+      modelId === 'auto'
+        ? 'auto'
+        : favoriteModels.includes(modelId)
+          ? 'favorite'
+          : 'manual';
+
+    const model_selector: any =
+      mode === 'auto'
+        ? { mode: 'auto' }
+        : { mode, model_id: modelId };
+
+    try {
+      const resp = await chatProduct({
+        messages: chatMessages,
+        session_id: sessionId,
+        task_id: String(taskWithUserMessage.id),
+        model_selector,
+        attachments: attachments.length ? attachments : undefined,
+      });
+
+      if (resp?.success && resp.data?.content !== undefined) {
+        const aiMessage = {
+          id: `msg-${Date.now()}-ai`,
+          sender: 'ai' as const,
+          content: String(resp.data.content ?? ''),
+          timestamp: new Date().toLocaleString(),
+        };
+
+        const actions = Array.isArray((resp.data as any)?.actions) ? (resp.data as any).actions : [];
+
+        // 處理 file_created action
+        const fileCreated = actions.find((a: any) => a && a.type === 'file_created' && a.file_id && a.filename);
+        const actionMessage = fileCreated
+          ? {
+              id: `msg-${Date.now()}-ai-action`,
+              sender: 'ai' as const,
+              content: `✅ 已建立檔案：${fileCreated.folder_path ? `${fileCreated.folder_path}/` : ''}${fileCreated.filename}（file_id=${fileCreated.file_id}）`,
+              timestamp: new Date().toLocaleString(),
+            }
+          : null;
+
+        // 修改時間：2025-12-14 14:30:00 (UTC+8) - 處理 file_edited action
+        const fileEdited = actions.find((a: any) => a && a.type === 'file_edited' && a.file_id && a.filename);
+        let editActionMessage: any = null;
+
+        if (fileEdited) {
+          const isDraft = fileEdited.is_draft === true;
+
+          if (isDraft) {
+            // 草稿檔：直接更新內容
+            const filename = String(fileEdited.filename || '').trim();
+            const fileRef = parseFileReference(
+              `@${filename}`,
+              String(taskWithUserMessage.id),
+            );
+
+            if (fileRef && fileRef.isDraft && fileRef.fileId) {
+              // 使用 AI 回復內容更新草稿檔
+              updateDraftFileContent(
+                fileRef.fileId,
+                String(resp.data.content ?? ''),
+                filename,
+                String(taskWithUserMessage.id),
+                fileRef.containerKey || null,
+              );
+
+              editActionMessage = {
+                id: `msg-${Date.now()}-ai-edit-action`,
+                sender: 'ai' as const,
+                content: `✅ 已更新草稿檔：${filename}`,
+                timestamp: new Date().toLocaleString(),
+              };
+            }
+          } else {
+            // 正式檔案：顯示預覽信息（需要輪詢狀態）
+            editActionMessage = {
+              id: `msg-${Date.now()}-ai-edit-action`,
+              sender: 'ai' as const,
+              content: `📝 已創建編輯預覽：${fileEdited.filename}（request_id=${fileEdited.request_id}）\n請等待預覽生成完成後 Apply。`,
+              timestamp: new Date().toLocaleString(),
+              metadata: {
+                type: 'file_edited',
+                file_id: fileEdited.file_id,
+                filename: fileEdited.filename,
+                request_id: fileEdited.request_id,
+                task_id: fileEdited.task_id || String(taskWithUserMessage.id),
+              },
+            };
+
+            // 啟動輪詢預覽狀態
+            const pollEditPreview = async () => {
+              const maxAttempts = 30;
+              for (let i = 0; i < maxAttempts; i++) {
+                try {
+                  const stateResp = await getDocEditState(fileEdited.request_id);
+                  const status = (stateResp as any)?.data?.status;
+
+                  if (status === 'succeeded') {
+                    const preview = (stateResp as any)?.data?.preview;
+                    // 觸發顯示預覽事件
+                    window.dispatchEvent(
+                      new CustomEvent('fileEditPreviewReady', {
+                        detail: {
+                          file_id: fileEdited.file_id,
+                          filename: fileEdited.filename,
+                          request_id: fileEdited.request_id,
+                          preview: preview,
+                          task_id: fileEdited.task_id || String(taskWithUserMessage.id),
+                        },
+                      })
+                    );
+                    break;
+                  } else if (status === 'failed' || status === 'aborted') {
+                    const errorMsg = (stateResp as any)?.data?.error_message || '編輯預覽失敗';
+                    console.error('[Home] File edit preview failed:', errorMsg);
+                    break;
+                  }
+
+                  await new Promise((r) => setTimeout(r, 500));
+                } catch (e: any) {
+                  console.error('[Home] Failed to poll edit preview:', e);
+                  break;
+                }
+              }
+            };
+
+            pollEditPreview().catch((e) => {
+              console.error('[Home] Poll edit preview error:', e);
+            });
+          }
+        }
+
+        const finalTask: Task = {
+          ...taskWithUserMessage,
+          messages: [
+            ...(taskWithUserMessage.messages || []),
+            aiMessage,
+            ...(actionMessage ? [actionMessage] : []),
+            ...(editActionMessage ? [editActionMessage] : []),
+          ],
+        };
+
+        setSelectedTask(finalTask);
+        saveTask(finalTask, true).catch((error) => {
+          console.error('[Home] Failed to save task after ai message:', error);
+        });
+
+        // 若有新建檔案，通知 FileTree 重新載入
+        if (fileCreated?.file_id) {
+          window.dispatchEvent(
+            new CustomEvent('fileUploaded', {
+              detail: {
+                taskId: String(taskWithUserMessage.id),
+                fileIds: [String(fileCreated.file_id)],
+              },
+            })
+          );
+        }
+
+        // 若有編輯檔案（草稿檔），通知 FileTree 更新
+        if (fileEdited?.is_draft && fileEdited?.file_id) {
+          window.dispatchEvent(
+            new CustomEvent('draftFileContentUpdated', {
+              detail: {
+                draftId: fileEdited.file_id,
+                filename: fileEdited.filename,
+                taskId: fileEdited.task_id || String(taskWithUserMessage.id),
+              },
+            })
+          );
+        }
+      } else {
+        const errorMessage = {
+          id: `msg-${Date.now()}-ai-error`,
+          sender: 'ai' as const,
+          content: `Chat failed: ${resp?.message || resp?.error_code || 'unknown error'}`,
+          timestamp: new Date().toLocaleString(),
+        };
+
+        const finalTask: Task = {
+          ...taskWithUserMessage,
+          messages: [...(taskWithUserMessage.messages || []), errorMessage],
+        };
+
+        setSelectedTask(finalTask);
+        saveTask(finalTask, true).catch((error) => {
+          console.error('[Home] Failed to save task after error message:', error);
+        });
+      }
+    } catch (error: any) {
+      console.error('[Home] chatProduct request failed:', error);
+      const errorMessage = {
+        id: `msg-${Date.now()}-ai-error`,
+        sender: 'ai' as const,
+        content: `Chat failed: ${error?.message || 'network error'}`,
+        timestamp: new Date().toLocaleString(),
+      };
+
+      const finalTask: Task = {
+        ...taskWithUserMessage,
+        messages: [...(taskWithUserMessage.messages || []), errorMessage],
+      };
+
+      setSelectedTask(finalTask);
+      saveTask(finalTask, true).catch((e) => {
+        console.error('[Home] Failed to save task after network error:', e);
+      });
+    }
+  };
+
   // 修改時間：2025-12-08 09:04:21 UTC+8 - 任務保存時同步到後台
   // 處理任務創建（用於文件上傳時創建新任務）
   const handleTaskCreate = (task: Task) => {
@@ -320,19 +750,6 @@ export default function Home() {
         console.error('[Home] Failed to save task:', error);
       });
       return updatedTask;
-    });
-  };
-
-  // 修改時間：2025-12-09 - 處理文件上傳完成事件
-  const handleFilesUploaded = (event: CustomEvent) => {
-    const { taskId } = event.detail;
-    setSelectedTask((currentTask) => {
-      if (!currentTask || String(currentTask.id) !== String(taskId)) {
-        return currentTask;
-      }
-      // 重新獲取文件樹（從 API）
-      // 這個邏輯會在 ResultPanel 中處理，這裡只需要觸發更新
-      return currentTask;
     });
   };
 
@@ -441,6 +858,27 @@ export default function Home() {
 
     window.addEventListener('filesUploaded', handleFilesUploadedEvent as EventListener);
     window.addEventListener('mockFilesUploaded', handleMockFilesUploaded as EventListener);
+
+    // 修改時間：2025-12-14 14:30:00 (UTC+8) - 監聽檔案編輯預覽就緒事件
+    const handleFileEditPreviewReady = (event: CustomEvent) => {
+      const detail = event?.detail || {};
+      const fileId = String(detail?.file_id || '').trim();
+      const filename = String(detail?.filename || '').trim();
+      const requestId = String(detail?.request_id || '').trim();
+      const taskId = String(detail?.task_id || '').trim();
+
+      if (fileId && filename && requestId && taskId) {
+        setEditPreviewModal({
+          isOpen: true,
+          fileId,
+          filename,
+          requestId,
+          taskId,
+        });
+      }
+    };
+
+    window.addEventListener('fileEditPreviewReady', handleFileEditPreviewReady as EventListener);
     window.addEventListener('fileTreeUpdated', handleFileTreeUpdated as EventListener);
     window.addEventListener('filesReordered', handleFilesReordered as EventListener);
 
@@ -449,6 +887,7 @@ export default function Home() {
       window.removeEventListener('mockFilesUploaded', handleMockFilesUploaded as EventListener);
       window.removeEventListener('fileTreeUpdated', handleFileTreeUpdated as EventListener);
       window.removeEventListener('filesReordered', handleFilesReordered as EventListener);
+      window.removeEventListener('fileEditPreviewReady', handleFileEditPreviewReady as EventListener);
     };
   }, []); // 移除 selectedTask 依賴，使用函數式更新
 
@@ -678,6 +1117,8 @@ export default function Home() {
           browseMode={browseMode}
           onAssistantSelect={handleAssistantSelect}
           onAgentSelect={handleAgentSelect}
+          onModelSelect={handleModelSelect}
+          onMessageSend={handleMessageSend}
           resultPanelCollapsed={resultPanelCollapsed}
           onResultPanelToggle={() => {
             const newCollapsed = !resultPanelCollapsed;
@@ -694,6 +1135,10 @@ export default function Home() {
           onTaskUpdate={(updatedTask: Task) => {
             // 更新任务（包括标题）
             setSelectedTask(updatedTask);
+            // 同步保存，確保 executionConfig/modelId/sessionId 等欄位不丟失
+            saveTask(updatedTask, true).catch((error) => {
+              console.error('[Home] Failed to save task after update:', error);
+            });
           }}
           currentTaskId={selectedTask ? String(selectedTask.id) : undefined}
           onTaskCreate={handleTaskCreate}
@@ -769,6 +1214,29 @@ export default function Home() {
         onCreateTask={handleCreateTaskWithExecutor}
         onApplyToCurrent={handleApplyExecutorToCurrentTask}
       />
+
+      {/* 修改時間：2025-12-14 14:30:00 (UTC+8) - 檔案編輯預覽 Modal */}
+      {editPreviewModal && (
+        <FileEditPreviewModal
+          isOpen={editPreviewModal.isOpen}
+          onClose={() => setEditPreviewModal(null)}
+          fileId={editPreviewModal.fileId}
+          filename={editPreviewModal.filename}
+          requestId={editPreviewModal.requestId}
+          taskId={editPreviewModal.taskId}
+          onApplied={() => {
+            // Apply 成功後，可以觸發檔案樹更新
+            window.dispatchEvent(
+              new CustomEvent('fileUploaded', {
+                detail: {
+                  taskId: editPreviewModal.taskId,
+                  fileIds: [editPreviewModal.fileId],
+                },
+              })
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -2,41 +2,64 @@
  * 代碼功能說明: 文件管理頁面
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-06
+ * 最後修改日期: 2025-12-14 10:53:05 (UTC+8)
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Search, Grid, List } from 'lucide-react';
 import FileList from '../components/FileList';
 import FileSearch from '../components/FileSearch';
 import FileTree from '../components/FileTree';
-import { FileMetadata } from '../lib/api';
+import type { FileMetadata } from '../lib/api';
 
 export default function FileManagement() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [showSearch, setShowSearch] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
+  const [, setSelectedFile] = useState<FileMetadata | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null); // 修改時間：2025-12-09 - 移除 temp-workspace 默認值，避免 403 錯誤
-  const fileListRef = useRef<{ refresh: () => void } | null>(null);
 
   // 從 localStorage 獲取當前用戶ID（實際應用中應該從認證上下文獲取）
   const userId = localStorage.getItem('user_id') || undefined;
 
   // 監聽文件上傳完成事件
   useEffect(() => {
-    const handleFileUploaded = () => {
+    const handleFileUploaded = (event: CustomEvent) => {
+      const detail = event?.detail || {};
       // 觸發文件列表刷新
       setRefreshKey(prev => prev + 1);
+      // 若上傳包含 taskId，且目前未選中 task（或選中不同 task），自動切換到該任務
+      if (detail.taskId && detail.taskId !== selectedTaskId) {
+        setSelectedTaskId(detail.taskId);
+      }
     };
 
     window.addEventListener('fileUploaded', handleFileUploaded as EventListener);
     return () => {
       window.removeEventListener('fileUploaded', handleFileUploaded as EventListener);
     };
-  }, []);
+  }, [selectedTaskId]);
+
+  // 修改時間：2025-12-12 - 支援「上傳在其他頁面完成」：進入文件管理頁時讀取最近一次上傳資訊並刷新
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('lastUploadInfo');
+      if (!raw) return;
+      const info = JSON.parse(raw);
+      const ts = typeof info?.ts === 'number' ? info.ts : 0;
+      const taskId = typeof info?.taskId === 'string' ? info.taskId : null;
+      // 只處理 2 分鐘內的上傳事件，避免很舊的資料影響當前視圖
+      if (Date.now() - ts > 2 * 60 * 1000) return;
+      if (taskId && taskId !== selectedTaskId) {
+        setSelectedTaskId(taskId);
+      }
+      setRefreshKey((prev) => prev + 1);
+    } catch {
+      // ignore parse errors
+    }
+  }, [selectedTaskId]);
 
   return (
     <div className="h-screen flex flex-col">
@@ -48,6 +71,13 @@ export default function FileManagement() {
             <h1 className="text-2xl font-semibold">文件管理</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/docs')}
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+              title="文件助手（Preview-first）"
+            >
+              文件助手
+            </button>
             <button
               onClick={() => setShowSearch(!showSearch)}
               className={`px-4 py-2 border rounded-lg flex items-center gap-2 ${

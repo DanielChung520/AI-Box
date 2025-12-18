@@ -30,12 +30,22 @@ class AgentStatus(str, Enum):
     - ONLINE: 在線，可以正常使用
     - MAINTENANCE: 維修中，暫時無法接受新任務
     - DEPRECATED: 已作廢，不再使用
+    - OFFLINE: 離線（健康檢查/心跳超時標記）
+
+    相容性別名：
+    - ACTIVE: 舊版代碼使用 ACTIVE 表示「可用」，等同於 ONLINE
+    - PENDING: 舊版代碼使用 PENDING 表示「等待中」，等同於 REGISTERING
     """
 
     REGISTERING = "registering"  # 註冊中
     ONLINE = "online"  # 在線
     MAINTENANCE = "maintenance"  # 維修中
     DEPRECATED = "deprecated"  # 已作廢
+    OFFLINE = "offline"  # 離線（健康檢查標記）
+
+    # 兼容舊代碼：使用同值 alias，避免 AttributeError
+    ACTIVE = "online"
+    PENDING = "registering"
 
 
 class AgentPermissionConfig(BaseModel):

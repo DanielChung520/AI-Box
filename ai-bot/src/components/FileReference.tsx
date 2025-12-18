@@ -10,7 +10,7 @@
  * - 包含隱藏的文件ID和路徑信息
  */
 
-import React from 'react';
+// 修改時間：2025-12-13 18:28:38 (UTC+8) - 移除未使用的 React import（react-jsx）
 import { File as FileIcon, X } from 'lucide-react';
 
 export interface FileReferenceData {
@@ -54,5 +54,3 @@ export default function FileReference({ file, onRemove }: FileReferenceProps) {
     </div>
   );
 }
-
-

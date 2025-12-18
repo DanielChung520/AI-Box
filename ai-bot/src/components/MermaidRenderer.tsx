@@ -56,7 +56,7 @@ export default function MermaidRenderer({ code, className = '' }: MermaidRendere
         },
         securityLevel: 'loose',
         fontFamily: 'inherit'
-      });
+      } as any);
     } catch (error) {
       console.error('Mermaid 初始化错误:', error);
     }

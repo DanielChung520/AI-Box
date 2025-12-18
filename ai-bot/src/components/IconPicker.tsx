@@ -8,7 +8,6 @@
 
 import { useState, useMemo } from 'react';
 import * as FaIcons from 'react-icons/fa';
-import * as Fa6Icons from 'react-icons/fa6';
 import * as MdIcons from 'react-icons/md';
 import * as HiIcons from 'react-icons/hi';
 import * as SiIcons from 'react-icons/si';

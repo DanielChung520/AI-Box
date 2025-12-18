@@ -2,10 +2,10 @@
  * 代碼功能說明: 文件列表組件
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-06
+ * 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { File as FileIcon, Download, Trash2, Eye, RefreshCw, Search } from 'lucide-react';
 import { getFileList, deleteFile, downloadFile, FileMetadata, getProcessingStatus } from '../lib/api';
 import FilePreview from './FilePreview';

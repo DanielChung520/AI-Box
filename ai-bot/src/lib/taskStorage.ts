@@ -7,7 +7,7 @@
 
 // 修改時間：2025-12-08 09:04:21 UTC+8 - 添加後台同步功能
 import { Task, FavoriteItem } from '../components/Sidebar';
-import { syncTasks, listUserTasks, createUserTask, updateUserTask, deleteUserTask as deleteUserTaskAPI } from './api';
+import { syncTasks, listUserTasks, createUserTask, updateUserTask } from './api';
 import { getCurrentUserId } from './jwtUtils';
 
 const STORAGE_KEY = 'ai-box-tasks';

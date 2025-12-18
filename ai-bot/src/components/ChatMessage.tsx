@@ -3,8 +3,10 @@
 // 創建人：Daniel Chung
 // 最後修改日期：2025-01-27
 
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { Message } from './Sidebar';
 import CodeBlock from './CodeBlock';
 import MermaidToggle from './MermaidToggle';
@@ -20,16 +22,33 @@ export default function ChatMessage({ message }: ChatMessageProps) {
 
   // 自定義代碼塊渲染器
   const components = {
-    code({ node, inline, className, children, ...props }: any) {
+    // 處理代碼塊容器（pre 標籤）
+    pre: ({ children, ...props }: any) => {
+      // 檢查子元素是否是 code 標籤
+      const codeElement = React.Children.toArray(children).find(
+        (child: any) => child?.type === 'code'
+      ) as any;
+
+      if (codeElement) {
+        const className = codeElement.props?.className || '';
       const match = /language-(\w+)/.exec(className || '');
       const language = match ? match[1] : '';
-      const codeString = String(children).replace(/\n$/, '');
+        const codeString = String(codeElement.props?.children || '').replace(/\n$/, '');
 
       // 如果是 Mermaid 代碼塊
       if (language === 'mermaid') {
         return <MermaidToggle code={codeString} />;
       }
 
+        // 使用 CodeBlock 組件渲染代碼塊
+        return <CodeBlock code={codeString} language={language || 'text'} />;
+      }
+
+      // 默認處理
+      return <pre {...props}>{children}</pre>;
+    },
+    // 處理行內代碼和代碼塊內的 code 標籤
+    code({ node, inline, className, children, ...props }: any) {
       // 如果是行內代碼
       if (inline) {
         return (
@@ -39,8 +58,8 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         );
       }
 
-      // 如果是代碼塊
-      return <CodeBlock code={codeString} language={language || 'text'} />;
+      // 如果是代碼塊內的 code 標籤，只返回純文本（pre 組件會處理樣式）
+      return <code {...props}>{children}</code>;
     },
     // 自定義標題樣式
     h1: ({ node, ...props }: any) => (
@@ -61,19 +80,63 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     h6: ({ node, ...props }: any) => (
       <h6 className="text-lg font-bold mt-4 mb-2 text-primary" {...props} />
     ),
-    // 段落
+    // 段落 - 保留換行和縮排
     p: ({ node, ...props }: any) => (
-      <p className="mb-4 text-primary leading-relaxed" {...props} />
+      <p className="mb-4 text-primary leading-relaxed whitespace-pre-wrap" {...props} />
     ),
-    // 列表
-    ul: ({ node, ...props }: any) => (
-      <ul className="list-disc ml-6 mb-4 space-y-1 text-primary" {...props} />
-    ),
-    ol: ({ node, ...props }: any) => (
-      <ol className="list-decimal ml-6 mb-4 space-y-1 text-primary" {...props} />
-    ),
+    // 列表 - 支持嵌套縮排
+    ul: ({ node, children, ...props }: any) => {
+      // 計算嵌套深度
+      let depth = 0;
+      let parent = node?.parent;
+      while (parent) {
+        if (parent.type === 'list') {
+          depth++;
+        }
+        parent = parent.parent;
+      }
+
+      return (
+        <ul
+          className="list-disc mb-4 space-y-1 text-primary"
+          style={{
+            marginLeft: `${depth * 1.5}rem`,
+            paddingLeft: depth > 0 ? '0.5rem' : '1.5rem',
+            listStylePosition: 'outside'
+          }}
+          {...props}
+        >
+          {children}
+        </ul>
+      );
+    },
+    ol: ({ node, children, ...props }: any) => {
+      // 計算嵌套深度
+      let depth = 0;
+      let parent = node?.parent;
+      while (parent) {
+        if (parent.type === 'list') {
+          depth++;
+        }
+        parent = parent.parent;
+      }
+
+      return (
+        <ol
+          className="list-decimal mb-4 space-y-1 text-primary"
+          style={{
+            marginLeft: `${depth * 1.5}rem`,
+            paddingLeft: depth > 0 ? '0.5rem' : '1.5rem',
+            listStylePosition: 'outside'
+          }}
+          {...props}
+        >
+          {children}
+        </ol>
+      );
+    },
     li: ({ node, ...props }: any) => (
-      <li className="mb-1 text-primary" {...props} />
+      <li className="mb-1 text-primary leading-relaxed whitespace-normal" {...props} />
     ),
     // 引用
     blockquote: ({ node, ...props }: any) => (
@@ -151,9 +214,15 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           message.sender === 'ai' ? 'bg-secondary' : 'bg-blue-900/30'
         }`}
       >
-        <div className="prose prose-invert max-w-none">
+        <div
+          className="prose prose-invert max-w-none"
+          style={{
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word'
+          }}
+        >
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, remarkBreaks]}
             components={components}
           >
             {message.content}

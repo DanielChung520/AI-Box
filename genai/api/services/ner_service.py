@@ -212,11 +212,24 @@ class OllamaNERModel(BaseNERModel):
                             # 如果是对象，尝试提取entities字段
                             if "entities" in parsed_obj:
                                 entities_data = parsed_obj["entities"]
+                            elif "text" in parsed_obj and (
+                                "label" in parsed_obj
+                                or "type" in parsed_obj
+                                or "entity_type" in parsed_obj
+                            ):
+                                # 單個 entity 物件：轉成 list 以符合下游處理
+                                entities_data = [parsed_obj]
                             elif len(parsed_obj) == 1 and isinstance(
                                 list(parsed_obj.values())[0], list
                             ):
                                 # 如果对象只有一个键，且值是数组，使用该数组
                                 entities_data = list(parsed_obj.values())[0]
+                            elif all(
+                                isinstance(v, dict) and "text" in v
+                                for v in parsed_obj.values()
+                            ):
+                                # 形如 {"id1": {...entity...}, "id2": {...entity...}}
+                                entities_data = list(parsed_obj.values())
                         elif isinstance(parsed_obj, list):
                             # 直接是数组
                             entities_data = parsed_obj
@@ -265,7 +278,10 @@ class OllamaNERModel(BaseNERModel):
                     entities.append(
                         Entity(
                             text=item.get("text", ""),
-                            label=item.get("label", "UNKNOWN"),
+                            label=item.get("label")
+                            or item.get("type")
+                            or item.get("entity_type")
+                            or "UNKNOWN",
                             start=item.get("start", 0),
                             end=item.get("end", 0),
                             confidence=float(item.get("confidence", 0.5)),

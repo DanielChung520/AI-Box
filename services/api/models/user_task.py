@@ -1,7 +1,7 @@
 # 代碼功能說明: 用戶任務模型
 # 創建日期: 2025-12-08 09:04:21 UTC+8
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-08 09:04:21 UTC+8
+# 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
 
 """用戶任務模型 - 定義前端 UI 任務數據結構"""
 
@@ -33,8 +33,11 @@ class ExecutionConfig(BaseModel):
     """執行配置模型"""
 
     mode: str = Field(default="free", description="執行模式（free/assistant/agent）")
-    assistantId: Optional[str] = Field(None, description="助理 ID")
-    agentId: Optional[str] = Field(None, description="代理 ID")
+    assistantId: Optional[str] = Field(default=None, description="助理 ID")
+    agentId: Optional[str] = Field(default=None, description="代理 ID")
+    # 修改時間：2025-12-13 18:28:38 (UTC+8) - 產品級 Chat：任務維度模型選擇與 session_id
+    modelId: Optional[str] = Field(default=None, description="模型 ID（可選）")
+    sessionId: Optional[str] = Field(default=None, description="Session ID（可選）")
 
 
 class UserTaskBase(BaseModel):

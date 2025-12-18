@@ -8,11 +8,15 @@
 from __future__ import annotations
 
 from typing import List, Dict, Any, Optional, Set, Tuple
+import asyncio
+import json
+import time
 import structlog
 
 from genai.api.services.triple_extraction_service import TripleExtractionService
 from genai.api.services.kg_builder_service import KGBuilderService
 from genai.api.models.triple_models import Triple
+from database.redis import get_redis_client
 
 # 導入 Ontology 管理相關模組
 logger = structlog.get_logger(__name__)  # 定義 logger 在 try-except 之前
@@ -405,6 +409,292 @@ class KGExtractionService:
                 continue
 
         return all_triples
+
+    def _kg_chunk_state_key(self, file_id: str) -> str:
+        return f"kg:chunk_state:{file_id}"
+
+    def _load_chunk_state(self, file_id: str) -> Dict[str, Any]:
+        redis_client = get_redis_client()
+        raw = redis_client.get(self._kg_chunk_state_key(file_id))
+        if not raw:
+            return {}
+        try:
+            return json.loads(raw)
+        except Exception:
+            return {}
+
+    def _save_chunk_state(self, file_id: str, state: Dict[str, Any]) -> None:
+        redis_client = get_redis_client()
+        # 保留 7 天，支援斷點續跑
+        redis_client.setex(
+            self._kg_chunk_state_key(file_id), 7 * 24 * 3600, json.dumps(state)
+        )
+
+    def _update_processing_status_kv(self, file_id: str, patch: Dict[str, Any]) -> None:
+        """避免跨模組 import：直接更新 processing:status:{file_id} 的 JSON。"""
+        redis_client = get_redis_client()
+        status_key = f"processing:status:{file_id}"
+        raw = redis_client.get(status_key)
+        status_data: Dict[str, Any] = {}
+        if raw:
+            try:
+                status_data = json.loads(raw)
+            except Exception:
+                status_data = {}
+        # shallow merge
+        for k, v in patch.items():
+            if isinstance(v, dict) and isinstance(status_data.get(k), dict):
+                status_data[k].update(v)
+            else:
+                status_data[k] = v
+        redis_client.setex(status_key, 7200, json.dumps(status_data))
+
+    async def extract_and_build_incremental(
+        self,
+        file_id: str,
+        chunks: List[Dict[str, Any]],
+        user_id: str,
+        options: Optional[Dict[str, Any]] = None,
+        *,
+        concurrency: int = 3,
+        time_budget_seconds: Optional[int] = 150,
+    ) -> Dict[str, Any]:
+        """分塊提取 + 逐塊寫入 KG（可斷點續跑、可並行提取）。
+
+        不依賴提高 job_timeout：若 time_budget_seconds 到期，會提早結束並回傳 remaining_chunks。
+        """
+        if options is None:
+            options = {}
+
+        mode = options.get("mode", "all_chunks")
+        chunk_filter = options.get("chunk_filter", {})
+        use_ontology = options.get("use_ontology", True)
+
+        # 載入 Ontology（同 extract_triples_from_chunks）
+        ontology_rules = None
+        if use_ontology and ONTOLOGY_SUPPORT:
+            file_name = options.get("file_name")
+            file_metadata = options.get("file_metadata")
+            manual_ontology = options.get("ontology")
+            file_content_preview = None
+            if chunks:
+                preview_chunks = chunks[:3]
+                file_content_preview = " ".join(
+                    chunk.get("text", "")[:500] for chunk in preview_chunks
+                )
+            ontology_rules = self._load_ontology_for_extraction(
+                file_name=file_name,
+                file_content=file_content_preview,
+                file_metadata=file_metadata,
+                manual_ontology=manual_ontology,
+            )
+
+        # 決定要處理的 chunk 列表（保留原 index，支援續跑）
+        indexed_chunks: List[Tuple[int, Dict[str, Any]]] = [
+            (i + 1, c) for i, c in enumerate(chunks)
+        ]
+        if mode == "selected_chunks":
+            filtered = self._filter_chunks(chunks, chunk_filter)
+            allowed_ids = {id(c) for c in filtered}
+            indexed_chunks = [(i, c) for i, c in indexed_chunks if id(c) in allowed_ids]
+        elif mode == "entire_file":
+            # 視為單一 chunk
+            full_text = " ".join(c.get("text", "") for c in chunks)
+            indexed_chunks = [(1, {"text": full_text, "metadata": {"merged": True}})]
+
+        total_chunks = len(indexed_chunks)
+        state = self._load_chunk_state(file_id)
+        completed_chunks: Set[int] = set(state.get("completed_chunks", []) or [])
+        failed_chunks: Set[int] = set(state.get("failed_chunks", []) or [])
+        failed_permanent_chunks: Set[int] = set(
+            state.get("failed_permanent_chunks", []) or []
+        )
+        attempts: Dict[str, int] = state.get("attempts", {}) or {}
+        errors: Dict[str, Any] = state.get("errors", {}) or {}
+
+        max_retries = int(options.get("max_chunk_retries", 3) or 3)
+
+        start_time = time.monotonic()
+        pending = [
+            (idx, c)
+            for idx, c in indexed_chunks
+            if idx not in completed_chunks and idx not in failed_permanent_chunks
+        ]
+
+        # 更新 processing status：開始/續跑
+        self._update_processing_status_kv(
+            file_id,
+            {
+                "status": "processing",
+                "kg_extraction": {
+                    "status": "processing",
+                    "progress": int(len(completed_chunks) / max(total_chunks, 1) * 100),
+                    "message": "開始（或續跑）圖譜提取",
+                    "total_chunks": total_chunks,
+                    "completed_chunks": sorted(list(completed_chunks)),
+                    "mode": mode,
+                    "ontology_loaded": ontology_rules is not None,
+                },
+            },
+        )
+
+        sem = asyncio.Semaphore(max(1, concurrency))
+
+        async def extract_one(
+            chunk_index: int, chunk: Dict[str, Any]
+        ) -> Tuple[int, List[Triple]]:
+            async with sem:
+                try:
+                    chunk_text = chunk.get("text", "")
+                    if not chunk_text.strip():
+                        return (chunk_index, [])
+                    triples = await self.triple_service.extract_triples(
+                        text=chunk_text, entities=None, enable_ner=True
+                    )
+                    # chunk 上下文標記
+                    for t in triples:
+                        t.context = (
+                            f"{t.context} [Chunk {chunk_index}/{total_chunks}]"
+                            if t.context
+                            else f"[Chunk {chunk_index}/{total_chunks}]"
+                        )
+                    logger.debug(
+                        "Extracted triples from chunk",
+                        file_id=file_id,
+                        chunk_index=chunk_index,
+                        total_chunks=total_chunks,
+                        triple_count=len(triples),
+                        ontology_used=ontology_rules is not None,
+                    )
+                    return (chunk_index, triples)
+                except Exception as e:
+                    # 這裡不 raise，改由上層記錄 chunk error，允許續跑
+                    logger.warning(
+                        "Chunk triple extraction failed",
+                        file_id=file_id,
+                        chunk_index=chunk_index,
+                        error=str(e),
+                    )
+                    return (chunk_index, [])
+
+        triples_total = 0
+        entities_created_total = 0
+        relations_created_total = 0
+
+        # 逐批處理：每批最多 concurrency 個 chunk；每批之間檢查 time budget
+        remaining_chunks: List[int] = []
+        cursor = 0
+        while cursor < len(pending):
+            if (
+                time_budget_seconds is not None
+                and (time.monotonic() - start_time) > time_budget_seconds
+            ):
+                remaining_chunks = [idx for idx, _ in pending[cursor:]]
+                break
+
+            batch = pending[cursor : cursor + max(1, concurrency)]
+            cursor += len(batch)
+
+            extracted = await asyncio.gather(
+                *[extract_one(idx, c) for idx, c in batch],
+                return_exceptions=False,
+            )
+
+            # 逐塊寫入 KG + 更新狀態（可續跑）
+            for chunk_index, chunk_triples in extracted:
+                try:
+                    build_result = await self.build_kg_from_file(
+                        file_id, chunk_triples, user_id
+                    )
+                    triples_total += len(chunk_triples)
+                    entities_created_total += int(
+                        build_result.get("entities_created", 0) or 0
+                    )
+                    relations_created_total += int(
+                        build_result.get("relations_created", 0) or 0
+                    )
+
+                    completed_chunks.add(chunk_index)
+                    failed_chunks.discard(chunk_index)
+                    state.setdefault("chunks", {})[str(chunk_index)] = {
+                        "triples": len(chunk_triples),
+                        "ts": int(time.time()),
+                        "status": "completed",
+                    }
+                except Exception as e:
+                    # chunk 級錯誤：記錄並允許後續重試
+                    key = str(chunk_index)
+                    attempts[key] = int(attempts.get(key, 0) or 0) + 1
+                    errors[key] = {"error": str(e), "ts": int(time.time())}
+                    failed_chunks.add(chunk_index)
+                    state.setdefault("chunks", {})[key] = {
+                        "triples": len(chunk_triples),
+                        "ts": int(time.time()),
+                        "status": "failed",
+                        "attempts": attempts[key],
+                        "error": str(e),
+                    }
+
+                    if attempts[key] >= max_retries:
+                        failed_permanent_chunks.add(chunk_index)
+                        logger.warning(
+                            "Chunk permanently failed",
+                            file_id=file_id,
+                            chunk_index=chunk_index,
+                            attempts=attempts[key],
+                            max_retries=max_retries,
+                        )
+
+                # 寫入狀態（不論成功/失敗都要落地）
+                state["completed_chunks"] = sorted(list(completed_chunks))
+                state["failed_chunks"] = sorted(list(failed_chunks))
+                state["failed_permanent_chunks"] = sorted(list(failed_permanent_chunks))
+                state["attempts"] = attempts
+                state["errors"] = errors
+                state["total_chunks"] = total_chunks
+                self._save_chunk_state(file_id, state)
+
+                progress = int(len(completed_chunks) / max(total_chunks, 1) * 100)
+                remaining_now = [
+                    idx
+                    for idx, _ in indexed_chunks
+                    if idx not in completed_chunks
+                    and idx not in failed_permanent_chunks
+                ]
+                self._update_processing_status_kv(
+                    file_id,
+                    {
+                        "kg_extraction": {
+                            "status": "processing",
+                            "progress": progress,
+                            "message": f"圖譜提取進行中：{len(completed_chunks)}/{total_chunks}",
+                            "total_chunks": total_chunks,
+                            "completed_chunks": sorted(list(completed_chunks)),
+                            "failed_chunks": sorted(list(failed_chunks)),
+                            "failed_permanent_chunks": sorted(
+                                list(failed_permanent_chunks)
+                            ),
+                            "remaining_chunks": remaining_now,
+                            "last_completed_chunk": chunk_index,
+                            "triples_count": triples_total,
+                        }
+                    },
+                )
+
+        done = (len(completed_chunks) + len(failed_permanent_chunks)) >= total_chunks
+        return {
+            "success": bool(done and not failed_permanent_chunks),
+            "file_id": file_id,
+            "total_chunks": total_chunks,
+            "completed_chunks": sorted(list(completed_chunks)),
+            "failed_chunks": sorted(list(failed_chunks)),
+            "failed_permanent_chunks": sorted(list(failed_permanent_chunks)),
+            "remaining_chunks": remaining_chunks,
+            "triples_count": triples_total,
+            "entities_created": entities_created_total,
+            "relations_created": relations_created_total,
+            "mode": mode,
+        }
 
     async def extract_triples_from_file(
         self, file_id: str, file_text: str, options: Optional[Dict[str, Any]] = None

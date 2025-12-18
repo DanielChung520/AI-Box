@@ -2,7 +2,7 @@
  * 代碼功能說明: 文件庫選擇對話框組件
  * 創建日期: 2025-12-07
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-07
+ * 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
  *
  * 功能說明:
  * - 顯示文件庫中的文件列表
@@ -11,7 +11,8 @@
  * - 支持上傳選中的文件到當前任務
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { X, Search, File as FileIcon, Check } from 'lucide-react';
 import { searchLibrary, LibrarySearchResponse } from '../lib/api';
 
@@ -33,15 +34,15 @@ export default function FileLibraryModal({
   isOpen,
   onClose,
   onSelect,
-  userId,
+  userId: _userId,
 }: FileLibraryModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [, setPage] = useState(1);
+  const [, setTotalPages] = useState(1);
 
   // 搜尋文件庫
   const handleSearch = async () => {
@@ -106,7 +107,7 @@ export default function FileLibraryModal({
   };
 
   // 處理 Enter 鍵搜尋
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSearch();
     }

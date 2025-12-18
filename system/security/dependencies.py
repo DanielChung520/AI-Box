@@ -1,7 +1,7 @@
 # 代碼功能說明: FastAPI 依賴注入函數
 # 創建日期: 2025-11-26 01:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-08 09:21:13 UTC+8
+# 最後修改日期: 2025-12-13 23:34:17 (UTC+8)
 
 """FastAPI 依賴注入函數 - 提供認證和授權依賴。
 
@@ -112,6 +112,23 @@ async def get_current_user(request: Request) -> User:
         )
 
     return user
+
+
+async def get_current_tenant_id(
+    request: Request,
+    user: User = Depends(get_current_user),
+) -> str:
+    """取得 tenant_id（多租戶前置）。"""
+    header_value = request.headers.get("X-Tenant-ID")
+    if header_value and str(header_value).strip():
+        return str(header_value).strip()
+
+    metadata = user.metadata if isinstance(user.metadata, dict) else {}
+    tenant_from_user = metadata.get("tenant_id")
+    if tenant_from_user and str(tenant_from_user).strip():
+        return str(tenant_from_user).strip()
+
+    return "default"
 
 
 async def require_permission(
