@@ -9,15 +9,14 @@
 保留 AgentInfo 僅為向後兼容，新代碼應使用 AgentRegistryInfo。
 """
 
-from enum import Enum
-from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 # 從 Registry 導入 AgentRegistryInfo 和 AgentStatus
-from agents.services.registry.models import (
-    AgentRegistryInfo,
-)
+from agents.services.registry.models import AgentRegistryInfo
 
 
 class TaskStatus(str, Enum):

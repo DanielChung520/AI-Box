@@ -77,4 +77,4 @@ repos:
     hooks:
       - id: markdownlint
         args: ['--fix']
-        exclude: ^(docs/migration/.*\.md|CHANGELOG.md)
+        exclude: ^(docs/migration/.*\.md|docs/文件上傳向量圖譜/.*\.md|docs/datasets/.*\.md|docs/IEE對話式開發文件編輯/.*\.md|docs/GenAI 任務式聊天/.*\.md|CHANGELOG.md)

@@ -7,12 +7,12 @@
 
 from __future__ import annotations
 
-import os
 import asyncio
+import os
 from typing import List, Optional
+
 import httpx
 import structlog
-
 
 logger = structlog.get_logger(__name__)
 
@@ -30,6 +30,7 @@ class EmbeddingService:
         batch_size: int = 10,
         max_retries: int = 3,
         timeout: float = 60.0,
+        concurrency_limit: Optional[int] = None,
     ):
         """
         初始化向量化服務
@@ -37,9 +38,10 @@ class EmbeddingService:
         Args:
             ollama_url: Ollama 服務地址，默認為 http://localhost:11434
             model: Embedding 模型名稱，默認為 nomic-embed-text
-            batch_size: 批量處理大小
+            batch_size: 批量處理大小（每批次的文本數量）
             max_retries: 最大重試次數
             timeout: 請求超時時間（秒）
+            concurrency_limit: 並發限制（同時進行的請求數，默認為 batch_size * 2）
         """
         # 直接读取配置文件
         import json
@@ -70,9 +72,7 @@ class EmbeddingService:
                     if ollama_config:
                         config = {
                             "ollama_url": f"http://{ollama_config.get('host', 'localhost')}:{ollama_config.get('port', 11434)}",
-                            "model": ollama_config.get(
-                                "embedding_model", "nomic-embed-text"
-                            ),
+                            "model": ollama_config.get("embedding_model", "nomic-embed-text"),
                         }
         self.ollama_url = (
             ollama_url
@@ -86,9 +86,25 @@ class EmbeddingService:
             or config.get("model")
             or "nomic-embed-text"
         )
-        self.batch_size = batch_size or config.get("batch_size", 10)
+        # 支持環境變量 EMBEDDING_BATCH_SIZE
+        config_batch_size = (
+            int(os.getenv("EMBEDDING_BATCH_SIZE"))
+            if os.getenv("EMBEDDING_BATCH_SIZE")
+            else config.get("batch_size", 10)
+        )
+        self.batch_size = batch_size or config_batch_size
         self.max_retries = max_retries or config.get("max_retries", 3)
         self.timeout = timeout or config.get("timeout", 60.0)
+
+        # 並發限制：允許同時進行的請求數（默認為 batch_size * 2，最大100）
+        config_concurrency = config.get("concurrency_limit")
+        if concurrency_limit is not None:
+            self.concurrency_limit = concurrency_limit
+        elif config_concurrency is not None:
+            self.concurrency_limit = config_concurrency
+        else:
+            # 默認值：batch_size * 2，但至少50，最大100
+            self.concurrency_limit = max(min(self.batch_size * 2, 100), 50)
 
         # 確保 URL 沒有結尾斜杠
         self.ollama_url = self.ollama_url.rstrip("/")
@@ -98,6 +114,7 @@ class EmbeddingService:
             ollama_url=self.ollama_url,
             model=self.model,
             batch_size=self.batch_size,
+            concurrency_limit=self.concurrency_limit,
         )
 
     async def generate_embedding(
@@ -148,12 +165,12 @@ class EmbeddingService:
                     # 追蹤模型使用（如果提供了user_id）
                     if user_id:
                         try:
+                            from services.api.models.model_usage import (
+                                ModelPurpose,
+                                ModelUsageCreate,
+                            )
                             from services.api.services.model_usage_service import (
                                 get_model_usage_service,
-                            )
-                            from services.api.models.model_usage import (
-                                ModelUsageCreate,
-                                ModelPurpose,
                             )
 
                             service = get_model_usage_service()
@@ -208,16 +225,17 @@ class EmbeddingService:
                 )
                 raise RuntimeError(f"Failed to generate embedding: {e}") from e
 
-        raise RuntimeError(
-            f"Failed to generate embedding after {self.max_retries} attempts"
-        )
+        raise RuntimeError(f"Failed to generate embedding after {self.max_retries} attempts")
 
-    async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    async def generate_embeddings_batch(
+        self, texts: List[str], progress_callback: Optional[callable] = None
+    ) -> List[List[float]]:
         """
         批量生成嵌入向量
 
         Args:
             texts: 文本列表
+            progress_callback: 可選的進度回調函數，簽名為 (processed_count: int, total_count: int) -> None
 
         Returns:
             嵌入向量列表（與輸入文本順序對應）
@@ -244,50 +262,102 @@ class EmbeddingService:
             "Generating embeddings in batch",
             total_texts=len(valid_texts),
             batch_size=self.batch_size,
+            concurrency_limit=self.concurrency_limit,
         )
 
-        embeddings: List[List[float]] = []
-
-        # 分批處理
+        # 將文本分成多個批次
+        batches: List[List[str]] = []
         for i in range(0, len(valid_texts), self.batch_size):
-            batch = valid_texts[i : i + self.batch_size]
-            batch_embeddings = await self._generate_batch_internal(batch)
+            batches.append(valid_texts[i : i + self.batch_size])
 
-            # 處理空文本的位置（保持順序）
-            if len(valid_texts) != len(texts):
-                # 如果過濾了空文本，需要映射回原始位置
-                for j, text in enumerate(batch):
-                    embeddings.append(batch_embeddings[j])
-            else:
-                embeddings.extend(batch_embeddings)
+        # 使用全局 semaphore 限制總並發數（控制同時進行的 embedding 請求數）
+        global_semaphore = asyncio.Semaphore(self.concurrency_limit)
+
+        # 追蹤進度（用於回調）
+        completed_count = 0
+        total_count = len(valid_texts)
+
+        async def process_batch_with_index(
+            batch_index: int, batch: List[str]
+        ) -> tuple[int, List[List[float]]]:
+            """處理單個批次，返回批次索引和結果，並更新進度"""
+            nonlocal completed_count
+            batch_embeddings = await self._generate_batch_internal(batch, global_semaphore)
+            completed_count += len(batch_embeddings)
+
+            # 調用進度回調
+            if progress_callback:
+                try:
+                    progress_callback(completed_count, total_count)
+                except Exception as e:
+                    logger.warning("Progress callback failed", error=str(e))
 
             logger.debug(
                 "Processed batch",
-                batch_index=i // self.batch_size + 1,
-                total_batches=(len(valid_texts) + self.batch_size - 1)
-                // self.batch_size,
+                batch_index=batch_index + 1,
+                total_batches=len(batches),
+                batch_size=len(batch),
+                completed=completed_count,
+                total=total_count,
             )
+            return (batch_index, batch_embeddings)
+
+        # 並行處理所有批次（批次之間並行，但總並發數受 global_semaphore 限制）
+        tasks = [process_batch_with_index(i, batch) for i, batch in enumerate(batches)]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # 按批次索引排序結果，確保順序正確
+        batch_results: List[tuple[int, List[List[float]]]] = []
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error("Failed to process batch", error=str(result))
+                raise RuntimeError(f"Failed to process batch: {result}") from result
+            batch_results.append(result)
+
+        # 排序確保順序
+        batch_results.sort(key=lambda x: x[0])
+
+        # 合併所有批次的結果
+        embeddings: List[List[float]] = []
+        for _, batch_embeddings in batch_results:
+            embeddings.extend(batch_embeddings)
+
+        # 處理空文本的位置（保持順序）- 如果過濾了空文本，需要映射回原始位置
+        # 注意：當前實現中 valid_texts 和 texts 的順序應該一致，所以這裡不需要特殊處理
+        # 但如果未來有變化，可能需要根據 valid_texts 的索引映射回 texts 的位置
+
+        logger.info(
+            "Batch embeddings generation completed",
+            total_texts=len(valid_texts),
+            total_batches=len(batches),
+            total_embeddings=len(embeddings),
+        )
 
         return embeddings
 
-    async def _generate_batch_internal(self, texts: List[str]) -> List[List[float]]:
+    async def _generate_batch_internal(
+        self, texts: List[str], semaphore: Optional[asyncio.Semaphore] = None
+    ) -> List[List[float]]:
         """
         內部方法：生成一批嵌入向量（並發處理）
 
         Args:
             texts: 文本列表
+            semaphore: 可選的 semaphore 用於控制並發數（如果提供，則使用；否則不限制）
 
         Returns:
             嵌入向量列表
         """
-        # 使用 asyncio.gather 並發處理，但限制並發數
-        semaphore = asyncio.Semaphore(self.batch_size)
 
-        async def generate_with_semaphore(text: str) -> List[float]:
-            async with semaphore:
+        # 使用提供的 semaphore 或創建一個不限制的（向後兼容）
+        async def generate_one(text: str) -> List[float]:
+            if semaphore:
+                async with semaphore:
+                    return await self.generate_embedding(text)
+            else:
                 return await self.generate_embedding(text)
 
-        tasks = [generate_with_semaphore(text) for text in texts]
+        tasks = [generate_one(text) for text in texts]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 處理錯誤

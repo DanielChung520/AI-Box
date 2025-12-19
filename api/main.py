@@ -8,6 +8,7 @@
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # 加載環境變數（在導入其他模組之前）
@@ -17,71 +18,79 @@ env_file = project_root / ".env"
 if env_file.exists():
     load_dotenv(env_file, override=True)
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import logging
 
-from api.middleware.request_id import RequestIDMiddleware
-from api.middleware.logging import LoggingMiddleware
 from api.middleware.error_handler import ErrorHandlerMiddleware
-from api.routers import (
-    health,
-    agents,
-    task_analyzer,
-    orchestrator,
-    planning,
-    execution,
-    review,
-    mcp,
-    chromadb,
-    llm,
-    chat,
-    docs_editing,
-    genai_tenant_config,
-    genai_user_config,
-    file_upload,
-    chunk_processing,
-    file_metadata,
-    file_management,
-    data_quality,
-    ner,
-    re,
-    rt,
-    triple_extraction,
-    kg_builder,
-    kg_query,
-    workflows,
-    agent_registry,
-    agent_catalog,
-    agent_files,
-    reports,
-    auth,
-    data_consent,
-    audit_log,
-    model_usage,
-    user_tasks,
-    rq_monitor,
-)
+from api.middleware.logging import LoggingMiddleware
+from api.middleware.request_id import RequestIDMiddleware
 
+# WBS-2.4: 監控與日誌 - Prometheus 中間件
+try:
+    from services.api.middleware.prometheus import PrometheusMiddleware
+
+    PROMETHEUS_AVAILABLE = True
+except ImportError:
+    PROMETHEUS_AVAILABLE = False
+    logging.warning("Prometheus 中間件不可用")
 # 可選導入 governance 路由
 from types import ModuleType
 from typing import Optional
+
+from api.routers import (
+    agent_catalog,
+    agent_files,
+    agent_registry,
+    agents,
+    audit_log,
+    auth,
+    chat,
+    chromadb,
+    chunk_processing,
+    data_consent,
+    data_quality,
+    docs_editing,
+    execution,
+    file_management,
+    file_metadata,
+    file_upload,
+    genai_tenant_config,
+    genai_user_config,
+    health,
+    kg_builder,
+    kg_query,
+    llm,
+    mcp,
+    model_usage,
+    ner,
+    orchestrator,
+    planning,
+    re,
+    reports,
+    review,
+    rq_monitor,
+    rt,
+    task_analyzer,
+    triple_extraction,
+    user_tasks,
+    workflows,
+)
 
 governance: Optional[ModuleType] = None
 try:
     from api.routers import governance  # type: ignore[no-redef]
 except ImportError:
     pass
-from api.routers import agent_auth
-from api.routers import agent_secret
-
-from api.core.version import get_version_info, API_PREFIX
-from system.security.config import get_security_settings
-from system.security.middleware import SecurityMiddleware
+from api.core.version import API_PREFIX, get_version_info
+from api.routers import agent_auth, agent_secret
 
 # 修改時間：2025-12-08 12:30:00 UTC+8 - 使用統一的日誌配置模組
 from system.logging_config import setup_fastapi_logging
+from system.security.config import get_security_settings
+from system.security.middleware import SecurityMiddleware
 
 # 配置 FastAPI 日誌（使用 RotatingFileHandler，最大 500KB，保留 4 個備份）
 setup_fastapi_logging()
@@ -201,6 +210,10 @@ if security_settings.enabled:
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(ErrorHandlerMiddleware)
 
+# WBS-2.4: 監控與日誌 - Prometheus 指標中間件（在所有中間件之前，以便收集所有請求）
+if PROMETHEUS_AVAILABLE:
+    app.add_middleware(PrometheusMiddleware, app_name="ai-box-api")
+
 # 配置 CORS（最後添加，確保在所有中間件之後）
 # 注意：文件上傳需要支持 multipart/form-data，這已經通過 allow_headers=["*"] 支持
 # 允許的來源：支持本地開發和生產環境
@@ -221,6 +234,16 @@ app.add_middleware(
 
 # 註冊路由
 app.include_router(health.router, tags=["Health"])
+
+# WBS-2.4: 監控與日誌 - Prometheus Metrics 端點
+try:
+    from api.routers import metrics
+
+    app.include_router(metrics.router, tags=["Monitoring"])
+    logger.info("Prometheus Metrics 路由已註冊")
+except ImportError:
+    logger.warning("Prometheus Metrics 路由未註冊（模組不可用）")
+
 app.include_router(auth.router, prefix=API_PREFIX, tags=["Authentication"])
 app.include_router(data_consent.router, prefix=API_PREFIX, tags=["Data Consent"])
 app.include_router(audit_log.router, prefix=API_PREFIX, tags=["Audit Logs"])
@@ -255,12 +278,27 @@ app.include_router(llm.router, prefix=API_PREFIX, tags=["LLM"])
 # 修改時間：2025-12-13 17:28:02 (UTC+8) - 註冊產品級 Chat 入口
 app.include_router(chat.router, prefix=API_PREFIX, tags=["Chat"])
 app.include_router(docs_editing.router, prefix=API_PREFIX, tags=["Docs Editing"])
-app.include_router(
-    genai_tenant_config.router, prefix=API_PREFIX, tags=["GenAI Tenant Config"]
-)
-app.include_router(
-    genai_user_config.router, prefix=API_PREFIX, tags=["GenAI User Config"]
-)
+app.include_router(genai_tenant_config.router, prefix=API_PREFIX, tags=["GenAI Tenant Config"])
+app.include_router(genai_user_config.router, prefix=API_PREFIX, tags=["GenAI User Config"])
+
+# 檔案系統轉結構遷移新增的路由
+try:
+    from services.api.routers import config, ontology
+
+    app.include_router(ontology.router, prefix=API_PREFIX, tags=["Ontology"])
+    app.include_router(config.router, prefix=API_PREFIX, tags=["Config"])
+    logger.info("Ontology and Config 路由已註冊")
+except ImportError as e:
+    logger.warning(f"Ontology/Config 路由未註冊（模組不可用）: {e}")
+
+# WBS-4: AI 治理與合規路由
+try:
+    from services.api.routers import compliance
+
+    app.include_router(compliance.router, prefix=API_PREFIX, tags=["Compliance"])
+    logger.info("Compliance 路由已註冊")
+except ImportError as e:
+    logger.warning(f"Compliance 路由未註冊（模組不可用）: {e}")
 # 條件性註冊 CrewAI 路由
 if CREWAI_AVAILABLE and crewai is not None and crewai_tasks is not None:
     app.include_router(crewai.router, prefix=API_PREFIX, tags=["CrewAI"])
@@ -274,9 +312,7 @@ app.include_router(file_management.router, prefix=API_PREFIX, tags=["File Manage
 app.include_router(user_tasks.router, prefix=API_PREFIX, tags=["User Tasks"])
 app.include_router(file_upload.router, prefix=API_PREFIX, tags=["File Upload"])
 app.include_router(rq_monitor.router, prefix=API_PREFIX, tags=["RQ Monitor"])
-app.include_router(
-    chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Processing"]
-)
+app.include_router(chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Processing"])
 app.include_router(file_metadata.router, prefix=API_PREFIX, tags=["File Metadata"])
 app.include_router(model_usage.router, prefix=API_PREFIX, tags=["Model Usage"])
 app.include_router(data_quality.router, prefix=API_PREFIX, tags=["Data Quality"])
@@ -285,12 +321,8 @@ if governance:
 app.include_router(ner.router, prefix=API_PREFIX, tags=["NER"])
 app.include_router(re.router, prefix=API_PREFIX, tags=["RE"])
 app.include_router(rt.router, prefix=API_PREFIX, tags=["RT"])
-app.include_router(
-    triple_extraction.router, prefix=API_PREFIX, tags=["Triple Extraction"]
-)
-app.include_router(
-    kg_builder.router, prefix=API_PREFIX, tags=["Knowledge Graph Builder"]
-)
+app.include_router(triple_extraction.router, prefix=API_PREFIX, tags=["Triple Extraction"])
+app.include_router(kg_builder.router, prefix=API_PREFIX, tags=["Knowledge Graph Builder"])
 app.include_router(kg_query.router, prefix=API_PREFIX, tags=["Knowledge Graph Query"])
 app.include_router(workflows.router, prefix=API_PREFIX, tags=["Workflows"])
 app.include_router(agent_files.router, prefix=API_PREFIX, tags=["Agent Files"])
@@ -318,16 +350,14 @@ async def startup_event():
         from agents.core import register_core_agents
 
         core_agents = register_core_agents()
-        logger.info(
-            f"Registered {len(core_agents)} core agents: {list(core_agents.keys())}"
-        )
+        logger.info(f"Registered {len(core_agents)} core agents: {list(core_agents.keys())}")
     except Exception as e:
         logger.error(f"Failed to register core agents: {e}")
 
     # 啟動 Agent 健康監控（可選，根據配置啟用）
     try:
-        from agents.services.registry.registry import get_agent_registry
         from agents.services.registry.health_monitor import AgentHealthMonitor
+        from agents.services.registry.registry import get_agent_registry
 
         registry = get_agent_registry()
         health_monitor = AgentHealthMonitor(

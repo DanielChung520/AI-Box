@@ -6,14 +6,12 @@ tests/
 **/test_*.py
 **/*_test.py
 
-# 文檔文件
-docs/
-*.md
-README.md
-CHANGELOG.md
-CONTRIBUTING.md
+# 環境變數文件（敏感資訊）
+.env
+.env.*
+*.env
 
-# 配置文件
+# 配置文件（部署相關）
 config/
 .github/
 k8s/

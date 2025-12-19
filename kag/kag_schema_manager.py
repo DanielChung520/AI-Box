@@ -1,16 +1,27 @@
+# 代碼功能說明: 知識圖譜 Schema 管理器（使用 ArangoDB Store Service）
+# 創建日期: 2025-01-27
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-18
+
 """
 知識圖譜 Schema 管理器
-功能：負責載入、合併 Ontology JSON 文件，並建立運行時驗證規則
-創建日期：2025-01-27
-創建人：Daniel Chung
-最後修改日期：2025-12-10
+功能：負責載入、合併 Ontology，並建立運行時驗證規則
+已遷移到使用 ArangoDB Store Service，替代文件系統讀取
 """
 
+from __future__ import annotations
+
 import json
-import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field, validator
+
+try:
+    from services.api.services.ontology_store_service import get_ontology_store_service
+except ImportError:
+    # 如果 Store Service 不可用，回退到文件系統（向後兼容）
+    get_ontology_store_service = None
 
 # 1. 儲存所有 Ontology 規則的動態容器 (全局變數)
 # LangChain Agent 將在運行時填充這個容器
@@ -23,70 +34,103 @@ ONTOLOGY_RULES: Dict[str, Any] = {
 
 class OntologyManager:
     """
-    負責載入、合併 Ontology JSON 文件，並建立運行時驗證規則。
+    負責載入、合併 Ontology，並建立運行時驗證規則。
+    使用 ArangoDB Store Service 替代文件系統讀取。
     """
 
-    def __init__(self, base_path: Optional[str] = None):
+    def __init__(self, base_path: Optional[str] = None, tenant_id: Optional[str] = None):
         """
         初始化 Ontology 管理器
 
-        :param base_path: Ontology 文件所在目錄路徑，如果為 None 則使用默認路徑 (kag/ontology/)
+        Args:
+            base_path: 保留參數以兼容舊接口（已棄用，不再使用）
+            tenant_id: 租戶 ID，用於查詢租戶專屬 Ontology
         """
+        # 保留 base_path 以兼容舊代碼，但不再使用
         if base_path is None:
-            # 獲取當前文件所在目錄，然後指向 ontology 子目錄
             current_file = Path(__file__).resolve()
             base_path = str(current_file.parent / "ontology")
-        self.base_path = base_path
+        self.base_path = base_path  # 保留以兼容，但不再使用
+        self.tenant_id = tenant_id
         self.loaded_ontologies: Dict[str, Any] = {}
 
+        # 嘗試使用 Store Service，如果不可用則回退到文件系統
+        if get_ontology_store_service is not None:
+            try:
+                self.store_service = get_ontology_store_service()
+                self._use_store_service = True
+            except Exception:
+                self.store_service = None
+                self._use_store_service = False
+        else:
+            self.store_service = None
+            self._use_store_service = False
+
     def _load_json(self, filename: str) -> Dict[str, Any]:
-        """從指定路徑載入單一 JSON 檔案。"""
+        """
+        從文件系統載入 JSON 檔案（僅用於 Prompt-Template.json 或回退模式）。
+
+        注意：對於 Ontology 文件（base.json, domain-*.json, major-*.json），
+        現在應該使用 Store Service 從 ArangoDB 載入。
+        """
+        import os
+
         file_path = os.path.join(self.base_path, filename)
         try:
-            # 檢查文件是否存在
             if not os.path.exists(file_path):
-                raise FileNotFoundError(
-                    f"Ontology 文件未找到: {filename}. "
-                    f"請確保您的 JSON 檔案存在於 {self.base_path} 目錄中。"
-                )
+                raise FileNotFoundError(f"文件未找到: {filename}. " f"請確保文件存在於 {self.base_path} 目錄中。")
 
-            # 檢查文件是否為空
             if os.path.getsize(file_path) == 0:
-                raise ValueError(
-                    f"Ontology 文件為空: {filename}. "
-                    f"請確保文件包含有效的 JSON 內容。"
-                )
+                raise ValueError(f"文件為空: {filename}")
 
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if not data:
-                    raise ValueError(f"Ontology 文件 {filename} 解析後為空。")
+                    raise ValueError(f"文件 {filename} 解析後為空。")
                 return data
         except FileNotFoundError:
             raise
         except ValueError:
-            # 重新拋出 ValueError，保持原始異常類型
             raise
         except json.JSONDecodeError as e:
-            raise ValueError(
-                f"Ontology 文件 {filename} JSON 格式錯誤: {e}. "
-                f"請檢查文件格式是否正確。"
-            )
+            raise ValueError(f"文件 {filename} JSON 格式錯誤: {e}")
         except Exception as e:
-            raise RuntimeError(f"載入 Ontology 文件 {filename} 時發生錯誤: {e}")
+            raise RuntimeError(f"載入文件 {filename} 時發生錯誤: {e}")
 
     def merge_ontologies(
         self, domain_files: List[str], task_file: Optional[str] = None
-    ):
+    ) -> Dict[str, Any]:
         """
         核心合併邏輯：載入 Base, Domain, Task 層次，並更新全局規則容器。
 
-        :param domain_files: 領域層 Ontology 檔案列表 (e.g., ['enterprise-otg.json'])
-        :param task_file: 專業層 Ontology 檔案 (e.g., 'manufacture-otg.json')
-        """
+        Args:
+            domain_files: 領域層 Ontology 檔案列表 (e.g., ['domain-enterprise.json'])
+            task_file: 專業層 Ontology 檔案 (e.g., 'major-manufacture.json')
 
-        # 清空容器，準備新的提取任務
+        Returns:
+            合併後的規則字典
+        """
         global ONTOLOGY_RULES
+
+        # 如果可以使用 Store Service，使用它來合併 Ontology
+        if self._use_store_service and self.store_service:
+            try:
+                # 直接傳遞文件名列表給 Store Service（它會處理文件名解析）
+                merged_rules = self.store_service.merge_ontologies(
+                    domain_files=domain_files, major_file=task_file, tenant_id=self.tenant_id
+                )
+
+                ONTOLOGY_RULES = merged_rules
+                print(
+                    f"Ontology 合併完成（使用 ArangoDB）。總實體數: {len(ONTOLOGY_RULES['entity_classes'])}，總關係數: {len(ONTOLOGY_RULES['relationship_types'])}"
+                )
+                return ONTOLOGY_RULES
+            except Exception as e:
+                print(f"警告：使用 Store Service 失敗，回退到文件系統: {e}")
+                # 回退到文件系統模式
+                self._use_store_service = False
+
+        # 回退到文件系統模式（向後兼容）
         ONTOLOGY_RULES = {
             "entity_classes": [],
             "relationship_types": [],
@@ -112,12 +156,15 @@ class OntologyManager:
             # 合併實體類別
             if "entity_classes" in module:
                 for entity in module["entity_classes"]:
-                    all_entities.add(entity["name"])
+                    if isinstance(entity, dict):
+                        all_entities.add(entity["name"])
+                    else:
+                        all_entities.add(entity)
 
             # 合併物件屬性 (Object Properties) 和 OWL 約束
             if "object_properties" in module:
                 for prop in module["object_properties"]:
-                    rel_name = prop["name"]
+                    rel_name = prop["name"] if isinstance(prop, dict) else prop
 
                     # 加入關係名稱列表
                     ONTOLOGY_RULES["relationship_types"].append(rel_name)
@@ -127,20 +174,19 @@ class OntologyManager:
                         ONTOLOGY_RULES["owl_domain_range"][rel_name] = []
 
                     # 建立 (Domain Type, Range Type) 元組
-                    for domain_type in prop["domain"]:
-                        for range_type in prop["range"]:
-                            ONTOLOGY_RULES["owl_domain_range"][rel_name].append(
-                                (domain_type, range_type)
-                            )
+                    if isinstance(prop, dict):
+                        for domain_type in prop.get("domain", []):
+                            for range_type in prop.get("range", []):
+                                ONTOLOGY_RULES["owl_domain_range"][rel_name].append(
+                                    (domain_type, range_type)
+                                )
 
         # 最終填充實體列表
         ONTOLOGY_RULES["entity_classes"] = list(all_entities)
-        ONTOLOGY_RULES["relationship_types"] = list(
-            set(ONTOLOGY_RULES["relationship_types"])
-        )  # 去重
+        ONTOLOGY_RULES["relationship_types"] = list(set(ONTOLOGY_RULES["relationship_types"]))  # 去重
 
         print(
-            f"Ontology 合併完成。總實體數: {len(ONTOLOGY_RULES['entity_classes'])}，總關係數: {len(ONTOLOGY_RULES['relationship_types'])}"
+            f"Ontology 合併完成（文件系統模式）。總實體數: {len(ONTOLOGY_RULES['entity_classes'])}，總關係數: {len(ONTOLOGY_RULES['relationship_types'])}"
         )
         return ONTOLOGY_RULES
 
@@ -175,9 +221,7 @@ class OntologyManager:
         entity_classes = ontology_rules.get("entity_classes")
         relationship_types = ontology_rules.get("relationship_types")
         if not entity_classes or not relationship_types:
-            raise RuntimeError(
-                "Ontology 規則未初始化。請先調用 merge_ontologies() 方法載入並合併 Ontology。"
-            )
+            raise RuntimeError("Ontology 規則未初始化。請先調用 merge_ontologies() 方法載入並合併 Ontology。")
 
         # 載入提示詞模板
         template = self.load_prompt_template()
@@ -192,9 +236,7 @@ class OntologyManager:
         # 生成 OWL Domain/Range 約束說明
         owl_constraints = ""
         if include_owl_constraints and ontology_rules.get("owl_domain_range"):
-            owl_constraints = self._format_owl_constraints(
-                ontology_rules["owl_domain_range"]
-            )
+            owl_constraints = self._format_owl_constraints(ontology_rules["owl_domain_range"])
 
         # 生成 JSON Schema
         json_schema = json.dumps(KnowledgeGraph.schema(), indent=2, ensure_ascii=False)
@@ -270,9 +312,7 @@ class OntologyManager:
                 valid_combinations.append(f"({domain_type}, {range_type})")
 
             if valid_combinations:
-                constraints.append(
-                    f"  - 關係 '{rel_name}' 的有效組合: {', '.join(valid_combinations)}"
-                )
+                constraints.append(f"  - 關係 '{rel_name}' 的有效組合: {', '.join(valid_combinations)}")
 
         if constraints:
             return "\n".join(constraints)
@@ -315,18 +355,14 @@ class Triple(BaseModel):
         if rel in ONTOLOGY_RULES["owl_domain_range"]:
             # 檢查 (主體類型, 客體類型) 元組是否在允許的列表中
             if (sub_type, obj_type) not in ONTOLOGY_RULES["owl_domain_range"][rel]:
-                raise ValueError(
-                    f"OWL 約束失敗: 關係 '{rel}' 不允許連接 ({sub_type}, {obj_type})。"
-                )
+                raise ValueError(f"OWL 約束失敗: 關係 '{rel}' 不允許連接 ({sub_type}, {obj_type})。")
         return v
 
 
 class KnowledgeGraph(BaseModel):
     """最終輸出結構：包含從文檔中提取的所有三元組。"""
 
-    extracted_triples: List[Triple] = Field(
-        description="從文本中提取出來的所有知識三元組列表。"
-    )
+    extracted_triples: List[Triple] = Field(description="從文本中提取出來的所有知識三元組列表。")
 
 
 # --- 範例 LangChain Agent 調用邏輯 ---

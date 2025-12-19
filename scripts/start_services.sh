@@ -661,11 +661,25 @@ start_worker() {
         sleep 2
     fi
 
-    # 檢查 Worker 是否已在運行
+    # 檢查 Worker 是否已在運行，如果在運行則先停止
     local worker_pids=$(ps aux | grep -E "rq worker|workers.service" | grep -v grep | awk "{print \$2}")
     if [ -n "$worker_pids" ]; then
-        echo -e "${GREEN}✅ RQ Worker 已在運行 (PID: $worker_pids)${NC}"
-        return 0
+        echo -e "${YELLOW}⚠️  RQ Worker 正在運行 (PID: $worker_pids)，先停止...${NC}"
+        for pid in $worker_pids; do
+            echo -e "${YELLOW}  停止 Worker 進程 $pid...${NC}"
+            kill -TERM $pid 2>/dev/null || true
+        done
+        sleep 2
+        # 強制終止仍在運行的 Worker
+        local remaining_pids=$(ps aux | grep -E "rq worker|workers.service" | grep -v grep | awk "{print \$2}")
+        if [ -n "$remaining_pids" ]; then
+            for pid in $remaining_pids; do
+                echo -e "${YELLOW}  強制終止 Worker 進程 $pid...${NC}"
+                kill -9 $pid 2>/dev/null || true
+            done
+        fi
+        echo -e "${GREEN}✅ RQ Worker 已停止${NC}"
+        sleep 1
     fi
 
     # 確定 Python 路徑

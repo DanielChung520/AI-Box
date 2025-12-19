@@ -6,20 +6,38 @@
 """審計日誌數據模型定義。"""
 
 from datetime import datetime
-from typing import Dict, Any, Optional
 from enum import Enum
+from typing import Any, Dict, Optional
+
 from pydantic import BaseModel, Field
 
 
 class AuditAction(str, Enum):
-    """審計操作類型枚舉"""
+    """審計操作類型枚舉（WBS-4: AI 治理與合規）"""
 
+    # 文件操作
     FILE_UPLOAD = "file_upload"  # 文件上傳
     FILE_CREATE = "file_create"  # 文件創建
     FILE_UPDATE = "file_update"  # 文件更新
     FILE_ACCESS = "file_access"  # 文件訪問
     FILE_DELETE = "file_delete"  # 文件刪除
     DATA_PROCESS = "data_process"  # 數據處理
+
+    # Ontology 操作（WBS-4.1.1）
+    ONTOLOGY_CREATE = "ontology_create"  # Ontology 創建
+    ONTOLOGY_READ = "ontology_read"  # Ontology 讀取
+    ONTOLOGY_UPDATE = "ontology_update"  # Ontology 更新
+    ONTOLOGY_DELETE = "ontology_delete"  # Ontology 刪除
+    ONTOLOGY_MERGE = "ontology_merge"  # Ontology 合併
+
+    # Config 操作（WBS-4.1.1）
+    CONFIG_CREATE = "config_create"  # Config 創建
+    CONFIG_READ = "config_read"  # Config 讀取
+    CONFIG_UPDATE = "config_update"  # Config 更新
+    CONFIG_DELETE = "config_delete"  # Config 刪除
+    CONFIG_RESOLVE = "config_resolve"  # Config 解析
+
+    # 其他操作
     MODEL_CALL = "model_call"  # 模型調用
     CONSENT_GRANTED = "consent_granted"  # 同意授予
     CONSENT_REVOKED = "consent_revoked"  # 同意撤銷
@@ -43,9 +61,7 @@ class AuditLog(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="操作時間")
     ip_address: str = Field(..., description="IP 地址")
     user_agent: str = Field(..., description="User Agent")
-    details: Dict[str, Any] = Field(
-        default_factory=dict, description="額外詳情（JSON）"
-    )
+    details: Dict[str, Any] = Field(default_factory=dict, description="額外詳情（JSON）")
 
     class Config:
         use_enum_values = True

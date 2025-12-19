@@ -5,54 +5,40 @@
 
 """文件上傳路由 - 提供文件上傳、驗證和存儲功能"""
 
-import os
 import json
-from typing import List, Optional, Dict, Any
-from fastapi import (
-    APIRouter,
-    UploadFile,
-    File,
-    Form,
-    status,
-    Depends,
-)
-from fastapi.responses import JSONResponse
+import os
+import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import structlog
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from api.core.response import APIResponse
-from system.security.dependencies import get_current_user
-from system.security.models import User
-from system.security.consent_middleware import require_consent
-from services.api.models.data_consent import ConsentType
-from system.security.audit_decorator import audit_log
-from services.api.models.audit_log import AuditAction
-from fastapi import Request
 from database.redis import get_redis_client
-from services.api.utils.file_validator import (
-    FileValidator,
-    create_validator_from_config,
-)
-from storage.file_storage import (
-    FileStorage,
-    create_storage_from_config,
-)
-from services.api.services.file_metadata_service import FileMetadataService
-from services.api.models.file_metadata import FileMetadataCreate
-from system.infra.config.config import get_config_section
-from services.api.services.embedding_service import get_embedding_service
-from services.api.services.vector_store_service import get_vector_store_service
-from services.api.services.kg_extraction_service import get_kg_extraction_service
-from services.api.services.file_permission_service import get_file_permission_service
-from services.api.services.user_task_service import get_user_task_service
-from services.api.models.user_task import UserTaskCreate
-from services.api.services.task_workspace_service import get_task_workspace_service
-from system.security.models import Permission
-from datetime import datetime
-import uuid
-from database.rq.queue import get_task_queue, FILE_PROCESSING_QUEUE
-from workers.tasks import process_file_chunking_and_vectorization_task
+from database.rq.queue import FILE_PROCESSING_QUEUE, get_task_queue
 from genai.api.services.kg_builder_service import KGBuilderService
+from services.api.models.audit_log import AuditAction
+from services.api.models.data_consent import ConsentType
+from services.api.models.file_metadata import FileMetadataCreate
+from services.api.models.user_task import UserTaskCreate
+from services.api.services.embedding_service import get_embedding_service
+from services.api.services.file_metadata_service import FileMetadataService
+from services.api.services.file_permission_service import get_file_permission_service
+from services.api.services.kg_extraction_service import get_kg_extraction_service
+from services.api.services.task_workspace_service import get_task_workspace_service
+from services.api.services.user_task_service import get_user_task_service
+from services.api.services.vector_store_service import get_vector_store_service
+from services.api.utils.file_validator import FileValidator, create_validator_from_config
+from storage.file_storage import FileStorage, create_storage_from_config
+from system.infra.config.config import get_config_section
+from system.security.audit_decorator import audit_log
+from system.security.consent_middleware import require_consent
+from system.security.dependencies import get_current_user
+from system.security.models import Permission, User
+from workers.tasks import process_file_chunking_and_vectorization_task
 
 logger = structlog.get_logger(__name__)
 
@@ -68,9 +54,7 @@ class BlankMarkdownCreateRequest(BaseModel):
     """建立空白 Markdown 檔案（不走 upload multipart）。"""
 
     task_id: str = Field(..., description="任務ID（必填）")
-    folder_id: Optional[str] = Field(
-        None, description="資料夾ID（可選；None 表示任務工作區根目錄）"
-    )
+    folder_id: Optional[str] = Field(None, description="資料夾ID（可選；None 表示任務工作區根目錄）")
     filename: str = Field(..., description="檔名（會自動補 .md）")
 
 
@@ -137,9 +121,7 @@ async def create_blank_markdown(
     task_service = get_user_task_service()
     existing_task = task_service.get(user_id=current_user.user_id, task_id=task_id)
     if existing_task is None:
-        task_title = os.path.splitext((body.filename or "新任務").strip() or "新任務")[
-            0
-        ]
+        task_title = os.path.splitext((body.filename or "新任務").strip() or "新任務")[0]
         try:
             task_service.create(
                 UserTaskCreate(
@@ -279,7 +261,7 @@ def _update_processing_status(
     overall_progress: Optional[int] = None,
     message: Optional[str] = None,
 ) -> None:
-    """更新處理狀態到 Redis。
+    """更新處理狀態到 Redis 和 ArangoDB（雙寫模式，確保數據一致性）。
 
     Args:
         file_id: 文件ID
@@ -294,7 +276,7 @@ def _update_processing_status(
     try:
         redis_client = get_redis_client()
 
-        # 嘗試讀取現有狀態
+        # 嘗試讀取現有狀態（從 Redis）
         existing_key = f"processing:status:{file_id}"
         existing_data_str = redis_client.get(existing_key)
         if existing_data_str:
@@ -334,11 +316,60 @@ def _update_processing_status(
         if message is not None:
             status_data["message"] = message
 
+        # 1. 更新 Redis（API 端點目前從這裡讀取，保持向後兼容）
         redis_client.setex(
             existing_key,
             7200,  # TTL: 2小時（處理可能需要更長時間）
             json.dumps(status_data),
         )
+
+        # 2. 同時更新 ArangoDB（用於持久化和審計）
+        try:
+            from services.api.models.upload_status import ProcessingStatusUpdate
+            from services.api.services.upload_status_service import get_upload_status_service
+
+            upload_status_service = get_upload_status_service()
+
+            # 檢查是否已存在記錄
+            existing_status = upload_status_service.get_processing_status(file_id)
+
+            # 構建更新對象
+            update = ProcessingStatusUpdate(
+                overall_status=status_data.get("status"),
+                overall_progress=status_data.get("progress"),
+                message=status_data.get("message"),
+                chunking=status_data.get("chunking"),
+                vectorization=status_data.get("vectorization"),
+                storage=status_data.get("storage"),
+                kg_extraction=status_data.get("kg_extraction"),
+            )
+
+            if existing_status:
+                # 更新現有記錄
+                upload_status_service.update_processing_status(file_id, update)
+            else:
+                # 創建新記錄
+                from services.api.models.upload_status import ProcessingStatusCreate
+
+                create = ProcessingStatusCreate(
+                    file_id=file_id,
+                    overall_status=status_data.get("status", "pending"),
+                    overall_progress=status_data.get("progress", 0),
+                    message=status_data.get("message"),
+                )
+                upload_status_service.create_processing_status(create)
+                # 如果創建後需要更新階段狀態
+                if chunking or vectorization or storage or kg_extraction:
+                    upload_status_service.update_processing_status(file_id, update)
+
+        except Exception as arango_error:
+            # ArangoDB 更新失敗不應影響 Redis 更新，記錄警告即可
+            logger.warning(
+                "Failed to update processing status in ArangoDB (Redis update succeeded)",
+                file_id=file_id,
+                error=str(arango_error),
+            )
+
     except Exception as e:
         logger.warning(
             "Failed to update processing status",
@@ -372,11 +403,8 @@ async def process_file_chunking_and_vectorization(
         )
 
         # 導入分塊處理相關模塊
-        from genai.api.routers.chunk_processing import (
-            get_parser,
-            get_chunk_processor,
-            get_storage as get_chunk_storage,
-        )
+        from genai.api.routers.chunk_processing import get_chunk_processor, get_parser
+        from genai.api.routers.chunk_processing import get_storage as get_chunk_storage
 
         # ========== 階段1: 文件解析和分塊 (0-50%) ==========
         _update_processing_status(
@@ -456,11 +484,7 @@ async def process_file_chunking_and_vectorization(
             chunking={
                 "status": "processing",
                 "progress": 50,
-                "message": (
-                    "文件解析完成，開始分塊"
-                    if not is_image_file
-                    else "圖片描述生成完成"
-                ),
+                "message": ("文件解析完成，開始分塊" if not is_image_file else "圖片描述生成完成"),
             },
             overall_progress=25,
         )
@@ -483,9 +507,7 @@ async def process_file_chunking_and_vectorization(
                     "image_width": image_metadata.get("width"),
                     "image_height": image_metadata.get("height"),
                     "vision_model": image_metadata.get("vision_model"),
-                    "description_confidence": image_metadata.get(
-                        "description_confidence"
-                    ),
+                    "description_confidence": image_metadata.get("description_confidence"),
                     **image_metadata,  # 包含所有圖片元數據
                 }
             ]
@@ -527,9 +549,26 @@ async def process_file_chunking_and_vectorization(
 
         embedding_service = get_embedding_service()
 
-        # 批量生成向量
+        # 批量生成向量（帶進度回調）
         chunk_texts = [chunk.get("text", "") for chunk in chunks]
-        embeddings = await embedding_service.generate_embeddings_batch(chunk_texts)
+
+        # 定義進度回調函數
+        def update_vectorization_progress(processed: int, total: int) -> None:
+            """更新向量化進度"""
+            progress = int((processed / total) * 100) if total > 0 else 0
+            _update_processing_status(
+                file_id=file_id,
+                vectorization={
+                    "status": "processing",
+                    "progress": progress,
+                    "message": f"向量化進行中: {processed}/{total}",
+                },
+                overall_progress=50 + int((processed / total) * 40),  # 50-90%
+            )
+
+        embeddings = await embedding_service.generate_embeddings_batch(
+            chunk_texts, progress_callback=update_vectorization_progress
+        )
 
         _update_processing_status(
             file_id=file_id,
@@ -639,10 +678,7 @@ async def process_file_chunking_and_vectorization(
                         **kg_config,
                         "file_name": (
                             file_metadata_obj.filename
-                            if (
-                                file_metadata_obj
-                                and hasattr(file_metadata_obj, "filename")
-                            )
+                            if (file_metadata_obj and hasattr(file_metadata_obj, "filename"))
                             else None
                         ),
                         "file_metadata": file_metadata_dict,
@@ -665,18 +701,13 @@ async def process_file_chunking_and_vectorization(
                             "remaining_chunks"
                         ) or []
                         if remaining_chunks:
-                            from database.rq.queue import (
-                                KG_EXTRACTION_QUEUE,
-                                get_task_queue,
-                            )
+                            from database.rq.queue import KG_EXTRACTION_QUEUE, get_task_queue
                             from workers.tasks import process_kg_extraction_only_task
 
                             queue = get_task_queue(KG_EXTRACTION_QUEUE)
                             lock_key = f"kg:continue_lock:{file_id}"
                             # 120 秒內只允許 enqueue 一次續跑
-                            got_lock = bool(
-                                redis_client.set(lock_key, "1", nx=True, ex=120)
-                            )
+                            got_lock = bool(redis_client.set(lock_key, "1", nx=True, ex=120))
                             next_job_id: Optional[str] = None
                             if got_lock:
                                 next_job = queue.enqueue(
@@ -794,11 +825,8 @@ async def process_vectorization_only(
         )
 
         # 導入分塊處理相關模塊
-        from genai.api.routers.chunk_processing import (
-            get_parser,
-            get_chunk_processor,
-            get_storage as get_chunk_storage,
-        )
+        from genai.api.routers.chunk_processing import get_chunk_processor, get_parser
+        from genai.api.routers.chunk_processing import get_storage as get_chunk_storage
 
         # ========== 階段1: 文件解析和分塊 (0-50%) ==========
         _update_processing_status(
@@ -817,9 +845,7 @@ async def process_vectorization_only(
         metadata_service = get_metadata_service()
         file_metadata_obj = metadata_service.get(file_id)
         task_id = file_metadata_obj.task_id if file_metadata_obj else None
-        metadata_storage_path = (
-            file_metadata_obj.storage_path if file_metadata_obj else None
-        )
+        metadata_storage_path = file_metadata_obj.storage_path if file_metadata_obj else None
 
         storage = get_chunk_storage()
         # 使用 task_id 和 metadata_storage_path 來正確讀取文件
@@ -858,11 +884,7 @@ async def process_vectorization_only(
             chunking={
                 "status": "processing",
                 "progress": 50,
-                "message": (
-                    "文件解析完成，開始分塊"
-                    if not is_image_file
-                    else "圖片描述生成完成"
-                ),
+                "message": ("文件解析完成，開始分塊" if not is_image_file else "圖片描述生成完成"),
             },
             overall_progress=25,
         )
@@ -885,9 +907,7 @@ async def process_vectorization_only(
                     "image_width": image_metadata.get("width"),
                     "image_height": image_metadata.get("height"),
                     "vision_model": image_metadata.get("vision_model"),
-                    "description_confidence": image_metadata.get(
-                        "description_confidence"
-                    ),
+                    "description_confidence": image_metadata.get("description_confidence"),
                     **image_metadata,
                 }
             ]
@@ -929,9 +949,26 @@ async def process_vectorization_only(
 
         embedding_service = get_embedding_service()
 
-        # 批量生成向量
+        # 批量生成向量（帶進度回調）
         chunk_texts = [chunk.get("text", "") for chunk in chunks]
-        embeddings = await embedding_service.generate_embeddings_batch(chunk_texts)
+
+        # 定義進度回調函數
+        def update_vectorization_progress(processed: int, total: int) -> None:
+            """更新向量化進度"""
+            progress = int((processed / total) * 100) if total > 0 else 0
+            _update_processing_status(
+                file_id=file_id,
+                vectorization={
+                    "status": "processing",
+                    "progress": progress,
+                    "message": f"向量化進行中: {processed}/{total}",
+                },
+                overall_progress=50 + int((processed / total) * 40),  # 50-90%
+            )
+
+        embeddings = await embedding_service.generate_embeddings_batch(
+            chunk_texts, progress_callback=update_vectorization_progress
+        )
 
         _update_processing_status(
             file_id=file_id,
@@ -1094,9 +1131,7 @@ async def _reconstruct_chunks_from_vectors(
                     chunk["image_width"] = metadata.get("image_width")
                     chunk["image_height"] = metadata.get("image_height")
                     chunk["vision_model"] = metadata.get("vision_model")
-                    chunk["description_confidence"] = metadata.get(
-                        "description_confidence"
-                    )
+                    chunk["description_confidence"] = metadata.get("description_confidence")
 
             chunks.append(chunk)
 
@@ -1192,9 +1227,7 @@ async def process_kg_extraction(
                     "relations_count": relations_count,
                     "remaining_chunks": remaining,
                     "failed_chunks": result.get("failed_chunks", []),
-                    "failed_permanent_chunks": result.get(
-                        "failed_permanent_chunks", []
-                    ),
+                    "failed_permanent_chunks": result.get("failed_permanent_chunks", []),
                     "mode": options.get("mode", "all_chunks"),
                     "job_id": current_job_id,
                 },
@@ -1211,9 +1244,7 @@ async def process_kg_extraction(
                     "entities_count": entities_count,
                     "relations_count": relations_count,
                     "failed_chunks": result.get("failed_chunks", []),
-                    "failed_permanent_chunks": result.get(
-                        "failed_permanent_chunks", []
-                    ),
+                    "failed_permanent_chunks": result.get("failed_permanent_chunks", []),
                     "mode": options.get("mode", "all_chunks"),
                     "job_id": current_job_id,
                 },
@@ -1314,11 +1345,8 @@ async def process_kg_extraction_only(
             )
 
             # 導入分塊處理相關模塊
-            from genai.api.routers.chunk_processing import (
-                get_parser,
-                get_chunk_processor,
-                get_storage as get_chunk_storage,
-            )
+            from genai.api.routers.chunk_processing import get_chunk_processor, get_parser
+            from genai.api.routers.chunk_processing import get_storage as get_chunk_storage
 
             # 獲取解析器
             if file_type is None:
@@ -1467,9 +1495,18 @@ async def process_kg_extraction_only(
         remaining_chunks = (result or {}).get("remaining_chunks") or []
         if remaining_chunks:
             try:
+                from rq import get_current_job
+
+                from database.redis import get_redis_client
                 from database.rq.queue import KG_EXTRACTION_QUEUE, get_task_queue
                 from workers.tasks import process_kg_extraction_only_task
-                from database.redis import get_redis_client
+
+                # 獲取當前 job_id（如果有的話）
+                try:
+                    current_job = get_current_job()
+                    current_job_id = current_job.id if current_job else None
+                except Exception:
+                    current_job_id = None
 
                 queue = get_task_queue(KG_EXTRACTION_QUEUE)
                 redis_client = get_redis_client()
@@ -1543,12 +1580,8 @@ async def process_kg_extraction_only(
 async def upload_files(
     request: Request,
     files: List[UploadFile] = File(...),
-    task_id: Optional[str] = Form(
-        None, description="任務ID（可選，用於組織文件到工作區）"
-    ),
-    target_folder_id: Optional[str] = Form(
-        None, description="目標資料夾ID（可選，未提供則放任務工作區）"
-    ),
+    task_id: Optional[str] = Form(None, description="任務ID（可選，用於組織文件到工作區）"),
+    target_folder_id: Optional[str] = Form(None, description="目標資料夾ID（可選，未提供則放任務工作區）"),
     current_user: User = Depends(require_consent(ConsentType.FILE_UPLOAD)),
 ) -> JSONResponse:
     # 修改時間：2025-01-27 - 添加日誌記錄以便調試 JWT 認證問題
@@ -1625,7 +1658,7 @@ async def upload_files(
             )
             try:
                 # 創建新任務（任務工作區會自動創建）
-                new_task = task_service.create(
+                task_service.create(
                     UserTaskCreate(
                         task_id=task_id,
                         user_id=current_user.user_id,
@@ -1690,7 +1723,7 @@ async def upload_files(
         )
         try:
             # 創建新任務（任務工作區會自動創建）
-            new_task = task_service.create(
+            task_service.create(
                 UserTaskCreate(
                     task_id=final_task_id,
                     user_id=current_user.user_id,
@@ -1724,12 +1757,12 @@ async def upload_files(
 
     # 確保任務工作區存在
     workspace_service = get_task_workspace_service()
-    workspace_service.create_workspace(
-        task_id=final_task_id, user_id=current_user.user_id
-    )
+    workspace_service.create_workspace(task_id=final_task_id, user_id=current_user.user_id)
 
     # 驗證目標資料夾；若未提供，預設為該任務的工作區
     if final_folder_id:
+        from api.routers.file_management import get_arangodb_client
+
         arangodb_client = get_arangodb_client()
         if arangodb_client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
@@ -1853,9 +1886,7 @@ async def upload_files(
 
             # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄文件創建操作日誌
             try:
-                from services.api.services.operation_log_service import (
-                    get_operation_log_service,
-                )
+                from services.api.services.operation_log_service import get_operation_log_service
 
                 operation_log_service = get_operation_log_service()
 
@@ -1876,7 +1907,7 @@ async def upload_files(
                                 if file_metadata.created_at.endswith("Z")
                                 else file_metadata.created_at + "Z"
                             )
-                except:
+                except Exception:
                     file_created_at = datetime.utcnow().isoformat() + "Z"
 
                 operation_log_service.log_operation(
@@ -1892,9 +1923,7 @@ async def upload_files(
                     notes=f"文件上傳，任務ID: {final_task_id}，任務標題: {task_title or 'N/A'}",
                 )
             except Exception as e:
-                logger.warning(
-                    "記錄文件創建操作日誌失敗", file_id=file_id, error=str(e)
-                )
+                logger.warning("記錄文件創建操作日誌失敗", file_id=file_id, error=str(e))
 
             # 觸發異步處理任務（分塊+向量化+圖譜）- 使用 RQ 隊列
             # 注意：task_id 會從文件元數據中獲取，不需要額外傳遞
@@ -2204,8 +2233,7 @@ async def get_kg_chunk_status(
                 "total_chunks": state.get("total_chunks", 0),
                 "completed_chunks": state.get("completed_chunks", []) or [],
                 "failed_chunks": state.get("failed_chunks", []) or [],
-                "failed_permanent_chunks": state.get("failed_permanent_chunks", [])
-                or [],
+                "failed_permanent_chunks": state.get("failed_permanent_chunks", []) or [],
                 "attempts": state.get("attempts", {}) or {},
                 "errors": state.get("errors", {}) or {},
                 "chunks": state.get("chunks", {}) or {},
@@ -2365,9 +2393,7 @@ async def get_kg_triples(
 
         # 從 ArangoDB 依 file_id 查詢 triples（relations edge + subject/object）
         kg_builder = KGBuilderService()
-        result = kg_builder.list_triples_by_file_id(
-            file_id=file_id, limit=limit, offset=offset
-        )
+        result = kg_builder.list_triples_by_file_id(file_id=file_id, limit=limit, offset=offset)
 
         return APIResponse.success(
             data={
@@ -2454,9 +2480,7 @@ async def delete_file(
             )
             logger.info("已刪除文件關聯的向量", file_id=file_id)
         except Exception as e:
-            logger.warning(
-                "刪除向量失敗（繼續刪除文件）", file_id=file_id, error=str(e)
-            )
+            logger.warning("刪除向量失敗（繼續刪除文件）", file_id=file_id, error=str(e))
 
         # 2. 刪除 ArangoDB 中的知識圖譜關聯（依 file_id 移除 file_ids 關聯；必要時刪除孤立點/邊）
         try:
@@ -2464,9 +2488,7 @@ async def delete_file(
             cleanup = kg_builder.remove_file_associations(file_id=file_id)
             logger.info("已清理文件關聯的知識圖譜資料", file_id=file_id, **cleanup)
         except Exception as e:
-            logger.warning(
-                "清理知識圖譜失敗（繼續刪除文件）", file_id=file_id, error=str(e)
-            )
+            logger.warning("清理知識圖譜失敗（繼續刪除文件）", file_id=file_id, error=str(e))
 
         # 3. 刪除文件元數據
         try:
@@ -2474,9 +2496,7 @@ async def delete_file(
             metadata_service.delete(file_id)
             logger.info("已刪除文件元數據", file_id=file_id)
         except Exception as e:
-            logger.warning(
-                "刪除文件元數據失敗（繼續刪除文件）", file_id=file_id, error=str(e)
-            )
+            logger.warning("刪除文件元數據失敗（繼續刪除文件）", file_id=file_id, error=str(e))
 
         # 4. 刪除實際文件
         success = storage.delete_file(file_id)
