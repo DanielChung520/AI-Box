@@ -10,8 +10,8 @@
 - 每個日誌文件最大 500KB，保留 4 個備份文件
 """
 
-import os
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -114,8 +114,7 @@ def setup_fastapi_logging() -> None:
 
         # 檢查是否已經有文件處理器
         has_file_handler = any(
-            isinstance(h, RotatingFileHandler)
-            and h.baseFilename == str(FASTAPI_LOG_PATH)
+            isinstance(h, RotatingFileHandler) and h.baseFilename == str(FASTAPI_LOG_PATH)
             for h in logger.handlers
         )
 

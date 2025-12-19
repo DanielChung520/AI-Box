@@ -11,6 +11,7 @@
 ### 1.1 JWT認證系統實現 (2-3天)
 
 #### 1.1.1 JWT服務實現 (1-2天)
+
 - [x] **任務 1.1.1.1**: 實現JWT Token簽發
   - 位置: `system/security/jwt_service.py` (新建)
   - 功能: 生成JWT Token，包含用戶信息
@@ -31,6 +32,7 @@
   - 預計時間: 3小時
 
 #### 1.1.2 認證中間件實現 (1天)
+
 - [x] **任務 1.1.2.1**: 實現認證依賴注入
   - 位置: `system/security/dependencies.py`
   - 功能: `get_current_user` 依賴函數
@@ -53,6 +55,7 @@
 ### 1.2 數據使用同意機制 (1天)
 
 #### 1.2.1 同意模型設計 (0.3天)
+
 - [x] **任務 1.2.1.1**: 設計數據使用同意數據模型
   - 位置: `services/api/models/data_consent.py` (新建)
   - 字段: user_id, consent_type, purpose, granted, timestamp
@@ -63,6 +66,7 @@
   - 預計時間: 1小時
 
 #### 1.2.2 同意流程實現 (0.5天)
+
 - [x] **任務 1.2.2.1**: 實現同意API
   - 位置: `api/routers/data_consent.py` (新建)
   - 功能: 記錄用戶同意狀態
@@ -78,6 +82,7 @@
   - 預計時間: 3小時
 
 #### 1.2.3 同意追蹤 (0.2天)
+
 - [x] **任務 1.2.3.1**: 實現同意狀態查詢
   - 功能: 查詢用戶的同意狀態
   - 預計時間: 1小時
@@ -89,6 +94,7 @@
 ### 1.3 審計日誌系統 (1-2天)
 
 #### 1.3.1 日誌模型設計 (0.3天)
+
 - [x] **任務 1.3.1.1**: 設計審計日誌數據模型
   - 位置: `services/api/models/audit_log.py` (新建)
   - 字段: user_id, action, resource_type, resource_id, timestamp, ip_address, details
@@ -99,6 +105,7 @@
   - 預計時間: 1小時
 
 #### 1.3.2 日誌記錄實現 (0.5天)
+
 - [x] **任務 1.3.2.1**: 實現審計日誌服務
   - 位置: `services/api/services/audit_log_service.py` (新建)
   - 功能: 記錄審計日誌到數據庫
@@ -114,6 +121,7 @@
   - 預計時間: 2小時
 
 #### 1.3.3 日誌查詢API (0.4天)
+
 - [x] **任務 1.3.3.1**: 實現日誌查詢API
   - 位置: `api/routers/audit_log.py` (新建)
   - 功能: 按用戶、時間、操作類型查詢
@@ -126,6 +134,7 @@
 ### 1.4 安全配置和測試 (0.5天)
 
 #### 1.4.1 安全配置 (0.2天)
+
 - [x] **任務 1.4.1.1**: 配置JWT密鑰管理
   - 功能: 從環境變數讀取密鑰，生產環境使用強密鑰
   - 預計時間: 1小時
@@ -135,6 +144,7 @@
   - 預計時間: 1小時
 
 #### 1.4.2 安全測試 (0.3天)
+
 - [ ] **任務 1.4.2.1**: 認證功能測試
   - 功能: 測試Token生成、驗證、刷新
   - 預計時間: 2小時
@@ -186,6 +196,7 @@ class AuditLog(BaseModel):
 ### 2.4 API端點
 
 #### 登錄
+
 ```
 POST /api/auth/login
 Request: { "username": "...", "password": "..." }
@@ -193,6 +204,7 @@ Response: { "access_token": "...", "refresh_token": "..." }
 ```
 
 #### 刷新Token
+
 ```
 POST /api/auth/refresh
 Request: { "refresh_token": "..." }
@@ -200,6 +212,7 @@ Response: { "access_token": "..." }
 ```
 
 #### 記錄同意
+
 ```
 POST /api/consent
 Request: { "consent_type": "file_upload", "granted": true }
@@ -207,6 +220,7 @@ Response: { "success": true }
 ```
 
 #### 查詢審計日誌
+
 ```
 GET /api/audit-logs?user_id={user_id}&action={action}&start_date={date}
 Response: { "logs": [...], "total": 100 }
@@ -215,6 +229,7 @@ Response: { "logs": [...], "total": 100 }
 ## 3. 驗收標準
 
 ### 3.1 功能驗收
+
 - ✅ JWT Token可以正常生成和驗證
 - ✅ 未認證請求被正確拒絕
 - ✅ 用戶同意狀態正確記錄和檢查
@@ -222,31 +237,37 @@ Response: { "logs": [...], "total": 100 }
 - ✅ 審計日誌可以查詢和導出
 
 ### 3.2 安全驗收
+
 - ✅ Token使用強密鑰簽名
 - ✅ Token過期時間合理
 - ✅ 黑名單機制正常工作
 - ✅ 敏感信息不在日誌中記錄
 
 ### 3.3 性能驗收
+
 - Token驗證響應時間 < 10ms
 - 審計日誌記錄不影響API性能（異步記錄）
 
 ## 4. 依賴關係
 
 ### 4.1 前置條件
+
 - 用戶數據庫/認證系統可用
 - Redis可用（用於Token黑名單）
 
 ### 4.2 後續任務
+
 - 階段一：必須在階段零完成後才能開始
 
 ## 5. 風險與緩解
 
 ### 5.1 技術風險
+
 - **風險**: JWT實現複雜，可能出現安全漏洞
 - **緩解**: 使用成熟的JWT庫，進行安全審查
 
 ### 5.2 時間風險
+
 - **風險**: 安全準備階段可能延遲項目開始
 - **緩解**: 這是必要的，不能跳過。可以並行開發部分功能
 

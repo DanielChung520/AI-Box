@@ -101,7 +101,7 @@
 **階段一總結**:
 
 - ✅ 已完成基礎設施配置工作（7/7，100%，2025-10-25）
-- ✅ Git 遠程倉庫已配置（https://github.com/DanielChung520/AI-Box.git）
+- ✅ Git 遠程倉庫已配置（<https://github.com/DanielChung520/AI-Box.git）>
 - ✅ Docker 環境配置完成（包括 .env.example）
 - ✅ 所有配置文件已創建並符合計劃要求
 - ✅ Docker 環境配置檢查報告已生成（docs/DOCKER_SETUP_CHECK.md）

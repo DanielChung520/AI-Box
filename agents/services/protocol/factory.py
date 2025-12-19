@@ -6,10 +6,7 @@
 """Agent Service Client Factory - 創建不同類型的 Agent Service Client"""
 
 
-from agents.services.protocol.base import (
-    AgentServiceProtocol,
-    AgentServiceProtocolType,
-)
+from agents.services.protocol.base import AgentServiceProtocol, AgentServiceProtocolType
 from agents.services.protocol.http_client import HTTPAgentServiceClient
 from agents.services.protocol.mcp_client import MCPAgentServiceClient
 

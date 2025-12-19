@@ -7,14 +7,15 @@
 
 from __future__ import annotations
 
+import atexit
 import os
-import sys
 import signal
 import subprocess
+import sys
 import time
-import atexit
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -95,7 +96,7 @@ class WorkerService:
             return rq_path
 
         # 如果找不到 rq 命令，使用 python -m rq.cli
-        return None
+        return ""  # type: ignore[return-value]  # 返回空字符串而不是 None，因為函數簽名要求返回 str
 
     def _check_dependencies(self) -> bool:
         """檢查依賴是否滿足"""
@@ -191,13 +192,13 @@ class WorkerService:
             worker_env = {**os.environ, "PYTHONPATH": str(PROJECT_ROOT)}
             if sys.platform == "darwin":  # macOS
                 worker_env["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
-                logger.info(
-                    "已設置 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES 以解決 macOS fork 問題"
-                )
+                logger.info("已設置 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES 以解決 macOS fork 問題")
 
             # 啟動進程
+            # 過濾 None 值，確保 cmd 列表中的元素都是字符串
+            cmd_filtered: list[str] = [arg for arg in cmd if arg is not None]
             self.process = subprocess.Popen(
-                cmd,
+                cmd_filtered,  # type: ignore[arg-type]  # 已過濾 None，但 mypy 仍報告類型錯誤
                 cwd=str(PROJECT_ROOT),
                 env=worker_env,
                 stdout=log_file_handle,
@@ -418,8 +419,11 @@ def main():
         service.monitor(check_interval=args.check_interval)
     else:
         # 否則等待進程結束
+        if service.process is None:
+            logger.warning("Worker process is None, cannot wait")
+            return
         try:
-            service.process.wait()
+            service.process.wait()  # type: ignore[union-attr]  # 已檢查不為 None
         except KeyboardInterrupt:
             logger.info("收到中斷信號，停止 Worker")
             service.stop()

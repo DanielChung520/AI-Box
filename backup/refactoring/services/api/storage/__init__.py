@@ -5,11 +5,7 @@
 
 """文件存儲適配器 - 重新導出 storage 模組的內容"""
 
-from storage.file_storage import (
-    FileStorage,
-    LocalFileStorage,
-    create_storage_from_config,
-)
+from storage.file_storage import FileStorage, LocalFileStorage, create_storage_from_config
 
 __all__ = [
     "FileStorage",

@@ -5,9 +5,10 @@
 
 """ArangoDB 圖操作封裝，提供圖遍歷和關係查詢功能"""
 
-from typing import Dict, Any, List, Optional
-from arango.graph import Graph
 import logging
+from typing import Any, Dict, List, Optional
+
+from arango.graph import Graph
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +60,7 @@ class ArangoGraph:
                 from_vertex_collections=from_vertex_collections,
                 to_vertex_collections=to_vertex_collections,
             )
-            logger.info(
-                f"Created edge definition '{edge_collection}' in graph '{self.name}'"
-            )
+            logger.info(f"Created edge definition '{edge_collection}' in graph '{self.name}'")
         except Exception as e:
             logger.error(f"Failed to create edge definition '{edge_collection}': {e}")
             raise
@@ -79,9 +78,7 @@ class ArangoGraph:
         """
         try:
             result = self.graph.insert_vertex(collection, vertex)
-            logger.debug(
-                f"Inserted vertex into collection '{collection}' in graph '{self.name}'"
-            )
+            logger.debug(f"Inserted vertex into collection '{collection}' in graph '{self.name}'")
             return result  # type: ignore[return-value]
         except Exception as e:
             logger.error(f"Failed to insert vertex into collection '{collection}': {e}")
@@ -112,9 +109,7 @@ class ArangoGraph:
             edge_with_vertices["_from"] = from_vertex
             edge_with_vertices["_to"] = to_vertex
             result = self.graph.insert_edge(collection, edge_with_vertices)  # type: ignore[call-arg,arg-type]
-            logger.debug(
-                f"Inserted edge into collection '{collection}' in graph '{self.name}'"
-            )
+            logger.debug(f"Inserted edge into collection '{collection}' in graph '{self.name}'")
             return result  # type: ignore[return-value]
         except Exception as e:
             logger.error(f"Failed to insert edge into collection '{collection}': {e}")
@@ -266,9 +261,7 @@ class ArangoGraph:
                 default_weight=default_weight,
             )
             if path:
-                logger.debug(
-                    f"Found shortest path from '{start_vertex}' to '{end_vertex}'"
-                )
+                logger.debug(f"Found shortest path from '{start_vertex}' to '{end_vertex}'")
             return path
         except Exception as e:
             logger.error(f"Failed to get shortest path: {e}")

@@ -86,9 +86,7 @@ class RoutingEvaluator:
         """
         self.max_history_size = max_history_size
         self.decision_history: List[RoutingDecision] = []
-        self.provider_metrics: Dict[LLMProvider, RoutingMetrics] = defaultdict(
-            RoutingMetrics
-        )
+        self.provider_metrics: Dict[LLMProvider, RoutingMetrics] = defaultdict(RoutingMetrics)
         self.strategy_metrics: Dict[str, RoutingMetrics] = defaultdict(RoutingMetrics)
 
     def record_decision(
@@ -161,9 +159,7 @@ class RoutingEvaluator:
         else:
             strategy_metric.failed_requests += 1
 
-    def get_provider_metrics(
-        self, provider: Optional[LLMProvider] = None
-    ) -> Dict[str, Any]:
+    def get_provider_metrics(self, provider: Optional[LLMProvider] = None) -> Dict[str, Any]:
         """
         獲取提供商指標。
 
@@ -274,9 +270,7 @@ class RoutingEvaluator:
         # 成本評分（成本越低越好，假設最大成本為 1.0）
         max_cost = 1.0
         cost_score = (
-            max(0.0, 1.0 - (metrics.average_cost / max_cost))
-            if metrics.average_cost > 0
-            else 1.0
+            max(0.0, 1.0 - (metrics.average_cost / max_cost)) if metrics.average_cost > 0 else 1.0
         )
 
         # 質量評分
@@ -311,9 +305,7 @@ class RoutingEvaluator:
 
         # 過濾歷史記錄（如果指定了任務類型）
         if task_type:
-            filtered_decisions = [
-                d for d in self.decision_history if d.task_type == task_type
-            ]
+            filtered_decisions = [d for d in self.decision_history if d.task_type == task_type]
         else:
             filtered_decisions = self.decision_history
 
@@ -329,9 +321,7 @@ class RoutingEvaluator:
 
         if provider_scores:
             # 排序並選擇最佳提供商
-            sorted_providers = sorted(
-                provider_scores.items(), key=lambda x: x[1], reverse=True
-            )
+            sorted_providers = sorted(provider_scores.items(), key=lambda x: x[1], reverse=True)
             recommendations["best_provider"] = sorted_providers[0][0].value
             recommendations["provider_rankings"] = [
                 {"provider": p.value, "score": s} for p, s in sorted_providers
@@ -351,9 +341,7 @@ class RoutingEvaluator:
 
         if strategy_scores:
             # 排序並選擇最佳策略
-            sorted_strategies = sorted(
-                strategy_scores.items(), key=lambda x: x[1], reverse=True
-            )
+            sorted_strategies = sorted(strategy_scores.items(), key=lambda x: x[1], reverse=True)
             recommendations["best_strategy"] = sorted_strategies[0][0]
             recommendations["strategy_rankings"] = [
                 {"strategy": s, "score": score} for s, score in sorted_strategies

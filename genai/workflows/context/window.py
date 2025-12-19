@@ -112,9 +112,7 @@ class ContextWindow:
 
         return messages
 
-    def _truncate_by_count(
-        self, messages: List[ContextMessage]
-    ) -> List[ContextMessage]:
+    def _truncate_by_count(self, messages: List[ContextMessage]) -> List[ContextMessage]:
         """
         根據消息數量截斷。
 
@@ -140,9 +138,7 @@ class ContextWindow:
             # 默認使用 FIFO
             return messages[-self._max_messages :]
 
-    def _truncate_by_tokens(
-        self, messages: List[ContextMessage]
-    ) -> List[ContextMessage]:
+    def _truncate_by_tokens(self, messages: List[ContextMessage]) -> List[ContextMessage]:
         """
         根據 Token 數量截斷。
 
@@ -192,9 +188,7 @@ class ContextWindow:
 
         return result if result else messages[:1]  # 至少保留一條消息
 
-    def _truncate_by_importance(
-        self, messages: List[ContextMessage]
-    ) -> List[ContextMessage]:
+    def _truncate_by_importance(self, messages: List[ContextMessage]) -> List[ContextMessage]:
         """
         根據重要性截斷（優先保留 system 和 user 消息）。
 
@@ -253,9 +247,7 @@ class ContextWindow:
 
         return result if result else messages[:1]
 
-    def _truncate_with_summary(
-        self, messages: List[ContextMessage]
-    ) -> List[ContextMessage]:
+    def _truncate_with_summary(self, messages: List[ContextMessage]) -> List[ContextMessage]:
         """
         使用摘要壓縮策略截斷（簡化實現）。
 
@@ -320,8 +312,6 @@ class ContextWindow:
             "total_tokens": total_tokens,
             "max_tokens": self._max_tokens,
             "max_messages": self._max_messages,
-            "token_usage_ratio": (
-                total_tokens / self._max_tokens if self._max_tokens > 0 else 0.0
-            ),
+            "token_usage_ratio": (total_tokens / self._max_tokens if self._max_tokens > 0 else 0.0),
             "truncation_strategy": self._truncation_strategy.value,
         }

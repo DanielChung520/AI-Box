@@ -143,9 +143,7 @@ class ExecutionPlanner:
 
         # 驗證計劃
         plan.feasibility_score = self._validate_plan(plan)
-        plan.status = (
-            PlanStatus.VALIDATED if plan.feasibility_score >= 0.7 else PlanStatus.DRAFT
-        )
+        plan.status = PlanStatus.VALIDATED if plan.feasibility_score >= 0.7 else PlanStatus.DRAFT
         plan.created_at = datetime.now().isoformat()
         plan.updated_at = plan.created_at
 
@@ -195,9 +193,7 @@ class ExecutionPlanner:
 """
 
         if context:
-            prompt += (
-                f"\n上下文信息：\n{json.dumps(context, ensure_ascii=False, indent=2)}"
-            )
+            prompt += f"\n上下文信息：\n{json.dumps(context, ensure_ascii=False, indent=2)}"
 
         return prompt
 
@@ -217,9 +213,7 @@ class ExecutionPlanner:
                 data = json.loads(json_str)
             else:
                 # 如果沒有找到 JSON，創建默認計劃
-                logger.warning(
-                    "Failed to parse JSON from response, creating default plan"
-                )
+                logger.warning("Failed to parse JSON from response, creating default plan")
                 data = {"steps": []}
 
             # 構建計劃步驟

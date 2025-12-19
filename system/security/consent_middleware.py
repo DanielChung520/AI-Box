@@ -5,14 +5,14 @@
 
 """數據使用同意檢查中間件 - 提供同意檢查裝飾器和依賴函數。"""
 
-from fastapi import HTTPException, status, Depends
 import structlog
+from fastapi import Depends, HTTPException, status
 
 from services.api.models.data_consent import ConsentType
 from services.api.services.data_consent_service import get_consent_service
+from system.security.config import get_security_settings
 from system.security.dependencies import get_current_user
 from system.security.models import User
-from system.security.config import get_security_settings
 
 logger = structlog.get_logger(__name__)
 

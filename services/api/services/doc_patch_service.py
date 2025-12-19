@@ -128,9 +128,7 @@ def apply_unified_diff(*, original: str, diff_text: str) -> str:
     return joined
 
 
-def apply_json_patch(
-    *, original_json_text: str, patch_ops: List[Dict[str, Any]]
-) -> str:
+def apply_json_patch(*, original_json_text: str, patch_ops: List[Dict[str, Any]]) -> str:
     try:
         obj = json.loads(original_json_text)
     except Exception as exc:  # noqa: BLE001

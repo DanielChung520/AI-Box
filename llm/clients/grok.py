@@ -47,9 +47,7 @@ class GrokClient(BaseLLMClient):
             timeout: 請求超時時間（秒，可選，從配置讀取）
         """
         if httpx is None:
-            raise ImportError(
-                "httpx is not installed. Please install it with: pip install httpx"
-            )
+            raise ImportError("httpx is not installed. Please install it with: pip install httpx")
 
         # 從環境變數或配置讀取 API 密鑰
         if api_key is None:
@@ -160,9 +158,7 @@ class GrokClient(BaseLLMClient):
             return result
 
         except httpx.HTTPStatusError as exc:
-            logger.error(
-                f"Grok HTTP error: {exc.response.status_code} - {exc.response.text}"
-            )
+            logger.error(f"Grok HTTP error: {exc.response.status_code} - {exc.response.text}")
             raise GrokClientError(f"Grok API error: {exc}") from exc
         except Exception as exc:
             logger.error(f"Grok generate error: {exc}")
@@ -239,9 +235,7 @@ class GrokClient(BaseLLMClient):
             return result
 
         except httpx.HTTPStatusError as exc:
-            logger.error(
-                f"Grok HTTP error: {exc.response.status_code} - {exc.response.text}"
-            )
+            logger.error(f"Grok HTTP error: {exc.response.status_code} - {exc.response.text}")
             raise GrokClientError(f"Grok API error: {exc}") from exc
         except Exception as exc:
             logger.error(f"Grok chat error: {exc}")

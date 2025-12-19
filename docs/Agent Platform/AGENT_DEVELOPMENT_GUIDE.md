@@ -410,6 +410,7 @@ async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
 **問題**：外部 Agent 註冊時返回 400 錯誤
 
 **解決方案**：
+
 - 檢查是否提供了至少一種認證方式
 - 驗證 `endpoints.is_internal` 設置正確
 - 檢查端點 URL 格式是否正確
@@ -419,6 +420,7 @@ async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
 **問題**：外部 Agent 調用時返回 401 錯誤
 
 **解決方案**：
+
 - 檢查 API Key 是否正確
 - 驗證請求簽名是否正確生成
 - 確認 IP 地址在白名單中

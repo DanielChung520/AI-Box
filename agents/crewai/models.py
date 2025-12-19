@@ -51,9 +51,7 @@ class CrewMetrics(BaseModel):
     token_usage: int = Field(default=0, description="Token 使用量")
     execution_time: float = Field(default=0.0, description="執行時間（秒）")
     success_rate: float = Field(default=0.0, ge=0.0, le=1.0, description="成功率")
-    last_updated: datetime = Field(
-        default_factory=datetime.now, description="最後更新時間"
-    )
+    last_updated: datetime = Field(default_factory=datetime.now, description="最後更新時間")
 
 
 class CrewConfig(BaseModel):

@@ -10,12 +10,10 @@ from typing import List, Optional
 
 from crewai import Agent
 
-from agents.crewai.agent_templates import (
-    get_agent_template,
-)
+from agents.crewai.agent_templates import get_agent_template
+from agents.crewai.llm_adapter import OllamaLLMAdapter
 from agents.crewai.models import AgentRole
 from agents.crewai.tool_adapter import ToolAdapter
-from agents.crewai.llm_adapter import OllamaLLMAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -74,14 +72,10 @@ class AgentFactory:
                 allow_delegation=template.allow_delegation,
                 llm=self._llm_adapter,
             )
-            logger.info(
-                f"Created agent from template '{template_name}': {template.role}"
-            )
+            logger.info(f"Created agent from template '{template_name}': {template.role}")
             return agent
         except Exception as exc:
-            logger.error(
-                f"Failed to create agent from template '{template_name}': {exc}"
-            )
+            logger.error(f"Failed to create agent from template '{template_name}': {exc}")
             return None
 
     def create_custom_agent(

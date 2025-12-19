@@ -7,6 +7,7 @@
 
 from datetime import datetime
 from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -17,9 +18,7 @@ class PermissionModel(BaseModel):
     name: str = Field(..., description="權限名稱")
     description: Optional[str] = Field(None, description="權限描述")
     resource_type: Optional[str] = Field(None, description="資源類型（如 file, task）")
-    action: Optional[str] = Field(
-        None, description="操作類型（如 read, write, delete）"
-    )
+    action: Optional[str] = Field(None, description="操作類型（如 read, write, delete）")
     created_at: Optional[datetime] = Field(None, description="創建時間")
     updated_at: Optional[datetime] = Field(None, description="更新時間")
 

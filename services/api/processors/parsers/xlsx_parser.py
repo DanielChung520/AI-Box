@@ -5,7 +5,8 @@
 
 """Excel 文件解析器 - 使用 openpyxl"""
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from .base_parser import BaseParser
 
 try:
@@ -36,9 +37,7 @@ class XlsxParser(BaseParser):
                 sheet_text = []
 
                 for row in sheet.iter_rows(values_only=True):
-                    row_text = " | ".join(
-                        str(cell) if cell is not None else "" for cell in row
-                    )
+                    row_text = " | ".join(str(cell) if cell is not None else "" for cell in row)
                     sheet_text.append(row_text)
 
                 sheet_full_text = "\n".join(sheet_text)
@@ -79,9 +78,7 @@ class XlsxParser(BaseParser):
                 sheet_text = []
 
                 for row in sheet.iter_rows(values_only=True):
-                    row_text = " | ".join(
-                        str(cell) if cell is not None else "" for cell in row
-                    )
+                    row_text = " | ".join(str(cell) if cell is not None else "" for cell in row)
                     sheet_text.append(row_text)
 
                 sheet_full_text = "\n".join(sheet_text)

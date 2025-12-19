@@ -8,15 +8,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 import structlog
 
-from database.arangodb import ArangoDBClient, ArangoCollection
-from services.api.models.data_consent import (
-    DataConsent,
-    DataConsentCreate,
-    ConsentType,
-)
+from database.arangodb import ArangoCollection, ArangoDBClient
+from services.api.models.data_consent import ConsentType, DataConsent, DataConsentCreate
 
 logger = structlog.get_logger(__name__)
 
@@ -71,9 +68,7 @@ class DataConsentService:
             "granted": consent_create.granted,
             "timestamp": datetime.utcnow().isoformat(),
             "expires_at": (
-                consent_create.expires_at.isoformat()
-                if consent_create.expires_at
-                else None
+                consent_create.expires_at.isoformat() if consent_create.expires_at else None
             ),
         }
 
@@ -203,7 +198,7 @@ class DataConsentService:
             "user_id": user_id,
         }
 
-        cursor = self.client.db.aql.execute(query, bind_vars=bind_vars)
+        cursor = self.client.db.aql.execute(query, bind_vars=bind_vars)  # type: ignore[arg-type]  # bind_vars 類型兼容
         results = [doc for doc in cursor]
 
         return [self._document_to_consent(doc) for doc in results]

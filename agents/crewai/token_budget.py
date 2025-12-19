@@ -6,8 +6,8 @@
 """實現 Token 預算監控和控制。"""
 
 import logging
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -65,9 +65,7 @@ class TokenBudgetGuard:
 
         if self.usage.total_tokens >= self.budget:
             self._exceeded = True
-            logger.warning(
-                f"Token budget exceeded: {self.usage.total_tokens} >= {self.budget}"
-            )
+            logger.warning(f"Token budget exceeded: {self.usage.total_tokens} >= {self.budget}")
             return False
 
         return True
@@ -89,9 +87,7 @@ class TokenBudgetGuard:
         # 檢查是否超預算
         if self.usage.total_tokens >= self.budget:
             self._exceeded = True
-            logger.warning(
-                f"Token budget exceeded: {self.usage.total_tokens} >= {self.budget}"
-            )
+            logger.warning(f"Token budget exceeded: {self.usage.total_tokens} >= {self.budget}")
 
     def get_remaining_budget(self) -> int:
         """

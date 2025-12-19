@@ -17,6 +17,7 @@
 ### 1. 開發環境設置腳本
 
 #### `scripts/setup_dev_env.sh`
+
 - **功能**: 自動化設置開發環境
 - **內容**:
   - Python 3.11+ 安裝
@@ -27,6 +28,7 @@
   - 項目虛擬環境設置
 
 #### `scripts/verify_env.sh`
+
 - **功能**: 驗證開發環境設置
 - **內容**:
   - Python 環境驗證
@@ -40,6 +42,7 @@
 ### 2. 其他工具腳本
 
 #### `scripts/setup_github.sh`
+
 - **功能**: 自動化設置 GitHub 遠程倉庫
 - **內容**:
   - 交互式配置遠程倉庫 URL
@@ -47,6 +50,7 @@
   - 驗證遠程連接
 
 #### `scripts/update_project_control.sh`
+
 - **功能**: 更新項目工作管制表
 - **內容**:
   - 交互式更新工作項狀態
@@ -55,6 +59,7 @@
   - 添加風險記錄
 
 #### `scripts/generate_weekly_summary.sh`
+
 - **功能**: 生成週報摘要
 - **內容**:
   - 從項目工作管制表提取數據
@@ -73,6 +78,7 @@
 ### 3. 進度報告模板
 
 #### `docs/progress/phase1/templates/daily-report-template.md`
+
 - **類型**: 日報模板
 - **內容**:
   - 今日完成任務
@@ -83,6 +89,7 @@
   - 測試結果
 
 #### `docs/progress/phase1/templates/weekly-report-template.md`
+
 - **類型**: 週報模板
 - **內容**:
   - 本週工作總結
@@ -94,6 +101,7 @@
   - 風險評估
 
 #### `docs/progress/phase1/templates/milestone-report-template.md`
+
 - **類型**: 里程碑報告模板
 - **內容**:
   - 執行摘要
@@ -110,6 +118,7 @@
 ### 4. 文檔
 
 #### `scripts/README.md`
+
 - **功能**: 腳本使用說明
 - **內容**:
   - 腳本列表和說明
@@ -118,6 +127,7 @@
   - 故障排除
 
 #### `docs/progress/phase1/README.md`
+
 - **功能**: 進度報告使用說明
 - **內容**:
   - 報告類型說明

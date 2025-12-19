@@ -434,11 +434,13 @@ AI-Box/
 **職責**: 所有 GenAI 相關的功能，包括 LangChain、RAG、NER/RE/RT、Context Record
 
 **結構說明**:
+
 - `api/` - GenAI 相關的 FastAPI 路由、服務和模型
 - `workflows/` - 工作流引擎（LangChain、RAG、Context）
 - `prompt/` - Prompt 管理
 
 **遷移來源**:
+
 - `services/api/routers/ner.py` → `genai/api/routers/ner.py`
 - `services/api/routers/re.py` → `genai/api/routers/re.py`
 - `agent_process/context/` → `genai/workflows/context/`
@@ -451,10 +453,12 @@ AI-Box/
 **職責**: MCP 協議的服務器和客戶端實現
 
 **結構說明**:
+
 - `server/` - MCP Server 框架、協議定義、工具註冊
 - `client/` - MCP Client 實現、連接管理
 
 **遷移來源**:
+
 - `mcp_server/` → `mcp/server/`
 - `mcp_client/` → `mcp/client/`
 - `services/mcp_server/` → 整合到 `mcp/server/`
@@ -466,12 +470,14 @@ AI-Box/
 **職責**: 所有數據庫服務的封裝
 
 **結構說明**:
+
 - `chromadb/` - ChromaDB 單一服務
 - `arangodb/` - ArangoDB 單一服務
 - `redis/` - Redis 服務（如需要）
 - `personnel/` - Personnel Data 服務
 
 **遷移來源**:
+
 - `databases/chromadb/` → `database/chromadb/`
 - `databases/arangodb/` → `database/arangodb/`
 
@@ -482,12 +488,14 @@ AI-Box/
 **職責**: LLM 模型管理、路由、負載均衡
 
 **結構說明**:
+
 - `moe/` - MoE 管理器
 - `abstraction/` - 模型抽象層
 - `clients/` - 各種 LLM 客戶端實現
 - `routing/` - LLM 路由策略
 
 **遷移來源**:
+
 - `llm/moe_manager.py` → `llm/moe/moe_manager.py`
 - `llm/clients/` → `llm/clients/` (保持，更新導入)
 - `llm/routing/` → `llm/routing/` (保持，更新導入)
@@ -499,12 +507,14 @@ AI-Box/
 **職責**: Agent 的協調、註冊、執行
 
 **結構說明**:
+
 - `services/` - Agent 協調服務（註冊、協調、處理、文件服務）
 - `core/` - 核心 Agent 實現（Planning、Execution、Review）
 - `workflows/` - Agent 工作流引擎
 - `task_analyzer/` - 任務分析
 
 **遷移來源**:
+
 - `services/agent_registry/` → `agents/services/registry/`
 - `agents/orchestrator/` → `agents/services/orchestrator/`
 - `agents/planning/` → `agents/core/planning/`
@@ -516,11 +526,13 @@ AI-Box/
 **職責**: 系統級功能（安全、配置、日誌、監控）
 
 **結構說明**:
+
 - `security/` - 安全服務
 - `infra/` - 基礎設施（配置、日誌、監控）
 - `n8n/` - n8n 工作流集成（未來）
 
 **遷移來源**:
+
 - `services/security/` → `system/security/`
 - `core/config.py` → `system/infra/config/config.py`
 
@@ -531,12 +543,14 @@ AI-Box/
 **職責**: 對外 API 接口，整合所有服務
 
 **結構說明**:
+
 - `main.py` - FastAPI 主應用
 - `routers/` - 所有 API 路由（引用各組件的路由）
 - `middleware/` - 中間件
 - `core/` - API 核心功能
 
 **遷移來源**:
+
 - `services/api/main.py` → `api/main.py`
 - `services/api/routers/*` → `api/routers/*` (整合並引用新位置)
 - `services/api/middleware/` → `api/middleware/`
@@ -560,8 +574,6 @@ AI-Box/
 | `services/security/` | `system/security/` | 組件分離 |
 | `services/api/main.py` | `api/main.py` | 統一入口 |
 
-
-
 ---
 
 ### 8. agents/infra/ - Agent 基礎設施
@@ -569,19 +581,23 @@ AI-Box/
 **職責**: Agent 的基礎設施組件（記憶管理、工具註冊表）
 
 **結構說明**:
+
 - `memory/` - 記憶管理器（MemoryManager）和 AAM（記憶增強模組）
 - `tools/` - 工具註冊表（ToolRegistry）
 
 **遷移來源**:
+
 - `agent_process/memory/` → `agents/infra/memory/` (已整合)
 - `agent_process/tools/` → `agents/infra/tools/` (已整合)
 
 **整合狀態**:
+
 - ✅ `agent_process/memory/` → `agents/infra/memory/` (已整合)
 - ✅ `agent_process/tools/` → `agents/infra/tools/` (已整合)
 - ✅ `agent_process/` 目錄已刪除
 
 **其他遷移**:
+
 - ✅ `agent_process/context/` → `genai/workflows/context/` (已遷移)
 - ✅ `agent_process/retrieval/` → `genai/workflows/rag/` (已遷移)
 - ✅ `agent_process/prompt/` → `genai/prompt/` (已遷移)
@@ -593,6 +609,7 @@ AI-Box/
 **職責**: 提供向後兼容的適配器，重新導出新位置的模組
 
 **結構說明**:
+
 - `agent_registry/` - 重新導出 `agents.services.registry`
 - `security/` - 重新導出 `system.security`
 - `file_server/` - 重新導出 `agents.services.file_service`
@@ -601,11 +618,13 @@ AI-Box/
 - `api/` - 重新導出 `api` 和 `genai.api.routers`
 
 **保留原因**:
+
 - 確保舊代碼仍可使用 `services.*` 路徑
 - 提供平滑的遷移過渡期
 - 所有適配器文件只包含重新導出語句
 
 **遷移狀態**:
+
 - ✅ 所有實際文件已遷移到新位置
 - ✅ 只保留適配器文件（`__init__.py`）
 - ✅ 適配器確保向後兼容
@@ -617,10 +636,12 @@ AI-Box/
 **職責**: 統一管理所有運行時數據目錄
 
 **結構說明**:
+
 - `datasets/` - 數據集目錄（用戶文件、檢查點、種子數據等）
 - `chroma_data/` - ChromaDB 數據目錄（向量數據文件）
 
 **特點**:
+
 - 運行時數據（不提交到 Git）
 - 統一管理所有數據目錄，便於維護和備份
 
@@ -629,6 +650,7 @@ AI-Box/
 #### data/datasets/ - 數據集目錄
 
 **結構**:
+
 - `files/` - 用戶上傳的文件存儲目錄（通過 API 上傳）
 - `autogen/checkpoints/` - AutoGen 長時程任務的檢查點文件
 - `agent_files/` - Agent 產出的文件（HTML/PDF 等）
@@ -637,6 +659,7 @@ AI-Box/
 - `chromadb/` - ChromaDB 相關數據
 
 **代碼位置**:
+
 - `storage/file_storage.py` - 默認路徑: `./data/datasets/files`
 - `agents/autogen/long_horizon.py` - 檢查點路徑: `./data/datasets/autogen/checkpoints`
 - `agents/services/file_service/agent_file_service.py` - Agent 文件路徑: `./data/datasets/agent_files`
@@ -644,18 +667,22 @@ AI-Box/
 #### data/chroma_data/ - ChromaDB 數據目錄
 
 **結構**:
+
 - 運行時自動創建的數據目錄
 - 包含 ChromaDB 的向量數據文件（`.sqlite3`、索引文件等）
 
 **特點**:
+
 - 運行時數據（不提交到 Git）
 - 使用持久化模式時自動創建
 - 默認路徑: `./data/chroma_data`（可在 `database/chromadb/client.py` 中配置）
 
 **代碼位置**:
+
 - `database/chromadb/client.py` - 定義 `persist_directory` 參數
 
 **遷移來源**:
+
 - `chroma_data/` → `data/chroma_data/` (已移動)
 - `datasets/` → `data/datasets/` (已移動)
 
@@ -664,6 +691,7 @@ AI-Box/
 ## 📊 目錄分類
 
 ### 核心代碼目錄（提交到 Git）
+
 - `api/` - API 界面層
 - `agents/` - Agent 服務層（包含 infra/ 基礎設施）
 - `database/` - 數據庫模組
@@ -675,17 +703,20 @@ AI-Box/
 - `services/` - 適配器目錄（只包含適配器文件）
 
 ### 運行時數據目錄（不提交到 Git）
+
 - `data/chroma_data/` - ChromaDB 數據文件
 - `data/datasets/files/` - 用戶上傳的文件
 - `data/datasets/autogen/checkpoints/` - AutoGen 檢查點
 - `data/datasets/agent_files/` - Agent 產出文件
 
 ### 配置文件目錄（部分提交到 Git）
+
 - `config/` - 配置文件（`config.json` 不提交）
 - `datasets/arangodb/` - 數據庫種子數據（可以提交）
 - `datasets/crewai/` - CrewAI 模板文件（可以提交）
 
 ### 其他目錄
+
 - `docs/` - 文檔目錄
 - `tests/` - 測試目錄
 - `scripts/` - 腳本目錄
@@ -734,7 +765,6 @@ AI-Box/
 
 **最後更新**: 2025-11-30
 **維護者**: Daniel Chung
-
 
 ---
 

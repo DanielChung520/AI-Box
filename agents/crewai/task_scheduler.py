@@ -6,11 +6,11 @@
 """實現任務排程功能。"""
 
 import logging
-from typing import Dict, List, Optional
 from datetime import datetime
 from queue import PriorityQueue
+from typing import Dict, List, Optional
 
-from agents.crewai.task_models import CrewTask, TaskStatus, TaskPriority
+from agents.crewai.task_models import CrewTask, TaskPriority, TaskStatus
 from agents.crewai.task_registry import TaskRegistry
 
 logger = logging.getLogger(__name__)
@@ -60,14 +60,10 @@ class TaskScheduler:
 
             # 添加到排程隊列
             priority_value = self._get_priority_value(task.priority)
-            self._task_queue.put(
-                (priority_value, task.created_at.timestamp(), task.task_id)
-            )
+            self._task_queue.put((priority_value, task.created_at.timestamp(), task.task_id))
             self._scheduled_tasks[task.task_id] = task
 
-            logger.info(
-                f"Scheduled task: {task.task_id} (priority: {task.priority.value})"
-            )
+            logger.info(f"Scheduled task: {task.task_id} (priority: {task.priority.value})")
             return True
         except Exception as e:
             logger.error(f"Failed to schedule task '{task.task_id}': {e}")

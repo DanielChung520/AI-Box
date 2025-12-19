@@ -5,11 +5,12 @@
 
 """RQ 任務隊列模組 - 提供任務隊列客戶端和 Worker 管理"""
 
-from database.rq.queue import get_task_queue, get_redis_connection
 from database.rq.queue import (
     FILE_PROCESSING_QUEUE,
-    VECTORIZATION_QUEUE,
     KG_EXTRACTION_QUEUE,
+    VECTORIZATION_QUEUE,
+    get_redis_connection,
+    get_task_queue,
 )
 
 __all__ = [

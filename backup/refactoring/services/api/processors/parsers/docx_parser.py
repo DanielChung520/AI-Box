@@ -5,7 +5,8 @@
 
 """DOCX 文件解析器 - 使用 python-docx"""
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from .base_parser import BaseParser
 
 try:

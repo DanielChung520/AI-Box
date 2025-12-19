@@ -19,10 +19,7 @@ from typing import Any, Dict, Optional
 import structlog
 
 from database.arangodb import ArangoCollection, ArangoDBClient
-from services.api.models.genai_tenant_policy import (
-    GenAITenantPolicy,
-    GenAITenantPolicyUpdate,
-)
+from services.api.models.genai_tenant_policy import GenAITenantPolicy, GenAITenantPolicyUpdate
 from services.api.services.genai_secret_encryption_service import (
     GenAISecretEncryptionService,
     get_genai_secret_encryption_service,
@@ -80,12 +77,10 @@ class GenAITenantPolicyService:
             allowed_models=dict(doc.get("allowed_models") or {}),
             default_fallback=doc.get("default_fallback"),
             model_registry_models=list(doc.get("model_registry_models") or []),
-            updated_at=datetime.fromisoformat(doc.get("updated_at")),
+            updated_at=datetime.fromisoformat(doc.get("updated_at") or datetime.utcnow().isoformat()) if doc.get("updated_at") else datetime.utcnow(),  # type: ignore[arg-type]  # 已確保為 str 或使用默認值
         )
 
-    def upsert_policy(
-        self, tenant_id: str, update: GenAITenantPolicyUpdate
-    ) -> GenAITenantPolicy:
+    def upsert_policy(self, tenant_id: str, update: GenAITenantPolicyUpdate) -> GenAITenantPolicy:
         now = datetime.utcnow().isoformat()
         payload: Dict[str, Any] = {
             "_key": tenant_id,
@@ -122,7 +117,7 @@ class GenAITenantPolicyService:
             allowed_models=dict(doc.get("allowed_models") or {}),
             default_fallback=doc.get("default_fallback"),
             model_registry_models=list(doc.get("model_registry_models") or []),
-            updated_at=datetime.fromisoformat(doc.get("updated_at")),
+            updated_at=datetime.fromisoformat(doc.get("updated_at") or datetime.utcnow().isoformat()) if doc.get("updated_at") else datetime.utcnow(),  # type: ignore[arg-type]  # 已確保為 str 或使用默認值
         )
 
     def set_tenant_secret(self, tenant_id: str, provider: str, api_key: str) -> None:

@@ -6,15 +6,10 @@
 """實現任務註冊表，管理所有 Task 實例。"""
 
 import logging
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
 
-from agents.crewai.task_models import (
-    CrewTask,
-    TaskStatus,
-    TaskResult,
-    TaskHistoryEntry,
-)
+from agents.crewai.task_models import CrewTask, TaskHistoryEntry, TaskResult, TaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -116,14 +111,10 @@ class TaskRegistry:
                 task.metadata.update(metadata)
 
             # 記錄歷史
-            history_message = (
-                message or f"Status changed from {old_status.value} to {status.value}"
-            )
+            history_message = message or f"Status changed from {old_status.value} to {status.value}"
             self._add_history_entry(task_id, status, history_message, metadata)
 
-            logger.info(
-                f"Updated task '{task_id}' status: {old_status.value} -> {status.value}"
-            )
+            logger.info(f"Updated task '{task_id}' status: {old_status.value} -> {status.value}")
             return True
         except Exception as e:
             logger.error(f"Failed to update task status '{task_id}': {e}")

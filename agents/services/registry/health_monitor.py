@@ -7,12 +7,13 @@
 
 import asyncio
 import logging
-from typing import Optional
 from datetime import datetime, timedelta
+from typing import Optional
+
 import httpx
 
-from agents.services.registry.registry import AgentRegistry
 from agents.services.registry.models import AgentRegistryInfo, AgentStatus
+from agents.services.registry.registry import AgentRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -102,9 +103,7 @@ class AgentHealthMonitor:
                     self._logger.warning(
                         f"Agent {agent.agent_id} health check failed, marking as offline"
                     )
-                    self._registry.update_agent_status(
-                        agent.agent_id, AgentStatus.OFFLINE
-                    )
+                    self._registry.update_agent_status(agent.agent_id, AgentStatus.OFFLINE)
 
     def _check_heartbeat(self, agent: AgentRegistryInfo) -> bool:
         """
@@ -118,9 +117,7 @@ class AgentHealthMonitor:
         """
         if agent.last_heartbeat is None:
             # 如果沒有心跳記錄，檢查註冊時間
-            timeout_threshold = datetime.now() - timedelta(
-                seconds=self._heartbeat_timeout
-            )
+            timeout_threshold = datetime.now() - timedelta(seconds=self._heartbeat_timeout)
             return agent.registered_at > timeout_threshold
 
         timeout_threshold = datetime.now() - timedelta(seconds=self._heartbeat_timeout)
@@ -138,7 +135,10 @@ class AgentHealthMonitor:
         """
         try:
             async with httpx.AsyncClient(timeout=self._health_check_timeout) as client:
-                response = await client.get(agent.endpoints.health_endpoint)
+                health_endpoint = agent.endpoints.health_endpoint
+                if not health_endpoint:
+                    return False
+                response = await client.get(health_endpoint)  # type: ignore[arg-type]  # 已檢查不為 None
                 return response.status_code == 200
         except Exception as e:
             self._logger.debug(f"Health check failed for {agent.agent_id}: {e}")

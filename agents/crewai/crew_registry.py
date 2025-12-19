@@ -6,8 +6,8 @@
 """實現隊伍註冊表，管理所有 Crew 實例。"""
 
 import logging
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
 
 from agents.crewai.models import CrewConfig, CrewMetrics, CrewRegistryEntry
 

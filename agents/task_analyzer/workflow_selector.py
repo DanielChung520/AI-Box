@@ -6,15 +6,15 @@
 """工作流選擇器 - 實現工作流選擇邏輯"""
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
-from agents.task_analyzer.models import (
-    TaskType,
-    WorkflowType,
-    WorkflowSelectionResult,
-    TaskClassificationResult,
-)
 from agents.task_analyzer.decision_engine import DecisionEngine
+from agents.task_analyzer.models import (
+    TaskClassificationResult,
+    TaskType,
+    WorkflowSelectionResult,
+    WorkflowType,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +71,7 @@ class WorkflowSelector:
         Returns:
             工作流選擇結果
         """
-        logger.info(
-            f"Selecting workflow for task type: {task_classification.task_type.value}"
-        )
+        logger.info(f"Selecting workflow for task type: {task_classification.task_type.value}")
 
         task_type = task_classification.task_type
 
@@ -110,13 +108,9 @@ class WorkflowSelector:
             reasoning = f"混合模式：{strategy.reasoning}"
 
         # 構建工作流配置
-        config = self._build_workflow_config(
-            workflow_type, task_type, context, strategy
-        )
+        config = self._build_workflow_config(workflow_type, task_type, context, strategy)
 
-        logger.info(
-            f"Selected workflow: {workflow_type.value} with confidence {confidence:.2f}"
-        )
+        logger.info(f"Selected workflow: {workflow_type.value} with confidence {confidence:.2f}")
 
         return WorkflowSelectionResult(
             workflow_type=workflow_type,

@@ -5,43 +5,33 @@
 
 """文件管理路由 - 提供文件列表查詢、搜索、下載、預覽等功能"""
 
-from datetime import datetime
-from typing import Optional, List, Tuple, Dict, Any
-from fastapi import APIRouter, Query, status, Depends, Body
-from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
-import structlog
+import io
 import os
 import zipfile
-import io
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+import structlog
+from fastapi import APIRouter, Body, Depends, Query, Request, status
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from api.core.response import APIResponse
-from services.api.services.file_metadata_service import FileMetadataService
-from services.api.models.file_metadata import FileMetadata
-from system.security.dependencies import get_current_user
-from system.security.models import User, Permission
-from system.security.audit_decorator import audit_log
+from database.arangodb import ArangoDBClient
+from database.rq.queue import KG_EXTRACTION_QUEUE, VECTORIZATION_QUEUE, get_task_queue
 from services.api.models.audit_log import AuditAction
-from fastapi import Request
-from storage.file_storage import FileStorage, create_storage_from_config
-from system.infra.config.config import get_config_section
+from services.api.models.file_metadata import FileMetadata
+from services.api.services.file_metadata_service import FileMetadataService
 from services.api.services.file_permission_service import get_file_permission_service
 from services.api.services.file_tree_sync_service import get_file_tree_sync_service
 from services.api.services.vector_store_service import get_vector_store_service
-from services.api.utils.file_validator import (
-    FileValidator,
-    create_validator_from_config,
-)
-from database.arangodb import ArangoDBClient
-from database.rq.queue import (
-    get_task_queue,
-    VECTORIZATION_QUEUE,
-    KG_EXTRACTION_QUEUE,
-)
-from workers.tasks import (
-    process_vectorization_only_task,
-    process_kg_extraction_only_task,
-)
+from services.api.utils.file_validator import FileValidator, create_validator_from_config
+from storage.file_storage import FileStorage, create_storage_from_config
+from system.infra.config.config import get_config_section
+from system.security.audit_decorator import audit_log
+from system.security.dependencies import get_current_user
+from system.security.models import Permission, User
+from workers.tasks import process_kg_extraction_only_task, process_vectorization_only_task
 
 logger = structlog.get_logger(__name__)
 
@@ -79,9 +69,7 @@ class FileMoveRequest(BaseModel):
 class FolderCreateRequest(BaseModel):
     """創建資料夾請求模型"""
 
-    folder_name: str = Field(
-        ..., description="資料夾名稱", min_length=1, max_length=255
-    )
+    folder_name: str = Field(..., description="資料夾名稱", min_length=1, max_length=255)
     parent_task_id: Optional[str] = Field(None, description="父任務ID（可選）")
 
 
@@ -94,9 +82,7 @@ class FolderRenameRequest(BaseModel):
 class FolderMoveRequest(BaseModel):
     """移動資料夾請求模型"""
 
-    parent_task_id: Optional[str] = Field(
-        None, description="目標父任務ID（None 表示移動到根節點）"
-    )
+    parent_task_id: Optional[str] = Field(None, description="目標父任務ID（None 表示移動到根節點）")
 
 
 class BatchDownloadRequest(BaseModel):
@@ -271,9 +257,7 @@ async def search_files(
                 user_id = current_user.user_id
 
         service = get_metadata_service()
-        results = service.search(
-            query=query, user_id=user_id, file_type=file_type, limit=limit
-        )
+        results = service.search(query=query, user_id=user_id, file_type=file_type, limit=limit)
 
         return APIResponse.success(
             data={
@@ -375,7 +359,7 @@ async def get_file_tree(
             },
         )
 
-        all_folders = list(cursor)
+        all_folders = list(cursor) if cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
 
         # 按任務ID組織文件樹
         # 修改時間：2025-01-27 - 移除 temp-workspace，所有文件必須關聯到任務工作區
@@ -491,14 +475,10 @@ async def validate_file_tree(
             )
 
         sync_service = get_file_tree_sync_service()
-        result = sync_service.validate_file_tree(
-            user_id=current_user.user_id, task_id=task_id
-        )
+        result = sync_service.validate_file_tree(user_id=current_user.user_id, task_id=task_id)
         return APIResponse.success(data=result, message="文件樹驗證完成")
     except Exception as e:
-        logger.error(
-            "Failed to validate file tree", task_id=task_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to validate file tree", task_id=task_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"文件樹驗證失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -524,14 +504,10 @@ async def sync_file_tree(
             )
 
         sync_service = get_file_tree_sync_service()
-        result = sync_service.sync_file_tree(
-            user_id=current_user.user_id, task_id=task_id
-        )
+        result = sync_service.sync_file_tree(user_id=current_user.user_id, task_id=task_id)
         return APIResponse.success(data=result, message="文件樹同步完成")
     except Exception as e:
-        logger.error(
-            "Failed to sync file tree", task_id=task_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to sync file tree", task_id=task_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"文件樹同步失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -557,9 +533,7 @@ async def get_file_tree_version(
             )
 
         sync_service = get_file_tree_sync_service()
-        result = sync_service.get_file_tree_version(
-            user_id=current_user.user_id, task_id=task_id
-        )
+        result = sync_service.get_file_tree_version(user_id=current_user.user_id, task_id=task_id)
         return APIResponse.success(data=result, message="文件樹版本查詢成功")
     except Exception as e:
         logger.error(
@@ -637,9 +611,7 @@ async def download_file(
             media_type="application/octet-stream",
         )
     except Exception as e:
-        logger.error(
-            "Failed to download file", file_id=file_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to download file", file_id=file_id, error=str(e), exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"success": False, "message": f"下載文件失敗: {str(e)}"},
@@ -718,9 +690,7 @@ async def preview_file(
             message="文件預覽成功",
         )
     except Exception as e:
-        logger.error(
-            "Failed to preview file", file_id=file_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to preview file", file_id=file_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"預覽文件失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -736,7 +706,7 @@ async def preview_file(
 async def rename_file(
     file_id: str,
     request_body: FileRenameRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """重命名文件
@@ -853,17 +823,17 @@ async def rename_file(
         }
         # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数
         file_doc.update(update_data)
-        collection.update(file_doc)
+        collection.update(file_doc)  # type: ignore[arg-type]  # update 接受 dict
 
         # 獲取更新後的文件元數據
-        updated_doc = collection.get(file_id)
-        if updated_doc is None:
+        updated_doc = collection.get(file_id)  # type: ignore[assignment]  # 同步模式下返回 dict | None
+        if updated_doc is None or not isinstance(updated_doc, dict):
             return APIResponse.error(
                 message="文件不存在",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        updated_metadata = FileMetadata(**updated_doc)
+        updated_metadata = FileMetadata(**updated_doc)  # type: ignore[arg-type]  # doc 已檢查為 dict
 
         logger.info(
             "File renamed successfully",
@@ -878,9 +848,7 @@ async def rename_file(
             message="文件重命名成功",
         )
     except Exception as e:
-        logger.error(
-            "Failed to rename file", file_id=file_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to rename file", file_id=file_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"重命名文件失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -896,7 +864,7 @@ async def rename_file(
 async def copy_file(
     file_id: str,
     request_body: FileCopyRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """複製文件
@@ -960,14 +928,14 @@ async def copy_file(
             filename=new_filename,
             file_type=source_metadata.file_type,
             file_size=source_metadata.file_size,
+            folder_id=None,  # type: ignore[call-arg]  # 所有參數都是 Optional
+            storage_path=None,  # type: ignore[call-arg]
             user_id=current_user.user_id,
             task_id=request_body.target_task_id or source_metadata.task_id,
             tags=source_metadata.tags.copy() if source_metadata.tags else [],
             description=source_metadata.description,
             custom_metadata=(
-                source_metadata.custom_metadata.copy()
-                if source_metadata.custom_metadata
-                else {}
+                source_metadata.custom_metadata.copy() if source_metadata.custom_metadata else {}
             ),
             status="uploaded",
             processing_status=None,
@@ -990,9 +958,7 @@ async def copy_file(
             message="文件複製成功",
         )
     except Exception as e:
-        logger.error(
-            "Failed to copy file", file_id=file_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to copy file", file_id=file_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"複製文件失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1010,7 +976,7 @@ async def copy_file(
 async def move_file(
     file_id: str,
     request_body: FileMoveRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """移動文件（更改所屬任務）
@@ -1163,7 +1129,16 @@ async def move_file(
         from services.api.models.file_metadata import FileMetadataUpdate
 
         update_data = FileMetadataUpdate(
-            task_id=target_task_id, folder_id=target_folder_id
+            task_id=target_task_id,
+            folder_id=target_folder_id,
+            tags=None,  # type: ignore[call-arg]  # 所有參數都是 Optional
+            description=None,  # type: ignore[call-arg]
+            custom_metadata=None,  # type: ignore[call-arg]
+            status=None,  # type: ignore[call-arg]
+            processing_status=None,  # type: ignore[call-arg]
+            chunk_count=None,  # type: ignore[call-arg]
+            vector_count=None,  # type: ignore[call-arg]
+            kg_status=None,  # type: ignore[call-arg]
         )
         updated_metadata = metadata_service.update(file_id, update_data)
 
@@ -1186,9 +1161,7 @@ async def move_file(
             message="文件移動成功",
         )
     except Exception as e:
-        logger.error(
-            "Failed to move file", file_id=file_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to move file", file_id=file_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"移動文件失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1203,7 +1176,7 @@ async def move_file(
 )
 async def delete_file(
     file_id: str,
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """刪除文件（多數據源清理）
@@ -1332,15 +1305,11 @@ async def delete_file(
             deletion_errors.append(error_msg)
             logger.error(error_msg, file_id=file_id, error=str(e))
             # 文件實體刪除失敗，但元數據已刪除，記錄警告
-            logger.warning(
-                "文件元數據已刪除，但文件實體刪除失敗", file_id=file_id, error=str(e)
-            )
+            logger.warning("文件元數據已刪除，但文件實體刪除失敗", file_id=file_id, error=str(e))
 
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄文件刪除操作日誌
         try:
-            from services.api.services.operation_log_service import (
-                get_operation_log_service,
-            )
+            from services.api.services.operation_log_service import get_operation_log_service
 
             operation_log_service = get_operation_log_service()
 
@@ -1372,9 +1341,7 @@ async def delete_file(
                 resource_id=file_id,
                 resource_type="document",
                 resource_name=(
-                    file_metadata.filename
-                    if hasattr(file_metadata, "filename")
-                    else file_id
+                    file_metadata.filename if hasattr(file_metadata, "filename") else file_id
                 ),
                 operation_type="delete",
                 created_at=file_created_at,
@@ -1414,9 +1381,7 @@ async def delete_file(
             message="文件刪除成功",
         )
     except Exception as e:
-        logger.error(
-            "Failed to delete file", file_id=file_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to delete file", file_id=file_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"刪除文件失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1508,8 +1473,8 @@ def _check_folder_name_exists(
             if parent_task_id is not None:
                 bind_vars["parent_task_id"] = parent_task_id
 
-        cursor = arangodb_client.db.aql.execute(aql_query, bind_vars=bind_vars)
-        existing_folders = list(cursor)
+        cursor = arangodb_client.db.aql.execute(aql_query, bind_vars=bind_vars)  # type: ignore[arg-type]  # bind_vars 類型兼容
+        existing_folders = list(cursor) if cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
         return len(existing_folders) > 0
     except Exception as e:
         logger.warning("檢查資料夾名稱是否存在失敗", error=str(e))
@@ -1537,9 +1502,7 @@ def _generate_unique_folder_name(
     import re
 
     # 如果基礎名稱不存在，直接返回
-    if not _check_folder_name_exists(
-        base_name, parent_task_id, user_id, exclude_folder_id
-    ):
+    if not _check_folder_name_exists(base_name, parent_task_id, user_id, exclude_folder_id):
         return base_name
 
     # 檢查基礎名稱是否已經有 (n) 後綴
@@ -1558,9 +1521,7 @@ def _generate_unique_folder_name(
     # 嘗試添加 (1), (2), (3) 等後綴，直到找到不存在的名稱
     for n in range(start_num + 1, 1000):  # 最多嘗試到 (999)
         new_name = f"{base} ({n})"
-        if not _check_folder_name_exists(
-            new_name, parent_task_id, user_id, exclude_folder_id
-        ):
+        if not _check_folder_name_exists(new_name, parent_task_id, user_id, exclude_folder_id):
             return new_name
 
     # 如果所有嘗試都失敗，返回帶時間戳的名稱
@@ -1652,7 +1613,7 @@ def _ensure_folder_collection() -> None:
 )
 async def create_folder(
     request_body: FolderCreateRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """創建資料夾（實際上是創建任務）
@@ -1729,9 +1690,9 @@ async def create_folder(
                 if arangodb_client.db is None:
                     raise RuntimeError("ArangoDB client is not connected")
 
-                parent_folder = arangodb_client.db.collection(
-                    FOLDER_COLLECTION_NAME
-                ).get(request_body.parent_task_id)
+                parent_folder = arangodb_client.db.collection(FOLDER_COLLECTION_NAME).get(
+                    request_body.parent_task_id
+                )
                 if parent_folder:
                     actual_task_id = parent_folder.get("task_id")
                 else:
@@ -1811,7 +1772,7 @@ async def create_folder(
 async def rename_folder(
     folder_id: str,
     request_body: FolderRenameRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """重命名資料夾
@@ -1927,7 +1888,7 @@ async def rename_folder(
         folder_doc["folder_name"] = unique_folder_name
         folder_doc["updated_at"] = datetime.utcnow().isoformat()
         # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数，且必須包含 _id 或 _key
-        collection.update(folder_doc)
+        collection.update(folder_doc)  # type: ignore[arg-type]  # update 接受 dict
 
         # 獲取更新後的資料夾信息
         updated_doc = collection.get(folder_id)
@@ -1950,9 +1911,7 @@ async def rename_folder(
             message="資料夾重命名成功",
         )
     except Exception as e:
-        logger.error(
-            "Failed to rename folder", folder_id=folder_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to rename folder", folder_id=folder_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"重命名資料夾失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1968,7 +1927,7 @@ async def rename_folder(
 async def move_folder(
     folder_id: str,
     request_body: FolderMoveRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> Any:
     """移動資料夾（更改父資料夾）
@@ -2049,7 +2008,7 @@ async def move_folder(
         folder_doc["updated_at"] = datetime.utcnow().isoformat()
 
         # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数
-        collection.update(folder_doc)
+        collection.update(folder_doc)  # type: ignore[arg-type]  # update 接受 dict
 
         # 獲取更新後的資料夾信息
         updated_doc = collection.get(folder_id)
@@ -2072,9 +2031,7 @@ async def move_folder(
             message="資料夾移動成功",
         )
     except Exception as e:
-        logger.error(
-            "Failed to move folder", folder_id=folder_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to move folder", folder_id=folder_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"移動資料夾失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -2089,7 +2046,7 @@ async def move_folder(
 )
 async def delete_folder(
     folder_id: str,
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """刪除資料夾（級聯刪除該資料夾下的所有文件）
@@ -2166,9 +2123,7 @@ async def delete_folder(
                         file_id=file_id, user_id=current_user.user_id
                     )
                 except Exception as e:
-                    logger.warning(
-                        "刪除向量失敗（繼續刪除文件）", file_id=file_id, error=str(e)
-                    )
+                    logger.warning("刪除向量失敗（繼續刪除文件）", file_id=file_id, error=str(e))
 
                 # 2. 刪除文件元數據
                 try:
@@ -2185,9 +2140,7 @@ async def delete_folder(
 
                 deleted_files.append(file_id)
             except Exception as e:
-                logger.error(
-                    "刪除文件失敗", file_id=file_metadata.file_id, error=str(e)
-                )
+                logger.error("刪除文件失敗", file_id=file_metadata.file_id, error=str(e))
                 failed_files.append(file_metadata.file_id)
 
         # 刪除資料夾元數據記錄
@@ -2213,9 +2166,7 @@ async def delete_folder(
             + (f"，{len(failed_files)} 個文件刪除失敗" if failed_files else ""),
         )
     except Exception as e:
-        logger.error(
-            "Failed to delete folder", folder_id=folder_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to delete folder", folder_id=folder_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"刪除資料夾失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -2234,7 +2185,7 @@ async def delete_folder(
 )
 async def batch_download_files(
     request_body: BatchDownloadRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> StreamingResponse:
     """批量下載文件（打包為ZIP）
@@ -2285,9 +2236,7 @@ async def batch_download_files(
                     # 獲取文件路徑
                     file_path = storage.get_file_path(file_id)
                     if not file_path or not os.path.exists(file_path):
-                        failed_files.append(
-                            {"file_id": file_id, "error": "文件路徑不存在"}
-                        )
+                        failed_files.append({"file_id": file_id, "error": "文件路徑不存在"})
                         continue
 
                     # 獲取文件名
@@ -2343,7 +2292,7 @@ async def batch_download_files(
 )
 async def attach_file_to_chat(
     file_id: str,
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """附加文件到聊天（返回文件摘要用於聊天上下文）
@@ -2404,9 +2353,7 @@ async def attach_file_to_chat(
                 if hasattr(file_metadata.upload_time, "isoformat")
                 else str(file_metadata.upload_time)
             ),
-            "preview": (
-                file_content[:1000] if file_content else None
-            ),  # 前1000字符作為預覽
+            "preview": (file_content[:1000] if file_content else None),  # 前1000字符作為預覽
             "description": file_metadata.description,
             "tags": file_metadata.tags or [],
         }
@@ -2522,9 +2469,7 @@ async def get_file_vectors(
             message="向量資料查詢成功",
         )
     except Exception as e:
-        logger.error(
-            "Failed to get file vectors", file_id=file_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to get file vectors", file_id=file_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"查詢向量資料失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -2546,7 +2491,7 @@ class RegenerateRequest(BaseModel):
 async def regenerate_file_data(
     file_id: str,
     request_body: RegenerateRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """重新生成文件的向量或圖譜數據
@@ -2561,7 +2506,6 @@ async def regenerate_file_data(
         重新生成結果
     """
     try:
-
         # 檢查文件訪問權限
         permission_service = get_file_permission_service()
         file_metadata = permission_service.check_file_access(
@@ -2793,8 +2737,8 @@ async def get_file_graph(
             )
 
         # 優先從結果文件讀取圖譜數據
-        from typing import List, Dict, Any
         import json
+        from typing import Any, Dict, List
 
         nodes: List[Dict[str, Any]] = []
         edges: List[Dict[str, Any]] = []
@@ -2810,26 +2754,18 @@ async def get_file_graph(
         result_file_found = False
         if file_metadata_obj.task_id:
             try:
-                from services.api.services.task_workspace_service import (
-                    get_task_workspace_service,
-                )
+                from services.api.services.task_workspace_service import get_task_workspace_service
 
                 workspace_service = get_task_workspace_service()
-                workspace_path = workspace_service.get_workspace_path(
-                    file_metadata_obj.task_id
-                )
+                workspace_path = workspace_service.get_workspace_path(file_metadata_obj.task_id)
 
                 if workspace_path.exists():
                     # 查找匹配的結果文件：{file_id}_kg_result*.json
-                    result_files = list(
-                        workspace_path.glob(f"{file_id}_kg_result*.json")
-                    )
+                    result_files = list(workspace_path.glob(f"{file_id}_kg_result*.json"))
 
                     if result_files:
                         # 選擇最新的結果文件（按修改時間排序）
-                        latest_result_file = max(
-                            result_files, key=lambda p: p.stat().st_mtime
-                        )
+                        latest_result_file = max(result_files, key=lambda p: p.stat().st_mtime)
 
                         logger.info(
                             "Found KG result file",
@@ -2952,8 +2888,10 @@ async def get_file_graph(
                                 "file_id": file_id,
                                 "limit": limit,
                                 "offset": offset,
-                            },
+                            },  # type: ignore[arg-type]  # bind_vars 類型兼容
                         )
+                        if arangodb_client.db.aql
+                        else []  # type: ignore[arg-type]  # Cursor 可迭代
                     )
 
                     # 查詢與文件相關的關係
@@ -2970,8 +2908,10 @@ async def get_file_graph(
                                 "file_id": file_id,
                                 "limit": limit,
                                 "offset": offset,
-                            },
+                            },  # type: ignore[arg-type]  # bind_vars 類型兼容
                         )
+                        if arangodb_client.db.aql
+                        else []  # type: ignore[arg-type]  # Cursor 可迭代
                     )
 
                     # 統計總數
@@ -2983,12 +2923,12 @@ async def get_file_graph(
                     """
                     entities_count_result = list(
                         arangodb_client.db.aql.execute(
-                            entities_count_query, bind_vars={"file_id": file_id}
+                            entities_count_query, bind_vars={"file_id": file_id}  # type: ignore[arg-type]  # bind_vars 類型兼容
                         )
+                        if arangodb_client.db.aql
+                        else []  # type: ignore[arg-type]  # Cursor 可迭代
                     )
-                    entities_count = (
-                        entities_count_result[0] if entities_count_result else 0
-                    )
+                    entities_count = entities_count_result[0] if entities_count_result else 0
 
                     relations_count_query = """
                     FOR relation IN relations
@@ -2998,12 +2938,12 @@ async def get_file_graph(
                     """
                     relations_count_result = list(
                         arangodb_client.db.aql.execute(
-                            relations_count_query, bind_vars={"file_id": file_id}
+                            relations_count_query, bind_vars={"file_id": file_id}  # type: ignore[arg-type]  # bind_vars 類型兼容
                         )
+                        if arangodb_client.db.aql
+                        else []  # type: ignore[arg-type]  # Cursor 可迭代
                     )
-                    relations_count = (
-                        relations_count_result[0] if relations_count_result else 0
-                    )
+                    relations_count = relations_count_result[0] if relations_count_result else 0
 
                     # 轉換實體為節點格式
                     nodes = []
@@ -3050,24 +2990,18 @@ async def get_file_graph(
                                 bind_vars={
                                     "from_key": from_entity_id,
                                     "to_key": to_entity_id,
-                                },
+                                },  # type: ignore[arg-type]  # bind_vars 類型兼容
                             )
+                            if arangodb_client.db.aql
+                            else []  # type: ignore[arg-type]  # Cursor 可迭代
                         )
 
                         from_entity = next(
-                            (
-                                e
-                                for e in matching_entities
-                                if e.get("_key") == from_entity_id
-                            ),
+                            (e for e in matching_entities if e.get("_key") == from_entity_id),
                             None,
                         )
                         to_entity = next(
-                            (
-                                e
-                                for e in matching_entities
-                                if e.get("_key") == to_entity_id
-                            ),
+                            (e for e in matching_entities if e.get("_key") == to_entity_id),
                             None,
                         )
 
@@ -3106,22 +3040,16 @@ async def get_file_graph(
 
                         redis_client = get_redis_client()
                         status_key = f"processing:status:{file_id}"
-                        status_data_str = redis_client.get(status_key)
+                        status_data_str = redis_client.get(status_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
 
                         if status_data_str:
-                            status_data = json.loads(status_data_str)
+                            status_data = json.loads(status_data_str)  # type: ignore[arg-type]  # status_data_str 已檢查不為 None，且 decode_responses=True 返回 str
                             kg_extraction = status_data.get("kg_extraction", {})
                             if kg_extraction.get("status") == "completed":
                                 kg_stats = {
-                                    "triples_count": kg_extraction.get(
-                                        "triples_count", 0
-                                    ),
-                                    "entities_count": kg_extraction.get(
-                                        "entities_count", 0
-                                    ),
-                                    "relations_count": kg_extraction.get(
-                                        "relations_count", 0
-                                    ),
+                                    "triples_count": kg_extraction.get("triples_count", 0),
+                                    "entities_count": kg_extraction.get("entities_count", 0),
+                                    "relations_count": kg_extraction.get("relations_count", 0),
                                     "status": "completed",
                                 }
                     except Exception:
@@ -3148,9 +3076,7 @@ async def get_file_graph(
             message="圖譜資料查詢成功",
         )
     except Exception as e:
-        logger.error(
-            "Failed to get file graph", file_id=file_id, error=str(e), exc_info=True
-        )
+        logger.error("Failed to get file graph", file_id=file_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"查詢圖譜資料失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -3173,7 +3099,7 @@ LIBRARY_TASK_ID = "library"  # 文件庫的特殊 task_id 標識
 )
 async def upload_from_library(
     request_body: LibraryUploadRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """從文件庫上傳文件到當前任務
@@ -3215,9 +3141,7 @@ async def upload_from_library(
 
                 # 檢查文件是否在文件庫中（task_id 為 "library" 或 null）
                 if file_metadata.task_id not in [None, LIBRARY_TASK_ID, ""]:
-                    failed_files.append(
-                        {"file_id": file_id, "error": "文件不在文件庫中"}
-                    )
+                    failed_files.append({"file_id": file_id, "error": "文件不在文件庫中"})
                     continue
 
                 # 重用 copy_file 的邏輯，但直接更新 task_id 而不是創建新文件
@@ -3237,7 +3161,7 @@ async def upload_from_library(
                 }
                 # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数
                 file_doc.update(update_data)
-                collection.update(file_doc)
+                collection.update(file_doc)  # type: ignore[arg-type]  # update 接受 dict
 
                 # 獲取更新後的文件元數據
                 updated_doc = collection.get(file_id)
@@ -3245,7 +3169,10 @@ async def upload_from_library(
                     failed_files.append({"file_id": file_id, "error": "文件更新失敗"})
                     continue
 
-                updated_metadata = FileMetadata(**updated_doc)
+                if not isinstance(updated_doc, dict):
+                    failed_files.append({"file_id": file_id, "error": "文件元數據格式錯誤"})
+                    continue
+                updated_metadata = FileMetadata(**updated_doc)  # type: ignore[arg-type]  # 已檢查為 dict
                 uploaded_files.append(updated_metadata.model_dump(mode="json"))
 
             except Exception as e:
@@ -3291,7 +3218,7 @@ async def upload_from_library(
 )
 async def return_to_library(
     request_body: LibraryReturnRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """將文件傳回文件庫
@@ -3346,7 +3273,7 @@ async def return_to_library(
                 }
                 # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数
                 file_doc.update(update_data)
-                collection.update(file_doc)
+                collection.update(file_doc)  # type: ignore[arg-type]  # update 接受 dict
 
                 # 獲取更新後的文件元數據
                 updated_doc = collection.get(file_id)
@@ -3354,7 +3281,10 @@ async def return_to_library(
                     failed_files.append({"file_id": file_id, "error": "文件更新失敗"})
                     continue
 
-                updated_metadata = FileMetadata(**updated_doc)
+                if not isinstance(updated_doc, dict):
+                    failed_files.append({"file_id": file_id, "error": "文件元數據格式錯誤"})
+                    continue
+                updated_metadata = FileMetadata(**updated_doc)  # type: ignore[arg-type]  # 已檢查為 dict
                 returned_files.append(updated_metadata.model_dump(mode="json"))
 
             except Exception as e:
@@ -3395,7 +3325,7 @@ async def return_to_library(
 )
 async def sync_files(
     request_body: SyncFilesRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """同步文件狀態和元數據
@@ -3490,8 +3420,10 @@ async def sync_files(
                         update_data["vector_count"] = int(vector_count)
 
                     # ArangoDB 的 update 方法需要文档对象（dict）作为第一个参数
+                    if not isinstance(file_doc, dict):
+                        continue
                     file_doc.update(update_data)
-                    collection.update(file_doc)
+                    collection.update(file_doc)  # type: ignore[arg-type]  # 已檢查為 dict
                     sync_result["updates"].append("元數據已更新")
 
             sync_results.append(sync_result)
@@ -3556,9 +3488,7 @@ async def search_library(
         )
 
         # 過濾出文件庫中的文件（task_id 為 "library" 或 null）
-        library_files = [
-            f for f in all_files if f.task_id in [None, LIBRARY_TASK_ID, ""]
-        ]
+        library_files = [f for f in all_files if f.task_id in [None, LIBRARY_TASK_ID, ""]]
 
         # 實現文件名搜尋（簡單的字符串匹配）
         query_lower = query.lower().strip()

@@ -5,11 +5,12 @@
 
 """MCP 整合路由 - 展示如何在 FastAPI 中使用 MCP Client"""
 
+import logging
+import os
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
-import os
-import logging
 
 from api.core.response import APIResponse
 
@@ -44,9 +45,7 @@ def get_mcp_manager() -> Optional[MCPConnectionManager]:
 
     if _mcp_manager is None:
         # 從環境變數獲取 MCP Server 端點
-        mcp_endpoints = os.getenv(
-            "MCP_SERVER_ENDPOINTS", "http://mcp-server:8002/mcp"
-        ).split(",")
+        mcp_endpoints = os.getenv("MCP_SERVER_ENDPOINTS", "http://mcp-server:8002/mcp").split(",")
 
         _mcp_manager = MCPConnectionManager(
             endpoints=mcp_endpoints,
@@ -139,9 +138,7 @@ async def list_mcp_tools():
             await manager.initialize()
 
         tools = await manager.list_tools()
-        tools_data = [
-            tool.model_dump() if hasattr(tool, "model_dump") else tool for tool in tools
-        ]
+        tools_data = [tool.model_dump() if hasattr(tool, "model_dump") else tool for tool in tools]
 
         return APIResponse.success(
             data={"tools": tools_data},

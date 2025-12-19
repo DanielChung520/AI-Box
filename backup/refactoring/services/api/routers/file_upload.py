@@ -7,21 +7,16 @@
 
 import os
 from typing import List, Optional
-from fastapi import APIRouter, UploadFile, File, status
-from fastapi.responses import JSONResponse
+
 import structlog
+from fastapi import APIRouter, File, UploadFile, status
+from fastapi.responses import JSONResponse
 
 from services.api.core.response import APIResponse
-from services.api.utils.file_validator import (
-    FileValidator,
-    create_validator_from_config,
-)
-from services.api.storage.file_storage import (
-    FileStorage,
-    create_storage_from_config,
-)
-from services.api.services.file_metadata_service import FileMetadataService
 from services.api.models.file_metadata import FileMetadataCreate
+from services.api.services.file_metadata_service import FileMetadataService
+from services.api.storage.file_storage import FileStorage, create_storage_from_config
+from services.api.utils.file_validator import FileValidator, create_validator_from_config
 from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
@@ -93,9 +88,7 @@ async def upload_files(
             file_content = await file.read()
 
             # 驗證文件
-            is_valid, error_msg = validator.validate_upload_file(
-                file_content, file.filename
-            )
+            is_valid, error_msg = validator.validate_upload_file(file_content, file.filename)
 
             if not is_valid:
                 errors.append(

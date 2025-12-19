@@ -55,7 +55,9 @@ class OntologyModel(BaseModel):
     )
     tags: List[str] = Field(default_factory=list, description="標籤列表")
     use_cases: List[str] = Field(default_factory=list, description="使用場景列表")
-    entity_classes: List[OntologyEntityClass] = Field(default_factory=list, description="實體類別列表")
+    entity_classes: List[OntologyEntityClass] = Field(
+        default_factory=list, description="實體類別列表"
+    )
     object_properties: List[OntologyObjectProperty] = Field(
         default_factory=list, description="物件屬性列表"
     )
@@ -65,7 +67,9 @@ class OntologyModel(BaseModel):
     data_classification: Optional[str] = Field(
         default=None, description="數據分類級別（public/internal/confidential/restricted）"
     )
-    sensitivity_labels: Optional[List[str]] = Field(default=None, description="敏感性標籤列表（可多選）")
+    sensitivity_labels: Optional[List[str]] = Field(
+        default=None, description="敏感性標籤列表（可多選）"
+    )
     created_at: Optional[datetime] = Field(default=None, description="創建時間")
     updated_at: Optional[datetime] = Field(default=None, description="更新時間")
     created_by: Optional[str] = Field(default=None, description="創建者")
@@ -115,7 +119,9 @@ class OntologyCreate(BaseModel):
     data_classification: Optional[str] = Field(
         default=None, description="數據分類級別（public/internal/confidential/restricted）"
     )
-    sensitivity_labels: Optional[List[str]] = Field(default=None, description="敏感性標籤列表（可多選）")
+    sensitivity_labels: Optional[List[str]] = Field(
+        default=None, description="敏感性標籤列表（可多選）"
+    )
 
 
 class OntologyUpdate(BaseModel):

@@ -6,9 +6,9 @@
 """Workflow 模組公共匯出"""
 
 from .base import (
-    WorkflowRequestContext,
     WorkflowExecutionResult,
     WorkflowFactoryProtocol,
+    WorkflowRequestContext,
     WorkflowTelemetryEvent,
 )
 

@@ -5,9 +5,9 @@
 
 """數據質量API路由 - 提供數據質量檢查和報告接口"""
 
+import structlog
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
-import structlog
 
 from api.core.response import APIResponse
 from services.api.services.data_quality_service import get_data_quality_service

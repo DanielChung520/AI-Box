@@ -5,14 +5,14 @@
 
 """FastAPI 應用主入口文件"""
 
+import logging
 import os
+
+from api_gateway.middleware.error_handler import ErrorHandlerMiddleware
+from api_gateway.middleware.logging import LoggingMiddleware
+from api_gateway.routers import agents, health, orchestrator, task_analyzer
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
-
-from api_gateway.middleware.logging import LoggingMiddleware
-from api_gateway.middleware.error_handler import ErrorHandlerMiddleware
-from api_gateway.routers import health, agents, task_analyzer, orchestrator
 
 # 配置日誌
 logging.basicConfig(

@@ -6,35 +6,35 @@
       "你是一位專業的知識圖譜工程師，請你仔細閱讀以下[TEXT_CHUNK]。",
       "你的任務是從中提取所有符合我們內部 Ontology 規範的三元組結構化知識。",
       "你必須嚴格遵守以下由我們動態載入的規則，否則你的輸出將被系統拒絕。",
-      
+
       "### 1. 核心實體類型 (Entity Classes):",
       "[INJECT_ENTITY_LIST]",
-      
+
       "### 2. 關係類型約束 (Relationship Types):",
       "[INJECT_RELATIONSHIP_LIST]",
-      
+
       "### 3. OWL Domain/Range 規則 (嚴格約束):",
       "提取的三元組必須滿足 Domain-Range 約束。例如，如果關係是 'produces'，則主體必須是 'Machine_Asset'，客體必須是 'Material'。",
-      
+
 
       "### 4. 輸出格式 (JSON Schema):",
       "你必須輸出一個 JSON 結構，嚴格遵循以下 JSON Schema。不要包含任何額外的解釋或Markdown之外的文本。",
       "[INJECT_JSON_SCHEMA]",
-      
+
 
       "### 5. 待分析文本片段 (Text Chunk):",
       "[TEXT_CHUNK]",
-      
+
       "### 輸出 (JSON):"
     ],
-    
+
     "injection_placeholders": {
       "INJECT_ENTITY_LIST": "用於插入所有合併後的實體類別名稱列表。",
       "INJECT_RELATIONSHIP_LIST": "用於插入所有合併後的關係名稱列表。",
       "INJECT_JSON_SCHEMA": "用於插入由 Pydantic 模型動態生成的 JSON Schema。",
       "TEXT_CHUNK": "待分析的文檔內容片段。"
     },
-    
+
     "extraction_example_slot": {
       "enabled": false,
       "description": "可選地，在這裡插入 Few-Shot 範例來提高特定任務的準確性。啟用時，LangChain Agent 應將範例插入到 '### 5. 待分析文本片段' 之前。"

@@ -6,7 +6,7 @@
 """Agent 基礎設施模組 - 提供記憶管理和工具註冊表"""
 
 from agents.infra.memory import MemoryManager
-from agents.infra.tools import ToolRegistry, Tool, ToolType
+from agents.infra.tools import Tool, ToolRegistry, ToolType
 
 __all__ = [
     "MemoryManager",

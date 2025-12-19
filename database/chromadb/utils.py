@@ -5,8 +5,8 @@
 
 """ChromaDB 工具模組 - 提供嵌入維度轉換、metadata 驗證等工具函數"""
 
-from typing import List, Dict, Any, Optional, Union
 import logging
+from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +56,7 @@ def validate_embedding_dimension(
 
     # 如果提供了預期維度，進行驗證
     if expected_dim is not None and first_dim != expected_dim:
-        raise ValueError(
-            f"Embedding dimension mismatch: expected {expected_dim}, got {first_dim}"
-        )
+        raise ValueError(f"Embedding dimension mismatch: expected {expected_dim}, got {first_dim}")
 
     return first_dim
 
@@ -150,8 +148,7 @@ def validate_metadata(
     if metadatas is None:
         if required_fields:
             raise ValueError(
-                f"Metadata is required but not provided. "
-                f"Required fields: {required_fields}"
+                f"Metadata is required but not provided. " f"Required fields: {required_fields}"
             )
         return
 
@@ -170,9 +167,7 @@ def validate_metadata(
         # 檢查必需字段
         for field in required_fields:
             if field not in metadata:
-                raise ValueError(
-                    f"Missing required field '{field}' in metadata at index {i}"
-                )
+                raise ValueError(f"Missing required field '{field}' in metadata at index {i}")
 
         # 檢查允許的字段
         if allowed_fields is not None:

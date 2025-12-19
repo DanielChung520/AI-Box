@@ -39,9 +39,7 @@ from services.api.models.doc_generation_request import (
     DocGenStatus,
 )
 from services.api.models.file_metadata import FileMetadataCreate, FileMetadataUpdate
-from services.api.services.doc_edit_request_store_service import (
-    get_doc_edit_request_store_service,
-)
+from services.api.services.doc_edit_request_store_service import get_doc_edit_request_store_service
 from services.api.services.doc_generation_request_store_service import (
     get_doc_generation_request_store_service,
 )
@@ -229,9 +227,7 @@ async def _run_preview_request(*, request_id: str) -> None:
             )
 
         record.preview = preview
-        store.update(
-            request_id=request_id, status=DocEditStatus.succeeded, record=record
-        )
+        store.update(request_id=request_id, status=DocEditStatus.succeeded, record=record)
 
     except asyncio.CancelledError:
         store.set_abort(request_id=request_id)
@@ -328,9 +324,7 @@ async def create_doc_edit(
     )
 
     # 只允許 md/txt/json
-    doc_format = detect_doc_format(
-        filename=file_meta.filename, file_type=file_meta.file_type
-    )
+    doc_format = detect_doc_format(filename=file_meta.filename, file_type=file_meta.file_type)
     if doc_format not in {"md", "txt", "json"}:
         return APIResponse.error(
             message="Unsupported document format",
@@ -339,9 +333,7 @@ async def create_doc_edit(
         )
 
     current_version = _get_doc_version(file_meta.custom_metadata)
-    base_version = (
-        body.base_version if body.base_version is not None else current_version
-    )
+    base_version = body.base_version if body.base_version is not None else current_version
     if int(base_version) != int(current_version):
         return APIResponse.error(
             message="Base version mismatch",
@@ -521,9 +513,7 @@ async def apply_doc_edit(
     # 先套用 patch
     try:
         if record.preview.patch_kind == "unified_diff":
-            new_text = apply_unified_diff(
-                original=base_text, diff_text=str(record.preview.patch)
-            )
+            new_text = apply_unified_diff(original=base_text, diff_text=str(record.preview.patch))
         else:
             if not isinstance(record.preview.patch, list):
                 raise PatchApplyError("Invalid json_patch payload")
@@ -568,13 +558,22 @@ async def apply_doc_edit(
     new_meta["doc_version"] = new_version
     metadata_service.update(
         record.file_id,
-        FileMetadataUpdate(custom_metadata=new_meta),
+        FileMetadataUpdate(
+            custom_metadata=new_meta,
+            task_id=None,  # type: ignore[call-arg]  # 所有參數都是 Optional
+            folder_id=None,  # type: ignore[call-arg]
+            tags=None,  # type: ignore[call-arg]
+            description=None,  # type: ignore[call-arg]
+            status=None,  # type: ignore[call-arg]
+            processing_status=None,  # type: ignore[call-arg]
+            chunk_count=None,  # type: ignore[call-arg]
+            vector_count=None,  # type: ignore[call-arg]
+            kg_status=None,  # type: ignore[call-arg]
+        ),
     )
 
     record.apply_result = DocEditApplyResult(new_version=new_version)
-    store.update(
-        request_id=record.request_id, status=DocEditStatus.applied, record=record
-    )
+    store.update(request_id=record.request_id, status=DocEditStatus.applied, record=record)
 
     return APIResponse.success(
         data={
@@ -648,7 +647,7 @@ async def rollback_doc_version(
 
     versions = _get_versions(meta.custom_metadata)
     target = next(
-        (v for v in versions if int(v.get("version")) == int(to_version)), None
+        (v for v in versions if v.get("version") and int(v.get("version")) == int(to_version or 0)), None  # type: ignore[arg-type]  # v.get("version") 可能為 None
     )
     if target is None:
         return APIResponse.error(
@@ -712,7 +711,21 @@ async def rollback_doc_version(
     )
 
     new_meta["doc_version"] = int(current_version) + 1
-    metadata_service.update(file_id, FileMetadataUpdate(custom_metadata=new_meta))
+    metadata_service.update(
+        file_id,
+        FileMetadataUpdate(
+            custom_metadata=new_meta,
+            task_id=None,  # type: ignore[call-arg]  # 所有參數都是 Optional
+            folder_id=None,  # type: ignore[call-arg]
+            tags=None,  # type: ignore[call-arg]
+            description=None,  # type: ignore[call-arg]
+            status=None,  # type: ignore[call-arg]
+            processing_status=None,  # type: ignore[call-arg]
+            chunk_count=None,  # type: ignore[call-arg]
+            vector_count=None,  # type: ignore[call-arg]
+            kg_status=None,  # type: ignore[call-arg]
+        ),
+    )
 
     return APIResponse.success(
         data={
@@ -724,9 +737,7 @@ async def rollback_doc_version(
     )
 
 
-def _build_generation_prompt(
-    *, doc_format: str, instruction: str, filename: str
-) -> str:
+def _build_generation_prompt(*, doc_format: str, instruction: str, filename: str) -> str:
     if doc_format == "json":
         return (
             "你是一個嚴格的 JSON 文件產生器。\n"
@@ -786,9 +797,7 @@ async def _run_generation_request(*, request_id: str) -> None:
             json.loads(content)
 
         record.preview = DocGenPreview(content=content)
-        store.update(
-            request_id=request_id, status=DocGenStatus.succeeded, record=record
-        )
+        store.update(request_id=request_id, status=DocGenStatus.succeeded, record=record)
     except asyncio.CancelledError:
         store.set_abort(request_id=request_id)
         store.update(request_id=request_id, status=DocGenStatus.aborted)
@@ -804,9 +813,7 @@ async def _run_generation_request(*, request_id: str) -> None:
         _pop_request_task(request_id=request_id)
 
 
-def _start_generation_task(
-    *, background_tasks: BackgroundTasks, request_id: str
-) -> None:
+def _start_generation_task(*, background_tasks: BackgroundTasks, request_id: str) -> None:
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
@@ -1010,9 +1017,7 @@ async def apply_doc_generation(
     get_metadata_service().create(meta_create)
 
     record.apply_result = DocGenApplyResult(file_id=file_id)
-    store.update(
-        request_id=record.request_id, status=DocGenStatus.applied, record=record
-    )
+    store.update(request_id=record.request_id, status=DocGenStatus.applied, record=record)
 
     return APIResponse.success(
         data={"request_id": record.request_id, "status": "applied", "file_id": file_id},

@@ -72,11 +72,13 @@
 ### HTTP REST API
 
 **優點**:
+
 - 簡單易用，標準化
 - 易於調試和監控
 - 支持負載均衡和反向代理
 
 **端點示例**:
+
 ```http
 POST /v1/execute
 Content-Type: application/json
@@ -93,11 +95,13 @@ Content-Type: application/json
 ### MCP Protocol
 
 **優點**:
+
 - 高性能，低延遲
 - 支持雙向通信
 - 適合實時協作場景
 
 **使用場景**:
+
 - 需要實時狀態更新
 - 複雜的 Agent 協作
 - 高性能要求

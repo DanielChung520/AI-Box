@@ -28,9 +28,7 @@ def _get_model_usage_service():
     global _model_usage_service
     if _model_usage_service is None:
         try:
-            from services.api.services.model_usage_service import (
-                get_model_usage_service,
-            )
+            from services.api.services.model_usage_service import get_model_usage_service
 
             _model_usage_service = get_model_usage_service()
         except Exception:
@@ -77,7 +75,7 @@ def _track_model_usage(
         if service is None:
             return  # 服務不可用，跳過追蹤
 
-        from services.api.models.model_usage import ModelUsageCreate, ModelPurpose
+        from services.api.models.model_usage import ModelPurpose, ModelUsageCreate
 
         # 確定使用目的
         purpose_enum = ModelPurpose.OTHER
@@ -212,9 +210,7 @@ class OllamaClient(BaseLLMClient):
                 return response.json()
         except httpx.TimeoutException as exc:
             self._router.mark_failure(node.name)
-            raise OllamaTimeoutError(
-                f"Ollama request timed out on node {node.name}"
-            ) from exc
+            raise OllamaTimeoutError(f"Ollama request timed out on node {node.name}") from exc
         except httpx.HTTPStatusError as exc:
             self._router.mark_failure(node.name)
             raise OllamaHTTPError(
@@ -222,9 +218,7 @@ class OllamaClient(BaseLLMClient):
             ) from exc
         except httpx.RequestError as exc:
             self._router.mark_failure(node.name)
-            raise OllamaClientError(
-                f"Ollama request error on node {node.name}: {exc}"
-            ) from exc
+            raise OllamaClientError(f"Ollama request error on node {node.name}: {exc}") from exc
 
     async def generate(
         self,

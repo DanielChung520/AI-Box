@@ -8,12 +8,13 @@
 import json
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional
+
 import structlog
 
-from system.infra.config.config import get_config_section
 from genai.api.models.ner_models import Entity
-from llm.clients.ollama import OllamaClient, get_ollama_client
 from llm.clients.gemini import GeminiClient
+from llm.clients.ollama import OllamaClient, get_ollama_client
+from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
 
@@ -116,9 +117,7 @@ class SpacyNERModel(BaseNERModel):
 class OllamaNERModel(BaseNERModel):
     """Ollama NER 模型實現"""
 
-    def __init__(
-        self, model_name: str = "qwen3-coder:30b", client: Optional[OllamaClient] = None
-    ):
+    def __init__(self, model_name: str = "qwen3-coder:30b", client: Optional[OllamaClient] = None):
         self.model_name = model_name
         self.client = client or get_ollama_client()
         self._prompt_template = """請從以下文本中識別命名實體，並以 JSON 格式返回結果。
@@ -150,9 +149,7 @@ class OllamaNERModel(BaseNERModel):
     ) -> List[Entity]:
         """使用 Ollama 提取實體"""
         if self.client is None:
-            raise RuntimeError(
-                f"Ollama client is not available for model {self.model_name}"
-            )
+            raise RuntimeError(f"Ollama client is not available for model {self.model_name}")
 
         prompt = self._prompt_template.format(text=text)
 
@@ -177,9 +174,7 @@ class OllamaNERModel(BaseNERModel):
             try:
                 # 移除可能的 markdown 代碼塊標記
                 if "```json" in result_text:
-                    result_text = (
-                        result_text.split("```json")[1].split("```")[0].strip()
-                    )
+                    result_text = result_text.split("```json")[1].split("```")[0].strip()
                 elif "```" in result_text:
                     result_text = result_text.split("```")[1].split("```")[0].strip()
 
@@ -225,8 +220,7 @@ class OllamaNERModel(BaseNERModel):
                                 # 如果对象只有一个键，且值是数组，使用该数组
                                 entities_data = list(parsed_obj.values())[0]
                             elif all(
-                                isinstance(v, dict) and "text" in v
-                                for v in parsed_obj.values()
+                                isinstance(v, dict) and "text" in v for v in parsed_obj.values()
                             ):
                                 # 形如 {"id1": {...entity...}, "id2": {...entity...}}
                                 entities_data = list(parsed_obj.values())
@@ -254,10 +248,7 @@ class OllamaNERModel(BaseNERModel):
                                 obj_text = result_text[obj_start : obj_end + 1]
                                 try:
                                     parsed_obj = json.loads(obj_text)
-                                    if (
-                                        isinstance(parsed_obj, dict)
-                                        and "entities" in parsed_obj
-                                    ):
+                                    if isinstance(parsed_obj, dict) and "entities" in parsed_obj:
                                         entities_data = parsed_obj["entities"]
                                 except json.JSONDecodeError:
                                     pass
@@ -290,23 +281,17 @@ class OllamaNERModel(BaseNERModel):
 
                 return entities
             except json.JSONDecodeError as e:
-                logger.error(
-                    "ollama_ner_json_parse_failed", error=str(e), response=result_text
-                )
+                logger.error("ollama_ner_json_parse_failed", error=str(e), response=result_text)
                 return []
         except Exception as e:
-            logger.error(
-                "ollama_ner_extraction_failed", error=str(e), model=self.model_name
-            )
+            logger.error("ollama_ner_extraction_failed", error=str(e), model=self.model_name)
             return []
 
 
 class GeminiNERModel(BaseNERModel):
     """Gemini NER 模型實現"""
 
-    def __init__(
-        self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None
-    ):
+    def __init__(self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None):
         self.model_name = model_name
         self.client: Optional[GeminiClient] = None
         try:
@@ -338,9 +323,7 @@ class GeminiNERModel(BaseNERModel):
     async def extract_entities(self, text: str) -> List[Entity]:
         """使用 Gemini 提取實體"""
         if self.client is None or not self.client.is_available():
-            raise RuntimeError(
-                f"Gemini client is not available for model {self.model_name}"
-            )
+            raise RuntimeError(f"Gemini client is not available for model {self.model_name}")
 
         prompt = self._prompt_template.format(text=text)
 
@@ -360,9 +343,7 @@ class GeminiNERModel(BaseNERModel):
             try:
                 # 移除可能的 markdown 代碼塊標記
                 if "```json" in result_text:
-                    result_text = (
-                        result_text.split("```json")[1].split("```")[0].strip()
-                    )
+                    result_text = result_text.split("```json")[1].split("```")[0].strip()
                 elif "```" in result_text:
                     result_text = result_text.split("```")[1].split("```")[0].strip()
 
@@ -388,14 +369,10 @@ class GeminiNERModel(BaseNERModel):
 
                 return entities
             except json.JSONDecodeError as e:
-                logger.error(
-                    "gemini_ner_json_parse_failed", error=str(e), response=result_text
-                )
+                logger.error("gemini_ner_json_parse_failed", error=str(e), response=result_text)
                 return []
         except Exception as e:
-            logger.error(
-                "gemini_ner_extraction_failed", error=str(e), model=self.model_name
-            )
+            logger.error("gemini_ner_extraction_failed", error=str(e), model=self.model_name)
             return []
 
 
@@ -430,20 +407,12 @@ class NERService:
                 model_name=self.model_name, enable_gpu=self.enable_gpu
             )
         elif self.model_type == "ollama":
-            model_name = (
-                self.model_name
-                if ":" in self.model_name
-                else f"ollama:{self.model_name}"
-            )
+            model_name = self.model_name if ":" in self.model_name else f"ollama:{self.model_name}"
             if model_name.startswith("ollama:"):
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = OllamaNERModel(model_name=model_name)
         elif self.model_type == "gemini":
-            model_name = (
-                self.model_name
-                if ":" in self.model_name
-                else f"gemini:{self.model_name}"
-            )
+            model_name = self.model_name if ":" in self.model_name else f"gemini:{self.model_name}"
             if model_name.startswith("gemini:"):
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = GeminiNERModel(model_name=model_name)
@@ -536,9 +505,7 @@ class NERService:
                 entities = await model.extract_entities(text)
                 results.append(entities)
             except Exception as e:
-                logger.error(
-                    "ner_batch_extraction_failed", error=str(e), text=text[:50]
-                )
+                logger.error("ner_batch_extraction_failed", error=str(e), text=text[:50])
                 results.append([])
 
         return results

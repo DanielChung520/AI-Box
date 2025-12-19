@@ -48,9 +48,7 @@ class UserPreferenceService:
                     if isinstance(parsed, list):
                         return self._normalize_model_ids(parsed)
             except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "get_favorite_models_redis_failed", user_id=user_id, error=str(exc)
-                )
+                logger.warning("get_favorite_models_redis_failed", user_id=user_id, error=str(exc))
 
         return self._fallback_favorite_models.get(user_id, [])
 
@@ -64,9 +62,7 @@ class UserPreferenceService:
                 self._redis.set(key, json.dumps(normalized, ensure_ascii=False))
                 return normalized
             except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "set_favorite_models_redis_failed", user_id=user_id, error=str(exc)
-                )
+                logger.warning("set_favorite_models_redis_failed", user_id=user_id, error=str(exc))
 
         self._fallback_favorite_models[user_id] = normalized
         return normalized

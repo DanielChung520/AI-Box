@@ -5,19 +5,15 @@
 
 """Execution Agent - 實現工具執行"""
 
-import uuid
-import time
 import logging
-from typing import Dict, Any, Optional
+import time
+import uuid
 from datetime import datetime
+from typing import Any, Dict, Optional
 
-from agents.execution.models import (
-    ExecutionRequest,
-    ExecutionResult,
-    ExecutionStatus,
-)
-from agents.infra.tools import ToolRegistry
+from agents.execution.models import ExecutionRequest, ExecutionResult, ExecutionStatus
 from agents.infra.memory import MemoryManager
+from agents.infra.tools import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -101,9 +97,7 @@ class ExecutionAgent:
                 metadata=request.metadata,
             )
 
-            logger.error(
-                f"Execution failed: execution_id={execution_id}, " f"error={error_msg}"
-            )
+            logger.error(f"Execution failed: execution_id={execution_id}, " f"error={error_msg}")
 
         # 存儲執行結果到記憶（如果可用）
         if self.memory_manager:
@@ -115,9 +109,7 @@ class ExecutionAgent:
 
         return execution_result
 
-    def _execute_tool(
-        self, tool_name: str, tool_args: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _execute_tool(self, tool_name: str, tool_args: Dict[str, Any]) -> Dict[str, Any]:
         """
         執行指定工具
 
@@ -200,9 +192,7 @@ class ExecutionAgent:
         from agents.infra.tools import ToolType
 
         tool_type_enum = (
-            ToolType(tool_type)
-            if tool_type in [t.value for t in ToolType]
-            else ToolType.CUSTOM
+            ToolType(tool_type) if tool_type in [t.value for t in ToolType] else ToolType.CUSTOM
         )
 
         return self.tool_registry.register(

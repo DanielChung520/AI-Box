@@ -5,6 +5,6 @@
 
 """Core 配置適配器 - 重新導出 system.infra.config 的模組"""
 
-from system.infra.config.config import load_project_config, get_config_section
+from system.infra.config.config import get_config_section, load_project_config
 
 __all__ = ["load_project_config", "get_config_section"]

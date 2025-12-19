@@ -5,14 +5,15 @@
 
 """Execution Agent API 路由"""
 
-from fastapi import APIRouter, status, HTTPException
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
 
-from api.core.response import APIResponse
 from agents.core.execution.agent import ExecutionAgent
 from agents.core.execution.models import ExecutionRequest
+from api.core.response import APIResponse
 
 router = APIRouter()
 
@@ -63,9 +64,7 @@ async def execute_task(request: ExecutionAPIRequest) -> JSONResponse:
         )
 
         # 執行任務
-        result = execution_agent.execute_task(
-            execution_request
-        )  # 使用 execute_task 方法
+        result = execution_agent.execute_task(execution_request)  # 使用 execute_task 方法
 
         return APIResponse.success(
             data=result.model_dump(mode="json"),

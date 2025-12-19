@@ -9,11 +9,7 @@
 """
 
 from .agent import StorageManagerAgent
-from .models import (
-    StorageManagerRequest,
-    StorageManagerResponse,
-    StorageStrategy,
-)
+from .models import StorageManagerRequest, StorageManagerResponse, StorageStrategy
 
 __all__ = [
     "StorageManagerAgent",

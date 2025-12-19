@@ -79,9 +79,9 @@ export default function WelcomePage() {
   // 監聽 logo 圖片元素，確保動畫完成後立即設置最終狀態
   useEffect(() => {
     if (!logoImageRef.current || animationStartedRef.current) return;
-    
+
     animationStartedRef.current = true;
-    
+
     // 監聽動畫結束事件
     const handleAnimationEnd = () => {
       if (logoImageRef.current) {
@@ -96,7 +96,7 @@ export default function WelcomePage() {
 
     const img = logoImageRef.current;
     img.addEventListener('animationend', handleAnimationEnd);
-    
+
     return () => {
       if (img) {
         img.removeEventListener('animationend', handleAnimationEnd);

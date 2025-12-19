@@ -6,6 +6,7 @@
 """NER 實體識別數據模型 - 定義 Pydantic Model"""
 
 from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -50,8 +51,6 @@ class NERResponse(BaseModel):
 class NERBatchResponse(BaseModel):
     """NER 批量響應模型"""
 
-    results: List[NERResponse] = Field(
-        default_factory=list, description="每個文本的識別結果"
-    )
+    results: List[NERResponse] = Field(default_factory=list, description="每個文本的識別結果")
     total: int = Field(..., description="總文本數")
     processed: int = Field(..., description="成功處理的文本數")

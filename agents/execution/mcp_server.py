@@ -5,9 +5,9 @@
 
 """Execution Agent MCP Server"""
 
-from mcp.server.server import MCPServer
 from agents.core.execution.agent import ExecutionAgent
 from agents.core.execution.models import ExecutionRequest
+from mcp.server.server import MCPServer
 
 # 初始化 Execution Agent
 execution_agent = ExecutionAgent()
@@ -23,8 +23,13 @@ mcp_server = MCPServer(
 async def execute_task_handler(arguments: dict) -> dict:
     """執行任務工具處理器"""
     request = ExecutionRequest(**arguments)
-    result = execution_agent.execute(request)
-    return result.model_dump()
+    result = await execution_agent.execute(request)  # type: ignore[arg-type]  # ExecutionRequest 兼容 AgentServiceRequest
+    if hasattr(result, "model_dump"):
+        return result.model_dump()
+    elif hasattr(result, "dict"):
+        return result.dict()
+    else:
+        return result  # type: ignore[return-value]
 
 
 mcp_server.register_tool(

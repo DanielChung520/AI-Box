@@ -6,10 +6,10 @@
 """系統監控指標收集器模組"""
 
 import logging
-from typing import Dict, Any
 from collections import defaultdict
 from datetime import datetime
 from threading import Lock
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,7 @@ class Metrics:
         self.lock = Lock()
         self.start_time = datetime.now()
 
-    def record_request(
-        self, method: str, latency: float, is_error: bool = False
-    ) -> None:
+    def record_request(self, method: str, latency: float, is_error: bool = False) -> None:
         """
         記錄請求指標
 
@@ -62,14 +60,8 @@ class Metrics:
         """
         with self.lock:
             uptime = (datetime.now() - self.start_time).total_seconds()
-            avg_latency = (
-                self.total_latency / self.request_count
-                if self.request_count > 0
-                else 0.0
-            )
-            error_rate = (
-                self.error_count / self.request_count if self.request_count > 0 else 0.0
-            )
+            avg_latency = self.total_latency / self.request_count if self.request_count > 0 else 0.0
+            error_rate = self.error_count / self.request_count if self.request_count > 0 else 0.0
 
             method_stats = {}
             for method in self.method_counts:
@@ -83,9 +75,7 @@ class Metrics:
                         else 0.0
                     ),
                     "avg_latency": (
-                        sum(method_latencies) / len(method_latencies)
-                        if method_latencies
-                        else 0.0
+                        sum(method_latencies) / len(method_latencies) if method_latencies else 0.0
                     ),
                     "min_latency": min(method_latencies) if method_latencies else 0.0,
                     "max_latency": max(method_latencies) if method_latencies else 0.0,

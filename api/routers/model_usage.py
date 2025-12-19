@@ -7,18 +7,16 @@
 
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Query, Depends, status, HTTPException
-from fastapi.responses import JSONResponse
+
 import structlog
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
-from services.api.models.model_usage import (
-    ModelUsageQuery,
-    ModelPurpose,
-)
+from services.api.models.model_usage import ModelPurpose, ModelUsageQuery
 from services.api.services.model_usage_service import get_model_usage_service
 from system.security.dependencies import get_current_user
-from system.security.models import User, Permission
+from system.security.models import Permission, User
 
 logger = structlog.get_logger(__name__)
 

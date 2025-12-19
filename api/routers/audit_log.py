@@ -6,17 +6,18 @@
 """審計日誌路由 - 提供審計日誌查詢和導出功能。"""
 
 from datetime import datetime
-from typing import Optional, List
 from functools import partial
-from fastapi import APIRouter, HTTPException, status, Depends, Query
-from fastapi.responses import Response, JSONResponse
+from typing import List, Optional
+
 import structlog
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse, Response
 
 from api.core.response import APIResponse
-from services.api.models.audit_log import AuditLogResponse, AuditAction
+from services.api.models.audit_log import AuditAction, AuditLogResponse
 from services.api.services.audit_log_service import get_audit_log_service
 from system.security.dependencies import require_permission
-from system.security.models import User, Permission
+from system.security.models import Permission, User
 
 logger = structlog.get_logger(__name__)
 
@@ -113,9 +114,7 @@ async def query_audit_logs(
 
 @router.get("/export")
 async def export_audit_logs(
-    format: str = Query(
-        "json", regex="^(json|csv)$", description="導出格式（json 或 csv）"
-    ),
+    format: str = Query("json", regex="^(json|csv)$", description="導出格式（json 或 csv）"),
     user_id: Optional[str] = Query(None, description="用戶ID"),
     action: Optional[AuditAction] = Query(None, description="操作類型"),
     start_date: Optional[str] = Query(None, description="開始時間（ISO 8601格式）"),

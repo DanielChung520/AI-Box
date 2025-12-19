@@ -140,15 +140,11 @@ class GeminiClient(BaseLLMClient):
             # 添加 token 使用量統計（如果可用）
             if hasattr(response, "usage_metadata") and response.usage_metadata:
                 result["usage"] = {
-                    "prompt_tokens": getattr(
-                        response.usage_metadata, "prompt_token_count", 0
-                    ),
+                    "prompt_tokens": getattr(response.usage_metadata, "prompt_token_count", 0),
                     "completion_tokens": getattr(
                         response.usage_metadata, "candidates_token_count", 0
                     ),
-                    "total_tokens": getattr(
-                        response.usage_metadata, "total_token_count", 0
-                    ),
+                    "total_tokens": getattr(response.usage_metadata, "total_token_count", 0),
                 }
 
             return result
@@ -209,9 +205,7 @@ class GeminiClient(BaseLLMClient):
                         chat_history.append({"role": "user", "parts": [content]})
 
             # 開始聊天會話
-            chat = gen_model.start_chat(
-                history=chat_history[:-1] if len(chat_history) > 1 else []
-            )
+            chat = gen_model.start_chat(history=chat_history[:-1] if len(chat_history) > 1 else [])
 
             # 發送最後一條消息
             last_message = chat_history[-1]["parts"][0] if chat_history else ""
@@ -220,9 +214,7 @@ class GeminiClient(BaseLLMClient):
             )
 
             # 提取消息內容
-            content = (
-                response.text if hasattr(response, "text") and response.text else ""
-            )
+            content = response.text if hasattr(response, "text") and response.text else ""
 
             # 構建返回結果
             result: Dict[str, Any] = {
@@ -234,15 +226,11 @@ class GeminiClient(BaseLLMClient):
             # 添加 token 使用量統計（如果可用）
             if hasattr(response, "usage_metadata") and response.usage_metadata:
                 result["usage"] = {
-                    "prompt_tokens": getattr(
-                        response.usage_metadata, "prompt_token_count", 0
-                    ),
+                    "prompt_tokens": getattr(response.usage_metadata, "prompt_token_count", 0),
                     "completion_tokens": getattr(
                         response.usage_metadata, "candidates_token_count", 0
                     ),
-                    "total_tokens": getattr(
-                        response.usage_metadata, "total_token_count", 0
-                    ),
+                    "total_tokens": getattr(response.usage_metadata, "total_token_count", 0),
                 }
 
             return result

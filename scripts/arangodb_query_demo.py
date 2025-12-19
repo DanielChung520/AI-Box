@@ -20,9 +20,7 @@ LOGGER = structlog.get_logger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Demo queries against the AI-Box knowledge graph."
-    )
+    parser = argparse.ArgumentParser(description="Demo queries against the AI-Box knowledge graph.")
     parser.add_argument(
         "--vertex", required=True, help="起始頂點 ID（例如 entities/agent_planning）"
     )
@@ -48,9 +46,7 @@ def pretty_print(title: str, payload: List[dict]) -> None:
 
 def main() -> None:
     args = parse_args()
-    settings = (
-        load_arangodb_settings(args.config) if args.config else load_arangodb_settings()
-    )
+    settings = load_arangodb_settings(args.config) if args.config else load_arangodb_settings()
     client = ArangoDBClient(settings=settings)
 
     neighbors = kg_queries.fetch_neighbors(
@@ -72,9 +68,7 @@ def main() -> None:
     same_type_filters = {}
     if args.relation_types:
         same_type_filters["type"] = args.relation_types
-    entities = kg_queries.filter_entities(
-        client, filters=same_type_filters, limit=args.limit
-    )
+    entities = kg_queries.filter_entities(client, filters=same_type_filters, limit=args.limit)
     pretty_print("entity_scan", entities)
 
     client.close()

@@ -7,7 +7,9 @@
 
 from datetime import datetime
 from typing import Optional
+
 import structlog
+
 from database.arangodb import ArangoDBClient
 
 logger = structlog.get_logger(__name__)
@@ -99,8 +101,7 @@ class OperationLogService:
                 "archived_at": archived_at,
                 "deleted_at": deleted_at,
                 "notes": notes,
-                "log_timestamp": datetime.utcnow().isoformat()
-                + "Z",  # 記錄日誌的時間戳
+                "log_timestamp": datetime.utcnow().isoformat() + "Z",  # 記錄日誌的時間戳
             }
 
             # 插入日誌文檔

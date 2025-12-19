@@ -45,9 +45,7 @@ class ResourceAccessController:
         self._registry = registry or get_agent_registry()
         self._logger = logger
 
-    def check_access(
-        self, agent_id: str, resource_type: ResourceType, resource_name: str
-    ) -> bool:
+    def check_access(self, agent_id: str, resource_type: ResourceType, resource_name: str) -> bool:
         """
         檢查 Agent 是否有權限訪問特定資源
 
@@ -75,9 +73,7 @@ class ResourceAccessController:
 
             # 外部 Agent：檢查權限配置
             permissions = agent_info.permissions
-            return self._check_external_agent_access(
-                permissions, resource_type, resource_name
-            )
+            return self._check_external_agent_access(permissions, resource_type, resource_name)
 
         except Exception as e:
             self._logger.error(f"Resource access check error for '{agent_id}': {e}")
@@ -104,9 +100,7 @@ class ResourceAccessController:
             # 檢查 Memory 命名空間
             if not permissions.allowed_memory_namespaces:
                 # 如果未配置，則不允許訪問
-                self._logger.debug(
-                    f"Memory namespace '{resource_name}' not in allowed list"
-                )
+                self._logger.debug(f"Memory namespace '{resource_name}' not in allowed list")
                 return False
             return resource_name in permissions.allowed_memory_namespaces
 
@@ -122,9 +116,7 @@ class ResourceAccessController:
             # 檢查 LLM Provider
             if not permissions.allowed_llm_providers:
                 # 如果未配置，則不允許訪問
-                self._logger.debug(
-                    f"LLM provider '{resource_name}' not in allowed list"
-                )
+                self._logger.debug(f"LLM provider '{resource_name}' not in allowed list")
                 return False
             return resource_name in permissions.allowed_llm_providers
 

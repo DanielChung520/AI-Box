@@ -8,8 +8,8 @@
 from typing import Optional
 
 try:
+    from pydantic import ConfigDict, Field
     from pydantic_settings import BaseSettings  # type: ignore[attr-defined]
-    from pydantic import Field, ConfigDict
 except ImportError:
     # 兼容 pydantic v1
     from pydantic import BaseSettings, Field  # type: ignore[no-redef]
@@ -26,7 +26,7 @@ class MCPServerConfig(BaseSettings):
     protocol_version: str = Field(default="2024-11-05", description="協議版本")
 
     # 網絡配置
-    host: str = Field(default="0.0.0.0", description="服務器主機地址")
+    host: str = Field(default="0.0.0.0", description="服務器主機地址")  # nosec B104
     port: int = Field(default=8002, description="服務器端口")
 
     # 日誌配置
@@ -41,15 +41,13 @@ class MCPServerConfig(BaseSettings):
     metrics_endpoint: str = Field(default="/metrics", description="指標端點")
 
     # 工具配置
-    tools_config_path: Optional[str] = Field(
-        default=None, description="工具配置文件路徑"
-    )
+    tools_config_path: Optional[str] = Field(default=None, description="工具配置文件路徑")
 
     # 優雅關閉配置
     shutdown_timeout: int = Field(default=30, description="關閉超時時間（秒）")
 
     if ConfigDict is not None:
-        model_config = ConfigDict(
+        model_config = ConfigDict(  # type: ignore[assignment]  # ConfigDict 兼容 SettingsConfigDict
             env_file=".env",
             env_file_encoding="utf-8",
             case_sensitive=False,

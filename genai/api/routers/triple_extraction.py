@@ -6,17 +6,18 @@
 """三元組提取路由 - 提供三元組提取 API 端點"""
 
 from typing import Optional
+
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
-from genai.api.services.triple_extraction_service import TripleExtractionService
 from genai.api.models.triple_models import (
-    TripleExtractionRequest,
-    TripleExtractionResponse,
     TripleBatchRequest,
     TripleBatchResponse,
+    TripleExtractionRequest,
+    TripleExtractionResponse,
 )
+from genai.api.services.triple_extraction_service import TripleExtractionService
 
 router = APIRouter(prefix="/text-analysis", tags=["Triple Extraction"])
 
@@ -38,9 +39,7 @@ async def extract_triples(request: TripleExtractionRequest) -> JSONResponse:
     service = get_service()
 
     try:
-        triples = await service.extract_triples(
-            request.text, request.entities, request.enable_ner
-        )
+        triples = await service.extract_triples(request.text, request.entities, request.enable_ner)
 
         # 統計信息
         entities_count = len(request.entities) if request.entities else 0
@@ -78,9 +77,7 @@ async def extract_triples_batch(request: TripleBatchRequest) -> JSONResponse:
         total_triples = 0
         for text, triples in zip(request.texts, results):
             entities_count = len(
-                set(
-                    [t.subject.text for t in triples] + [t.object.text for t in triples]
-                )
+                set([t.subject.text for t in triples] + [t.object.text for t in triples])
             )
             relations_count = len(set(t.relation.type for t in triples))
             total_triples += len(triples)

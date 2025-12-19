@@ -5,10 +5,11 @@
 
 """Execution Agent 數據模型定義"""
 
-from typing import Dict, Any, Optional
-from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, Optional
+
+from pydantic import BaseModel, Field
 
 
 class ExecutionStatus(str, Enum):

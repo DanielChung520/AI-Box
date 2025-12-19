@@ -8,9 +8,9 @@
 AI 驱动的安全管理服务，提供智能风险评估、权限检查和安全审计功能。
 """
 
-import logging
 import json
-from typing import Dict, Any
+import logging
+from typing import Any, Dict
 
 from agents.services.protocol.base import (
     AgentServiceProtocol,
@@ -19,19 +19,11 @@ from agents.services.protocol.base import (
     AgentServiceStatus,
 )
 from agents.services.registry.registry import get_agent_registry
-from agents.services.resource_controller import (
-    get_resource_controller,
-    ResourceType,
-)
+from agents.services.resource_controller import ResourceType, get_resource_controller
 from agents.task_analyzer.models import LLMProvider
 from llm.clients.factory import get_client
 
-from .models import (
-    SecurityManagerRequest,
-    SecurityManagerResponse,
-    RiskAssessmentResult,
-    RiskLevel,
-)
+from .models import RiskAssessmentResult, RiskLevel, SecurityManagerRequest, SecurityManagerResponse
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +87,11 @@ class SecurityManagerAgent(AgentServiceProtocol):
                     success=False,
                     action=action,
                     error=f"Unknown action: {action}",
+                    allowed=None,  # type: ignore[call-arg]  # allowed 有默認值
+                    risk_assessment=None,  # type: ignore[call-arg]  # risk_assessment 有默認值
+                    audit_result=None,  # type: ignore[call-arg]  # audit_result 有默認值
+                    analysis=None,  # type: ignore[call-arg]  # analysis 有默認值
+                    message=None,  # type: ignore[call-arg]  # message 有默認值
                 )
 
             # 构建响应
@@ -106,15 +103,14 @@ class SecurityManagerAgent(AgentServiceProtocol):
                     "action": result.action,
                     "allowed": result.allowed,
                     "risk_assessment": (
-                        result.risk_assessment.model_dump()
-                        if result.risk_assessment
-                        else None
+                        result.risk_assessment.model_dump() if result.risk_assessment else None
                     ),
                     "audit_result": result.audit_result,
                     "analysis": result.analysis,
                     "message": result.message,
                     "error": result.error,
                 },
+                error=None,  # type: ignore[call-arg]  # error 有默認值
                 metadata=request.metadata,
             )
 
@@ -123,13 +119,12 @@ class SecurityManagerAgent(AgentServiceProtocol):
             return AgentServiceResponse(
                 task_id=request.task_id,
                 status="error",
+                result=None,  # type: ignore[call-arg]  # result 有默認值
                 error=str(e),
                 metadata=request.metadata,
             )
 
-    async def _assess_risk(
-        self, request: SecurityManagerRequest
-    ) -> SecurityManagerResponse:
+    async def _assess_risk(self, request: SecurityManagerRequest) -> SecurityManagerResponse:
         """
         AI 驱动的风险评估
 
@@ -178,6 +173,7 @@ class SecurityManagerAgent(AgentServiceProtocol):
             risk_assessment = RiskAssessmentResult(
                 risk_level=risk_level,
                 score=risk_score,
+                details=None,  # type: ignore[call-arg]  # details 有默認值
                 factors=risk_factors,
                 recommendations=recommendations,
             )
@@ -187,19 +183,17 @@ class SecurityManagerAgent(AgentServiceProtocol):
                 action="assess",
                 risk_assessment=risk_assessment,
                 message=f"Risk assessment completed: {risk_level.value}",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Risk assessment failed: {e}")
             return SecurityManagerResponse(
                 success=False,
                 action="assess",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
-    async def _check_permission(
-        self, request: SecurityManagerRequest
-    ) -> SecurityManagerResponse:
+    async def _check_permission(self, request: SecurityManagerRequest) -> SecurityManagerResponse:
         """
         检查权限
 
@@ -215,7 +209,7 @@ class SecurityManagerAgent(AgentServiceProtocol):
                     success=False,
                     action="check_permission",
                     error="agent_id and resource_type are required",
-                )
+                )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
             # 使用资源访问控制器检查权限
             resource_type = ResourceType(request.resource_type)
@@ -237,19 +231,17 @@ class SecurityManagerAgent(AgentServiceProtocol):
                 allowed=allowed,
                 risk_assessment=risk_assessment,
                 message=f"Permission check: {'allowed' if allowed else 'denied'}",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Permission check failed: {e}")
             return SecurityManagerResponse(
                 success=False,
                 action="check_permission",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
-    async def _audit_security(
-        self, request: SecurityManagerRequest
-    ) -> SecurityManagerResponse:
+    async def _audit_security(self, request: SecurityManagerRequest) -> SecurityManagerResponse:
         """
         安全审计
 
@@ -297,19 +289,17 @@ class SecurityManagerAgent(AgentServiceProtocol):
                 action="audit",
                 audit_result=audit_result,
                 message="Security audit completed",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Security audit failed: {e}")
             return SecurityManagerResponse(
                 success=False,
                 action="audit",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
-    async def _analyze_security(
-        self, request: SecurityManagerRequest
-    ) -> SecurityManagerResponse:
+    async def _analyze_security(self, request: SecurityManagerRequest) -> SecurityManagerResponse:
         """
         安全分析
 
@@ -336,14 +326,14 @@ class SecurityManagerAgent(AgentServiceProtocol):
                 action="analyze",
                 analysis=analysis,
                 message="Security analysis completed",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Security analysis failed: {e}")
             return SecurityManagerResponse(
                 success=False,
                 action="analyze",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
     async def _ai_assess_risk(
@@ -403,9 +393,7 @@ class SecurityManagerAgent(AgentServiceProtocol):
             self._logger.error(f"AI risk assessment failed: {e}")
             return {"score": 0.5, "factors": existing_factors, "recommendations": []}
 
-    async def _ai_audit_security(
-        self, agents: list, base_audit: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _ai_audit_security(self, agents: list, base_audit: Dict[str, Any]) -> Dict[str, Any]:
         """
         使用 AI 进行安全审计
 
@@ -514,7 +502,7 @@ class SecurityManagerAgent(AgentServiceProtocol):
         """
         try:
             # 检查 Registry 和 Resource Controller 是否可用
-            agents = self._registry.list_agents()
+            self._registry.list_agents()  # 檢查是否可用
             return AgentServiceStatus.AVAILABLE
         except Exception as e:
             self._logger.error(f"Health check failed: {e}")

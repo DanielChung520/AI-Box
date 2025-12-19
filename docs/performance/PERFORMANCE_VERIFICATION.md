@@ -23,6 +23,7 @@
    - 足夠的磁盤空間（至少 500MB）
 
 2. **啟動 ChromaDB**:
+
    ```bash
    # 方式 1: 使用 Docker Compose
    docker-compose up chromadb

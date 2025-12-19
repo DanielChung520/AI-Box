@@ -13,15 +13,15 @@
 5. 撤銷 Secret（未來功能）
 """
 
-import secrets
 import hashlib
 import hmac
-import time
-import os
 import logging
-from typing import Optional, Tuple, Dict, Any
+import os
+import secrets
+import time
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -96,9 +96,7 @@ class SecretManager:
             # 存儲到內存（如果已經存在，不覆蓋）
             if secret_id not in self._storage:
                 self._storage[secret_id] = secret_info
-                self._logger.info(
-                    f"Loaded default secret from environment: {secret_id}"
-                )
+                self._logger.info(f"Loaded default secret from environment: {secret_id}")
             else:
                 self._logger.warning(
                     f"Secret ID {secret_id} already exists, skipping environment variable load"
@@ -109,9 +107,7 @@ class SecretManager:
                 "or both unset. Ignoring partial configuration."
             )
 
-    def generate_secret_pair(
-        self, organization: Optional[str] = None
-    ) -> Tuple[str, str]:
+    def generate_secret_pair(self, organization: Optional[str] = None) -> Tuple[str, str]:
         """
         生成 Secret ID 和 Secret Key 對
 
@@ -200,10 +196,7 @@ class SecretManager:
         if not secret_info:
             return False
 
-        return (
-            secret_info.status == SecretStatus.BOUND
-            and secret_info.bound_agent_id is not None
-        )
+        return secret_info.status == SecretStatus.BOUND and secret_info.bound_agent_id is not None
 
     def bind_secret_to_agent(self, secret_id: str, agent_id: str) -> bool:
         """
@@ -222,9 +215,7 @@ class SecretManager:
             return False
 
         if secret_info.status != SecretStatus.ACTIVE:
-            self._logger.error(
-                f"Cannot bind secret '{secret_id}', status is: {secret_info.status}"
-            )
+            self._logger.error(f"Cannot bind secret '{secret_id}', status is: {secret_info.status}")
             return False
 
         if secret_info.bound_agent_id:
@@ -259,12 +250,8 @@ class SecretManager:
             "secret_id": secret_info.secret_id,
             "status": secret_info.status.value,
             "bound_agent_id": secret_info.bound_agent_id,
-            "created_at": (
-                secret_info.created_at.isoformat() if secret_info.created_at else None
-            ),
-            "bound_at": (
-                secret_info.bound_at.isoformat() if secret_info.bound_at else None
-            ),
+            "created_at": (secret_info.created_at.isoformat() if secret_info.created_at else None),
+            "bound_at": (secret_info.bound_at.isoformat() if secret_info.bound_at else None),
         }
 
     def revoke_secret(self, secret_id: str) -> bool:

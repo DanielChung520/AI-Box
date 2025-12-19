@@ -10,9 +10,11 @@
 ## 1. 背景與目標
 
 ### 1.1 背景
+
 根據 [AI-Box 架構規劃](../../../../Notion/pages/AI-Box/AI-Box-架構規劃.md) 和 [階段四主計劃](./wbs-4-data-processing.md)，WBS 4.4 專注於整合 AAM（記憶增強模組），實現實時交互、異步處理、混合 RAG 檢索和知識圖譜整合功能。
 
 ### 1.2 目標
+
 - 設計 AAM 架構、實現核心接口
 - 實現實時記憶檢索、上下文管理
 - 實現異步記憶處理、知識提取
@@ -20,10 +22,12 @@
 - 實現知識圖譜構建整合
 
 ### 1.3 總工期
+
 **9 個工作日**
 **優先級**: P0（關鍵路徑）
 
 ### 1.4 依賴關係
+
 - **前置依賴**:
   - WBS 4.2：文本分析流程（需要 NER/RE/RT 服務和知識圖譜）
   - WBS 4.3：上下文管理（需要上下文管理器）
@@ -65,6 +69,7 @@
 
 4. **AAM 配置**
    - 在 `config/config.example.json` 添加 AAM 配置：
+
      ```json
      "aam": {
        "enable_short_term": true,
@@ -77,6 +82,7 @@
      ```
 
 **交付物**:
+
 - `agent_process/memory/aam/aam_core.py`
 - `agent_process/memory/aam/storage_adapter.py`
 - `agent_process/memory/aam/models.py`（記憶數據模型）
@@ -84,6 +90,7 @@
 - 單元測試：`tests/agent_process/test_aam_core.py`
 
 **驗收標準**:
+
 - AAM 核心接口實現完整
 - 支持至少 3 種存儲適配器（Redis、ChromaDB、ArangoDB）
 - AAM 配置靈活可調整
@@ -119,12 +126,14 @@
    - 實現檢索結果合併（多源結果融合）
 
 **交付物**:
+
 - `agent_process/memory/aam/realtime_retrieval.py`
 - `agent_process/memory/aam/context_integration.py`
 - 單元測試：`tests/agent_process/test_realtime_retrieval.py`
 - 集成測試：`tests/integration/test_aam_context_integration.py`
 
 **驗收標準**:
+
 - 實時檢索響應時間 < 300ms
 - 記憶相關度計算準確率 > 85%
 - 支持至少 100 個並發實時檢索請求
@@ -160,12 +169,14 @@
    - 實現任務取消機制
 
 **交付物**:
+
 - `agent_process/memory/aam/async_processor.py`
 - `agent_process/memory/aam/knowledge_extraction_agent.py`
 - `services/api/routers/aam_async_tasks.py`（任務管理 API）
 - 單元測試：`tests/agent_process/test_async_processor.py`
 
 **驗收標準**:
+
 - 異步任務處理成功率 > 95%
 - 知識提取準確率 > 70%
 - 支持至少 100 個並發異步任務
@@ -201,12 +212,14 @@
    - 實現檢索結果預處理（過濾、排序）
 
 **交付物**:
+
 - `agent_process/memory/aam/hybrid_rag.py`
 - `agent_process/retrieval/manager.py`（更新，整合 AAM）
 - 單元測試：`tests/agent_process/test_hybrid_rag.py`
 - 集成測試：`tests/integration/test_rag_pipeline.py`
 
 **驗收標準**:
+
 - 混合檢索響應時間 < 500ms
 - 檢索結果相關度 > 80%
 - 支持至少 3 種檢索策略
@@ -240,12 +253,14 @@
    - 預留圖譜可視化 API（供前端使用）
 
 **交付物**:
+
 - `agent_process/memory/aam/kg_builder_integration.py`
 - `agent_process/memory/aam/kg_query_integration.py`
 - 單元測試：`tests/agent_process/test_aam_kg_integration.py`
 - 集成測試：`tests/integration/test_aam_kg_pipeline.py`
 
 **驗收標準**:
+
 - 知識圖譜自動更新成功率 > 90%
 - 圖譜查詢響應時間 < 1 秒
 - 支持至少 5000 個實體、20000 個關係的圖譜規模
@@ -270,9 +285,11 @@
 ## 4. 資源需求
 
 ### 4.1 人力資源
+
 - **AI-2**: 9 天（所有 AAM 模組整合任務）
 
 ### 4.2 技術資源
+
 - **開發環境**: Python 3.11+、FastAPI
 - **數據庫**: Redis、ChromaDB、ArangoDB
 - **工具庫**: Celery（可選）、transformers
@@ -282,6 +299,7 @@
 ## 5. 驗收標準
 
 ### 5.1 功能驗收
+
 - ✅ AAM 核心接口實現完整
 - ✅ 實時檢索響應時間 < 300ms
 - ✅ 異步任務處理成功率 > 95%
@@ -289,11 +307,13 @@
 - ✅ 知識圖譜自動更新成功率 > 90%
 
 ### 5.2 性能驗收
+
 - ✅ 實時檢索：響應時間 < 300ms
 - ✅ 混合 RAG 檢索：響應時間 < 500ms
 - ✅ 圖譜查詢：響應時間 < 1 秒
 
 ### 5.3 質量驗收
+
 - ✅ 單元測試覆蓋率 > 80%
 - ✅ 集成測試通過率 100%
 - ✅ 代碼審查通過

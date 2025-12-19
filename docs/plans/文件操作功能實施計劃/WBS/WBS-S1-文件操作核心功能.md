@@ -12,6 +12,7 @@
 **依賴**: S0
 
 **更新說明**（2025-01-27）：
+
 - 根據《文件操作功能檢核報告》補充刪除文件功能（S1.4）
 - 補充複製路徑功能（S1.5）
 - 補充數據驗證規則（S1.6）
@@ -27,17 +28,20 @@
 **實施位置**: `api/routers/file_management.py`
 
 **API設計**:
+
 - **端點**: `PUT /api/v1/files/{file_id}/rename`
 - **請求體**: `{"new_name": "新文件名.txt"}`
 - **響應**: 更新後的文件信息
 
 **數據驗證規則**:
+
 - 文件名長度不超過255字符
 - 不能包含特殊字符：`/ \ : * ? " < > |`
 - 不能使用系統保留名稱（如 `CON`, `PRN`, `AUX` 等）
 - 必須包含有效的文件擴展名
 
 **實現步驟**:
+
 1. [ ] 在 `file_management.py` 中新增 `rename_file` 函數
 2. [ ] 實現文件存在性檢查
 3. [ ] 實現文件名驗證（使用數據驗證規則）
@@ -48,11 +52,13 @@
 8. [ ] 添加審計日誌（重用 `@audit_log` 裝飾器）
 
 **重用服務**:
+
 - `get_metadata_service()` - 文件元數據服務
 - `get_storage()` - 文件存儲服務
 - `get_file_permission_service()` - 權限檢查服務
 
 **驗收標準**:
+
 - [ ] API可以成功重命名文件
 - [ ] 文件名驗證正確（符合驗證規則）
 - [ ] 權限檢查正確
@@ -69,11 +75,13 @@
 **實施位置**: `api/routers/file_management.py`
 
 **API設計**:
+
 - **端點**: `POST /api/v1/files/{file_id}/copy`
 - **請求體**: `{"target_task_id": "目標任務ID（可選）"}`
 - **響應**: 新文件的信息
 
 **實現步驟**:
+
 1. [ ] 在 `file_management.py` 中新增 `copy_file` 函數
 2. [ ] 實現源文件讀取（重用 `get_storage().read_file()`）
 3. [ ] 實現新文件ID生成（重用 `FileStorage.generate_file_id()`）
@@ -85,12 +93,14 @@
 9. [ ] 添加審計日誌
 
 **重用服務**:
+
 - `get_storage()` - 文件存儲服務
 - `get_metadata_service()` - 文件元數據服務
 - `get_vector_store_service()` - 向量存儲服務（可選）
 - `get_kg_extraction_service()` - 圖譜提取服務（可選）
 
 **驗收標準**:
+
 - [ ] API可以成功複製文件
 - [ ] 文件內容正確複製
 - [ ] 元數據正確創建
@@ -107,11 +117,13 @@
 **實施位置**: `api/routers/file_management.py`
 
 **API設計**:
+
 - **端點**: `PUT /api/v1/files/{file_id}/move`
 - **請求體**: `{"target_task_id": "目標任務ID"}`
 - **響應**: 更新後的文件信息
 
 **實現步驟**:
+
 1. [ ] 在 `file_management.py` 中新增 `move_file` 函數
 2. [ ] 實現源文件和目標任務檢查
 3. [ ] 實現權限檢查（重用 `get_file_permission_service()`）
@@ -120,10 +132,12 @@
 6. [ ] 添加審計日誌
 
 **重用服務**:
+
 - `get_metadata_service()` - 文件元數據服務
 - `get_file_permission_service()` - 權限檢查服務
 
 **驗收標準**:
+
 - [ ] API可以成功移動文件
 - [ ] 文件 `task_id` 正確更新
 - [ ] 權限檢查正確
@@ -139,16 +153,19 @@
 **實施位置**: `api/routers/file_management.py`
 
 **API設計**:
+
 - **端點**: `DELETE /api/v1/files/{file_id}`
 - **響應**: 刪除結果
 
 **多數據源清理邏輯**:
+
 1. 文件實體（從文件系統）
 2. 文件元數據（從 ArangoDB）
 3. 向量數據（從 ChromaDB）
 4. 知識圖譜關聯（從 ArangoDB）
 
 **實現步驟**:
+
 1. [ ] 在 `file_management.py` 中新增 `delete_file` 函數
 2. [ ] 實現文件存在性檢查
 3. [ ] 實現權限檢查（重用 `get_file_permission_service()`）
@@ -161,6 +178,7 @@
 10. [ ] 添加審計日誌
 
 **重用服務**:
+
 - `get_storage()` - 文件存儲服務
 - `get_metadata_service()` - 文件元數據服務
 - `get_vector_store_service()` - 向量存儲服務
@@ -168,6 +186,7 @@
 - `get_file_permission_service()` - 權限檢查服務
 
 **驗收標準**:
+
 - [ ] API可以成功刪除文件
 - [ ] 所有數據源都正確清理（文件系統、ArangoDB、ChromaDB）
 - [ ] 事務處理正確（原子性保證）
@@ -184,11 +203,13 @@
 **實施位置**: `ai-bot/src/components/FileTree.tsx` 或 `ai-bot/src/lib/api.ts`
 
 **功能描述**:
+
 - 複製文件的完整路徑（包括任務ID和文件ID）
 - 格式：`task_id/file_id` 或完整URL路徑
 - 使用 `navigator.clipboard.writeText()` API
 
 **實現步驟**:
+
 1. [ ] 在 `FileTree.tsx` 中實現 `handleCopyPath` 函數
 2. [ ] 構建文件路徑字符串（包含任務ID和文件ID）
 3. [ ] 使用 `navigator.clipboard.writeText()` 複製到剪貼板
@@ -196,6 +217,7 @@
 5. [ ] 添加錯誤處理（剪貼板API失敗時顯示錯誤提示）
 
 **驗收標準**:
+
 - [ ] 可以成功複製文件路徑到剪貼板
 - [ ] 路徑格式正確
 - [ ] 成功提示正常顯示
@@ -231,6 +253,7 @@
    - **不支持的文件類型**: 可執行文件（`.exe`, `.bat`, `.sh` 等）
 
 **實現步驟**:
+
 1. [ ] 創建 `file_validator.py` 文件（或直接在 `file_management.py` 中實現）
 2. [ ] 實現 `validate_filename()` 函數
 3. [ ] 實現 `validate_file_size()` 函數
@@ -239,6 +262,7 @@
 6. [ ] 添加錯誤提示（驗證失敗時返回友好的錯誤信息）
 
 **驗收標準**:
+
 - [ ] 文件名驗證正確
 - [ ] 文件大小驗證正確
 - [ ] 文件類型驗證正確
@@ -264,6 +288,7 @@
 ## 測試要求
 
 ### 單元測試
+
 - [ ] 測試文件重命名功能
 - [ ] 測試文件複製功能
 - [ ] 測試文件移動功能
@@ -273,12 +298,14 @@
 - [ ] 測試錯誤處理
 
 ### 集成測試
+
 - [ ] 測試與現有服務的集成
 - [ ] 測試權限檢查
 - [ ] 測試審計日誌
 - [ ] 測試多數據源清理（刪除功能）
 
 ### 回歸測試
+
 - [ ] 測試現有文件上傳功能
 - [ ] 測試現有文件列表查詢
 - [ ] 測試現有文件搜尋功能

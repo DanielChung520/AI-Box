@@ -10,15 +10,18 @@
 ## 1. 背景與目標
 
 ### 1.1 背景
+
 根據 [AI-Box 架構規劃](../../../Notion/pages/AI-Box/AI-Box-架構規劃.md) 和 [實施路線圖-WBS](../../../Notion/pages/AI-Box/plans2/實施路線圖-WBS.md)，階段四專注於實現完整的數據處理流水線，包括文件處理、文本分析、上下文管理和記憶增強模組（AAM）整合。
 
 ### 1.2 目標
+
 - 實現完整的文件上傳、分塊、向量化流程
 - 整合 NER/RE/RT 模型，實現知識圖譜自動構建
 - 實現上下文管理系統，支持對話歷史和上下文窗口管理
 - 整合 AAM 模組，實現混合 RAG 檢索和知識圖譜構建
 
 ### 1.3 總工期
+
 **29.5 個工作日**（約 6 週）
 
 ---
@@ -26,17 +29,20 @@
 ## 2. 範圍
 
 ### 2.1 包含範圍
+
 - **WBS 4.1**: 文件處理流程實現（6 天）
 - **WBS 4.2**: 文本分析流程實現（NER/RE/RT）（9 天）
 - **WBS 4.3**: 上下文管理實現（5.5 天）
 - **WBS 4.4**: AAM 模組整合（9 天）
 
 ### 2.2 不包含範圍
+
 - LLM MoE 路由實現（階段五）
 - 高可用部署（階段六）
 - 性能優化與測試（階段七）
 
 ### 2.3 依賴關係
+
 - **前置依賴**: 階段一（基礎架構）、階段二（Agent 核心）、階段三（工作流引擎）
 - **後續依賴**: 階段五（LLM MoE）、階段六（高可用部署）
 
@@ -75,6 +81,7 @@
 
 4. **配置管理**
    - 在 `config/config.example.json` 添加 `file_upload` 配置：
+
      ```json
      "file_upload": {
        "max_file_size": 104857600,
@@ -86,6 +93,7 @@
      ```
 
 **交付物**:
+
 - `services/api/routers/file_upload.py`
 - `services/api/utils/file_validator.py`
 - `services/api/storage/file_storage.py`
@@ -93,6 +101,7 @@
 - 單元測試：`tests/api/test_file_upload.py`
 
 **驗收標準**:
+
 - 支持多文件上傳（至少 5 個文件同時上傳）
 - 文件格式驗證準確率 100%
 - 文件存儲成功後返回文件 ID 和元數據
@@ -129,6 +138,7 @@
    - 實現處理進度查詢 API
 
 **交付物**:
+
 - `services/api/processors/chunk_processor.py`
 - `services/api/processors/parsers/pdf_parser.py`
 - `services/api/processors/parsers/docx_parser.py`
@@ -138,6 +148,7 @@
 - 單元測試：`tests/api/test_chunk_processor.py`
 
 **驗收標準**:
+
 - 支持 PDF、DOCX、TXT、MD 格式解析
 - 分塊準確率 > 95%（不截斷句子）
 - 10MB PDF 文件分塊處理時間 < 30 秒
@@ -173,6 +184,7 @@
    - 優化大文件內存使用（流式處理）
 
 **交付物**:
+
 - `services/api/processors/parsers/base_parser.py`
 - `services/api/processors/parsers/csv_parser.py`
 - `services/api/processors/parsers/json_parser.py`
@@ -182,6 +194,7 @@
 - 單元測試：`tests/api/test_parsers.py`
 
 **驗收標準**:
+
 - 支持至少 8 種文件格式（PDF、DOCX、TXT、MD、CSV、JSON、HTML、XLSX）
 - 格式檢測準確率 > 98%
 - 解析錯誤率 < 2%
@@ -216,12 +229,14 @@
    - 實現全文搜索（基於文件名、描述、tags）
 
 **交付物**:
+
 - `services/api/models/file_metadata.py`
 - `services/api/services/file_metadata_service.py`
 - `services/api/routers/file_metadata.py`
 - 單元測試：`tests/api/test_file_metadata.py`
 
 **驗收標準**:
+
 - 元數據存儲成功率 100%
 - 元數據查詢響應時間 < 500ms
 - 支持至少 5 種篩選條件（類型、大小、時間範圍、用戶、tags）
@@ -243,6 +258,7 @@
 1. **NER 模型選擇與配置**
    - 評估可用模型：spaCy、transformers（BERT-based NER）、Ollama 本地模型
    - 在 `config/config.example.json` 添加 NER 配置：
+
      ```json
      "text_analysis": {
        "ner": {
@@ -268,6 +284,7 @@
 
 4. **實體提取結果格式**
    - 定義實體結果 Schema：
+
      ```python
      {
        "text": "實體文本",
@@ -279,6 +296,7 @@
      ```
 
 **交付物**:
+
 - `services/api/services/ner_service.py`
 - `services/api/models/ner_models.py`（實體結果 Schema）
 - `config/config.example.json` 更新
@@ -286,6 +304,7 @@
 - 性能測試腳本：`scripts/performance/test_ner_performance.py`
 
 **驗收標準**:
+
 - 支持至少 2 種 NER 模型（spaCy + Ollama 備選）
 - 實體識別準確率 > 85%（中文文本）
 - 批量處理速度 > 1000 tokens/秒
@@ -302,6 +321,7 @@
 1. **RE 模型選擇與配置**
    - 評估可用模型：基於 BERT 的關係抽取模型、Ollama 本地模型
    - 在 `config/config.example.json` 添加 RE 配置：
+
      ```json
      "text_analysis": {
        "re": {
@@ -327,6 +347,7 @@
 
 4. **關係提取結果格式**
    - 定義關係結果 Schema：
+
      ```python
      {
        "subject": {"text": "主體實體", "label": "PERSON"},
@@ -338,12 +359,14 @@
      ```
 
 **交付物**:
+
 - `services/api/services/re_service.py`
 - `services/api/models/re_models.py`（關係結果 Schema）
 - `config/config.example.json` 更新
 - 單元測試：`tests/api/test_re_service.py`
 
 **驗收標準**:
+
 - 支持至少 1 種 RE 模型（transformers 或 Ollama）
 - 關係抽取準確率 > 75%（中文文本）
 - 支持至少 10 種標準關係類型
@@ -360,6 +383,7 @@
 1. **RT 模型選擇與配置**
    - 評估可用模型：基於分類的關係類型模型、Ollama 本地模型
    - 在 `config/config.example.json` 添加 RT 配置：
+
      ```json
      "text_analysis": {
        "rt": {
@@ -384,6 +408,7 @@
 
 4. **RT 結果格式**
    - 定義 RT 結果 Schema：
+
      ```python
      {
        "relation_text": "關係文本",
@@ -396,12 +421,14 @@
      ```
 
 **交付物**:
+
 - `services/api/services/rt_service.py`
 - `services/api/models/rt_models.py`（RT 結果 Schema）
 - `config/config.example.json` 更新
 - 單元測試：`tests/api/test_rt_service.py`
 
 **驗收標準**:
+
 - 支持至少 1 種 RT 模型（Ollama 或 transformers）
 - 關係類型分類準確率 > 80%
 - 支持至少 20 種關係類型
@@ -419,6 +446,7 @@
    - 建立 `services/api/services/triple_extraction_service.py`
    - 整合 NER、RE、RT 服務
    - 實現三元組提取流水線：
+
      ```
      文本 → NER（實體識別）→ RE（關係抽取）→ RT（關係分類）→ 三元組構建
      ```
@@ -431,6 +459,7 @@
 
 3. **三元組結果格式**
    - 定義三元組 Schema：
+
      ```python
      {
        "subject": {"text": "主體", "type": "PERSON", "start": 0, "end": 5},
@@ -448,12 +477,14 @@
    - 實現增量提取（僅處理新文本）
 
 **交付物**:
+
 - `services/api/services/triple_extraction_service.py`
 - `services/api/models/triple_models.py`（三元組 Schema）
 - `services/api/routers/triple_extraction.py`（API 端點）
 - 單元測試：`tests/api/test_triple_extraction.py`
 
 **驗收標準**:
+
 - 三元組提取準確率 > 70%（中文文本）
 - 支持批量處理（至少 10 個文本並行）
 - 三元組去重準確率 100%
@@ -491,6 +522,7 @@
    - 預留圖譜可視化接口（供前端使用）
 
 **交付物**:
+
 - `services/api/services/kg_builder_service.py`
 - `services/api/routers/kg_builder.py`（圖譜構建 API）
 - `services/api/routers/kg_query.py`（圖譜查詢 API）
@@ -499,6 +531,7 @@
 - 集成測試：`tests/integration/test_kg_pipeline.py`
 
 **驗收標準**:
+
 - 三元組到圖譜轉換成功率 > 95%
 - 實體去重準確率 > 90%
 - 圖譜查詢響應時間 < 1 秒（單實體查詢）
@@ -520,6 +553,7 @@
 1. **上下文模型設計**
    - 建立 `agent_process/context/manager.py`
    - 定義上下文數據結構：
+
      ```python
      {
        "session_id": "會話ID",
@@ -553,12 +587,14 @@
    - 實現上下文刪除（刪除會話）
 
 **交付物**:
+
 - `agent_process/context/manager.py`
 - `agent_process/context/models.py`（上下文數據模型）
 - `agent_process/context/storage.py`（存儲接口）
 - 單元測試：`tests/agent_process/test_context_manager.py`
 
 **驗收標準**:
+
 - 上下文檢索響應時間 < 200ms（Redis）
 - 上下文存儲成功率 100%
 - 支持至少 1000 個並發會話
@@ -594,11 +630,13 @@
    - 實現歷史統計（會話數量、消息數量、活躍度）
 
 **交付物**:
+
 - `agent_process/context/conversation_history.py`
 - `services/api/routers/conversation_history.py`（API 端點）
 - 單元測試：`tests/agent_process/test_conversation_history.py`
 
 **驗收標準**:
+
 - 對話歷史檢索響應時間 < 500ms
 - 支持至少 10000 條消息的歷史存儲
 - 歷史檢索準確率 > 95%
@@ -630,6 +668,7 @@
 
 4. **窗口配置**
    - 在 `config/config.example.json` 添加窗口配置：
+
      ```json
      "context_window": {
        "max_tokens": 4096,
@@ -641,11 +680,13 @@
      ```
 
 **交付物**:
+
 - `agent_process/context/window_manager.py`
 - `config/config.example.json` 更新
 - 單元測試：`tests/agent_process/test_window_manager.py`
 
 **驗收標準**:
+
 - Token 計數準確率 > 99%
 - 上下文窗口截斷後仍保持對話連貫性
 - 窗口管理響應時間 < 100ms
@@ -681,11 +722,13 @@
    - 實現記錄分析（會話模式、任務分布）
 
 **交付物**:
+
 - `agent_process/context/recorder.py`（更新）
 - `services/api/routers/context_record.py`（API 端點）
 - 單元測試：`tests/agent_process/test_context_recorder.py`
 
 **驗收標準**:
+
 - 上下文記錄成功率 100%
 - 記錄檢索響應時間 < 500ms
 - 支持至少 10000 條記錄的存儲和檢索
@@ -727,6 +770,7 @@
 
 4. **AAM 配置**
    - 在 `config/config.example.json` 添加 AAM 配置：
+
      ```json
      "aam": {
        "enable_short_term": true,
@@ -739,6 +783,7 @@
      ```
 
 **交付物**:
+
 - `agent_process/memory/aam/aam_core.py`
 - `agent_process/memory/aam/storage_adapter.py`
 - `agent_process/memory/aam/models.py`（記憶數據模型）
@@ -746,6 +791,7 @@
 - 單元測試：`tests/agent_process/test_aam_core.py`
 
 **驗收標準**:
+
 - AAM 核心接口實現完整
 - 支持至少 3 種存儲適配器（Redis、ChromaDB、ArangoDB）
 - AAM 配置靈活可調整
@@ -781,12 +827,14 @@
    - 實現檢索結果合併（多源結果融合）
 
 **交付物**:
+
 - `agent_process/memory/aam/realtime_retrieval.py`
 - `agent_process/memory/aam/context_integration.py`
 - 單元測試：`tests/agent_process/test_realtime_retrieval.py`
 - 集成測試：`tests/integration/test_aam_context_integration.py`
 
 **驗收標準**:
+
 - 實時檢索響應時間 < 300ms
 - 記憶相關度計算準確率 > 85%
 - 支持至少 100 個並發實時檢索請求
@@ -822,12 +870,14 @@
    - 實現任務取消機制
 
 **交付物**:
+
 - `agent_process/memory/aam/async_processor.py`
 - `agent_process/memory/aam/knowledge_extraction_agent.py`
 - `services/api/routers/aam_async_tasks.py`（任務管理 API）
 - 單元測試：`tests/agent_process/test_async_processor.py`
 
 **驗收標準**:
+
 - 異步任務處理成功率 > 95%
 - 知識提取準確率 > 70%
 - 支持至少 100 個並發異步任務
@@ -863,12 +913,14 @@
    - 實現檢索結果預處理（過濾、排序）
 
 **交付物**:
+
 - `agent_process/memory/aam/hybrid_rag.py`
 - `agent_process/retrieval/manager.py`（更新，整合 AAM）
 - 單元測試：`tests/agent_process/test_hybrid_rag.py`
 - 集成測試：`tests/integration/test_rag_pipeline.py`
 
 **驗收標準**:
+
 - 混合檢索響應時間 < 500ms
 - 檢索結果相關度 > 80%
 - 支持至少 3 種檢索策略
@@ -902,12 +954,14 @@
    - 預留圖譜可視化 API（供前端使用）
 
 **交付物**:
+
 - `agent_process/memory/aam/kg_builder_integration.py`
 - `agent_process/memory/aam/kg_query_integration.py`
 - 單元測試：`tests/agent_process/test_aam_kg_integration.py`
 - 集成測試：`tests/integration/test_aam_kg_pipeline.py`
 
 **驗收標準**:
+
 - 知識圖譜自動更新成功率 > 90%
 - 圖譜查詢響應時間 < 1 秒
 - 支持至少 5000 個實體、20000 個關係的圖譜規模
@@ -962,6 +1016,7 @@
 ### 5.3 交付物清單
 
 #### 代碼交付物
+
 - `services/api/routers/file_upload.py`
 - `services/api/processors/chunk_processor.py`
 - `services/api/services/ner_service.py`
@@ -974,15 +1029,18 @@
 - `agent_process/memory/aam/hybrid_rag.py`
 
 #### 配置交付物
+
 - `config/config.example.json`（更新）
 - `datasets/arangodb/kg_schema_update.yml`
 
 #### 測試交付物
+
 - 單元測試：`tests/api/test_*.py`
 - 集成測試：`tests/integration/test_*.py`
 - 性能測試腳本：`scripts/performance/test_*.py`
 
 #### 文檔交付物
+
 - API 文檔（OpenAPI/Swagger）
 - 架構設計文檔
 - 使用指南文檔
@@ -1021,12 +1079,14 @@
 ### 7.1 功能驗收標準
 
 #### WBS 4.1 文件處理流程
+
 - ✅ 支持至少 8 種文件格式上傳
 - ✅ 文件分塊準確率 > 95%
 - ✅ 文件元數據管理完整
 - ✅ API 響應時間符合要求
 
 #### WBS 4.2 文本分析流程
+
 - ✅ NER 實體識別準確率 > 85%
 - ✅ RE 關係抽取準確率 > 75%
 - ✅ RT 關係分類準確率 > 80%
@@ -1034,12 +1094,14 @@
 - ✅ 知識圖譜構建成功率 > 95%
 
 #### WBS 4.3 上下文管理
+
 - ✅ 上下文檢索響應時間 < 200ms
 - ✅ 對話歷史管理完整
 - ✅ 上下文窗口管理正確
 - ✅ 上下文記錄成功率 100%
 
 #### WBS 4.4 AAM 模組整合
+
 - ✅ AAM 核心接口實現完整
 - ✅ 實時檢索響應時間 < 300ms
 - ✅ 異步任務處理成功率 > 95%

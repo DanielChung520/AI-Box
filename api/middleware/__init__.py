@@ -5,9 +5,9 @@
 
 """API 中間件模組 - 提供請求處理、日誌記錄和錯誤處理中間件"""
 
-from .request_id import RequestIDMiddleware
-from .logging import LoggingMiddleware
 from .error_handler import ErrorHandlerMiddleware
+from .logging import LoggingMiddleware
+from .request_id import RequestIDMiddleware
 
 __all__ = [
     "RequestIDMiddleware",

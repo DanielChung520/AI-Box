@@ -100,9 +100,7 @@ class GenAIModelRegistryService:
         except Exception:  # noqa: BLE001
             return 60
 
-    async def list_ollama_models(
-        self, *, refresh: bool = False
-    ) -> List[ModelRegistryItem]:
+    async def list_ollama_models(self, *, refresh: bool = False) -> List[ModelRegistryItem]:
         if not self._is_discovery_enabled():
             return []
 

@@ -4,7 +4,7 @@
     "description": "知識圖譜基礎本體論，基於 OWL 標準定義的類別與物件屬性。遵循 5W1H 框架（Who, What, When, Where, Why, How）構建完整的知識表示體系。",
     "last_modified": "2025-12-10",
     "author": "Daniel Chung",
-  
+
     "entity_classes": [
         {
             "name": "Person",
@@ -97,7 +97,7 @@
             "description": "狀態、條件、階段或當前情況。"
         }
     ],
-  
+
     "object_properties": [
       {
         "name": "has_participant",
@@ -286,6 +286,6 @@
             "range": ["Process", "Event", "Asset", "Resource", "Person", "Organization"]
         }
     ],
-    
+
     "triple_format_schema_guidance": "模型輸出必須是符合此 OWL 約束的三元組 JSON 陣列。每個三元組必須嚴格遵守 Domain-Range 約束，確保關係類型與實體類型的組合是有效的。"
   }

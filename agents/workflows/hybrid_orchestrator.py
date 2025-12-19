@@ -96,11 +96,7 @@ def serialize_hybrid_state(state: HybridState) -> str:
                 from dataclasses import is_dataclass
 
                 langgraph_state["telemetry"] = [
-                    (
-                        asdict(event)
-                        if is_dataclass(event) and hasattr(event, "__dict__")
-                        else event
-                    )
+                    (asdict(event) if is_dataclass(event) and hasattr(event, "__dict__") else event)
                     for event in telemetry
                 ]
 
@@ -229,9 +225,7 @@ class PlanningSync:
             telemetry=[],
         )
 
-    def validate_sync(
-        self, autogen_plan: ExecutionPlan, langgraph_state: LangGraphState
-    ) -> bool:
+    def validate_sync(self, autogen_plan: ExecutionPlan, langgraph_state: LangGraphState) -> bool:
         """
         驗證同步一致性。
 
@@ -251,8 +245,7 @@ class PlanningSync:
         plan_steps = langgraph_state.get("plan", [])
         if len(plan_steps) != len(autogen_plan.steps):
             logger.warning(
-                f"Step count mismatch: plan={len(autogen_plan.steps)}, "
-                f"state={len(plan_steps)}"
+                f"Step count mismatch: plan={len(autogen_plan.steps)}, " f"state={len(plan_steps)}"
             )
             return False
 
@@ -317,9 +310,7 @@ class StateSync:
             "context": context,
         }
 
-    def update_plan_from_state(
-        self, plan: ExecutionPlan, state: LangGraphState
-    ) -> ExecutionPlan:
+    def update_plan_from_state(self, plan: ExecutionPlan, state: LangGraphState) -> ExecutionPlan:
         """
         更新計畫從 LangGraph 狀態。
 
@@ -453,9 +444,7 @@ class SwitchController:
 
         return None
 
-    def _get_fallback_mode(
-        self, current_mode: str, state: HybridState
-    ) -> Optional[str]:
+    def _get_fallback_mode(self, current_mode: str, state: HybridState) -> Optional[str]:
         """獲取備用模式。"""
         context = state.get("context", {})
         fallback_modes = context.get("fallback_modes", [])
@@ -508,9 +497,7 @@ class SwitchController:
                 "timestamp": datetime.now().isoformat(),
             }
 
-    def resume_workflow(
-        self, workflow: Any, mode: str, saved_state: Dict[str, Any]
-    ) -> None:
+    def resume_workflow(self, workflow: Any, mode: str, saved_state: Dict[str, Any]) -> None:
         """
         恢復工作流。
 
@@ -572,9 +559,7 @@ class SwitchController:
         self._locked_modes.pop(task_id, None)
         logger.info(f"Mode unlocked for task {task_id}")
 
-    def record_switch(
-        self, task_id: str, from_mode: str, to_mode: str, success: bool
-    ) -> None:
+    def record_switch(self, task_id: str, from_mode: str, to_mode: str, success: bool) -> None:
         """記錄切換事件。"""
         self._last_switch_time[task_id] = datetime.now().timestamp()
         if success:
@@ -588,9 +573,7 @@ class HybridOrchestrator:
         self,
         request_ctx: WorkflowRequestContext,
         primary_mode: Literal["autogen", "langgraph", "crewai"] = "autogen",
-        fallback_modes: Optional[
-            List[Literal["autogen", "langgraph", "crewai"]]
-        ] = None,
+        fallback_modes: Optional[List[Literal["autogen", "langgraph", "crewai"]]] = None,
     ):
         """
         初始化混合編排器。
@@ -677,8 +660,8 @@ class HybridOrchestrator:
 
     async def _initialize_primary_workflow(self) -> None:
         """初始化主要工作流。"""
-        from agents.workflows.factory_router import get_workflow_factory_router
         from agents.task_analyzer.models import WorkflowType
+        from agents.workflows.factory_router import get_workflow_factory_router
 
         router = get_workflow_factory_router()
 
@@ -701,8 +684,7 @@ class HybridOrchestrator:
         self._workflow_factories[self._primary_mode] = factory
 
         logger.info(
-            f"Initialized primary workflow: {self._primary_mode} "
-            f"for task {self._ctx.task_id}"
+            f"Initialized primary workflow: {self._primary_mode} " f"for task {self._ctx.task_id}"
         )
 
     async def _execute_with_monitoring(self) -> WorkflowExecutionResult:
@@ -746,9 +728,7 @@ class HybridOrchestrator:
                         current_mode, target_mode  # type: ignore[arg-type]
                     )
                 else:
-                    logger.warning(
-                        f"Invalid mode for switch: {current_mode} -> {target_mode}"
-                    )
+                    logger.warning(f"Invalid mode for switch: {current_mode} -> {target_mode}")
                     switch_success = False
 
                 if switch_success:
@@ -764,9 +744,7 @@ class HybridOrchestrator:
 
         return result
 
-    async def _update_hybrid_state_from_result(
-        self, result: WorkflowExecutionResult
-    ) -> None:
+    async def _update_hybrid_state_from_result(self, result: WorkflowExecutionResult) -> None:
         """從工作流結果更新混合狀態。"""
         current_mode = self._hybrid_state["current_mode"]
 
@@ -861,9 +839,7 @@ class HybridOrchestrator:
             }
             self._hybrid_state["switch_history"].append(switch_record)
 
-            self._switch_controller.record_switch(
-                self._ctx.task_id, from_mode, to_mode, True
-            )
+            self._switch_controller.record_switch(self._ctx.task_id, from_mode, to_mode, True)
 
             self._emit_telemetry(
                 "hybrid.switch.completed",
@@ -918,9 +894,7 @@ class HybridOrchestrator:
                 autogen_plan = self._hybrid_state.get("autogen_plan", {})
                 if autogen_plan:
                     plan = self._reconstruct_plan(autogen_plan)
-                    updated_plan = self._state_sync.update_plan_from_state(
-                        plan, langgraph_state
-                    )
+                    updated_plan = self._state_sync.update_plan_from_state(plan, langgraph_state)
                     self._hybrid_state["autogen_plan"] = updated_plan.to_dict()
 
         # 更新當前模式
@@ -968,8 +942,8 @@ class HybridOrchestrator:
         self, target_mode: str, migrated_state: HybridState
     ) -> None:
         """初始化目標工作流。"""
-        from agents.workflows.factory_router import get_workflow_factory_router
         from agents.task_analyzer.models import WorkflowType
+        from agents.workflows.factory_router import get_workflow_factory_router
 
         router = get_workflow_factory_router()
 
@@ -999,10 +973,7 @@ class HybridOrchestrator:
         self._current_workflow = factory.build_workflow(updated_ctx)
         self._workflow_factories[target_mode] = factory
 
-        logger.info(
-            f"Initialized target workflow: {target_mode} "
-            f"for task {self._ctx.task_id}"
-        )
+        logger.info(f"Initialized target workflow: {target_mode} " f"for task {self._ctx.task_id}")
 
     async def _handle_switch_failure(
         self,

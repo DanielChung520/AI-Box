@@ -1,10 +1,12 @@
 # Ollama 連線測試結果
 
 ## 測試時間
+
 - 初始測試: 2025-11-26 01:15 (UTC+8)
 - 成功測試: 2025-11-26 01:20 (UTC+8)
 
 ## 測試目標
+
 - 主機: `olm.k84.org`
 - 說明: 已透過 tunnel 指向 Ollama 服務（端口 11434），直接訪問無需指定端口
 - 協議: `http`
@@ -12,21 +14,25 @@
 ## 測試結果 ✅
 
 ### 1. DNS 解析 ✅
+
 - **狀態**: 成功
 - **IP 地址**: `104.21.93.138`, `172.67.210.219`
 - **說明**: DNS 解析正常，可以正確解析到 IP 地址
 
 ### 2. 端口連線 ✅
+
 - **狀態**: 成功
 - **說明**: 透過 tunnel 可正常連接到服務（端口 80）
 
 ### 3. API 健康檢查 ✅
+
 - **狀態**: 成功
 - **版本**: `0.13.0`
 - **端點**: `http://olm.k84.org/api/version`
 - **說明**: Ollama API 正常回應
 
 ### 4. 模型列表 ✅
+
 - **狀態**: 成功
 - **模型數量**: 4 個
 - **模型列表**:
@@ -37,6 +43,7 @@
 - **端點**: `http://olm.k84.org/api/tags`
 
 ### 5. 對話功能測試 ✅
+
 - **狀態**: 成功
 - **測試模型**: `gpt-oss:20b`
 - **回應時間**: 約 8 秒
@@ -45,6 +52,7 @@
 - **回應範例**: "你好，我很高興能為你服務，請告訴我你需要什麼幫助。"
 
 ### 6. 文本生成測試 ✅
+
 - **狀態**: 成功
 - **測試模型**: `gpt-oss:20b`
 - **端點**: `http://olm.k84.org/api/generate`
@@ -53,10 +61,12 @@
 ## 初始問題與解決方案
 
 ### 初始問題
+
 - **問題**: 直接連接到端口 11434 時發生連線超時
 - **錯誤碼**: 35 (連接被拒絕)
 
 ### 解決方案
+
 - **解決方式**: 使用 tunnel 將 `olm.k84.org` 指向 Ollama 服務
 - **結果**: 現在可以直接透過 `http://olm.k84.org` 訪問，無需指定端口
 - **配置**: Tunnel 已將域名映射到本地 Ollama 服務的 11434 端口
@@ -96,24 +106,28 @@ tests/api/test_ollama_remote_simple.py::TestOllamaRemoteSimple::test_generate PA
 
 ✅ pytest 依賴已安裝
 ✅ 測試腳本已建立
-  - `tests/api/test_ollama_integration.py` - 完整整合測試
-  - `tests/api/test_ollama_remote_simple.py` - 簡單連線測試
+
+- `tests/api/test_ollama_integration.py` - 完整整合測試
+- `tests/api/test_ollama_remote_simple.py` - 簡單連線測試
 ✅ 診斷腳本已建立
-  - `scripts/test_ollama_connection.py` - 連線診斷工具
+- `scripts/test_ollama_connection.py` - 連線診斷工具
 
 ## 測試指令
 
 ### 基本連線測試
+
 ```bash
 python3 scripts/test_ollama_connection.py --url http://olm.k84.org
 ```
 
 ### 包含對話測試
+
 ```bash
 python3 scripts/test_ollama_connection.py --url http://olm.k84.org --test-chat --model gpt-oss:20b
 ```
 
 ### pytest 測試套件
+
 ```bash
 # 簡單連線測試
 pytest tests/api/test_ollama_remote_simple.py -v -s
@@ -126,6 +140,7 @@ pytest tests/api/test_ollama*.py -v -s
 ```
 
 ### 手動測試
+
 ```bash
 # 檢查版本
 curl http://olm.k84.org/api/version

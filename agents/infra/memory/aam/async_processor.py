@@ -7,16 +7,15 @@
 
 from __future__ import annotations
 
-import uuid
 import time
-from enum import Enum
-from typing import Any, Dict, List, Optional, Callable
+import uuid
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, Future
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 import structlog
-
 
 logger = structlog.get_logger(__name__)
 

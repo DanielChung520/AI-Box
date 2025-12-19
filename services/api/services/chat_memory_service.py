@@ -59,10 +59,7 @@ class ChatMemoryService:
 
         try:
             from agents.infra.memory.aam.aam_core import AAMManager
-            from agents.infra.memory.aam.storage_adapter import (
-                ChromaDBAdapter,
-                RedisAdapter,
-            )
+            from agents.infra.memory.aam.storage_adapter import ChromaDBAdapter, RedisAdapter
             from database.redis.client import get_redis_client
 
             redis_adapter = None
@@ -213,9 +210,7 @@ class ChatMemoryService:
                         flat.extend(b)
 
                 # sort by distance asc
-                flat.sort(
-                    key=lambda x: (x.get("distance") is None, x.get("distance", 1e9))
-                )
+                flat.sort(key=lambda x: (x.get("distance") is None, x.get("distance", 1e9)))
                 for item in flat[: self._rag_top_k]:
                     meta = item.get("metadata", {}) or {}
                     rag_results.append(
@@ -231,10 +226,7 @@ class ChatMemoryService:
 
             else:
                 # 無 attachments 時：僅在 user_based collection 才嘗試 user scope RAG
-                if (
-                    getattr(self._vector_store_service, "collection_naming", None)
-                    == "user_based"
-                ):
+                if getattr(self._vector_store_service, "collection_naming", None) == "user_based":
                     batch = await asyncio.to_thread(
                         self._vector_store_service.query_vectors,
                         query_embedding=embedding,
@@ -322,9 +314,7 @@ class ChatMemoryService:
                 task_id=task_id,
             )
 
-        injection_text = self._format_injection(
-            aam_memories=aam_results, rag_chunks=rag_results
-        )
+        injection_text = self._format_injection(aam_memories=aam_results, rag_chunks=rag_results)
         injection_messages = (
             [{"role": "system", "content": injection_text}] if injection_text else []
         )

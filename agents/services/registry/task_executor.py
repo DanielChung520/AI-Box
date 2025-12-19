@@ -6,12 +6,12 @@
 """Agent Task Executor - 通過 MCP Protocol 調用 Agent 執行任務"""
 
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
-from mcp.client.client import MCPClient
-from agents.services.registry.registry import AgentRegistry
 from agents.services.registry.models import AgentRegistryInfo
+from agents.services.registry.registry import AgentRegistry
+from mcp.client.client import MCPClient
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +108,10 @@ class AgentTaskExecutor:
 
         # 創建新的 MCP Client
         mcp_endpoint = agent_info.endpoints.mcp_endpoint
+        if not mcp_endpoint:
+            raise ValueError("MCP endpoint is required")
         client = MCPClient(
-            endpoint=mcp_endpoint,
+            endpoint=mcp_endpoint,  # type: ignore[arg-type]  # 已檢查不為 None
             client_name="ai-box-orchestrator",
             client_version="1.0.0",
             timeout=30.0,

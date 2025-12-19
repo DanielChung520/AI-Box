@@ -10,12 +10,11 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from dataclasses import dataclass, field
 from collections import deque
+from dataclasses import dataclass, field
 from typing import Any, Callable, Deque, Dict, List, Optional
 
 from agents.task_analyzer.models import LLMProvider
-
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +73,7 @@ class MultiLLMLoadBalancer:
             "response_time_based",
         ]
         if strategy not in valid_strategies:
-            logger.warning(
-                f"Unknown strategy '{strategy}', falling back to 'round_robin'"
-            )
+            logger.warning(f"Unknown strategy '{strategy}', falling back to 'round_robin'")
             self.strategy = "round_robin"
 
         # 創建提供商節點
@@ -106,10 +103,7 @@ class MultiLLMLoadBalancer:
             node
             for node in self._provider_nodes.values()
             if node.available(now)
-            and (
-                self._health_check_callback is None
-                or self._health_check_callback(node.provider)
-            )
+            and (self._health_check_callback is None or self._health_check_callback(node.provider))
         ]
         return healthy or list(self._provider_nodes.values())
 
@@ -148,9 +142,7 @@ class MultiLLMLoadBalancer:
                 # 基於延遲：選擇平均延遲最低的節點
                 selected_node = min(
                     candidates,
-                    key=lambda n: (
-                        n.average_latency if n.average_latency > 0 else float("inf")
-                    ),
+                    key=lambda n: (n.average_latency if n.average_latency > 0 else float("inf")),
                 )
             elif self.strategy == "response_time_based":
                 # 基於響應時間：選擇最近響應時間最短的節點
@@ -159,9 +151,7 @@ class MultiLLMLoadBalancer:
                     key=lambda n: (
                         n.last_latency
                         if n.last_latency > 0
-                        else (
-                            n.average_latency if n.average_latency > 0 else float("inf")
-                        )
+                        else (n.average_latency if n.average_latency > 0 else float("inf"))
                     ),
                 )
             else:
@@ -196,9 +186,7 @@ class MultiLLMLoadBalancer:
             raise ValueError("No allowed providers provided")
 
         with self._lock:
-            candidates = [
-                n for n in self._eligible_providers() if n.provider in allowed_set
-            ]
+            candidates = [n for n in self._eligible_providers() if n.provider in allowed_set]
             if not candidates:
                 # 若 allowed 與現有 provider 無交集，回退為第一個 allowed
                 return list(allowed_set)[0]
@@ -214,9 +202,7 @@ class MultiLLMLoadBalancer:
             elif self.strategy == "latency_based":
                 selected_node = min(
                     candidates,
-                    key=lambda n: (
-                        n.average_latency if n.average_latency > 0 else float("inf")
-                    ),
+                    key=lambda n: (n.average_latency if n.average_latency > 0 else float("inf")),
                 )
             elif self.strategy == "response_time_based":
                 selected_node = min(
@@ -224,9 +210,7 @@ class MultiLLMLoadBalancer:
                     key=lambda n: (
                         n.last_latency
                         if n.last_latency > 0
-                        else (
-                            n.average_latency if n.average_latency > 0 else float("inf")
-                        )
+                        else (n.average_latency if n.average_latency > 0 else float("inf"))
                     ),
                 )
             else:
@@ -241,9 +225,7 @@ class MultiLLMLoadBalancer:
             )
             return selected_node.provider
 
-    def mark_success(
-        self, provider: LLMProvider, latency: Optional[float] = None
-    ) -> None:
+    def mark_success(self, provider: LLMProvider, latency: Optional[float] = None) -> None:
         """
         標記提供商成功。
 
@@ -261,17 +243,13 @@ class MultiLLMLoadBalancer:
                 # 更新統計信息
                 self._success_count[provider] = self._success_count.get(provider, 0) + 1
                 if latency is not None:
-                    self._total_latency[provider] = (
-                        self._total_latency.get(provider, 0.0) + latency
-                    )
+                    self._total_latency[provider] = self._total_latency.get(provider, 0.0) + latency
                     # 更新節點的延遲信息
                     node.last_latency = latency
                     node.response_times.append(latency)
                     # 計算平均延遲
                     if node.response_times:
-                        node.average_latency = sum(node.response_times) / len(
-                            node.response_times
-                        )
+                        node.average_latency = sum(node.response_times) / len(node.response_times)
 
     def mark_failure(self, provider: LLMProvider) -> None:
         """
@@ -320,9 +298,7 @@ class MultiLLMLoadBalancer:
                     "request_count": request_count,
                     "success_count": success_count,
                     "failure_count": failure_count,
-                    "success_rate": (
-                        success_count / request_count if request_count > 0 else 0.0
-                    ),
+                    "success_rate": (success_count / request_count if request_count > 0 else 0.0),
                     "average_latency": (
                         total_latency / success_count if success_count > 0 else 0.0
                     ),
@@ -345,9 +321,7 @@ class MultiLLMLoadBalancer:
                 "total_requests": total_requests,
                 "total_success": total_success,
                 "total_failure": total_failure,
-                "success_rate": (
-                    total_success / total_requests if total_requests > 0 else 0.0
-                ),
+                "success_rate": (total_success / total_requests if total_requests > 0 else 0.0),
                 "strategy": self.strategy,
                 "provider_count": len(self._provider_nodes),
             }

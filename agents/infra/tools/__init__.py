@@ -5,6 +5,6 @@
 
 """Tool Registry 模組"""
 
-from agents.infra.tools.registry import ToolRegistry, Tool, ToolType
+from agents.infra.tools.registry import Tool, ToolRegistry, ToolType
 
 __all__ = ["ToolRegistry", "Tool", "ToolType"]

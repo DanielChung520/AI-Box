@@ -5,10 +5,11 @@
 
 """模型使用記錄服務 - 實現模型調用追蹤和統計"""
 
-from datetime import datetime
-from typing import List, Optional, Dict, Any
-import structlog
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import structlog
 
 from database.arangodb import ArangoDBClient
 from services.api.models.model_usage import (
@@ -111,7 +112,25 @@ class ModelUsageService:
             user_id=usage.user_id,
         )
 
-        return ModelUsage(**doc)
+        # 確保所有必需字段都存在且類型正確
+        return ModelUsage(
+            usage_id=doc["usage_id"],  # type: ignore[arg-type]  # 已確保存在
+            model_name=doc["model_name"],  # type: ignore[arg-type]  # 已確保存在
+            model_version=doc.get("model_version"),  # type: ignore[arg-type]  # Optional
+            user_id=doc["user_id"],  # type: ignore[arg-type]  # 已確保存在
+            file_id=doc.get("file_id"),  # type: ignore[arg-type]  # Optional
+            task_id=doc.get("task_id"),  # type: ignore[arg-type]  # Optional
+            input_length=doc["input_length"],  # type: ignore[arg-type]  # 已確保存在
+            output_length=doc["output_length"],  # type: ignore[arg-type]  # 已確保存在
+            purpose=usage.purpose,  # type: ignore[arg-type]  # 使用原始 ModelPurpose 對象
+            cost=doc.get("cost"),  # type: ignore[arg-type]  # Optional
+            latency_ms=doc["latency_ms"],  # type: ignore[arg-type]  # 已確保存在
+            success=doc["success"],  # type: ignore[arg-type]  # 已確保存在
+            error_message=doc.get("error_message"),  # type: ignore[arg-type]  # Optional
+            metadata=doc.get("metadata", {}),  # type: ignore[arg-type]  # 有默認值
+            timestamp=datetime.fromisoformat(doc["timestamp"]),  # type: ignore[arg-type]  # 已確保存在
+            created_at=datetime.fromisoformat(doc["created_at"]) if doc.get("created_at") else None,  # type: ignore[arg-type]  # Optional
+        )
 
     def query(self, query_params: ModelUsageQuery) -> List[ModelUsage]:
         """

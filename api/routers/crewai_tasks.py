@@ -6,19 +6,16 @@
 """CrewAI Task 管理 API 路由"""
 
 from typing import Dict, Optional
+
 from fastapi import APIRouter, HTTPException
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from api.core.response import APIResponse
+from agents.crewai.task_models import CrewTask, TaskPriority, TaskStatus
 from agents.crewai.task_registry import TaskRegistry
 from agents.crewai.task_scheduler import TaskScheduler
-from agents.crewai.task_models import (
-    CrewTask,
-    TaskStatus,
-    TaskPriority,
-)
+from api.core.response import APIResponse
 
 router = APIRouter()
 
@@ -33,9 +30,7 @@ class CreateTaskRequest(BaseModel):
     crew_id: str = Field(..., description="隊伍 ID")
     description: str = Field(..., description="任務描述")
     assigned_agent: Optional[str] = Field(default=None, description="分配的 Agent 角色")
-    priority: TaskPriority = Field(
-        default=TaskPriority.MEDIUM, description="任務優先級"
-    )
+    priority: TaskPriority = Field(default=TaskPriority.MEDIUM, description="任務優先級")
     metadata: Optional[Dict] = Field(default_factory=dict, description="元數據")
 
 

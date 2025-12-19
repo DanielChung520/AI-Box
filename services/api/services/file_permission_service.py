@@ -5,17 +5,15 @@
 
 """文件權限檢查服務 - 實現文件級別的訪問權限控制"""
 
-from typing import Optional, List
-from fastapi import HTTPException, status
-import structlog
+from typing import List, Optional
 
-from system.security.models import User, Permission
+import structlog
+from fastapi import HTTPException, status
+
 from services.api.models.file_metadata import FileMetadata
-from services.api.services.file_metadata_service import (
-    FileMetadataService,
-    get_metadata_service,
-)
+from services.api.services.file_metadata_service import FileMetadataService, get_metadata_service
 from services.api.services.user_task_service import get_user_task_service
+from system.security.models import Permission, User
 
 logger = structlog.get_logger(__name__)
 
@@ -30,9 +28,7 @@ class FilePermissionService:
         Args:
             metadata_service: 文件元數據服務（可選，如果不提供則自動創建）
         """
-        self.metadata_service: FileMetadataService = (
-            metadata_service or get_metadata_service()
-        )
+        self.metadata_service: FileMetadataService = metadata_service or get_metadata_service()
         self.logger = logger
 
     def check_file_access(
@@ -176,9 +172,7 @@ class FilePermissionService:
         allowed_permissions = [p for p in allowed_permissions if p is not None]
 
         # 確保所有權限都是字符串類型
-        allowed_permissions_str: List[str] = [
-            str(p) for p in allowed_permissions if p is not None
-        ]
+        allowed_permissions_str: List[str] = [str(p) for p in allowed_permissions if p is not None]
 
         # 檢查用戶是否擁有任一允許的權限
         if not allowed_permissions_str:

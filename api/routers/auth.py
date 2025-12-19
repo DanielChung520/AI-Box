@@ -6,18 +6,18 @@
 """認證路由 - 提供登錄、Token刷新、登出等功能。"""
 
 from typing import Optional
-from fastapi import APIRouter, status, Depends, Request
+
+import structlog
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import structlog
 
 from api.core.response import APIResponse
-from system.security.jwt_service import get_jwt_service
-from system.security.dependencies import get_current_user
-from system.security.models import User
-from system.security.config import get_security_settings
-from system.security.audit_decorator import audit_log
 from services.api.models.audit_log import AuditAction
+from system.security.audit_decorator import audit_log
+from system.security.dependencies import get_current_user
+from system.security.jwt_service import get_jwt_service
+from system.security.models import User
 
 logger = structlog.get_logger(__name__)
 
@@ -67,8 +67,6 @@ def _authenticate_user(username: str, password: str) -> Optional[User]:
     Returns:
         User 對象，如果驗證失敗則返回 None
     """
-    settings = get_security_settings()
-
     # 修改時間：2025-12-08 09:15:21 UTC+8 - 修復開發模式下的用戶認證，使用實際用戶 ID
     # 開發模式下，接受任何用戶名/密碼組合，但使用實際的用戶名/email 作為 user_id
     # TODO: 實現真實的用戶認證邏輯

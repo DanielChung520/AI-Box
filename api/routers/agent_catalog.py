@@ -5,15 +5,16 @@
 
 """Agent Catalog API 路由 - 為前端 GenAI 提供 Agent 目錄查詢接口"""
 
-from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, HTTPException, Query, Depends
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 
-from api.core.response import APIResponse
-from agents.services.registry.registry import get_agent_registry
 from agents.services.registry.discovery import AgentDiscovery
 from agents.services.registry.models import AgentStatus
+from agents.services.registry.registry import get_agent_registry
+from api.core.response import APIResponse
 from system.security.dependencies import get_current_user
 from system.security.models import User
 

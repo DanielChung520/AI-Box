@@ -20,16 +20,19 @@
 ### 1. 批次大小配置
 
 **建議配置**:
+
 - 小批量（< 1k 文檔）: `batch_size = 50-100`
 - 中批量（1k-10k 文檔）: `batch_size = 100-200`
 - 大批量（> 10k 文檔）: `batch_size = 200-500`
 
 **原因**:
+
 - 批次太小會增加網絡開銷和事務成本
 - 批次太大會導致內存壓力並增加失敗風險
 - 需要根據文檔大小和系統資源調整
 
 **示例**:
+
 ```python
 from databases.chromadb import ChromaDBClient, ChromaCollection
 
@@ -66,6 +69,7 @@ with ThreadPoolExecutor(max_workers=4) as executor:
 ```
 
 **注意事項**:
+
 - 並發寫入可能導致索引競爭，需要測試驗證
 - 建議並發數不超過 CPU 核心數
 - 監控內存和 I/O 使用情況
@@ -89,20 +93,24 @@ validate_embedding_dimension(embeddings, expected_dim=384)
 ChromaDB 使用 HNSW (Hierarchical Navigable Small World) 索引，可以通過以下方式優化：
 
 **索引參數**（如果 ChromaDB 支持）:
+
 - `ef_construction`: 構建時的搜索範圍（越大越準確，但構建時間更長）
 - `M`: 每個節點的連接數（越大索引越大，但查詢更快）
 
 **建議**:
+
 - 對於讀多寫少的場景，增加 `ef_construction` 和 `M`
 - 對於寫多讀少的場景，使用較小的參數以加快寫入速度
 
 ### 2. 查詢參數優化
 
 **n_results 限制**:
+
 - 只返回需要的結果數量，避免不必要的計算
 - 建議 `n_results <= 100`
 
 **where 過濾優化**:
+
 - 使用索引字段進行過濾（如果 ChromaDB 支持）
 - 避免複雜的嵌套查詢
 
@@ -135,6 +143,7 @@ client = ChromaDBClient(
 ```
 
 **建議配置**:
+
 - 低並發（< 10）: `pool_size = 4`
 - 中並發（10-50）: `pool_size = 8-16`
 - 高並發（> 50）: `pool_size = 16-32`
@@ -144,11 +153,13 @@ client = ChromaDBClient(
 ### 1. 內存配置
 
 **最小配置**:
+
 - 1k 文檔: 512MB RAM
 - 10k 文檔: 2GB RAM
 - 100k 文檔: 8GB RAM
 
 **建議配置**:
+
 - 1k 文檔: 1GB RAM
 - 10k 文檔: 4GB RAM
 - 100k 文檔: 16GB RAM
@@ -162,11 +173,13 @@ client = ChromaDBClient(
 ### 3. 存儲配置
 
 **持久化模式**:
+
 - 使用 SSD 存儲以獲得最佳 I/O 性能
 - 確保有足夠的磁盤空間（至少是數據大小的 2-3 倍）
 - 考慮使用 NVMe SSD 以獲得最佳性能
 
 **Docker 配置示例**:
+
 ```yaml
 services:
   chromadb:
@@ -256,11 +269,13 @@ python scripts/performance/chromadb_benchmark.py \
 ### 1. 寫入速度慢
 
 **可能原因**:
+
 - 批次大小太小
 - 磁盤 I/O 瓶頸
 - 內存不足
 
 **解決方案**:
+
 - 增加 `batch_size`（建議 100-500）
 - 使用 SSD 存儲
 - 增加內存配置
@@ -268,11 +283,13 @@ python scripts/performance/chromadb_benchmark.py \
 ### 2. 查詢延遲高
 
 **可能原因**:
+
 - 索引未優化
 - 查詢結果數過多
 - 並發過高導致資源競爭
 
 **解決方案**:
+
 - 減少 `n_results` 參數
 - 使用過濾條件縮小搜索範圍
 - 增加連線池大小
@@ -281,11 +298,13 @@ python scripts/performance/chromadb_benchmark.py \
 ### 3. 內存使用過高
 
 **可能原因**:
+
 - 批次大小過大
 - 並發查詢過多
 - 索引參數過大
 
 **解決方案**:
+
 - 減少 `batch_size`
 - 限制並發查詢數
 - 調整索引參數（如果支持）
@@ -293,11 +312,13 @@ python scripts/performance/chromadb_benchmark.py \
 ### 4. 連接超時
 
 **可能原因**:
+
 - 連線池大小不足
 - 網絡延遲
 - 服務器負載過高
 
 **解決方案**:
+
 - 增加 `pool_size`
 - 增加 `connection_timeout`
 - 檢查服務器資源使用情況

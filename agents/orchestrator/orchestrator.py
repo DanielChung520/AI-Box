@@ -5,18 +5,17 @@
 
 """Agent Orchestrator - 實現 Agent 協調、調度、任務分發和結果聚合"""
 
-import uuid
 import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+import uuid
 from collections import deque
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from agents.services.orchestrator.models import (
-    AgentInfo,
-    AgentStatus,
-    TaskRequest,
-    TaskResult,
-    TaskStatus,
+from agents.services.orchestrator.models import AgentInfo, TaskRequest, TaskResult, TaskStatus
+
+# AgentStatus 從 registry.models 導入（因為 orchestrator.models 中沒有 AgentStatus）
+from agents.services.registry.models import (
+    AgentStatus,  # type: ignore[attr-defined]  # orchestrator.models 中沒有 AgentStatus
 )
 
 logger = logging.getLogger(__name__)
@@ -53,13 +52,19 @@ class AgentOrchestrator:
             是否成功註冊
         """
         try:
+            # AgentInfo 是 AgentRegistryInfo 的別名，需要提供所有必需參數
+            from agents.services.registry.models import AgentEndpoints, AgentMetadata
+
             agent_info = AgentInfo(
                 agent_id=agent_id,
                 agent_type=agent_type,
+                name=agent_id,  # 使用 agent_id 作為默認名稱
                 status=AgentStatus.IDLE,
+                endpoints=AgentEndpoints(),  # type: ignore[call-arg]  # 所有參數都有默認值
                 last_heartbeat=None,
                 capabilities=capabilities or [],
-                metadata=metadata or {},
+                metadata=AgentMetadata() if not metadata else (AgentMetadata(**metadata) if isinstance(metadata, dict) else metadata),  # type: ignore[call-arg]  # 所有參數都有默認值
+                load=0,  # 初始負載為 0
             )
 
             self._agents[agent_id] = agent_info
@@ -202,9 +207,7 @@ class AgentOrchestrator:
     def _try_assign_tasks(self):
         """嘗試分配任務"""
         # 按優先級排序任務隊列
-        self._task_queue = deque(
-            sorted(self._task_queue, key=lambda x: x[0], reverse=True)
-        )
+        self._task_queue = deque(sorted(self._task_queue, key=lambda x: x[0], reverse=True))
 
         for priority, task_id in list(self._task_queue):
             task_request = self._tasks.get(task_id)
@@ -253,9 +256,7 @@ class AgentOrchestrator:
         preferred_type = agent_type_mapping.get(task_request.task_type)
 
         # 優先選擇空閒且負載最低的 Agent
-        idle_agents = [
-            agent for agent in self._agents.values() if agent.status == AgentStatus.IDLE
-        ]
+        idle_agents = [agent for agent in self._agents.values() if agent.status == AgentStatus.IDLE]
 
         if preferred_type:
             preferred_agents = [
@@ -268,9 +269,7 @@ class AgentOrchestrator:
             return None
 
         # 選擇負載最低的 Agent
-        selected_agent = min(
-            idle_agents, key=lambda a: self._agent_loads.get(a.agent_id, 0)
-        )
+        selected_agent = min(idle_agents, key=lambda a: self._agent_loads.get(a.agent_id, 0))
 
         return selected_agent
 
@@ -311,9 +310,7 @@ class AgentOrchestrator:
             logger.info(f"Assigned task {task_id} to agent {agent_id}")
             return True
         except Exception as e:
-            logger.error(
-                f"Failed to assign task '{task_id}' to agent '{agent_id}': {e}"
-            )
+            logger.error(f"Failed to assign task '{task_id}' to agent '{agent_id}': {e}")
             return False
 
     def complete_task(

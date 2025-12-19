@@ -6,9 +6,10 @@
 最後修改日期: 2025-01-27
 """
 
-import requests
 import sys
-from typing import Dict, Any
+from typing import Any, Dict
+
+import requests
 
 # API 配置
 API_BASE_URL = "http://localhost:8000"
@@ -132,9 +133,7 @@ def check_task_status(username: str):
     if inconsistent_tasks:
         print(f"⚠️  發現 {len(inconsistent_tasks)} 個狀態不一致的任務：")
         for task in inconsistent_tasks:
-            print(
-                f"   - [{task['task_id']}] {task['title']} (task_status: {task['task_status']})"
-            )
+            print(f"   - [{task['task_id']}] {task['title']} (task_status: {task['task_status']})")
         print("\n💡 解決方案：")
         print("   1. 刷新前端頁面，讓前端重新同步任務")
         print("   2. 或者清除瀏覽器的 localStorage，然後重新登錄")

@@ -50,9 +50,7 @@ class GenAIUserLLMSecretService:
             if not self._client.db.has_collection(USER_SECRET_COLLECTION):
                 self._client.db.create_collection(USER_SECRET_COLLECTION)
 
-            self._collection = ArangoCollection(
-                self._client.db.collection(USER_SECRET_COLLECTION)
-            )
+            self._collection = ArangoCollection(self._client.db.collection(USER_SECRET_COLLECTION))
             self._use_db = True
         except Exception as exc:
             self._use_db = False
@@ -112,11 +110,7 @@ class GenAIUserLLMSecretService:
 
     def list_configured_providers(self, tenant_id: str, user_id: str) -> Set[str]:
         if self._use_db:
-            if (
-                self._client is None
-                or self._client.db is None
-                or self._client.db.aql is None
-            ):
+            if self._client is None or self._client.db is None or self._client.db.aql is None:
                 return set()
             query = """
             FOR doc IN @@collection
@@ -128,7 +122,7 @@ class GenAIUserLLMSecretService:
                 "tenant_id": tenant_id,
                 "user_id": user_id,
             }
-            cursor = self._client.db.aql.execute(query, bind_vars=bind_vars)
+            cursor = self._client.db.aql.execute(query, bind_vars=bind_vars)  # type: ignore[arg-type]  # bind_vars 類型兼容
             return {str(p) for p in cursor}
 
         prefix = f"{tenant_id}_{user_id}_"

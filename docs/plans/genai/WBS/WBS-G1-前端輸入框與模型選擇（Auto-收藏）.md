@@ -8,7 +8,9 @@
 # WBS-G1：前端輸入框與模型選擇（Auto/收藏）
 
 ## 目標
+
 前端輸入框具備：
+
 - 模型選擇：**Auto** + **我的收藏**（可快速切換）
 - 發送對話：支援 session_id / task_id
 - 顯示：回覆、路由結果摘要（可選）、錯誤訊息
@@ -21,6 +23,7 @@
 > 本 WBS 的核心就是把「選擇結果」寫回 `task.executionConfig.modelId` 並在送出訊息時帶上 `model_selector`。
 
 ## 工作項
+
 - **G1.1 UI 組件**
   - model selector：Auto / Favorites
   - 收藏管理：add/remove（MVP 可先 localStorage）
@@ -36,6 +39,7 @@
   - 回覆下方顯示：provider/model/latency（若後端回）
 
 ## 驗收
+
 - Auto/收藏模型切換可用，且送出請求會攜帶 `model_selector`
 - 選擇結果會寫入並持久化到 `task.executionConfig.modelId`（切換任務可恢復）
 - 可完成一次對話並顯示結果

@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import List, Tuple
 
-from system.infra.config.config import get_config_section
 from llm.router import LLMNodeConfig
+from system.infra.config.config import get_config_section
 
 
 @dataclass(frozen=True)
@@ -42,9 +42,7 @@ def _load_node_configs(
 ) -> Tuple[LLMNodeConfig, ...]:
     if not raw_nodes:
         return (
-            LLMNodeConfig(
-                name="ollama-default", host=fallback_host, port=fallback_port, weight=1
-            ),
+            LLMNodeConfig(name="ollama-default", host=fallback_host, port=fallback_port, weight=1),
         )
 
     configs: List[LLMNodeConfig] = []
@@ -71,12 +69,8 @@ def get_ollama_settings() -> OllamaSettings:
     scheme = os.getenv("OLLAMA_SCHEME", section.get("scheme", "http"))
     host = os.getenv("OLLAMA_REMOTE_HOST", section.get("host", "localhost"))
     port = int(os.getenv("OLLAMA_REMOTE_PORT", section.get("port", 11434)))
-    timeout = float(
-        os.getenv("OLLAMA_TIMEOUT_SECONDS", section.get("request_timeout", 60))
-    )
-    default_model = os.getenv(
-        "OLLAMA_DEFAULT_MODEL", section.get("default_model", "gpt-oss:20b")
-    )
+    timeout = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", section.get("request_timeout", 60)))
+    default_model = os.getenv("OLLAMA_DEFAULT_MODEL", section.get("default_model", "gpt-oss:20b"))
     embedding_model = os.getenv(
         "OLLAMA_EMBEDDING_MODEL", section.get("embedding_model", "nomic-embed-text")
     )

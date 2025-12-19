@@ -5,11 +5,11 @@
 
 """任務分類器 - 實現任務類型分類邏輯"""
 
-import re
 import logging
-from typing import Dict, Any, Optional
+import re
+from typing import Any, Dict, Optional
 
-from agents.task_analyzer.models import TaskType, TaskClassificationResult
+from agents.task_analyzer.models import TaskClassificationResult, TaskType
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +116,7 @@ class TaskClassifier:
                         confidence = min(scores[prev_type], 1.0)
                         reasoning += f"；考慮上下文，調整為 {best_type.value}"
 
-        logger.info(
-            f"Task classified as {best_type.value} with confidence {confidence:.2f}"
-        )
+        logger.info(f"Task classified as {best_type.value} with confidence {confidence:.2f}")
 
         return TaskClassificationResult(
             task_type=best_type,

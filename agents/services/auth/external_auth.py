@@ -13,11 +13,11 @@
 5. 服務器指紋驗證
 """
 
-import logging
 import hashlib
 import hmac
-from typing import Optional, Dict, Any
+import logging
 from ipaddress import ip_address, ip_network
+from typing import Any, Dict, Optional
 
 from agents.services.auth.models import (
     AuthenticationResult,
@@ -126,9 +126,7 @@ async def authenticate_external_agent(
 
         # 3. 驗證請求簽名
         if config.require_signature and request_signature and request_body:
-            if not await verify_signature(
-                request_body, request_signature, config.api_key
-            ):
+            if not await verify_signature(request_body, request_signature, config.api_key):
                 return AuthenticationResult(
                     status=AuthenticationStatus.FAILED,
                     agent_id=agent_id,
@@ -149,9 +147,7 @@ async def authenticate_external_agent(
         # 5. 驗證服務器指紋
         if config.server_fingerprint:
             if not server_fingerprint:
-                logger.warning(
-                    f"Server fingerprint not provided for agent '{agent_id}'"
-                )
+                logger.warning(f"Server fingerprint not provided for agent '{agent_id}'")
                 return AuthenticationResult(
                     status=AuthenticationStatus.FAILED,
                     agent_id=agent_id,
@@ -159,9 +155,7 @@ async def authenticate_external_agent(
                     error="Server fingerprint not provided",
                 )
 
-            if not await verify_server_fingerprint(
-                server_fingerprint, config.server_fingerprint
-            ):
+            if not await verify_server_fingerprint(server_fingerprint, config.server_fingerprint):
                 return AuthenticationResult(
                     status=AuthenticationStatus.FAILED,
                     agent_id=agent_id,
@@ -182,6 +176,7 @@ async def authenticate_external_agent(
         return AuthenticationResult(
             status=AuthenticationStatus.ERROR,
             agent_id=agent_id,
+            message=None,  # type: ignore[call-arg]  # message 有默認值
             error=str(e),
         )
 
@@ -201,9 +196,7 @@ async def verify_api_key(provided_api_key: str, expected_api_key: str) -> bool:
         return False
 
     # 使用時間安全的比較函數防止時間攻擊
-    return hmac.compare_digest(
-        provided_api_key.encode("utf-8"), expected_api_key.encode("utf-8")
-    )
+    return hmac.compare_digest(provided_api_key.encode("utf-8"), expected_api_key.encode("utf-8"))
 
 
 async def verify_server_certificate(
@@ -333,9 +326,7 @@ def check_ip_whitelist(request_ip: Optional[str], ip_whitelist: list[str]) -> bo
         return False
 
 
-async def verify_server_fingerprint(
-    server_fingerprint: str, expected_fingerprint: str
-) -> bool:
+async def verify_server_fingerprint(server_fingerprint: str, expected_fingerprint: str) -> bool:
     """
     驗證服務器指紋
 

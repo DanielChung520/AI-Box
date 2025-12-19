@@ -11,8 +11,9 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import httpx
-from system.infra.config.config import get_config_section
+
 from llm.router import LLMNodeConfig, LLMNodeRouter
+from system.infra.config.config import get_config_section
 
 logger = logging.getLogger(__name__)
 
@@ -157,9 +158,7 @@ class AutoGenLLMAdapter:
             logger.error(f"Ollama request timed out: {exc}")
             raise
         except httpx.HTTPStatusError as exc:
-            logger.error(
-                f"Ollama returned HTTP {exc.response.status_code}: {exc.response.text}"
-            )
+            logger.error(f"Ollama returned HTTP {exc.response.status_code}: {exc.response.text}")
             raise
         except Exception as exc:
             if self._router:

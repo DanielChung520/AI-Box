@@ -5,7 +5,7 @@
     "description": "Notion 編輯器專業本體論，專注於知識管理、文檔協作、資料庫管理和內容組織。",
     "last_modified": "2025-12-10",
     "author": "Daniel Chung",
-  
+
     "entity_classes": [
         {
             "name": "Notion_Workspace",
@@ -68,7 +68,7 @@
             "description": "協作活動，如分享、評論、@提及等協作行為。"
         }
     ],
-  
+
     "object_properties": [
         {
             "name": "contains_page",

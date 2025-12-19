@@ -5,12 +5,13 @@
 
 """Task Analyzer API 路由"""
 
-from fastapi import APIRouter, status, HTTPException
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from api_gateway.core.response import APIResponse
+from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
 from agents.task_analyzer.analyzer import TaskAnalyzer
 from agents.task_analyzer.models import TaskAnalysisRequest
 

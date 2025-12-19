@@ -5,6 +5,6 @@
 
 """系統配置管理模組 - 提供統一的配置讀取功能"""
 
-from .config import load_project_config, get_config_section
+from .config import get_config_section, load_project_config
 
 __all__ = ["load_project_config", "get_config_section"]

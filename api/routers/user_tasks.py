@@ -5,31 +5,26 @@
 
 """用戶任務管理路由 - 提供任務 CRUD 和同步功能"""
 
-from typing import List, Dict, Any
-from fastapi import APIRouter, Query, status, Depends, Body
-from fastapi.responses import JSONResponse
-import structlog
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import structlog
+from fastapi import APIRouter, Body, Depends, Query, Request, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 from api.core.response import APIResponse
-from services.api.services.user_task_service import get_user_task_service
-from services.api.models.user_task import (
-    UserTaskCreate,
-    UserTaskUpdate,
-)
-from system.security.dependencies import get_current_user
-from system.security.models import User
-from system.security.audit_decorator import audit_log
+from api.routers.file_management import get_arangodb_client
 from services.api.models.audit_log import AuditAction
-from fastapi import Request
-from pydantic import BaseModel, Field
-from services.api.services.file_metadata_service import (
-    get_metadata_service,
-)
+from services.api.models.user_task import UserTaskCreate, UserTaskUpdate
+from services.api.services.file_metadata_service import get_metadata_service
+from services.api.services.user_task_service import get_user_task_service
 from services.api.services.vector_store_service import get_vector_store_service
 from storage.file_storage import create_storage_from_config
 from system.infra.config.config import get_config_section
-from api.routers.file_management import get_arangodb_client
+from system.security.audit_decorator import audit_log
+from system.security.dependencies import get_current_user
+from system.security.models import User
 
 logger = structlog.get_logger(__name__)
 
@@ -137,9 +132,7 @@ async def get_user_task(
             message="Task retrieved successfully",
         )
     except Exception as e:
-        logger.error(
-            "Failed to get user task", error=str(e), task_id=task_id, exc_info=True
-        )
+        logger.error("Failed to get user task", error=str(e), task_id=task_id, exc_info=True)
         return APIResponse.error(
             message=f"Failed to get task: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -154,7 +147,7 @@ async def get_user_task(
 )
 async def create_user_task(
     request_body: UserTaskCreate = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """創建用戶任務
@@ -185,9 +178,7 @@ async def create_user_task(
 
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄任務創建操作日誌
         try:
-            from services.api.services.operation_log_service import (
-                get_operation_log_service,
-            )
+            from services.api.services.operation_log_service import get_operation_log_service
 
             operation_log_service = get_operation_log_service()
 
@@ -197,9 +188,7 @@ async def create_user_task(
                     task_created_at = task.created_at.isoformat() + "Z"
                 elif isinstance(task.created_at, str):
                     task_created_at = (
-                        task.created_at
-                        if task.created_at.endswith("Z")
-                        else task.created_at + "Z"
+                        task.created_at if task.created_at.endswith("Z") else task.created_at + "Z"
                     )
 
             operation_log_service.log_operation(
@@ -215,9 +204,7 @@ async def create_user_task(
                 notes="任務創建",
             )
         except Exception as e:
-            logger.warning(
-                "記錄任務創建操作日誌失敗", task_id=request_body.task_id, error=str(e)
-            )
+            logger.warning("記錄任務創建操作日誌失敗", task_id=request_body.task_id, error=str(e))
 
         return APIResponse.success(
             data=task.model_dump(mode="json"),
@@ -240,7 +227,7 @@ async def create_user_task(
 async def update_user_task(
     task_id: str,
     request_body: UserTaskUpdate = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """更新用戶任務
@@ -279,9 +266,7 @@ async def update_user_task(
 
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄任務更新操作日誌
         try:
-            from services.api.services.operation_log_service import (
-                get_operation_log_service,
-            )
+            from services.api.services.operation_log_service import get_operation_log_service
 
             operation_log_service = get_operation_log_service()
 
@@ -326,9 +311,7 @@ async def update_user_task(
             message="Task updated successfully",
         )
     except Exception as e:
-        logger.error(
-            "Failed to update user task", error=str(e), task_id=task_id, exc_info=True
-        )
+        logger.error("Failed to update user task", error=str(e), task_id=task_id, exc_info=True)
         return APIResponse.error(
             message=f"Failed to update task: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -380,10 +363,9 @@ async def delete_user_task(
                 task_created_at = task.created_at
             elif isinstance(task.created_at, str):
                 try:
-                    task_created_at = datetime.fromisoformat(
-                        task.created_at.replace("Z", "+00:00")
-                    )
-                except:
+                    task_created_at = datetime.fromisoformat(task.created_at.replace("Z", "+00:00"))
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"無法解析 created_at 日期: {e}")
                     task_created_at = None
 
         task_updated_at = None
@@ -392,10 +374,9 @@ async def delete_user_task(
                 task_updated_at = task.updated_at
             elif isinstance(task.updated_at, str):
                 try:
-                    task_updated_at = datetime.fromisoformat(
-                        task.updated_at.replace("Z", "+00:00")
-                    )
-                except:
+                    task_updated_at = datetime.fromisoformat(task.updated_at.replace("Z", "+00:00"))
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"無法解析 updated_at 日期: {e}")
                     task_updated_at = None
 
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 查找任務下的所有文件
@@ -406,7 +387,7 @@ async def delete_user_task(
             limit=1000,
         )
 
-        deletion_results = {
+        deletion_results: Dict[str, Any] = {
             "task_deleted": False,
             "files_deleted": 0,
             "folders_deleted": 0,  # 修改時間：2025-12-09 - 添加資料夾刪除計數
@@ -434,15 +415,10 @@ async def delete_user_task(
                 except Exception as e:
                     error_msg = f"刪除向量數據失敗: {str(e)}"
                     deletion_results["errors"].append(error_msg)
-                    logger.warning(
-                        error_msg, file_id=file_id, task_id=task_id, error=str(e)
-                    )
+                    logger.warning(error_msg, file_id=file_id, task_id=task_id, error=str(e))
 
                 # 1.2 刪除知識圖譜關聯（從 ArangoDB 中刪除與該文件相關的實體和關係）
-                if (
-                    arangodb_client.db is not None
-                    and arangodb_client.db.aql is not None
-                ):
+                if arangodb_client.db is not None and arangodb_client.db.aql is not None:
                     entities_collection = "entities"
                     relations_collection = "relations"
 
@@ -457,9 +433,7 @@ async def delete_user_task(
                                 aql_query_entities, bind_vars={"file_id": file_id}
                             )
                         except Exception as e:
-                            logger.warning(
-                                "刪除實體時出錯", file_id=file_id, error=str(e)
-                            )
+                            logger.warning("刪除實體時出錯", file_id=file_id, error=str(e))
 
                     if arangodb_client.db.has_collection(relations_collection):
                         try:
@@ -472,14 +446,10 @@ async def delete_user_task(
                                 aql_query_relations, bind_vars={"file_id": file_id}
                             )
                         except Exception as e:
-                            logger.warning(
-                                "刪除關係時出錯", file_id=file_id, error=str(e)
-                            )
+                            logger.warning("刪除關係時出錯", file_id=file_id, error=str(e))
 
                     deletion_results["kg_deleted"] = True
-                    logger.info(
-                        "知識圖譜關聯刪除成功", file_id=file_id, task_id=task_id
-                    )
+                    logger.info("知識圖譜關聯刪除成功", file_id=file_id, task_id=task_id)
 
                 # 1.3 刪除文件元數據（從 ArangoDB）
                 try:
@@ -488,9 +458,7 @@ async def delete_user_task(
                 except Exception as e:
                     error_msg = f"刪除文件元數據失敗: {str(e)}"
                     deletion_results["errors"].append(error_msg)
-                    logger.warning(
-                        error_msg, file_id=file_id, task_id=task_id, error=str(e)
-                    )
+                    logger.warning(error_msg, file_id=file_id, task_id=task_id, error=str(e))
 
                 # 1.4 刪除實體文件（從文件系統）
                 try:
@@ -499,9 +467,7 @@ async def delete_user_task(
                 except Exception as e:
                     error_msg = f"刪除實體文件失敗: {str(e)}"
                     deletion_results["errors"].append(error_msg)
-                    logger.warning(
-                        error_msg, file_id=file_id, task_id=task_id, error=str(e)
-                    )
+                    logger.warning(error_msg, file_id=file_id, task_id=task_id, error=str(e))
 
                 deletion_results["files_deleted"] += 1
 
@@ -514,10 +480,7 @@ async def delete_user_task(
                     operation_log_service = get_operation_log_service()
                     # 處理文件時間字段
                     file_created_at = None
-                    if (
-                        hasattr(file_metadata, "created_at")
-                        and file_metadata.created_at
-                    ):
+                    if hasattr(file_metadata, "created_at") and file_metadata.created_at:
                         if isinstance(file_metadata.created_at, datetime):
                             file_created_at = file_metadata.created_at.isoformat() + "Z"
                         elif isinstance(file_metadata.created_at, str):
@@ -528,10 +491,7 @@ async def delete_user_task(
                             )
 
                     file_updated_at = None
-                    if (
-                        hasattr(file_metadata, "updated_at")
-                        and file_metadata.updated_at
-                    ):
+                    if hasattr(file_metadata, "updated_at") and file_metadata.updated_at:
                         if isinstance(file_metadata.updated_at, datetime):
                             file_updated_at = file_metadata.updated_at.isoformat() + "Z"
                         elif isinstance(file_metadata.updated_at, str):
@@ -557,9 +517,7 @@ async def delete_user_task(
                         notes=f"任務刪除時自動刪除，任務ID: {task_id}",
                     )
                 except Exception as e:
-                    logger.warning(
-                        "記錄文件刪除操作日誌失敗", file_id=file_id, error=str(e)
-                    )
+                    logger.warning("記錄文件刪除操作日誌失敗", file_id=file_id, error=str(e))
 
             except Exception as e:
                 error_msg = f"刪除文件 {file_id} 時出錯: {str(e)}"
@@ -577,9 +535,7 @@ async def delete_user_task(
             try:
                 from api.routers.file_management import FOLDER_COLLECTION_NAME
 
-                folder_collection = arangodb_client.db.collection(
-                    FOLDER_COLLECTION_NAME
-                )
+                folder_collection = arangodb_client.db.collection(FOLDER_COLLECTION_NAME)
 
                 # 查詢任務下的所有資料夾
                 aql_query = """
@@ -591,16 +547,14 @@ async def delete_user_task(
                     aql_query,
                     bind_vars={"task_id": task_id},
                 )
-                folder_ids = list(cursor)
+                folder_ids = list(cursor) if cursor else []  # type: ignore[arg-type]  # cursor 可能為 None
 
                 # 刪除所有資料夾
                 for folder_id in folder_ids:
                     try:
                         folder_collection.delete(folder_id)
                         deletion_results["folders_deleted"] += 1
-                        logger.info(
-                            "資料夾刪除成功", folder_id=folder_id, task_id=task_id
-                        )
+                        logger.info("資料夾刪除成功", folder_id=folder_id, task_id=task_id)
                     except Exception as e:
                         error_msg = f"刪除資料夾 {folder_id} 失敗: {str(e)}"
                         deletion_results["errors"].append(error_msg)
@@ -628,9 +582,7 @@ async def delete_user_task(
 
             # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄任務刪除操作日誌
             try:
-                from services.api.services.operation_log_service import (
-                    get_operation_log_service,
-                )
+                from services.api.services.operation_log_service import get_operation_log_service
 
                 operation_log_service = get_operation_log_service()
                 # 處理任務時間字段
@@ -668,9 +620,7 @@ async def delete_user_task(
                     notes=f"刪除了 {deletion_results['files_deleted']} 個文件",
                 )
             except Exception as e:
-                logger.warning(
-                    "記錄任務刪除操作日誌失敗", task_id=task_id, error=str(e)
-                )
+                logger.warning("記錄任務刪除操作日誌失敗", task_id=task_id, error=str(e))
 
         if not success:
             return APIResponse.error(
@@ -695,9 +645,7 @@ async def delete_user_task(
             message=f"Task deleted successfully. Deleted {deletion_results['files_deleted']} files and {deletion_results['folders_deleted']} folders.",
         )
     except Exception as e:
-        logger.error(
-            "Failed to delete user task", error=str(e), task_id=task_id, exc_info=True
-        )
+        logger.error("Failed to delete user task", error=str(e), task_id=task_id, exc_info=True)
         return APIResponse.error(
             message=f"Failed to delete task: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -712,7 +660,7 @@ async def delete_user_task(
 )
 async def sync_user_tasks(
     request_body: SyncTasksRequest = Body(...),
-    request: Request = None,
+    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """同步用戶任務列表（批量創建或更新）

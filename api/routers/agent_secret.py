@@ -6,13 +6,14 @@
 """Agent Secret API 路由 - 提供 Secret ID/Key 驗證接口"""
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from api.core.response import APIResponse
 from agents.services.auth.secret_manager import get_secret_manager
+from api.core.response import APIResponse
 from system.security.dependencies import get_current_user
 from system.security.models import User
 

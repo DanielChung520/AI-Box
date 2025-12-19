@@ -5,10 +5,11 @@
 
 """Agent Registry 數據模型定義"""
 
-from enum import Enum
-from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 from agents.services.protocol.base import AgentServiceProtocolType
 
@@ -46,6 +47,12 @@ class AgentStatus(str, Enum):
     # 兼容舊代碼：使用同值 alias，避免 AttributeError
     ACTIVE = "online"
     PENDING = "registering"
+    # 兼容舊代碼：添加 INACTIVE 和 SUSPENDED 別名
+    INACTIVE = "offline"  # 非活躍狀態等同於離線
+    SUSPENDED = "offline"  # 暫停狀態等同於離線
+    # 兼容舊代碼：添加 IDLE 和 BUSY 別名
+    IDLE = "online"  # 空閒狀態等同於在線
+    BUSY = "maintenance"  # 忙碌狀態等同於維修中（暫時無法接受新任務）
 
 
 class AgentPermissionConfig(BaseModel):
@@ -60,15 +67,11 @@ class AgentPermissionConfig(BaseModel):
     allowed_memory_namespaces: List[str] = Field(
         default_factory=list, description="允許訪問的 Memory 命名空間列表"
     )
-    allowed_tools: List[str] = Field(
-        default_factory=list, description="允許使用的工具列表"
-    )
+    allowed_tools: List[str] = Field(default_factory=list, description="允許使用的工具列表")
     allowed_llm_providers: List[str] = Field(
         default_factory=list, description="允許使用的 LLM Provider 列表"
     )
-    allowed_databases: List[str] = Field(
-        default_factory=list, description="允許訪問的數據庫列表"
-    )
+    allowed_databases: List[str] = Field(default_factory=list, description="允許訪問的數據庫列表")
     allowed_file_paths: List[str] = Field(
         default_factory=list, description="允許訪問的文件路徑列表"
     )
@@ -78,13 +81,9 @@ class AgentPermissionConfig(BaseModel):
         None, description="Secret ID（由 AI-Box 簽發，用於外部 Agent 身份驗證）"
     )
     api_key: Optional[str] = Field(None, description="API Key（用於外部 Agent 認證）")
-    server_certificate: Optional[str] = Field(
-        None, description="服務器證書（用於 mTLS 認證）"
-    )
+    server_certificate: Optional[str] = Field(None, description="服務器證書（用於 mTLS 認證）")
     ip_whitelist: List[str] = Field(default_factory=list, description="IP 白名單列表")
-    server_fingerprint: Optional[str] = Field(
-        None, description="服務器指紋（用於身份驗證）"
-    )
+    server_fingerprint: Optional[str] = Field(None, description="服務器指紋（用於身份驗證）")
 
 
 class AgentEndpoints(BaseModel):
@@ -97,6 +96,17 @@ class AgentEndpoints(BaseModel):
     )
     is_internal: bool = Field(False, description="是否為內部 Agent")
 
+    # 兼容舊代碼：添加別名屬性
+    @property
+    def mcp_endpoint(self) -> Optional[str]:
+        """MCP 端點 URL（兼容舊代碼）"""
+        return self.mcp
+
+    @property
+    def health_endpoint(self) -> Optional[str]:
+        """健康檢查端點 URL（兼容舊代碼，使用 HTTP 端點）"""
+        return self.http
+
 
 class AgentMetadata(BaseModel):
     """Agent 元數據"""
@@ -106,9 +116,19 @@ class AgentMetadata(BaseModel):
     author: Optional[str] = Field(None, description="開發者/團隊")
     tags: List[str] = Field(default_factory=list, description="標籤列表")
     capabilities: Dict[str, Any] = Field(default_factory=dict, description="能力描述")
-    icon: Optional[str] = Field(
-        None, description="圖標名稱（react-icons 圖標名稱，例如：FaRobot）"
-    )
+    icon: Optional[str] = Field(None, description="圖標名稱（react-icons 圖標名稱，例如：FaRobot）")
+
+    # 兼容舊代碼：添加別名屬性
+    @property
+    def purpose(self) -> Optional[str]:
+        """用途（兼容舊代碼，使用 description）"""
+        return self.description
+
+    @property
+    def category(self) -> Optional[str]:
+        """類別（兼容舊代碼，從 tags 中提取或返回 None）"""
+        # 可以從 tags 中提取類別，或返回 None
+        return None
 
 
 class AgentRegistryInfo(BaseModel):
@@ -120,15 +140,21 @@ class AgentRegistryInfo(BaseModel):
     status: AgentStatus = Field(AgentStatus.REGISTERING, description="Agent 狀態")
     endpoints: AgentEndpoints = Field(..., description="Agent 端點配置")
     capabilities: List[str] = Field(default_factory=list, description="能力列表")
-    metadata: AgentMetadata = Field(default_factory=AgentMetadata, description="元數據")
+    metadata: AgentMetadata = Field(default_factory=AgentMetadata, description="元數據")  # type: ignore[arg-type]  # default_factory 接受類型
     permissions: AgentPermissionConfig = Field(
-        default_factory=lambda: AgentPermissionConfig(), description="權限配置"
-    )
-    registered_at: datetime = Field(
-        default_factory=datetime.now, description="註冊時間"
-    )
+        default_factory=AgentPermissionConfig, description="權限配置"
+    )  # type: ignore[arg-type]  # default_factory 接受類型
+    registered_at: datetime = Field(default_factory=datetime.now, description="註冊時間")
     last_heartbeat: Optional[datetime] = Field(None, description="最後心跳時間")
     load: int = Field(0, description="當前負載")
+
+    # 兼容舊代碼：添加額外屬性
+    extra: Dict[str, Any] = Field(default_factory=dict, description="額外信息（兼容舊代碼）")
+
+    @property
+    def last_updated(self) -> datetime:
+        """最後更新時間（兼容舊代碼，使用 last_heartbeat 或 registered_at）"""
+        return self.last_heartbeat or self.registered_at
 
 
 class AgentRegistrationRequest(BaseModel):
@@ -176,9 +202,7 @@ class AgentRegistrationRequest(BaseModel):
     agent_id: str = Field(..., description="Agent ID")
     agent_type: str = Field(..., description="Agent 類型")
     name: str = Field(..., description="Agent 名稱")
-    endpoints: AgentEndpoints = Field(
-        ..., description="Agent 端點配置（包含 is_internal 標誌）"
-    )
+    endpoints: AgentEndpoints = Field(..., description="Agent 端點配置（包含 is_internal 標誌）")
     capabilities: List[str] = Field(default_factory=list, description="能力列表")
     metadata: Optional[AgentMetadata] = Field(None, description="元數據")
     permissions: Optional[AgentPermissionConfig] = Field(

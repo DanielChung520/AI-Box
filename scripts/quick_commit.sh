@@ -98,20 +98,20 @@ fi
 # 只格式化，跳過 mypy
 if [ "$SKIP_MYPY" = true ]; then
     echo -e "${GREEN}運行格式化檢查（跳過 mypy）...${NC}"
-    
+
     # 只運行 black 和 ruff
     echo "1. 運行 black 格式化..."
     black . || true
-    
+
     echo "2. 運行 ruff 檢查和修復..."
     ruff check --fix . || true
-    
+
     echo "3. 添加修改的文件..."
     git add .
-    
+
     echo "4. 提交（跳過 mypy）..."
     git commit --no-verify -m "$COMMIT_MSG"
-    
+
     echo -e "${GREEN}提交完成（已跳過 mypy）${NC}"
     exit 0
 fi

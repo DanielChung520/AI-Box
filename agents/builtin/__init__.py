@@ -18,9 +18,9 @@ from typing import Dict, Optional
 
 from agents.services.protocol.base import AgentServiceProtocol
 
+from .orchestrator_manager.agent import OrchestratorManagerAgent
 from .registry_manager.agent import RegistryManagerAgent
 from .security_manager.agent import SecurityManagerAgent
-from .orchestrator_manager.agent import OrchestratorManagerAgent
 from .storage_manager.agent import StorageManagerAgent
 
 __all__ = [

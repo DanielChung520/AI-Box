@@ -11,10 +11,10 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from genai.workflows.context.manager import ContextManager
-from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
 from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.models import Memory, MemoryPriority, MemoryType
 from agents.infra.memory.aam.realtime_retrieval import RealtimeRetrievalService
+from genai.workflows.context.manager import ContextManager
 
 logger = structlog.get_logger(__name__)
 
@@ -38,9 +38,7 @@ class ContextIntegration:
         """
         self.context_manager = context_manager
         self.aam_manager = aam_manager
-        self.retrieval_service = retrieval_service or RealtimeRetrievalService(
-            aam_manager
-        )
+        self.retrieval_service = retrieval_service or RealtimeRetrievalService(aam_manager)
         self.logger = logger.bind(component="context_integration")
 
     def context_to_memory(
@@ -64,9 +62,7 @@ class ContextIntegration:
             # 獲取上下文消息
             messages = self.context_manager.get_messages(session_id)
             if not messages:
-                self.logger.warning(
-                    "No messages found in context", session_id=session_id
-                )
+                self.logger.warning("No messages found in context", session_id=session_id)
                 return None
 
             # 構建記憶內容（合併最近的幾條消息）
@@ -212,9 +208,7 @@ class ContextIntegration:
             metadata: Dict[str, Any] = {
                 "session_id": session_id,
                 "message_id": (
-                    latest_message.message_id
-                    if hasattr(latest_message, "message_id")
-                    else None
+                    latest_message.message_id if hasattr(latest_message, "message_id") else None
                 ),
                 "timestamp": (
                     latest_message.timestamp.isoformat()

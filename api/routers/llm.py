@@ -11,6 +11,8 @@ from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from api.core.response import APIResponse
+from api.core.settings import get_ollama_settings
 from llm.clients.ollama import (
     OllamaClient,
     OllamaClientError,
@@ -18,8 +20,6 @@ from llm.clients.ollama import (
     OllamaTimeoutError,
     get_ollama_client,
 )
-from api.core.response import APIResponse
-from api.core.settings import get_ollama_settings
 from services.api.models.ollama import (
     OllamaChatRequest,
     OllamaEmbeddingRequest,

@@ -6,6 +6,6 @@
 """MCP Server 工具模組"""
 
 from services.mcp_server.tools.base import BaseTool
-from services.mcp_server.tools.registry import get_registry, ToolRegistry
+from services.mcp_server.tools.registry import ToolRegistry, get_registry
 
 __all__ = ["BaseTool", "ToolRegistry", "get_registry"]

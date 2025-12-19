@@ -68,18 +68,14 @@ class OllamaClient:
                 return response.json()
         except httpx.TimeoutException as exc:
             self._router.mark_failure(node.name)
-            raise OllamaTimeoutError(
-                f"Ollama request timed out on node {node.name}"
-            ) from exc
+            raise OllamaTimeoutError(f"Ollama request timed out on node {node.name}") from exc
         except httpx.HTTPStatusError as exc:
             raise OllamaHTTPError(
                 f"Ollama returned HTTP {exc.response.status_code}: {exc.response.text}"
             ) from exc
         except httpx.RequestError as exc:
             self._router.mark_failure(node.name)
-            raise OllamaClientError(
-                f"Ollama request error on node {node.name}: {exc}"
-            ) from exc
+            raise OllamaClientError(f"Ollama request error on node {node.name}: {exc}") from exc
 
     async def generate(
         self,
@@ -103,9 +99,7 @@ class OllamaClient:
             payload["format"] = format
         if keep_alive:
             payload["keep_alive"] = keep_alive
-        return await self._post(
-            "/api/generate", payload, idempotency_key=idempotency_key
-        )
+        return await self._post("/api/generate", payload, idempotency_key=idempotency_key)
 
     async def chat(
         self,

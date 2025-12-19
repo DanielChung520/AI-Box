@@ -6,16 +6,14 @@
 """Agent Registry API 路由 - 提供 Agent 註冊和管理接口"""
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 
-from services.api.core.response import APIResponse
+from agents.services.registry.models import AgentRegistrationRequest, AgentStatus
 from agents.services.registry.registry import get_agent_registry
-from agents.services.registry.models import (
-    AgentRegistrationRequest,
-    AgentStatus,
-)
+from services.api.core.response import APIResponse
 from system.security.dependencies import get_current_user
 from system.security.models import User
 

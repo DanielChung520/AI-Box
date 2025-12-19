@@ -7,8 +7,8 @@
 
 import json
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 try:
     import redis  # type: ignore[import-untyped]  # noqa: F401
@@ -18,8 +18,8 @@ except ImportError:
     REDIS_AVAILABLE = False
     logging.warning("Redis not available, using in-memory storage")
 
-from database.chromadb.client import ChromaDBClient
 from agents.services.resource_controller import get_resource_controller
+from database.chromadb.client import ChromaDBClient
 
 logger = logging.getLogger(__name__)
 
@@ -87,9 +87,7 @@ class MemoryManager:
 
             if self.redis_client:
                 # 使用 Redis
-                serialized_value = (
-                    json.dumps(value) if not isinstance(value, str) else value
-                )
+                serialized_value = json.dumps(value) if not isinstance(value, str) else value
                 self.redis_client.setex(key, ttl, serialized_value)
             else:
                 # 使用內存存儲
@@ -175,9 +173,7 @@ class MemoryManager:
         """
         # 資源訪問權限檢查（collection_name 作為命名空間）
         if agent_id:
-            if not self._resource_controller.check_memory_access(
-                agent_id, collection_name
-            ):
+            if not self._resource_controller.check_memory_access(agent_id, collection_name):
                 logger.warning(
                     f"Agent '{agent_id}' does not have permission to access memory namespace '{collection_name}'"
                 )
@@ -185,9 +181,7 @@ class MemoryManager:
 
         try:
             if not self.chromadb_client:
-                logger.warning(
-                    "ChromaDB client not available, cannot store long-term memory"
-                )
+                logger.warning("ChromaDB client not available, cannot store long-term memory")
                 return None
 
             # 構建完整的元數據
@@ -230,9 +224,7 @@ class MemoryManager:
         """
         # 資源訪問權限檢查（collection_name 作為命名空間）
         if agent_id:
-            if not self._resource_controller.check_memory_access(
-                agent_id, collection_name
-            ):
+            if not self._resource_controller.check_memory_access(agent_id, collection_name):
                 logger.warning(
                     f"Agent '{agent_id}' does not have permission to access memory namespace '{collection_name}'"
                 )
@@ -240,9 +232,7 @@ class MemoryManager:
 
         try:
             if not self.chromadb_client:
-                logger.warning(
-                    "ChromaDB client not available, cannot retrieve long-term memory"
-                )
+                logger.warning("ChromaDB client not available, cannot retrieve long-term memory")
                 return []
 
             # 從 ChromaDB 檢索
@@ -318,9 +308,7 @@ class MemoryManager:
             else:
                 if pattern:
                     # 簡單的模式匹配
-                    keys_to_delete = [
-                        k for k in self._in_memory_storage.keys() if pattern in k
-                    ]
+                    keys_to_delete = [k for k in self._in_memory_storage.keys() if pattern in k]
                     for key in keys_to_delete:
                         del self._in_memory_storage[key]
                     return len(keys_to_delete)

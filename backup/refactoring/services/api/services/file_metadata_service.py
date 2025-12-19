@@ -7,14 +7,11 @@
 
 from datetime import datetime
 from typing import List, Optional
+
 import structlog
 
 from database.arangodb import ArangoDBClient
-from services.api.models.file_metadata import (
-    FileMetadata,
-    FileMetadataCreate,
-    FileMetadataUpdate,
-)
+from services.api.models.file_metadata import FileMetadata, FileMetadataCreate, FileMetadataUpdate
 
 logger = structlog.get_logger(__name__)
 
@@ -85,9 +82,7 @@ class FileMetadataService:
 
         return FileMetadata(**doc)
 
-    def update(
-        self, file_id: str, update: FileMetadataUpdate
-    ) -> Optional[FileMetadata]:
+    def update(self, file_id: str, update: FileMetadataUpdate) -> Optional[FileMetadata]:
         """更新文件元數據"""
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")

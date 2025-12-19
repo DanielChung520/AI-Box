@@ -25,9 +25,7 @@ DEFAULT_MANIFEST_PATH = ROOT_DIR / "docs" / "deployment" / "ollama-models-manife
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Sync Ollama baseline/fallback models."
-    )
+    parser = argparse.ArgumentParser(description="Sync Ollama baseline/fallback models.")
     parser.add_argument(
         "--config",
         type=Path,
@@ -91,9 +89,7 @@ def load_config(custom_path: Optional[Path]) -> Dict[str, Any]:
     for candidate in candidates:
         if candidate and candidate.exists():
             return load_json(candidate)
-    raise FileNotFoundError(
-        "找不到 config.json 或 config.example.json，請先建立設定檔。"
-    )
+    raise FileNotFoundError("找不到 config.json 或 config.example.json，請先建立設定檔。")
 
 
 def dedupe(seq: Iterable[str]) -> List[str]:
@@ -122,9 +118,7 @@ def determine_models(args: argparse.Namespace, config: Dict[str, Any]) -> List[s
     return models
 
 
-def determine_host_port(
-    args: argparse.Namespace, config: Dict[str, Any]
-) -> tuple[str, int]:
+def determine_host_port(args: argparse.Namespace, config: Dict[str, Any]) -> tuple[str, int]:
     host = (
         args.host
         or os.getenv("OLLAMA_REMOTE_HOST")
@@ -193,24 +187,18 @@ def pull_model(
 
     max_attempts = max(1, retries)
     for attempt in range(1, max_attempts + 1):
-        result = subprocess.run(
-            ["ollama", "pull", model], env=env, text=True, capture_output=True
-        )
+        result = subprocess.run(["ollama", "pull", model], env=env, text=True, capture_output=True)
         if result.returncode == 0:
             print(f"[success] {model} 已同步")
             return
-        print(
-            f"[warning] {model} 第 {attempt}/{max_attempts} 次下載失敗：{result.stderr.strip()}"
-        )
+        print(f"[warning] {model} 第 {attempt}/{max_attempts} 次下載失敗：{result.stderr.strip()}")
         if attempt < max_attempts:
             sleep_time = backoff_seconds * attempt
             time.sleep(sleep_time)
     raise RuntimeError(f"多次重試後仍無法下載 {model}")
 
 
-def sync_models(
-    args: argparse.Namespace, config: Dict[str, Any]
-) -> List[Dict[str, Any]]:
+def sync_models(args: argparse.Namespace, config: Dict[str, Any]) -> List[Dict[str, Any]]:
     ollama_cfg = extract_ollama_cfg(config)
     retry_cfg = ollama_cfg.get("download", {}).get("retry", {})
     retries = int(retry_cfg.get("max_attempts", 3))
@@ -230,15 +218,11 @@ def sync_models(
         if existing_digest and (args.skip_existing or no_download) and not args.force:
             print(f"[skip] {model} 已存在（digest={existing_digest[:12]}...）")
             status = "manifest-only" if no_download else "skipped"
-            results.append(
-                {"model": model, "status": status, "digest": existing_digest}
-            )
+            results.append({"model": model, "status": status, "digest": existing_digest})
             continue
 
         if no_download:
-            print(
-                f"[warn] {model} 無可用 digest，且 --no-download 已啟用，僅記錄缺失狀態"
-            )
+            print(f"[warn] {model} 無可用 digest，且 --no-download 已啟用，僅記錄缺失狀態")
             results.append({"model": model, "status": "missing", "digest": None})
             continue
 

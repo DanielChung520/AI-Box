@@ -20,6 +20,7 @@
 ### 1.2 子階段範圍
 
 **包含**:
+
 - OpenAI ChatGPT API 整合
 - Google Gemini API 整合
 - xAI Grok API 整合
@@ -27,6 +28,7 @@
 - Ollama 本地 LLM 整合
 
 **不包含**:
+
 - LLM Router 實現（子階段5.1）
 - 負載均衡實現（子階段5.3）
 - 故障轉移實現（子階段5.4）
@@ -86,17 +88,21 @@
 **測試目標**: 驗證 ChatGPT API 整合
 
 **前置條件**:
+
 - OpenAI API Key 已配置
 - ChatGPT 接口已實現
 
 **測試步驟**:
+
 1. 測試基本調用
+
    ```python
    response = chatgpt_client.chat_completion(
        messages=[{"role": "user", "content": "Hello"}],
        model="gpt-3.5-turbo"
    )
    ```
+
 2. 測試錯誤處理
    - 無效 API Key
    - 網絡超時
@@ -230,7 +236,7 @@
 | 組件 | 技術選型 | 版本要求 | 配置要求 |
 |------|---------|---------|---------|
 | **Ollama** | ollama | 已部署 | 支持本地模型 |
-| **連接地址** | http://localhost:11434 | - | 可配置 |
+| **連接地址** | <http://localhost:11434> | - | 可配置 |
 | **超時設置** | 60s | - | 本地模型較慢 |
 
 #### 2.5.4 驗收標準

@@ -6,11 +6,6 @@
 """Review Agent 適配器 - 重新導出 agents.core.review 的模組"""
 
 # 從 agents.core 模組重新導出
-from agents.core.review import (  # noqa: F401
-    ReviewAgent,
-    ReviewRequest,
-    ReviewResult,
-    ReviewStatus,
-)
+from agents.core.review import ReviewAgent, ReviewRequest, ReviewResult, ReviewStatus  # noqa: F401
 
 __all__ = ["ReviewAgent", "ReviewRequest", "ReviewResult", "ReviewStatus"]

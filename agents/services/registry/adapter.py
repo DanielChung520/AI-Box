@@ -5,11 +5,12 @@
 
 """Agent Registry Adapter - 適配新舊 Agent 模型，保持向後兼容"""
 
-from agents.services.orchestrator.models import (
-    AgentInfo as LegacyAgentInfo,
-    AgentStatus as LegacyAgentStatus,
-)
-from agents.services.registry.models import AgentRegistryInfo, AgentStatus
+from agents.services.orchestrator.models import AgentInfo as LegacyAgentInfo
+
+# LegacyAgentStatus 從 registry.models 導入（因為 orchestrator.models 中沒有 AgentStatus）
+from agents.services.registry.models import AgentRegistryInfo
+from agents.services.registry.models import AgentStatus
+from agents.services.registry.models import AgentStatus as LegacyAgentStatus
 
 logger = None
 try:
@@ -37,6 +38,10 @@ def convert_to_legacy_agent_info(registry_info: AgentRegistryInfo) -> LegacyAgen
         AgentStatus.PENDING: LegacyAgentStatus.IDLE,
         AgentStatus.SUSPENDED: LegacyAgentStatus.OFFLINE,
         AgentStatus.OFFLINE: LegacyAgentStatus.OFFLINE,
+        AgentStatus.IDLE: LegacyAgentStatus.IDLE,  # IDLE -> IDLE
+        AgentStatus.BUSY: (
+            LegacyAgentStatus.BUSY if hasattr(LegacyAgentStatus, "BUSY") else LegacyAgentStatus.IDLE
+        ),  # BUSY -> BUSY 或 IDLE
     }
 
     legacy_status = status_mapping.get(registry_info.status, LegacyAgentStatus.OFFLINE)
@@ -44,16 +49,12 @@ def convert_to_legacy_agent_info(registry_info: AgentRegistryInfo) -> LegacyAgen
     return LegacyAgentInfo(
         agent_id=registry_info.agent_id,
         agent_type=registry_info.agent_type,
+        name=registry_info.name,  # type: ignore[call-arg]  # name 有默認值
         status=legacy_status,
+        endpoints=registry_info.endpoints,  # type: ignore[call-arg]  # endpoints 有默認值
         capabilities=registry_info.capabilities,
-        metadata={
-            "purpose": registry_info.metadata.purpose,
-            "category": registry_info.metadata.category,
-            "version": registry_info.metadata.version,
-            "mcp_endpoint": registry_info.endpoints.mcp_endpoint,
-            "health_endpoint": registry_info.endpoints.health_endpoint,
-            **registry_info.extra,
-        },
+        load=registry_info.load if hasattr(registry_info, "load") else 0,  # type: ignore[call-arg]  # load 有默認值
+        metadata=registry_info.metadata,  # 直接使用 AgentMetadata 對象
         registered_at=registry_info.registered_at,
         last_heartbeat=registry_info.last_heartbeat,
     )

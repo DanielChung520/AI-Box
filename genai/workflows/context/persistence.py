@@ -12,7 +12,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from database.arangodb import ArangoDBClient
-
 from genai.workflows.context.models import ContextConfig, ContextMessage
 
 logger = logging.getLogger(__name__)
@@ -51,12 +50,8 @@ class ContextPersistence:
                 logger.warning("ArangoDB database is not connected")
                 return
 
-            self._client.get_or_create_collection(
-                self._collection_name, collection_type="document"
-            )
-            logger.info(
-                "Context persistence collection ready: %s", self._collection_name
-            )
+            self._client.get_or_create_collection(self._collection_name, collection_type="document")
+            logger.info("Context persistence collection ready: %s", self._collection_name)
         except Exception as exc:
             logger.error("Failed to ensure collection: %s", exc)
 
@@ -137,11 +132,7 @@ class ContextPersistence:
 
             document = collection.get(session_id)
 
-            if (
-                document is None
-                or not isinstance(document, dict)
-                or "messages" not in document
-            ):
+            if document is None or not isinstance(document, dict) or "messages" not in document:
                 return None
 
             # 轉換為 ContextMessage 對象
@@ -149,12 +140,8 @@ class ContextPersistence:
             for msg_dict in document["messages"]:
                 try:
                     # 處理時間戳字符串
-                    if "timestamp" in msg_dict and isinstance(
-                        msg_dict["timestamp"], str
-                    ):
-                        msg_dict["timestamp"] = datetime.fromisoformat(
-                            msg_dict["timestamp"]
-                        )
+                    if "timestamp" in msg_dict and isinstance(msg_dict["timestamp"], str):
+                        msg_dict["timestamp"] = datetime.fromisoformat(msg_dict["timestamp"])
                     messages.append(ContextMessage(**msg_dict))
                 except Exception as exc:
                     logger.warning("Failed to parse message: %s", exc)
@@ -233,9 +220,7 @@ class ContextPersistence:
             logger.error("Failed to query contexts: %s", exc)
             return []
 
-    def archive_context(
-        self, session_id: str, archive_key: Optional[str] = None
-    ) -> bool:
+    def archive_context(self, session_id: str, archive_key: Optional[str] = None) -> bool:
         """
         歸檔上下文記錄。
 
@@ -265,9 +250,7 @@ class ContextPersistence:
                 return False
 
             # 更新文檔標記為已歸檔
-            archive_key_final = (
-                archive_key or f"archive_{session_id}_{datetime.now().isoformat()}"
-            )
+            archive_key_final = archive_key or f"archive_{session_id}_{datetime.now().isoformat()}"
             document["archived"] = True
             document["archive_key"] = archive_key_final
             document["archived_at"] = datetime.now().isoformat()
@@ -315,9 +298,7 @@ class ContextPersistence:
                     RETURN doc._key
             """
 
-            cursor = self._client.db.aql.execute(
-                aql, bind_vars={"cutoff_date": cutoff_date}
-            )
+            cursor = self._client.db.aql.execute(aql, bind_vars={"cutoff_date": cutoff_date})
             if cursor is not None:
                 keys_to_delete = list(cursor)  # type: ignore[arg-type]
             else:
@@ -331,9 +312,7 @@ class ContextPersistence:
                     except Exception as exc:
                         logger.warning("Failed to delete key %s: %s", key, exc)
 
-            logger.info(
-                "Cleaned up %d old contexts (dry_run=%s)", len(keys_to_delete), dry_run
-            )
+            logger.info("Cleaned up %d old contexts (dry_run=%s)", len(keys_to_delete), dry_run)
             return len(keys_to_delete)
         except Exception as exc:
             logger.error("Failed to cleanup old contexts: %s", exc)

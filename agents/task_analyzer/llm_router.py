@@ -6,20 +6,19 @@
 """LLM 路由選擇器 - 實現 LLM 路由選擇邏輯，集成新的路由策略架構。"""
 
 import logging
-from typing import Dict, Any, Optional, List
-
-from system.infra.config.config import get_config_section
-from llm.router import LLMNodeConfig, LLMNodeRouter
-from llm.routing.dynamic import DynamicRouter
-from llm.routing.evaluator import RoutingEvaluator
-from llm.routing.ab_testing import ABTestManager, ABTestGroup, TrafficAllocationMethod
+from typing import Any, Dict, List, Optional
 
 from agents.task_analyzer.models import (
-    TaskType,
     LLMProvider,
     LLMRoutingResult,
     TaskClassificationResult,
+    TaskType,
 )
+from llm.router import LLMNodeConfig, LLMNodeRouter
+from llm.routing.ab_testing import ABTestGroup, ABTestManager, TrafficAllocationMethod
+from llm.routing.dynamic import DynamicRouter
+from llm.routing.evaluator import RoutingEvaluator
+from system.infra.config.config import get_config_section
 
 logger = logging.getLogger(__name__)
 
@@ -252,9 +251,7 @@ class LLMRouter:
         estimated_cost = routing_metadata.get("cost_score")
         quality_score = routing_metadata.get("quality_score")
 
-        logger.info(
-            f"Routed to {provider.value} ({model}) with confidence {confidence:.2f}"
-        )
+        logger.info(f"Routed to {provider.value} ({model}) with confidence {confidence:.2f}")
 
         return LLMRoutingResult(
             provider=provider,
@@ -334,9 +331,7 @@ class LLMRouter:
             target_node = node.name
             reasoning += f"，指派節點 {target_node}"
 
-        logger.info(
-            f"Routed to {provider.value} ({model}) with confidence {confidence:.2f}"
-        )
+        logger.info(f"Routed to {provider.value} ({model}) with confidence {confidence:.2f}")
 
         return LLMRoutingResult(
             provider=provider,

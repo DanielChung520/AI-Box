@@ -7,8 +7,9 @@
 
 from __future__ import annotations
 
-import structlog
 from typing import TYPE_CHECKING
+
+import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -35,6 +36,7 @@ def get_redis_connection():
     # 因為 RQ 使用 pickle 序列化任務數據，需要原始字節數據
     # 創建一個新的 Redis 連接，不使用 decode_responses
     import os
+
     import redis
 
     redis_url = os.getenv("REDIS_URL")

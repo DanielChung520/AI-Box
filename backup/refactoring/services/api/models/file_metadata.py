@@ -6,7 +6,8 @@
 """文件元數據模型 - 定義 Pydantic Model"""
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -19,9 +20,7 @@ class FileMetadataBase(BaseModel):
     user_id: Optional[str] = Field(None, description="用戶 ID")
     tags: List[str] = Field(default_factory=list, description="標籤列表")
     description: Optional[str] = Field(None, description="文件描述")
-    custom_metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="自定義元數據"
-    )
+    custom_metadata: Dict[str, Any] = Field(default_factory=dict, description="自定義元數據")
 
 
 class FileMetadataCreate(FileMetadataBase):

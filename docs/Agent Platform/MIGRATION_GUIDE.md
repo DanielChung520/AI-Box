@@ -59,6 +59,7 @@ git checkout -b migration/agent-platform
 ### 步驟 1：實現 AgentServiceProtocol
 
 **之前**：
+
 ```python
 class MyAgent:
     def execute_task(self, task_data):
@@ -66,6 +67,7 @@ class MyAgent:
 ```
 
 **之後**：
+
 ```python
 from agents.services.protocol.base import (
     AgentServiceProtocol,
@@ -128,12 +130,14 @@ async def register_core_agents():
 ### 步驟 3：更新調用代碼
 
 **之前**：
+
 ```python
 agent = MyAgent()
 result = agent.execute_task(task_data)
 ```
 
 **之後**：
+
 ```python
 from agents.services.registry.registry = get_agent_registry()
 from agents.services.protocol.base import AgentServiceRequest

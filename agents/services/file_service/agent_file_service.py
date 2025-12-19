@@ -7,11 +7,12 @@
 
 import logging
 import os
-from typing import Optional, List
 from pathlib import Path
+from typing import List, Optional
+
+from storage.file_storage import FileStorage, LocalFileStorage
 
 from .models import AgentFileInfo, FileType
-from storage.file_storage import FileStorage, LocalFileStorage
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +33,7 @@ class AgentFileService:
             base_url: 文件訪問基礎 URL
         """
         self._storage = storage or LocalFileStorage(
-            storage_path=os.getenv(
-                "AGENT_FILES_STORAGE_PATH", "./data/datasets/agent_files"
-            )
+            storage_path=os.getenv("AGENT_FILES_STORAGE_PATH", "./data/datasets/agent_files")
         )
         self._base_url = base_url.rstrip("/")
         self._logger = logger
@@ -71,9 +70,7 @@ class AgentFileService:
             file_id = self._generate_file_id(agent_id, task_id, filename)
 
             # 保存文件
-            file_id, saved_path = self._storage.save_file(
-                file_content, filename, file_id=file_id
-            )
+            file_id, saved_path = self._storage.save_file(file_content, filename, file_id=file_id)
 
             # 如果保存路徑不包含組織化結構，需要手動組織
             # 這裡暫時使用保存後的路徑，後續可以擴展 FileStorage 支持組織化路徑
@@ -105,9 +102,7 @@ class AgentFileService:
             self._logger.error(f"Failed to upload agent output: {e}")
             raise
 
-    def get_agent_file(
-        self, agent_id: str, task_id: str, file_id: str
-    ) -> Optional[AgentFileInfo]:
+    def get_agent_file(self, agent_id: str, task_id: str, file_id: str) -> Optional[AgentFileInfo]:
         """
         獲取 Agent 文件信息
 
@@ -151,9 +146,7 @@ class AgentFileService:
             self._logger.error(f"Failed to get agent file: {e}")
             return None
 
-    def list_agent_files(
-        self, agent_id: str, task_id: Optional[str] = None
-    ) -> List[AgentFileInfo]:
+    def list_agent_files(self, agent_id: str, task_id: Optional[str] = None) -> List[AgentFileInfo]:
         """
         列出 Agent 的文件
 
@@ -190,9 +183,7 @@ class AgentFileService:
                         file_type=file_type,
                         filename=filename,
                         file_path=str(file_path),
-                        file_url=self._generate_file_url(
-                            agent_id, task_id or "unknown", file_id
-                        ),
+                        file_url=self._generate_file_url(agent_id, task_id or "unknown", file_id),
                         file_size=file_path.stat().st_size,
                     )
                     files.append(file_info)

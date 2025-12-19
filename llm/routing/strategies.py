@@ -314,7 +314,9 @@ class CostBasedStrategy(BaseRoutingStrategy):
             # 選擇成本最低的提供商
             provider = min(self.cost_scores.items(), key=lambda x: x[1])[0]
             confidence = 0.8
-            reasoning = f"成本敏感任務，選擇 {provider.value}（成本評分：{self.cost_scores[provider]:.2f}）"
+            reasoning = (
+                f"成本敏感任務，選擇 {provider.value}（成本評分：{self.cost_scores[provider]:.2f}）"
+            )
         else:
             # 平衡成本和質量，選擇中等成本的提供商
             sorted_providers = sorted(self.cost_scores.items(), key=lambda x: x[1])
@@ -444,9 +446,7 @@ class HybridRoutingStrategy(BaseRoutingStrategy):
                 if strategy_name in config:
                     # 重新創建策略實例以應用配置
                     strategy_class = type(strategy)
-                    self.strategies[strategy_name] = strategy_class(
-                        config[strategy_name]
-                    )
+                    self.strategies[strategy_name] = strategy_class(config[strategy_name])
 
     def select_provider(
         self,

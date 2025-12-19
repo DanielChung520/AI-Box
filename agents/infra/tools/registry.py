@@ -6,11 +6,12 @@
 """Tool Registry - 實現工具註冊、發現和管理功能"""
 
 import logging
-from agents.services.resource_controller import get_resource_controller
-from enum import Enum
-from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
+
+from agents.services.resource_controller import get_resource_controller
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +57,7 @@ class ToolRegistry:
     def __init__(self):
         """初始化工具註冊表"""
         self._tools: Dict[str, Tool] = {}
-        self._tools_by_type: Dict[ToolType, List[str]] = {
-            tool_type: [] for tool_type in ToolType
-        }
+        self._tools_by_type: Dict[ToolType, List[str]] = {tool_type: [] for tool_type in ToolType}
         # 資源訪問控制器
         self._resource_controller = get_resource_controller()
 
@@ -193,10 +192,7 @@ class ToolRegistry:
 
         matched_tools = []
         for tool in tools:
-            if (
-                query_lower in tool.name.lower()
-                or query_lower in tool.description.lower()
-            ):
+            if query_lower in tool.name.lower() or query_lower in tool.description.lower():
                 matched_tools.append(tool)
 
         return matched_tools

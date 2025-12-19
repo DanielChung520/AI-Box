@@ -5,17 +5,18 @@
 
 """工作流執行 API 路由（LangChain、AutoGen、混合模式）"""
 
-import uuid
 import logging
-from typing import Optional, Dict, Any, List, Literal
-from fastapi import APIRouter, status, HTTPException
+import uuid
+from typing import Any, Dict, List, Literal, Optional
+
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from services.api.core.response import APIResponse
+from agents.task_analyzer.models import WorkflowType
 from agents.workflows.base import WorkflowRequestContext
 from agents.workflows.factory_router import get_workflow_factory_router
-from agents.task_analyzer.models import WorkflowType
+from services.api.core.response import APIResponse
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +29,8 @@ class WorkflowExecuteRequest(BaseModel):
     task: str = Field(..., description="任務描述")
     workflow_type: Optional[str] = Field(default="langchain", description="工作流類型")
     user_id: Optional[str] = Field(default=None, description="用戶ID")
-    context: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="上下文信息"
-    )
-    workflow_config: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="工作流配置"
-    )
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
+    workflow_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="工作流配置")
 
 
 class HybridWorkflowExecuteRequest(BaseModel):
@@ -47,26 +44,18 @@ class HybridWorkflowExecuteRequest(BaseModel):
         default=None, description="備用模式列表"
     )
     user_id: Optional[str] = Field(default=None, description="用戶ID")
-    context: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="上下文信息"
-    )
-    workflow_config: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="工作流配置"
-    )
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
+    workflow_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="工作流配置")
 
 
 class AutoGenPlanRequest(BaseModel):
     """AutoGen 規劃請求模型"""
 
     task: str = Field(..., description="任務描述")
-    context: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="上下文信息"
-    )
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
     user_id: Optional[str] = Field(default=None, description="用戶ID")
     max_steps: Optional[int] = Field(default=10, description="最大步驟數")
-    workflow_config: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="工作流配置"
-    )
+    workflow_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="工作流配置")
 
 
 @router.post("/workflows/langchain/execute", status_code=status.HTTP_200_OK)
@@ -112,18 +101,14 @@ async def execute_langchain_workflow(request: WorkflowExecuteRequest) -> JSONRes
         result = await workflow.run()
 
         # 返回結果
-        logger.info(
-            f"LangChain workflow completed for task: {task_id}, status: {result.status}"
-        )
+        logger.info(f"LangChain workflow completed for task: {task_id}, status: {result.status}")
         return APIResponse.success(
             data={
                 "task_id": task_id,
                 "status": result.status,
                 "output": result.output,
                 "reasoning": result.reasoning,
-                "telemetry": [
-                    {"name": e.name, "payload": e.payload} for e in result.telemetry
-                ],
+                "telemetry": [{"name": e.name, "payload": e.payload} for e in result.telemetry],
                 "state_snapshot": result.state_snapshot,
             },
             message="LangChain workflow executed successfully",
@@ -187,9 +172,7 @@ async def autogen_plan(request: AutoGenPlanRequest) -> JSONResponse:
                 "status": result.status,
                 "output": result.output,
                 "reasoning": result.reasoning,
-                "telemetry": [
-                    {"name": e.name, "payload": e.payload} for e in result.telemetry
-                ],
+                "telemetry": [{"name": e.name, "payload": e.payload} for e in result.telemetry],
                 "state_snapshot": result.state_snapshot,
             },
             message="AutoGen planning completed successfully",
@@ -254,9 +237,7 @@ async def execute_hybrid_workflow(
                 "status": result.status,
                 "output": result.output,
                 "reasoning": result.reasoning,
-                "telemetry": [
-                    {"name": e.name, "payload": e.payload} for e in result.telemetry
-                ],
+                "telemetry": [{"name": e.name, "payload": e.payload} for e in result.telemetry],
                 "state_snapshot": result.state_snapshot,
             },
             message="Hybrid workflow executed successfully",

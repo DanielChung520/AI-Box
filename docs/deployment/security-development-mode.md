@@ -92,6 +92,7 @@ curl http://localhost:8000/api/v1/protected
 ```
 
 返回結果：
+
 ```json
 {
   "message": "This is a protected endpoint",
@@ -165,6 +166,7 @@ async def admin_action(
 當準備部署到生產環境時，需要：
 
 1. **啟用安全模組**：
+
    ```bash
    export SECURITY_ENABLED=true
    export SECURITY_MODE=production
@@ -211,11 +213,13 @@ async def admin_action(
 ### 問題：端點仍然要求認證
 
 **可能原因**：
+
 - `SECURITY_ENABLED` 設置為 `true`
 - `SECURITY_MODE` 設置為 `production`
 
 **解決方案**：
 檢查環境變數和 `config.json` 配置，確保：
+
 ```bash
 SECURITY_ENABLED=false
 SECURITY_MODE=development
@@ -224,15 +228,18 @@ SECURITY_MODE=development
 ### 問題：權限檢查失敗
 
 **可能原因**：
+
 - RBAC 被啟用且權限檢查邏輯已實施
 
 **解決方案**：
 在開發模式下，確保：
+
 ```bash
 SECURITY_RBAC_ENABLED=false
 ```
 
 或確保 `config.json` 中：
+
 ```json
 {
   "services": {

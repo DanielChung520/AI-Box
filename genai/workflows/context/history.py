@@ -119,12 +119,8 @@ class ConversationHistory:
             for msg_dict in messages_data["messages"]:
                 try:
                     # 處理時間戳字符串
-                    if "timestamp" in msg_dict and isinstance(
-                        msg_dict["timestamp"], str
-                    ):
-                        msg_dict["timestamp"] = datetime.fromisoformat(
-                            msg_dict["timestamp"]
-                        )
+                    if "timestamp" in msg_dict and isinstance(msg_dict["timestamp"], str):
+                        msg_dict["timestamp"] = datetime.fromisoformat(msg_dict["timestamp"])
 
                     message = ContextMessage(**msg_dict)
 
@@ -238,9 +234,7 @@ class ConversationHistory:
             self._storage.save(key, messages_data)
 
             deleted_count = original_count - len(filtered_messages)
-            logger.info(
-                "Deleted %d messages from session %s", deleted_count, session_id
-            )
+            logger.info("Deleted %d messages from session %s", deleted_count, session_id)
             return deleted_count
         except Exception as exc:
             logger.error("Failed to delete messages: %s", exc)
@@ -263,9 +257,7 @@ class ConversationHistory:
             logger.error("Failed to clear history: %s", exc)
             return False
 
-    def archive_session(
-        self, session_id: str, archive_key: Optional[str] = None
-    ) -> bool:
+    def archive_session(self, session_id: str, archive_key: Optional[str] = None) -> bool:
         """
         歸檔會話歷史記錄。
 

@@ -5,7 +5,8 @@
 
 """PDF 文件解析器 - 使用 PyPDF2"""
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from .base_parser import BaseParser
 
 try:

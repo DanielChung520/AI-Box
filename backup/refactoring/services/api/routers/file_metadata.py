@@ -5,13 +5,14 @@
 
 """文件元數據路由 - 提供元數據查詢、更新和搜索功能"""
 
-from typing import Optional, List
+from typing import List, Optional
+
 from fastapi import APIRouter, Query, status
 from fastapi.responses import JSONResponse
 
 from services.api.core.response import APIResponse
-from services.api.services.file_metadata_service import FileMetadataService
 from services.api.models.file_metadata import FileMetadataUpdate
+from services.api.services.file_metadata_service import FileMetadataService
 
 router = APIRouter(prefix="/files", tags=["File Metadata"])
 
@@ -75,9 +76,7 @@ async def list_file_metadata(
 
 
 @router.put("/{file_id}/metadata")
-async def update_file_metadata(
-    file_id: str, update: FileMetadataUpdate
-) -> JSONResponse:
+async def update_file_metadata(file_id: str, update: FileMetadataUpdate) -> JSONResponse:
     """更新文件元數據"""
     service = get_service()
     metadata = service.update(file_id, update)
@@ -88,9 +87,7 @@ async def update_file_metadata(
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    return APIResponse.success(
-        data=metadata.model_dump(mode="json"), message="元數據更新成功"
-    )
+    return APIResponse.success(data=metadata.model_dump(mode="json"), message="元數據更新成功")
 
 
 @router.post("/metadata/search")

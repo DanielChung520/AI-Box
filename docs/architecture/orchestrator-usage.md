@@ -11,28 +11,33 @@ AI-Box 專案中有兩個 Orchestrator 實現，分別適用於不同的使用�
 **位置**：`agents/orchestrator/orchestrator.py`
 
 **設計目標**：
+
 - 簡單的 Agent 協調和任務分發
 - 適用於單一框架或簡單的多 Agent 協作
 - 輕量級實現，易於使用
 
 **主要功能**：
+
 - Agent 註冊和管理
 - 任務提交和分發
 - 結果聚合
 - 負載均衡（簡單的負載計數）
 
 **適用場景**：
+
 - 簡單的 Agent 協作任務
 - 單一框架（如純 CrewAI 或純 AutoGen）
 - 不需要複雜的工作流編排
 - 快速原型開發
 
 **限制**：
+
 - 不支持多框架混合
 - 不支持複雜的工作流狀態管理
 - 不支持動態模式切換
 
 **示例**：
+
 ```python
 from agents.orchestrator.orchestrator import AgentOrchestrator
 
@@ -62,11 +67,13 @@ result = orchestrator.get_task_result(task_id)
 **位置**：`agents/workflows/hybrid_orchestrator.py`
 
 **設計目標**：
+
 - 複雜的多框架混合編排
 - 支持 AutoGen、LangGraph、CrewAI 之間的動態切換
 - 完整的工作流狀態管理和同步
 
 **主要功能**：
+
 - 多框架工作流編排（AutoGen、LangGraph、CrewAI）
 - 動態模式切換和故障轉移
 - 狀態同步和檢查點管理
@@ -74,6 +81,7 @@ result = orchestrator.get_task_result(task_id)
 - Telemetry 事件追蹤
 
 **適用場景**：
+
 - 複雜的多步驟工作流
 - 需要多框架混合使用
 - 需要動態切換框架以應對不同階段
@@ -81,11 +89,13 @@ result = orchestrator.get_task_result(task_id)
 - 生產環境的複雜任務
 
 **限制**：
+
 - 實現複雜，學習曲線較高
 - 資源消耗較大
 - 需要更多配置
 
 **示例**：
+
 ```python
 from agents.workflows.hybrid_orchestrator import HybridOrchestrator
 from agents.workflows.models import WorkflowRequestContext
@@ -138,6 +148,7 @@ print(f"使用的模式: {result.state_snapshot.get('current_mode')}")
    - 對性能要求不高
 
 **示例場景**：
+
 - 簡單的文檔生成任務（研究 → 撰寫 → 審查）
 - 單一框架的問答系統
 - 簡單的數據處理流程
@@ -165,6 +176,7 @@ print(f"使用的模式: {result.state_snapshot.get('current_mode')}")
    - 需要詳細的執行日誌
 
 **示例場景**：
+
 - 複雜的研究項目（需要規劃、研究、分析、撰寫、審查等多個階段）
 - 多階段決策系統（每個階段可能需要不同的框架）
 - 需要動態調整策略的長期任務
@@ -196,6 +208,7 @@ print(f"使用的模式: {result.state_snapshot.get('current_mode')}")
 如果您的任務變得複雜，需要遷移到 HybridOrchestrator：
 
 1. **創建 WorkflowRequestContext**
+
    ```python
    from agents.workflows.models import WorkflowRequestContext
 
@@ -207,6 +220,7 @@ print(f"使用的模式: {result.state_snapshot.get('current_mode')}")
    ```
 
 2. **初始化 HybridOrchestrator**
+
    ```python
    orchestrator = HybridOrchestrator(
        request_ctx=ctx,
@@ -216,11 +230,13 @@ print(f"使用的模式: {result.state_snapshot.get('current_mode')}")
    ```
 
 3. **執行工作流**
+
    ```python
    result = await orchestrator.run()
    ```
 
 4. **處理結果**
+
    ```python
    if result.status == "completed":
        output = result.output

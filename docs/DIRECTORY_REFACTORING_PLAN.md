@@ -29,6 +29,7 @@
 詳見文檔：[目錄結構文字稿](./DIRECTORY_STRUCTURE.md)（待創建）
 
 主要組件：
+
 - `genai/` - GenAI 相關組件（LangChain、RAG、NER/RE/RT、Context Record）
 - `mcp/` - MCP Server 和 Client
 - `database/` - 數據庫服務（ChromaDB、ArangoDB、Personnel Data）
@@ -49,6 +50,7 @@
 **目標**: 備份現有代碼和測試，創建新目錄結構
 
 **任務**:
+
 1. 備份現有測試代碼到 `tests_backup/`
 2. 創建新目錄結構（空目錄）
 3. 創建遷移日誌文件
@@ -56,19 +58,24 @@
 
 **具體步驟**:
 \`\`\`bash
+
 # 1. 創建測試備份目錄
+
 mkdir -p tests_backup
 
 # 2. 備份現有測試（如果有）
+
 find . -name "test_*.py" -o -name "*_test.py" 2>/dev/null | while read file; do
     mkdir -p tests_backup/$(dirname "$file")
     cp "$file" "tests_backup/$file"
 done
 
 # 3. 備份測試配置
+
 [ -f pytest.ini ] && cp pytest.ini tests_backup/
 
 # 4. 創建新目錄結構
+
 mkdir -p database/{chromadb,arangodb,redis,personnel}
 mkdir -p llm/{moe,abstraction,clients,routing/strategies}
 mkdir -p mcp/{server/{protocol,tools},client/connection}
@@ -80,10 +87,12 @@ mkdir -p storage
 mkdir -p tests/{genai,mcp,database,llm,agents,system,api}
 
 # 5. 創建 Git 分支
+
 git checkout -b refactoring/directory-restructure
 \`\`\`
 
 **檢查點**:
+
 - [ ] 所有測試文件已備份到 `tests_backup/`
 - [ ] 新目錄結構已創建
 - [ ] Git 分支已創建
@@ -96,12 +105,14 @@ git checkout -b refactoring/directory-restructure
 **目標**: 遷移所有數據庫相關代碼
 
 **遷移內容**:
+
 - `databases/chromadb/` → `database/chromadb/`
 - `databases/arangodb/` → `database/arangodb/`
 - Redis 客戶端（如有）→ `database/redis/`
 - Personnel Data 服務 → `database/personnel/`
 
 **具體步驟**:
+
 1. 創建 `database/` 目錄結構（已在階段 0 完成）
 2. 遷移 ChromaDB 代碼
    - 複製 `databases/chromadb/` 到 `database/chromadb/`
@@ -114,12 +125,17 @@ git checkout -b refactoring/directory-restructure
 
 **更新導入路徑**:
 \`\`\`python
+
 # 需要替換的導入路徑
+
 # databases.chromadb -> database.chromadb
+
 # databases.arangodb -> database.arangodb
+
 \`\`\`
 
 **測試重點**:
+
 - [ ] ChromaDB 連接和操作正常
 - [ ] ArangoDB 連接和操作正常
 - [ ] 所有數據庫客戶端功能正常
@@ -135,6 +151,7 @@ git checkout -b refactoring/directory-restructure
 **目標**: 遷移 LLM 模型層代碼，重組內部結構
 
 **遷移內容**:
+
 - `llm/moe_manager.py` → `llm/moe/moe_manager.py`
 - `llm/clients/` → `llm/clients/` (保持，但更新導入)
 - `llm/routing/` → `llm/routing/` (保持，但更新導入)
@@ -143,6 +160,7 @@ git checkout -b refactoring/directory-restructure
 - 創建 `llm/abstraction/` 目錄，提取抽象層
 
 **具體步驟**:
+
 1. 創建 `llm/moe/` 目錄
 2. 遷移 MoE 管理器
    - 移動 `llm/moe_manager.py` → `llm/moe/moe_manager.py`
@@ -156,13 +174,19 @@ git checkout -b refactoring/directory-restructure
 
 **更新導入路徑**:
 \`\`\`python
+
 # 需要替換的導入路徑
+
 # llm.moe_manager -> llm.moe.moe_manager
+
 # from llm.moe_manager import LLMMoEManager
+
 # -> from llm.moe.moe_manager import LLMMoEManager
+
 \`\`\`
 
 **測試重點**:
+
 - [ ] LLM 客戶端正常運行
 - [ ] MoE 管理器功能正常
 - [ ] 路由策略正常工作
@@ -178,12 +202,14 @@ git checkout -b refactoring/directory-restructure
 **目標**: 遷移 MCP Server 和 Client 代碼
 
 **遷移內容**:
+
 - `mcp_server/` → `mcp/server/`
 - `mcp_client/` → `mcp/client/`
 - `services/mcp_server/` → 整合到 `mcp/server/`
 - `agents/*/mcp_server.py` → `agents/core/*/handlers.py` (重命名並遷移)
 
 **具體步驟**:
+
 1. 創建 `mcp/server/` 目錄結構
 2. 遷移 MCP Server 核心代碼
    - 移動 `mcp_server/server.py` → `mcp/server/server.py`
@@ -204,13 +230,19 @@ git checkout -b refactoring/directory-restructure
 
 **更新導入路徑**:
 \`\`\`python
+
 # 需要替換的導入路徑
+
 # mcp_server -> mcp.server
+
 # mcp_client -> mcp.client
+
 # services.mcp_server -> mcp.server
+
 \`\`\`
 
 **測試重點**:
+
 - [ ] MCP Server 啟動正常
 - [ ] MCP Client 連接正常
 - [ ] MCP 工具調用正常
@@ -228,6 +260,7 @@ git checkout -b refactoring/directory-restructure
 **遷移內容**:
 
 **路由層**:
+
 - `services/api/routers/ner.py` → `genai/api/routers/ner.py`
 - `services/api/routers/re.py` → `genai/api/routers/re.py`
 - `services/api/routers/rt.py` → `genai/api/routers/rt.py`
@@ -238,6 +271,7 @@ git checkout -b refactoring/directory-restructure
 - `services/api/routers/chunk_processing.py` → `genai/api/routers/chunk_processing.py`
 
 **服務層**:
+
 - `services/api/services/ner_service.py` → `genai/api/services/ner_service.py`
 - `services/api/services/re_service.py` → `genai/api/services/re_service.py`
 - `services/api/services/rt_service.py` → `genai/api/services/rt_service.py`
@@ -245,12 +279,14 @@ git checkout -b refactoring/directory-restructure
 - `services/api/services/kg_builder_service.py` → `genai/api/services/kg_builder_service.py`
 
 **模型層**:
+
 - `services/api/models/ner_models.py` → `genai/api/models/ner_models.py`
 - `services/api/models/re_models.py` → `genai/api/models/re_models.py`
 - `services/api/models/rt_models.py` → `genai/api/models/rt_models.py`
 - `services/api/models/triple_models.py` → `genai/api/models/triple_models.py`
 
 **工作流層**:
+
 - `agent_process/memory/aam/hybrid_rag.py` → `genai/workflows/rag/hybrid_rag.py`
 - `agent_process/retrieval/` → `genai/workflows/rag/`
 - `agent_process/context/` → `genai/workflows/context/`
@@ -258,6 +294,7 @@ git checkout -b refactoring/directory-restructure
 - `agents/workflows/langchain_graph/` → `genai/workflows/langchain/`
 
 **具體步驟**:
+
 1. 創建 `genai/` 目錄結構
 2. 遷移路由層代碼
 3. 遷移服務層代碼
@@ -268,6 +305,7 @@ git checkout -b refactoring/directory-restructure
 8. 運行測試驗證
 
 **測試重點**:
+
 - [ ] NER/RE/RT 服務正常
 - [ ] 三元組提取正常
 - [ ] 知識圖譜構建和查詢正常
@@ -286,25 +324,30 @@ git checkout -b refactoring/directory-restructure
 **遷移內容**:
 
 **服務層**:
+
 - `services/agent_registry/` → `agents/services/registry/`
 - `services/result_processor/` → `agents/services/processing/`
 - `services/file_server/` → `agents/services/file_service/`
 - `agents/orchestrator/` → `agents/services/orchestrator/`
 
 **核心 Agent**:
+
 - `agents/planning/` → `agents/core/planning/` (agent.py 和 handlers.py)
 - `agents/execution/` → `agents/core/execution/` (agent.py 和 handlers.py)
 - `agents/review/` → `agents/core/review/` (agent.py 和 handlers.py)
 
 **工作流引擎**:
+
 - `agents/workflows/crewai/` → `agents/workflows/crewai/`
 - `agents/workflows/autogen/` → `agents/workflows/autogen/`
 - `agents/workflows/hybrid_orchestrator.py` → `agents/workflows/hybrid_orchestrator.py`
 
 **任務分析**:
+
 - `agents/task_analyzer/` → `agents/task_analyzer/` (保持位置)
 
 **具體步驟**:
+
 1. 創建 `agents/services/` 目錄結構
 2. 遷移 Agent Registry 服務
 3. 遷移 Result Processor 服務
@@ -316,6 +359,7 @@ git checkout -b refactoring/directory-restructure
 9. 運行測試驗證
 
 **測試重點**:
+
 - [ ] Agent Registry 註冊和發現正常
 - [ ] Agent Orchestrator 協調正常
 - [ ] 核心 Agent 執行正常
@@ -332,12 +376,14 @@ git checkout -b refactoring/directory-restructure
 **目標**: 遷移系統管理相關代碼
 
 **遷移內容**:
+
 - `services/security/` → `system/security/`
 - `core/config.py` → `system/infra/config/config.py`
 - 日誌相關代碼 → `system/infra/logging/`
 - 監控相關代碼 → `system/infra/monitoring/`
 
 **具體步驟**:
+
 1. 創建 `system/` 目錄結構
 2. 遷移 Security 服務
    - 移動 `services/security/` → `system/security/`
@@ -352,6 +398,7 @@ git checkout -b refactoring/directory-restructure
 7. 運行測試驗證
 
 **測試重點**:
+
 - [ ] 安全認證正常
 - [ ] 配置讀取正常
 - [ ] 日誌記錄正常
@@ -366,6 +413,7 @@ git checkout -b refactoring/directory-restructure
 **目標**: 整合所有 API 路由到統一入口
 
 **遷移內容**:
+
 - `services/api/main.py` → `api/main.py`
 - `services/api/routers/*` → `api/routers/*` (整合並引用新位置)
 - `services/api/middleware/` → `api/middleware/`
@@ -373,6 +421,7 @@ git checkout -b refactoring/directory-restructure
 - `services/api/storage/` → `storage/`
 
 **具體步驟**:
+
 1. 創建 `api/` 目錄結構
 2. 遷移 API 主應用
    - 移動 `services/api/main.py` → `api/main.py`
@@ -387,6 +436,7 @@ git checkout -b refactoring/directory-restructure
 8. 運行測試驗證
 
 **測試重點**:
+
 - [ ] API 服務啟動正常
 - [ ] 所有路由正常訪問
 - [ ] 中間件正常工作
@@ -402,6 +452,7 @@ git checkout -b refactoring/directory-restructure
 **目標**: 清理舊代碼，優化導入路徑
 
 **任務**:
+
 1. 刪除舊目錄（確認新代碼完全正常後）
 2. 更新所有文檔中的路徑引用
 3. 優化導入路徑，移除不必要的適配器
@@ -409,6 +460,7 @@ git checkout -b refactoring/directory-restructure
 5. 運行完整測試套件
 
 **清理順序**:
+
 1. 確認所有新代碼正常工作
 2. 備份舊目錄到 `backup/refactoring/`
 3. 刪除舊目錄
@@ -416,6 +468,7 @@ git checkout -b refactoring/directory-restructure
 5. 運行完整測試
 
 **測試重點**:
+
 - [ ] 所有功能正常
 - [ ] 沒有導入錯誤
 - [ ] 代碼格式符合規範
@@ -454,23 +507,27 @@ git checkout -b refactoring/directory-restructure
 ### 單元測試
 
 **每個模組遷移後**:
+
 1. 為新模組編寫單元測試
 2. 測試核心功能
 3. 測試邊界情況
 4. 確保覆蓋率 > 80%
 
 **測試工具**:
+
 - pytest
 - pytest-cov (覆蓋率)
 
 ### 集成測試
 
 **每完成一個大模組後**:
+
 1. 測試模組間的集成
 2. 測試 API 端點
 3. 測試數據流
 
 **測試重點**:
+
 - API 端點響應
 - 數據庫操作
 - 模組間通信
@@ -478,6 +535,7 @@ git checkout -b refactoring/directory-restructure
 ### 端到端測試
 
 **所有模組遷移完成後**:
+
 1. 測試完整的工作流
 2. 測試 Agent 協調流程
 3. 測試性能基準
@@ -492,10 +550,13 @@ git checkout -b refactoring/directory-restructure
 
 **備份命令**:
 \`\`\`bash
+
 # 創建備份目錄
+
 mkdir -p tests_backup
 
 # 備份現有測試（如果有）
+
 find . -type f -name "test_*.py" -o -name "*_test.py" 2>/dev/null | \
     while read file; do
         dir="tests_backup/$(dirname "$file" | sed 's|^\./||')"
@@ -504,6 +565,7 @@ find . -type f -name "test_*.py" -o -name "*_test.py" 2>/dev/null | \
     done
 
 # 備份測試配置
+
 [ -f pytest.ini ] && cp pytest.ini tests_backup/
 [ -f pyproject.toml ] && grep -A 20 "\[tool.pytest" pyproject.toml > tests_backup/pytest_config.txt || true
 \`\`\`
@@ -512,14 +574,18 @@ find . -type f -name "test_*.py" -o -name "*_test.py" 2>/dev/null | \
 
 **使用 Git 分支**:
 \`\`\`bash
+
 # 創建遷移分支
+
 git checkout -b refactoring/directory-restructure
 
 # 每個階段完成後提交
+
 git add .
 git commit -m "階段 X: 完成 [模組名] 遷移"
 
 # 創建階段標籤
+
 git tag -a "refactor/stage-X-[module]" -m "完成階段 X 遷移"
 \`\`\`
 
@@ -529,10 +595,13 @@ git tag -a "refactor/stage-X-[module]" -m "完成階段 X 遷移"
 
 **清理前備份**:
 \`\`\`bash
+
 # 在階段 8 清理前執行
+
 mkdir -p backup/refactoring
 
 # 備份舊目錄
+
 cp -r services backup/refactoring/ 2>/dev/null || true
 cp -r databases backup/refactoring/ 2>/dev/null || true
 cp -r agent_process backup/refactoring/ 2>/dev/null || true
@@ -557,6 +626,7 @@ cp -r agent_process backup/refactoring/ 2>/dev/null || true
 | 8 | 清理優化 | ⏸️ 待開始 | - | - | - | - |
 
 **狀態標記**:
+
 - ⏸️ 待開始
 - 🔄 進行中
 - ✅ 已完成
@@ -568,11 +638,13 @@ cp -r agent_process backup/refactoring/ 2>/dev/null || true
 記錄每個階段遇到的問題和解決方案：
 
 \`\`\`markdown
+
 ## 問題追蹤
 
 ### 階段 X - [模組名]
 
 **問題 1**: [問題描述]
+
 - **原因**: [原因分析]
 - **解決方案**: [解決方案]
 - **狀態**: [已解決/進行中]
@@ -627,35 +699,46 @@ cp -r agent_process backup/refactoring/ 2>/dev/null || true
 
 **導入路徑更新**:
 \`\`\`bash
+
 # 使用 sed 批量替換導入路徑（Mac）
+
 find . -name "*.py" -type f -exec sed -i '' 's/from databases\./from database./g' {} \;
 
 # 使用 sed 批量替換導入路徑（Linux）
+
 find . -name "*.py" -type f -exec sed -i 's/from databases\./from database./g' {} \;
 \`\`\`
 
 **檢查導入**:
 \`\`\`bash
+
 # 檢查舊路徑的導入
+
 grep -r "from databases" . --include="*.py"
 grep -r "from services.api" . --include="*.py"
 \`\`\`
 
 **靜態檢查**:
 \`\`\`bash
+
 # mypy 類型檢查
+
 mypy .
 
 # ruff 代碼檢查
+
 ruff check .
 
 # black 格式化檢查
+
 black --check .
 \`\`\`
 
 **循環依賴檢查**:
 \`\`\`bash
+
 # 使用 pydeps 檢查循環依賴
+
 pip install pydeps
 pydeps --show-deps --max-bacon=2 .
 \`\`\`
@@ -667,6 +750,7 @@ pydeps --show-deps --max-bacon=2 .
 ### 階段完成標準
 
 每個階段被認為完成當：
+
 1. ✅ 代碼已遷移到新位置
 2. ✅ 所有導入路徑已更新
 3. ✅ 單元測試通過（覆蓋率 > 80%）
@@ -678,6 +762,7 @@ pydeps --show-deps --max-bacon=2 .
 ### 項目完成標準
 
 整個重構被認為完成當：
+
 1. ✅ 所有階段已完成
 2. ✅ 所有測試通過
 3. ✅ 代碼符合規範
@@ -702,6 +787,7 @@ pydeps --show-deps --max-bacon=2 .
 | 階段 8: 清理 | 2-3 天 | 18.5-26.5 天 | 1 天 |
 
 **總預計時間**:
+
 - **基礎時間**: 18.5-26.5 天
 - **加上緩衝**: 約 4-6 週（考慮測試和調試時間）
 
@@ -712,6 +798,7 @@ pydeps --show-deps --max-bacon=2 .
 每個階段遷移時，在 `REFACTORING_LOG.md` 中記錄以下信息：
 
 \`\`\`markdown
+
 ## 階段 X: [模組名] 遷移日誌
 
 **開始日期**: YYYY-MM-DD
@@ -719,19 +806,23 @@ pydeps --show-deps --max-bacon=2 .
 **負責人**: [姓名]
 
 ### 遷移文件列表
+
 - [ ] 文件1 (原路徑 -> 新路徑)
 - [ ] 文件2 (原路徑 -> 新路徑)
 
 ### 導入路徑更新
+
 - `from old.module` -> `from new.module`
 
 ### 遇到的問題
+
 1. **問題描述**: [描述]
    - **原因**: [原因分析]
    - **解決方案**: [解決方案]
    - **狀態**: [已解決/進行中]
 
 ### 測試結果
+
 - [ ] 單元測試: ✅ 通過 / ❌ 失敗
   - 覆蓋率: XX%
 - [ ] 集成測試: ✅ 通過 / ❌ 失敗
@@ -741,6 +832,7 @@ pydeps --show-deps --max-bacon=2 .
   - black: ✅ / ❌
 
 ### 備註
+
 - 其他需要注意的事項
 - 後續需要跟進的工作
 \`\`\`

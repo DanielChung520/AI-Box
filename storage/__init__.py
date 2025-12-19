@@ -5,11 +5,7 @@
 
 """文件存儲模組 - 提供文件存儲接口和實現"""
 
-from .file_storage import (
-    FileStorage,
-    LocalFileStorage,
-    create_storage_from_config,
-)
+from .file_storage import FileStorage, LocalFileStorage, create_storage_from_config
 
 __all__ = [
     "FileStorage",

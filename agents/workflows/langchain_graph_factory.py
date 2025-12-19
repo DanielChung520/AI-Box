@@ -9,16 +9,10 @@ from __future__ import annotations
 
 from typing import Optional
 
-from agents.workflows.base import (
-    WorkflowFactoryProtocol,
-    WorkflowRequestContext,
-)
-from genai.workflows.langchain.workflow import LangChainGraphWorkflow
+from agents.workflows.base import WorkflowFactoryProtocol, WorkflowRequestContext
+from agents.workflows.settings import LangChainGraphSettings, load_langchain_graph_settings
 from genai.workflows.langchain.telemetry import WorkflowTelemetryCollector
-from agents.workflows.settings import (
-    LangChainGraphSettings,
-    load_langchain_graph_settings,
-)
+from genai.workflows.langchain.workflow import LangChainGraphWorkflow
 
 
 class LangChainWorkflowFactory(WorkflowFactoryProtocol):
@@ -27,9 +21,7 @@ class LangChainWorkflowFactory(WorkflowFactoryProtocol):
     def __init__(self, settings: Optional[LangChainGraphSettings] = None) -> None:
         self._settings = settings or load_langchain_graph_settings()
 
-    def build_workflow(
-        self, request_ctx: WorkflowRequestContext
-    ) -> LangChainGraphWorkflow:
+    def build_workflow(self, request_ctx: WorkflowRequestContext) -> LangChainGraphWorkflow:
         telemetry = WorkflowTelemetryCollector(
             enabled_metrics=self._settings.telemetry.emit_metrics,
             enabled_traces=self._settings.telemetry.emit_traces,

@@ -22,8 +22,9 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from database.arangodb import ArangoDBClient
     from dotenv import load_dotenv
+
+    from database.arangodb import ArangoDBClient
 except ImportError as e:
     print(f"[ERROR] 無法導入必需的模組: {e}")
     print("請確保已安裝所有依賴並在項目根目錄執行")
@@ -106,9 +107,7 @@ def clear_user_data(user_email: str) -> bool:
             try:
                 tasks_collection.delete(task.get("_key"))
                 deleted_count["tasks"] += 1
-                print(
-                    f"  [DELETE] 任務: {task.get('title', task_id)} (task_id: {task_id})"
-                )
+                print(f"  [DELETE] 任務: {task.get('title', task_id)} (task_id: {task_id})")
             except Exception as e:
                 print(f"  [WARN] 無法刪除任務 {task.get('_key')}: {e}")
 
@@ -161,9 +160,7 @@ def clear_user_data(user_email: str) -> bool:
             try:
                 folders_collection.delete(folder.get("_key"))
                 deleted_count["folders"] += 1
-                print(
-                    f"  [DELETE] 文件夾: {folder.get('folder_name', folder.get('_key'))}"
-                )
+                print(f"  [DELETE] 文件夾: {folder.get('folder_name', folder.get('_key'))}")
             except Exception as e:
                 print(f"  [WARN] 無法刪除文件夾 {folder.get('_key')}: {e}")
 

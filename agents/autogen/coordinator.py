@@ -124,9 +124,7 @@ class AgentCoordinator:
         # Agent 過濾
         if agent_name:
             messages = [
-                msg
-                for msg in messages
-                if msg.to_agent == agent_name or msg.to_agent is None
+                msg for msg in messages if msg.to_agent == agent_name or msg.to_agent is None
             ]
 
         # 類型過濾

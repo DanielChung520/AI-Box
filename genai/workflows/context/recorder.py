@@ -53,16 +53,12 @@ class ContextRecorder:
 
         if self._config.redis_url:
             try:
-                self._redis = redis.Redis.from_url(
-                    self._config.redis_url, decode_responses=True
-                )
+                self._redis = redis.Redis.from_url(self._config.redis_url, decode_responses=True)
                 # 測試連接
                 self._redis.ping()
                 logger.info("Context Recorder 已連接到 Redis")
             except Exception as exc:
-                logger.warning(
-                    "Context Recorder 初始化 Redis 失敗，使用記憶體儲存: %s", exc
-                )
+                logger.warning("Context Recorder 初始化 Redis 失敗，使用記憶體儲存: %s", exc)
                 self._redis = None
 
     def _key(self, session_id: str, suffix: Optional[str] = None) -> str:
@@ -100,9 +96,7 @@ class ContextRecorder:
             是否成功記錄
         """
         try:
-            message = ContextMessage(
-                role=role, content=content, metadata=metadata or {}
-            )
+            message = ContextMessage(role=role, content=content, metadata=metadata or {})
             message_dict = message.model_dump()
 
             if self._redis is not None:
@@ -192,9 +186,7 @@ class ContextRecorder:
             logger.error("Failed to clear session: %s", exc)
             return False
 
-    def get_messages(
-        self, session_id: str, limit: Optional[int] = None
-    ) -> List[ContextMessage]:
+    def get_messages(self, session_id: str, limit: Optional[int] = None) -> List[ContextMessage]:
         """
         獲取完整的消息對象列表。
 
@@ -223,14 +215,10 @@ class ContextRecorder:
             for msg_dict in messages:
                 try:
                     # 處理時間戳字符串
-                    if "timestamp" in msg_dict and isinstance(
-                        msg_dict["timestamp"], str
-                    ):
+                    if "timestamp" in msg_dict and isinstance(msg_dict["timestamp"], str):
                         from datetime import datetime
 
-                        msg_dict["timestamp"] = datetime.fromisoformat(
-                            msg_dict["timestamp"]
-                        )
+                        msg_dict["timestamp"] = datetime.fromisoformat(msg_dict["timestamp"])
                     context_messages.append(ContextMessage(**msg_dict))
                 except Exception as exc:
                     logger.warning("Failed to parse message: %s", exc)

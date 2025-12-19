@@ -20,10 +20,7 @@ from genai.workflows.context.storage import (  # noqa: F401
     RedisStorageBackend,
     StorageBackend,
 )
-from genai.workflows.context.window import (
-    ContextWindow,
-    TruncationStrategy,
-)  # noqa: F401
+from genai.workflows.context.window import ContextWindow, TruncationStrategy  # noqa: F401
 
 __all__ = [
     "ContextManager",

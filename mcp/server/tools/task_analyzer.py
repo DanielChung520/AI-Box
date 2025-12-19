@@ -6,7 +6,8 @@
 """Task Analyzer Mock 工具實現"""
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from mcp.server.tools.base import BaseTool
 
 logger = logging.getLogger(__name__)

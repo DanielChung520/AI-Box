@@ -20,9 +20,7 @@ from pydantic import BaseModel, Field
 
 from api.core.response import APIResponse
 from services.api.models.genai_tenant_policy import GenAITenantPolicyUpdate
-from services.api.services.genai_tenant_policy_service import (
-    get_genai_tenant_policy_service,
-)
+from services.api.services.genai_tenant_policy_service import get_genai_tenant_policy_service
 from system.security.dependencies import require_any_permission
 from system.security.models import Permission, User
 

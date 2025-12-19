@@ -5,9 +5,10 @@
 
 """偏見檢測服務 - 檢測NER/RE/RT結果中的偏見"""
 
-from typing import List, Optional, Dict, Any
-import structlog
 import re
+from typing import Any, Dict, List, Optional
+
+import structlog
 
 from genai.api.models.ner_models import Entity
 from genai.api.models.re_models import Relation

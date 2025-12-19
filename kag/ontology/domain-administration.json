@@ -5,7 +5,7 @@
     "description": "行政管理領域通用本體論，定義行政流程、政策法規、審批流程與組織管理的核心概念。",
     "last_modified": "2025-12-10",
     "author": "Daniel Chung",
-  
+
     "entity_classes": [
         {
             "name": "Administrative_Process",
@@ -68,7 +68,7 @@
             "description": "合同、協議、契約或正式約定文件。"
         }
     ],
-  
+
     "object_properties": [
         {
             "name": "submits",

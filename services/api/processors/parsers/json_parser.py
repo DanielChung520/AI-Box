@@ -6,7 +6,8 @@
 """JSON 文件解析器"""
 
 import json
-from typing import Dict, Any
+from typing import Any, Dict
+
 from .base_parser import BaseParser
 
 

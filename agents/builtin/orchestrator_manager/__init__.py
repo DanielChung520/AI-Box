@@ -9,11 +9,7 @@
 """
 
 from .agent import OrchestratorManagerAgent
-from .models import (
-    OrchestratorManagerRequest,
-    OrchestratorManagerResponse,
-    TaskRoutingDecision,
-)
+from .models import OrchestratorManagerRequest, OrchestratorManagerResponse, TaskRoutingDecision
 
 __all__ = [
     "OrchestratorManagerAgent",

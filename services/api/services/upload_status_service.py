@@ -34,43 +34,63 @@ PROCESSING_STATUS_COLLECTION = "processing_status"
 
 def _document_to_upload_progress(doc: Dict[str, Any]) -> UploadProgressModel:
     """將 ArangoDB document 轉換為 UploadProgressModel"""
+    file_id = doc.get("_key") or doc.get("file_id")
+    status = doc.get("status")
+    if not file_id or not isinstance(file_id, str):
+        raise ValueError(f"Invalid file_id: {file_id}")
+    if not status or not isinstance(status, str):
+        raise ValueError(f"Invalid status: {status}")
     return UploadProgressModel(
-        file_id=doc.get("_key") or doc.get("file_id"),
-        status=doc.get("status"),
+        file_id=file_id,  # type: ignore[arg-type]  # 已檢查為 str
+        status=status,  # type: ignore[arg-type]  # 已檢查為 str
         progress=doc.get("progress", 0),
         message=doc.get("message"),
         file_size=doc.get("file_size"),
         uploaded_bytes=doc.get("uploaded_bytes"),
-        created_at=datetime.fromisoformat(doc["created_at"])
-        if doc.get("created_at")
-        else datetime.utcnow(),
-        updated_at=datetime.fromisoformat(doc["updated_at"])
-        if doc.get("updated_at")
-        else datetime.utcnow(),
+        created_at=(
+            datetime.fromisoformat(doc["created_at"])
+            if doc.get("created_at")
+            else datetime.utcnow()
+        ),
+        updated_at=(
+            datetime.fromisoformat(doc["updated_at"])
+            if doc.get("updated_at")
+            else datetime.utcnow()
+        ),
     )
 
 
 def _document_to_processing_status(doc: Dict[str, Any]) -> ProcessingStatusModel:
     """將 ArangoDB document 轉換為 ProcessingStatusModel"""
+    file_id = doc.get("_key") or doc.get("file_id")
+    overall_status = doc.get("overall_status")
+    if not file_id or not isinstance(file_id, str):
+        raise ValueError(f"Invalid file_id: {file_id}")
+    if not overall_status or not isinstance(overall_status, str):
+        raise ValueError(f"Invalid overall_status: {overall_status}")
     return ProcessingStatusModel(
-        file_id=doc.get("_key") or doc.get("file_id"),
-        overall_status=doc.get("overall_status"),
+        file_id=file_id,  # type: ignore[arg-type]  # 已檢查為 str
+        overall_status=overall_status,  # type: ignore[arg-type]  # 已檢查為 str
         overall_progress=doc.get("overall_progress", 0),
         message=doc.get("message"),
         chunking=ProcessingStageStatus(**doc["chunking"]) if doc.get("chunking") else None,
-        vectorization=ProcessingStageStatus(**doc["vectorization"])
-        if doc.get("vectorization")
-        else None,
+        vectorization=(
+            ProcessingStageStatus(**doc["vectorization"]) if doc.get("vectorization") else None
+        ),
         storage=ProcessingStageStatus(**doc["storage"]) if doc.get("storage") else None,
-        kg_extraction=ProcessingStageStatus(**doc["kg_extraction"])
-        if doc.get("kg_extraction")
-        else None,
-        created_at=datetime.fromisoformat(doc["created_at"])
-        if doc.get("created_at")
-        else datetime.utcnow(),
-        updated_at=datetime.fromisoformat(doc["updated_at"])
-        if doc.get("updated_at")
-        else datetime.utcnow(),
+        kg_extraction=(
+            ProcessingStageStatus(**doc["kg_extraction"]) if doc.get("kg_extraction") else None
+        ),
+        created_at=(
+            datetime.fromisoformat(doc["created_at"])
+            if doc.get("created_at")
+            else datetime.utcnow()
+        ),
+        updated_at=(
+            datetime.fromisoformat(doc["updated_at"])
+            if doc.get("updated_at")
+            else datetime.utcnow()
+        ),
     )
 
 
@@ -161,9 +181,13 @@ class UploadStatusService:
             raise RuntimeError("ArangoDB client is not connected")
 
         collection = self.client.db.collection(UPLOAD_PROGRESS_COLLECTION)
-        doc = collection.get(file_id)
+        doc = collection.get(file_id)  # type: ignore[assignment]  # 同步模式下返回 dict | None，不是 AsyncJob/BatchJob
 
         if doc is None:
+            return None
+
+        # 確保 doc 是字典類型
+        if not isinstance(doc, dict):
             return None
 
         return _document_to_upload_progress(doc)
@@ -202,9 +226,11 @@ class UploadStatusService:
 
         collection.update({"_key": file_id, **update_data})
 
-        updated_doc = collection.get(file_id)
+        updated_doc = collection.get(file_id)  # type: ignore[assignment]  # 同步模式下返回 dict | None
         self.logger.info("upload_progress_updated", file_id=file_id, status=update.status)
-        return _document_to_upload_progress(updated_doc) if updated_doc else None
+        if updated_doc is None or not isinstance(updated_doc, dict):
+            return None
+        return _document_to_upload_progress(updated_doc)
 
     def delete_upload_progress(self, file_id: str) -> bool:
         """
@@ -280,9 +306,13 @@ class UploadStatusService:
             raise RuntimeError("ArangoDB client is not connected")
 
         collection = self.client.db.collection(PROCESSING_STATUS_COLLECTION)
-        doc = collection.get(file_id)
+        doc = collection.get(file_id)  # type: ignore[assignment]  # 同步模式下返回 dict | None
 
         if doc is None:
+            return None
+
+        # 確保 doc 是字典類型
+        if not isinstance(doc, dict):
             return None
 
         return _document_to_processing_status(doc)
@@ -329,11 +359,13 @@ class UploadStatusService:
 
         collection.update({"_key": file_id, **update_data})
 
-        updated_doc = collection.get(file_id)
+        updated_doc = collection.get(file_id)  # type: ignore[assignment]  # 同步模式下返回 dict | None
         self.logger.info(
             "processing_status_updated", file_id=file_id, overall_status=update.overall_status
         )
-        return _document_to_processing_status(updated_doc) if updated_doc else None
+        if updated_doc is None or not isinstance(updated_doc, dict):
+            return None
+        return _document_to_processing_status(updated_doc)
 
     def delete_processing_status(self, file_id: str) -> bool:
         """

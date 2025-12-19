@@ -16,7 +16,7 @@
 
 ### 步驟 1：創建 Personal Access Token
 
-1. 訪問：https://github.com/settings/tokens
+1. 訪問：<https://github.com/settings/tokens>
 2. 點擊 "Generate new token" → "Generate new token (classic)"
 3. 設置：
    - Note: `AI-Box 開發`
@@ -52,11 +52,12 @@ ssh-keygen -t ed25519 -C "daniel.chung@example.com"
 ### 步驟 2：添加 SSH 密鑰到 GitHub
 
 1. 複製公鑰內容：
+
    ```bash
    cat ~/.ssh/id_ed25519.pub
    ```
 
-2. 訪問：https://github.com/settings/keys
+2. 訪問：<https://github.com/settings/keys>
 3. 點擊 "New SSH key"
 4. 貼上公鑰內容
 5. 點擊 "Add SSH key"
@@ -120,6 +121,7 @@ git checkout develop
 **錯誤**：`fatal: could not read Username for 'https://github.com'`
 
 **解決方案**：
+
 - 使用 Personal Access Token（方法 1）
 - 或配置 SSH（方法 2）
 
@@ -128,14 +130,16 @@ git checkout develop
 **錯誤**：`remote: Repository not found`
 
 **解決方案**：
+
 - 確保已在 GitHub 創建名為 `AI-Box` 的倉庫
-- 訪問：https://github.com/new
+- 訪問：<https://github.com/new>
 
 ### 問題 3：權限不足
 
 **錯誤**：`remote: Permission denied`
 
 **解決方案**：
+
 - 檢查 Personal Access Token 是否有 `repo` 權限
 - 或檢查 SSH 密鑰是否已添加到 GitHub
 
@@ -144,11 +148,12 @@ git checkout develop
 ## 推薦流程
 
 1. **先創建 GitHub 倉庫**：
-   - 訪問：https://github.com/new
+   - 訪問：<https://github.com/new>
    - 倉庫名稱：`AI-Box`
    - 不要初始化任何文件
 
 2. **使用 Personal Access Token 推送**（最簡單）：
+
    ```bash
    git push -u origin develop
    # 用戶名：DanielChung520

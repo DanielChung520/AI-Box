@@ -89,9 +89,7 @@ class DynamicRouter:
 
                 # 創建或更新狀態
                 if name not in self._routing_states:
-                    self._routing_states[name] = RoutingState(
-                        strategy_name=name, config=config
-                    )
+                    self._routing_states[name] = RoutingState(strategy_name=name, config=config)
 
             return self._strategy_instances[name]
 
@@ -147,13 +145,9 @@ class DynamicRouter:
             if len(self._switch_history) > self._max_history_size:
                 self._switch_history = self._switch_history[-self._max_history_size :]
 
-            logger.info(
-                f"路由策略已切換: {old_strategy} -> {strategy_name} (原因: {reason})"
-            )
+            logger.info(f"路由策略已切換: {old_strategy} -> {strategy_name} (原因: {reason})")
 
-    def reload_strategy_config(
-        self, strategy_name: str, config: Dict[str, Any]
-    ) -> None:
+    def reload_strategy_config(self, strategy_name: str, config: Dict[str, Any]) -> None:
         """
         重新加載策略配置（熱重載）。
 
@@ -221,9 +215,7 @@ class DynamicRouter:
         with self._lock:
             return self._routing_states.copy()
 
-    def get_switch_history(
-        self, limit: Optional[int] = None
-    ) -> List[RoutingSwitchEvent]:
+    def get_switch_history(self, limit: Optional[int] = None) -> List[RoutingSwitchEvent]:
         """
         獲取切換歷史。
 

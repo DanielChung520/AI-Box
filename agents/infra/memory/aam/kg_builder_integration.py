@@ -11,10 +11,10 @@ from typing import List, Optional
 
 import structlog
 
-from agents.infra.memory.aam.models import MemoryType
 from agents.infra.memory.aam.aam_core import AAMManager
-from genai.api.services.kg_builder_service import KGBuilderService
+from agents.infra.memory.aam.models import MemoryType
 from genai.api.models.triple_models import Triple
+from genai.api.services.kg_builder_service import KGBuilderService
 
 logger = structlog.get_logger(__name__)
 
@@ -41,9 +41,7 @@ class KGBuilderIntegration:
         self.auto_update = auto_update
         self.logger = logger.bind(component="kg_builder_integration")
 
-    def memory_to_kg(
-        self, memory_id: str, memory_type: Optional[MemoryType] = None
-    ) -> bool:
+    def memory_to_kg(self, memory_id: str, memory_type: Optional[MemoryType] = None) -> bool:
         """
         將記憶轉換為知識圖譜（記憶 → 三元組 → 圖譜）
 
@@ -99,14 +97,10 @@ class KGBuilderIntegration:
                 return False
 
             await self.kg_builder_service.build_from_triples(triples)
-            self.logger.info(
-                "Built knowledge graph from triples", triple_count=len(triples)
-            )
+            self.logger.info("Built knowledge graph from triples", triple_count=len(triples))
             return True
         except Exception as e:
-            self.logger.error(
-                "Failed to build knowledge graph from triples", error=str(e)
-            )
+            self.logger.error("Failed to build knowledge graph from triples", error=str(e))
             return False
 
     async def incremental_update(self, triples: List[Triple]) -> bool:
@@ -125,12 +119,8 @@ class KGBuilderIntegration:
 
             # 構建圖譜（KGBuilderService 會自動處理實體合併和關係更新）
             await self.kg_builder_service.build_from_triples(triples)
-            self.logger.info(
-                "Incrementally updated knowledge graph", triple_count=len(triples)
-            )
+            self.logger.info("Incrementally updated knowledge graph", triple_count=len(triples))
             return True
         except Exception as e:
-            self.logger.error(
-                "Failed to incrementally update knowledge graph", error=str(e)
-            )
+            self.logger.error("Failed to incrementally update knowledge graph", error=str(e))
             return False

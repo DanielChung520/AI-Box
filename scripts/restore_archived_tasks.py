@@ -9,10 +9,11 @@
 用於將歸檔的任務恢復為激活狀態。
 """
 
-import sys
-import os
-import requests
 import argparse
+import os
+import sys
+
+import requests
 
 # 添加項目根目錄到路徑
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -76,9 +77,7 @@ def restore_archived_tasks(
     print()
 
     # 3. 找出歸檔的任務
-    archived_tasks = [
-        task for task in all_tasks if task.get("task_status") == "archive"
-    ]
+    archived_tasks = [task for task in all_tasks if task.get("task_status") == "archive"]
 
     if not archived_tasks:
         print("✅ 沒有歸檔的任務需要恢復")

@@ -182,6 +182,7 @@ value = redis_client.get("key")
 ### 重要注意事項
 
 ⚠️ **RQ 需要二進制模式**：
+
 - RQ 使用 `pickle` 序列化任務數據（二進制）
 - Redis 客戶端必須設置 `decode_responses=False`
 - 系統中為 RQ 創建了獨立的 Redis 連接（`database/rq/queue.py`）
@@ -203,6 +204,7 @@ value = redis_client.get("key")
 ### 隊列客戶端 (`database/rq/queue.py`)
 
 **功能**:
+
 - 提供 `get_task_queue()` 函數獲取隊列實例（單例模式）
 - 封裝 Redis 連接管理（二進制模式）
 - 支持多個隊列實例
@@ -300,6 +302,7 @@ Worker 系統包含兩個層次：
 ### Worker Service (`workers/service.py`)
 
 **功能**:
+
 - ✅ 自動啟動 Worker
 - ✅ 進程監控（檢測崩潰）
 - ✅ 自動重啟（可配置最大重啟次數）
@@ -344,6 +347,7 @@ if service.start():
    - 包含完整的 NER-RE-RT 流程
 
 **任務函數特點**:
+
 - 同步函數（RQ Worker 要求）
 - 內部使用 `asyncio.new_event_loop()` 運行異步邏輯
 - 包含錯誤處理和日誌記錄
@@ -578,9 +582,10 @@ service.stop()  # 優雅停止
 ./scripts/rq_dashboard.sh --port 9182
 ```
 
-**訪問**: http://localhost:9181
+**訪問**: <http://localhost:9181>
 
 **功能**:
+
 - 查看所有隊列和任務
 - 查看 Worker 狀態
 - 查看任務詳情和錯誤信息
@@ -683,12 +688,14 @@ tail -f logs/fastapi.log
 ### 1. 任務設計
 
 ✅ **推薦**:
+
 - 任務函數應該是純函數（無副作用）
 - 任務參數應該可以被 pickle 序列化
 - 任務應該有明確的錯誤處理
 - 長時間運行的任務應該定期更新進度
 
 ❌ **避免**:
+
 - 在任務函數中直接使用全局變量
 - 任務函數依賴外部狀態
 - 任務函數執行時間過長（超過 1 小時）
@@ -696,12 +703,14 @@ tail -f logs/fastapi.log
 ### 2. Worker 部署
 
 ✅ **生產環境**:
+
 - 使用 Worker Service 並啟用監控模式
 - 為不同隊列啟動獨立的 Worker
 - 使用 `nohup` 或 `systemd` 在後台運行
 - 設置適當的日誌輪轉
 
 ❌ **避免**:
+
 - 在生產環境中不使用監控模式
 - 多個 Worker 監聽同一個隊列（除非需要並行處理）
 - Worker 進程直接在前台運行
@@ -709,6 +718,7 @@ tail -f logs/fastapi.log
 ### 3. 隊列選擇
 
 ✅ **推薦**:
+
 - 根據任務類型選擇合適的隊列
 - 圖譜重新生成使用 `kg_extraction` 隊列
 - 向量重新生成使用 `vectorization` 隊列
@@ -717,6 +727,7 @@ tail -f logs/fastapi.log
 ### 4. 錯誤處理
 
 ✅ **推薦**:
+
 - 任務函數應該捕獲所有異常
 - 記錄詳細的錯誤日誌
 - 返回明確的錯誤信息
@@ -725,6 +736,7 @@ tail -f logs/fastapi.log
 ### 5. 性能優化
 
 ✅ **推薦**:
+
 - 根據任務量調整 Worker 數量
 - 使用多個 Worker 並行處理任務
 - 監控 Redis 內存使用
@@ -741,23 +753,27 @@ tail -f logs/fastapi.log
 **檢查步驟**:
 
 1. **檢查 Redis 連接**:
+
    ```bash
    redis-cli ping
    # 應該返回 PONG
    ```
 
 2. **檢查依賴**:
+
    ```bash
    python -c "import rq"
    # 應該沒有錯誤
    ```
 
 3. **檢查日誌**:
+
    ```bash
    tail -f logs/rq_worker_*.log
    ```
 
 4. **檢查環境變數**:
+
    ```bash
    echo $REDIS_URL
    ```
@@ -767,6 +783,7 @@ tail -f logs/fastapi.log
 **症狀**: 任務提交成功，但一直不執行
 
 **可能原因**:
+
 - Worker 沒有運行
 - Worker 監聽的隊列名稱不匹配
 - Redis 連接問題
@@ -774,11 +791,13 @@ tail -f logs/fastapi.log
 **解決方法**:
 
 1. **檢查 Worker 是否運行**:
+
    ```bash
    ps aux | grep "rq worker"
    ```
 
 2. **檢查 Worker 監聽的隊列**:
+
    ```bash
    ./scripts/rq_info.sh
    ```
@@ -793,6 +812,7 @@ tail -f logs/fastapi.log
 **症狀**: Worker 不斷重啟，無法穩定運行
 
 **可能原因**:
+
 - 任務函數有錯誤
 - 資源不足（內存、CPU）
 - Redis 連接不穩定
@@ -800,17 +820,20 @@ tail -f logs/fastapi.log
 **解決方法**:
 
 1. **查看日誌**:
+
    ```bash
    tail -f logs/rq_worker_*.log
    ```
 
 2. **檢查系統資源**:
+
    ```bash
    top
    free -h
    ```
 
 3. **檢查 Redis**:
+
    ```bash
    redis-cli info
    ```
@@ -825,6 +848,7 @@ tail -f logs/fastapi.log
 **檢查步驟**:
 
 1. **查看任務詳情**:
+
    ```bash
    # 使用 RQ Dashboard
    # 或使用 API
@@ -836,6 +860,7 @@ tail -f logs/fastapi.log
    - 日誌文件中也會記錄錯誤
 
 3. **重試任務**:
+
    ```bash
    # 使用 RQ Dashboard 重試
    # 或重新提交任務
@@ -848,6 +873,7 @@ tail -f logs/fastapi.log
 **解決方法**:
 
 1. **檢查 Redis 服務**:
+
    ```bash
    redis-cli ping
    ```
@@ -858,6 +884,7 @@ tail -f logs/fastapi.log
    - 檢查網絡連接
 
 3. **重啟 Redis**:
+
    ```bash
    # 如果使用 Docker
    docker restart redis
@@ -873,6 +900,7 @@ tail -f logs/fastapi.log
 **原因**: 任務參數包含不可序列化的對象
 
 **解決方法**:
+
 - 確保任務參數都是基本類型（str, int, dict, list）
 - 避免傳遞文件對象、數據庫連接等不可序列化的對象
 - 使用 ID 或路徑代替對象引用

@@ -55,9 +55,7 @@ class ArangoDBClient:
             port=port,
             database=database,
         )
-        self.username = username or os.getenv(
-            self.settings.credentials.username, "root"
-        )
+        self.username = username or os.getenv(self.settings.credentials.username, "root")
         self.password = password or os.getenv(
             self.settings.credentials.password,
             "ai_box_arangodb_password",
@@ -80,9 +78,7 @@ class ArangoDBClient:
     # --------------------------------------------------------------------- #
     def _build_http_client(self) -> DefaultHTTPClient:
         """建立帶有連線池與逾時設定的 HTTP client。"""
-        retry_attempts = (
-            self.settings.retry.max_attempts if self.settings.retry.enabled else 1
-        )
+        retry_attempts = self.settings.retry.max_attempts if self.settings.retry.enabled else 1
         return DefaultHTTPClient(
             request_timeout=self.settings.request_timeout,
             retry_attempts=retry_attempts,

@@ -17,9 +17,9 @@ sys.path.insert(0, str(project_root))
 
 from agents.task_analyzer.analyzer import TaskAnalyzer  # noqa: E402
 from agents.task_analyzer.models import TaskAnalysisRequest  # noqa: E402
+from agents.task_analyzer.models import WorkflowType  # noqa: E402
 from agents.workflows.base import WorkflowRequestContext  # noqa: E402
 from agents.workflows.factory_router import get_workflow_factory_router  # noqa: E402
-from agents.task_analyzer.models import WorkflowType  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -99,9 +99,7 @@ async def demo_hybrid_mode():
         print("✓ 混合模式工廠已註冊")
 
         # 構建工作流
-        workflow_config = analysis_result.analysis_details.get("workflow", {}).get(
-            "config", {}
-        )
+        workflow_config = analysis_result.analysis_details.get("workflow", {}).get("config", {})
 
         request_ctx = WorkflowRequestContext(
             task_id=analysis_result.task_id,
@@ -129,12 +127,8 @@ async def demo_hybrid_mode():
     print("步驟 3: 狀態同步演示")
     print("-" * 80)
 
-    from agents.workflows.hybrid_orchestrator import (
-        HybridState,
-        PlanningSync,
-        StateSync,
-    )
-    from agents.autogen.planner import ExecutionPlan, PlanStep, PlanStatus
+    from agents.autogen.planner import ExecutionPlan, PlanStatus, PlanStep
+    from agents.workflows.hybrid_orchestrator import HybridState, PlanningSync, StateSync
 
     # 創建一個 AutoGen 計畫
     plan_steps = [

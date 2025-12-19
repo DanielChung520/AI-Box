@@ -17,12 +17,10 @@ from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
 from services.api.models.genai_user_llm_secret import (
-    GenAIUserLLMSecretUpsertRequest,
     GenAIUserLLMSecretStatusResponse,
+    GenAIUserLLMSecretUpsertRequest,
 )
-from services.api.services.genai_user_llm_secret_service import (
-    get_genai_user_llm_secret_service,
-)
+from services.api.services.genai_user_llm_secret_service import get_genai_user_llm_secret_service
 from system.security.dependencies import get_current_tenant_id, get_current_user
 from system.security.models import User
 
@@ -38,9 +36,7 @@ async def get_user_secret_status(
     user: User = Depends(get_current_user),
 ) -> JSONResponse:
     service = get_genai_user_llm_secret_service()
-    providers = sorted(
-        service.list_configured_providers(tenant_id=tenant_id, user_id=user.user_id)
-    )
+    providers = sorted(service.list_configured_providers(tenant_id=tenant_id, user_id=user.user_id))
 
     return APIResponse.success(
         data=GenAIUserLLMSecretStatusResponse(
@@ -67,9 +63,7 @@ async def upsert_user_secrets(
         key = str(api_key).strip()
         if not prov or not key:
             continue
-        service.upsert(
-            tenant_id=tenant_id, user_id=user.user_id, provider=prov, api_key=key
-        )
+        service.upsert(tenant_id=tenant_id, user_id=user.user_id, provider=prov, api_key=key)
 
     return APIResponse.success(data=None, message="User secrets updated")
 

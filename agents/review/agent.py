@@ -5,13 +5,13 @@
 
 """Review Agent - 實現結果驗證和反饋生成"""
 
-import uuid
 import logging
-from typing import Dict, Any, Optional, List
+import uuid
+from typing import Any, Dict, List, Optional
 
+from agents.infra.memory import MemoryManager
 from agents.review.models import ReviewRequest, ReviewResult, ReviewStatus
 from genai.prompt import PromptManager
-from agents.infra.memory import MemoryManager
 
 logger = logging.getLogger(__name__)
 
@@ -163,9 +163,7 @@ class ReviewAgent:
                 differences.append(f"缺少字段: {key}")
             elif result[key] != expected_value:
                 comparison["matches_expected"] = False
-                differences.append(
-                    f"字段 {key} 不匹配: 期望 {expected_value}, 實際 {result[key]}"
-                )
+                differences.append(f"字段 {key} 不匹配: 期望 {expected_value}, 實際 {result[key]}")
 
         return comparison
 

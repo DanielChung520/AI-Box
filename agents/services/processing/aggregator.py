@@ -6,8 +6,8 @@
 """Result Aggregator - 收集和聚合多個 Agent 的執行結果"""
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +91,7 @@ class ResultAggregator:
             aggregated["summary"] = self._generate_summary(aggregated)
 
             self._logger.info(
-                f"Aggregated results for {len(task_results)} agents "
-                f"(task_id: {task_id})"
+                f"Aggregated results for {len(task_results)} agents " f"(task_id: {task_id})"
             )
 
             return aggregated

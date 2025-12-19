@@ -79,9 +79,7 @@ class ConversationManager:
                 }
             )
 
-            logger.debug(
-                f"Recorded message from {agent_name} in session {self.session_id}"
-            )
+            logger.debug(f"Recorded message from {agent_name} in session {self.session_id}")
             return True
         except Exception as exc:
             logger.error(f"Failed to record message: {exc}")
@@ -158,9 +156,7 @@ class ConversationManager:
         return {
             "session_id": self.session_id,
             "message_count": len(self._conversation_history),
-            "agents": list(
-                set(msg.get("agent_name") for msg in self._conversation_history)
-            ),
+            "agents": list(set(msg.get("agent_name") for msg in self._conversation_history)),
             "last_message": (
                 self._conversation_history[-1] if self._conversation_history else None
             ),

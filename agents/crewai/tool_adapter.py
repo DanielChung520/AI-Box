@@ -9,7 +9,8 @@ import logging
 from typing import Any, Callable, Dict, List, Optional
 
 from crewai_tools import BaseTool
-from agents.infra.tools.registry import ToolRegistry, Tool
+
+from agents.infra.tools.registry import Tool, ToolRegistry
 
 logger = logging.getLogger(__name__)
 

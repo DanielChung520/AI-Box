@@ -21,6 +21,7 @@
 2. **配置模板建立**
 
    - 在 `config/config.example.json` 的 `workflows` 區塊中添加 `autogen` 配置：
+
      ```json
      "autogen": {
        "enable_planning": true,
@@ -36,7 +37,6 @@
        "checkpoint_dir": "./datasets/autogen/checkpoints"
      }
      ```
-
 
 3. **LLM Router 適配**
 

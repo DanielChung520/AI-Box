@@ -6,8 +6,8 @@
 """Report Generator - 使用 LLM 整理 Agent 產出並生成 HTML 報告"""
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +44,7 @@ class ReportGenerator:
         """
         try:
             # 構建報告內容
-            report_content = await self._generate_report_content(
-                aggregated_results, report_title
-            )
+            report_content = await self._generate_report_content(aggregated_results, report_title)
 
             # 生成 HTML 報告
             html_content = self._generate_html_report(
@@ -61,9 +59,7 @@ class ReportGenerator:
                 "html_content": html_content,
                 "summary": aggregated_results.get("summary", {}),
                 "output_files": (
-                    aggregated_results.get("output_files", [])
-                    if include_output_files
-                    else []
+                    aggregated_results.get("output_files", []) if include_output_files else []
                 ),
             }
 
@@ -112,9 +108,7 @@ class ReportGenerator:
             }
 
         except Exception as e:
-            self._logger.warning(
-                f"LLM report generation failed: {e}, using simple format"
-            )
+            self._logger.warning(f"LLM report generation failed: {e}, using simple format")
             return self._simple_report_content(aggregated_results, title)
 
     def _simple_report_content(
@@ -140,9 +134,7 @@ class ReportGenerator:
         content_parts.append(f"- 總 Agent 數量: {summary.get('total_count', 0)}\n")
         content_parts.append(f"- 成功數量: {summary.get('success_count', 0)}\n")
         content_parts.append(f"- 失敗數量: {summary.get('failure_count', 0)}\n")
-        content_parts.append(
-            f"- 成功率: {summary.get('success_rate', 0.0) * 100:.1f}%\n"
-        )
+        content_parts.append(f"- 成功率: {summary.get('success_rate', 0.0) * 100:.1f}%\n")
 
         # 詳細結果
         content_parts.append("\n## 詳細結果\n\n")
@@ -397,7 +389,9 @@ class ReportGenerator:
         files_html = '<div class="output-files">\n<h3>產出物文件</h3>\n'
         for file_url in output_files:
             file_name = file_url.split("/")[-1]
-            files_html += f'<a href="{file_url}" class="file-link" target="_blank">{file_name}</a>\n'
+            files_html += (
+                f'<a href="{file_url}" class="file-link" target="_blank">{file_name}</a>\n'
+            )
         files_html += "</div>"
 
         return files_html

@@ -21,14 +21,14 @@ TODO (WBS 1.6.2): 實現 API Key 管理
   - services/security/api_key_service.py (待創建)
 """
 
-from fastapi import Request
 from typing import Optional
 
 import structlog
+from fastapi import Request
 
 from system.security.config import get_security_settings
-from system.security.models import User
 from system.security.jwt_service import get_jwt_service
+from system.security.models import User
 
 logger = structlog.get_logger(__name__)
 
@@ -57,9 +57,7 @@ async def verify_jwt_token(token: str) -> Optional[User]:
     try:
         user_id = payload.get("sub") or payload.get("user_id")
         if not user_id:
-            logger.warning(
-                "Token payload missing user_id", payload_keys=list(payload.keys())
-            )
+            logger.warning("Token payload missing user_id", payload_keys=list(payload.keys()))
             return None
 
         # 修改時間：2025-12-09 - 如果 JWT token 中沒有權限，添加默認權限
@@ -91,9 +89,7 @@ async def verify_jwt_token(token: str) -> Optional[User]:
         return user
 
     except Exception as e:
-        logger.error(
-            "Failed to build User from token payload", error=str(e), exc_info=True
-        )
+        logger.error("Failed to build User from token payload", error=str(e), exc_info=True)
         return None
 
 
@@ -134,9 +130,7 @@ async def extract_token_from_request(request: Request) -> Optional[str]:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         token = auth_header[7:]  # 移除 "Bearer " 前綴
-        logger.debug(
-            "Token extracted from Authorization header", token_length=len(token)
-        )
+        logger.debug("Token extracted from Authorization header", token_length=len(token))
         return token
 
     # 檢查 X-API-Key header

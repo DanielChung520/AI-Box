@@ -13,9 +13,7 @@ from crewai.agent import Agent
 from crewai.task import Task
 
 from agents.crewai.models import CollaborationMode, CrewConfig
-from agents.crewai.process_templates import (
-    get_process_template,
-)
+from agents.crewai.process_templates import get_process_template
 from agents.crewai.token_budget import TokenBudgetGuard
 
 logger = logging.getLogger(__name__)
@@ -60,10 +58,8 @@ class ProcessEngine:
             tasks=tasks,
             process=Process.sequential,
             verbose=process_config.get("verbose", True),
-            max_iter=process_config.get(
-                "max_iter", config.resource_quota.max_iterations
-            ),
-            memory=process_config.get("memory", config.enable_memory),
+            max_iter=process_config.get("max_iter", config.resource_quota.max_iterations),
+            memory=process_config.get("memory", True),  # 默認啟用 memory
             llm=process_config["llm"],
         )
 
@@ -104,10 +100,8 @@ class ProcessEngine:
             process=Process.hierarchical,
             manager_llm=self.llm_adapter,
             verbose=process_config.get("verbose", True),
-            max_iter=process_config.get(
-                "max_iter", config.resource_quota.max_iterations
-            ),
-            memory=process_config.get("memory", config.enable_memory),
+            max_iter=process_config.get("max_iter", config.resource_quota.max_iterations),
+            memory=process_config.get("memory", True),  # 默認啟用 memory
             llm=process_config["llm"],
         )
 
@@ -138,10 +132,8 @@ class ProcessEngine:
             tasks=tasks,
             process=Process.consensual,
             verbose=process_config.get("verbose", True),
-            max_iter=process_config.get(
-                "max_iter", config.resource_quota.max_iterations
-            ),
-            memory=process_config.get("memory", config.enable_memory),
+            max_iter=process_config.get("max_iter", config.resource_quota.max_iterations),
+            memory=process_config.get("memory", True),  # 默認啟用 memory
             llm=process_config["llm"],
         )
 
@@ -166,9 +158,7 @@ class ProcessEngine:
         Returns:
             新的 Crew 實例
         """
-        logger.info(
-            f"Switching process mode from {config.collaboration_mode} to {new_mode}"
-        )
+        logger.info(f"Switching process mode from {config.collaboration_mode} to {new_mode}")
 
         if new_mode == CollaborationMode.SEQUENTIAL:
             return self.create_sequential_process(agents, tasks, config)

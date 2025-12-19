@@ -66,9 +66,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         return f"{self._namespace}:{_config_thread_id(config)}:{_config_checkpoint_id(config)}"
 
     def _serialize(self, payload: dict[str, Any]) -> str:
-        return json.dumps(
-            payload, default=lambda obj: getattr(obj, "__dict__", str(obj))
-        )
+        return json.dumps(payload, default=lambda obj: getattr(obj, "__dict__", str(obj)))
 
     def _deserialize(self, raw: bytes) -> dict[str, Any]:
         return json.loads(raw.decode("utf-8"))
@@ -141,9 +139,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
             "task_path": task_path,
         }
         try:
-            self._redis.setex(
-                f"{self._key(config)}:writes", self._ttl, self._serialize(payload)
-            )
+            self._redis.setex(f"{self._key(config)}:writes", self._ttl, self._serialize(payload))
         except Exception as exc:
             logger.warning(f"Redis checkpoint put_writes failed: {exc}")
             # 繼續執行，不拋出異常
@@ -182,9 +178,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         metadata: CheckpointMetadata,
         new_versions: ChannelVersions,
     ) -> RunnableConfig:
-        return await asyncio.to_thread(
-            self.put, config, checkpoint, metadata, new_versions
-        )
+        return await asyncio.to_thread(self.put, config, checkpoint, metadata, new_versions)
 
     async def aput_writes(
         self,

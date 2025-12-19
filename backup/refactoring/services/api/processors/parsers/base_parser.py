@@ -6,7 +6,8 @@
 """解析器基類 - 定義統一接口和錯誤處理"""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Any, Dict
+
 import structlog
 
 logger = structlog.get_logger(__name__)

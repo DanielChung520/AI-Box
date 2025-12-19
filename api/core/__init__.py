@@ -6,8 +6,8 @@
 """API 核心模組 - 提供 API 響應格式、版本管理和配置"""
 
 from .response import APIResponse
-from .version import get_version_info, API_PREFIX
-from .settings import get_ollama_settings, OllamaSettings
+from .settings import OllamaSettings, get_ollama_settings
+from .version import API_PREFIX, get_version_info
 
 __all__ = [
     "APIResponse",

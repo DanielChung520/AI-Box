@@ -5,8 +5,8 @@
 
 """健康檢查端點"""
 
-from fastapi import APIRouter, status
 from api_gateway.core.response import APIResponse
+from fastapi import APIRouter, status
 
 router = APIRouter()
 

@@ -7,20 +7,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Optional, List, Dict, Any
 import asyncio
-import json
 import csv
 import io
+import json
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import structlog
 
-from database.arangodb import ArangoDBClient, ArangoCollection
-from services.api.models.audit_log import (
-    AuditLog,
-    AuditLogCreate,
-    AuditAction,
-)
+from database.arangodb import ArangoCollection, ArangoDBClient
+from services.api.models.audit_log import AuditAction, AuditLog, AuditLogCreate
 
 logger = structlog.get_logger(__name__)
 
@@ -107,9 +104,7 @@ class AuditLogService:
                 "timestamp": datetime.utcnow().isoformat(),
                 "ip_address": log_create.ip_address,
                 "user_agent": log_create.user_agent,
-                "details": (
-                    json.dumps(log_create.details) if log_create.details else "{}"
-                ),
+                "details": (json.dumps(log_create.details) if log_create.details else "{}"),
             }
 
             # 生成唯一 key（使用時間戳和用戶ID）
@@ -120,7 +115,7 @@ class AuditLogService:
             logger.debug(
                 "Audit log recorded",
                 user_id=log_create.user_id,
-                action=action_value,
+                action=log_create.action.value,
             )
         except Exception as e:
             logger.error("Failed to log audit event", error=str(e))
@@ -208,11 +203,11 @@ class AuditLogService:
 
         # 執行查詢
         cursor = self.client.db.aql.execute(query, bind_vars=bind_vars)
-        results = [doc for doc in cursor]
+        results = [doc for doc in cursor] if cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
 
         # 獲取總數
         count_cursor = self.client.db.aql.execute(count_query, bind_vars=bind_vars)
-        total = next(count_cursor, 0)
+        total = next(count_cursor, 0) if count_cursor else 0  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
 
         # 轉換為 AuditLog 對象
         logs = [self._document_to_log(doc) for doc in results]

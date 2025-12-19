@@ -66,12 +66,8 @@ class StateMapper:
             "nodes": nodes,
             "edges": edges,
             "current_step": None,
-            "completed_steps": [
-                step.step_id for step in plan.steps if step.status == "completed"
-            ],
-            "failed_steps": [
-                step.step_id for step in plan.steps if step.status == "failed"
-            ],
+            "completed_steps": [step.step_id for step in plan.steps if step.status == "completed"],
+            "failed_steps": [step.step_id for step in plan.steps if step.status == "failed"],
             "metadata": plan.metadata,
         }
 

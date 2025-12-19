@@ -6,12 +6,9 @@
 """MCP Client 連線管理器模組"""
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-from mcp_client.connection.pool import (
-    ConnectionPool,
-    LoadBalanceStrategy,
-)
+from mcp_client.connection.pool import ConnectionPool, LoadBalanceStrategy
 
 logger = logging.getLogger(__name__)
 

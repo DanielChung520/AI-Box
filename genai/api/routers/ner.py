@@ -6,17 +6,13 @@
 """NER 命名實體識別路由 - 提供實體識別 API 端點"""
 
 from typing import Optional
+
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
+from genai.api.models.ner_models import NERBatchRequest, NERBatchResponse, NERRequest, NERResponse
 from genai.api.services.ner_service import NERService
-from genai.api.models.ner_models import (
-    NERRequest,
-    NERResponse,
-    NERBatchRequest,
-    NERBatchResponse,
-)
 
 router = APIRouter(prefix="/text-analysis", tags=["NER"])
 
@@ -66,9 +62,7 @@ async def extract_entities_batch(request: NERBatchRequest) -> JSONResponse:
     service = get_service()
 
     try:
-        results = await service.extract_entities_batch(
-            request.texts, request.model_type
-        )
+        results = await service.extract_entities_batch(request.texts, request.model_type)
         model_used = request.model_type or service.model_type
 
         response_list = []

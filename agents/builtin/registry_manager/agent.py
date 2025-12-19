@@ -8,9 +8,9 @@
 AI 驱动的 Agent 注册管理服务，提供智能匹配、发现和推荐功能。
 """
 
-import logging
 import json
-from typing import Dict, Any, Optional
+import logging
+from typing import Any, Dict, Optional
 
 from agents.services.protocol.base import (
     AgentServiceProtocol,
@@ -18,8 +18,8 @@ from agents.services.protocol.base import (
     AgentServiceResponse,
     AgentServiceStatus,
 )
-from agents.services.registry.registry import get_agent_registry
 from agents.services.registry.discovery import AgentDiscovery
+from agents.services.registry.registry import get_agent_registry
 from agents.task_analyzer.models import LLMProvider
 from llm.clients.factory import get_client
 
@@ -89,6 +89,10 @@ class RegistryManagerAgent(AgentServiceProtocol):
                     success=False,
                     action=action,
                     error=f"Unknown action: {action}",
+                    agents=None,  # type: ignore[call-arg]  # agents 有默認值
+                    recommendations=None,  # type: ignore[call-arg]  # recommendations 有默認值
+                    analysis=None,  # type: ignore[call-arg]  # analysis 有默認值
+                    message=None,  # type: ignore[call-arg]  # message 有默認值
                 )
 
             # 构建响应
@@ -99,15 +103,14 @@ class RegistryManagerAgent(AgentServiceProtocol):
                     "success": result.success,
                     "action": result.action,
                     "agents": (
-                        [agent.model_dump() for agent in result.agents]
-                        if result.agents
-                        else None
+                        [agent.model_dump() for agent in result.agents] if result.agents else None
                     ),
                     "recommendations": result.recommendations,
                     "analysis": result.analysis,
                     "message": result.message,
                     "error": result.error,
                 },
+                error=None,  # type: ignore[call-arg]  # error 有默認值
                 metadata=request.metadata,
             )
 
@@ -116,13 +119,12 @@ class RegistryManagerAgent(AgentServiceProtocol):
             return AgentServiceResponse(
                 task_id=request.task_id,
                 status="error",
+                result=None,  # type: ignore[call-arg]  # result 有默認值
                 error=str(e),
                 metadata=request.metadata,
             )
 
-    async def _match_agents(
-        self, request: RegistryManagerRequest
-    ) -> RegistryManagerResponse:
+    async def _match_agents(self, request: RegistryManagerRequest) -> RegistryManagerResponse:
         """
         AI 驱动的 Agent 匹配
 
@@ -150,7 +152,7 @@ class RegistryManagerAgent(AgentServiceProtocol):
                 success=True,
                 action="match",
                 agents=agents,
-                message=f"Found {len(agents)} matching agents",
+                message=f"Found {len(agents)} matching agents",  # type: ignore[call-arg]  # 其他參數都是 Optional
             )
 
         except Exception as e:
@@ -158,12 +160,10 @@ class RegistryManagerAgent(AgentServiceProtocol):
             return RegistryManagerResponse(
                 success=False,
                 action="match",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
-    async def _discover_agents(
-        self, request: RegistryManagerRequest
-    ) -> RegistryManagerResponse:
+    async def _discover_agents(self, request: RegistryManagerRequest) -> RegistryManagerResponse:
         """
         发现可用的 Agent
 
@@ -184,7 +184,7 @@ class RegistryManagerAgent(AgentServiceProtocol):
                 success=True,
                 action="discover",
                 agents=agents,
-                message=f"Discovered {len(agents)} agents",
+                message=f"Discovered {len(agents)} agents",  # type: ignore[call-arg]  # 其他參數都是 Optional
             )
 
         except Exception as e:
@@ -192,12 +192,10 @@ class RegistryManagerAgent(AgentServiceProtocol):
             return RegistryManagerResponse(
                 success=False,
                 action="discover",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
-    async def _recommend_agents(
-        self, request: RegistryManagerRequest
-    ) -> RegistryManagerResponse:
+    async def _recommend_agents(self, request: RegistryManagerRequest) -> RegistryManagerResponse:
         """
         AI 驱动的 Agent 推荐
 
@@ -238,7 +236,7 @@ class RegistryManagerAgent(AgentServiceProtocol):
                 action="recommend",
                 agents=agents,
                 recommendations=recommendations,
-                message=f"Generated {len(recommendations)} recommendations",
+                message=f"Generated {len(recommendations)} recommendations",  # type: ignore[call-arg]  # 其他參數都是 Optional
             )
 
         except Exception as e:
@@ -246,12 +244,10 @@ class RegistryManagerAgent(AgentServiceProtocol):
             return RegistryManagerResponse(
                 success=False,
                 action="recommend",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
-    async def _analyze_registry(
-        self, request: RegistryManagerRequest
-    ) -> RegistryManagerResponse:
+    async def _analyze_registry(self, request: RegistryManagerRequest) -> RegistryManagerResponse:
         """
         分析注册表状态
 
@@ -276,9 +272,7 @@ class RegistryManagerAgent(AgentServiceProtocol):
             for agent in all_agents:
                 # 按类型统计
                 agent_type = agent.agent_type
-                analysis["by_type"][agent_type] = (
-                    analysis["by_type"].get(agent_type, 0) + 1
-                )
+                analysis["by_type"][agent_type] = analysis["by_type"].get(agent_type, 0) + 1
 
                 # 按状态统计
                 status = agent.status.value
@@ -300,14 +294,14 @@ class RegistryManagerAgent(AgentServiceProtocol):
                 action="analyze",
                 analysis=analysis,
                 message="Registry analysis completed",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Registry analysis failed: {e}")
             return RegistryManagerResponse(
                 success=False,
                 action="analyze",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
     async def _ai_match_agents(
@@ -362,9 +356,7 @@ class RegistryManagerAgent(AgentServiceProtocol):
                 # 按匹配顺序排序
                 agent_dict = {agent.agent_id: agent for agent in agents}
                 matched_agents = [
-                    agent_dict[agent_id]
-                    for agent_id in matched_ids
-                    if agent_id in agent_dict
+                    agent_dict[agent_id] for agent_id in matched_ids if agent_id in agent_dict
                 ]
                 # 添加未匹配的 Agent
                 matched_agents.extend(
@@ -372,9 +364,7 @@ class RegistryManagerAgent(AgentServiceProtocol):
                 )
                 return matched_agents
             except json.JSONDecodeError:
-                self._logger.warning(
-                    "Failed to parse LLM response, returning original list"
-                )
+                self._logger.warning("Failed to parse LLM response, returning original list")
                 return agents
 
         except Exception as e:
@@ -492,7 +482,7 @@ class RegistryManagerAgent(AgentServiceProtocol):
         """
         try:
             # 检查 Registry 是否可用
-            agents = self._registry.list_agents()
+            self._registry.list_agents()  # 檢查是否可用
             return AgentServiceStatus.AVAILABLE
         except Exception as e:
             self._logger.error(f"Health check failed: {e}")

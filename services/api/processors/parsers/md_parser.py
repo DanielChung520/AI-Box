@@ -5,8 +5,9 @@
 
 """Markdown 文件解析器 - 保留結構信息"""
 
-from typing import List, Dict, Any
 import re
+from typing import Any, Dict, List
+
 from .base_parser import BaseParser
 
 
@@ -46,9 +47,7 @@ class MdParser(BaseParser):
                 },
             }
         except Exception as e:
-            self.logger.error(
-                "Markdown 文件解析失敗", file_path=file_path, error=str(e)
-            )
+            self.logger.error("Markdown 文件解析失敗", file_path=file_path, error=str(e))
             raise
 
     def parse_from_bytes(

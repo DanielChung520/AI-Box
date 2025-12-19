@@ -7,10 +7,10 @@
 
 # 從 agents.services 模組重新導出
 from agents.services.registry import (  # noqa: F401
+    AgentMetadata,
+    AgentPermission,
     AgentRegistry,
     AgentRegistryInfo,
-    AgentPermission,
-    AgentMetadata,
 )
 
 __all__ = [

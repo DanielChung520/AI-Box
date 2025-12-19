@@ -21,9 +21,7 @@ logger = logging.getLogger(__name__)
 class ContextRecorder:
     """負責儲存與讀取工作流上下文狀態。"""
 
-    def __init__(
-        self, *, redis_url: Optional[str], namespace: str, ttl_seconds: int
-    ) -> None:
+    def __init__(self, *, redis_url: Optional[str], namespace: str, ttl_seconds: int) -> None:
         self._namespace = namespace
         self._ttl = ttl_seconds
         self._memory_store: Dict[str, Dict[str, Any]] = {}
@@ -32,18 +30,14 @@ class ContextRecorder:
             try:
                 self._redis = redis.Redis.from_url(redis_url)
             except Exception as exc:  # pragma: no cover - redis 啟動失敗時 fallback
-                logger.warning(
-                    "Context Recorder 初始化 Redis 失敗，使用記憶體儲存: %s", exc
-                )
+                logger.warning("Context Recorder 初始化 Redis 失敗，使用記憶體儲存: %s", exc)
 
     def _key(self, task_id: str) -> str:
         return f"{self._namespace}:{task_id}"
 
     def save(self, task_id: str, state: Dict[str, Any]) -> None:
         if self._redis:
-            payload = json.dumps(
-                state, default=lambda obj: getattr(obj, "__dict__", str(obj))
-            )
+            payload = json.dumps(state, default=lambda obj: getattr(obj, "__dict__", str(obj)))
             self._redis.setex(self._key(task_id), self._ttl, payload)
         else:
             self._memory_store[task_id] = state
@@ -64,9 +58,7 @@ def build_context_recorder(settings: LangChainGraphSettings) -> ContextRecorder:
     """根據設定建立 Context Recorder。"""
 
     redis_url = (
-        settings.state_store.redis_url
-        if settings.state_store.backend.lower() == "redis"
-        else None
+        settings.state_store.redis_url if settings.state_store.backend.lower() == "redis" else None
     )
     return ContextRecorder(
         redis_url=redis_url,

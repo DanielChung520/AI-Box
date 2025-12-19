@@ -29,6 +29,7 @@
    - 執行請求，獲取 Secret ID/Key
 
 2. **通過 curl 命令**：
+
    ```bash
    curl -X POST "http://localhost:8000/api/v1/agents/secrets/generate" \
      -H "Content-Type: application/json" \
@@ -36,12 +37,14 @@
    ```
 
 3. **通過前端 API 調用**（開發環境）：
+
    ```typescript
    const response = await generateSecret("Your Organization");
    // 返回 { secret_id, secret_key }
    ```
 
 **注意事項**：
+
 - ⚠️ 僅用於測試和開發環境
 - ⚠️ Secret Key 只在生成時返回一次
 - ⚠️ 生產環境應使用審批流程
@@ -105,6 +108,7 @@ AI-Box 管理員審核
 5. 自動驗證並繼續註冊
 
 **優點**：
+
 - ✅ 快速實現
 - ✅ 用戶體驗好
 - ✅ 無需跳轉頁面

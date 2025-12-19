@@ -23,6 +23,7 @@ TODO (WBS 1.6.6): 實現輸入驗證框架
 """
 
 import logging
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -60,9 +61,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         # 開發模式下，跳過大部分安全檢查
         if settings.should_bypass_auth:
-            logger.debug(
-                f"Security middleware bypassed for {request.url.path} (development mode)"
-            )
+            logger.debug(f"Security middleware bypassed for {request.url.path} (development mode)")
             response = await call_next(request)
             # 即使繞過檢查，也設置一些基本的安全頭
             return self._add_security_headers(response)

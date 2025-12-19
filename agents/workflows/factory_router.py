@@ -10,14 +10,10 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from agents.workflows.base import (
-    WorkflowFactoryProtocol,
-    WorkflowRequestContext,
-    WorkflowRunner,
-)
 from agents.task_analyzer.models import WorkflowType
-from agents.workflows.langchain_graph_factory import LangChainWorkflowFactory
+from agents.workflows.base import WorkflowFactoryProtocol, WorkflowRequestContext, WorkflowRunner
 from agents.workflows.hybrid_factory import HybridWorkflowFactory
+from agents.workflows.langchain_graph_factory import LangChainWorkflowFactory
 
 logger = logging.getLogger(__name__)
 
@@ -61,9 +57,7 @@ class WorkflowFactoryRouter:
             WorkflowType.HYBRID: self._hybrid_factory,
         }
 
-    def get_factory(
-        self, workflow_type: WorkflowType
-    ) -> Optional[WorkflowFactoryProtocol]:
+    def get_factory(self, workflow_type: WorkflowType) -> Optional[WorkflowFactoryProtocol]:
         """
         獲取對應的工作流工廠。
 
@@ -99,14 +93,10 @@ class WorkflowFactoryRouter:
 
         try:
             workflow = factory.build_workflow(request_ctx)
-            logger.info(
-                f"Built {workflow_type.value} workflow for task: {request_ctx.task_id}"
-            )
+            logger.info(f"Built {workflow_type.value} workflow for task: {request_ctx.task_id}")
             return workflow
         except Exception as exc:
-            logger.error(
-                f"Failed to build {workflow_type.value} workflow: {exc}", exc_info=True
-            )
+            logger.error(f"Failed to build {workflow_type.value} workflow: {exc}", exc_info=True)
             return None
 
 

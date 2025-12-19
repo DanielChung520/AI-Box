@@ -6,8 +6,9 @@
 最後修改日期: 2025-01-27
 """
 
-import requests
 import sys
+
+import requests
 
 # API 配置
 API_BASE_URL = "http://localhost:8000"
@@ -132,9 +133,7 @@ def check_and_fix_tasks(username: str):
     if inconsistent_tasks:
         print(f"\n⚠️  發現 {len(inconsistent_tasks)} 個狀態不一致的任務：")
         for task in inconsistent_tasks:
-            print(
-                f"   - [{task['task_id']}] {task['title']} (task_status: {task['task_status']})"
-            )
+            print(f"   - [{task['task_id']}] {task['title']} (task_status: {task['task_status']})")
 
     print("\n💡 解決方案：")
     print("   1. 打開瀏覽器開發者工具（F12）")

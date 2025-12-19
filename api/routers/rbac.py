@@ -5,23 +5,24 @@
 
 """RBAC 角色管理路由 - 提供角色和權限管理API"""
 
-from fastapi import APIRouter, status, Depends
-from fastapi.responses import JSONResponse
+from functools import partial
+
 import structlog
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
-from services.api.models.rbac import (
-    RoleModel,
-    RoleCreate,
-    RoleUpdate,
-    UserRoleModel,
-    UserRoleAssign,
-)
-from functools import partial
-from system.security.dependencies import get_current_user, require_permission
-from system.security.models import User, Permission
-from system.security.audit_decorator import audit_log
 from services.api.models.audit_log import AuditAction
+from services.api.models.rbac import (
+    RoleCreate,
+    RoleModel,
+    RoleUpdate,
+    UserRoleAssign,
+    UserRoleModel,
+)
+from system.security.audit_decorator import audit_log
+from system.security.dependencies import get_current_user, require_permission
+from system.security.models import Permission, User
 
 logger = structlog.get_logger(__name__)
 
@@ -57,6 +58,8 @@ async def create_role(
             role_id=f"role_{len(role_data.name)}",
             name=role_data.name,
             description=role_data.description,
+            created_at=None,  # type: ignore[call-arg]  # created_at 有默認值
+            updated_at=None,  # type: ignore[call-arg]  # updated_at 有默認值
             permissions=role_data.permissions,
             is_system=role_data.is_system,
         )
@@ -98,11 +101,15 @@ async def list_roles(
                 description="系統管理員角色",
                 permissions=[Permission.ALL.value],
                 is_system=True,
+                created_at=None,  # type: ignore[call-arg]  # created_at 有默認值
+                updated_at=None,  # type: ignore[call-arg]  # updated_at 有默認值
             ),
             RoleModel(
                 role_id="user",
                 name="普通用戶",
                 description="普通用戶角色",
+                created_at=None,  # type: ignore[call-arg]  # created_at 有默認值
+                updated_at=None,  # type: ignore[call-arg]  # updated_at 有默認值
                 permissions=[
                     Permission.FILE_UPLOAD.value,
                     Permission.FILE_READ_OWN.value,
@@ -148,6 +155,8 @@ async def get_role(
             description="示例角色描述",
             permissions=[],
             is_system=False,
+            created_at=None,  # type: ignore[call-arg]  # created_at 有默認值
+            updated_at=None,  # type: ignore[call-arg]  # updated_at 有默認值
         )
 
         return APIResponse.success(
@@ -171,7 +180,7 @@ async def get_role(
 async def update_role(
     role_id: str,
     role_data: RoleUpdate,
-    current_user: User = Depends(require_permission(Permission.ALL.value)),
+    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
 ) -> JSONResponse:
     """
     更新角色
@@ -193,6 +202,8 @@ async def update_role(
             description=role_data.description,
             permissions=role_data.permissions or [],
             is_system=False,
+            created_at=None,  # type: ignore[call-arg]  # created_at 有默認值
+            updated_at=None,  # type: ignore[call-arg]  # updated_at 有默認值
         )
 
         logger.info("角色更新成功", role_id=role_id)
@@ -217,7 +228,7 @@ async def update_role(
 )
 async def delete_role(
     role_id: str,
-    current_user: User = Depends(require_permission(Permission.ALL.value)),
+    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
 ) -> JSONResponse:
     """
     刪除角色
@@ -256,7 +267,7 @@ async def delete_role(
 async def assign_user_role(
     user_id: str,
     role_data: UserRoleAssign,
-    current_user: User = Depends(require_permission(Permission.ALL.value)),
+    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
 ) -> JSONResponse:
     """
     分配用戶角色
@@ -276,6 +287,7 @@ async def assign_user_role(
             role_id=role_data.role_id,
             assigned_by=current_user.user_id,
             expires_at=role_data.expires_at,
+            assigned_at=None,  # type: ignore[call-arg]  # assigned_at 有默認值
         )
 
         logger.info("用戶角色分配成功", user_id=user_id, role_id=role_data.role_id)
@@ -301,7 +313,7 @@ async def assign_user_role(
 async def revoke_user_role(
     user_id: str,
     role_id: str,
-    current_user: User = Depends(require_permission(Permission.ALL.value)),
+    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
 ) -> JSONResponse:
     """
     撤銷用戶角色

@@ -66,9 +66,7 @@ class GenAIMetricsService:
         self.by_provider: Dict[str, Dict[str, Any]] = {}
         self.by_strategy: Dict[str, Dict[str, Any]] = {}
 
-    def _bump_dim(
-        self, store: Dict[str, Dict[str, Any]], key: str, event: GenAITraceEvent
-    ) -> None:
+    def _bump_dim(self, store: Dict[str, Dict[str, Any]], key: str, event: GenAITraceEvent) -> None:
         if not key:
             return
         if key not in store and len(store) >= self._max_dim_keys:
@@ -143,9 +141,7 @@ class GenAIMetricsService:
                 for k, v in self.by_strategy.items()
             }
 
-            error_rate = (
-                (self.chat_error_total / self.chat_total) if self.chat_total else 0.0
-            )
+            error_rate = (self.chat_error_total / self.chat_total) if self.chat_total else 0.0
             return {
                 "chat_total": self.chat_total,
                 "chat_error_total": self.chat_error_total,

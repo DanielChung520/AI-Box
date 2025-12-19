@@ -5,10 +5,11 @@
 
 """文件驗證工具 - 提供 MIME 類型、擴展名、大小和內容驗證"""
 
-import os
 import mimetypes
+import os
 from pathlib import Path
 from typing import List, Optional, Tuple
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -16,9 +17,7 @@ logger = structlog.get_logger(__name__)
 # 支持的文件格式映射
 ALLOWED_MIME_TYPES = {
     "application/pdf": [".pdf"],
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
-        ".docx"
-    ],
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
     "application/msword": [".doc"],  # .doc
     "text/plain": [".txt"],
     "text/markdown": [".md"],
@@ -84,9 +83,7 @@ class FileValidationError(Exception):
     pass
 
 
-def validate_file_signature(
-    file_content: bytes, filename: str
-) -> Tuple[bool, Optional[str]]:
+def validate_file_signature(file_content: bytes, filename: str) -> Tuple[bool, Optional[str]]:
     """驗證文件簽名（魔數）以確認文件實際類型。
 
     Args:
@@ -100,9 +97,6 @@ def validate_file_signature(
         return True, None  # 文件太小，跳過簽名驗證
 
     ext = Path(filename).suffix.lower()
-
-    # 讀取文件頭部
-    header = file_content[:8]
 
     # 檢查 PDF
     if ext == ".pdf":
@@ -130,9 +124,7 @@ def validate_file_signature(
 
     if ext == ".gif":
         # GIF 可以是 GIF87a 或 GIF89a
-        if not (
-            file_content.startswith(b"GIF87a") or file_content.startswith(b"GIF89a")
-        ):
+        if not (file_content.startswith(b"GIF87a") or file_content.startswith(b"GIF89a")):
             return False, "GIF 文件簽名驗證失敗，文件可能損壞"
 
     if ext == ".bmp":
@@ -347,9 +339,7 @@ class FileValidator:
         filename = filename.replace(":", "_")
 
         # 移除控制字符（保留換行、回車、製表符）
-        filename = "".join(
-            c for c in filename if ord(c) >= 32 or c in ["\n", "\r", "\t"]
-        )
+        filename = "".join(c for c in filename if ord(c) >= 32 or c in ["\n", "\r", "\t"])
 
         # 移除前導和尾隨空格、點號
         filename = filename.strip(" .")
@@ -423,6 +413,4 @@ def create_validator_from_config(config: dict) -> FileValidator:
     allowed_extensions = config.get("allowed_extensions", ALLOWED_EXTENSIONS)
     max_file_size = config.get("max_file_size", 52428800)  # 默認 50MB
 
-    return FileValidator(
-        allowed_extensions=allowed_extensions, max_file_size=max_file_size
-    )
+    return FileValidator(allowed_extensions=allowed_extensions, max_file_size=max_file_size)

@@ -9,11 +9,10 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from agents.task_analyzer.models import LLMProvider
 from agents.services.resource_controller import get_resource_controller
-from typing import List
+from agents.task_analyzer.models import LLMProvider
 
 from .base import BaseLLMClient
 from .chatgpt import ChatGPTClient

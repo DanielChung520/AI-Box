@@ -7,12 +7,13 @@
 
 from __future__ import annotations
 
-import os
 import json
-from typing import List, Dict, Any, Optional
+import os
+from typing import Any, Dict, List, Optional
+
 import structlog
 
-from database.chromadb import ChromaDBClient, ChromaCollection
+from database.chromadb import ChromaCollection, ChromaDBClient
 from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
@@ -33,9 +34,7 @@ class VectorStoreService:
         """
         # 優先從 datastores.chromadb 讀取配置，然後從 chromadb 讀取（向後兼容）
         datastores_config = get_config_section("datastores", default={}) or {}
-        chromadb_config = (
-            datastores_config.get("chromadb", {}) if datastores_config else {}
-        )
+        chromadb_config = datastores_config.get("chromadb", {}) if datastores_config else {}
 
         # 如果 datastores.chromadb 沒有配置，嘗試直接讀取 chromadb 配置（向後兼容）
         if not chromadb_config:
@@ -49,9 +48,7 @@ class VectorStoreService:
         # persist_directory 優先使用 mount_path（datastores 配置），然後使用 persist_directory，最後使用環境變量
         persist_dir = (
             chromadb_config.get("mount_path")  # datastores.chromadb.mount_path
-            or chromadb_config.get(
-                "persist_directory"
-            )  # chromadb.persist_directory（向後兼容）
+            or chromadb_config.get("persist_directory")  # chromadb.persist_directory（向後兼容）
             or os.getenv("CHROMADB_PERSIST_DIR")  # 環境變量
             or "./data/datasets/chromadb"  # 默認值：統一使用 data/datasets 目錄
         )
@@ -199,9 +196,7 @@ class VectorStoreService:
                     content_type = chunk["content_type"]
                     # 确保 content_type 不是列表或字典
                     if isinstance(content_type, (list, dict)):
-                        metadata["content_type"] = json.dumps(
-                            content_type, ensure_ascii=False
-                        )
+                        metadata["content_type"] = json.dumps(content_type, ensure_ascii=False)
                     else:
                         metadata["content_type"] = content_type
 
@@ -291,9 +286,7 @@ class VectorStoreService:
             else:
                 # 使用文本查詢（需要 collection 有嵌入函數）
                 if query_text is None:
-                    raise ValueError(
-                        "query_text is required when query_embedding is not provided"
-                    )
+                    raise ValueError("query_text is required when query_embedding is not provided")
                 result = collection.query(
                     query_texts=[query_text],
                     n_results=n_results,
@@ -386,9 +379,7 @@ class VectorStoreService:
             )
             raise RuntimeError(f"Failed to get vectors by file_id: {e}") from e
 
-    def delete_vectors_by_file_id(
-        self, file_id: str, user_id: Optional[str] = None
-    ) -> bool:
+    def delete_vectors_by_file_id(self, file_id: str, user_id: Optional[str] = None) -> bool:
         """
         刪除文件的所有向量
 
@@ -418,9 +409,7 @@ class VectorStoreService:
             )
             raise RuntimeError(f"Failed to delete vectors by file_id: {e}") from e
 
-    def get_collection_stats(
-        self, file_id: str, user_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def get_collection_stats(self, file_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
         """
         獲取 Collection 統計信息
 
@@ -447,9 +436,7 @@ class VectorStoreService:
             if count > 0:
                 try:
                     # 获取一个向量来检查维度
-                    results = collection.get(
-                        limit=1, include=["embeddings", "documents"]
-                    )
+                    results = collection.get(limit=1, include=["embeddings", "documents"])
                     embeddings = results.get("embeddings", [])
 
                     if embeddings is not None and len(embeddings) > 0:

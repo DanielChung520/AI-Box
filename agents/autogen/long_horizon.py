@@ -12,9 +12,9 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from agents.infra.memory.manager import MemoryManager
 from agents.autogen.planner import ExecutionPlan, PlanStatus
 from agents.autogen.state_mapper import StateMapper
+from agents.infra.memory.manager import MemoryManager
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +55,7 @@ class LongHorizonTaskManager:
             是否成功保存
         """
         try:
-            checkpoint = self.state_mapper.create_state_checkpoint(
-                plan, additional_state
-            )
+            checkpoint = self.state_mapper.create_state_checkpoint(plan, additional_state)
 
             checkpoint_file = self.checkpoint_dir / f"{plan.plan_id}.json"
             with checkpoint_file.open("w", encoding="utf-8") as f:
@@ -178,9 +176,7 @@ class LongHorizonTaskManager:
 
             # 存儲關鍵決策點
             for idx, point in enumerate(key_points):
-                point_content = (
-                    json.dumps(point) if isinstance(point, dict) else str(point)
-                )
+                point_content = json.dumps(point) if isinstance(point, dict) else str(point)
                 self.memory_manager.store_long_term(
                     content=point_content,
                     metadata={
@@ -265,9 +261,7 @@ class LongHorizonTaskManager:
             )
             return True
         else:
-            logger.warning(
-                f"Step {failed_step_id} exceeded max retries, marking as skipped"
-            )
+            logger.warning(f"Step {failed_step_id} exceeded max retries, marking as skipped")
             failed_step.status = "skipped"
             return False
 

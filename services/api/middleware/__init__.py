@@ -5,9 +5,9 @@
 
 """API 中間件適配器 - 重新導出 api.middleware 的模組"""
 
-from api.middleware.request_id import RequestIDMiddleware
-from api.middleware.logging import LoggingMiddleware
 from api.middleware.error_handler import ErrorHandlerMiddleware
+from api.middleware.logging import LoggingMiddleware
+from api.middleware.request_id import RequestIDMiddleware
 
 __all__ = [
     "RequestIDMiddleware",

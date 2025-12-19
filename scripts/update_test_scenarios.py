@@ -265,7 +265,9 @@ def update_test_progress_table(content: str, results: Dict[str, Any]) -> str:
         elif test_data.get("passed", 0) > 0:
             replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | {test_data.get('passed', 0)}/{test_data.get('total', 0)} 個測試通過，{test_data.get('skipped', 0)} 個跳過 |"
         else:
-            replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
+            replacement = (
+                f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
+            )
 
         content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
 
@@ -308,9 +310,7 @@ def update_test_scenario_details(content: str, results: Dict[str, Any]) -> str:
         # 更新步驟 1: Crew 創建測試
         pattern1 = r"(\*\*測試結果\*\*: )⏸️ 待實現（API 端點已部分實現，需驗證）"
         if crewai_tests[0]["status"] == "skipped":
-            replacement1 = (
-                "\\1⏭️ 跳過（API 返回 404 錯誤）\n**實際響應內容**:\n```\nCrew 創建 API 端點返回 404 Not Found\n```"
-            )
+            replacement1 = "\\1⏭️ 跳過（API 返回 404 錯誤）\n**實際響應內容**:\n```\nCrew 創建 API 端點返回 404 Not Found\n```"
             content = re.sub(pattern1, replacement1, content, flags=re.MULTILINE)
 
     # IT-3.3: AutoGen

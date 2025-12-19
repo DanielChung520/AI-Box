@@ -26,6 +26,7 @@ pytest tests/test_langchain_workflow.py
 ```
 
 驗證項目：
+
 - `test_langchain_workflow_standard_route`：確認標準路徑可完成並產出基本計畫/輸出。
 - `test_langchain_workflow_deep_dive_route`：複雜任務會觸發 `deep_dive` 路徑並寫入 Research 記錄。
 

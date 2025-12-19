@@ -13,6 +13,7 @@ Agent 註冊功能支持使用 [react-icons](https://react-icons.github.io/react
 ### 1. 預設圖標庫（約 53 個）
 
 系統預設了 5 個分類的圖標：
+
 - **常用**：13 個（機器人、代碼、閃電、星星等）
 - **業務**：12 個（文件、數據庫、雲端、建築等）
 - **技術**：10 個（Python、JavaScript、服務器等）
@@ -73,22 +74,26 @@ Agent 註冊功能支持使用 [react-icons](https://react-icons.github.io/react
 ## 圖標命名規則
 
 ### FontAwesome 5/6
+
 - 格式：`Fa[名稱]` 或 `Fa6[名稱]`
 - 示例：`FaBeer`, `FaCoffee`, `FaRobot`
 - 首字母大寫，使用駝峰命名
 
 ### Material Design
+
 - 格式：`Md[名稱]`
 - 示例：`MdFavorite`, `MdHome`, `MdSettings`
 - 首字母大寫，使用駝峰命名
 
 ### Heroicons 2
+
 - Outline 風格：`HiOutline[名稱]`
 - Solid 風格：`HiSolid[名稱]`
 - 示例：`HiOutlineSparkles`, `HiSolidSparkles`
 - 注意：Heroicons 1 使用 `Hi` 前綴
 
 ### Simple Icons
+
 - 格式：`Si[名稱]`
 - 示例：`SiPython`, `SiJavascript`, `SiTypescript`
 - 通常為技術/品牌圖標
@@ -164,6 +169,7 @@ Agent 註冊功能支持使用 [react-icons](https://react-icons.github.io/react
 ### IconRenderer 組件
 
 `IconRenderer` 組件支持動態加載圖標：
+
 - 首先從預定義映射表中查找
 - 如果找不到，根據圖標名稱前綴動態從對應的 react-icons 庫中加載
 - 支持多個圖標庫（FontAwesome、Material Design、Heroicons、Simple Icons、Lucide、Tabler、Remix、Ionicons 等）
@@ -171,6 +177,7 @@ Agent 註冊功能支持使用 [react-icons](https://react-icons.github.io/react
 ### IconPicker 組件
 
 `IconPicker` 組件提供：
+
 - 預設圖標庫瀏覽和搜索
 - 自定義圖標名稱輸入功能
 - 實時預覽功能

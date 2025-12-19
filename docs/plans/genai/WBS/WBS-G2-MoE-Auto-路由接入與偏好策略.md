@@ -8,11 +8,14 @@
 # WBS-G2：MoE Auto 路由接入與偏好策略
 
 ## 目標
+
 讓「Auto」真的走 MoE：
+
 - 入口 Chat API 內部完成 task_analyzer → moe_manager.chat
 - 收藏模型可覆蓋 provider/model（manual）
 
 ## 工作項
+
 - **G2.1 新增/調整 Chat 產品入口**
   - 建議新增 `api/routers/chat.py`（或在既有路由中新增 `/chat` 產品端點）
 
@@ -28,6 +31,7 @@
   - 若 Auto：只允許 policy 範圍內 provider（可加入 RBAC/consent gate）
 
 ## 驗收
+
 - Auto 模式請求可穩定走 MoE
 - 失敗能 failover（若 enable_failover）
 - 收藏模型能覆蓋 Auto

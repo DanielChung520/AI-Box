@@ -7,8 +7,8 @@
 
 from agents.task_analyzer.analyzer import TaskAnalyzer
 from agents.task_analyzer.classifier import TaskClassifier
-from agents.task_analyzer.workflow_selector import WorkflowSelector
 from agents.task_analyzer.llm_router import LLMRouter
+from agents.task_analyzer.workflow_selector import WorkflowSelector
 
 __all__ = [
     "TaskAnalyzer",

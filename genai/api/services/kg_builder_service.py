@@ -5,10 +5,11 @@
 
 """知識圖譜構建服務 - 實現三元組到圖譜的轉換、實體和關係的創建/更新/清理"""
 
-from typing import List, Optional, Dict, Any
-from datetime import datetime
-import structlog
 import hashlib
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import structlog
 
 from database.arangodb import ArangoDBClient
 from genai.api.models.triple_models import Triple
@@ -522,6 +523,4 @@ class KGBuilderService:
         """獲取實體的 N 度關係子圖"""
         from database.arangodb import queries as kg_queries
 
-        return kg_queries.fetch_subgraph(
-            self.client, entity_id, max_depth=max_depth, limit=limit
-        )
+        return kg_queries.fetch_subgraph(self.client, entity_id, max_depth=max_depth, limit=limit)

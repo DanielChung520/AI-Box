@@ -5,16 +5,12 @@
 
 """Planning Agent - 實現計劃生成和驗證"""
 
-import uuid
 import logging
-from typing import Dict, Any, Optional, List
+import uuid
+from typing import Any, Dict, List, Optional
 
-from agents.core.planning.models import (
-    PlanRequest,
-    PlanResult,
-    PlanStep,
-    PlanStepStatus,
-)
+from agents.core.planning.models import PlanRequest, PlanResult, PlanStep, PlanStepStatus
+from agents.infra.memory import MemoryManager
 from agents.services.protocol.base import (
     AgentServiceProtocol,
     AgentServiceRequest,
@@ -22,7 +18,6 @@ from agents.services.protocol.base import (
     AgentServiceStatus,
 )
 from genai.prompt import PromptManager
-from agents.infra.memory import MemoryManager
 
 logger = logging.getLogger(__name__)
 

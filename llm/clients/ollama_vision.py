@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import base64
 from typing import Any, Dict, List, Optional
+
 import structlog
 
-from llm.clients.vision_base import BaseVisionClient
 from llm.clients.ollama import OllamaClient, get_ollama_client
+from llm.clients.vision_base import BaseVisionClient
 from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)

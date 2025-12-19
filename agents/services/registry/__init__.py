@@ -5,12 +5,8 @@
 
 """Agent Registry 服務 - 管理 Agent 註冊、發現和元數據"""
 
+from agents.services.registry.models import AgentMetadata, AgentPermission, AgentRegistryInfo
 from agents.services.registry.registry import AgentRegistry
-from agents.services.registry.models import (
-    AgentRegistryInfo,
-    AgentPermission,
-    AgentMetadata,
-)
 
 __all__ = [
     "AgentRegistry",

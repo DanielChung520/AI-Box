@@ -20,8 +20,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from system.infra.config.config import get_config_section
-
 from services.api.services.genai_policy_gate_service import GenAIPolicyGateService
 from services.api.services.genai_tenant_policy_service import (
     GenAITenantPolicyService,
@@ -31,6 +29,7 @@ from services.api.services.genai_user_llm_secret_service import (
     GenAIUserLLMSecretService,
     get_genai_user_llm_secret_service,
 )
+from system.infra.config.config import get_config_section
 
 
 def _normalize_provider(value: str) -> str:
@@ -84,9 +83,7 @@ class GenAIConfigResolverService:
         self._tenant_policy = tenant_policy or get_genai_tenant_policy_service()
         self._user_secrets = user_secrets or get_genai_user_llm_secret_service()
 
-    def get_effective_policy_gate(
-        self, *, tenant_id: str, user_id: str
-    ) -> GenAIPolicyGateService:
+    def get_effective_policy_gate(self, *, tenant_id: str, user_id: str) -> GenAIPolicyGateService:
         system_policy = get_config_section("genai", "policy", default={}) or {}
         tenant = self._tenant_policy.get_policy(tenant_id)
 
@@ -102,16 +99,12 @@ class GenAIConfigResolverService:
             sys_allowed_providers = [
                 _normalize_provider(p) for p in (merged.get("allowed_providers") or [])
             ]
-            tenant_allowed_providers = [
-                _normalize_provider(p) for p in tenant.allowed_providers
-            ]
+            tenant_allowed_providers = [_normalize_provider(p) for p in tenant.allowed_providers]
 
             if tenant_allowed_providers:
                 if sys_allowed_providers:
                     merged["allowed_providers"] = [
-                        p
-                        for p in tenant_allowed_providers
-                        if p in sys_allowed_providers
+                        p for p in tenant_allowed_providers if p in sys_allowed_providers
                     ]
                 else:
                     merged["allowed_providers"] = tenant_allowed_providers
@@ -135,10 +128,7 @@ class GenAIConfigResolverService:
                         str(p).strip()
                         for p in patterns
                         if str(p).strip()
-                        and (
-                            not sys_patterns
-                            or _pattern_is_subset_of_any(str(p), sys_patterns)
-                        )
+                        and (not sys_patterns or _pattern_is_subset_of_any(str(p), sys_patterns))
                     ]
                     new_allowed_models[prov_key] = filtered
                 merged["allowed_models"] = new_allowed_models
@@ -152,18 +142,14 @@ class GenAIConfigResolverService:
 
         return GenAIPolicyGateService(policy_override=merged)
 
-    def resolve_api_key(
-        self, *, tenant_id: str, user_id: str, provider: str
-    ) -> Optional[str]:
+    def resolve_api_key(self, *, tenant_id: str, user_id: str, provider: str) -> Optional[str]:
         prov = _normalize_provider(provider)
         user_key = self._user_secrets.get_api_key(
             tenant_id=tenant_id, user_id=user_id, provider=prov
         )
         if user_key:
             return user_key
-        tenant_key = self._tenant_policy.get_tenant_api_key(
-            tenant_id=tenant_id, provider=prov
-        )
+        tenant_key = self._tenant_policy.get_tenant_api_key(tenant_id=tenant_id, provider=prov)
         if tenant_key:
             return tenant_key
         return None
@@ -176,9 +162,7 @@ class GenAIConfigResolverService:
             prov = _normalize_provider(raw)
             if not prov:
                 continue
-            key = self.resolve_api_key(
-                tenant_id=tenant_id, user_id=user_id, provider=prov
-            )
+            key = self.resolve_api_key(tenant_id=tenant_id, user_id=user_id, provider=prov)
             if key:
                 out[prov] = key
         return out

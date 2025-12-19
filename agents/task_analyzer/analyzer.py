@@ -5,19 +5,19 @@
 
 """Task Analyzer 核心實現 - 整合任務分析、分類、路由和工作流選擇"""
 
-import uuid
 import logging
-from typing import Dict, Any, Optional
+import uuid
+from typing import Any, Dict, Optional
 
+from agents.task_analyzer.classifier import TaskClassifier
+from agents.task_analyzer.llm_router import LLMRouter
 from agents.task_analyzer.models import (
     TaskAnalysisRequest,
     TaskAnalysisResult,
     TaskType,
     WorkflowType,
 )
-from agents.task_analyzer.classifier import TaskClassifier
 from agents.task_analyzer.workflow_selector import WorkflowSelector
-from agents.task_analyzer.llm_router import LLMRouter
 
 logger = logging.getLogger(__name__)
 
@@ -102,10 +102,7 @@ class TaskAnalyzer:
         }
 
         # 如果是混合模式，添加 strategy 信息
-        if (
-            workflow_selection.workflow_type == WorkflowType.HYBRID
-            and workflow_selection.strategy
-        ):
+        if workflow_selection.workflow_type == WorkflowType.HYBRID and workflow_selection.strategy:
             strategy = workflow_selection.strategy
             analysis_details["workflow_strategy"] = {
                 "mode": strategy.mode,
@@ -117,9 +114,7 @@ class TaskAnalyzer:
 
         # 計算整體置信度（取平均值）
         overall_confidence = (
-            classification.confidence
-            + workflow_selection.confidence
-            + llm_routing.confidence
+            classification.confidence + workflow_selection.confidence + llm_routing.confidence
         ) / 3.0
 
         logger.info(

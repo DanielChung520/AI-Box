@@ -10,6 +10,7 @@ import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Tuple
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -41,7 +42,12 @@ class FileStorage(ABC):
         pass
 
     @abstractmethod
-    def get_file_path(self, file_id: str) -> Optional[str]:
+    def get_file_path(
+        self,
+        file_id: str,
+        task_id: Optional[str] = None,
+        metadata_storage_path: Optional[str] = None,
+    ) -> Optional[str]:
         """
         獲取文件路徑
 
@@ -54,7 +60,12 @@ class FileStorage(ABC):
         pass
 
     @abstractmethod
-    def read_file(self, file_id: str) -> Optional[bytes]:
+    def read_file(
+        self,
+        file_id: str,
+        task_id: Optional[str] = None,
+        metadata_storage_path: Optional[str] = None,
+    ) -> Optional[bytes]:
         """
         讀取文件內容
 
@@ -80,7 +91,12 @@ class FileStorage(ABC):
         pass
 
     @abstractmethod
-    def file_exists(self, file_id: str) -> bool:
+    def file_exists(
+        self,
+        file_id: str,
+        task_id: Optional[str] = None,
+        metadata_storage_path: Optional[str] = None,
+    ) -> bool:
         """
         檢查文件是否存在
 
@@ -129,9 +145,7 @@ class LocalFileStorage(FileStorage):
         self._encryption_service = None
         if self.enable_encryption:
             try:
-                from services.api.services.encryption_service import (
-                    get_encryption_service,
-                )
+                from services.api.services.encryption_service import get_encryption_service
 
                 self._encryption_service = get_encryption_service()
                 self.logger.info("文件加密已啟用")
@@ -160,9 +174,7 @@ class LocalFileStorage(FileStorage):
         if task_id:
             # 如果提供了 task_id，文件存儲在任務工作區
             # 路徑結構：data/tasks/{task_id}/workspace/{file_id}.{ext}
-            from services.api.services.task_workspace_service import (
-                get_task_workspace_service,
-            )
+            from services.api.services.task_workspace_service import get_task_workspace_service
 
             workspace_service = get_task_workspace_service()
             workspace_path = workspace_service.get_workspace_path(task_id)
@@ -246,8 +258,7 @@ class LocalFileStorage(FileStorage):
                 filename=filename,
                 file_path=str(file_path),
                 file_size=len(file_content),
-                encrypted=self.enable_encryption
-                and self._encryption_service is not None,
+                encrypted=self.enable_encryption and self._encryption_service is not None,
             )
 
             return file_id, str(file_path)
@@ -292,9 +303,7 @@ class LocalFileStorage(FileStorage):
         # 修改時間：2025-01-27 - 如果提供了 task_id，在任務工作區中查找
         if task_id:
             try:
-                from services.api.services.task_workspace_service import (
-                    get_task_workspace_service,
-                )
+                from services.api.services.task_workspace_service import get_task_workspace_service
 
                 workspace_service = get_task_workspace_service()
                 workspace_path = workspace_service.get_workspace_path(task_id)
@@ -356,9 +365,7 @@ class LocalFileStorage(FileStorage):
                 try:
                     # 檢查是否已加密
                     if self._encryption_service.is_encrypted(encrypted_content):
-                        decrypted_content = self._encryption_service.decrypt(
-                            encrypted_content
-                        )
+                        decrypted_content = self._encryption_service.decrypt(encrypted_content)
                         self.logger.debug(
                             "文件已解密",
                             file_id=file_id,
@@ -490,15 +497,11 @@ def create_storage_from_config(config: Optional[dict] = None) -> FileStorage:
     storage_path = config.get("storage_path", "./data/datasets/files")
     encryption_config = config.get("encryption", {}) if config.get("encryption") else {}
     enable_encryption = (
-        encryption_config.get("enabled", False)
-        if isinstance(encryption_config, dict)
-        else False
+        encryption_config.get("enabled", False) if isinstance(encryption_config, dict) else False
     )
 
     if storage_backend == "local":
-        return LocalFileStorage(
-            storage_path=storage_path, enable_encryption=enable_encryption
-        )
+        return LocalFileStorage(storage_path=storage_path, enable_encryption=enable_encryption)
     elif storage_backend == "s3":
         raise NotImplementedError("S3 存儲尚未實現")
     elif storage_backend == "oss":

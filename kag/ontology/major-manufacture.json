@@ -3,14 +3,14 @@
     "version": "1.0",
     "inherits_from": ["5W1H_Base_Ontology_OWL", "Enterprise_Domain_Ontology"],
     "description": "製造業專業本體論，專注於生產、品質控制和設備維護。",
-  
+
     "entity_classes": [
       {"name": "Machine_Asset", "base_class": "Concept", "description": "生產設備或機器，例如CNC機床、組裝線。"},
       {"name": "Quality_Issue", "base_class": "Event", "description": "產品的缺陷、錯誤或質量問題。"},
       {"name": "Material", "base_class": "Concept", "description": "生產所需的原材料或元件。"},
       {"name": "Supplier", "base_class": "Organization", "description": "提供原材料或服務的外部廠商。"}
     ],
-  
+
     "object_properties": [
       {
         "name": "produces",

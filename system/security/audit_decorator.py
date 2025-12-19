@@ -6,15 +6,16 @@
 """審計日誌裝飾器 - 自動記錄 API 調用。"""
 
 from functools import wraps
-from typing import Callable, Any, Optional, Dict
-from fastapi import Request
-import structlog
+from typing import Any, Callable, Dict, Optional
 
-from services.api.models.audit_log import AuditLogCreate, AuditAction
+import structlog
+from fastapi import Request
+
+from services.api.models.audit_log import AuditAction, AuditLogCreate
 from services.api.services.audit_log_service import get_audit_log_service
+from system.security.config import get_security_settings
 from system.security.dependencies import get_current_user
 from system.security.models import User
-from system.security.config import get_security_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -131,10 +132,7 @@ def audit_log(
                     # 首先嘗試從函數參數中提取（用於 DELETE 等沒有 body 的請求）
                     # 檢查是否有 task_id, file_id, folder_id 等參數
                     for key, value in kwargs.items():
-                        if (
-                            key in ("task_id", "file_id", "folder_id", "resource_id")
-                            and value
-                        ):
+                        if key in ("task_id", "file_id", "folder_id", "resource_id") and value:
                             resource_id = str(value)
                             break
 
@@ -268,8 +266,7 @@ def _filter_sensitive_data(data: dict) -> dict:
             filtered[key] = _filter_sensitive_data(value)
         elif isinstance(value, list):
             filtered[key] = [
-                _filter_sensitive_data(item) if isinstance(item, dict) else item
-                for item in value
+                _filter_sensitive_data(item) if isinstance(item, dict) else item for item in value
             ]
         else:
             filtered[key] = value

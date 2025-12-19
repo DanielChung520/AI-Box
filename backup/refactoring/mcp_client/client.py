@@ -8,16 +8,16 @@
 import asyncio
 import json
 import logging
-from typing import Dict, Any, Optional, List
-import httpx
+from typing import Any, Dict, List, Optional
 
+import httpx
 from mcp_server.protocol.models import (
+    MCPInitializeRequest,
+    MCPListToolsRequest,
     MCPRequest,
     MCPResponse,
-    MCPInitializeRequest,
-    MCPToolCallRequest,
-    MCPListToolsRequest,
     MCPTool,
+    MCPToolCallRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -110,9 +110,7 @@ class MCPClient:
         self.request_id_counter += 1
         return self.request_id_counter
 
-    async def _send_request(
-        self, request: MCPRequest, retry_count: int = 0
-    ) -> MCPResponse:
+    async def _send_request(self, request: MCPRequest, retry_count: int = 0) -> MCPResponse:
         """
         發送 MCP 請求（帶重試機制）
 
@@ -145,9 +143,7 @@ class MCPClient:
                 if not self.initialized:
                     await self.initialize()
                 return await self._send_request(request, retry_count + 1)
-            logger.error(
-                f"Failed to send MCP request after {retry_count + 1} retries: {e}"
-            )
+            logger.error(f"Failed to send MCP request after {retry_count + 1} retries: {e}")
             raise
         except httpx.HTTPStatusError as e:
             # HTTP 錯誤，不重試
@@ -192,9 +188,7 @@ class MCPClient:
         if not self.initialized:
             await self.initialize()
 
-        request = MCPToolCallRequest(
-            id=3, params={"name": name, "arguments": arguments}
-        )
+        request = MCPToolCallRequest(id=3, params={"name": name, "arguments": arguments})
 
         response = await self._send_request(request)
         if not response.result:

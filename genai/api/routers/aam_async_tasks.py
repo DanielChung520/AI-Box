@@ -8,14 +8,15 @@
 from __future__ import annotations
 
 from typing import Optional
-from fastapi import APIRouter, status, BackgroundTasks
-from fastapi.responses import JSONResponse
-import structlog
 
-from api.core.response import APIResponse
+import structlog
+from fastapi import APIRouter, BackgroundTasks, status
+from fastapi.responses import JSONResponse
+
+from agents.infra.memory.aam.aam_core import AAMManager
 from agents.infra.memory.aam.async_processor import AsyncProcessor, TaskStatus
 from agents.infra.memory.aam.knowledge_extraction_agent import KnowledgeExtractionAgent
-from agents.infra.memory.aam.aam_core import AAMManager
+from api.core.response import APIResponse
 
 logger = structlog.get_logger(__name__)
 
@@ -122,9 +123,7 @@ async def get_task_status(task_id: str) -> JSONResponse:
                 "priority": task.priority,
                 "created_at": task.created_at.isoformat(),
                 "started_at": task.started_at.isoformat() if task.started_at else None,
-                "completed_at": (
-                    task.completed_at.isoformat() if task.completed_at else None
-                ),
+                "completed_at": (task.completed_at.isoformat() if task.completed_at else None),
                 "retry_count": task.retry_count,
                 "error": task.error,
                 "metadata": task.metadata,
@@ -239,9 +238,7 @@ async def list_tasks(
                 "priority": task.priority,
                 "created_at": task.created_at.isoformat(),
                 "started_at": task.started_at.isoformat() if task.started_at else None,
-                "completed_at": (
-                    task.completed_at.isoformat() if task.completed_at else None
-                ),
+                "completed_at": (task.completed_at.isoformat() if task.completed_at else None),
                 "retry_count": task.retry_count,
                 "error": task.error,
             }

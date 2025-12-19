@@ -1,0 +1,226 @@
+# 代碼功能說明: AI-Box 項目配置
+# 創建日期: 2025-01-27
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-01-27
+
+# ============================================================================
+# Ruff 配置 (Linter & Formatter)
+# ============================================================================
+[tool.ruff]
+# 行長度設置（與 black 保持一致）
+line-length = 100
+# 目標 Python 版本
+target-version = "py311"
+# 排除的目錄和文件
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "backup",
+    "rag-file-upload",
+]
+
+[tool.ruff.lint]
+# 啟用的規則類別
+# E: pycodestyle errors
+# F: pyflakes
+# W: pycodestyle warnings
+# I: isort
+# UP: pyupgrade
+# B: flake8-bugbear
+# SIM: flake8-simplify
+# RET: flake8-return
+# PIE: flake8-pie
+# PT: flake8-pytest-style
+# RUF: ruff-specific rules
+# 只啟用核心規則，避免過於嚴格
+# 逐步啟用更多規則，而不是一次性啟用所有規則
+#
+# 當前階段：只啟用核心規則（E, F, W）
+# - E: pycodestyle errors (基本錯誤)
+# - F: pyflakes (未定義變量、未使用導入等)
+# - W: pycodestyle warnings (基本警告)
+#
+# 未來階段可以逐步啟用：
+# - I: isort (導入排序) - 可以自動修復
+# - UP: pyupgrade (Python 版本升級建議) - 非關鍵
+# - B: flake8-bugbear (常見 bug 模式) - 可選
+# - SIM: flake8-simplify (簡化建議) - 非關鍵
+# - RET: flake8-return (返回值檢查) - 非關鍵
+# - RUF: ruff-specific rules - 包含很多非關鍵規則
+select = [
+    "E",      # pycodestyle errors (基本錯誤)
+    "F",      # pyflakes (未定義變量、未使用導入等)
+    "W",      # pycodestyle warnings (基本警告)
+    # 暫時不啟用以下規則，避免檢查出大量非關鍵問題
+    # "I",      # isort (導入排序) - 可以自動修復，但不強制
+    # "UP",     # pyupgrade (Python 版本升級建議) - 非關鍵，約 3000+ 個錯誤
+    # "B",      # flake8-bugbear (常見 bug 模式) - 可選
+    # "SIM",    # flake8-simplify (簡化建議) - 非關鍵
+    # "RET",    # flake8-return (返回值檢查) - 非關鍵
+    # "RUF",    # ruff-specific rules - 包含約 5000+ 個非關鍵錯誤（主要是 Unicode 字符）
+]
+
+# 全局忽略的規則
+# E501: line too long (由 black 處理)
+# 其他規則：如果未來啟用更多規則，可以在這裡忽略非關鍵規則
+ignore = [
+    "E501",   # line too long (handled by black)
+    # 如果啟用 RUF 規則，可以忽略以下非關鍵規則：
+    # "RUF002", # ambiguous-unicode-character-docstring (中文註釋中的字符)
+    # "RUF003", # ambiguous-unicode-character-comment (中文註釋中的字符)
+    # "RUF001", # ambiguous-unicode-character-string (中文字符串)
+    # 如果啟用 UP 規則，可以忽略以下規則（項目規範要求使用 Optional）：
+    # "UP045",  # non-pep604-annotation-optional (使用 Optional 而不是 |)
+]
+
+# 注意：fixable 和 unfixable 配置在 ruff 中不需要，使用 --fix 選項即可
+
+# 每個文件的忽略規則
+[tool.ruff.lint.per-file-ignores]
+# scripts 目錄中的文件可能包含未使用的變量（調試或未來使用）
+# mcp 和 migration 腳本中的導入可能需要在 sys.path 修改之後
+"scripts/**/*.py" = ["F841", "E402"]
+"mcp/**/*.py" = ["E402"]
+"scripts/migration/**/*.py" = ["E402"]
+
+# isort 配置（導入排序）
+[tool.ruff.lint.isort]
+# 已知的第一方包
+known-first-party = [
+    "api",
+    "agents",
+    "database",
+    "genai",
+    "llm",
+    "mcp",
+    "services",
+    "storage",
+    "system",
+    "workers",
+    "kag",
+]
+
+# ============================================================================
+# Mypy 配置 (Type Checker)
+# ============================================================================
+[tool.mypy]
+# Python 版本
+python_version = "3.11"
+
+# 嚴格性設置
+# 注意：不啟用 strict = true，因為項目中有大量未類型化的代碼
+# 逐步改進類型注解，而不是一次性啟用所有嚴格檢查
+strict = false
+
+# 警告設置
+warn_return_any = false             # 不警告返回 Any 類型的函數（非高優先級錯誤）
+warn_unused_configs = true           # 警告未使用的配置選項
+warn_redundant_casts = true          # 警告冗餘的類型轉換
+warn_unused_ignores = false          # 不警告未使用的 type: ignore 註釋（減少噪音）
+warn_no_return = true                # 警告沒有返回值的函數
+warn_unreachable = false             # 不警告不可達的代碼（減少噪音）
+
+# 類型檢查設置
+disallow_untyped_defs = false        # 不要求所有函數都有類型注解（逐步改進）
+disallow_incomplete_defs = false     # 不要求完整的類型注解（逐步改進）
+check_untyped_defs = true            # 檢查未類型化的函數定義
+disallow_untyped_decorators = false  # 不要求裝飾器有類型注解
+no_implicit_optional = true          # 不允許隱式的 Optional
+strict_optional = true               # 嚴格檢查 Optional 類型
+strict_equality = false              # 不嚴格檢查相等性
+
+# 模塊和導入設置
+ignore_missing_imports = false       # 不忽略缺失的導入
+follow_imports = "normal"            # 正常跟隨導入
+explicit_package_bases = true        # 使用明確的包基礎路徑，避免模塊重複問題
+
+# 忽略非關鍵錯誤類型
+# union-attr: ArangoDB 返回類型問題（~90+ 個，不會導致運行時錯誤）
+# import-untyped: 第三方庫缺少類型標記（5 個，不會導致運行時錯誤）
+# 注意：不忽略 arg-type、return-value 等可能導致運行時錯誤的類型
+disable_error_code = [
+    "union-attr",        # ArangoDB 返回類型問題（靜態類型檢查錯誤，不會導致運行時錯誤）
+    "import-untyped",    # 第三方庫缺少類型標記（只是類型檢查問題，不會導致運行時錯誤）
+]
+
+# 平台設置
+platform = "darwin"                  # macOS (可根據需要調整)
+
+# 排除的目錄和文件
+# 排除包含連字符的目錄（Python 包名不能包含連字符）和備份目錄
+exclude = [
+    "rag-file-upload/.*",
+    "tests/.*/rag-file-upload/.*",
+    "docs/.*/rag-file-upload/.*",
+    "backup/.*",
+    "venv/.*",
+    ".venv/.*",
+    "build/.*",
+    "dist/.*",
+    "__pycache__/.*",
+    ".*\\.pyc$",
+    "scripts/.*",      # 排除腳本目錄（不需要嚴格類型檢查）
+    "tests/.*",        # 排除測試目錄（可以放寬類型檢查）
+]
+
+# 每個模塊的配置
+[tool.mypy-overrides]
+# 第三方庫可能沒有類型存根，可以忽略
+"pydantic.*" = { ignore_missing_imports = false }
+"fastapi.*" = { ignore_missing_imports = false }
+"structlog.*" = { ignore_missing_imports = false }
+"redis.*" = { ignore_missing_imports = false }
+"rq.*" = { ignore_missing_imports = false }
+"chromadb.*" = { ignore_missing_imports = false }
+"arango.*" = { ignore_missing_imports = false }
+# 缺少類型存根的庫（可以忽略）
+"requests.*" = { ignore_missing_imports = true }
+# 動態導入的模塊（可能找不到實現）
+"services.mcp_server.*" = { ignore_missing_imports = true }
+"genai.workflows.*" = { ignore_missing_imports = true }
+
+# ============================================================================
+# Black 配置 (Code Formatter)
+# ============================================================================
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.ruff_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | backup
+  | rag-file-upload
+)/
+'''

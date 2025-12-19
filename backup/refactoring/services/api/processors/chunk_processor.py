@@ -5,10 +5,11 @@
 
 """文件分塊處理器 - 實現多種分塊策略"""
 
-import uuid
 import re
-from typing import List, Dict, Any, Optional
+import uuid
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -42,9 +43,7 @@ class ChunkProcessor:
         self.chunk_size = chunk_size
         self.overlap = overlap
         self.strategy = strategy
-        self.logger = logger.bind(
-            chunk_size=chunk_size, overlap=overlap, strategy=strategy.value
-        )
+        self.logger = logger.bind(chunk_size=chunk_size, overlap=overlap, strategy=strategy.value)
 
     def process(
         self,
@@ -229,10 +228,7 @@ class ChunkProcessor:
                     # 按句子分割長段落
                     sentences = self._split_sentences(para)
                     for sentence in sentences:
-                        if (
-                            len(current_chunk) + len(sentence) > self.chunk_size
-                            and current_chunk
-                        ):
+                        if len(current_chunk) + len(sentence) > self.chunk_size and current_chunk:
                             chunk_id = str(uuid.uuid4())
                             chunk_metadata = {
                                 "start_position": current_start,

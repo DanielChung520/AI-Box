@@ -8,19 +8,19 @@ ChromaDB 性能測試腳本
 用於測試批量寫入、檢索性能、並發性能等
 """
 
+import argparse
+import json
 import os
+import statistics
 import sys
 import time
-import statistics
-import argparse
-from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import json
+from typing import Any, Dict, List
 
 # 添加項目根目錄到路徑
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from database.chromadb import ChromaDBClient, ChromaCollection  # noqa: E402
+from database.chromadb import ChromaCollection, ChromaDBClient  # noqa: E402
 
 
 def generate_embeddings(count: int, dimension: int = 384) -> List[List[float]]:
@@ -139,14 +139,10 @@ def benchmark_query(
         "avg_latency_ms": statistics.mean(latencies),
         "p50_latency_ms": statistics.median(latencies),
         "p95_latency_ms": (
-            statistics.quantiles(latencies, n=20)[18]
-            if len(latencies) >= 20
-            else latencies[-1]
+            statistics.quantiles(latencies, n=20)[18] if len(latencies) >= 20 else latencies[-1]
         ),
         "p99_latency_ms": (
-            statistics.quantiles(latencies, n=100)[98]
-            if len(latencies) >= 100
-            else latencies[-1]
+            statistics.quantiles(latencies, n=100)[98] if len(latencies) >= 100 else latencies[-1]
         ),
         "min_latency_ms": min(latencies),
         "max_latency_ms": max(latencies),
@@ -226,14 +222,10 @@ def benchmark_concurrent_queries(
         "avg_latency_ms": statistics.mean(latencies),
         "p50_latency_ms": statistics.median(latencies),
         "p95_latency_ms": (
-            statistics.quantiles(latencies, n=20)[18]
-            if len(latencies) >= 20
-            else latencies[-1]
+            statistics.quantiles(latencies, n=20)[18] if len(latencies) >= 20 else latencies[-1]
         ),
         "p99_latency_ms": (
-            statistics.quantiles(latencies, n=100)[98]
-            if len(latencies) >= 100
-            else latencies[-1]
+            statistics.quantiles(latencies, n=100)[98] if len(latencies) >= 100 else latencies[-1]
         ),
         "min_latency_ms": min(latencies),
         "max_latency_ms": max(latencies),
@@ -302,20 +294,14 @@ def main():
         default="persistent",
         help="ChromaDB 連接模式",
     )
-    parser.add_argument(
-        "--host", default="localhost", help="ChromaDB 主機（HTTP 模式）"
-    )
-    parser.add_argument(
-        "--port", type=int, default=8001, help="ChromaDB 端口（HTTP 模式）"
-    )
+    parser.add_argument("--host", default="localhost", help="ChromaDB 主機（HTTP 模式）")
+    parser.add_argument("--port", type=int, default=8001, help="ChromaDB 端口（HTTP 模式）")
     parser.add_argument(
         "--persist-dir",
         default="./benchmark_chroma_data",
         help="持久化目錄（持久化模式）",
     )
-    parser.add_argument(
-        "--collection", default="benchmark_collection", help="測試集合名稱"
-    )
+    parser.add_argument("--collection", default="benchmark_collection", help="測試集合名稱")
     parser.add_argument("--num-docs", type=int, default=1000, help="測試文檔數量")
     parser.add_argument("--batch-size", type=int, default=100, help="批量寫入批次大小")
     parser.add_argument("--num-queries", type=int, default=100, help="查詢次數")
@@ -323,9 +309,7 @@ def main():
     parser.add_argument("--embedding-dim", type=int, default=384, help="嵌入向量維度")
     parser.add_argument("--concurrent", action="store_true", help="執行並發測試")
     parser.add_argument("--num-threads", type=int, default=10, help="並發線程數")
-    parser.add_argument(
-        "--target-latency", type=float, default=200.0, help="目標延遲（毫秒）"
-    )
+    parser.add_argument("--target-latency", type=float, default=200.0, help="目標延遲（毫秒）")
     parser.add_argument("--output", help="輸出 JSON 報告文件路徑")
 
     args = parser.parse_args()

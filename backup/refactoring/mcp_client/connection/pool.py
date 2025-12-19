@@ -7,9 +7,9 @@
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Callable
-from enum import Enum
 import time
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 from mcp_client.client import MCPClient
 
@@ -136,17 +136,13 @@ class ConnectionPool:
                 await conn_info.client.initialize()
                 conn_info.status = ConnectionStatus.HEALTHY
             except Exception as e:
-                logger.error(
-                    f"Failed to initialize connection to {conn_info.endpoint}: {e}"
-                )
+                logger.error(f"Failed to initialize connection to {conn_info.endpoint}: {e}")
                 conn_info.status = ConnectionStatus.UNHEALTHY
 
         # 啟動健康檢查任務
         self.health_check_task = asyncio.create_task(self._health_check_loop())
         self._initialized = True
-        logger.info(
-            f"Connection pool initialized with {len(self.connections)} connections"
-        )
+        logger.info(f"Connection pool initialized with {len(self.connections)} connections")
 
     async def _health_check_loop(self) -> None:
         """健康檢查循環"""
@@ -167,9 +163,7 @@ class ConnectionPool:
     def _select_connection_round_robin(self) -> Optional[ConnectionInfo]:
         """輪詢選擇連線"""
         healthy_connections = [
-            conn
-            for conn in self.connections.values()
-            if conn.status == ConnectionStatus.HEALTHY
+            conn for conn in self.connections.values() if conn.status == ConnectionStatus.HEALTHY
         ]
         if not healthy_connections:
             return None
@@ -183,9 +177,7 @@ class ConnectionPool:
         import random
 
         healthy_connections = [
-            conn
-            for conn in self.connections.values()
-            if conn.status == ConnectionStatus.HEALTHY
+            conn for conn in self.connections.values() if conn.status == ConnectionStatus.HEALTHY
         ]
         if not healthy_connections:
             return None
@@ -194,9 +186,7 @@ class ConnectionPool:
     def _select_connection_least_connections(self) -> Optional[ConnectionInfo]:
         """選擇連接數最少的連線"""
         healthy_connections = [
-            conn
-            for conn in self.connections.values()
-            if conn.status == ConnectionStatus.HEALTHY
+            conn for conn in self.connections.values() if conn.status == ConnectionStatus.HEALTHY
         ]
         if not healthy_connections:
             return None
@@ -260,9 +250,7 @@ class ConnectionPool:
             Dict: 統計信息
         """
         healthy_count = sum(
-            1
-            for conn in self.connections.values()
-            if conn.status == ConnectionStatus.HEALTHY
+            1 for conn in self.connections.values() if conn.status == ConnectionStatus.HEALTHY
         )
         return {
             "total_connections": len(self.connections),

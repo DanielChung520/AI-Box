@@ -404,14 +404,12 @@ class DataQualityService:
                 object_properties = ontology.get("object_properties", [])
                 version = ontology.get("version", "")
                 inherits_from = ontology.get("inherits_from", [])
-                ontology_type = ontology.get("type", "")
             else:
                 ontology_id = getattr(ontology, "id", None)
                 entity_classes = getattr(ontology, "entity_classes", [])
                 object_properties = getattr(ontology, "object_properties", [])
                 version = getattr(ontology, "version", "")
                 inherits_from = getattr(ontology, "inherits_from", [])
-                ontology_type = getattr(ontology, "type", "")
 
             # 1. 檢查結構完整性：entity_classes 和 object_properties 不為空
             if not entity_classes:
@@ -501,9 +499,11 @@ class DataQualityService:
                                     resource_id=ontology_id,
                                     resource_type="ontology",
                                     details={
-                                        "property": op.get("name")
-                                        if isinstance(op, dict)
-                                        else getattr(op, "name", ""),
+                                        "property": (
+                                            op.get("name")
+                                            if isinstance(op, dict)
+                                            else getattr(op, "name", "")
+                                        ),
                                         "domain": domain,
                                     },
                                 )
@@ -519,9 +519,11 @@ class DataQualityService:
                                     resource_id=ontology_id,
                                     resource_type="ontology",
                                     details={
-                                        "property": op.get("name")
-                                        if isinstance(op, dict)
-                                        else getattr(op, "name", ""),
+                                        "property": (
+                                            op.get("name")
+                                            if isinstance(op, dict)
+                                            else getattr(op, "name", "")
+                                        ),
                                         "range": range_val,
                                     },
                                 )
@@ -564,13 +566,11 @@ class DataQualityService:
                 config_data = config.get("config_data", {})
                 scope = config.get("scope", "")
                 tenant_id = config.get("tenant_id")
-                user_id = config.get("user_id")
             else:
                 config_id = getattr(config, "id", None)
                 config_data = getattr(config, "config_data", {})
                 scope = getattr(config, "scope", "")
                 tenant_id = getattr(config, "tenant_id", None)
-                user_id = getattr(config, "user_id", None)
 
             # 1. 檢查結構完整性：config_data 不為空
             if not config_data:

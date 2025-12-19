@@ -7,33 +7,31 @@
 
 import os
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Query
 
+from fastapi import APIRouter, HTTPException, Query, status
+
+from api.core.response import APIResponse
+from api.core.settings import get_ollama_settings
+from database.chromadb.utils import ensure_list
 from llm.clients.ollama import (
-    get_ollama_client,
     OllamaClientError,
     OllamaHTTPError,
     OllamaTimeoutError,
+    get_ollama_client,
 )
-from api.core.response import APIResponse
-from api.core.settings import get_ollama_settings
 from services.api.models.chromadb import (
+    BatchAddRequest,
     CollectionCreateRequest,
     DocumentAddRequest,
     DocumentUpdateRequest,
     QueryRequest,
-    BatchAddRequest,
 )
-from database.chromadb.utils import ensure_list
 
 # 嘗試導入 ChromaDB 客戶端
 try:
-    from database.chromadb import ChromaDBClient, ChromaCollection
-    from database.chromadb.exceptions import (
-        ChromaDBError,
-        ChromaDBConnectionError,  # noqa: F401
-        ChromaDBOperationError,
-    )
+    from database.chromadb import ChromaCollection, ChromaDBClient
+    from database.chromadb.exceptions import ChromaDBConnectionError  # noqa: F401
+    from database.chromadb.exceptions import ChromaDBError, ChromaDBOperationError
 
     CHROMADB_AVAILABLE = True
 except ImportError:
@@ -83,9 +81,7 @@ async def _resolve_embeddings_for_add(request: DocumentAddRequest):
     if not request.auto_embed:
         return None
     documents = ensure_list(request.documents)
-    embeddings = await _generate_embeddings_from_texts(
-        documents, request.embedding_model
-    )
+    embeddings = await _generate_embeddings_from_texts(documents, request.embedding_model)
     return embeddings
 
 
@@ -184,9 +180,7 @@ async def create_collection(request: CollectionCreateRequest):
             message=f"Collection '{request.name}' created successfully",
         )
     except ChromaDBError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -210,9 +204,7 @@ async def list_collections():
             message=f"Found {len(collections)} collection(s)",
         )
     except ChromaDBError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -239,9 +231,7 @@ async def delete_collection(name: str):
             message=f"Collection '{name}' deleted successfully",
         )
     except ChromaDBError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -252,9 +242,7 @@ async def delete_collection(name: str):
 # ========== 文檔操作 ==========
 
 
-@router.post(
-    "/collections/{collection_name}/documents", status_code=status.HTTP_201_CREATED
-)
+@router.post("/collections/{collection_name}/documents", status_code=status.HTTP_201_CREATED)
 async def add_documents(collection_name: str, request: DocumentAddRequest):
     """
     添加文檔到集合
@@ -286,9 +274,7 @@ async def add_documents(collection_name: str, request: DocumentAddRequest):
             message=f"Added {len(ids_list)} document(s) to collection '{collection_name}'",
         )
     except ChromaDBOperationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -326,9 +312,7 @@ async def get_documents(
             message=f"Retrieved {len(result.get('ids', []))} document(s)",
         )
     except ChromaDBOperationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -336,9 +320,7 @@ async def get_documents(
         ) from e
 
 
-@router.put(
-    "/collections/{collection_name}/documents/{doc_id}", status_code=status.HTTP_200_OK
-)
+@router.put("/collections/{collection_name}/documents/{doc_id}", status_code=status.HTTP_200_OK)
 async def update_document(
     collection_name: str,
     doc_id: str,
@@ -372,9 +354,7 @@ async def update_document(
             message=f"Document '{doc_id}' updated successfully",
         )
     except ChromaDBOperationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -382,9 +362,7 @@ async def update_document(
         ) from e
 
 
-@router.delete(
-    "/collections/{collection_name}/documents/{doc_id}", status_code=status.HTTP_200_OK
-)
+@router.delete("/collections/{collection_name}/documents/{doc_id}", status_code=status.HTTP_200_OK)
 async def delete_document(collection_name: str, doc_id: str):
     """
     刪除文檔
@@ -408,9 +386,7 @@ async def delete_document(collection_name: str, doc_id: str):
             message=f"Document '{doc_id}' deleted successfully",
         )
     except ChromaDBOperationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -452,9 +428,7 @@ async def query_documents(collection_name: str, request: QueryRequest):
             message="Query completed successfully",
         )
     except ChromaDBOperationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -477,9 +451,7 @@ async def batch_add_documents(collection_name: str, request: BatchAddRequest):
     try:
         client = get_chroma_client()
         collection = client.get_or_create_collection(name=collection_name)
-        chroma_collection = ChromaCollection(
-            collection, batch_size=request.batch_size or 100
-        )
+        chroma_collection = ChromaCollection(collection, batch_size=request.batch_size or 100)
 
         items = await _prepare_batch_items(request)
 
@@ -490,9 +462,7 @@ async def batch_add_documents(collection_name: str, request: BatchAddRequest):
             message=f"Batch add completed: {result['success']}/{result['total']} documents added",
         )
     except ChromaDBOperationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

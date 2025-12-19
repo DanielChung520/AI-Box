@@ -7,9 +7,10 @@
 
 import logging
 import uuid
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
 
+from agents.crewai.crew_registry import CrewRegistry
 from agents.crewai.models import (
     AgentRole,
     CollaborationMode,
@@ -17,7 +18,6 @@ from agents.crewai.models import (
     CrewMetrics,
     CrewResourceQuota,
 )
-from agents.crewai.crew_registry import CrewRegistry
 
 logger = logging.getLogger(__name__)
 

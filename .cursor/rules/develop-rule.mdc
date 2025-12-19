@@ -5,6 +5,119 @@ alwaysApply: true
 凡是要創建、修改日期，請先上網(https://tw.piliapp.com/time/)確認當天的日期及時間
 配置規範（2025-11-25 22:46 UTC+8）：敏感資訊集中於 .env / Secret；非敏感環境參數寫入 config/config.json（由 config/config.example.json 派生），新增欄位時需同步更新樣板與文檔
 
+## pyproject.toml 配置規範（2025-01-27 UTC+8）
+
+**重要**：生成或修改 Python 代碼時，必須嚴格遵循 `pyproject.toml` 中的配置。
+
+### Ruff 配置要求
+
+1. **行長度**: 最大 100 字符（與 black 保持一致）
+2. **Python 版本**: 目標 Python 3.11
+3. **啟用的規則類別**:
+   - E: pycodestyle errors（基本錯誤）
+   - F: pyflakes（未定義變量、未使用導入等）
+   - W: pycodestyle warnings（基本警告）
+   - I: isort（導入排序）
+   - UP: pyupgrade（Python 版本升級建議）
+   - B: flake8-bugbear（常見 bug 模式）
+   - SIM: flake8-simplify（簡化建議）
+   - RET: flake8-return（返回值檢查）
+   - RUF: ruff-specific rules（ruff 特定規則）
+
+4. **必須避免的錯誤**（高優先級）:
+   - ❌ **F821**: 未定義的名稱（會導致運行時錯誤）- **必須修復**
+   - ❌ **E722**: 裸 except（必須使用 `except Exception` 或更具體的異常類型）- **必須修復**
+   - ❌ **F841**: 未使用的變量（除非在 scripts 目錄中）
+   - ❌ **E402**: 導入不在文件頂部（除非在 scripts/mcp 目錄中）
+
+5. **導入排序規則**:
+   - 標準庫 → 第三方庫 → 第一方包
+   - 第一方包列表：`api`, `agents`, `database`, `genai`, `llm`, `mcp`, `services`, `storage`, `system`, `workers`, `kag`
+
+### Mypy 配置要求
+
+1. **類型注解要求**:
+   - ✅ 所有函數參數必須有類型注解
+   - ✅ 所有返回值必須有類型注解
+   - ✅ 可能為 None 的變量使用 `Optional[T]` 而不是 `T = None`
+   - ✅ 不允許隱式的 Optional（必須明確使用 `Optional[T]`）
+
+2. **類型檢查要求**:
+   - ✅ 使用 `strict_optional = true`（嚴格檢查 Optional 類型）
+   - ✅ 使用 `no_implicit_optional = true`（不允許隱式 Optional）
+
+3. **必須避免的類型錯誤**:
+   - ❌ 未定義的變量或函數
+   - ❌ 類型不匹配
+   - ❌ 隱式的 Optional（如 `def func(param: str = None)` 應為 `def func(param: Optional[str] = None)`）
+
+### 生成代碼後的檢查流程
+
+**重要**：AI 生成或修改代碼後，必須執行以下檢查：
+
+1. **立即運行 Ruff 檢查**:
+   ```bash
+   ruff check --fix <文件路徑>
+   ```
+
+2. **立即運行 Mypy 檢查**:
+   ```bash
+   mypy <文件路徑>
+   ```
+
+3. **如果檢查失敗，修復錯誤後重新檢查**，直到通過為止。
+
+4. **高優先級錯誤（F821, E722）必須立即修復**，不能忽略。
+
+### 代碼生成範例
+
+**✅ 正確的代碼生成**：
+```python
+from typing import Optional, Dict, Any
+from fastapi import UploadFile
+
+async def process_file(
+    file: UploadFile,
+    user_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    處理文件
+
+    Args:
+        file: 文件對象
+        user_id: 用戶 ID（可選）
+        metadata: 元數據（可選）
+
+    Returns:
+        處理結果
+    """
+    try:
+        # 處理邏輯
+        result = {"status": "ok"}
+        return result
+    except Exception as e:
+        logger.error(f"處理失敗: {e}")
+        raise
+```
+
+**❌ 錯誤的代碼生成**：
+```python
+# ❌ 缺少類型注解
+async def process_file(file, user_id=None, metadata=None):
+    # ❌ 使用隱式 Optional
+    if user_id is None:
+        user_id = "default"
+    # ❌ 裸 except
+    try:
+        result = process(file)
+    except:  # 錯誤：應該使用 except Exception
+        return None
+    return result
+```
+
+---
+
 ## 類型注解規範（2025-11-27 13:00 UTC+8）
 
 ### 必須使用類型注解的情況

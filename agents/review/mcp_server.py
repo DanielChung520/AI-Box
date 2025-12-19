@@ -5,9 +5,9 @@
 
 """Review Agent MCP Server"""
 
-from mcp.server.server import MCPServer
 from agents.core.review.agent import ReviewAgent
 from agents.core.review.models import ReviewRequest
+from mcp.server.server import MCPServer
 
 # 初始化 Review Agent
 review_agent = ReviewAgent()

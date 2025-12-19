@@ -22,9 +22,7 @@ _SETTINGS_CACHE: Dict[str, "AutoGenSettings"] = {}
 class AutoGenSettings(BaseModel):
     """AutoGen 工作流設定。"""
 
-    enable_planning: bool = Field(
-        default=True, description="是否啟用 Execution Planning"
-    )
+    enable_planning: bool = Field(default=True, description="是否啟用 Execution Planning")
     max_steps: int = Field(default=20, ge=1, le=100, description="最大執行步驟數")
     planning_mode: str = Field(
         default="auto",

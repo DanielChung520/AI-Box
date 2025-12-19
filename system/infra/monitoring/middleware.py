@@ -5,8 +5,9 @@
 
 """監控中間件模組"""
 
-import time
 import logging
+import time
+
 from .metrics import Metrics
 
 logger = logging.getLogger(__name__)

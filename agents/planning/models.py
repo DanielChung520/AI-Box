@@ -5,10 +5,11 @@
 
 """Planning Agent 數據模型定義"""
 
-from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class PlanStepStatus(str, Enum):
@@ -28,12 +29,8 @@ class PlanStep(BaseModel):
     step_number: int = Field(..., description="步驟編號")
     description: str = Field(..., description="步驟描述")
     action: str = Field(..., description="執行動作")
-    dependencies: List[str] = Field(
-        default_factory=list, description="依賴的步驟ID列表"
-    )
-    status: PlanStepStatus = Field(
-        default=PlanStepStatus.PENDING, description="步驟狀態"
-    )
+    dependencies: List[str] = Field(default_factory=list, description="依賴的步驟ID列表")
+    status: PlanStepStatus = Field(default=PlanStepStatus.PENDING, description="步驟狀態")
     result: Optional[Dict[str, Any]] = Field(None, description="步驟結果")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
 

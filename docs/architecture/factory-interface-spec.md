@@ -13,6 +13,7 @@
 #### 1. create() / create_*() - 創建實例
 
 **簽名**：
+
 ```python
 @staticmethod
 def create(item_type: Type, use_cache: bool = True, **kwargs: Any) -> ItemType:
@@ -36,6 +37,7 @@ def create(item_type: Type, use_cache: bool = True, **kwargs: Any) -> ItemType:
 #### 2. get_cached() / get_cached_*() - 獲取緩存實例
 
 **簽名**：
+
 ```python
 @staticmethod
 def get_cached(item_type: Type) -> Optional[ItemType]:
@@ -54,6 +56,7 @@ def get_cached(item_type: Type) -> Optional[ItemType]:
 #### 3. clear_cache() - 清除緩存
 
 **簽名**：
+
 ```python
 @staticmethod
 def clear_cache(item_type: Optional[Type] = None) -> None:
@@ -69,6 +72,7 @@ def clear_cache(item_type: Optional[Type] = None) -> None:
 #### 4. is_available() / is_*_available() - 檢查可用性
 
 **簽名**：
+
 ```python
 @staticmethod
 def is_available(item_type: Type) -> bool:
@@ -91,6 +95,7 @@ def is_available(item_type: Type) -> bool:
 **位置**：`llm/clients/factory.py`
 
 **實現的方法**：
+
 - ✅ `create_client()` - 創建 LLM 客戶端
 - ✅ `get_cached_client()` - 獲取緩存客戶端
 - ✅ `clear_cache()` - 清除緩存
@@ -103,6 +108,7 @@ def is_available(item_type: Type) -> bool:
 **位置**：`agents/crewai/agent_factory.py`
 
 **實現的方法**：
+
 - ✅ `create_agent()` - 創建 CrewAI Agent
 - ❌ `get_cached_agent()` - 未實現
 - ❌ `clear_cache()` - 未實現
@@ -115,9 +121,11 @@ def is_available(item_type: Type) -> bool:
 **位置**：`agents/workflows/base.py`
 
 **實現的方法**（協議定義）：
+
 - ✅ `create_workflow()` - 創建工作流（協議方法）
 
 **實現類**：
+
 - `CrewAIWorkflowFactory`
 - `AutoGenWorkflowFactory`
 - `LangChainWorkflowFactory`
@@ -128,6 +136,7 @@ def is_available(item_type: Type) -> bool:
 **位置**：`services/api/processors/parser_factory.py`
 
 **實現的方法**：
+
 - ✅ `create_parser()` - 創建文件解析器
 - ❌ `get_cached_parser()` - 未實現
 - ❌ `clear_cache()` - 未實現

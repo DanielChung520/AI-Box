@@ -1,7 +1,8 @@
 # 用戶任務問題排查指南
 
 ## 功能說明
-排查為什麼使用 daniel@test.com 登錄時看不到之前創建的任務
+
+排查為什麼使用 <daniel@test.com> 登錄時看不到之前創建的任務
 創建日期：2025-12-12
 創建人：Daniel Chung
 最後修改日期：2025-12-12
@@ -21,6 +22,7 @@ user_id = username if "@" in username else f"user_{username}"
 ```
 
 這意味著：
+
 - 如果 `username` 是 email（包含 `@`），則 `user_id = username`（即 email 本身）
 - 如果 `username` 不是 email，則 `user_id = f"user_{username}"`
 
@@ -61,6 +63,7 @@ python3 scripts/diagnose_user_tasks.py daniel@test.com
 ```
 
 這個腳本會：
+
 - 顯示預期的 `user_id`（`daniel@test.com`）
 - 列出所有匹配的任務
 - 列出所有不匹配的任務（按 `user_id` 分組）
@@ -125,6 +128,7 @@ FOR task IN user_tasks
 ### 方案 3：重新創建任務
 
 如果任務不重要，可以：
+
 1. 刪除舊任務
 2. 使用正確的 `user_id` 重新創建
 
@@ -177,6 +181,7 @@ logger.info(
 ### Q1: 為什麼會出現 user_id 不匹配？
 
 **A:** 可能的原因：
+
 1. 之前使用開發模式（`dev_user`）創建了任務
 2. 使用了不同的 email 登錄
 3. 手動修改了數據庫中的 `user_id`
@@ -198,6 +203,7 @@ curl -X GET http://localhost:8000/auth/me \
 ### Q4: 如果修復後仍然看不到任務怎麼辦？
 
 **A:** 檢查以下幾點：
+
 1. 確認任務的 `task_status` 不是 `archive`（歸檔的任務不會顯示）
 2. 檢查任務是否真的存在於數據庫中
 3. 確認 API 返回的任務列表是否正確
@@ -220,6 +226,7 @@ curl -X GET http://localhost:8000/auth/me \
 **解決方案**：
 
 1. **通過 API 查詢歸檔任務**：
+
    ```bash
    # 查詢所有任務（包括歸檔的）
    curl -X GET "http://localhost:8000/user-tasks?include_archived=true" \
@@ -228,6 +235,7 @@ curl -X GET http://localhost:8000/auth/me \
 
 2. **恢復歸檔任務**：
    如果任務被誤歸檔，可以通過更新 API 恢復：
+
    ```bash
    curl -X PUT "http://localhost:8000/user-tasks/{task_id}" \
      -H "Authorization: Bearer $TOKEN" \
@@ -237,6 +245,7 @@ curl -X GET http://localhost:8000/auth/me \
 
 3. **檢查任務狀態**：
    使用診斷腳本檢查任務的實際狀態：
+
    ```bash
    python3 scripts/check_user_tasks.py daniel@test.com
    ```
@@ -260,6 +269,7 @@ python3 scripts/restore_archived_tasks.py --email daniel@test.com --no-dry-run
 **A:** 最常見的原因是任務被設置為 `archive`（歸檔）狀態。默認情況下，任務列表只顯示 `activate` 狀態的任務。
 
 **解決方法**：
+
 1. 使用 `include_archived=true` 參數查詢所有任務
 2. 使用恢復腳本批量恢復歸檔任務
 3. 或者手動更新單個任務的 `task_status` 為 `activate`

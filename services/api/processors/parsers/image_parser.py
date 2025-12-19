@@ -5,9 +5,10 @@
 
 """圖片文件解析器 - 使用視覺模型生成圖片描述"""
 
-from typing import Dict, Any, Optional
-import structlog
 from io import BytesIO
+from typing import Any, Dict, Optional
+
+import structlog
 
 from .base_parser import BaseParser
 
@@ -76,9 +77,7 @@ class ImageParser(BaseParser):
                         try:
                             while True:
                                 frame_count += 1
-                                img.seek(
-                                    frame_count
-                                )  # 使用 frame_count 而不是 img.tell() + 1
+                                img.seek(frame_count)  # 使用 frame_count 而不是 img.tell() + 1
                         except EOFError:
                             pass
                         img.seek(0)  # 重置到第一幀
@@ -116,16 +115,14 @@ class ImageParser(BaseParser):
                 height = img.height
             except Exception as e:
                 # 如果無法獲取尺寸，嘗試使用 size 屬性
-                self.logger.debug(
-                    "無法通過 width/height 獲取尺寸，使用 size 屬性", error=str(e)
-                )
+                self.logger.debug("無法通過 width/height 獲取尺寸，使用 size 屬性", error=str(e))
                 try:
                     width, height = img.size
                 except Exception:
                     width = None
                     height = None
 
-            metadata = {
+            metadata: Dict[str, Any] = {
                 "width": width,
                 "height": height,
                 "format": img.format,
@@ -165,7 +162,7 @@ class ImageParser(BaseParser):
                 "size_bytes": len(image_content),
             }
 
-    async def parse_from_bytes(
+    async def parse_from_bytes(  # type: ignore[override]  # 基類是同步方法，但 ImageParser 需要異步
         self,
         file_content: bytes,
         file_id: Optional[str] = None,
@@ -195,9 +192,7 @@ class ImageParser(BaseParser):
 
             # 對於動畫 GIF，提取第一幀用於描述生成
             image_format = image_metadata.get("format")
-            is_animated_gif = image_format == "GIF" and image_metadata.get(
-                "is_animated", False
-            )
+            is_animated_gif = image_format == "GIF" and image_metadata.get("is_animated", False)
             image_content_for_vision = file_content
 
             if is_animated_gif:
@@ -304,8 +299,10 @@ class ImageParser(BaseParser):
             with open(file_path, "rb") as f:
                 file_content = f.read()
 
-            # 使用 parse_from_bytes 處理
-            return self.parse_from_bytes(file_content, **kwargs)
+            # 使用 parse_from_bytes 處理（異步方法需要 await）
+            import asyncio
+
+            return asyncio.run(self.parse_from_bytes(file_content, **kwargs))  # type: ignore[return-value]  # 同步方法調用異步方法
 
         except Exception as e:
             self.logger.error("圖片文件解析失敗", file_path=file_path, error=str(e))

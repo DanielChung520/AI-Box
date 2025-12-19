@@ -6,18 +6,17 @@
 """三元組提取服務 - 整合 NER、RE、RT 服務實現三元組提取"""
 
 from typing import List, Optional, Set, Tuple
+
 import structlog
 
-from genai.api.models.triple_models import Triple, TripleEntity, TripleRelation
 from genai.api.models.ner_models import Entity
 from genai.api.models.re_models import Relation
 from genai.api.models.rt_models import RelationType
+from genai.api.models.triple_models import Triple, TripleEntity, TripleRelation
 from genai.api.services.ner_service import NERService
 from genai.api.services.re_service import REService
-from genai.api.services.rt_service import (
-    RTService,
-    STANDARD_RELATION_TYPES as RT_STANDARD_RELATION_TYPES,
-)
+from genai.api.services.rt_service import STANDARD_RELATION_TYPES as RT_STANDARD_RELATION_TYPES
+from genai.api.services.rt_service import RTService
 
 logger = structlog.get_logger(__name__)
 
@@ -45,9 +44,7 @@ class TripleExtractionService:
         # 簡單的加權平均
         return entity_confidence * 0.3 + relation_confidence * 0.4 + rt_confidence * 0.3
 
-    def _match_entity_pairs(
-        self, entities: List[Entity]
-    ) -> List[Tuple[Entity, Entity]]:
+    def _match_entity_pairs(self, entities: List[Entity]) -> List[Tuple[Entity, Entity]]:
         """匹配實體對（基於 NER 結果）"""
         pairs = []
         for i, subj in enumerate(entities):
@@ -62,19 +59,13 @@ class TripleExtractionService:
                     pairs.append((subj, obj))
         return pairs
 
-    def _validate_relation(
-        self, relation: Relation, subject: Entity, object: Entity
-    ) -> bool:
+    def _validate_relation(self, relation: Relation, subject: Entity, object: Entity) -> bool:
         """驗證關係是否存在於實體對之間"""
         # 檢查關係的主體和客體是否匹配實體對
         subject_match = (
-            relation.subject.text == subject.text
-            and relation.subject.label == subject.label
+            relation.subject.text == subject.text and relation.subject.label == subject.label
         )
-        object_match = (
-            relation.object.text == object.text
-            and relation.object.label == object.label
-        )
+        object_match = relation.object.text == object.text and relation.object.label == object.label
 
         return subject_match and object_match
 
@@ -122,9 +113,7 @@ class TripleExtractionService:
             entities = []
 
         if len(entities) < 2:
-            logger.info(
-                "insufficient_entities", text=text[:50], entity_count=len(entities)
-            )
+            logger.info("insufficient_entities", text=text[:50], entity_count=len(entities))
             return []
 
         # 步驟 2: RE（關係抽取）
@@ -180,13 +169,9 @@ class TripleExtractionService:
             rt_request_index_map.append(idx)
 
         if rt_requests:
-            batch_results = await self.rt_service.classify_relation_types_batch(
-                rt_requests
-            )
+            batch_results = await self.rt_service.classify_relation_types_batch(rt_requests)
             for req_i, idx in enumerate(rt_request_index_map):
-                relation_types = (
-                    batch_results[req_i] if req_i < len(batch_results) else []
-                )
+                relation_types = batch_results[req_i] if req_i < len(batch_results) else []
                 if not relation_types:
                     relation_types = [
                         RelationType(
@@ -261,9 +246,7 @@ class TripleExtractionService:
                 triples = await self.extract_triples(text)
                 results.append(triples)
             except Exception as e:
-                logger.error(
-                    "triple_batch_extraction_failed", error=str(e), text=text[:50]
-                )
+                logger.error("triple_batch_extraction_failed", error=str(e), text=text[:50])
                 results.append([])
 
         return results

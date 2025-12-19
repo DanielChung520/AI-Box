@@ -5,16 +5,17 @@
 
 """Agent Orchestrator API 路由"""
 
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from api.core.response import APIResponse
 from agents.services.orchestrator.orchestrator import AgentOrchestrator
 from agents.services.registry.models import AgentRegistrationRequest, AgentStatus
 from agents.services.registry.registry import get_agent_registry
+from api.core.response import APIResponse
 
 router = APIRouter()
 

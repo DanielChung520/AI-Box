@@ -5,8 +5,9 @@
 
 """Agent 相關 API 路由"""
 
-from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, status, Depends, HTTPException
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from api.core.response import APIResponse
@@ -58,8 +59,8 @@ async def execute_agent(
     會自動使用開發用戶，無需提供認證信息。
     """
     try:
-        from agents.services.registry.registry import get_agent_registry
         from agents.services.protocol.base import AgentServiceRequest
+        from agents.services.registry.registry import get_agent_registry
 
         registry = get_agent_registry()
 
@@ -125,8 +126,8 @@ async def discover_agents(
     """
     try:
         from agents.services.registry.discovery import AgentDiscovery
-        from agents.services.registry.registry import get_agent_registry
         from agents.services.registry.models import AgentStatus
+        from agents.services.registry.registry import get_agent_registry
 
         registry = get_agent_registry()
         discovery = AgentDiscovery(registry=registry)
@@ -140,9 +141,7 @@ async def discover_agents(
 
         # 過濾內部/外部 Agent
         if is_internal is not None:
-            agents = [
-                agent for agent in agents if agent.endpoints.is_internal == is_internal
-            ]
+            agents = [agent for agent in agents if agent.endpoints.is_internal == is_internal]
 
         # 構建響應數據
         agents_data = []

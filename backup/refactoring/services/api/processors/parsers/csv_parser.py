@@ -6,8 +6,9 @@
 """CSV 文件解析器"""
 
 import csv
-from typing import Dict, Any
 from io import StringIO
+from typing import Any, Dict
+
 from .base_parser import BaseParser
 
 

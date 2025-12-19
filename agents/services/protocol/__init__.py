@@ -15,9 +15,9 @@ from agents.services.protocol.base import (
     AgentServiceResponse,
     AgentServiceStatus,
 )
+from agents.services.protocol.factory import AgentServiceClientFactory
 from agents.services.protocol.http_client import HTTPAgentServiceClient
 from agents.services.protocol.mcp_client import MCPAgentServiceClient
-from agents.services.protocol.factory import AgentServiceClientFactory
 
 __all__ = [
     "AgentServiceProtocol",

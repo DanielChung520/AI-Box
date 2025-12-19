@@ -6,6 +6,7 @@
 """文件掃描服務 - 實現文件內容掃描（病毒掃描、惡意代碼檢測）"""
 
 from typing import Optional, Tuple
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -80,9 +81,7 @@ class FileScanner:
 
         return True, None
 
-    def _is_false_positive(
-        self, pattern: bytes, content: bytes, file_type: Optional[str]
-    ) -> bool:
+    def _is_false_positive(self, pattern: bytes, content: bytes, file_type: Optional[str]) -> bool:
         """
         檢查是否為誤報
 
@@ -130,9 +129,7 @@ class FileScanner:
 
         return False
 
-    def scan_for_virus(
-        self, file_content: bytes, filename: str
-    ) -> Tuple[bool, Optional[str]]:
+    def scan_for_virus(self, file_content: bytes, filename: str) -> Tuple[bool, Optional[str]]:
         """
         病毒掃描（基礎實現）
 

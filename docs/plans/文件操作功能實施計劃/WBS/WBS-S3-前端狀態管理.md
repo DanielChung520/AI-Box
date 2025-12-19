@@ -12,6 +12,7 @@
 **依賴**: S1, S2
 
 **更新說明**（2025-01-27）：
+
 - 根據《文件操作功能檢核報告》補充複製路徑前端實現（S3.5）
 
 ---
@@ -25,12 +26,14 @@
 **實施位置**: `ai-bot/src/lib/fileOperationState.ts`（已實現）
 
 **功能**:
+
 - 保存剪貼板狀態（cut/copy）
 - 讀取剪貼板狀態
 - 清除剪貼板狀態
 - 檢查剪貼板是否為空
 
 **實現步驟**:
+
 1. [x] 創建 `fileOperationState.ts` 文件（已完成）
 2. [x] 定義剪貼板狀態接口（已完成）
 3. [x] 實現保存剪貼板狀態（localStorage）（已完成）
@@ -40,6 +43,7 @@
 7. [ ] 添加錯誤處理（完善）
 
 **數據結構**:
+
 ```typescript
 interface ClipboardState {
   type: 'cut' | 'copy';
@@ -53,6 +57,7 @@ interface ClipboardState {
 ```
 
 **驗收標準**:
+
 - [x] 剪貼板狀態保存正常（已完成）
 - [x] 剪貼板狀態讀取正常（已完成）
 - [x] 剪貼板狀態清除正常（已完成）
@@ -67,11 +72,13 @@ interface ClipboardState {
 **實施位置**: `ai-bot/src/lib/hooks/useBatchSelection.ts`（新建）或直接在組件中實現
 
 **功能**:
+
 - 單選/多選切換
 - 全選/取消全選
 - 選擇狀態持久化（可選）
 
 **實現步驟**:
+
 1. [x] 創建 `useBatchSelection` Hook（或直接在組件中實現）（已完成）
 2. [x] 實現單選功能（已完成）
 3. [x] 實現多選功能（Ctrl/Cmd + 點擊）（已完成）
@@ -80,6 +87,7 @@ interface ClipboardState {
 6. [ ] 實現選擇狀態持久化（可選，localStorage）
 
 **驗收標準**:
+
 - [x] 單選功能正常（已完成）
 - [x] 多選功能正常（已完成）
 - [x] 範圍選擇功能正常（已完成）
@@ -95,16 +103,19 @@ interface ClipboardState {
 **實施位置**: `ai-bot/src/lib/fileOperationState.ts` 或新建 `ai-bot/src/lib/services/fileTreeCache.ts`
 
 **功能**:
+
 - 緩存文件樹數據
 - 緩存過期機制
 - 增量更新
 
 **實現步驟**:
+
 1. [x] 實現文件樹緩存功能（localStorage）（已完成）
 2. [ ] 實現緩存過期機制（可選）
 3. [ ] 實現增量更新（可選）
 
 **驗收標準**:
+
 - [x] 文件樹緩存功能正常（已完成）
 - [ ] 緩存過期機制正常（可選）
 - [ ] 增量更新正常（可選）
@@ -118,17 +129,20 @@ interface ClipboardState {
 **實施位置**: `ai-bot/src/lib/hooks/useFocusState.ts`（新建）或直接在組件中實現
 
 **功能**:
+
 - 資料夾聚焦狀態
 - 聚焦清除
 - 默認聚焦（暫存工作區）
 
 **實現步驟**:
+
 1. [x] 創建 `useFocusState` Hook（或直接在組件中實現）（已完成）
 2. [x] 實現資料夾聚焦功能（已完成）
 3. [x] 實現聚焦清除功能（已完成）
 4. [x] 實現默認聚焦邏輯（已完成）
 
 **驗收標準**:
+
 - [x] 資料夾聚焦功能正常（已完成）
 - [x] 聚焦清除功能正常（已完成）
 - [x] 默認聚焦邏輯正確（已完成）
@@ -142,12 +156,14 @@ interface ClipboardState {
 **實施位置**: `ai-bot/src/components/FileTree.tsx`
 
 **功能描述**:
+
 - 複製文件的完整路徑（包括任務ID和文件ID）
 - 複製資料夾的完整路徑（任務ID）
 - 使用 `navigator.clipboard.writeText()` API
 - 顯示成功提示（Toast 通知）
 
 **實現步驟**:
+
 1. [ ] 在 `FileTree.tsx` 中完善 `handleCopyPath` 函數（文件路徑）
 2. [ ] 在 `FileTree.tsx` 中完善 `handleFolderMenuAction('copyPath')` 函數（資料夾路徑）
 3. [ ] 構建文件路徑字符串（格式：`task_id/file_id` 或完整URL路徑）
@@ -157,10 +173,12 @@ interface ClipboardState {
 7. [ ] 添加錯誤處理（剪貼板API失敗時顯示錯誤提示）
 
 **路徑格式**:
+
 - 文件路徑：`{task_id}/{file_id}` 或 `/files/{task_id}/{file_id}`
 - 資料夾路徑：`{task_id}` 或 `/folders/{task_id}`
 
 **驗收標準**:
+
 - [ ] 可以成功複製文件路徑到剪貼板
 - [ ] 可以成功複製資料夾路徑到剪貼板
 - [ ] 路徑格式正確
@@ -184,6 +202,7 @@ interface ClipboardState {
 ## 測試要求
 
 ### 單元測試
+
 - [ ] 測試剪貼板狀態管理
 - [ ] 測試批量選擇功能
 - [ ] 測試文件樹狀態緩存
@@ -191,6 +210,7 @@ interface ClipboardState {
 - [ ] 測試複製路徑功能
 
 ### 集成測試
+
 - [ ] 測試與文件樹組件的集成
 - [ ] 測試與右鍵選單的集成
 - [ ] 測試UI交互

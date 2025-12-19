@@ -15,18 +15,11 @@ from typing import Any, Dict, List
 import structlog
 import yaml  # type: ignore[import-untyped]
 
-from database.arangodb import (
-    ArangoCollection,
-    ArangoDBClient,
-    ArangoGraph,
-    load_arangodb_settings,
-)
+from database.arangodb import ArangoCollection, ArangoDBClient, ArangoGraph, load_arangodb_settings
 from database.arangodb.settings import clear_arangodb_settings_cache
 
 LOGGER = structlog.get_logger(__name__)
-DEFAULT_DATASET_ROOT = (
-    Path(__file__).resolve().parents[1] / "data" / "datasets" / "arangodb"
-)
+DEFAULT_DATASET_ROOT = Path(__file__).resolve().parents[1] / "data" / "datasets" / "arangodb"
 
 
 def parse_args() -> argparse.Namespace:
@@ -78,9 +71,7 @@ def ensure_collections(
     collections: Dict[str, ArangoCollection] = {}
     for name, cfg in schema.get("collections", {}).items():
         col_type = cfg.get("type", "document")
-        collections[name] = ArangoCollection(
-            client.get_or_create_collection(name, col_type)
-        )
+        collections[name] = ArangoCollection(client.get_or_create_collection(name, col_type))
     return collections
 
 
@@ -114,9 +105,7 @@ def seed_entities(
     LOGGER.info("entities_seeded", count=len(entities))
 
 
-def seed_relations(
-    graph: ArangoGraph, relations: List[Dict[str, Any]], dry_run: bool
-) -> None:
+def seed_relations(graph: ArangoGraph, relations: List[Dict[str, Any]], dry_run: bool) -> None:
     if not relations:
         return
     if dry_run:
@@ -147,9 +136,7 @@ def main() -> None:
     if args.reset:
         reset_collections(collections, args.dry_run)
 
-    seed_entities(
-        collections["entities"], seed_payload.get("entities", []), args.dry_run
-    )
+    seed_entities(collections["entities"], seed_payload.get("entities", []), args.dry_run)
     seed_relations(graph, seed_payload.get("relations", []), args.dry_run)
 
     client.close()

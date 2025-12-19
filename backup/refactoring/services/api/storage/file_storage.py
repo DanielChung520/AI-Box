@@ -10,6 +10,7 @@ import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Tuple
+
 import structlog
 
 logger = structlog.get_logger(__name__)

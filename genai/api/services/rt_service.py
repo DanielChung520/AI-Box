@@ -8,12 +8,13 @@
 import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
+
 import structlog
 
-from system.infra.config.config import get_config_section
 from genai.api.models.rt_models import RelationType
-from llm.clients.ollama import OllamaClient, get_ollama_client
 from llm.clients.gemini import GeminiClient
+from llm.clients.ollama import OllamaClient, get_ollama_client
+from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
 
@@ -87,9 +88,7 @@ class BaseRTModel(ABC):
 class OllamaRTModel(BaseRTModel):
     """Ollama RT 模型實現"""
 
-    def __init__(
-        self, model_name: str = "qwen3-coder:30b", client: Optional[OllamaClient] = None
-    ):
+    def __init__(self, model_name: str = "qwen3-coder:30b", client: Optional[OllamaClient] = None):
         self.model_name = model_name
         self.client = client or get_ollama_client()
         self._prompt_template = """請對以下關係文本進行分類，識別其關係類型，並以 JSON 格式返回結果。
@@ -127,9 +126,7 @@ class OllamaRTModel(BaseRTModel):
     ) -> List[RelationType]:
         """使用 Ollama 分類關係類型"""
         if self.client is None:
-            raise RuntimeError(
-                f"Ollama client is not available for model {self.model_name}"
-            )
+            raise RuntimeError(f"Ollama client is not available for model {self.model_name}")
 
         # 構建上下文
         context_section = ""
@@ -137,9 +134,7 @@ class OllamaRTModel(BaseRTModel):
             context_section = f"主體：{subject_text}\n客體：{object_text}\n"
 
         # 構建關係類型列表
-        relation_types_list = "\n".join(
-            [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
-        )
+        relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
 
         prompt = self._prompt_template.format(
             relation_text=relation_text,
@@ -168,9 +163,7 @@ class OllamaRTModel(BaseRTModel):
             try:
                 # 移除可能的 markdown 代碼塊標記
                 if "```json" in result_text:
-                    result_text = (
-                        result_text.split("```json")[1].split("```")[0].strip()
-                    )
+                    result_text = result_text.split("```json")[1].split("```")[0].strip()
                 elif "```" in result_text:
                     result_text = result_text.split("```")[1].split("```")[0].strip()
 
@@ -196,14 +189,10 @@ class OllamaRTModel(BaseRTModel):
 
                 return relation_types
             except json.JSONDecodeError as e:
-                logger.error(
-                    "ollama_rt_json_parse_failed", error=str(e), response=result_text
-                )
+                logger.error("ollama_rt_json_parse_failed", error=str(e), response=result_text)
                 return []
         except Exception as e:
-            logger.error(
-                "ollama_rt_classification_failed", error=str(e), model=self.model_name
-            )
+            logger.error("ollama_rt_classification_failed", error=str(e), model=self.model_name)
             return []
 
     async def classify_relation_types_batch(
@@ -215,16 +204,12 @@ class OllamaRTModel(BaseRTModel):
     ) -> List[List[RelationType]]:
         """使用 Ollama 批量分類關係類型（單次 LLM 呼叫）。"""
         if self.client is None:
-            raise RuntimeError(
-                f"Ollama client is not available for model {self.model_name}"
-            )
+            raise RuntimeError(f"Ollama client is not available for model {self.model_name}")
 
         if not requests:
             return []
 
-        relation_types_list = "\n".join(
-            [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
-        )
+        relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
 
         # 組裝批次請求（避免 LLM 失去對應順序）
         batch_items = []
@@ -297,10 +282,12 @@ class OllamaRTModel(BaseRTModel):
             for item in parsed:
                 if not isinstance(item, dict):
                     continue
-                idx = item.get("index")
+                idx_raw = item.get("index")
                 types = item.get("types")
-                if not isinstance(idx, int) or not isinstance(types, list):
+                if not isinstance(idx_raw, int) or not isinstance(types, list):
                     continue
+                # idx_raw 已檢查為 int，用於索引
+                item_idx: int = idx_raw  # type: ignore[assignment]  # 已檢查為 int，重命名避免與外層 idx 衝突
                 rt_list: List[RelationType] = []
                 for t in types:
                     if not isinstance(t, dict):
@@ -312,7 +299,7 @@ class OllamaRTModel(BaseRTModel):
                         )
                     )
                 rt_list.sort(key=lambda x: x.confidence, reverse=True)
-                types_by_index[idx] = rt_list
+                types_by_index[item_idx] = rt_list
 
             results: List[List[RelationType]] = []
             for idx in range(len(requests)):
@@ -330,9 +317,7 @@ class OllamaRTModel(BaseRTModel):
 class GeminiRTModel(BaseRTModel):
     """Gemini RT 模型實現"""
 
-    def __init__(
-        self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None
-    ):
+    def __init__(self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None):
         self.model_name = model_name
         self.client: Optional[GeminiClient] = None
         try:
@@ -373,9 +358,7 @@ class GeminiRTModel(BaseRTModel):
     ) -> List[RelationType]:
         """使用 Gemini 分類關係類型"""
         if self.client is None or not self.client.is_available():
-            raise RuntimeError(
-                f"Gemini client is not available for model {self.model_name}"
-            )
+            raise RuntimeError(f"Gemini client is not available for model {self.model_name}")
 
         # 構建上下文
         context_section = ""
@@ -383,9 +366,7 @@ class GeminiRTModel(BaseRTModel):
             context_section = f"主體：{subject_text}\n客體：{object_text}\n"
 
         # 構建關係類型列表
-        relation_types_list = "\n".join(
-            [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
-        )
+        relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
 
         prompt = self._prompt_template.format(
             relation_text=relation_text,
@@ -409,9 +390,7 @@ class GeminiRTModel(BaseRTModel):
             try:
                 # 移除可能的 markdown 代碼塊標記
                 if "```json" in result_text:
-                    result_text = (
-                        result_text.split("```json")[1].split("```")[0].strip()
-                    )
+                    result_text = result_text.split("```json")[1].split("```")[0].strip()
                 elif "```" in result_text:
                     result_text = result_text.split("```")[1].split("```")[0].strip()
 
@@ -437,14 +416,10 @@ class GeminiRTModel(BaseRTModel):
 
                 return relation_types
             except json.JSONDecodeError as e:
-                logger.error(
-                    "gemini_rt_json_parse_failed", error=str(e), response=result_text
-                )
+                logger.error("gemini_rt_json_parse_failed", error=str(e), response=result_text)
                 return []
         except Exception as e:
-            logger.error(
-                "gemini_rt_classification_failed", error=str(e), model=self.model_name
-            )
+            logger.error("gemini_rt_classification_failed", error=str(e), model=self.model_name)
             return []
 
 
@@ -461,12 +436,10 @@ class TransformersRTModel(BaseRTModel):
     def _load_model(self):
         """加載 transformers 模型"""
         try:
-            from transformers import AutoTokenizer, AutoModelForSequenceClassification
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             self._tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            self._model = AutoModelForSequenceClassification.from_pretrained(
-                self.model_name
-            )
+            self._model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
 
             if self.enable_gpu:
                 self._model = self._model.cuda()
@@ -477,9 +450,7 @@ class TransformersRTModel(BaseRTModel):
             self._model = None
             self._tokenizer = None
         except Exception as e:
-            logger.error(
-                "transformers_rt_model_load_failed", error=str(e), model=self.model_name
-            )
+            logger.error("transformers_rt_model_load_failed", error=str(e), model=self.model_name)
             self._model = None
             self._tokenizer = None
 
@@ -495,9 +466,7 @@ class TransformersRTModel(BaseRTModel):
     ) -> List[RelationType]:
         """使用 transformers 分類關係類型（簡化實現）"""
         if self._model is None or self._tokenizer is None:
-            raise RuntimeError(
-                f"Transformers RT model {self.model_name} is not available"
-            )
+            raise RuntimeError(f"Transformers RT model {self.model_name} is not available")
 
         # 簡化實現：基於關鍵詞匹配
         relation_types = []
@@ -550,20 +519,12 @@ class RTService:
         """初始化主模型和備選模型"""
         # 初始化主模型
         if self.model_type == "ollama":
-            model_name = (
-                self.model_name
-                if ":" in self.model_name
-                else f"ollama:{self.model_name}"
-            )
+            model_name = self.model_name if ":" in self.model_name else f"ollama:{self.model_name}"
             if model_name.startswith("ollama:"):
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = OllamaRTModel(model_name=model_name)
         elif self.model_type == "gemini":
-            model_name = (
-                self.model_name
-                if ":" in self.model_name
-                else f"gemini:{self.model_name}"
-            )
+            model_name = self.model_name if ":" in self.model_name else f"gemini:{self.model_name}"
             if model_name.startswith("gemini:"):
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = GeminiRTModel(model_name=model_name)
@@ -614,16 +575,10 @@ class RTService:
 
         return None
 
-    def _validate_relation_types(
-        self, relation_types: List[RelationType]
-    ) -> List[RelationType]:
+    def _validate_relation_types(self, relation_types: List[RelationType]) -> List[RelationType]:
         """驗證關係類型（確保類型一致性）"""
         # 過濾低置信度的類型
-        filtered = [
-            rt
-            for rt in relation_types
-            if rt.confidence >= self.classification_threshold
-        ]
+        filtered = [rt for rt in relation_types if rt.confidence >= self.classification_threshold]
 
         # 檢測類型衝突（如果有多個類型，檢查是否有衝突）
         if len(filtered) > 1:
@@ -633,9 +588,7 @@ class RTService:
 
         return filtered
 
-    def _apply_type_hierarchy(
-        self, relation_types: List[RelationType]
-    ) -> List[RelationType]:
+    def _apply_type_hierarchy(self, relation_types: List[RelationType]) -> List[RelationType]:
         """應用關係類型層次結構"""
         # 如果子類型存在，移除父類型
         type_names = [rt.type for rt in relation_types]
@@ -696,7 +649,7 @@ class RTService:
         except Exception as e:
             logger.error("rt_batch_classification_failed", error=str(e))
             # fallback：逐條
-            results: List[List[RelationType]] = []
+            fallback_results: List[List[RelationType]] = []  # 重命名以避免重複定義
             for req in requests:
                 try:
                     relation_types = await self.classify_relation_type(
@@ -705,7 +658,7 @@ class RTService:
                         req.get("object_text"),
                         model_type,
                     )
-                    results.append(relation_types)
+                    fallback_results.append(relation_types)
                 except Exception:
-                    results.append([])
-            return results
+                    fallback_results.append([])
+            return fallback_results

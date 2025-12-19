@@ -7,11 +7,7 @@
 
 from __future__ import annotations
 
-
-from agents.workflows.base import (
-    WorkflowFactoryProtocol,
-    WorkflowRequestContext,
-)
+from agents.workflows.base import WorkflowFactoryProtocol, WorkflowRequestContext
 from agents.workflows.hybrid_orchestrator import HybridOrchestrator
 
 

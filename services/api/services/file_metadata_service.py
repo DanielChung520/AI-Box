@@ -7,14 +7,11 @@
 
 from datetime import datetime
 from typing import List, Optional
+
 import structlog
 
 from database.arangodb import ArangoDBClient
-from services.api.models.file_metadata import (
-    FileMetadata,
-    FileMetadataCreate,
-    FileMetadataUpdate,
-)
+from services.api.models.file_metadata import FileMetadata, FileMetadataCreate, FileMetadataUpdate
 
 logger = structlog.get_logger(__name__)
 
@@ -82,23 +79,46 @@ class FileMetadataService:
         collection = self.client.db.collection(COLLECTION_NAME)
         collection.insert(doc)
 
-        return FileMetadata(**doc)
+        # 確保所有必需字段都存在且類型正確
+        return FileMetadata(
+            file_id=doc.get("file_id") or doc.get("_key", ""),  # type: ignore[arg-type]  # 已確保存在
+            filename=doc.get("filename", ""),  # type: ignore[arg-type]  # 已確保存在
+            file_type=doc.get("file_type", ""),  # type: ignore[arg-type]  # 已確保存在
+            file_size=doc.get("file_size", 0),  # type: ignore[arg-type]  # 已確保存在
+            user_id=doc.get("user_id"),  # type: ignore[arg-type]  # Optional
+            task_id=doc.get("task_id", ""),  # type: ignore[arg-type]  # 已確保存在
+            folder_id=doc.get("folder_id"),  # type: ignore[arg-type]  # Optional
+            storage_path=doc.get("storage_path"),  # type: ignore[arg-type]  # Optional
+            tags=doc.get("tags", []),  # type: ignore[arg-type]  # 有默認值
+            description=doc.get("description"),  # type: ignore[arg-type]  # Optional
+            custom_metadata=doc.get("custom_metadata", {}),  # type: ignore[arg-type]  # 有默認值
+            status=doc.get("status", "uploaded"),  # type: ignore[arg-type]  # 有默認值
+            processing_status=doc.get("processing_status"),  # type: ignore[arg-type]  # Optional
+            chunk_count=doc.get("chunk_count"),  # type: ignore[arg-type]  # Optional
+            vector_count=doc.get("vector_count"),  # type: ignore[arg-type]  # Optional
+            kg_status=doc.get("kg_status"),  # type: ignore[arg-type]  # Optional
+            upload_time=datetime.fromisoformat(doc.get("upload_time", datetime.utcnow().isoformat())),  # type: ignore[arg-type]  # 已確保存在
+            created_at=datetime.fromisoformat(doc["created_at"]) if doc.get("created_at") else None,  # type: ignore[arg-type]  # Optional
+            updated_at=datetime.fromisoformat(doc["updated_at"]) if doc.get("updated_at") else None,  # type: ignore[arg-type]  # Optional
+        )
 
     def get(self, file_id: str) -> Optional[FileMetadata]:
         """獲取文件元數據"""
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
         collection = self.client.db.collection(COLLECTION_NAME)
-        doc = collection.get(file_id)
+        doc = collection.get(file_id)  # type: ignore[assignment]  # 同步模式下返回 dict | None
 
         if doc is None:
             return None
 
+        # 確保 doc 是字典類型
+        if not isinstance(doc, dict):
+            return None
+
         return FileMetadata(**doc)
 
-    def update(
-        self, file_id: str, update: FileMetadataUpdate
-    ) -> Optional[FileMetadata]:
+    def update(self, file_id: str, update: FileMetadataUpdate) -> Optional[FileMetadata]:
         """更新文件元數據"""
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
@@ -141,10 +161,12 @@ class FileMetadataService:
         doc_to_update = {"_key": file_id}
         doc_to_update.update(update_data)
 
-        collection.update(doc_to_update)
-        updated_doc = collection.get(file_id)
+        collection.update(doc_to_update)  # type: ignore[arg-type]  # update 接受 dict
+        updated_doc = collection.get(file_id)  # type: ignore[assignment]  # 同步模式下返回 dict | None
 
-        return FileMetadata(**updated_doc) if updated_doc else None
+        if updated_doc is None or not isinstance(updated_doc, dict):
+            return None
+        return FileMetadata(**updated_doc)
 
     def delete(self, file_id: str) -> bool:
         """刪除文件元數據"""

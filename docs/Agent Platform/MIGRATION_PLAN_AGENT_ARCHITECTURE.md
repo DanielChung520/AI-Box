@@ -259,6 +259,7 @@
       ├── agent.py
       └── models.py
   ```
+
 - [X] **3.2 實現註冊管理員（Registry Manager）** ✅
 
   - 功能：AI 驅動的 Agent 註冊、匹配、發現

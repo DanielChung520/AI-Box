@@ -14,11 +14,11 @@ from langchain_core.runnables import RunnableConfig, RunnableLambda
 from langgraph.graph import END, StateGraph
 
 from agents.workflows.base import WorkflowExecutionResult, WorkflowRequestContext
+from agents.workflows.settings import LangChainGraphSettings
 from genai.workflows.langchain.checkpoint import build_checkpointer
 from genai.workflows.langchain.context_recorder import build_context_recorder
 from genai.workflows.langchain.state import LangGraphState, build_initial_state
 from genai.workflows.langchain.telemetry import WorkflowTelemetryCollector
-from agents.workflows.settings import LangChainGraphSettings
 
 try:  # pragma: no cover - API 層未載入時允許繼續
     from services.api.telemetry import publish_workflow_metrics
@@ -143,9 +143,7 @@ class LangChainGraphWorkflow:
 
         return result
 
-    async def _node_ingest(
-        self, state: LangGraphState, config: RunnableConfig
-    ) -> LangGraphState:
+    async def _node_ingest(self, state: LangGraphState, config: RunnableConfig) -> LangGraphState:
         self._telemetry.emit(
             "ingest",
             task_id=self._ctx.task_id,
@@ -156,12 +154,8 @@ class LangChainGraphWorkflow:
             current_step=0,
         )
 
-    async def _node_planner(
-        self, state: LangGraphState, config: RunnableConfig
-    ) -> LangGraphState:
-        plan = state.get("plan") or self._build_plan(
-            state["task"], state.get("context") or {}
-        )
+    async def _node_planner(self, state: LangGraphState, config: RunnableConfig) -> LangGraphState:
+        plan = state.get("plan") or self._build_plan(state["task"], state.get("context") or {})
         self._telemetry.emit(
             "planner",
             plan_size=len(plan),
@@ -172,9 +166,7 @@ class LangChainGraphWorkflow:
             status="executing",
         )
 
-    async def _node_router(
-        self, state: LangGraphState, config: RunnableConfig
-    ) -> LangGraphState:
+    async def _node_router(self, state: LangGraphState, config: RunnableConfig) -> LangGraphState:
         route = self._decide_route(state)
         self._telemetry.emit(
             "router",
@@ -197,13 +189,9 @@ class LangChainGraphWorkflow:
 
         return "deep_dive" if high_complexity or keyword_hit else "standard"
 
-    async def _node_research(
-        self, state: LangGraphState, config: RunnableConfig
-    ) -> LangGraphState:
+    async def _node_research(self, state: LangGraphState, config: RunnableConfig) -> LangGraphState:
         plan = state.get("plan") or []
-        research_notes = (
-            f"為 {self._ctx.task} 執行深入研究，參考 {len(plan)} 個原子步驟。"
-        )
+        research_notes = f"為 {self._ctx.task} 執行深入研究，參考 {len(plan)} 個原子步驟。"
         self._telemetry.emit(
             "research",
             note=research_notes,
@@ -213,9 +201,7 @@ class LangChainGraphWorkflow:
             status="executing",
         )
 
-    async def _node_executor(
-        self, state: LangGraphState, config: RunnableConfig
-    ) -> LangGraphState:
+    async def _node_executor(self, state: LangGraphState, config: RunnableConfig) -> LangGraphState:
         plan = state.get("plan") or []
         if not plan:
             self._telemetry.emit("executor.skip", reason="empty_plan")
@@ -246,9 +232,7 @@ class LangChainGraphWorkflow:
             status="review",
         )
 
-    async def _node_reviewer(
-        self, state: LangGraphState, config: RunnableConfig
-    ) -> LangGraphState:
+    async def _node_reviewer(self, state: LangGraphState, config: RunnableConfig) -> LangGraphState:
         outputs = state.get("outputs") or []
         summary = self._build_summary(outputs)
         self._telemetry.emit(

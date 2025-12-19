@@ -5,9 +5,9 @@
 
 """Security 服務適配器 - 重新導出 system.security 的模組"""
 
-from system.security.config import get_security_settings, SecuritySettings
+from system.security.config import SecuritySettings, get_security_settings
 from system.security.dependencies import get_current_user, require_permission
-from system.security.models import User, Role, Permission
+from system.security.models import Permission, Role, User
 
 __all__ = [
     "get_security_settings",

@@ -8,11 +8,13 @@
 ## 一、已解決的重複功能
 
 ### 1.1 API Gateway 重複（已解決 ✅）
+
 - **狀態**: 已刪除 `api_gateway/` 目錄
 - **備份位置**: `backup/api-gateway-removed/`
 - **結果**: 統一使用 `services/api/` 作為唯一 API Gateway
 
 ### 1.2 OllamaClient 重複（已解決 ✅）
+
 - **狀態**: 已統一使用 `llm/clients/ollama.py`
 - **備份位置**: `backup/ollama-client-duplicate/`
 - **結果**: 所有引用已遷移到統一實現
@@ -26,6 +28,7 @@
 **位置**: `llm/clients/`
 
 **實現列表**:
+
 - `base.py` - BaseLLMClient 抽象基類
 - `ollama.py` - Ollama 客戶端實現
 - `chatgpt.py` - ChatGPT 客戶端實現
@@ -80,6 +83,7 @@
    - 適用: 基於對話上下文的實時記憶檢索
 
 **注意**: 雖然 `RetrievalStrategy` 枚舉在兩個文件中都有定義，但：
+
 - `RetrievalManager` 的 `RetrievalStrategy`: VECTOR_ONLY, KEYWORD_ONLY, HYBRID
 - `HybridRAGService` 的 `RetrievalStrategy`: VECTOR_FIRST, GRAPH_FIRST, HYBRID
 
@@ -121,12 +125,14 @@
 ### 3.1 RetrievalStrategy 枚舉命名
 
 **問題**: 兩個不同的 `RetrievalStrategy` 枚舉：
+
 - `agent_process/retrieval/manager.py`: VECTOR_ONLY, KEYWORD_ONLY, HYBRID
 - `agent_process/memory/aam/hybrid_rag.py`: VECTOR_FIRST, GRAPH_FIRST, HYBRID
 
 **影響**: 可能造成命名空間混淆，但功能不同，不是重複。
 
 **建議**: 可考慮重命名為：
+
 - `DocumentRetrievalStrategy` (RetrievalManager)
 - `MemoryRetrievalStrategy` (HybridRAGService)
 
@@ -137,10 +143,12 @@
 ## 四、總結
 
 ### 已解決的重複功能
+
 - ✅ API Gateway 重複（已統一）
 - ✅ OllamaClient 重複（已統一）
 
 ### 非重複功能（設計模式）
+
 - ✅ LLM 客戶端實現（不同 Provider）
 - ✅ 存儲實現（不同用途）
 - ✅ 檢索實現（不同層級）
@@ -148,6 +156,7 @@
 - ✅ Orchestrator（不同用途）
 
 ### 潛在優化點
+
 - ⚠️ RetrievalStrategy 枚舉命名（可選優化）
 
 ---
@@ -157,6 +166,7 @@
 經過全面檢查，**專案中沒有發現其他重複功能**。
 
 所有看似相似的實現都是：
+
 1. **不同 Provider 的實現**（如 LLM 客戶端）
 2. **不同用途的實現**（如存儲、檢索）
 3. **不同層級的實現**（如路由、編排）

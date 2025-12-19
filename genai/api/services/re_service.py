@@ -8,14 +8,15 @@
 import json
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional
+
 import structlog
 
-from system.infra.config.config import get_config_section
-from genai.api.models.re_models import Relation, RelationEntity
 from genai.api.models.ner_models import Entity
+from genai.api.models.re_models import Relation, RelationEntity
 from genai.api.services.ner_service import NERService
-from llm.clients.ollama import OllamaClient, get_ollama_client
 from llm.clients.gemini import GeminiClient
+from llm.clients.ollama import OllamaClient, get_ollama_client
+from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
 
@@ -68,12 +69,10 @@ class TransformersREModel(BaseREModel):
     def _load_model(self):
         """加載 transformers 模型"""
         try:
-            from transformers import AutoTokenizer, AutoModelForSequenceClassification
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             self._tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            self._model = AutoModelForSequenceClassification.from_pretrained(
-                self.model_name
-            )
+            self._model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
 
             if self.enable_gpu:
                 self._model = self._model.cuda()
@@ -84,9 +83,7 @@ class TransformersREModel(BaseREModel):
             self._model = None
             self._tokenizer = None
         except Exception as e:
-            logger.error(
-                "transformers_re_model_load_failed", error=str(e), model=self.model_name
-            )
+            logger.error("transformers_re_model_load_failed", error=str(e), model=self.model_name)
             self._model = None
             self._tokenizer = None
 
@@ -104,9 +101,7 @@ class TransformersREModel(BaseREModel):
     ) -> List[Relation]:
         """使用 transformers 提取關係（簡化實現）"""
         if self._model is None or self._tokenizer is None:
-            raise RuntimeError(
-                f"Transformers RE model {self.model_name} is not available"
-            )
+            raise RuntimeError(f"Transformers RE model {self.model_name} is not available")
 
         # 簡化實現：基於實體對的關係抽取
         # 實際實現需要更複雜的模型和邏輯
@@ -120,16 +115,12 @@ class TransformersREModel(BaseREModel):
                         # 提取上下文
                         start_pos = min(subj.start, obj.start)
                         end_pos = max(subj.end, obj.end)
-                        context = text[
-                            max(0, start_pos - 20) : min(len(text), end_pos + 20)
-                        ]
+                        context = text[max(0, start_pos - 20) : min(len(text), end_pos + 20)]
 
                         # 簡化：使用默認關係類型
                         relations.append(
                             Relation(
-                                subject=RelationEntity(
-                                    text=subj.text, label=subj.label
-                                ),
+                                subject=RelationEntity(text=subj.text, label=subj.label),
                                 relation="RELATED_TO",
                                 object=RelationEntity(text=obj.text, label=obj.label),
                                 confidence=0.75,
@@ -143,9 +134,7 @@ class TransformersREModel(BaseREModel):
 class OllamaREModel(BaseREModel):
     """Ollama RE 模型實現"""
 
-    def __init__(
-        self, model_name: str = "qwen3-coder:30b", client: Optional[OllamaClient] = None
-    ):
+    def __init__(self, model_name: str = "qwen3-coder:30b", client: Optional[OllamaClient] = None):
         self.model_name = model_name
         self.client = client or get_ollama_client()
         self._prompt_template = """請從以下文本中抽取實體之間的關係，並以 JSON 格式返回結果。
@@ -186,9 +175,7 @@ class OllamaREModel(BaseREModel):
     ) -> List[Relation]:
         """使用 Ollama 提取關係"""
         if self.client is None:
-            raise RuntimeError(
-                f"Ollama client is not available for model {self.model_name}"
-            )
+            raise RuntimeError(f"Ollama client is not available for model {self.model_name}")
 
         # 構建提示詞
         entities_section = ""
@@ -196,9 +183,7 @@ class OllamaREModel(BaseREModel):
             entities_text = "\n".join([f"- {e.text} ({e.label})" for e in entities])
             entities_section = f"已識別的實體：\n{entities_text}\n"
 
-        prompt = self._prompt_template.format(
-            text=text, entities_section=entities_section
-        )
+        prompt = self._prompt_template.format(text=text, entities_section=entities_section)
 
         try:
             response = await self.client.generate(
@@ -221,9 +206,7 @@ class OllamaREModel(BaseREModel):
             try:
                 # 移除可能的 markdown 代碼塊標記
                 if "```json" in result_text:
-                    result_text = (
-                        result_text.split("```json")[1].split("```")[0].strip()
-                    )
+                    result_text = result_text.split("```json")[1].split("```")[0].strip()
                 elif "```" in result_text:
                     result_text = result_text.split("```")[1].split("```")[0].strip()
 
@@ -247,9 +230,7 @@ class OllamaREModel(BaseREModel):
                             "items",
                             "extracted_triples",
                         ]:
-                            if key in relations_data and isinstance(
-                                relations_data[key], list
-                            ):
+                            if key in relations_data and isinstance(relations_data[key], list):
                                 relations_data = relations_data[key]
                                 logger.info(
                                     "ollama_re_format_converted",
@@ -294,13 +275,9 @@ class OllamaREModel(BaseREModel):
                         # Ontology 格式：轉換為 RE service 格式
                         subject_text = subject_data
                         subject_label = item.get("subject_type", "UNKNOWN")
-                        object_text = (
-                            object_data if isinstance(object_data, str) else ""
-                        )
+                        object_text = object_data if isinstance(object_data, str) else ""
                         object_label = item.get("object_type", "UNKNOWN")
-                    elif isinstance(subject_data, dict) and isinstance(
-                        object_data, dict
-                    ):
+                    elif isinstance(subject_data, dict) and isinstance(object_data, dict):
                         # RE service 格式：直接使用
                         subject_text = subject_data.get("text", "")
                         subject_label = subject_data.get("label", "UNKNOWN")
@@ -328,23 +305,17 @@ class OllamaREModel(BaseREModel):
 
                 return relations
             except json.JSONDecodeError as e:
-                logger.error(
-                    "ollama_re_json_parse_failed", error=str(e), response=result_text
-                )
+                logger.error("ollama_re_json_parse_failed", error=str(e), response=result_text)
                 return []
         except Exception as e:
-            logger.error(
-                "ollama_re_extraction_failed", error=str(e), model=self.model_name
-            )
+            logger.error("ollama_re_extraction_failed", error=str(e), model=self.model_name)
             return []
 
 
 class GeminiREModel(BaseREModel):
     """Gemini RE 模型實現"""
 
-    def __init__(
-        self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None
-    ):
+    def __init__(self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None):
         self.model_name = model_name
         self.client: Optional[GeminiClient] = None
         try:
@@ -391,9 +362,7 @@ class GeminiREModel(BaseREModel):
     ) -> List[Relation]:
         """使用 Gemini 提取關係"""
         if self.client is None or not self.client.is_available():
-            raise RuntimeError(
-                f"Gemini client is not available for model {self.model_name}"
-            )
+            raise RuntimeError(f"Gemini client is not available for model {self.model_name}")
 
         # 構建提示詞
         entities_section = ""
@@ -401,9 +370,7 @@ class GeminiREModel(BaseREModel):
             entities_text = "\n".join([f"- {e.text} ({e.label})" for e in entities])
             entities_section = f"已識別的實體：\n{entities_text}\n"
 
-        prompt = self._prompt_template.format(
-            text=text, entities_section=entities_section
-        )
+        prompt = self._prompt_template.format(text=text, entities_section=entities_section)
 
         try:
             response = await self.client.generate(
@@ -421,9 +388,7 @@ class GeminiREModel(BaseREModel):
             try:
                 # 移除可能的 markdown 代碼塊標記
                 if "```json" in result_text:
-                    result_text = (
-                        result_text.split("```json")[1].split("```")[0].strip()
-                    )
+                    result_text = result_text.split("```json")[1].split("```")[0].strip()
                 elif "```" in result_text:
                     result_text = result_text.split("```")[1].split("```")[0].strip()
 
@@ -441,9 +406,7 @@ class GeminiREModel(BaseREModel):
                     subject_data = item.get("subject", {})
                     object_data = item.get("object", {})
 
-                    if not isinstance(subject_data, dict) or not isinstance(
-                        object_data, dict
-                    ):
+                    if not isinstance(subject_data, dict) or not isinstance(object_data, dict):
                         continue
 
                     relations.append(
@@ -464,14 +427,10 @@ class GeminiREModel(BaseREModel):
 
                 return relations
             except json.JSONDecodeError as e:
-                logger.error(
-                    "gemini_re_json_parse_failed", error=str(e), response=result_text
-                )
+                logger.error("gemini_re_json_parse_failed", error=str(e), response=result_text)
                 return []
         except Exception as e:
-            logger.error(
-                "gemini_re_extraction_failed", error=str(e), model=self.model_name
-            )
+            logger.error("gemini_re_extraction_failed", error=str(e), model=self.model_name)
             return []
 
 
@@ -511,20 +470,12 @@ class REService:
                 model_name=self.model_name, enable_gpu=self.enable_gpu
             )
         elif self.model_type == "ollama":
-            model_name = (
-                self.model_name
-                if ":" in self.model_name
-                else f"ollama:{self.model_name}"
-            )
+            model_name = self.model_name if ":" in self.model_name else f"ollama:{self.model_name}"
             if model_name.startswith("ollama:"):
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = OllamaREModel(model_name=model_name)
         elif self.model_type == "gemini":
-            model_name = (
-                self.model_name
-                if ":" in self.model_name
-                else f"gemini:{self.model_name}"
-            )
+            model_name = self.model_name if ":" in self.model_name else f"gemini:{self.model_name}"
             if model_name.startswith("gemini:"):
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = GeminiREModel(model_name=model_name)
@@ -594,9 +545,7 @@ class REService:
         # 如果沒有提供實體，自動識別
         if entities is None:
             if self.ner_service is None:
-                raise RuntimeError(
-                    "NER service is not available for automatic entity extraction"
-                )
+                raise RuntimeError("NER service is not available for automatic entity extraction")
             entities = await self.ner_service.extract_entities(text)
 
         return await model.extract_relations(text, entities)

@@ -5,23 +5,20 @@
 
 """數據使用同意路由 - 提供同意記錄、查詢和撤銷功能。"""
 
+from datetime import datetime
 from typing import List
-from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.responses import JSONResponse
+
 import structlog
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
-from services.api.models.data_consent import (
-    DataConsentCreate,
-    DataConsentResponse,
-    ConsentType,
-)
+from services.api.models.audit_log import AuditAction
+from services.api.models.data_consent import ConsentType, DataConsentCreate, DataConsentResponse
 from services.api.services.data_consent_service import get_consent_service
+from system.security.audit_decorator import audit_log
 from system.security.dependencies import get_current_user
 from system.security.models import User
-from system.security.audit_decorator import audit_log
-from services.api.models.audit_log import AuditAction
-from fastapi import Request
 
 logger = structlog.get_logger(__name__)
 
@@ -127,7 +124,7 @@ async def get_consent_by_type(
                 consent_type=consent_type,
                 purpose="",
                 granted=False,
-                timestamp=None,
+                timestamp=datetime.utcnow(),  # type: ignore[arg-type]  # timestamp 是必需的，使用當前時間
                 expires_at=None,
             ),
             message="Consent not granted",

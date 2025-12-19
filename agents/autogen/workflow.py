@@ -10,20 +10,20 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
+from agents.autogen.agent_roles import get_default_agent_roles
+from agents.autogen.config import AutoGenSettings
+from agents.autogen.conversation import ConversationManager
+from agents.autogen.coordinator import AgentCoordinator
+from agents.autogen.cost_estimator import CostEstimator
+from agents.autogen.llm_adapter import AutoGenLLMAdapter
+from agents.autogen.long_horizon import LongHorizonTaskManager
+from agents.autogen.planner import ExecutionPlanner, PlanStatus
+from agents.autogen.tool_adapter import AutoGenToolAdapter
 from agents.workflows.base import (
     WorkflowExecutionResult,
     WorkflowRequestContext,
     WorkflowTelemetryEvent,
 )
-from agents.autogen.config import AutoGenSettings
-from agents.autogen.conversation import ConversationManager
-from agents.autogen.coordinator import AgentCoordinator
-from agents.autogen.cost_estimator import CostEstimator
-from agents.autogen.long_horizon import LongHorizonTaskManager
-from agents.autogen.llm_adapter import AutoGenLLMAdapter
-from agents.autogen.planner import ExecutionPlanner, PlanStatus
-from agents.autogen.tool_adapter import AutoGenToolAdapter
-from agents.autogen.agent_roles import get_default_agent_roles
 
 try:
     from services.api.telemetry.workflow import publish_workflow_metrics
@@ -56,9 +56,7 @@ class AutoGenWorkflow:
         self._coordinator = AgentCoordinator()
         self._tool_adapter = AutoGenToolAdapter()
         self._cost_estimator = CostEstimator()
-        self._long_horizon_manager = LongHorizonTaskManager(
-            checkpoint_dir=settings.checkpoint_dir
-        )
+        self._long_horizon_manager = LongHorizonTaskManager(checkpoint_dir=settings.checkpoint_dir)
         self._planner = ExecutionPlanner(
             context_recorder=self._conversation_manager.context_recorder
         )

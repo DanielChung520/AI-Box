@@ -42,12 +42,12 @@
 **步驟**:
 
 1. 安裝 langchain 相關依賴：
+
    ```bash
    pip install langchain-core>=1.1.0,<2.0.0
    pip install langchain-community>=0.3.0,<1.0.0
    pip install langgraph>=1.0.4,<2.0.0
    ```
-
 
 或直接安裝整個 requirements.txt：
 
@@ -56,15 +56,16 @@
    ```
 
 2. 驗證安裝：
+
    ```bash
    python3 -c "from langchain_core.runnables import RunnableConfig; print('✅ langchain_core 安裝成功')"
    ```
 
 3. 重新運行測試：
+
    ```bash
    pytest tests/integration/rag-file-upload/ -v
    ```
-
 
 ### 方案 2: 可選導入（備選）
 
@@ -83,6 +84,7 @@
 **步驟**:
 
 1. 修改 `genai/workflows/langchain/workflow.py`，將導入改為可選：
+
    ```python
    try:
        from langchain_core.runnables import RunnableConfig, RunnableLambda
@@ -98,6 +100,7 @@
    ```
 
 2. 在類中使用前檢查可用性：
+
    ```python
    if not LANGCHAIN_AVAILABLE:
        raise ImportError("langchain_core 未安裝，請運行: pip install langchain-core langgraph")

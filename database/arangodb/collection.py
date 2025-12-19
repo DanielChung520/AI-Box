@@ -5,9 +5,10 @@
 
 """ArangoDB 集合操作封裝，提供文檔 CRUD 操作"""
 
-from typing import Dict, Any, List, Optional, Union
-from arango.collection import StandardCollection
 import logging
+from typing import Any, Dict, List, Optional, Union
+
+from arango.collection import StandardCollection
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +45,13 @@ class ArangoCollection:
             result = self.collection.insert(document, return_new=return_new)  # type: ignore[arg-type]
             if isinstance(document, list):
                 logger.info(
-                    f"Inserted {len(document)} document(s) "
-                    f"into collection '{self.name}'"
+                    f"Inserted {len(document)} document(s) " f"into collection '{self.name}'"
                 )
             else:
                 logger.info(f"Inserted document into collection '{self.name}'")
             return result  # type: ignore[return-value]
         except Exception as e:
-            logger.error(
-                f"Failed to insert document(s) into collection '{self.name}': {e}"
-            )
+            logger.error(f"Failed to insert document(s) into collection '{self.name}': {e}")
             raise
 
     def get(
@@ -73,14 +71,10 @@ class ArangoCollection:
         try:
             document = self.collection.get(key, rev=rev, check_rev=check_rev)
             if document:
-                logger.debug(
-                    f"Retrieved document '{key}' from collection '{self.name}'"
-                )
+                logger.debug(f"Retrieved document '{key}' from collection '{self.name}'")
             return document  # type: ignore[return-value]
         except Exception as e:
-            logger.error(
-                f"Failed to get document '{key}' from collection '{self.name}': {e}"
-            )
+            logger.error(f"Failed to get document '{key}' from collection '{self.name}': {e}")
             raise
 
     def update(
@@ -113,16 +107,12 @@ class ArangoCollection:
                 return_old=return_old,
             )
             if isinstance(document, list):
-                logger.info(
-                    f"Updated {len(document)} document(s) in collection '{self.name}'"
-                )
+                logger.info(f"Updated {len(document)} document(s) in collection '{self.name}'")
             else:
                 logger.info(f"Updated document in collection '{self.name}'")
             return result  # type: ignore[return-value]
         except Exception as e:
-            logger.error(
-                f"Failed to update document(s) in collection '{self.name}': {e}"
-            )
+            logger.error(f"Failed to update document(s) in collection '{self.name}': {e}")
             raise
 
     def replace(
@@ -152,16 +142,12 @@ class ArangoCollection:
                 return_old=return_old,
             )
             if isinstance(document, list):
-                logger.info(
-                    f"Replaced {len(document)} document(s) in collection '{self.name}'"
-                )
+                logger.info(f"Replaced {len(document)} document(s) in collection '{self.name}'")
             else:
                 logger.info(f"Replaced document in collection '{self.name}'")
             return result  # type: ignore[return-value]
         except Exception as e:
-            logger.error(
-                f"Failed to replace document(s) in collection '{self.name}': {e}"
-            )
+            logger.error(f"Failed to replace document(s) in collection '{self.name}': {e}")
             raise
 
     def delete(
@@ -188,16 +174,12 @@ class ArangoCollection:
                 document, rev=rev, check_rev=check_rev, return_old=return_old
             )
             if isinstance(document, list):
-                logger.info(
-                    f"Deleted {len(document)} document(s) from collection '{self.name}'"
-                )
+                logger.info(f"Deleted {len(document)} document(s) from collection '{self.name}'")
             else:
                 logger.info(f"Deleted document from collection '{self.name}'")
             return result  # type: ignore[return-value]
         except Exception as e:
-            logger.error(
-                f"Failed to delete document(s) from collection '{self.name}': {e}"
-            )
+            logger.error(f"Failed to delete document(s) from collection '{self.name}': {e}")
             raise
 
     def find(
@@ -220,13 +202,15 @@ class ArangoCollection:
             文檔列表
         """
         try:
+            # 轉換 sort 參數類型：list[str] -> list[dict[str, Any]]
+            sort_converted: list[dict[str, Any]] | None = None
+            if sort:
+                sort_converted = [{"field": s, "direction": "asc"} for s in sort]  # type: ignore[arg-type]  # 簡化轉換
             result = self.collection.find(  # type: ignore[arg-type]
-                filters=filters or {}, skip=skip, limit=limit, sort=sort
+                filters=filters or {}, skip=skip, limit=limit, sort=sort_converted
             )
             documents = list(result)  # type: ignore[arg-type]
-            logger.debug(
-                f"Found {len(documents)} document(s) in collection '{self.name}'"
-            )
+            logger.debug(f"Found {len(documents)} document(s) in collection '{self.name}'")
             return documents
         except Exception as e:
             logger.error(f"Failed to find documents in collection '{self.name}': {e}")

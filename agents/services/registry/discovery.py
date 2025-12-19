@@ -6,13 +6,10 @@
 """Agent Discovery 服務 - 實現按能力、權限、分類等條件發現 Agent"""
 
 import logging
-from typing import Optional, List
 from datetime import datetime, timedelta
+from typing import List, Optional
 
-from agents.services.registry.models import (
-    AgentRegistryInfo,
-    AgentStatus,
-)
+from agents.services.registry.models import AgentRegistryInfo, AgentStatus
 from agents.services.registry.registry import AgentRegistry
 
 logger = logging.getLogger(__name__)
@@ -71,9 +68,7 @@ class AgentDiscovery:
 
         # 過濾權限
         if user_id or user_roles:
-            agents = self._filter_by_permissions(
-                agents, user_id=user_id, user_roles=user_roles
-            )
+            agents = self._filter_by_permissions(agents, user_id=user_id, user_roles=user_roles)
 
         # 過濾健康狀態（排除長時間無心跳的 Agent）
         agents = self._filter_by_health(agents)
@@ -125,7 +120,6 @@ class AgentDiscovery:
             有權限訪問的 Agent 列表
         """
         accessible_agents = []
-        user_roles_set = set(user_roles or [])
 
         for agent in agents:
             permissions = agent.permissions

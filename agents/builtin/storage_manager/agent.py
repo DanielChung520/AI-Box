@@ -8,26 +8,21 @@
 AI 驱动的存储管理服务，提供智能存储策略和数据管理功能。
 """
 
-import logging
 import json
-from typing import Dict, Any
+import logging
+from typing import Any, Dict
 
+from agents.services.file_service.agent_file_service import get_agent_file_service
 from agents.services.protocol.base import (
     AgentServiceProtocol,
     AgentServiceRequest,
     AgentServiceResponse,
     AgentServiceStatus,
 )
-from agents.services.file_service.agent_file_service import get_agent_file_service
 from agents.task_analyzer.models import LLMProvider
 from llm.clients.factory import get_client
 
-from .models import (
-    StorageManagerRequest,
-    StorageManagerResponse,
-    StorageType,
-    StorageStrategy,
-)
+from .models import StorageManagerRequest, StorageManagerResponse, StorageStrategy, StorageType
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +100,7 @@ class StorageManagerAgent(AgentServiceProtocol):
                     success=False,
                     action=action,
                     error=f"Unknown action: {action}",
-                )
+                )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
             # 构建响应
             return AgentServiceResponse(
@@ -122,6 +117,7 @@ class StorageManagerAgent(AgentServiceProtocol):
                     "message": result.message,
                     "error": result.error,
                 },
+                error=None,  # type: ignore[call-arg]  # error 有默認值
                 metadata=request.metadata,
             )
 
@@ -130,13 +126,12 @@ class StorageManagerAgent(AgentServiceProtocol):
             return AgentServiceResponse(
                 task_id=request.task_id,
                 status="error",
+                result=None,  # type: ignore[call-arg]  # result 有默認值
                 error=str(e),
                 metadata=request.metadata,
             )
 
-    async def _store_data(
-        self, request: StorageManagerRequest
-    ) -> StorageManagerResponse:
+    async def _store_data(self, request: StorageManagerRequest) -> StorageManagerResponse:
         """
         存储数据
 
@@ -169,14 +164,14 @@ class StorageManagerAgent(AgentServiceProtocol):
                     success=False,
                     action="store",
                     error=f"Unsupported storage type: {storage_type}",
-                )
+                )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
             return StorageManagerResponse(
                 success=True,
                 action="store",
                 stored=stored,
                 message=f"Data stored successfully in {storage_type.value}",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Data storage failed: {e}")
@@ -184,11 +179,9 @@ class StorageManagerAgent(AgentServiceProtocol):
                 success=False,
                 action="store",
                 error=str(e),
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
-    async def _retrieve_data(
-        self, request: StorageManagerRequest
-    ) -> StorageManagerResponse:
+    async def _retrieve_data(self, request: StorageManagerRequest) -> StorageManagerResponse:
         """
         检索数据
 
@@ -219,14 +212,14 @@ class StorageManagerAgent(AgentServiceProtocol):
                     success=False,
                     action="retrieve",
                     error=f"Unsupported storage type: {storage_type}",
-                )
+                )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
             return StorageManagerResponse(
                 success=True,
                 action="retrieve",
                 retrieved_data=retrieved_data,
                 message="Data retrieved successfully",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Data retrieval failed: {e}")
@@ -234,11 +227,9 @@ class StorageManagerAgent(AgentServiceProtocol):
                 success=False,
                 action="retrieve",
                 error=str(e),
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
-    async def _optimize_storage(
-        self, request: StorageManagerRequest
-    ) -> StorageManagerResponse:
+    async def _optimize_storage(self, request: StorageManagerRequest) -> StorageManagerResponse:
         """
         优化存储
 
@@ -262,7 +253,7 @@ class StorageManagerAgent(AgentServiceProtocol):
                 action="optimize",
                 optimization_result=optimization_result,
                 message="Storage optimization completed",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Storage optimization failed: {e}")
@@ -270,11 +261,9 @@ class StorageManagerAgent(AgentServiceProtocol):
                 success=False,
                 action="optimize",
                 error=str(e),
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
-    async def _analyze_storage(
-        self, request: StorageManagerRequest
-    ) -> StorageManagerResponse:
+    async def _analyze_storage(self, request: StorageManagerRequest) -> StorageManagerResponse:
         """
         存储分析
 
@@ -301,7 +290,7 @@ class StorageManagerAgent(AgentServiceProtocol):
                 action="analyze",
                 analysis=analysis,
                 message="Storage analysis completed",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Storage analysis failed: {e}")
@@ -309,11 +298,9 @@ class StorageManagerAgent(AgentServiceProtocol):
                 success=False,
                 action="analyze",
                 error=str(e),
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
-    async def _recommend_strategy(
-        self, request: StorageManagerRequest
-    ) -> StorageManagerResponse:
+    async def _recommend_strategy(self, request: StorageManagerRequest) -> StorageManagerResponse:
         """
         AI 驱动的存储策略推荐
 
@@ -336,7 +323,7 @@ class StorageManagerAgent(AgentServiceProtocol):
                 action="recommend",
                 strategy=strategy,
                 message=f"Recommended strategy: {strategy.value}",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Strategy recommendation failed: {e}")
@@ -344,11 +331,9 @@ class StorageManagerAgent(AgentServiceProtocol):
                 success=False,
                 action="recommend",
                 error=str(e),
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
-    async def _ai_optimize_storage(
-        self, request: StorageManagerRequest
-    ) -> Dict[str, Any]:
+    async def _ai_optimize_storage(self, request: StorageManagerRequest) -> Dict[str, Any]:
         """
         使用 AI 进行存储优化
 
@@ -423,9 +408,7 @@ class StorageManagerAgent(AgentServiceProtocol):
             self._logger.error(f"AI analysis failed: {e}")
             return {}
 
-    async def _ai_recommend_strategy(
-        self, request: StorageManagerRequest
-    ) -> StorageStrategy:
+    async def _ai_recommend_strategy(self, request: StorageManagerRequest) -> StorageStrategy:
         """
         使用 AI 推荐存储策略
 

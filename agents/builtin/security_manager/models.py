@@ -6,7 +6,8 @@
 """Security Manager Agent 數據模型定義"""
 
 from enum import Enum
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -22,9 +23,7 @@ class RiskLevel(str, Enum):
 class SecurityManagerRequest(BaseModel):
     """安全管理请求模型"""
 
-    action: str = Field(
-        ..., description="操作类型（assess, check_permission, audit, analyze）"
-    )
+    action: str = Field(..., description="操作类型（assess, check_permission, audit, analyze）")
     agent_id: Optional[str] = Field(None, description="Agent ID（用于权限检查）")
     resource_type: Optional[str] = Field(None, description="资源类型")
     resource_name: Optional[str] = Field(None, description="资源名称")
@@ -49,9 +48,7 @@ class SecurityManagerResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     action: str = Field(..., description="执行的操作类型")
     allowed: Optional[bool] = Field(None, description="是否允许访问")
-    risk_assessment: Optional[RiskAssessmentResult] = Field(
-        None, description="风险评估结果"
-    )
+    risk_assessment: Optional[RiskAssessmentResult] = Field(None, description="风险评估结果")
     audit_result: Optional[Dict[str, Any]] = Field(None, description="审计结果")
     analysis: Optional[Dict[str, Any]] = Field(None, description="分析结果")
     message: Optional[str] = Field(None, description="响应消息")

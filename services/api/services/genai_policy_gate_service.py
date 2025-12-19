@@ -27,9 +27,7 @@ class GenAIPolicyGateService:
         self._policy = self._load_policy(policy_override=policy_override)
 
     @staticmethod
-    def _load_policy(
-        *, policy_override: Optional[Dict[str, Any]] = None
-    ) -> GenAIPolicy:
+    def _load_policy(*, policy_override: Optional[Dict[str, Any]] = None) -> GenAIPolicy:
         policy = (
             policy_override
             if isinstance(policy_override, dict)
@@ -39,9 +37,7 @@ class GenAIPolicyGateService:
         allowed_providers = policy.get("allowed_providers") or []
         if not isinstance(allowed_providers, list):
             allowed_providers = []
-        allowed_providers = [
-            str(p).strip().lower() for p in allowed_providers if str(p).strip()
-        ]
+        allowed_providers = [str(p).strip().lower() for p in allowed_providers if str(p).strip()]
 
         allowed_models = policy.get("allowed_models") or {}
         if not isinstance(allowed_models, dict):

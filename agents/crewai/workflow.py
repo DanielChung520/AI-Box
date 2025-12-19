@@ -11,19 +11,19 @@ import logging
 import time
 from typing import Any, Dict, List
 
+from agents.crewai.llm_adapter import OllamaLLMAdapter
+from agents.crewai.manager import CrewManager
+from agents.crewai.models import CrewConfig
+from agents.crewai.process_engine import ProcessEngine
+from agents.crewai.settings import CrewAISettings
+from agents.crewai.task_models import CrewTask, TaskResult, TaskStatus
+from agents.crewai.task_registry import TaskRegistry
+from agents.crewai.token_budget import TokenBudgetGuard
 from agents.workflows.base import (
     WorkflowExecutionResult,
     WorkflowRequestContext,
     WorkflowTelemetryEvent,
 )
-from agents.crewai.settings import CrewAISettings
-from agents.crewai.llm_adapter import OllamaLLMAdapter
-from agents.crewai.process_engine import ProcessEngine
-from agents.crewai.token_budget import TokenBudgetGuard
-from agents.crewai.manager import CrewManager
-from agents.crewai.models import CrewConfig
-from agents.crewai.task_registry import TaskRegistry
-from agents.crewai.task_models import CrewTask, TaskStatus, TaskResult
 from genai.workflows.context.recorder import ContextRecorder
 
 logger = logging.getLogger(__name__)
@@ -107,15 +107,11 @@ class CrewAIWorkflow:
             # 執行 Crew
             self._emit_telemetry("crew.execute.start", {"crew_id": crew_config.crew_id})
             result = crew.kickoff(inputs={"task": self._ctx.task})
-            self._emit_telemetry(
-                "crew.execute.complete", {"crew_id": crew_config.crew_id}
-            )
+            self._emit_telemetry("crew.execute.complete", {"crew_id": crew_config.crew_id})
 
             # 記錄任務完成
             execution_time = time.time() - start_time
-            self._record_context(
-                "task_complete", {"result": str(result), "time": execution_time}
-            )
+            self._record_context("task_complete", {"result": str(result), "time": execution_time})
 
             # 更新任務狀態
             self._task_registry.update_task_status(
@@ -174,9 +170,7 @@ class CrewAIWorkflow:
             execution_time = time.time() - start_time
             logger.error(f"CrewAI workflow execution failed: {exc}", exc_info=True)
             self._emit_telemetry("workflow.failed", {"error": str(exc)})
-            self._record_context(
-                "task_failed", {"error": str(exc), "time": execution_time}
-            )
+            self._record_context("task_failed", {"error": str(exc), "time": execution_time})
 
             # 更新任務狀態為失敗
             self._task_registry.update_task_status(

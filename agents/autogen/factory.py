@@ -9,15 +9,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from agents.workflows.base import (
-    WorkflowFactoryProtocol,
-    WorkflowRequestContext,
-)
+from agents.autogen.config import AutoGenSettings, load_autogen_settings
 from agents.autogen.workflow import AutoGenWorkflow
-from agents.autogen.config import (
-    AutoGenSettings,
-    load_autogen_settings,
-)
+from agents.workflows.base import WorkflowFactoryProtocol, WorkflowRequestContext
 
 
 class AutoGenWorkflowFactory(WorkflowFactoryProtocol):

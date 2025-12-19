@@ -108,16 +108,12 @@ class DecisionEngine:
                     fallback = [WorkflowType.LANGCHAIN]
                 else:
                     fallback = [WorkflowType.AUTOGEN]
-            reasoning_parts.append(
-                f"檢測到 {len(failure_history)} 次失敗歷史，啟用備用模式"
-            )
+            reasoning_parts.append(f"檢測到 {len(failure_history)} 次失敗歷史，啟用備用模式")
 
         # 根據任務類型調整策略
         if mode == "single":
             primary, fallback = self._adjust_for_task_type(task_type)
-            reasoning_parts.append(
-                f"根據任務類型 {task_type.value} 選擇 {primary.value} 工作流"
-            )
+            reasoning_parts.append(f"根據任務類型 {task_type.value} 選擇 {primary.value} 工作流")
 
         # 構建切換條件
         switch_conditions = {
@@ -145,9 +141,7 @@ class DecisionEngine:
 
         return strategy
 
-    def _adjust_for_task_type(
-        self, task_type: TaskType
-    ) -> tuple[WorkflowType, list[WorkflowType]]:
+    def _adjust_for_task_type(self, task_type: TaskType) -> tuple[WorkflowType, list[WorkflowType]]:
         """
         根據任務類型調整工作流選擇。
 
@@ -188,9 +182,7 @@ class DecisionEngine:
         """
         return current_cost > self.cost_threshold_switch
 
-    def is_cooldown_active(
-        self, last_switch_time: Optional[float], current_time: float
-    ) -> bool:
+    def is_cooldown_active(self, last_switch_time: Optional[float], current_time: float) -> bool:
         """
         檢查是否在冷卻時間內。
 

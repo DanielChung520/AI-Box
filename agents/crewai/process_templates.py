@@ -5,7 +5,8 @@
 
 """定義流程模板配置和切換邏輯。"""
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from agents.crewai.models import CollaborationMode
 
 

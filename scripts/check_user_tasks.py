@@ -6,8 +6,9 @@
 
 """檢查用戶任務的實際狀態"""
 
-import sys
 import os
+import sys
+
 import requests
 
 # 添加項目根目錄到路徑
@@ -48,9 +49,7 @@ def check_tasks_via_api(email: str = "daniel@test.com", password: str = "any"):
 
     # 2. 獲取當前用戶信息
     print("2. 獲取當前用戶信息...")
-    me_response = requests.get(
-        f"{base_url}/auth/me", headers={"Authorization": f"Bearer {token}"}
-    )
+    me_response = requests.get(f"{base_url}/auth/me", headers={"Authorization": f"Bearer {token}"})
 
     if me_response.status_code == 200:
         me_data = me_response.json()

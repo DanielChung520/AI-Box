@@ -7,14 +7,13 @@
 
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Query, Depends, status
-from fastapi.responses import JSONResponse
+
 import structlog
+from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
-from services.api.services.governance_report_service import (
-    get_governance_report_service,
-)
+from services.api.services.governance_report_service import get_governance_report_service
 from system.security.dependencies import get_current_user
 from system.security.models import User
 
@@ -50,9 +49,7 @@ async def get_governance_report(
             user_id = current_user.user_id
 
         service = get_governance_report_service()
-        report = service.generate_report(
-            start_time=start_time, end_time=end_time, user_id=user_id
-        )
+        report = service.generate_report(start_time=start_time, end_time=end_time, user_id=user_id)
 
         return APIResponse.success(
             data=report,

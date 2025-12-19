@@ -24,6 +24,7 @@
 **使用方式**：
 
 **方式 A：通過 Swagger 文檔**
+
 1. 訪問 `http://localhost:8000/docs`
 2. 找到 `POST /api/v1/agents/secrets/generate` 端點
 3. 點擊 "Try it out"
@@ -32,6 +33,7 @@
 6. 複製返回的 `secret_id` 和 `secret_key`
 
 **方式 B：通過 curl 命令**
+
 ```bash
 curl -X POST "http://localhost:8000/api/v1/agents/secrets/generate" \
   -H "Content-Type: application/json" \
@@ -39,6 +41,7 @@ curl -X POST "http://localhost:8000/api/v1/agents/secrets/generate" \
 ```
 
 **方式 C：通過 Python 腳本**
+
 ```python
 import requests
 
@@ -52,6 +55,7 @@ print(f"Secret Key: {result['data']['secret_key']}")
 ```
 
 **注意事項**：
+
 - ⚠️ 僅用於測試和開發環境
 - ⚠️ Secret Key 只在生成時返回一次，請妥善保管
 - ⚠️ 生產環境應使用審批流程
@@ -161,6 +165,7 @@ const handleSubmitApplication = async (formData) => {
 ```
 
 **優點**：
+
 - ✅ 快速實現
 - ✅ 用戶體驗好
 - ✅ 無需跳轉頁面
@@ -182,9 +187,11 @@ const handleSubmitApplication = async (formData) => {
 ### 當前狀態
 
 在註冊頁面的 Secret 驗證區塊：
+
 ```
 還沒有 Secret ID？[點擊這裡申請]
 ```
+
 目前點擊後顯示 alert 提示。
 
 ### 建議改進：添加申請 Modal
@@ -226,6 +233,7 @@ const handleSubmitApplication = async (formData) => {
 **目標**：讓用戶可以在註冊頁面直接獲取 Secret
 
 **實現內容**：
+
 1. 創建 `SecretQuickGenerateModal` 組件
 2. 開發環境：直接調用 `generateSecret` API
 3. 生產環境：顯示申請表單或提示聯繫管理員
@@ -238,6 +246,7 @@ const handleSubmitApplication = async (formData) => {
 **目標**：完整的申請審批流程
 
 **實現內容**：
+
 1. 申請表單和提交功能
 2. 管理員審批界面
 3. 郵件通知系統

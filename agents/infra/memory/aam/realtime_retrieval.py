@@ -8,13 +8,13 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Dict, List, Optional
 
 import structlog
 
-from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
 from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.models import Memory, MemoryPriority, MemoryType
 
 logger = structlog.get_logger(__name__)
 
@@ -47,9 +47,7 @@ class RealtimeRetrievalService:
         # 簡單的內存緩存（生產環境應使用 Redis）
         self._cache: Dict[str, tuple[float, List[Memory]]] = {}
 
-    def _get_cache_key(
-        self, query: str, context: Optional[Dict[str, Any]] = None
-    ) -> str:
+    def _get_cache_key(self, query: str, context: Optional[Dict[str, Any]] = None) -> str:
         """生成緩存鍵"""
         context_str = str(sorted(context.items())) if context else ""
         return f"{query}:{context_str}"
@@ -207,9 +205,7 @@ class RealtimeRetrievalService:
         sorted_results = self._sort_memories(results, query, context)
 
         # 過濾和限制結果
-        filtered_results = [
-            m for m in sorted_results if m.relevance_score >= min_relevance
-        ][:limit]
+        filtered_results = [m for m in sorted_results if m.relevance_score >= min_relevance][:limit]
 
         # 更新訪問信息
         for memory in filtered_results:
@@ -230,9 +226,7 @@ class RealtimeRetrievalService:
 
         return filtered_results
 
-    def _parallel_search(
-        self, query: str, limit: int, min_relevance: float
-    ) -> List[Memory]:
+    def _parallel_search(self, query: str, limit: int, min_relevance: float) -> List[Memory]:
         """並行檢索多種類型的記憶"""
         results: List[Memory] = []
 

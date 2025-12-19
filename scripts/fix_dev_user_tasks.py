@@ -12,11 +12,11 @@
 2. 將 dev_user 的任務轉移給指定用戶（如 daniel@test.com）
 """
 
-import os
-import sys
-import shutil
-from pathlib import Path
 import argparse
+import os
+import shutil
+import sys
+from pathlib import Path
 
 # 添加項目根目錄到路徑
 project_root = Path(__file__).parent.parent
@@ -118,9 +118,7 @@ def delete_dev_user_tasks(db, confirm: bool = False):
                 FILTER folder.user_id == @user_id
                 RETURN folder
             """
-            folder_cursor = db.aql.execute(
-                folder_query, bind_vars={"user_id": "dev_user"}
-            )
+            folder_cursor = db.aql.execute(folder_query, bind_vars={"user_id": "dev_user"})
             folders = list(folder_cursor)
             folder_keys = [f.get("_key") for f in folders if f.get("_key")]
 
@@ -186,13 +184,9 @@ def main():
         """,
     )
 
-    parser.add_argument(
-        "--delete", action="store_true", help="刪除所有 dev_user 的任務"
-    )
+    parser.add_argument("--delete", action="store_true", help="刪除所有 dev_user 的任務")
 
-    parser.add_argument(
-        "--yes", "-y", action="store_true", help="自動確認，跳過交互提示"
-    )
+    parser.add_argument("--yes", "-y", action="store_true", help="自動確認，跳過交互提示")
 
     args = parser.parse_args()
 

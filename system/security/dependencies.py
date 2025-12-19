@@ -8,11 +8,11 @@
 這些函數可以在路由中使用 FastAPI 的 Depends() 機制來進行認證和授權檢查。
 """
 
-from fastapi import Request, HTTPException, status, Depends
+from fastapi import Depends, HTTPException, Request, status
 
+from system.security.auth import authenticate_request
 from system.security.config import get_security_settings
 from system.security.models import User
-from system.security.auth import authenticate_request
 
 
 async def get_current_user(request: Request) -> User:
@@ -72,9 +72,7 @@ async def get_current_user(request: Request) -> User:
             should_bypass_auth=settings.should_bypass_auth,
         )
     else:
-        logger.debug(
-            "No token provided", should_bypass_auth=settings.should_bypass_auth
-        )
+        logger.debug("No token provided", should_bypass_auth=settings.should_bypass_auth)
 
     # 修改時間：2025-01-27 - 正式測試：移除 dev_user fallback
     # 只有在 SECURITY_ENABLED=false 時才允許繞過認證

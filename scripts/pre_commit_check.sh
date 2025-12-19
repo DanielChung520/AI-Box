@@ -35,9 +35,9 @@ if [ -z "$PYTHON_FILES" ] && [ -z "$UNSTAGED_PYTHON_FILES" ]; then
     echo -e "${GREEN}✓ 沒有修改的 Python 文件${NC}"
 else
     ALL_PYTHON_FILES="$PYTHON_FILES $UNSTAGED_PYTHON_FILES"
-    
+
     echo -e "${BLUE}檢查 Python 文件...${NC}"
-    
+
     # 2. Black 格式化檢查
     echo -n "  檢查 Black 格式..."
     if black --check $ALL_PYTHON_FILES 2>/dev/null; then
@@ -47,7 +47,7 @@ else
         echo -e "  ${YELLOW}運行 'black .' 自動修復格式${NC}"
         ERRORS=$((ERRORS + 1))
     fi
-    
+
     # 3. Ruff 檢查
     echo -n "  檢查 Ruff 代碼風格..."
     if ruff check $ALL_PYTHON_FILES 2>/dev/null; then
@@ -57,7 +57,7 @@ else
         echo -e "  ${YELLOW}運行 'ruff check --fix .' 自動修復${NC}"
         ERRORS=$((ERRORS + 1))
     fi
-    
+
     # 4. Mypy 類型檢查（可選，較慢）
     read -p "  是否運行 mypy 類型檢查？(y/N): " -n 1 -r
     echo

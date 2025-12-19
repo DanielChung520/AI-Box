@@ -8,9 +8,11 @@
 # WBS-G0：基礎盤點與介面對齊
 
 ## 目標
+
 把「前端輸入框 → 模型（Auto/收藏） → 上下文/記憶」這條產品鏈路所需的**接口、資料結構、追蹤點**先定稿，避免後續反覆重構。
 
 ## 工作項
+
 - **G0.1 產品入口 API 定義**
   - 定義 Chat Request/Response schema（messages、session_id、task_id、model_selector、attachments）
   - 定義 error code 與可回報的 observability fields
@@ -30,6 +32,7 @@
   - memory_hit（命中數、來源、top-k）
 
 ## 驗收
+
 - 有一份可執行的 API 契約（前後端一致）
 - Auto/收藏/Context/Memory 的資料結構確定
 - 指標欄位確定

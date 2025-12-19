@@ -5,7 +5,8 @@
 
 """純文本文件解析器"""
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from .base_parser import BaseParser
 
 

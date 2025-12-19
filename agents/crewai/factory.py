@@ -9,15 +9,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from agents.workflows.base import (
-    WorkflowFactoryProtocol,
-    WorkflowRequestContext,
-)
+from agents.crewai.settings import CrewAISettings, load_crewai_settings
 from agents.crewai.workflow import CrewAIWorkflow
-from agents.crewai.settings import (
-    CrewAISettings,
-    load_crewai_settings,
-)
+from agents.workflows.base import WorkflowFactoryProtocol, WorkflowRequestContext
 
 
 class CrewAIWorkflowFactory(WorkflowFactoryProtocol):

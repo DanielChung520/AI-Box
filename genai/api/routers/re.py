@@ -6,17 +6,13 @@
 """RE 關係抽取路由 - 提供關係抽取 API 端點"""
 
 from typing import Optional
+
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
+from genai.api.models.re_models import REBatchRequest, REBatchResponse, RERequest, REResponse
 from genai.api.services.re_service import REService
-from genai.api.models.re_models import (
-    RERequest,
-    REResponse,
-    REBatchRequest,
-    REBatchResponse,
-)
 
 router = APIRouter(prefix="/text-analysis", tags=["RE"])
 
@@ -104,9 +100,7 @@ async def extract_relations_batch(request: REBatchRequest) -> JSONResponse:
     service = get_service()
 
     try:
-        results = await service.extract_relations_batch(
-            request.texts, request.model_type
-        )
+        results = await service.extract_relations_batch(request.texts, request.model_type)
         model_used = request.model_type or service.model_type
 
         response_list = []

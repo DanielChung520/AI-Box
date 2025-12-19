@@ -6,21 +6,18 @@
 """Agent Registry 核心服務實現"""
 
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from agents.services.registry.models import (
-    AgentRegistryInfo,
-    AgentRegistrationRequest,
-    AgentStatus,
-    AgentPermissionConfig,
-    AgentMetadata,
-)
-from agents.services.protocol.base import (
-    AgentServiceProtocol,
-    AgentServiceProtocolType,
-)
+from agents.services.protocol.base import AgentServiceProtocol, AgentServiceProtocolType
 from agents.services.protocol.factory import AgentServiceClientFactory
+from agents.services.registry.models import (
+    AgentMetadata,
+    AgentPermissionConfig,
+    AgentRegistrationRequest,
+    AgentRegistryInfo,
+    AgentStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +55,7 @@ class AgentRegistry:
         try:
             # 檢查 Agent ID 是否已存在
             if request.agent_id in self._agents:
-                self._logger.warning(
-                    f"Agent '{request.agent_id}' already exists, updating..."
-                )
+                self._logger.warning(f"Agent '{request.agent_id}' already exists, updating...")
                 # 更新現有 Agent
                 existing = self._agents[request.agent_id]
                 existing.status = AgentStatus.ONLINE
@@ -70,7 +65,8 @@ class AgentRegistry:
                 existing.endpoints = request.endpoints
                 if request.permissions:
                     existing.permissions = request.permissions
-                existing.last_updated = datetime.now()
+                # last_updated 是只讀屬性，通過更新 last_heartbeat 來間接更新
+                existing.last_heartbeat = datetime.now()  # type: ignore[assignment]  # 更新心跳時間以反映更新
 
                 # 如果是內部 Agent 且提供了新實例，更新實例
                 if request.endpoints.is_internal and instance:
@@ -85,9 +81,7 @@ class AgentRegistry:
             if not request.endpoints.is_internal:
                 if request.permissions:
                     # 延遲導入以避免循環導入
-                    from agents.services.auth.external_auth import (
-                        validate_external_agent_config,
-                    )
+                    from agents.services.auth.external_auth import validate_external_agent_config
                     from agents.services.auth.models import ExternalAuthConfig
 
                     auth_config = ExternalAuthConfig(
@@ -95,7 +89,7 @@ class AgentRegistry:
                         server_certificate=request.permissions.server_certificate,
                         ip_whitelist=request.permissions.ip_whitelist,
                         server_fingerprint=request.permissions.server_fingerprint,
-                    )
+                    )  # type: ignore[call-arg]  # 所有參數都有默認值
                     if not validate_external_agent_config(auth_config):
                         self._logger.error(
                             f"Invalid authentication config for external agent '{request.agent_id}'"
@@ -116,10 +110,12 @@ class AgentRegistry:
                 name=request.name,
                 status=AgentStatus.REGISTERING,  # 默認為註冊中狀態，等待管理單位核准
                 capabilities=request.capabilities,
-                metadata=request.metadata or AgentMetadata(),
+                metadata=request.metadata or AgentMetadata(),  # type: ignore[call-arg]
                 endpoints=request.endpoints,
-                permissions=request.permissions or AgentPermissionConfig(),
+                permissions=request.permissions or AgentPermissionConfig(),  # type: ignore[call-arg]
                 registered_at=datetime.now(),
+                last_heartbeat=None,  # 初始註冊時沒有心跳
+                load=0,  # 初始負載為 0
             )
 
             self._agents[request.agent_id] = agent_info
@@ -127,9 +123,7 @@ class AgentRegistry:
             # 如果是內部 Agent 且提供了實例，存儲實例
             if request.endpoints.is_internal and instance:
                 self._agent_instances[request.agent_id] = instance
-                self._logger.debug(
-                    f"Stored agent instance for internal agent '{request.agent_id}'"
-                )
+                self._logger.debug(f"Stored agent instance for internal agent '{request.agent_id}'")
 
             # 持久化存儲（如果有）
             if self._storage:
@@ -163,7 +157,8 @@ class AgentRegistry:
             if agent_id in self._agents:
                 # 標記為已作廢狀態而非刪除
                 self._agents[agent_id].status = AgentStatus.DEPRECATED
-                self._agents[agent_id].last_updated = datetime.now()
+                # last_updated 是只讀屬性，通過更新 last_heartbeat 來間接更新
+                self._agents[agent_id].last_heartbeat = datetime.now()  # type: ignore[assignment]  # 更新心跳時間以反映更新
 
                 # 清理實例存儲（如果存在）
                 if agent_id in self._agent_instances:
@@ -184,9 +179,7 @@ class AgentRegistry:
                                 else:
                                     instance.close()
                     except Exception as e:
-                        self._logger.warning(
-                            f"Failed to close agent instance '{agent_id}': {e}"
-                        )
+                        self._logger.warning(f"Failed to close agent instance '{agent_id}': {e}")
 
                     # 從實例字典中刪除
                     del self._agent_instances[agent_id]
@@ -295,9 +288,7 @@ class AgentRegistry:
         )
 
         if not endpoint:
-            self._logger.error(
-                f"Agent {agent_id} endpoint not configured for protocol {protocol}"
-            )
+            self._logger.error(f"Agent {agent_id} endpoint not configured for protocol {protocol}")
             return None
 
         # 從權限配置獲取認證信息
@@ -372,7 +363,8 @@ class AgentRegistry:
         agent = self._agents.get(agent_id)
         if agent:
             agent.status = status
-            agent.last_updated = datetime.now()
+            # last_updated 是只讀屬性，通過更新 last_heartbeat 來間接更新
+            agent.last_heartbeat = datetime.now()  # type: ignore[assignment]  # 更新心跳時間以反映更新
 
             if self._storage:
                 try:

@@ -52,9 +52,7 @@ class BaseStorageAdapter(ABC):
 class RedisAdapter(BaseStorageAdapter):
     """Redis 存儲適配器（用於短期記憶）"""
 
-    def __init__(
-        self, redis_client: Any, ttl: int = 3600, key_prefix: str = "aam:memory:"
-    ):
+    def __init__(self, redis_client: Any, ttl: int = 3600, key_prefix: str = "aam:memory:"):
         """
         初始化 Redis 適配器
 
@@ -144,9 +142,7 @@ class ChromaDBAdapter(BaseStorageAdapter):
     def _get_collection(self) -> Any:
         """獲取或創建集合"""
         try:
-            return self.chromadb_client.get_or_create_collection(
-                name=self.collection_name
-            )
+            return self.chromadb_client.get_or_create_collection(name=self.collection_name)
         except Exception as e:
             self.logger.error("Failed to get collection", error=str(e))
             raise
@@ -162,9 +158,7 @@ class ChromaDBAdapter(BaseStorageAdapter):
 
             # ChromaDB metadata 不支援巢狀 dict/list：將 metadata 轉為可存儲格式
             raw_user_metadata = (
-                metadata.pop("metadata", {})
-                if isinstance(metadata.get("metadata"), dict)
-                else {}
+                metadata.pop("metadata", {}) if isinstance(metadata.get("metadata"), dict) else {}
             )
             metadata["metadata_json"] = json.dumps(
                 raw_user_metadata, ensure_ascii=False, default=str
@@ -208,11 +202,7 @@ class ChromaDBAdapter(BaseStorageAdapter):
             except Exception:  # noqa: BLE001
                 user_metadata = {}
             for k in ("user_id", "session_id", "task_id"):
-                if (
-                    k in metadata
-                    and k not in user_metadata
-                    and metadata.get(k) is not None
-                ):
+                if k in metadata and k not in user_metadata and metadata.get(k) is not None:
                     user_metadata[k] = metadata.get(k)
 
             cleaned_metadata = {
@@ -240,9 +230,7 @@ class ChromaDBAdapter(BaseStorageAdapter):
             metadata.pop("content", None)
 
             raw_user_metadata = (
-                metadata.pop("metadata", {})
-                if isinstance(metadata.get("metadata"), dict)
-                else {}
+                metadata.pop("metadata", {}) if isinstance(metadata.get("metadata"), dict) else {}
             )
             metadata["metadata_json"] = json.dumps(
                 raw_user_metadata, ensure_ascii=False, default=str
@@ -297,13 +285,9 @@ class ChromaDBAdapter(BaseStorageAdapter):
             memories: List[Memory] = []
             if results["ids"] and len(results["ids"]) > 0:
                 for i, memory_id in enumerate(results["ids"][0]):
-                    metadata = (
-                        results["metadatas"][0][i] if results["metadatas"] else {}
-                    )
+                    metadata = results["metadatas"][0][i] if results["metadatas"] else {}
                     content = results["documents"][0][i] if results["documents"] else ""
-                    distance = (
-                        results["distances"][0][i] if results["distances"] else 1.0
-                    )
+                    distance = results["distances"][0][i] if results["distances"] else 1.0
 
                     user_metadata: dict = {}
                     try:
@@ -313,18 +297,13 @@ class ChromaDBAdapter(BaseStorageAdapter):
                     except Exception:  # noqa: BLE001
                         user_metadata = {}
                     for k in ("user_id", "session_id", "task_id"):
-                        if (
-                            k in metadata
-                            and k not in user_metadata
-                            and metadata.get(k) is not None
-                        ):
+                        if k in metadata and k not in user_metadata and metadata.get(k) is not None:
                             user_metadata[k] = metadata.get(k)
 
                     cleaned_metadata = {
                         k: v
                         for k, v in metadata.items()
-                        if k
-                        not in {"metadata_json", "user_id", "session_id", "task_id"}
+                        if k not in {"metadata_json", "user_id", "session_id", "task_id"}
                     }
                     memory_dict = {
                         "memory_id": memory_id,

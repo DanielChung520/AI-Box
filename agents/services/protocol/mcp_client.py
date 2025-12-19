@@ -5,14 +5,11 @@
 
 """MCP Agent Service Client - 通過 MCP Protocol 調用 Agent 服務"""
 
-import logging
 import hashlib
 import hmac
 import json
+import logging
 from typing import Any, Dict, Optional
-
-from mcp.client.client import MCPClient
-from mcp.client.connection.manager import MCPConnectionManager
 
 from agents.services.protocol.base import (
     AgentServiceProtocol,
@@ -20,6 +17,8 @@ from agents.services.protocol.base import (
     AgentServiceResponse,
     AgentServiceStatus,
 )
+from mcp.client.client import MCPClient
+from mcp.client.connection.manager import MCPConnectionManager
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +61,13 @@ class MCPAgentServiceClient(AgentServiceProtocol):
     async def _ensure_connected(self):
         """確保已連接到 MCP Server"""
         if self._client is None:
-            self._connection_manager = MCPConnectionManager()
-            await self._connection_manager.connect(self.server_url)
+            # MCPConnectionManager 需要 endpoints 列表
+            self._connection_manager = MCPConnectionManager(endpoints=[self.server_url])
+            await self._connection_manager.initialize()  # 使用 initialize 而不是 connect
+            # MCPClient 需要 endpoint 參數，而不是 connection_manager
             self._client = MCPClient(
-                connection_manager=self._connection_manager,
-                server_name=self.server_name,
+                endpoint=self.server_url,  # 使用 endpoint 參數
+                client_name=self.server_name,
             )
             await self._client.initialize()
 
@@ -77,9 +78,7 @@ class MCPAgentServiceClient(AgentServiceProtocol):
             raise RuntimeError("Failed to connect to MCP server")
         return self._client
 
-    def _generate_request_signature(
-        self, request_body: Dict[str, Any]
-    ) -> Optional[str]:
+    def _generate_request_signature(self, request_body: Dict[str, Any]) -> Optional[str]:
         """
         生成請求簽名（HMAC-SHA256）
 
@@ -94,9 +93,7 @@ class MCPAgentServiceClient(AgentServiceProtocol):
 
         try:
             # 將請求體轉換為字符串（按鍵排序以確保一致性）
-            request_str = json.dumps(
-                request_body, sort_keys=True, separators=(",", ":")
-            )
+            request_str = json.dumps(request_body, sort_keys=True, separators=(",", ":"))
 
             # 計算 HMAC-SHA256 簽名
             signature = hmac.new(

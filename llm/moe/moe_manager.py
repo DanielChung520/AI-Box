@@ -11,23 +11,24 @@ import time
 from typing import Any, Dict, List, Optional
 
 import structlog
+
 from agents.task_analyzer.models import LLMProvider, TaskClassificationResult
 
-from ..clients.factory import LLMClientFactory
 from ..clients.base import BaseLLMClient
-from ..routing.dynamic import DynamicRouter
-from ..routing.evaluator import RoutingEvaluator
-from ..load_balancer import MultiLLMLoadBalancer
-from ..failover import LLMFailoverManager
+from ..clients.factory import LLMClientFactory
 from ..config import (
-    get_load_balancer_strategy,
-    get_load_balancer_weights,
-    get_load_balancer_cooldown,
-    get_load_balancer_providers,
+    get_health_check_failure_threshold,
     get_health_check_interval,
     get_health_check_timeout,
-    get_health_check_failure_threshold,
+    get_load_balancer_cooldown,
+    get_load_balancer_providers,
+    get_load_balancer_strategy,
+    get_load_balancer_weights,
 )
+from ..failover import LLMFailoverManager
+from ..load_balancer import MultiLLMLoadBalancer
+from ..routing.dynamic import DynamicRouter
+from ..routing.evaluator import RoutingEvaluator
 
 logger = structlog.get_logger(__name__)
 
@@ -110,9 +111,7 @@ class LLMMoEManager:
         # 客戶端緩存
         self._client_cache: Dict[LLMProvider, BaseLLMClient] = {}
 
-    def get_client(
-        self, provider: LLMProvider, *, api_key: Optional[str] = None
-    ) -> BaseLLMClient:
+    def get_client(self, provider: LLMProvider, *, api_key: Optional[str] = None) -> BaseLLMClient:
         """
         獲取 LLM 客戶端實例。
 
@@ -129,9 +128,7 @@ class LLMMoEManager:
             )
 
         if provider not in self._client_cache:
-            self._client_cache[provider] = LLMClientFactory.create_client(
-                provider, use_cache=True
-            )
+            self._client_cache[provider] = LLMClientFactory.create_client(provider, use_cache=True)
         return self._client_cache[provider]
 
     async def generate(
@@ -169,21 +166,15 @@ class LLMMoEManager:
             # 優先使用負載均衡器選擇提供商（如果啟用）
             if self.load_balancer is not None:
                 allowed_values = (
-                    context.get("allowed_providers")
-                    if isinstance(context, dict)
-                    else None
+                    context.get("allowed_providers") if isinstance(context, dict) else None
                 )
                 if isinstance(allowed_values, list) and allowed_values:
                     allowed_set = {str(x).strip().lower() for x in allowed_values}
                     allowed = [
-                        p
-                        for p in self.load_balancer.get_providers()
-                        if p.value in allowed_set
+                        p for p in self.load_balancer.get_providers() if p.value in allowed_set
                     ]
                     provider = self.load_balancer.select_provider_filtered(allowed)
-                    strategy_name = (
-                        f"load_balancer_{self.load_balancer.strategy}_policy"
-                    )
+                    strategy_name = f"load_balancer_{self.load_balancer.strategy}_policy"
                 else:
                     provider = self.load_balancer.select_provider()
                     strategy_name = f"load_balancer_{self.load_balancer.strategy}"
@@ -196,9 +187,7 @@ class LLMMoEManager:
                 strategy_name = routing_result.metadata.get("strategy", "unknown")
 
                 allowed_values = (
-                    context.get("allowed_providers")
-                    if isinstance(context, dict)
-                    else None
+                    context.get("allowed_providers") if isinstance(context, dict) else None
                 )
                 if isinstance(allowed_values, list) and allowed_values:
                     allowed_set = {str(x).strip().lower() for x in allowed_values}
@@ -316,21 +305,15 @@ class LLMMoEManager:
             # 優先使用負載均衡器選擇提供商（如果啟用）
             if self.load_balancer is not None:
                 allowed_values = (
-                    context.get("allowed_providers")
-                    if isinstance(context, dict)
-                    else None
+                    context.get("allowed_providers") if isinstance(context, dict) else None
                 )
                 if isinstance(allowed_values, list) and allowed_values:
                     allowed_set = {str(x).strip().lower() for x in allowed_values}
                     allowed = [
-                        p
-                        for p in self.load_balancer.get_providers()
-                        if p.value in allowed_set
+                        p for p in self.load_balancer.get_providers() if p.value in allowed_set
                     ]
                     provider = self.load_balancer.select_provider_filtered(allowed)
-                    strategy_name = (
-                        f"load_balancer_{self.load_balancer.strategy}_policy"
-                    )
+                    strategy_name = f"load_balancer_{self.load_balancer.strategy}_policy"
                 else:
                     provider = self.load_balancer.select_provider()
                     strategy_name = f"load_balancer_{self.load_balancer.strategy}"
@@ -345,9 +328,7 @@ class LLMMoEManager:
                 strategy_name = routing_result.metadata.get("strategy", "unknown")
 
                 allowed_values = (
-                    context.get("allowed_providers")
-                    if isinstance(context, dict)
-                    else None
+                    context.get("allowed_providers") if isinstance(context, dict) else None
                 )
                 if isinstance(allowed_values, list) and allowed_values:
                     allowed_set = {str(x).strip().lower() for x in allowed_values}
@@ -451,6 +432,7 @@ class LLMMoEManager:
         *,
         provider: Optional[LLMProvider] = None,
         model: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> List[float]:
         """
@@ -460,6 +442,7 @@ class LLMMoEManager:
             text: 輸入文本
             provider: 指定的 LLM 提供商（可選，默認使用 ChatGPT）
             model: 嵌入模型名稱（可選）
+            context: 上下文信息（可選，包含 API keys 等）
             **kwargs: 其他參數
 
         Returns:
@@ -496,13 +479,9 @@ class LLMMoEManager:
                                 fallback_api_key = keys.get(
                                     getattr(fallback, "value", str(fallback))
                                 )
-                        fallback_client = self.get_client(
-                            fallback, api_key=fallback_api_key
-                        )
+                        fallback_client = self.get_client(fallback, api_key=fallback_api_key)
                         if fallback_client.is_available():
-                            return await fallback_client.embeddings(
-                                text, model=model, **kwargs
-                            )
+                            return await fallback_client.embeddings(text, model=model, **kwargs)
                     except Exception:
                         continue
 
@@ -552,9 +531,7 @@ class LLMMoEManager:
 
         # 如果啟用了故障轉移管理器，優先選擇健康的提供商
         if self.failover_manager is not None:
-            healthy_providers = self.failover_manager.get_healthy_providers(
-                fallback_providers
-            )
+            healthy_providers = self.failover_manager.get_healthy_providers(fallback_providers)
             if healthy_providers:
                 # 優先使用健康的提供商
                 fallback_providers = healthy_providers + [
@@ -566,16 +543,12 @@ class LLMMoEManager:
         # 嘗試備用提供商
         for fallback in fallback_providers:
             try:
-                logger.info(
-                    f"Failing over from {failed_provider.value} to {fallback.value}"
-                )
+                logger.info(f"Failing over from {failed_provider.value} to {fallback.value}")
                 fallback_api_key = None
                 if isinstance(context, dict):
                     keys = context.get("llm_api_keys")
                     if isinstance(keys, dict):
-                        fallback_api_key = keys.get(
-                            getattr(fallback, "value", str(fallback))
-                        )
+                        fallback_api_key = keys.get(getattr(fallback, "value", str(fallback)))
                 client = self.get_client(fallback, api_key=fallback_api_key)
 
                 if not client.is_available():
@@ -599,8 +572,7 @@ class LLMMoEManager:
                 )
 
                 logger.info(
-                    f"Successfully failed over from {failed_provider.value} "
-                    f"to {fallback.value}"
+                    f"Successfully failed over from {failed_provider.value} " f"to {fallback.value}"
                 )
 
                 # 標記負載均衡器成功（如果啟用）
@@ -623,9 +595,7 @@ class LLMMoEManager:
                 continue
 
         # 所有提供商都失敗
-        error_msg = (
-            f"All LLM providers failed. " f"Original provider: {failed_provider.value}"
-        )
+        error_msg = f"All LLM providers failed. " f"Original provider: {failed_provider.value}"
         if last_exception:
             error_msg += f". Last error: {last_exception}"
         raise Exception(error_msg)
@@ -675,9 +645,7 @@ class LLMMoEManager:
 
         # 如果啟用了故障轉移管理器，優先選擇健康的提供商
         if self.failover_manager is not None:
-            healthy_providers = self.failover_manager.get_healthy_providers(
-                fallback_providers
-            )
+            healthy_providers = self.failover_manager.get_healthy_providers(fallback_providers)
             if healthy_providers:
                 # 優先使用健康的提供商
                 fallback_providers = healthy_providers + [
@@ -689,16 +657,12 @@ class LLMMoEManager:
         # 嘗試備用提供商
         for fallback in fallback_providers:
             try:
-                logger.info(
-                    f"Failing over from {failed_provider.value} to {fallback.value}"
-                )
+                logger.info(f"Failing over from {failed_provider.value} to {fallback.value}")
                 fallback_api_key = None
                 if isinstance(context, dict):
                     keys = context.get("llm_api_keys")
                     if isinstance(keys, dict):
-                        fallback_api_key = keys.get(
-                            getattr(fallback, "value", str(fallback))
-                        )
+                        fallback_api_key = keys.get(getattr(fallback, "value", str(fallback)))
                 client = self.get_client(fallback, api_key=fallback_api_key)
 
                 if not client.is_available():
@@ -724,8 +688,7 @@ class LLMMoEManager:
                 latency = time.time() - start_time
 
                 logger.info(
-                    f"Successfully failed over from {failed_provider.value} "
-                    f"to {fallback.value}"
+                    f"Successfully failed over from {failed_provider.value} " f"to {fallback.value}"
                 )
 
                 # 標記負載均衡器成功（如果啟用）
@@ -738,9 +701,7 @@ class LLMMoEManager:
                         "provider": fallback.value,
                         "model": model or result.get("model"),
                         "strategy": f"failover({failed_strategy or 'unknown'})",
-                        "latency_ms": (
-                            (latency * 1000.0) if latency is not None else None
-                        ),
+                        "latency_ms": ((latency * 1000.0) if latency is not None else None),
                         "failover_used": True,
                         "failed_provider": failed_provider.value,
                     }
@@ -761,9 +722,7 @@ class LLMMoEManager:
                 continue
 
         # 所有提供商都失敗
-        error_msg = (
-            f"All LLM providers failed. " f"Original provider: {failed_provider.value}"
-        )
+        error_msg = f"All LLM providers failed. " f"Original provider: {failed_provider.value}"
         if last_exception:
             error_msg += f". Last error: {last_exception}"
         raise Exception(error_msg)
@@ -790,8 +749,6 @@ class LLMMoEManager:
 
         # 添加健康檢查狀態
         if self.failover_manager is not None:
-            metrics["health_status"] = (
-                self.failover_manager.get_provider_health_status()
-            )
+            metrics["health_status"] = self.failover_manager.get_provider_health_status()
 
         return metrics

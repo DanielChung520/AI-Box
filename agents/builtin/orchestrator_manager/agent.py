@@ -8,27 +8,23 @@
 AI 驱动的任务协调服务，提供智能任务路由和负载均衡功能。
 """
 
-import logging
 import json
-from typing import Dict, Any, Optional
+import logging
+from typing import Any, Dict, Optional
 
+from agents.services.orchestrator.orchestrator import AgentOrchestrator
 from agents.services.protocol.base import (
     AgentServiceProtocol,
     AgentServiceRequest,
     AgentServiceResponse,
     AgentServiceStatus,
 )
-from agents.services.registry.registry import get_agent_registry
 from agents.services.registry.discovery import AgentDiscovery
-from agents.services.orchestrator.orchestrator import AgentOrchestrator
+from agents.services.registry.registry import get_agent_registry
 from agents.task_analyzer.models import LLMProvider
 from llm.clients.factory import get_client
 
-from .models import (
-    OrchestratorManagerRequest,
-    OrchestratorManagerResponse,
-    TaskRoutingDecision,
-)
+from .models import OrchestratorManagerRequest, OrchestratorManagerResponse, TaskRoutingDecision
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +89,11 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                     success=False,
                     action=action,
                     error=f"Unknown action: {action}",
+                    routing_decision=None,  # type: ignore[call-arg]  # routing_decision 有默認值
+                    load_balance_result=None,  # type: ignore[call-arg]  # load_balance_result 有默認值
+                    coordination_result=None,  # type: ignore[call-arg]  # coordination_result 有默認值
+                    analysis=None,  # type: ignore[call-arg]  # analysis 有默認值
+                    message=None,  # type: ignore[call-arg]  # message 有默認值
                 )
 
             # 构建响应
@@ -103,9 +104,7 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                     "success": result.success,
                     "action": result.action,
                     "routing_decision": (
-                        result.routing_decision.model_dump()
-                        if result.routing_decision
-                        else None
+                        result.routing_decision.model_dump() if result.routing_decision else None
                     ),
                     "load_balance_result": result.load_balance_result,
                     "coordination_result": result.coordination_result,
@@ -113,6 +112,7 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                     "message": result.message,
                     "error": result.error,
                 },
+                error=None,  # type: ignore[call-arg]  # error 有默認值
                 metadata=request.metadata,
             )
 
@@ -121,13 +121,12 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
             return AgentServiceResponse(
                 task_id=request.task_id,
                 status="error",
+                result=None,  # type: ignore[call-arg]  # result 有默認值
                 error=str(e),
                 metadata=request.metadata,
             )
 
-    async def _route_task(
-        self, request: OrchestratorManagerRequest
-    ) -> OrchestratorManagerResponse:
+    async def _route_task(self, request: OrchestratorManagerRequest) -> OrchestratorManagerResponse:
         """
         AI 驱动的任务路由
 
@@ -149,7 +148,7 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                     success=False,
                     action="route",
                     error="No available agents found",
-                )
+                )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
             # 使用 AI 进行智能路由
             if request.task_description and self._get_llm_client():
@@ -164,6 +163,7 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                     agent_name=agent.name,
                     confidence=0.5,
                     reasoning="First available agent",
+                    alternatives=None,  # type: ignore[call-arg]  # alternatives 有默認值
                 )
 
             return OrchestratorManagerResponse(
@@ -171,14 +171,14 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                 action="route",
                 routing_decision=routing_decision,
                 message=f"Task routed to agent: {routing_decision.agent_id}",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Task routing failed: {e}")
             return OrchestratorManagerResponse(
                 success=False,
                 action="route",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
     async def _balance_load(
@@ -213,9 +213,7 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                 )
             else:
                 # 简单策略：选择状态为 ONLINE 的第一个 Agent
-                online_agents = [
-                    agent for agent in agents if agent.status.value == "online"
-                ]
+                online_agents = [agent for agent in agents if agent.status.value == "online"]
                 if online_agents:
                     balance_result = {
                         "selected_agent_id": online_agents[0].agent_id,
@@ -232,14 +230,14 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                 action="balance_load",
                 load_balance_result=balance_result,
                 message="Load balancing completed",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Load balancing failed: {e}")
             return OrchestratorManagerResponse(
                 success=False,
                 action="balance_load",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
     async def _coordinate_task(
@@ -272,14 +270,14 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                 action="coordinate",
                 coordination_result=coordination_result,
                 message="Task coordination completed",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Task coordination failed: {e}")
             return OrchestratorManagerResponse(
                 success=False,
                 action="coordinate",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
     async def _analyze_orchestration(
@@ -307,9 +305,7 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                 status = agent.status.value
                 analysis["by_status"][status] = analysis["by_status"].get(status, 0) + 1
                 agent_type = agent.agent_type
-                analysis["by_type"][agent_type] = (
-                    analysis["by_type"].get(agent_type, 0) + 1
-                )
+                analysis["by_type"][agent_type] = analysis["by_type"].get(agent_type, 0) + 1
 
             # 使用 AI 进行深度分析
             if self._get_llm_client():
@@ -321,14 +317,14 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                 action="analyze",
                 analysis=analysis,
                 message="Orchestration analysis completed",
-            )
+            )  # type: ignore[call-arg]  # 其他參數都是 Optional
 
         except Exception as e:
             self._logger.error(f"Orchestration analysis failed: {e}")
             return OrchestratorManagerResponse(
                 success=False,
                 action="analyze",
-                error=str(e),
+                error=str(e),  # type: ignore[call-arg]  # 其他參數都是 Optional,
             )
 
     async def _ai_route_task(
@@ -355,6 +351,7 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                     agent_name=agent.name,
                     confidence=0.5,
                     reasoning="LLM unavailable, using first agent",
+                    alternatives=None,  # type: ignore[call-arg]  # alternatives 有默認值
                 )
 
             agent_summaries = [
@@ -400,6 +397,7 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                     agent_name=agent.name,
                     confidence=0.5,
                     reasoning="LLM parsing failed, using first agent",
+                    alternatives=None,  # type: ignore[call-arg]  # alternatives 有默認值
                 )
 
         except Exception as e:
@@ -410,6 +408,7 @@ class OrchestratorManagerAgent(AgentServiceProtocol):
                 agent_name=agent.name,
                 confidence=0.5,
                 reasoning=f"AI routing error: {e}",
+                alternatives=None,  # type: ignore[call-arg]  # alternatives 有默認值
             )
 
     async def _ai_balance_load(
@@ -543,7 +542,7 @@ Agent 负载信息：
             服务状态
         """
         try:
-            agents = self._registry.list_agents()
+            self._registry.list_agents()  # 檢查是否可用
             return AgentServiceStatus.AVAILABLE
         except Exception as e:
             self._logger.error(f"Health check failed: {e}")

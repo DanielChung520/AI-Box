@@ -6,11 +6,11 @@
 """Core 配置適配器 - 重新導出 system.infra.config.config 的模組"""
 
 from system.infra.config.config import (
-    load_project_config,
-    get_config_section,
-    PROJECT_ROOT,
     DEFAULT_CONFIG_PATH,
     FALLBACK_CONFIG_PATH,
+    PROJECT_ROOT,
+    get_config_section,
+    load_project_config,
 )
 
 __all__ = [

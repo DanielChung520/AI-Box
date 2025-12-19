@@ -10,6 +10,7 @@
 ## 0. 目的與範圍
 
 ### 0.1 目的
+
 從前端「輸入框」開始，完成一條可運行的 GenAI 產品鏈路：
 
 - **模型調用**：支援 **Auto（MoE）** 與 **我的收藏模型**（先期必做）
@@ -17,6 +18,7 @@
 - **代理調用**：Auto 或指定 Agent（**放到下一迭代**，本計劃先預留接口）
 
 ### 0.2 依據文件（本計劃基線）
+
 - `docs/architecture/genai-pipeline-overview.md`
 - `docs/architecture/llm-routing-architecture.md`
 - `docs/文件上傳向量圖譜/文件操作.md`（觀測/狀態/任務隊列一致性）
@@ -32,20 +34,24 @@
 ## 1. 現況盤點（關鍵差距）
 
 ### 1.1 MoE 已存在但未進入「主要對話入口」
+
 - `llm/moe/moe_manager.py` 提供 `chat()` / `generate()`，**Auto 需依賴 task_classification**。
 - `api/routers/llm.py` 目前 `/llm/chat` 走 **OllamaClient**，MoE 主要用於健康檢查與 stats。
 
 **差距**：前端「輸入框」的核心聊天請求目前不會走 MoE，因此無法實現 Auto。
 
 ### 1.2 收藏模型（User Preference）尚未定義資料模型與 API
+
 - 前端需要「Auto」+「收藏模型」選單。
 - 後端需要可查詢/更新收藏模型（至少 user-level）。
 
 ### 1.3 上下文與記憶：已有基礎模組，但需要對齊「產品入口」
+
 - Context：`genai/workflows/context/*` 已具備 recorder/window/persistence
 - AAM：`agents/infra/memory/aam/*`、`genai/workflows/rag/*` 已存在
 
 **差距**：尚未把「前端輸入框的對話」系統化接上：
+
 - Session ID / Task ID 的規範
 - 記憶檢索→注入 prompt 的標準接口
 - 觀測性（記憶命中/路由決策）
@@ -53,11 +59,13 @@
 ### 1.4 你提出的「前端可選模型 / Auto + 參數化策略」：**已部分考慮，但本迭代尚未完全落地**
 
 **已具備（現況）**
+
 - 前端已存在模型下拉：`ai-bot/src/components/ChatInput.tsx` 有 `Auto` 與多模型列表（含 Ollama/ChatGPT/Gemini/Qwen/Grok）。
 - 後端已具備 MoE 統一入口：`llm/moe/moe_manager.py` 支援 `chat()/generate()`，可接 `task_classification` 做 Auto routing。
 - 專案已可透過 JSON 設定檔配置（未來可擴展為你說的「系統參數 json」）：`config/config.json`（由 `system/infra/config/config.py` 讀取）。
 
 **尚未落地（本迭代缺口）**
+
 - 前端選到的 `modelId` 目前 **沒有被寫回 task 的 executionConfig**，也 **沒有在送出訊息時傳給後端**（`ai-bot/src/components/ChatArea.tsx` 的 `onMessageSend` 目前仍是 stub）。
 - 後端尚未提供「產品級 Chat API」來接收 `model_selector`（Auto/指定/收藏）並串進 MoE + Context/Memory。
 
@@ -66,11 +74,13 @@
 ### 1.5 你提出的「Agent Orchestration 依任務分析決定不同模型 + 指揮不同任務型 Agent」：**已納入方向，但本迭代不做（下一迭代）**
 
 **已具備（現況）**
+
 - 任務分析可產出：工作流類型與 LLM 路由建議（provider/model）：`agents/task_analyzer/analyzer.py` + `agents/task_analyzer/llm_router.py`。
 - 代理平台具備：Agent Registry / Orchestrator / MCP 調用骨架：`agents/services/orchestrator/orchestrator.py`、`agents/services/registry/task_executor.py`。
 - Hybrid 工作流可根據 context 做模式切換（但不含 per-agent model policy）：`agents/workflows/hybrid_orchestrator.py`。
 
 **尚未落地（本迭代缺口）**
+
 - 尚未建立「任務型 Agent（Security/Status/Report/WebCrawler…）」的標準介面與能力清單，也尚未做到 **每個子任務/每個 Agent 綁定不同模型策略**（例如 Security 用強模型、爬蟲用便宜模型、報表用長上下文模型）。
 
 > **標註**：此項目對應 **G7（下一迭代）**，本迭代先把 MoE/Context/Memory 的產品入口打通，避免同時引入代理編排複雜度。
@@ -80,6 +90,7 @@
 ## 2. 里程碑與交付物
 
 ### 2.1 MVP 里程碑（建議 2 週節奏，可依人力調整）
+
 - **M0（盤點對齊）**：接口/資料結構/追蹤點對齊完成
 - **M1（模型入口）**：前端輸入框 → 後端 Chat API（支援 Auto + 收藏）可跑通
 - **M2（短期上下文）**：Session 記錄/窗口截斷/可回放
@@ -87,6 +98,7 @@
 - **M4（可觀測/可評測）**：路由、成本、延遲、命中率指標可追蹤
 
 ### 2.2 交付物清單
+
 - **主入口 API**：一套面向前端輸入框的 Chat API（建議新增專用 router，如 `/api/v1/chat`）
 - **模型選擇**：Auto（MoE）與收藏模型（Preference）
 - **上下文**：Session/ContextWindow + 追蹤
@@ -138,6 +150,7 @@
 - **CrewAI**：保留為 **可選插件**（特定模板化協作流程再啟用），避免三套同時深度綁死
 
 此決策與現有代碼一致：
+
 - `agents/task_analyzer/workflow_selector.py` 已具備 `LANGCHAIN / AUTOGEN / CREWAI / HYBRID` 選擇
 - `agents/workflows/hybrid_orchestrator.py` 已實作 **AutoGen ↔ LangGraph** 狀態同步與切換
 
@@ -185,7 +198,6 @@
 - **一個 MoE 層**：所有引擎的 LLM 呼叫統一走 MoE（Auto/收藏都可）
 - **一套記憶策略**：ContextWindow + Memory retrieval 注入策略一致
 - **一套觀測字段**：routing_decision / memory_hit / token_cost / latency
-
 
 ## 6. 風險與對策（先期）
 

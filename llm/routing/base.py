@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from agents.task_analyzer.models import LLMProvider, TaskClassificationResult
@@ -166,9 +166,7 @@ class RoutingStrategyRegistry:
         logger.info(f"已註冊路由策略: {name}")
 
     @classmethod
-    def get(
-        cls, name: str, config: Optional[Dict[str, Any]] = None
-    ) -> BaseRoutingStrategy:
+    def get(cls, name: str, config: Optional[Dict[str, Any]] = None) -> BaseRoutingStrategy:
         """
         獲取路由策略實例。
 

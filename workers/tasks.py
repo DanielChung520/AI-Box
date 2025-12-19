@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import Optional
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -40,7 +41,7 @@ def process_file_chunking_and_vectorization_task(
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            result = loop.run_until_complete(
+            loop.run_until_complete(
                 process_file_chunking_and_vectorization(
                     file_id=file_id,
                     file_path=file_path,
@@ -85,7 +86,7 @@ def process_vectorization_only_task(
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            result = loop.run_until_complete(
+            loop.run_until_complete(
                 process_vectorization_only(
                     file_id=file_id,
                     file_path=file_path,
@@ -132,7 +133,7 @@ def process_kg_extraction_only_task(
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            result = loop.run_until_complete(
+            loop.run_until_complete(
                 process_kg_extraction_only(
                     file_id=file_id,
                     file_path=file_path,

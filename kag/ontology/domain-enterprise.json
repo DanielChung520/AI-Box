@@ -3,14 +3,14 @@
     "version": "1.0",
     "inherits_from": "5W1H_Base_Ontology_OWL",
     "description": "企業領域通用本體論，定義組織、財務與專案的核心概念。",
-  
+
     "entity_classes": [
       {"name": "Organization", "base_class": "Concept", "description": "所有類型的企業、公司、部門或法人實體。"},
       {"name": "Project", "base_class": "Event", "description": "一個具有起點和終點的業務項目。"},
       {"name": "Financial_Record", "base_class": "Document", "description": "財務報表、發票或預算文件。"},
       {"name": "Customer", "base_class": "Person", "description": "公司的服務對象或客戶。"}
     ],
-  
+
     "object_properties": [
       {
         "name": "is_part_of",

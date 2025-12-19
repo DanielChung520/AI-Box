@@ -6,22 +6,23 @@
 """文件分塊處理路由 - 提供異步分塊處理和進度查詢功能"""
 
 import os
-from typing import Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, status, BackgroundTasks
-from fastapi.responses import JSONResponse
-import structlog
 from enum import Enum
+from typing import Any, Dict, Optional
+
+import structlog
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
+from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
-from storage.file_storage import FileStorage, create_storage_from_config
 from services.api.processors.chunk_processor import (
     ChunkProcessor,
     create_chunk_processor_from_config,
 )
-from services.api.processors.parsers.txt_parser import TxtParser
+from services.api.processors.parsers.docx_parser import DocxParser
 from services.api.processors.parsers.md_parser import MdParser
 from services.api.processors.parsers.pdf_parser import PdfParser
-from services.api.processors.parsers.docx_parser import DocxParser
+from services.api.processors.parsers.txt_parser import TxtParser
+from storage.file_storage import FileStorage, create_storage_from_config
 from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
@@ -100,9 +101,7 @@ def get_parser(file_type: str):
         return TxtParser()
 
 
-async def process_file_chunking(
-    file_id: str, file_path: str, file_type: Optional[str] = None
-):
+async def process_file_chunking(file_id: str, file_path: str, file_type: Optional[str] = None):
     """
     異步處理文件分塊
 

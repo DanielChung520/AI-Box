@@ -61,6 +61,7 @@
 ### 測試腳本（已清除）
 
 以下測試腳本已根據要求清除：
+
 - ❌ `scripts/test_git_setup.sh` - 已清除
 - ❌ `scripts/test_docker.sh` - 已清除
 - ❌ `scripts/test_k8s.sh` - 已清除

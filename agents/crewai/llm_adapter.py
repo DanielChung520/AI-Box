@@ -12,15 +12,10 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import (
-    AIMessage,
-    BaseMessage,
-    HumanMessage,
-    SystemMessage,
-)
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
-from system.infra.config.config import get_config_section
 from llm.router import LLMNodeConfig, LLMNodeRouter
+from system.infra.config.config import get_config_section
 
 logger = logging.getLogger(__name__)
 
@@ -45,14 +40,8 @@ class OllamaLLMAdapter(BaseChatModel):
     ):
         """初始化 Ollama LLM 適配器。"""
         # 將必需字段傳入父類初始化
-        super().__init__(
-            model_name=model_name,
-            base_url=base_url,
-            timeout=timeout,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            **kwargs,
-        )
+        # BaseChatModel 不接受這些參數，但我們需要存儲它們
+        super().__init__(**kwargs)  # type: ignore[call-arg]  # BaseChatModel 不接受這些參數，我們通過屬性存儲
         self._router: Optional[LLMNodeRouter] = None
         self._base_url = self.base_url  # 使用父類設置的 base_url
         self._init_router()
@@ -181,9 +170,7 @@ class OllamaLLMAdapter(BaseChatModel):
             logger.error(f"Ollama request timed out: {exc}")
             raise
         except httpx.HTTPStatusError as exc:
-            logger.error(
-                f"Ollama returned HTTP {exc.response.status_code}: {exc.response.text}"
-            )
+            logger.error(f"Ollama returned HTTP {exc.response.status_code}: {exc.response.text}")
             raise
         except Exception as exc:
             if self._router:

@@ -8,25 +8,22 @@
 使用 AgentRegistry 管理 Agent，支持內部/外部 Agent 統一調度。
 """
 
-import uuid
 import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+import uuid
 from collections import deque
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from .models import (
-    AgentRegistryInfo,
-    AgentStatus,
-    TaskRequest,
-    TaskResult,
-    TaskStatus,
+from agents.services.protocol.base import AgentServiceRequest, AgentServiceResponse
+from agents.services.registry.discovery import AgentDiscovery
+
+# AgentStatus 已移至 agents.services.registry.models
+from agents.services.registry.models import (
+    AgentStatus,  # type: ignore[attr-defined]  # 從 registry.models 導入
 )
 from agents.services.registry.registry import get_agent_registry
-from agents.services.registry.discovery import AgentDiscovery
-from agents.services.protocol.base import (
-    AgentServiceRequest,
-    AgentServiceResponse,
-)
+
+from .models import AgentRegistryInfo, TaskRequest, TaskResult, TaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -149,9 +146,7 @@ class AgentOrchestrator:
     def _try_assign_tasks(self):
         """嘗試分配任務"""
         # 按優先級排序任務隊列
-        self._task_queue = deque(
-            sorted(self._task_queue, key=lambda x: x[0], reverse=True)
-        )
+        self._task_queue = deque(sorted(self._task_queue, key=lambda x: x[0], reverse=True))
 
         for priority, task_id in list(self._task_queue):
             task_request = self._tasks.get(task_id)
@@ -206,9 +201,7 @@ class AgentOrchestrator:
             return None
 
         # 優先選擇內部 Agent（性能更好）
-        internal_agents = [
-            agent for agent in available_agents if agent.endpoints.is_internal
-        ]
+        internal_agents = [agent for agent in available_agents if agent.endpoints.is_internal]
         if internal_agents:
             available_agents = internal_agents
 
@@ -259,9 +252,7 @@ class AgentOrchestrator:
             # 或者可以在這裡直接執行任務
             return True
         except Exception as e:
-            logger.error(
-                f"Failed to assign task '{task_id}' to agent '{agent_id}': {e}"
-            )
+            logger.error(f"Failed to assign task '{task_id}' to agent '{agent_id}': {e}")
             return False
 
     async def execute_task(
@@ -319,9 +310,7 @@ class AgentOrchestrator:
                 task_result.status = TaskStatus.RUNNING
 
             logger.info(f"Executing task {task_id} on agent {agent_id}")
-            service_response: AgentServiceResponse = await agent.execute(
-                service_request
-            )
+            service_response: AgentServiceResponse = await agent.execute(service_request)
 
             # 更新任務結果
             if task_result:
@@ -352,9 +341,7 @@ class AgentOrchestrator:
             # 更新負載計數
             self._agent_loads[agent_id] = max(0, self._agent_loads.get(agent_id, 0) - 1)
 
-            logger.info(
-                f"Task {task_id} completed with status: {service_response.status}"
-            )
+            logger.info(f"Task {task_id} completed with status: {service_response.status}")
             return task_result
 
         except Exception as e:

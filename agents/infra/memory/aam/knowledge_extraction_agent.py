@@ -11,10 +11,10 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
 from agents.infra.memory.aam.aam_core import AAMManager
-from genai.api.services.triple_extraction_service import TripleExtractionService
+from agents.infra.memory.aam.models import Memory, MemoryPriority, MemoryType
 from genai.api.models.triple_models import Triple
+from genai.api.services.triple_extraction_service import TripleExtractionService
 
 logger = structlog.get_logger(__name__)
 
@@ -35,9 +35,7 @@ class KnowledgeExtractionAgent:
             triple_extraction_service: 三元組提取服務（如果為 None 則自動創建）
         """
         self.aam_manager = aam_manager
-        self.triple_extraction_service = (
-            triple_extraction_service or TripleExtractionService()
-        )
+        self.triple_extraction_service = triple_extraction_service or TripleExtractionService()
         self.logger = logger.bind(component="knowledge_extraction_agent")
 
     async def extract_knowledge_from_memory(
@@ -61,9 +59,7 @@ class KnowledgeExtractionAgent:
                 return []
 
             # 提取三元組
-            triples = await self.triple_extraction_service.extract_triples(
-                memory.content
-            )
+            triples = await self.triple_extraction_service.extract_triples(memory.content)
 
             # 更新記憶元數據
             metadata = memory.metadata.copy()
@@ -130,9 +126,7 @@ class KnowledgeExtractionAgent:
             analysis["word_frequency"] = {}
             for word in words:
                 if len(word) > 3:  # 只統計長度大於3的詞
-                    analysis["word_frequency"][word] = (
-                        analysis["word_frequency"].get(word, 0) + 1
-                    )
+                    analysis["word_frequency"][word] = analysis["word_frequency"].get(word, 0) + 1
 
             return analysis
         except Exception as e:

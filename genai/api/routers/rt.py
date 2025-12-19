@@ -6,17 +6,13 @@
 """RT 關係類型分類路由 - 提供關係類型分類 API 端點"""
 
 from typing import Optional
+
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
+from genai.api.models.rt_models import RTBatchRequest, RTBatchResponse, RTRequest, RTResponse
 from genai.api.services.rt_service import RTService
-from genai.api.models.rt_models import (
-    RTRequest,
-    RTResponse,
-    RTBatchRequest,
-    RTBatchResponse,
-)
 
 router = APIRouter(prefix="/text-analysis", tags=["RT"])
 
@@ -83,9 +79,7 @@ async def classify_relation_types_batch(request: RTBatchRequest) -> JSONResponse
             }
             for r in request.relations
         ]
-        results = await service.classify_relation_types_batch(
-            requests_data, request.model_type
-        )
+        results = await service.classify_relation_types_batch(requests_data, request.model_type)
         model_used = request.model_type or service.model_type
 
         response_list = []

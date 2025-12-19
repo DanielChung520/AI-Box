@@ -22,9 +22,7 @@ DEFAULT_ENDPOINT = "http://localhost:8000/api/v1/llm/generate"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Benchmark /api/v1/llm/generate latency."
-    )
+    parser = argparse.ArgumentParser(description="Benchmark /api/v1/llm/generate latency.")
     parser.add_argument("--endpoint", default=DEFAULT_ENDPOINT, help="API 端點")
     parser.add_argument("--model", default=None, help="覆寫模型名稱")
     parser.add_argument("--prompt", default="ping", help="測試 prompt 內容")

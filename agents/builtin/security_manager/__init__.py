@@ -9,11 +9,7 @@
 """
 
 from .agent import SecurityManagerAgent
-from .models import (
-    SecurityManagerRequest,
-    SecurityManagerResponse,
-    RiskAssessmentResult,
-)
+from .models import RiskAssessmentResult, SecurityManagerRequest, SecurityManagerResponse
 
 __all__ = [
     "SecurityManagerAgent",

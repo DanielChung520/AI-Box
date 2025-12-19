@@ -71,10 +71,10 @@ class FileTreeSyncService:
         file_metadata_collection = self.client.db.collection("file_metadata")
         folder_collection = self.client.db.collection(FOLDER_COLLECTION_NAME)
 
-        files = list(
-            file_metadata_collection.find({"user_id": user_id, "task_id": task_id})
-        )
-        folders = list(folder_collection.find({"user_id": user_id, "task_id": task_id}))
+        files_cursor = file_metadata_collection.find({"user_id": user_id, "task_id": task_id})
+        files = list(files_cursor) if files_cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
+        folders_cursor = folder_collection.find({"user_id": user_id, "task_id": task_id})
+        folders = list(folders_cursor) if folders_cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
         return files, folders
 
     def build_file_tree(
@@ -191,8 +191,10 @@ class FileTreeSyncService:
 
         tree, folders_info = self.build_file_tree(user_id, task_id)
 
-        serialized_tree = json.dumps(tree, sort_keys=True, ensure_ascii=False)
-        tree_hash = hashlib.sha256(serialized_tree.encode("utf-8")).hexdigest()
+        # 注意：serialized_tree 和 tree_hash 目前未使用
+        # 可能用於未來版本比較或驗證
+        # serialized_tree = json.dumps(tree, sort_keys=True, ensure_ascii=False)
+        # tree_hash = hashlib.sha256(serialized_tree.encode("utf-8")).hexdigest()
 
         user_task_collection = self.client.db.collection("user_tasks")
         task_doc_key = f"{user_id}_{task_id}"
@@ -207,17 +209,13 @@ class FileTreeSyncService:
         from services.api.services.user_task_service import get_user_task_service
 
         user_task_service = get_user_task_service()
-        complete_file_tree = user_task_service._build_file_tree_for_task(
-            user_id, task_id
-        )
+        complete_file_tree = user_task_service._build_file_tree_for_task(user_id, task_id)
 
         # 重新計算哈希值（基於完整的文件樹）
         serialized_complete_tree = json.dumps(
             complete_file_tree, sort_keys=True, ensure_ascii=False
         )
-        complete_tree_hash = hashlib.sha256(
-            serialized_complete_tree.encode("utf-8")
-        ).hexdigest()
+        complete_tree_hash = hashlib.sha256(serialized_complete_tree.encode("utf-8")).hexdigest()
 
         updated_doc = task_doc or {}
         updated_doc.update(
@@ -241,7 +239,7 @@ class FileTreeSyncService:
                 user_id=user_id,
             )
         else:
-            user_task_collection.update(updated_doc)
+            user_task_collection.update(updated_doc)  # type: ignore[arg-type]  # update 接受 dict
 
         return {
             "task_id": task_id,
@@ -265,9 +263,7 @@ class FileTreeSyncService:
             "task_id": task_id,
             "user_id": user_id,
             "fileTreeVersion": task_doc.get("fileTreeVersion", 0) if task_doc else 0,
-            "fileTreeUpdatedAt": (
-                task_doc.get("fileTreeUpdatedAt") if task_doc else None
-            ),
+            "fileTreeUpdatedAt": (task_doc.get("fileTreeUpdatedAt") if task_doc else None),
             "fileTreeHash": task_doc.get("fileTreeHash") if task_doc else None,
         }
 

@@ -10,8 +10,8 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Optional
 
-import structlog
 import redis  # type: ignore[import-untyped]
+import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -120,9 +120,7 @@ def get_redis_client() -> redis.Redis:
                     from urllib.parse import urlparse
 
                     parsed = urlparse(redis_url)
-                    actual_host = parsed.hostname or os.getenv(
-                        "REDIS_HOST", "localhost"
-                    )
+                    actual_host = parsed.hostname or os.getenv("REDIS_HOST", "localhost")
                     actual_port = parsed.port or int(os.getenv("REDIS_PORT", "6379"))
                 except Exception:
                     # 如果解析失敗，使用環境變數或默認值
@@ -132,9 +130,7 @@ def get_redis_client() -> redis.Redis:
                 # 使用已定義的變數
                 actual_host = redis_host
                 actual_port = redis_port
-            logger.info(
-                "Redis connection established", host=actual_host, port=actual_port
-            )
+            logger.info("Redis connection established", host=actual_host, port=actual_port)
         except redis.ConnectionError as e:
             logger.error("Redis connection failed", error=str(e))
             raise RuntimeError(f"Failed to connect to Redis: {e}") from e

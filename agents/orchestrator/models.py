@@ -5,10 +5,11 @@
 
 """Agent Orchestrator 數據模型定義"""
 
-from enum import Enum
-from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class AgentStatus(str, Enum):
@@ -39,9 +40,7 @@ class AgentInfo(BaseModel):
     status: AgentStatus = Field(..., description="Agent 狀態")
     capabilities: List[str] = Field(default_factory=list, description="能力列表")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
-    registered_at: datetime = Field(
-        default_factory=datetime.now, description="註冊時間"
-    )
+    registered_at: datetime = Field(default_factory=datetime.now, description="註冊時間")
     last_heartbeat: Optional[datetime] = Field(None, description="最後心跳時間")
 
 

@@ -1,6 +1,7 @@
 # ArangoDB Web UI 訪問指南
 
 ## 功能說明
+
 如何訪問 ArangoDB Web UI 來管理數據庫和執行查詢
 創建日期：2025-12-12
 創建人：Daniel Chung
@@ -19,6 +20,7 @@ http://localhost:8529
 ### 配置說明
 
 從 `database/arangodb/settings.py` 可以看到默認配置：
+
 - **Host**: `localhost` (可通過環境變數 `ARANGODB_HOST` 修改)
 - **Port**: `8529` (可通過環境變數 `ARANGODB_PORT` 修改)
 - **Protocol**: `http` (可通過環境變數 `ARANGODB_PROTOCOL` 修改)
@@ -38,6 +40,7 @@ docker ps | grep arangodb
 ### 2. 打開瀏覽器
 
 在瀏覽器中訪問：
+
 ```
 http://localhost:8529
 ```
@@ -45,6 +48,7 @@ http://localhost:8529
 ### 3. 登錄
 
 如果 ArangoDB 設置了認證，需要輸入：
+
 - **Username**: 從環境變數 `ARANGODB_USERNAME` 或配置文件獲取
 - **Password**: 從環境變數 `ARANGODB_PASSWORD` 或配置文件獲取
 
@@ -53,6 +57,7 @@ http://localhost:8529
 ### 4. 使用 Web UI
 
 登錄後，你可以：
+
 - 查看數據庫列表
 - 查看集合（Collections）
 - 執行 AQL 查詢
@@ -73,6 +78,7 @@ http://localhost:8529
 3. **執行查詢**：
 
    **先查看歸檔任務**（可選）：
+
    ```aql
    FOR task IN user_tasks
        FILTER task.user_id == "daniel@test.com"
@@ -87,6 +93,7 @@ http://localhost:8529
    ```
 
    **批量恢復歸檔任務**：
+
    ```aql
    FOR task IN user_tasks
        FILTER task.user_id == "daniel@test.com"
@@ -123,14 +130,16 @@ cat scripts/restore_tasks.aql
 
 ## 常見問題
 
-### Q1: 無法訪問 http://localhost:8529
+### Q1: 無法訪問 <http://localhost:8529>
 
 **可能原因**：
+
 1. ArangoDB 服務未啟動
 2. 端口被其他程序占用
 3. 防火牆阻止訪問
 
 **解決方法**：
+
 ```bash
 # 檢查 ArangoDB 是否運行
 ps aux | grep arangod
@@ -145,18 +154,22 @@ lsof -i :8529
 ### Q2: 需要認證但不知道用戶名密碼
 
 **解決方法**：
+
 1. 查看環境變數：
+
    ```bash
    echo $ARANGODB_USERNAME
    echo $ARANGODB_PASSWORD
    ```
 
 2. 查看配置文件：
+
    ```bash
    cat config/config.json | grep -A 10 arangodb
    ```
 
 3. 查看 `.env` 文件：
+
    ```bash
    cat .env | grep ARANGODB
    ```
@@ -164,7 +177,9 @@ lsof -i :8529
 ### Q3: 忘記密碼
 
 **解決方法**：
+
 1. 如果是 Docker 部署，可以重置：
+
    ```bash
    # 停止容器
    docker stop <arangodb-container>
@@ -196,16 +211,19 @@ services:
 ### 在終端中打開瀏覽器
 
 **macOS**:
+
 ```bash
 open http://localhost:8529
 ```
 
 **Linux**:
+
 ```bash
 xdg-open http://localhost:8529
 ```
 
 **Windows**:
+
 ```bash
 start http://localhost:8529
 ```

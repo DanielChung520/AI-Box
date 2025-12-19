@@ -5,10 +5,11 @@
 
 """文件驗證工具 - 提供 MIME 類型、擴展名、大小和內容驗證"""
 
-import os
 import mimetypes
+import os
 from pathlib import Path
 from typing import List, Optional, Tuple
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -16,9 +17,7 @@ logger = structlog.get_logger(__name__)
 # 支持的文件格式映射
 ALLOWED_MIME_TYPES = {
     "application/pdf": [".pdf"],
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
-        ".docx"
-    ],
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
     "text/plain": [".txt"],
     "text/markdown": [".md"],
     "text/csv": [".csv"],
@@ -221,6 +220,4 @@ def create_validator_from_config(config: dict) -> FileValidator:
     allowed_extensions = config.get("allowed_extensions", ALLOWED_EXTENSIONS)
     max_file_size = config.get("max_file_size", 104857600)
 
-    return FileValidator(
-        allowed_extensions=allowed_extensions, max_file_size=max_file_size
-    )
+    return FileValidator(allowed_extensions=allowed_extensions, max_file_size=max_file_size)

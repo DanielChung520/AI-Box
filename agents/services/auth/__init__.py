@@ -8,29 +8,25 @@
 提供內部 Agent 和外部 Agent 的認證服務。
 """
 
+from agents.services.auth.external_auth import (
+    authenticate_external_agent,
+    check_ip_whitelist,
+    validate_external_agent_config,
+    verify_server_certificate,
+    verify_server_fingerprint,
+    verify_signature,
+)
 from agents.services.auth.internal_auth import (
     authenticate_internal_agent,
     validate_internal_agent_config,
 )
-from agents.services.auth.external_auth import (
-    authenticate_external_agent,
-    verify_server_certificate,
-    verify_signature,
-    check_ip_whitelist,
-    verify_server_fingerprint,
-    validate_external_agent_config,
-)
 from agents.services.auth.models import (
-    AuthenticationStatus,
     AuthenticationResult,
-    InternalAuthConfig,
+    AuthenticationStatus,
     ExternalAuthConfig,
+    InternalAuthConfig,
 )
-from agents.services.auth.secret_manager import (
-    SecretManager,
-    get_secret_manager,
-    SecretStatus,
-)
+from agents.services.auth.secret_manager import SecretManager, SecretStatus, get_secret_manager
 
 __all__ = [
     # 內部認證

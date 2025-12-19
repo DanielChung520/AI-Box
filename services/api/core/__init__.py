@@ -6,8 +6,8 @@
 """API 核心適配器 - 重新導出 api.core 的模組"""
 
 from api.core.response import APIResponse
-from api.core.version import get_version_info, API_PREFIX
-from api.core.settings import get_ollama_settings, OllamaSettings
+from api.core.settings import OllamaSettings, get_ollama_settings
+from api.core.version import API_PREFIX, get_version_info
 
 __all__ = [
     "APIResponse",

@@ -9,11 +9,7 @@ from __future__ import annotations
 
 from genai.workflows.context.history import ConversationHistory
 from genai.workflows.context.manager import ContextManager
-from genai.workflows.context.models import (
-    ContextConfig,
-    ContextMessage,
-    ContextSession,
-)
+from genai.workflows.context.models import ContextConfig, ContextMessage, ContextSession
 from genai.workflows.context.persistence import ContextPersistence
 from genai.workflows.context.recorder import ContextRecorder
 from genai.workflows.context.storage import (

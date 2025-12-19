@@ -5,8 +5,8 @@
 
 """定義標準 Agent 模板，覆蓋規劃/研究/執行/評審等角色。"""
 
-from typing import Dict, List, Optional
 from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 from agents.crewai.models import AgentRole
 

@@ -5,7 +5,8 @@
 
 """ChromaDB API 請求/響應模型定義"""
 
-from typing import List, Dict, Any, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -35,9 +36,7 @@ class DocumentAddRequest(BaseModel):
     metadatas: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = Field(
         None, description="元數據字典或字典列表"
     )
-    documents: Optional[Union[str, List[str]]] = Field(
-        None, description="文檔文本或文本列表"
-    )
+    documents: Optional[Union[str, List[str]]] = Field(None, description="文檔文本或文本列表")
     auto_embed: bool = Field(
         False, description="若未提供 embeddings，使用默認嵌入提供者（需 documents）"
     )
@@ -56,9 +55,7 @@ class DocumentUpdateRequest(BaseModel):
     metadatas: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = Field(
         None, description="元數據字典或字典列表"
     )
-    documents: Optional[Union[str, List[str]]] = Field(
-        None, description="文檔文本或文本列表"
-    )
+    documents: Optional[Union[str, List[str]]] = Field(None, description="文檔文本或文本列表")
 
 
 class QueryRequest(BaseModel):
@@ -72,9 +69,7 @@ class QueryRequest(BaseModel):
     )
     n_results: int = Field(10, ge=1, le=100, description="返回結果數量")
     where: Optional[Dict[str, Any]] = Field(None, description="元數據過濾條件")
-    where_document: Optional[Dict[str, Any]] = Field(
-        None, description="文檔內容過濾條件"
-    )
+    where_document: Optional[Dict[str, Any]] = Field(None, description="文檔內容過濾條件")
     include: Optional[List[str]] = Field(
         None,
         description="包含的字段列表 ['documents', 'metadatas', 'embeddings', 'distances']",

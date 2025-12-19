@@ -1,8 +1,8 @@
 # AI-Box 安全認證架構說明
 
-**代碼功能說明**: 系統安全認證架構文檔  
-**創建日期**: 2025-12-08  
-**創建人**: Daniel Chung  
+**代碼功能說明**: 系統安全認證架構文檔
+**創建日期**: 2025-12-08
+**創建人**: Daniel Chung
 **最後修改日期**: 2025-12-08
 
 ## 目錄
@@ -28,6 +28,7 @@ AI-Box 系統採用**分層認證架構**，確保各層級的安全性和職責
 - **數據庫層**: 使用環境變數中的憑證進行系統級連接
 
 這種設計確保：
+
 - ✅ 前端不接觸數據庫憑證
 - ✅ 用戶身份與系統憑證分離
 - ✅ 符合安全最佳實踐
@@ -99,7 +100,7 @@ AI-Box 系統採用**分層認證架構**，確保各層級的安全性和職責
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   // 1. 從 localStorage 獲取 JWT token
   const token = localStorage.getItem('access_token');
-  
+
   // 2. 在請求頭中添加 Authorization
   const fetchOptions: RequestInit = {
     ...options,
@@ -109,7 +110,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
       ...options.headers,
     },
   };
-  
+
   // 3. 發送請求
   const response = await fetch(url, fetchOptions);
   return response.json();
@@ -154,17 +155,17 @@ async def get_current_user(request: Request) -> User:
     token = await extract_token_from_request(request)
     #    - Authorization: Bearer <token>
     #    - X-API-Key: <api_key>
-    
+
     # 2. 驗證 token
     user = await authenticate_request(request)
-    
+
     # 3. 解析 JWT payload
     #    - sub / user_id: 用戶ID
     #    - username: 用戶名
     #    - email: 郵箱
     #    - roles: 角色列表
     #    - permissions: 權限列表
-    
+
     # 4. 返回 User 對象
     return user
 ```
@@ -178,12 +179,12 @@ async def extract_token_from_request(request: Request) -> Optional[str]:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         return auth_header[7:]  # 移除 "Bearer " 前綴
-    
+
     # 備選：檢查 X-API-Key header
     api_key = request.headers.get("X-API-Key")
     if api_key:
         return api_key
-    
+
     return None
 ```
 
@@ -195,7 +196,7 @@ async def verify_jwt_token(token: str) -> Optional[User]:
     # 1. 使用 JWT Service 驗證 token
     jwt_service = get_jwt_service()
     payload = jwt_service.verify_token(token, token_type="access")
-    
+
     # 2. 從 payload 構建 User 對象
     user_id = payload.get("sub") or payload.get("user_id")
     user = User(
@@ -206,7 +207,7 @@ async def verify_jwt_token(token: str) -> Optional[User]:
         permissions=payload.get("permissions", []),
         is_active=payload.get("is_active", True),
     )
-    
+
     return user
 ```
 
@@ -236,7 +237,7 @@ class ArangoDBClient:
             self.settings.credentials.password,  # "ARANGODB_PASSWORD"
             "ai_box_arangodb_password"  # 默認值
         )
-        
+
         # 連接 ArangoDB
         self.db = self.client.db(
             self.settings.database,
@@ -369,12 +370,13 @@ if settings.should_bypass_auth:
     user = await authenticate_request(request)
     if user:
         return user  # 使用解析到的用戶
-    
+
     # 2. 如果沒有 token，返回開發用戶
     return User.create_dev_user()  # user_id="dev_user"
 ```
 
 **特點**:
+
 - ✅ 允許從 JWT token 解析真實用戶信息（便於開發測試）
 - ✅ 如果沒有 token，返回默認開發用戶
 - ✅ 不強制要求認證（便於開發）
@@ -393,6 +395,7 @@ if not user:
 ```
 
 **特點**:
+
 - ✅ 強制要求認證
 - ✅ 必須提供有效的 JWT token 或 API Key
 - ✅ 未認證的請求返回 401 錯誤
@@ -435,6 +438,7 @@ AI-Box 系統採用**三層認證架構**：
 3. **數據庫層**: 環境變數憑證（系統連接）
 
 這種設計確保：
+
 - ✅ **安全性**: 各層級職責分離，憑證不洩露
 - ✅ **可維護性**: 清晰的認證流程，易於維護
 - ✅ **可擴展性**: 支持多種認證方式（JWT、API Key）
@@ -442,5 +446,5 @@ AI-Box 系統採用**三層認證架構**：
 
 ---
 
-**最後更新**: 2025-12-08  
+**最後更新**: 2025-12-08
 **維護者**: Daniel Chung

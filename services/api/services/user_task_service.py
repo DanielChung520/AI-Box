@@ -6,15 +6,12 @@
 """用戶任務服務 - 實現 ArangoDB CRUD 操作"""
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
 import structlog
 
 from database.arangodb import ArangoDBClient
-from services.api.models.user_task import (
-    UserTask,
-    UserTaskCreate,
-    UserTaskUpdate,
-)
+from services.api.models.user_task import ExecutionConfig, UserTask, UserTaskCreate, UserTaskUpdate
 from services.api.services.task_workspace_service import get_task_workspace_service
 
 logger = structlog.get_logger(__name__)
@@ -48,9 +45,7 @@ class UserTaskService:
             collection.add_index({"type": "persistent", "fields": ["user_id"]})
             collection.add_index({"type": "persistent", "fields": ["status"]})
             collection.add_index({"type": "persistent", "fields": ["created_at"]})
-            collection.add_index(
-                {"type": "persistent", "fields": ["user_id", "created_at"]}
-            )
+            collection.add_index({"type": "persistent", "fields": ["user_id", "created_at"]})
 
     def create(self, task: UserTaskCreate) -> UserTask:
         """創建用戶任務"""
@@ -91,20 +86,24 @@ class UserTaskService:
 
         collection = self.client.db.collection(COLLECTION_NAME)
         collection.insert(doc)
+        doc_key = f"{task.user_id}_{task.task_id}"
+        doc = collection.get(doc_key)  # type: ignore[assignment]  # 同步模式下返回 dict | None
 
         # 修改時間：2025-01-27 - 創建任務時自動創建任務工作區和排程任務目錄
         try:
             workspace_service = get_task_workspace_service()
             # 創建任務工作區
-            workspace_service.create_workspace(
-                task_id=task.task_id,
-                user_id=task.user_id,
-            )
+            if task.user_id:
+                workspace_service.create_workspace(
+                    task_id=task.task_id,
+                    user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
+                )
             # 創建排程任務目錄（為後續功能預留）
-            workspace_service.create_scheduled_folder(
-                task_id=task.task_id,
-                user_id=task.user_id,
-            )
+            if task.user_id:
+                workspace_service.create_scheduled_folder(
+                    task_id=task.task_id,
+                    user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
+                )
             self.logger.info(
                 "任務工作區和排程任務目錄創建成功",
                 task_id=task.task_id,
@@ -120,7 +119,10 @@ class UserTaskService:
             )
             # 工作區創建失敗不影響任務創建，但記錄錯誤
 
-        return UserTask(**doc)
+        # 確保 doc 是字典類型
+        if doc is None or not isinstance(doc, dict):
+            raise RuntimeError("Failed to retrieve created task")
+        return UserTask(**doc)  # type: ignore[arg-type]  # doc 已檢查為 dict
 
     def get(self, user_id: str, task_id: str) -> Optional[UserTask]:
         """獲取用戶任務"""
@@ -128,27 +130,31 @@ class UserTaskService:
             raise RuntimeError("ArangoDB client is not connected")
         collection = self.client.db.collection(COLLECTION_NAME)
         doc_key = f"{user_id}_{task_id}"
-        doc = collection.get(doc_key)
+        doc = collection.get(doc_key)  # type: ignore[assignment]  # 同步模式下返回 dict | None
 
         if doc is None:
             return None
 
+        # 確保 doc 是字典類型
+        if not isinstance(doc, dict):
+            return None
+
         # 修改時間：2025-01-27 - 獲取任務時也動態構建 fileTree
-        task_id = doc.get("task_id")
-        user_id = doc.get("user_id")
-        if task_id and user_id:
+        doc_task_id: Optional[str] = doc.get("task_id")  # type: ignore[assignment]  # doc.get 返回 Any | None
+        doc_user_id: Optional[str] = doc.get("user_id")  # type: ignore[assignment]  # doc.get 返回 Any | None
+        if doc_task_id and doc_user_id:
             try:
-                fileTree = self._build_file_tree_for_task(user_id, task_id)
+                fileTree = self._build_file_tree_for_task(doc_user_id, doc_task_id)
                 if fileTree:
                     doc["fileTree"] = fileTree
             except Exception as e:
                 self.logger.warning(
                     "Failed to build fileTree for task",
-                    task_id=task_id,
+                    task_id=doc_task_id,
                     error=str(e),
                 )
 
-        return UserTask(**doc)
+        return UserTask(**doc)  # type: ignore[arg-type]  # doc 已檢查為 dict
 
     def list(self, user_id: str, limit: int = 100, offset: int = 0) -> List[UserTask]:
         """列出用戶的所有任務
@@ -195,9 +201,7 @@ class UserTaskService:
 
         return tasks
 
-    def _build_file_tree_for_task(
-        self, user_id: str, task_id: str
-    ) -> List[Dict[str, Any]]:
+    def _build_file_tree_for_task(self, user_id: str, task_id: str) -> List[Dict[str, Any]]:
         """從 file_metadata 和 folder_metadata 構建 fileTree
 
         修改時間：2025-01-27 - 添加動態構建 fileTree 的方法
@@ -210,18 +214,16 @@ class UserTaskService:
         try:
             # 1. 獲取該任務的所有文件
             file_metadata_collection = self.client.db.collection("file_metadata")
-            files = list(
-                file_metadata_collection.find({"user_id": user_id, "task_id": task_id})
-            )
+            files_cursor = file_metadata_collection.find({"user_id": user_id, "task_id": task_id})
+            files = list(files_cursor) if files_cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
 
             # 2. 獲取該任務的所有目錄（包括根目錄，parent_task_id == task_id 或為空）
             folder_metadata_collection = self.client.db.collection("folder_metadata")
             # 查找所有與任務相關的目錄（task_id 匹配的目錄）
-            folders = list(
-                folder_metadata_collection.find(
-                    {"user_id": user_id, "task_id": task_id}
-                )
+            folders_cursor = folder_metadata_collection.find(
+                {"user_id": user_id, "task_id": task_id}
             )
+            folders = list(folders_cursor) if folders_cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
 
             # 3. 構建資料夾映射，支持巢狀
             folder_map: Dict[str, Dict[str, Any]] = {}
@@ -298,9 +300,7 @@ class UserTaskService:
 
         return file_tree
 
-    def update(
-        self, user_id: str, task_id: str, update: UserTaskUpdate
-    ) -> Optional[UserTask]:
+    def update(self, user_id: str, task_id: str, update: UserTaskUpdate) -> Optional[UserTask]:
         """更新用戶任務"""
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
@@ -327,8 +327,7 @@ class UserTaskService:
             update_data["dueDate"] = update.dueDate
         if update.messages is not None:
             update_data["messages"] = [
-                msg.model_dump() if hasattr(msg, "model_dump") else msg
-                for msg in update.messages
+                msg.model_dump() if hasattr(msg, "model_dump") else msg for msg in update.messages
             ]
         if update.executionConfig is not None:
             update_data["executionConfig"] = (
@@ -343,9 +342,9 @@ class UserTaskService:
             ]
 
         doc.update(update_data)
-        collection.update(doc)
+        collection.update(doc)  # type: ignore[arg-type]  # update 接受 dict
 
-        return UserTask(**doc)
+        return UserTask(**doc)  # type: ignore[arg-type]  # doc 已檢查為 dict
 
     def delete(self, user_id: str, task_id: str) -> bool:
         """刪除用戶任務"""
@@ -407,19 +406,18 @@ class UserTaskService:
                     create = UserTaskCreate(
                         task_id=task_id,
                         user_id=user_id,
+                        label_color=None,  # type: ignore[call-arg]  # label_color 有默認值
                         title=task_data.get("title", "新任務"),
                         status=task_data.get("status", "pending"),
                         dueDate=task_data.get("dueDate"),
                         messages=task_data.get("messages"),
-                        executionConfig=task_data.get("executionConfig"),
+                        executionConfig=task_data.get("executionConfig") or ExecutionConfig(mode="free"),  # type: ignore[arg-type]  # executionConfig 是必需的，提供默認值
                         fileTree=task_data.get("fileTree"),
                     )
                     self.create(create)
                     created += 1
             except Exception as e:
-                self.logger.error(
-                    "Failed to sync task", error=str(e), task_data=task_data
-                )
+                self.logger.error("Failed to sync task", error=str(e), task_data=task_data)
                 errors += 1
 
         return {

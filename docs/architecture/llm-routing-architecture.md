@@ -24,20 +24,24 @@ AI-Box 專案中的 LLM 路由和負載均衡功能採用分層架構設計，�
 **位置**：`agents/task_analyzer/llm_router.py`
 
 **職責**：
+
 - 根據任務類型（QUERY, EXECUTION, REVIEW, PLANNING, COMPLEX）選擇合適的 LLM 提供商
 - 整合任務分類結果和上下文信息
 - 支持 A/B 測試和路由評估
 
 **主要功能**：
+
 - `route()`: 根據任務分類結果選擇 LLM 提供商
 - 支持新舊兩種路由策略（可切換）
 - 整合 DynamicRouter、RoutingEvaluator、ABTestManager
 
 **使用場景**：
+
 - 任務分析後的路由選擇
 - 需要根據任務特性選擇最適合的 LLM
 
 **示例**：
+
 ```python
 from agents.task_analyzer.llm_router import LLMRouter
 from agents.task_analyzer.models import TaskClassificationResult, TaskType
@@ -60,16 +64,19 @@ result = router.route(
 **位置**：`llm/routing/dynamic.py`
 
 **職責**：
+
 - 管理多種路由策略（TaskTypeBased, ComplexityBased, CostBased, LatencyBased, Hybrid）
 - 根據配置動態選擇和切換策略
 - 記錄路由決策用於評估和優化
 
 **主要功能**：
+
 - `get_strategy()`: 獲取指定的路由策略
 - `register_strategy()`: 註冊新的路由策略
 - `record_request()`: 記錄路由請求用於統計
 
 **支持的路由策略**：
+
 - `TaskTypeBasedStrategy`: 基於任務類型
 - `ComplexityBasedStrategy`: 基於任務複雜度
 - `CostBasedStrategy`: 基於成本考慮
@@ -77,10 +84,12 @@ result = router.route(
 - `HybridRoutingStrategy`: 混合策略
 
 **使用場景**：
+
 - 需要根據不同條件選擇路由策略
 - 需要動態調整路由行為
 
 **示例**：
+
 ```python
 from llm.routing.dynamic import DynamicRouter
 
@@ -96,16 +105,19 @@ result = strategy.select_provider(task_classification, task, context)
 **位置**：`llm/load_balancer.py`
 
 **職責**：
+
 - 在多個 LLM 提供商（ChatGPT, Gemini, Grok, Qwen, Ollama）間分配負載
 - 實現多種負載均衡策略
 - 監控提供商健康狀態和性能指標
 
 **主要功能**：
+
 - `select_provider()`: 根據策略選擇提供商
 - `mark_success()` / `mark_failure()`: 標記請求成功/失敗
 - `get_provider_stats()`: 獲取提供商統計信息
 
 **支持的負載均衡策略**：
+
 - `round_robin`: 輪詢
 - `weighted`: 加權輪詢
 - `least_connections`: 最少連接
@@ -113,10 +125,12 @@ result = strategy.select_provider(task_classification, task, context)
 - `response_time_based`: 基於響應時間
 
 **使用場景**：
+
 - 需要在多個 LLM 提供商間分配請求
 - 需要監控和優化提供商使用情況
 
 **示例**：
+
 ```python
 from llm.load_balancer import MultiLLMLoadBalancer
 from agents.task_analyzer.models import LLMProvider
@@ -136,24 +150,29 @@ provider = balancer.select_provider()
 **位置**：`llm/router.py`
 
 **職責**：
+
 - 在本地 Ollama 多個節點間分配負載
 - 實現節點健康檢查和故障轉移
 - 支持輪詢和加權輪詢策略
 
 **主要功能**：
+
 - `select_node()`: 選擇可用的 Ollama 節點
 - `mark_success()` / `mark_failure()`: 標記節點狀態
 - `get_nodes()`: 獲取節點快照
 
 **支持的負載均衡策略**：
+
 - `round_robin`: 輪詢（默認）
 - `weighted`: 加權輪詢
 
 **使用場景**：
+
 - 本地部署多個 Ollama 節點
 - 需要在節點間分配請求負載
 
 **示例**：
+
 ```python
 from llm.router import LLMNodeRouter, LLMNodeConfig
 

@@ -6,20 +6,21 @@
 """RQ 隊列監控 API - 提供隊列狀態查詢接口"""
 
 from typing import Optional
-from fastapi import APIRouter, Query, Depends, status
-from fastapi.responses import JSONResponse
+
 import structlog
+from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
-from system.security.dependencies import get_current_user
-from system.security.models import User
 from database.rq.monitor import (
     get_all_queues,
-    get_queue_stats,
     get_all_queues_stats,
-    get_workers_info,
     get_queue_jobs,
+    get_queue_stats,
+    get_workers_info,
 )
+from system.security.dependencies import get_current_user
+from system.security.models import User
 
 logger = structlog.get_logger(__name__)
 
@@ -107,8 +108,8 @@ async def get_queue_statistics(
 @router.get("/queues/{queue_name}/jobs")
 async def list_queue_jobs(
     queue_name: str,
-    status: Optional[str] = Query(
-        None, description="任務狀態 (queued/started/finished/failed)"
+    job_status: Optional[str] = Query(  # 重命名為 job_status 避免與 status 模塊衝突
+        None, description="任務狀態 (queued/started/finished/failed)", alias="status"
     ),
     limit: int = Query(10, ge=1, le=100, description="返回任務數量限制"),
     current_user: User = Depends(get_current_user),
@@ -124,7 +125,7 @@ async def list_queue_jobs(
         任務列表
     """
     try:
-        jobs = get_queue_jobs(queue_name, status=status, limit=limit)
+        jobs = get_queue_jobs(queue_name, status=job_status, limit=limit)
         return APIResponse.success(
             data={"jobs": jobs, "count": len(jobs)},
             message="任務列表獲取成功",
@@ -133,7 +134,7 @@ async def list_queue_jobs(
         logger.error(
             "Failed to list queue jobs",
             queue_name=queue_name,
-            status=status,
+            status=job_status,
             error=str(e),
         )
         return APIResponse.error(

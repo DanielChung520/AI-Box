@@ -10,14 +10,15 @@
 問題可能是 user_id 不匹配。
 """
 
-import sys
 import os
+import sys
 
 # 添加項目根目錄到路徑
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database.arangodb import ArangoDBClient
 from typing import Dict
+
+from database.arangodb import ArangoDBClient
 
 
 def get_user_id_from_email(email: str) -> str:
@@ -72,9 +73,7 @@ def diagnose_user_tasks(email: str = "daniel@test.com"):
             else:
                 other_tasks.append(task)
 
-        print(
-            f"✅ 匹配的任務（user_id = {expected_user_id}）: {len(matching_tasks)} 個"
-        )
+        print(f"✅ 匹配的任務（user_id = {expected_user_id}）: {len(matching_tasks)} 個")
         if matching_tasks:
             print("   這些任務應該可以正常顯示：")
             for task in matching_tasks[:5]:  # 只顯示前5個
@@ -83,9 +82,7 @@ def diagnose_user_tasks(email: str = "daniel@test.com"):
                 print(f"   ... 還有 {len(matching_tasks) - 5} 個任務")
         print()
 
-        print(
-            f"❌ 不匹配的任務（user_id != {expected_user_id}）: {len(other_tasks)} 個"
-        )
+        print(f"❌ 不匹配的任務（user_id != {expected_user_id}）: {len(other_tasks)} 個")
         if other_tasks:
             print("   這些任務不會顯示，因為 user_id 不匹配：")
             # 統計不同的 user_id
@@ -94,16 +91,12 @@ def diagnose_user_tasks(email: str = "daniel@test.com"):
                 uid = task.get("user_id", "unknown")
                 user_id_counts[uid] = user_id_counts.get(uid, 0) + 1
 
-            for uid, count in sorted(
-                user_id_counts.items(), key=lambda x: x[1], reverse=True
-            ):
+            for uid, count in sorted(user_id_counts.items(), key=lambda x: x[1], reverse=True):
                 print(f"   - user_id: {uid} ({count} 個任務)")
                 # 顯示該 user_id 的示例任務
                 examples = [t for t in other_tasks if t.get("user_id") == uid][:2]
                 for task in examples:
-                    print(
-                        f"     • {task.get('title')} (task_id: {task.get('task_id')})"
-                    )
+                    print(f"     • {task.get('title')} (task_id: {task.get('task_id')})")
         print()
 
         # 提供修復建議
@@ -117,9 +110,7 @@ def diagnose_user_tasks(email: str = "daniel@test.com"):
             print("或者手動更新任務的 user_id：")
             for uid in sorted(set(t.get("user_id") for t in other_tasks)):
                 if uid != expected_user_id:
-                    print(
-                        f"  - 將 user_id='{uid}' 的任務更新為 user_id='{expected_user_id}'"
-                    )
+                    print(f"  - 將 user_id='{uid}' 的任務更新為 user_id='{expected_user_id}'")
 
     except Exception as e:
         print(f"❌ 錯誤: {e}")

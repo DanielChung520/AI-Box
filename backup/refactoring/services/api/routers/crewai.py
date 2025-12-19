@@ -5,23 +5,20 @@
 
 """CrewAI Crew Manager API 路由"""
 
+import uuid
 from typing import Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from services.api.core.response import APIResponse
 from agents.crewai.manager import CrewManager
-from agents.crewai.models import (
-    AgentRole,
-    CollaborationMode,
-    CrewResourceQuota,
-)
+from agents.crewai.models import AgentRole, CollaborationMode, CrewResourceQuota
+from agents.task_analyzer.models import WorkflowType
 from agents.workflows.base import WorkflowRequestContext
 from agents.workflows.factory_router import get_workflow_factory_router
-from agents.task_analyzer.models import WorkflowType
-import uuid
+from services.api.core.response import APIResponse
 
 router = APIRouter()
 
@@ -34,15 +31,11 @@ class CreateCrewRequest(BaseModel):
 
     name: str = Field(..., description="隊伍名稱")
     description: Optional[str] = Field(default=None, description="隊伍描述")
-    agents: Optional[List[AgentRole]] = Field(
-        default_factory=list, description="Agent 列表"
-    )
+    agents: Optional[List[AgentRole]] = Field(default_factory=list, description="Agent 列表")
     collaboration_mode: CollaborationMode = Field(
         default=CollaborationMode.SEQUENTIAL, description="協作模式"
     )
-    resource_quota: Optional[CrewResourceQuota] = Field(
-        default=None, description="資源配額"
-    )
+    resource_quota: Optional[CrewResourceQuota] = Field(default=None, description="資源配額")
     metadata: Optional[Dict] = Field(default_factory=dict, description="元數據")
 
 
@@ -51,12 +44,8 @@ class UpdateCrewRequest(BaseModel):
 
     name: Optional[str] = Field(default=None, description="隊伍名稱")
     description: Optional[str] = Field(default=None, description="隊伍描述")
-    collaboration_mode: Optional[CollaborationMode] = Field(
-        default=None, description="協作模式"
-    )
-    resource_quota: Optional[CrewResourceQuota] = Field(
-        default=None, description="資源配額"
-    )
+    collaboration_mode: Optional[CollaborationMode] = Field(default=None, description="協作模式")
+    resource_quota: Optional[CrewResourceQuota] = Field(default=None, description="資源配額")
     metadata: Optional[Dict] = Field(default=None, description="元數據")
 
 
@@ -401,9 +390,7 @@ async def execute_crew(crew_id: str, request: ExecuteCrewRequest) -> JSONRespons
                 "status": result.status,
                 "output": result.output,
                 "reasoning": result.reasoning,
-                "telemetry": [
-                    {"name": e.name, "payload": e.payload} for e in result.telemetry
-                ],
+                "telemetry": [{"name": e.name, "payload": e.payload} for e in result.telemetry],
                 "state_snapshot": result.state_snapshot,
             },
             message="Crew executed successfully",

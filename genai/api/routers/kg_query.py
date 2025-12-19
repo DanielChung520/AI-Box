@@ -5,7 +5,8 @@
 
 """知識圖譜查詢路由 - 提供圖譜查詢 API 端點"""
 
-from typing import Optional, List
+from typing import List, Optional
+
 from fastapi import APIRouter, Query, status
 from fastapi.responses import JSONResponse
 
@@ -50,9 +51,7 @@ async def list_entities(
     """查詢實體列表"""
     service = get_service()
 
-    entities = service.list_entities(
-        entity_type=entity_type, limit=limit, offset=offset
-    )
+    entities = service.list_entities(entity_type=entity_type, limit=limit, offset=offset)
 
     return APIResponse.success(
         data={
@@ -96,7 +95,7 @@ async def list_relations(
     bind_vars["limit"] = limit
 
     cursor = service.client.db.aql.execute(aql, bind_vars=bind_vars)
-    relations = list(cursor)
+    relations = list(cursor) if cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
 
     return APIResponse.success(
         data={
@@ -117,9 +116,7 @@ async def get_entity_neighbors(
     """獲取實體的鄰居節點"""
     service = get_service()
 
-    neighbors = service.get_entity_neighbors(
-        entity_id, relation_types=relation_types, limit=limit
-    )
+    neighbors = service.get_entity_neighbors(entity_id, relation_types=relation_types, limit=limit)
 
     return APIResponse.success(
         data={

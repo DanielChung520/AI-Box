@@ -6,13 +6,14 @@
 """Agent Files API 路由 - 提供 Agent 產出物的上傳和訪問接口"""
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query
-from fastapi import status as http_status
-from fastapi.responses import JSONResponse, FileResponse
 
-from services.api.core.response import APIResponse
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import status as http_status
+from fastapi.responses import FileResponse, JSONResponse
+
 from agents.services.file_service.agent_file_service import get_agent_file_service
 from agents.services.file_service.models import FileType
+from services.api.core.response import APIResponse
 
 router = APIRouter()
 
@@ -70,9 +71,7 @@ async def upload_agent_file(
         )
 
 
-@router.get(
-    "/files/{agent_id}/{task_id}/{file_id}", status_code=http_status.HTTP_200_OK
-)
+@router.get("/files/{agent_id}/{task_id}/{file_id}", status_code=http_status.HTTP_200_OK)
 async def get_agent_file(
     agent_id: str,
     task_id: str,

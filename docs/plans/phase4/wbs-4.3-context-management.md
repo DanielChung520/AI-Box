@@ -10,19 +10,23 @@
 ## 1. 背景與目標
 
 ### 1.1 背景
+
 根據 [AI-Box 架構規劃](../../../../Notion/pages/AI-Box/AI-Box-架構規劃.md) 和 [階段四主計劃](./wbs-4-data-processing.md)，WBS 4.3 專注於實現上下文管理系統，包括上下文管理器核心、對話歷史管理、上下文窗口管理和上下文記錄功能。
 
 ### 1.2 目標
+
 - 實現上下文管理器核心邏輯
 - 實現對話歷史存儲、檢索、管理功能
 - 實現上下文窗口滑動、截斷邏輯
 - 實現上下文記錄、持久化存儲
 
 ### 1.3 總工期
+
 **5.5 個工作日**
 **優先級**: P0（關鍵路徑）
 
 ### 1.4 依賴關係
+
 - **前置依賴**:
   - 階段二：Agent 核心（Context Recorder 基礎）
   - 階段一：基礎架構（Redis、ChromaDB、ArangoDB）
@@ -43,6 +47,7 @@
 1. **上下文模型設計**
    - 建立 `agent_process/context/manager.py`
    - 定義上下文數據結構：
+
      ```python
      {
        "session_id": "會話ID",
@@ -76,12 +81,14 @@
    - 實現上下文刪除（刪除會話）
 
 **交付物**:
+
 - `agent_process/context/manager.py`
 - `agent_process/context/models.py`（上下文數據模型）
 - `agent_process/context/storage.py`（存儲接口）
 - 單元測試：`tests/agent_process/test_context_manager.py`
 
 **驗收標準**:
+
 - 上下文檢索響應時間 < 200ms（Redis）
 - 上下文存儲成功率 100%
 - 支持至少 1000 個並發會話
@@ -117,11 +124,13 @@
    - 實現歷史統計（會話數量、消息數量、活躍度）
 
 **交付物**:
+
 - `agent_process/context/conversation_history.py`
 - `services/api/routers/conversation_history.py`（API 端點）
 - 單元測試：`tests/agent_process/test_conversation_history.py`
 
 **驗收標準**:
+
 - 對話歷史檢索響應時間 < 500ms
 - 支持至少 10000 條消息的歷史存儲
 - 歷史檢索準確率 > 95%
@@ -153,6 +162,7 @@
 
 4. **窗口配置**
    - 在 `config/config.example.json` 添加窗口配置：
+
      ```json
      "context_window": {
        "max_tokens": 4096,
@@ -164,11 +174,13 @@
      ```
 
 **交付物**:
+
 - `agent_process/context/window_manager.py`
 - `config/config.example.json` 更新
 - 單元測試：`tests/agent_process/test_window_manager.py`
 
 **驗收標準**:
+
 - Token 計數準確率 > 99%
 - 上下文窗口截斷後仍保持對話連貫性
 - 窗口管理響應時間 < 100ms
@@ -204,11 +216,13 @@
    - 實現記錄分析（會話模式、任務分布）
 
 **交付物**:
+
 - `agent_process/context/recorder.py`（更新）
 - `services/api/routers/context_record.py`（API 端點）
 - 單元測試：`tests/agent_process/test_context_recorder.py`
 
 **驗收標準**:
+
 - 上下文記錄成功率 100%
 - 記錄檢索響應時間 < 500ms
 - 支持至少 10000 條記錄的存儲和檢索
@@ -232,9 +246,11 @@
 ## 4. 資源需求
 
 ### 4.1 人力資源
+
 - **Backend-1**: 5.5 天（所有上下文管理任務）
 
 ### 4.2 技術資源
+
 - **開發環境**: Python 3.11+、FastAPI
 - **數據庫**: Redis（短期上下文）、ChromaDB（長期上下文）、ArangoDB（關係圖）
 - **工具庫**: tiktoken、transformers
@@ -244,17 +260,20 @@
 ## 5. 驗收標準
 
 ### 5.1 功能驗收
+
 - ✅ 上下文檢索響應時間 < 200ms
 - ✅ 對話歷史管理完整
 - ✅ 上下文窗口管理正確
 - ✅ 上下文記錄成功率 100%
 
 ### 5.2 性能驗收
+
 - ✅ 上下文檢索：響應時間 < 200ms（Redis）
 - ✅ 對話歷史檢索：響應時間 < 500ms
 - ✅ 窗口管理：響應時間 < 100ms
 
 ### 5.3 質量驗收
+
 - ✅ 單元測試覆蓋率 > 80%
 - ✅ 代碼審查通過
 - ✅ API 文檔完整

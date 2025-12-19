@@ -5,11 +5,12 @@
 
 """HTTP Agent Service Client - 通過 HTTP REST API 調用 Agent 服務"""
 
-import logging
 import hashlib
 import hmac
 import json
+import logging
 from typing import Any, Dict, Optional
+
 import httpx
 
 from agents.services.protocol.base import (
@@ -59,9 +60,7 @@ class HTTPAgentServiceClient(AgentServiceProtocol):
             headers={"Content-Type": "application/json"},
         )
 
-    def _generate_request_signature(
-        self, request_body: Dict[str, Any]
-    ) -> Optional[str]:
+    def _generate_request_signature(self, request_body: Dict[str, Any]) -> Optional[str]:
         """
         生成請求簽名（HMAC-SHA256）
 
@@ -76,9 +75,7 @@ class HTTPAgentServiceClient(AgentServiceProtocol):
 
         try:
             # 將請求體轉換為字符串（按鍵排序以確保一致性）
-            request_str = json.dumps(
-                request_body, sort_keys=True, separators=(",", ":")
-            )
+            request_str = json.dumps(request_body, sort_keys=True, separators=(",", ":"))
 
             # 計算 HMAC-SHA256 簽名
             signature = hmac.new(

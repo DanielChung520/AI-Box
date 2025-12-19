@@ -22,15 +22,9 @@ _SETTINGS_CACHE: Dict[str, "LangChainGraphSettings"] = {}
 class LangGraphStateStoreSettings(BaseModel):
     """狀態儲存相關設定。"""
 
-    backend: str = Field(
-        default="memory", description="checkpoint backend 類型: memory/redis"
-    )
-    redis_url: str = Field(
-        default="redis://localhost:6379/0", description="Redis 連線字串"
-    )
-    namespace: str = Field(
-        default="ai-box:workflow:langgraph", description="Redis key 命名空間"
-    )
+    backend: str = Field(default="memory", description="checkpoint backend 類型: memory/redis")
+    redis_url: str = Field(default="redis://localhost:6379/0", description="Redis 連線字串")
+    namespace: str = Field(default="ai-box:workflow:langgraph", description="Redis key 命名空間")
     ttl_seconds: int = Field(default=3600, ge=60, description="checkpoint 保存時間")
 
 
@@ -50,16 +44,10 @@ class LangChainGraphSettings(BaseModel):
     )
     enable_rag: bool = Field(default=True, description="是否啟用 RAG 擴充")
     enable_tools: bool = Field(default=True, description="是否允許工具/函式呼叫")
-    max_iterations: int = Field(
-        default=10, ge=1, le=50, description="執行節點最大迭代數"
-    )
+    max_iterations: int = Field(default=10, ge=1, le=50, description="執行節點最大迭代數")
     default_llm: str = Field(default="gpt-oss:20b", description="預設 LLM 模型 ID")
-    state_store: LangGraphStateStoreSettings = Field(
-        default_factory=LangGraphStateStoreSettings
-    )
-    telemetry: LangGraphTelemetrySettings = Field(
-        default_factory=LangGraphTelemetrySettings
-    )
+    state_store: LangGraphStateStoreSettings = Field(default_factory=LangGraphStateStoreSettings)
+    telemetry: LangGraphTelemetrySettings = Field(default_factory=LangGraphTelemetrySettings)
     prompt_template_path: Optional[str] = Field(
         default=None,
         description="自訂 Prompt 模板路徑，若為 None 則使用內建模板",

@@ -5,17 +5,13 @@
 
 """AAM (記憶增強模組) - 提供記憶檢索、存儲、更新和刪除功能"""
 
-from agents.infra.memory.aam.models import (
-    Memory,
-    MemoryType,
-    MemoryPriority,
-)
 from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.models import Memory, MemoryPriority, MemoryType
 from agents.infra.memory.aam.storage_adapter import (
-    BaseStorageAdapter,
-    RedisAdapter,
-    ChromaDBAdapter,
     ArangoDBAdapter,
+    BaseStorageAdapter,
+    ChromaDBAdapter,
+    RedisAdapter,
 )
 
 __all__ = [

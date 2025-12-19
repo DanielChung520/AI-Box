@@ -7,11 +7,12 @@
 
 import os
 from typing import Optional
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
 import structlog
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 logger = structlog.get_logger(__name__)
 
@@ -54,9 +55,7 @@ class EncryptionService:
                 raise RuntimeError(
                     "FILE_ENCRYPTION_KEY environment variable is required in production mode"
                 )
-            self.logger.warning(
-                "Using default encryption key. This is insecure for production!"
-            )
+            self.logger.warning("Using default encryption key. This is insecure for production!")
             key_str = "default-file-encryption-key-change-in-production"
 
         # 將字符串密鑰轉換為固定長度的字節

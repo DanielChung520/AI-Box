@@ -5,16 +5,18 @@
 
 """Agent Auto Registration - Agent 啟動時自動註冊到 Registry"""
 
-import logging
 import asyncio
-from typing import Optional, Dict, Any
+import logging
+from typing import Any, Dict, Optional
 
-from agents.services.registry.registry import get_agent_registry
 from agents.services.registry.models import (
-    AgentRegistrationRequest,
-    AgentMetadata,
     AgentEndpoints,
+    AgentMetadata,
+    AgentPermissionConfig,
+    AgentRegistrationRequest,
+    AgentServiceProtocolType,
 )
+from agents.services.registry.registry import get_agent_registry
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +61,20 @@ class AgentAutoRegistration:
             request = AgentRegistrationRequest(
                 agent_id=agent_id,
                 agent_type=agent_type,
+                name=agent_id,  # 使用 agent_id 作為默認名稱
                 capabilities=capabilities or [],
-                metadata=AgentMetadata(**metadata),
-                endpoints=AgentEndpoints(**endpoints),
+                metadata=AgentMetadata(**metadata) if metadata else AgentMetadata(),  # type: ignore[call-arg]
+                endpoints=(
+                    AgentEndpoints(
+                        http=endpoints.get("http") if endpoints else None,  # type: ignore[arg-type]  # 明確指定參數
+                        mcp=endpoints.get("mcp") if endpoints else None,  # type: ignore[arg-type]
+                        protocol=endpoints.get("protocol") if endpoints else AgentServiceProtocolType.HTTP,  # type: ignore[arg-type]
+                        is_internal=endpoints.get("is_internal", False) if endpoints else False,  # type: ignore[arg-type]
+                    )
+                    if endpoints
+                    else AgentEndpoints()
+                ),  # type: ignore[call-arg]
+                permissions=AgentPermissionConfig(),  # type: ignore[call-arg]  # 使用默認權限
             )
 
             # 註冊到 Registry

@@ -25,7 +25,7 @@
 ## Ollama 狀態
 
 - CLI 版本：ollama version is 0.13.0
-- API 健康：OK (http://localhost:11434/api/version)
+- API 健康：OK (<http://localhost:11434/api/version>)
 
 <details>
 <summary>模型清單</summary>

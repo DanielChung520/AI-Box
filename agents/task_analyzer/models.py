@@ -6,7 +6,8 @@
 """Task Analyzer 數據模型定義"""
 
 from enum import Enum
-from typing import Dict, Any, Optional, List, Literal
+from typing import Any, Dict, List, Literal, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -57,12 +58,8 @@ class TaskAnalysisResult(BaseModel):
     llm_provider: LLMProvider = Field(..., description="LLM提供商")
     confidence: float = Field(..., ge=0.0, le=1.0, description="置信度")
     requires_agent: bool = Field(..., description="是否需要啟動Agent")
-    analysis_details: Dict[str, Any] = Field(
-        default_factory=dict, description="分析詳情"
-    )
-    suggested_agents: List[str] = Field(
-        default_factory=list, description="建議使用的Agent列表"
-    )
+    analysis_details: Dict[str, Any] = Field(default_factory=dict, description="分析詳情")
+    suggested_agents: List[str] = Field(default_factory=list, description="建議使用的Agent列表")
 
 
 class TaskClassificationResult(BaseModel):
@@ -78,12 +75,8 @@ class WorkflowStrategy(BaseModel):
 
     mode: Literal["single", "hybrid"] = Field(..., description="模式：單一或混合")
     primary: WorkflowType = Field(..., description="主要工作流類型")
-    fallback: List[WorkflowType] = Field(
-        default_factory=list, description="備用工作流類型列表"
-    )
-    switch_conditions: Dict[str, Any] = Field(
-        default_factory=dict, description="切換條件配置"
-    )
+    fallback: List[WorkflowType] = Field(default_factory=list, description="備用工作流類型列表")
+    switch_conditions: Dict[str, Any] = Field(default_factory=dict, description="切換條件配置")
     reasoning: str = Field(..., description="策略選擇理由")
 
 
@@ -94,9 +87,7 @@ class WorkflowSelectionResult(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description="置信度")
     reasoning: str = Field(..., description="選擇理由")
     config: Dict[str, Any] = Field(default_factory=dict, description="工作流配置")
-    strategy: Optional[WorkflowStrategy] = Field(
-        None, description="工作流策略（混合模式時使用）"
-    )
+    strategy: Optional[WorkflowStrategy] = Field(None, description="工作流策略（混合模式時使用）")
 
 
 class LLMRoutingResult(BaseModel):
@@ -115,13 +106,9 @@ class LLMRoutingResult(BaseModel):
     )
     # 路由元數據
     routing_strategy: Optional[str] = Field(None, description="使用的路由策略名稱")
-    estimated_latency: Optional[float] = Field(
-        None, description="預估延遲時間（秒）", ge=0.0
-    )
+    estimated_latency: Optional[float] = Field(None, description="預估延遲時間（秒）", ge=0.0)
     estimated_cost: Optional[float] = Field(None, description="預估成本", ge=0.0)
-    quality_score: Optional[float] = Field(
-        None, description="質量評分（0.0-1.0）", ge=0.0, le=1.0
-    )
+    quality_score: Optional[float] = Field(None, description="質量評分（0.0-1.0）", ge=0.0, le=1.0)
     routing_metadata: Dict[str, Any] = Field(
         default_factory=dict, description="路由元數據（擴展信息）"
     )

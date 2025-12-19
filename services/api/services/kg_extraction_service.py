@@ -7,16 +7,17 @@
 
 from __future__ import annotations
 
-from typing import List, Dict, Any, Optional, Set, Tuple
 import asyncio
 import json
 import time
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import structlog
 
-from genai.api.services.triple_extraction_service import TripleExtractionService
-from genai.api.services.kg_builder_service import KGBuilderService
-from genai.api.models.triple_models import Triple
 from database.redis import get_redis_client
+from genai.api.models.triple_models import Triple
+from genai.api.services.kg_builder_service import KGBuilderService
+from genai.api.services.triple_extraction_service import TripleExtractionService
 
 # 導入 Ontology 管理相關模組
 logger = structlog.get_logger(__name__)  # 定義 logger 在 try-except 之前
@@ -29,6 +30,9 @@ try:
 except ImportError:
     ONTOLOGY_SUPPORT = False
     logger.warning("Ontology support not available - kag module not found")
+    # 定義類型別名以支持類型檢查
+    OntologyManager = None  # type: ignore[assignment,misc]
+    OntologySelector = None  # type: ignore[assignment,misc]
 
 # 全局服務實例（單例模式）
 _kg_extraction_service: Optional["KGExtractionService"] = None
@@ -58,17 +62,16 @@ class KGExtractionService:
 
         # 初始化 Ontology 相關服務（如果可用）
         if ONTOLOGY_SUPPORT:
-            self.ontology_manager = ontology_manager or OntologyManager()
-            self.ontology_selector = ontology_selector or OntologySelector()
+            self.ontology_manager: Optional[OntologyManager] = ontology_manager or OntologyManager()
+            self.ontology_selector: Optional[OntologySelector] = (
+                ontology_selector or OntologySelector()
+            )
             self._current_ontology_rules: Optional[Dict[str, Any]] = None
         else:
-            self.ontology_manager = None
-            self.ontology_selector = None
-            self._current_ontology_rules = None
+            # 在 else 分支中，屬性已在 if 分支中定義，不需要重複定義
+            pass
 
-        logger.info(
-            "KGExtractionService initialized", ontology_support=ONTOLOGY_SUPPORT
-        )
+        logger.info("KGExtractionService initialized", ontology_support=ONTOLOGY_SUPPORT)
 
     def _filter_chunks(
         self, chunks: List[Dict[str, Any]], filter_options: Dict[str, Any]
@@ -88,9 +91,7 @@ class KGExtractionService:
         # 最小長度過濾
         min_length = filter_options.get("min_length", 0)
         if min_length > 0:
-            filtered = [
-                chunk for chunk in filtered if len(chunk.get("text", "")) >= min_length
-            ]
+            filtered = [chunk for chunk in filtered if len(chunk.get("text", "")) >= min_length]
 
         # 最大分塊數限制
         max_chunks = filter_options.get("max_chunks")
@@ -101,9 +102,7 @@ class KGExtractionService:
         importance_threshold = filter_options.get("importance_threshold")
         if importance_threshold is not None:
             filtered = [
-                chunk
-                for chunk in filtered
-                if chunk.get("importance", 0) >= importance_threshold
+                chunk for chunk in filtered if chunk.get("importance", 0) >= importance_threshold
             ]
 
         logger.debug(
@@ -203,9 +202,7 @@ class KGExtractionService:
                     )
                     domain_files = selection.get("domain", [])
                     major_file = (
-                        selection.get("major", [None])[0]
-                        if selection.get("major")
-                        else None
+                        selection.get("major", [None])[0] if selection.get("major") else None
                     )
 
                     logger.info(
@@ -305,9 +302,7 @@ class KGExtractionService:
         elif mode == "selected_chunks":
             # 過濾分塊
             filtered_chunks = self._filter_chunks(chunks, chunk_filter)
-            triples = await self._extract_from_chunks_batch(
-                filtered_chunks, ontology_rules
-            )
+            triples = await self._extract_from_chunks_batch(filtered_chunks, ontology_rules)
         else:
             # 默認：處理所有分塊
             triples = await self._extract_from_chunks_batch(chunks, ontology_rules)
@@ -415,30 +410,28 @@ class KGExtractionService:
 
     def _load_chunk_state(self, file_id: str) -> Dict[str, Any]:
         redis_client = get_redis_client()
-        raw = redis_client.get(self._kg_chunk_state_key(file_id))
+        raw = redis_client.get(self._kg_chunk_state_key(file_id))  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
         if not raw:
             return {}
         try:
-            return json.loads(raw)
+            return json.loads(raw)  # type: ignore[arg-type]  # raw 已檢查不為 None，且 decode_responses=True 返回 str
         except Exception:
             return {}
 
     def _save_chunk_state(self, file_id: str, state: Dict[str, Any]) -> None:
         redis_client = get_redis_client()
         # 保留 7 天，支援斷點續跑
-        redis_client.setex(
-            self._kg_chunk_state_key(file_id), 7 * 24 * 3600, json.dumps(state)
-        )
+        redis_client.setex(self._kg_chunk_state_key(file_id), 7 * 24 * 3600, json.dumps(state))
 
     def _update_processing_status_kv(self, file_id: str, patch: Dict[str, Any]) -> None:
         """避免跨模組 import：直接更新 processing:status:{file_id} 的 JSON。"""
         redis_client = get_redis_client()
         status_key = f"processing:status:{file_id}"
-        raw = redis_client.get(status_key)
+        raw = redis_client.get(status_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
         status_data: Dict[str, Any] = {}
         if raw:
             try:
-                status_data = json.loads(raw)
+                status_data = json.loads(raw)  # type: ignore[arg-type]  # raw 已檢查不為 None，且 decode_responses=True 返回 str
             except Exception:
                 status_data = {}
         # shallow merge
@@ -506,9 +499,7 @@ class KGExtractionService:
         state = self._load_chunk_state(file_id)
         completed_chunks: Set[int] = set(state.get("completed_chunks", []) or [])
         failed_chunks: Set[int] = set(state.get("failed_chunks", []) or [])
-        failed_permanent_chunks: Set[int] = set(
-            state.get("failed_permanent_chunks", []) or []
-        )
+        failed_permanent_chunks: Set[int] = set(state.get("failed_permanent_chunks", []) or [])
         attempts: Dict[str, int] = state.get("attempts", {}) or {}
         errors: Dict[str, Any] = state.get("errors", {}) or {}
 
@@ -540,9 +531,7 @@ class KGExtractionService:
 
         sem = asyncio.Semaphore(max(1, concurrency))
 
-        async def extract_one(
-            chunk_index: int, chunk: Dict[str, Any]
-        ) -> Tuple[int, List[Triple]]:
+        async def extract_one(chunk_index: int, chunk: Dict[str, Any]) -> Tuple[int, List[Triple]]:
             async with sem:
                 try:
                     chunk_text = chunk.get("text", "")
@@ -603,16 +592,10 @@ class KGExtractionService:
             # 逐塊寫入 KG + 更新狀態（可續跑）
             for chunk_index, chunk_triples in extracted:
                 try:
-                    build_result = await self.build_kg_from_file(
-                        file_id, chunk_triples, user_id
-                    )
+                    build_result = await self.build_kg_from_file(file_id, chunk_triples, user_id)
                     triples_total += len(chunk_triples)
-                    entities_created_total += int(
-                        build_result.get("entities_created", 0) or 0
-                    )
-                    relations_created_total += int(
-                        build_result.get("relations_created", 0) or 0
-                    )
+                    entities_created_total += int(build_result.get("entities_created", 0) or 0)
+                    relations_created_total += int(build_result.get("relations_created", 0) or 0)
 
                     completed_chunks.add(chunk_index)
                     failed_chunks.discard(chunk_index)
@@ -658,8 +641,7 @@ class KGExtractionService:
                 remaining_now = [
                     idx
                     for idx, _ in indexed_chunks
-                    if idx not in completed_chunks
-                    and idx not in failed_permanent_chunks
+                    if idx not in completed_chunks and idx not in failed_permanent_chunks
                 ]
                 self._update_processing_status_kv(
                     file_id,
@@ -671,9 +653,7 @@ class KGExtractionService:
                             "total_chunks": total_chunks,
                             "completed_chunks": sorted(list(completed_chunks)),
                             "failed_chunks": sorted(list(failed_chunks)),
-                            "failed_permanent_chunks": sorted(
-                                list(failed_permanent_chunks)
-                            ),
+                            "failed_permanent_chunks": sorted(list(failed_permanent_chunks)),
                             "remaining_chunks": remaining_now,
                             "last_completed_chunk": chunk_index,
                             "triples_count": triples_total,
@@ -768,9 +748,7 @@ class KGExtractionService:
         # 但 Triple 模型可能不支持直接修改，所以我們在構建時處理
 
         # 構建知識圖譜（傳遞file_id和user_id）
-        result = await self.kg_builder.build_from_triples(
-            triples, file_id=file_id, user_id=user_id
-        )
+        result = await self.kg_builder.build_from_triples(triples, file_id=file_id, user_id=user_id)
 
         # 在實體和關係中添加文件ID和用戶ID關聯
         # 這需要在 KGBuilderService 中實現，或者通過額外的元數據集合實現

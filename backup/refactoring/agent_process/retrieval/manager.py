@@ -6,8 +6,8 @@
 """Retrieval Manager - 實現 Hybrid RAG 檢索管理"""
 
 import logging
-from typing import Dict, Any, Optional, List
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from database.chromadb.client import ChromaDBClient
 
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 # AAM 整合（可選）
 try:
-    from agent_process.memory.aam.hybrid_rag import HybridRAGService
     from agent_process.memory.aam.aam_core import AAMManager
+    from agent_process.memory.aam.hybrid_rag import HybridRAGService
 
     AAM_AVAILABLE = True
 except ImportError:
@@ -87,9 +87,7 @@ class RetrievalManager:
                     logger.debug(f"AAM Hybrid RAG returned {len(aam_results)} results")
                     return aam_results
             except Exception as e:
-                logger.warning(
-                    f"AAM Hybrid RAG failed, falling back to standard retrieval: {e}"
-                )
+                logger.warning(f"AAM Hybrid RAG failed, falling back to standard retrieval: {e}")
 
         # 標準檢索邏輯
         if strategy == RetrievalStrategy.VECTOR_ONLY:
@@ -207,14 +205,10 @@ class RetrievalManager:
             檢索結果列表
         """
         # 獲取向量檢索結果
-        vector_results = self._vector_retrieval(
-            query, collection_name, n_results, filters
-        )
+        vector_results = self._vector_retrieval(query, collection_name, n_results, filters)
 
         # 獲取關鍵詞檢索結果
-        keyword_results = self._keyword_retrieval(
-            query, collection_name, n_results, filters
-        )
+        keyword_results = self._keyword_retrieval(query, collection_name, n_results, filters)
 
         # 合併結果並去重
         seen_ids = set()

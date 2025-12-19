@@ -8,7 +8,8 @@ Ontology 選擇器服務
 
 import json
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Set
+from typing import Any, Dict, List, Optional, Set
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -26,9 +27,7 @@ class OntologySelector:
         if ontology_list_path is None:
             # 獲取當前文件所在目錄，然後指向 ontology_list.json
             current_file = Path(__file__).resolve()
-            ontology_list_path = str(
-                current_file.parent / "ontology" / "ontology_list.json"
-            )
+            ontology_list_path = str(current_file.parent / "ontology" / "ontology_list.json")
 
         self.ontology_list_path = ontology_list_path
         self._ontology_list: Optional[Dict[str, Any]] = None
@@ -162,9 +161,7 @@ class OntologySelector:
         if not self._ontology_list:
             raise RuntimeError("Ontology list not loaded")
 
-        doc_type_index = self._ontology_list.get("quick_index", {}).get(
-            "by_document_type", {}
-        )
+        doc_type_index = self._ontology_list.get("quick_index", {}).get("by_document_type", {})
 
         if document_type in doc_type_index:
             config = doc_type_index[document_type]
@@ -223,8 +220,13 @@ class OntologySelector:
         if file_content:
             content_preview = file_content[:1000].lower()
             # 檢查是否包含關鍵字索引中的詞
-            quick_index = self._ontology_list.get("quick_index", {}).get(
-                "by_keywords", {}
+            quick_index_dict = (
+                self._ontology_list.get("quick_index") if self._ontology_list else None
+            )
+            quick_index = (
+                quick_index_dict.get("by_keywords", {})  # type: ignore[union-attr]  # 已檢查為 dict
+                if quick_index_dict and isinstance(quick_index_dict, dict)
+                else {}
             )
             for keyword in quick_index.keys():
                 if keyword in content_preview:
@@ -246,31 +248,63 @@ class OntologySelector:
             return self.select_by_keywords(keywords, file_name, file_content)
 
         # 默認：只返回 base
+        if not self._ontology_list:
+            return {
+                "base": "",
+                "domain": [],
+                "major": [],
+                "selection_method": "default",
+                "reason": "No ontology list loaded",
+            }
+        base_ontology = self._ontology_list.get("base_ontology")
+        if not base_ontology or not isinstance(base_ontology, dict):
+            return {
+                "base": "",
+                "domain": [],
+                "major": [],
+                "selection_method": "default",
+                "reason": "No base ontology found",
+            }
         return {
-            "base": self._ontology_list["base_ontology"]["file_name"],
+            "base": base_ontology.get("file_name", ""),  # type: ignore[index]  # 已檢查為 dict
             "domain": [],
             "major": [],
             "selection_method": "default",
             "reason": "No keywords or document type found",
         }
 
-    def get_ontology_paths(self, selection: Dict[str, Any]) -> Dict[str, List[str]]:
+    def get_ontology_paths(
+        self, selection: Dict[str, Any]
+    ) -> Dict[str, Any]:  # 返回類型改為 Any，因為 base 可能是字符串
         """
         獲取 Ontology 文件的完整路徑
 
         :param selection: select_auto 或 select_by_keywords 返回的選擇結果
         :return: 包含完整路徑的字典
         """
-        base_path = self._ontology_list["metadata"]["base_path"]
+        if not self._ontology_list:
+            return {"base": "", "domain": [], "major": []}
+        metadata = self._ontology_list.get("metadata")
+        if not metadata or not isinstance(metadata, dict):
+            return {"base": "", "domain": [], "major": []}
+        base_path = metadata.get("base_path", "")  # type: ignore[index]  # 已檢查為 dict
 
-        paths = {
-            "base": f"{base_path}{selection['base']}",
-            "domain": [f"{base_path}{d}" for d in selection["domain"]],
-            "major": (
-                [f"{base_path}{m}" for m in selection["major"]]
-                if selection.get("major")
-                else []
-            ),
+        base_value = selection.get("base", "")
+        domain_list = selection.get("domain", [])
+        major_list = selection.get("major", [])
+
+        # 確保類型正確
+        if not isinstance(base_value, str):
+            base_value = ""
+        if not isinstance(domain_list, list):
+            domain_list = []
+        if not isinstance(major_list, list):
+            major_list = []
+
+        paths: Dict[str, Any] = {
+            "base": f"{base_path}{base_value}",  # base 是字符串，不是列表
+            "domain": [f"{base_path}{d}" for d in domain_list],
+            "major": [f"{base_path}{m}" for m in major_list],
         }
 
         return paths

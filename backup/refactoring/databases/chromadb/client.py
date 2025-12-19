@@ -5,14 +5,15 @@
 
 """ChromaDB 客戶端封裝，提供連接管理和基礎操作"""
 
-import os
-import time
-import threading
-from typing import Optional, List, Dict, Any, Callable
-from queue import LifoQueue, Empty
-from chromadb import Client, PersistentClient, HttpClient
-from chromadb.config import Settings
 import logging
+import os
+import threading
+import time
+from queue import Empty, LifoQueue
+from typing import Any, Callable, Dict, List, Optional
+
+from chromadb import Client, HttpClient, PersistentClient
+from chromadb.config import Settings
 
 from .exceptions import ChromaDBConnectionError, ChromaDBOperationError
 
@@ -89,9 +90,7 @@ class ChromaDBClient:
             )
         if self.mode == "persistent":
             if not self.persist_directory:
-                raise ChromaDBConnectionError(
-                    "Persist directory is required for persistent mode"
-                )
+                raise ChromaDBConnectionError("Persist directory is required for persistent mode")
             os.makedirs(self.persist_directory, exist_ok=True)
             return PersistentClient(
                 path=self.persist_directory,
@@ -162,9 +161,7 @@ class ChromaDBClient:
         logger.error("ChromaDB operation '%s' exhausted retries", operation)
         if last_error:
             raise ChromaDBOperationError(str(last_error)) from last_error
-        raise ChromaDBOperationError(
-            f"Operation {operation} failed without error information"
-        )
+        raise ChromaDBOperationError(f"Operation {operation} failed without error information")
 
     def get_or_create_collection(
         self,

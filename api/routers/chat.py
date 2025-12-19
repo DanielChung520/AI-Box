@@ -21,54 +21,38 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from database.arangodb import ArangoDBClient
 from agents.task_analyzer.classifier import TaskClassifier
 from agents.task_analyzer.models import LLMProvider
 from api.core.response import APIResponse
+from database.arangodb import ArangoDBClient
 from genai.workflows.context.manager import ContextManager
 from llm.moe.moe_manager import LLMMoEManager
-from services.api.models.chat import (
-    ChatRequest,
-    ChatResponse,
-    ObservabilityInfo,
-    RoutingInfo,
-)
+from services.api.models.chat import ChatRequest, ChatResponse, ObservabilityInfo, RoutingInfo
+from services.api.models.doc_edit_request import DocEditRequestRecord, DocEditStatus
 from services.api.models.file_metadata import FileMetadataCreate
-from services.api.models.doc_edit_request import (
-    DocEditRequestRecord,
-    DocEditStatus,
-)
-from services.api.services.doc_edit_request_store_service import (
-    get_doc_edit_request_store_service,
-)
-from services.api.services.doc_patch_service import detect_doc_format
 from services.api.models.genai_request import (
     GenAIChatRequestCreateResponse,
     GenAIChatRequestRecord,
     GenAIChatRequestStateResponse,
     GenAIRequestStatus,
 )
+from services.api.services.chat_memory_service import get_chat_memory_service
+from services.api.services.data_consent_service import get_consent_service
+from services.api.services.doc_edit_request_store_service import get_doc_edit_request_store_service
+from services.api.services.doc_patch_service import detect_doc_format
+from services.api.services.file_metadata_service import FileMetadataService
+from services.api.services.file_permission_service import FilePermissionService
 from services.api.services.genai_chat_request_store_service import (
     get_genai_chat_request_store_service,
 )
-from services.api.services.chat_memory_service import get_chat_memory_service
+from services.api.services.genai_config_resolver_service import get_genai_config_resolver_service
 from services.api.services.genai_metrics_service import get_genai_metrics_service
-from services.api.services.genai_policy_gate_service import (
-    get_genai_policy_gate_service,
-)
-from services.api.services.genai_config_resolver_service import (
-    get_genai_config_resolver_service,
-)
-from services.api.services.genai_model_registry_service import (
-    get_genai_model_registry_service,
-)
+from services.api.services.genai_model_registry_service import get_genai_model_registry_service
+from services.api.services.genai_policy_gate_service import get_genai_policy_gate_service
 from services.api.services.genai_trace_store_service import (
     GenAITraceEvent,
     get_genai_trace_store_service,
 )
-from services.api.services.data_consent_service import get_consent_service
-from services.api.services.file_metadata_service import FileMetadataService
-from services.api.services.file_permission_service import FilePermissionService
 from storage.file_storage import FileStorage, create_storage_from_config
 from system.infra.config.config import get_config_section
 from system.security.dependencies import get_current_tenant_id, get_current_user
@@ -380,9 +364,7 @@ def _try_edit_file_from_chat_output(
         return None
 
     # 檢測文件格式
-    doc_format = detect_doc_format(
-        filename=file_meta.filename, file_type=file_meta.file_type
-    )
+    doc_format = detect_doc_format(filename=file_meta.filename, file_type=file_meta.file_type)
     if doc_format not in {"md", "txt", "json"}:
         return None
 
@@ -498,7 +480,7 @@ def _ensure_folder_path(
                 "folder_name": seg,
             },
         )
-        existing = next(cursor, None)
+        existing = next(cursor, None) if cursor else None  # type: ignore[arg-type]  # cursor 可能為 None
         if existing and isinstance(existing, dict) and existing.get("_key"):
             folder_id = str(existing["_key"])
             parent_task_id = folder_id
@@ -580,6 +562,10 @@ def _try_create_file_from_chat_output(
             filename=filename,
             file_type=_file_type_for_filename(filename),
             file_size=len(content_bytes),
+            processing_status=None,  # type: ignore[call-arg]  # 所有參數都是 Optional
+            chunk_count=None,  # type: ignore[call-arg]
+            vector_count=None,  # type: ignore[call-arg]
+            kg_status=None,  # type: ignore[call-arg]
             user_id=current_user.user_id,
             task_id=task_id,
             folder_id=folder_id,
@@ -621,10 +607,7 @@ def _record_if_changed(
         last_messages = context_manager.get_messages(session_id=session_id, limit=1)
         if last_messages:
             last = last_messages[-1]
-            if (
-                str(last.role) == role
-                and str(last.content).strip() == normalized_content
-            ):
+            if str(last.role) == role and str(last.content).strip() == normalized_content:
                 return False
     except Exception:  # noqa: BLE001
         # 取最後消息失敗時不阻擋寫入
@@ -662,9 +645,7 @@ def _infer_provider_from_model_id(model_id: str) -> LLMProvider:
 
 
 def _extract_content(result: Dict[str, Any]) -> str:
-    return str(
-        result.get("content") or result.get("message") or result.get("text") or ""
-    )
+    return str(result.get("content") or result.get("message") or result.get("text") or "")
 
 
 def _register_request_task(*, request_id: str, task: asyncio.Task[None]) -> None:
@@ -718,6 +699,7 @@ async def _process_chat_request(
         request_id=request_id,
         session_id=session_id,
         task_id=task_id,
+        token_input=None,  # type: ignore[call-arg]  # token_input 有默認值
     )
 
     start_time = time.perf_counter()
@@ -745,9 +727,7 @@ async def _process_chat_request(
 
     # 取最後一則 user message（若找不到就取最後一則）
     user_messages = [m for m in messages if m.get("role") == "user"]
-    last_user_text = (
-        str(user_messages[-1].get("content", "")) if user_messages else ""
-    ).strip()
+    last_user_text = (str(user_messages[-1].get("content", "")) if user_messages else "").strip()
     if not last_user_text and messages:
         last_user_text = str(messages[-1].get("content", "")).strip()
 
@@ -1075,6 +1055,7 @@ async def chat_product(
         request_id=request_id,
         session_id=session_id,
         task_id=task_id,
+        token_input=None,  # type: ignore[call-arg]  # token_input 有默認值
     )
 
     start_time = time.perf_counter()
@@ -1115,9 +1096,7 @@ async def chat_product(
 
         # 取最後一則 user message（若找不到就取最後一則）
         user_messages = [m for m in messages if m.get("role") == "user"]
-        last_user_text = (
-            str(user_messages[-1].get("content", "")) if user_messages else ""
-        )
+        last_user_text = str(user_messages[-1].get("content", "")) if user_messages else ""
         if not last_user_text and messages:
             last_user_text = str(messages[-1].get("content", ""))
 
@@ -1137,9 +1116,7 @@ async def chat_product(
 
         # G3：用 windowed history 作為 MoE 的 messages（並保留前端提供的 system message）
         system_messages = [m for m in messages if m.get("role") == "system"]
-        windowed_history = context_manager.get_context_with_window(
-            session_id=session_id
-        )
+        windowed_history = context_manager.get_context_with_window(session_id=session_id)
         observability.context_message_count = (
             len(windowed_history) if isinstance(windowed_history, list) else 0
         )
@@ -1196,9 +1173,7 @@ async def chat_product(
             observability.retrieval_latency_ms = 0.0
 
         base_system = system_messages[:1] if system_messages else []
-        messages_for_llm = (
-            base_system + memory_result.injection_messages + windowed_history
-        )
+        messages_for_llm = base_system + memory_result.injection_messages + windowed_history
 
         trace_store.add_event(
             GenAITraceEvent(
@@ -1809,16 +1784,12 @@ async def get_favorite_models(
 ) -> JSONResponse:
     user_id = current_user.user_id
     try:
-        from services.api.services.user_preference_service import (
-            get_user_preference_service,
-        )
+        from services.api.services.user_preference_service import get_user_preference_service
 
         service = get_user_preference_service()
         model_ids = service.get_favorite_models(user_id=user_id)
     except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "favorite_models_service_failed", user_id=user_id, error=str(exc)
-        )
+        logger.warning("favorite_models_service_failed", user_id=user_id, error=str(exc))
         model_ids = _favorite_models_by_user.get(user_id, [])
     return APIResponse.success(
         data={"model_ids": model_ids},
@@ -1842,16 +1813,12 @@ async def set_favorite_models(
         )
         filtered = policy_gate.filter_favorite_models(request_body.model_ids)
 
-        from services.api.services.user_preference_service import (
-            get_user_preference_service,
-        )
+        from services.api.services.user_preference_service import get_user_preference_service
 
         service = get_user_preference_service()
         normalized = service.set_favorite_models(user_id=user_id, model_ids=filtered)
     except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "favorite_models_service_failed", user_id=user_id, error=str(exc)
-        )
+        logger.warning("favorite_models_service_failed", user_id=user_id, error=str(exc))
         # 去重且保序（fallback）
         seen: set[str] = set()
         normalized = []

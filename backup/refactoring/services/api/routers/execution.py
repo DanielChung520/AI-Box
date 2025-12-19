@@ -5,14 +5,15 @@
 
 """Execution Agent API 路由"""
 
-from fastapi import APIRouter, status, HTTPException
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
 
-from services.api.core.response import APIResponse
 from agents.core.execution.agent import ExecutionAgent
 from agents.core.execution.models import ExecutionRequest
+from services.api.core.response import APIResponse
 
 router = APIRouter()
 

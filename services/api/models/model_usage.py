@@ -6,8 +6,9 @@
 """模型使用日誌數據模型 - 定義模型使用追蹤相關的數據結構"""
 
 from datetime import datetime
-from typing import Optional, Dict, Any
 from enum import Enum
+from typing import Any, Dict, Optional
+
 from pydantic import BaseModel, Field
 
 

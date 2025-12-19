@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from agents.infra.memory.aam.models import Memory
 from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.models import Memory
 from database.arangodb.client import ArangoDBClient
 
 logger = structlog.get_logger(__name__)
@@ -62,9 +62,7 @@ class KGQueryIntegration:
             self.logger.debug("Querying knowledge graph for memories", query=query[:50])
             return []
         except Exception as e:
-            self.logger.error(
-                "Failed to query knowledge graph for memories", error=str(e)
-            )
+            self.logger.error("Failed to query knowledge graph for memories", error=str(e))
             return []
 
     def kg_to_memory_mapping(self, entity_id: str) -> List[str]:

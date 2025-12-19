@@ -5,18 +5,19 @@
 
 """解析器工廠 - 實現解析器註冊和自動格式檢測"""
 
-from typing import Dict, Optional, Type
 from pathlib import Path
+from typing import Dict, Optional, Type
+
 import structlog
 
 from .parsers.base_parser import BaseParser
-from .parsers.txt_parser import TxtParser
+from .parsers.csv_parser import CsvParser
+from .parsers.docx_parser import DocxParser
+from .parsers.html_parser import HtmlParser
+from .parsers.json_parser import JsonParser
 from .parsers.md_parser import MdParser
 from .parsers.pdf_parser import PdfParser
-from .parsers.docx_parser import DocxParser
-from .parsers.csv_parser import CsvParser
-from .parsers.json_parser import JsonParser
-from .parsers.html_parser import HtmlParser
+from .parsers.txt_parser import TxtParser
 from .parsers.xlsx_parser import XlsxParser
 
 logger = structlog.get_logger(__name__)
@@ -42,9 +43,7 @@ class ParserFactory:
             (
                 DocxParser,
                 [".docx"],
-                [
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                ],
+                ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
             ),
             (CsvParser, [".csv"], ["text/csv"]),
             (JsonParser, [".json"], ["application/json"]),
@@ -57,7 +56,8 @@ class ParserFactory:
         ]
 
         for parser_class, extensions, mime_types in parsers:
-            self.register_parser(parser_class, extensions, mime_types)
+            # parser_class 是具體的實現類，不是抽象類
+            self.register_parser(parser_class, extensions, mime_types)  # type: ignore[type-abstract]
 
     def register_parser(
         self,

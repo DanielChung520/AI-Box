@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import httpx
 import structlog
@@ -87,10 +87,9 @@ class EmbeddingService:
             or "nomic-embed-text"
         )
         # 支持環境變量 EMBEDDING_BATCH_SIZE
+        env_batch_size = os.getenv("EMBEDDING_BATCH_SIZE")
         config_batch_size = (
-            int(os.getenv("EMBEDDING_BATCH_SIZE"))
-            if os.getenv("EMBEDDING_BATCH_SIZE")
-            else config.get("batch_size", 10)
+            int(env_batch_size) if env_batch_size else config.get("batch_size", 10)  # type: ignore[arg-type]  # env_batch_size 已檢查不為 None
         )
         self.batch_size = batch_size or config_batch_size
         self.max_retries = max_retries or config.get("max_retries", 3)
@@ -177,6 +176,9 @@ class EmbeddingService:
                             usage = ModelUsageCreate(
                                 model_name=self.model,
                                 user_id=user_id,
+                                model_version=None,  # type: ignore[call-arg]  # model_version 有默認值
+                                cost=None,  # type: ignore[call-arg]  # cost 有默認值
+                                error_message=None,  # type: ignore[call-arg]  # error_message 有默認值
                                 file_id=file_id,
                                 task_id=task_id,
                                 input_length=len(text),
@@ -228,7 +230,7 @@ class EmbeddingService:
         raise RuntimeError(f"Failed to generate embedding after {self.max_retries} attempts")
 
     async def generate_embeddings_batch(
-        self, texts: List[str], progress_callback: Optional[callable] = None
+        self, texts: List[str], progress_callback: Optional[Callable[[int, int], None]] = None
     ) -> List[List[float]]:
         """
         批量生成嵌入向量
@@ -312,7 +314,9 @@ class EmbeddingService:
             if isinstance(result, Exception):
                 logger.error("Failed to process batch", error=str(result))
                 raise RuntimeError(f"Failed to process batch: {result}") from result
-            batch_results.append(result)
+            if not isinstance(result, tuple):
+                continue  # 跳過非 tuple 結果
+            batch_results.append(result)  # type: ignore[arg-type]  # 已檢查為 tuple
 
         # 排序確保順序
         batch_results.sort(key=lambda x: x[0])

@@ -135,9 +135,7 @@ class ContextManager:
             metadata=full_metadata,
         )
 
-    def get_context(
-        self, session_id: str, limit: Optional[int] = None
-    ) -> List[Dict[str, str]]:
+    def get_context(self, session_id: str, limit: Optional[int] = None) -> List[Dict[str, str]]:
         """
         獲取對話上下文（LLM 格式）。
 
@@ -148,13 +146,9 @@ class ContextManager:
         Returns:
             消息列表，格式為 [{"role": "...", "content": "..."}]
         """
-        return self._recorder.get_conversation_context(
-            session_id=session_id, limit=limit
-        )
+        return self._recorder.get_conversation_context(session_id=session_id, limit=limit)
 
-    def get_messages(
-        self, session_id: str, limit: Optional[int] = None
-    ) -> List[ContextMessage]:
+    def get_messages(self, session_id: str, limit: Optional[int] = None) -> List[ContextMessage]:
         """
         獲取完整的消息對象列表。
 
@@ -245,9 +239,7 @@ class ContextManager:
         truncated_messages = self._window.truncate(messages)
 
         # 轉換為 LLM 格式
-        return [
-            {"role": msg.role, "content": msg.content} for msg in truncated_messages
-        ]
+        return [{"role": msg.role, "content": msg.content} for msg in truncated_messages]
 
     def save_to_history(self, session_id: str, message: ContextMessage) -> bool:
         """

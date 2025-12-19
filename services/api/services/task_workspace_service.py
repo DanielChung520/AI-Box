@@ -5,10 +5,11 @@
 
 """任務工作區服務 - 管理任務工作區和排程任務目錄的創建和管理"""
 
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
 import structlog
-from datetime import datetime
 
 from database.arangodb import ArangoDBClient
 from system.infra.config.config import get_config_section
@@ -229,17 +230,13 @@ class TaskWorkspaceService:
 
             return {
                 "task_id": task_id,
-                "folder_name": existing_folder.get(
-                    "folder_name", WORKSPACE_FOLDER_NAME
-                ),
+                "folder_name": existing_folder.get("folder_name", WORKSPACE_FOLDER_NAME),
                 "folder_type": "workspace",
                 "storage_path": str(workspace_path),
                 "folder_key": folder_key,
             }
 
-    def get_workspace_path(
-        self, task_id: str, base_storage_path: Optional[str] = None
-    ) -> Path:
+    def get_workspace_path(self, task_id: str, base_storage_path: Optional[str] = None) -> Path:
         """
         獲取任務工作區的文件系統路徑
 
@@ -255,9 +252,7 @@ class TaskWorkspaceService:
             base_storage_path = _get_base_storage_path()
         return Path(base_storage_path) / task_id / "workspace"
 
-    def delete_workspace(
-        self, task_id: str, base_storage_path: Optional[str] = None
-    ) -> bool:
+    def delete_workspace(self, task_id: str, base_storage_path: Optional[str] = None) -> bool:
         """
         刪除任務工作區（包括文件系統目錄和數據庫記錄）
 
@@ -299,9 +294,7 @@ class TaskWorkspaceService:
 
             return True
         except Exception as e:
-            self.logger.error(
-                "刪除任務工作區失敗", task_id=task_id, error=str(e), exc_info=True
-            )
+            self.logger.error("刪除任務工作區失敗", task_id=task_id, error=str(e), exc_info=True)
             return False
 
 

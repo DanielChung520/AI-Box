@@ -12,12 +12,12 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
+from agents.infra.memory.aam.models import Memory, MemoryPriority, MemoryType
 from agents.infra.memory.aam.storage_adapter import (
-    BaseStorageAdapter,
-    RedisAdapter,
-    ChromaDBAdapter,
     ArangoDBAdapter,
+    BaseStorageAdapter,
+    ChromaDBAdapter,
+    RedisAdapter,
 )
 
 logger = structlog.get_logger(__name__)
@@ -56,13 +56,9 @@ class AAMManager:
 
         # 驗證適配器配置
         if enable_short_term and redis_adapter is None:
-            self.logger.warning(
-                "Short-term memory enabled but Redis adapter not provided"
-            )
+            self.logger.warning("Short-term memory enabled but Redis adapter not provided")
         if enable_long_term and chromadb_adapter is None:
-            self.logger.warning(
-                "Long-term memory enabled but ChromaDB adapter not provided"
-            )
+            self.logger.warning("Long-term memory enabled but ChromaDB adapter not provided")
 
     def _get_adapter(self, memory_type: MemoryType) -> Optional[BaseStorageAdapter]:
         """根據記憶類型獲取對應的適配器"""
@@ -126,9 +122,7 @@ class AAMManager:
             if self.arangodb_adapter is not None:
                 self.arangodb_adapter.store(memory)
 
-            self.logger.info(
-                "Stored memory", memory_id=memory_id, memory_type=memory_type.value
-            )
+            self.logger.info("Stored memory", memory_id=memory_id, memory_type=memory_type.value)
             return memory_id
         except Exception as e:
             self.logger.error("Failed to store memory", error=str(e))
@@ -174,9 +168,7 @@ class AAMManager:
 
             return None
         except Exception as e:
-            self.logger.error(
-                "Failed to retrieve memory", error=str(e), memory_id=memory_id
-            )
+            self.logger.error("Failed to retrieve memory", error=str(e), memory_id=memory_id)
             return None
 
     def update_memory(
@@ -229,14 +221,10 @@ class AAMManager:
             self.logger.info("Updated memory", memory_id=memory_id)
             return success
         except Exception as e:
-            self.logger.error(
-                "Failed to update memory", error=str(e), memory_id=memory_id
-            )
+            self.logger.error("Failed to update memory", error=str(e), memory_id=memory_id)
             return False
 
-    def delete_memory(
-        self, memory_id: str, memory_type: Optional[MemoryType] = None
-    ) -> bool:
+    def delete_memory(self, memory_id: str, memory_type: Optional[MemoryType] = None) -> bool:
         """
         刪除記憶
 
@@ -276,9 +264,7 @@ class AAMManager:
             self.logger.info("Deleted memory", memory_id=memory_id)
             return success
         except Exception as e:
-            self.logger.error(
-                "Failed to delete memory", error=str(e), memory_id=memory_id
-            )
+            self.logger.error("Failed to delete memory", error=str(e), memory_id=memory_id)
             return False
 
     def search_memories(
@@ -323,9 +309,7 @@ class AAMManager:
                     results.extend(long_term_results)
 
             # 過濾和排序
-            filtered_results = [
-                m for m in results if m.relevance_score >= min_relevance
-            ]
+            filtered_results = [m for m in results if m.relevance_score >= min_relevance]
             sorted_results = sorted(
                 filtered_results,
                 key=lambda m: (
@@ -397,9 +381,7 @@ class AAMManager:
                 self.logger.info("Synced memory", memory_id=memory_id)
             return success
         except Exception as e:
-            self.logger.error(
-                "Failed to sync memory", error=str(e), memory_id=memory_id
-            )
+            self.logger.error("Failed to sync memory", error=str(e), memory_id=memory_id)
             return False
 
     def incremental_update(
@@ -423,9 +405,7 @@ class AAMManager:
             # 先檢索現有記憶
             memory = self.retrieve_memory(memory_id)
             if memory is None:
-                self.logger.warning(
-                    "Memory not found for incremental update", memory_id=memory_id
-                )
+                self.logger.warning("Memory not found for incremental update", memory_id=memory_id)
                 return False
 
             # 增量更新內容

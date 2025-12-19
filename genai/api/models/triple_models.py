@@ -6,6 +6,7 @@
 """三元組提取數據模型 - 定義 Pydantic Model"""
 
 from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 from genai.api.models.ner_models import Entity
@@ -47,9 +48,7 @@ class TripleExtractionRequest(BaseModel):
     enable_ner: bool = Field(
         True, description="是否啟用實體識別（如果為 False，則需要提供 entities）"
     )
-    entities: Optional[List[Entity]] = Field(
-        None, description="預先識別的實體列表（可選）"
-    )
+    entities: Optional[List[Entity]] = Field(None, description="預先識別的實體列表（可選）")
 
 
 class TripleBatchRequest(BaseModel):
@@ -61,9 +60,7 @@ class TripleBatchRequest(BaseModel):
 class TripleExtractionResponse(BaseModel):
     """三元組提取響應模型"""
 
-    triples: List[Triple] = Field(
-        default_factory=list, description="提取出的三元組列表"
-    )
+    triples: List[Triple] = Field(default_factory=list, description="提取出的三元組列表")
     text: str = Field(..., description="原始文本")
     entities_count: int = Field(0, description="識別出的實體數量")
     relations_count: int = Field(0, description="識別出的關係數量")

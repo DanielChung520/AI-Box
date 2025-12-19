@@ -8,14 +8,14 @@
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor
 
 import structlog
 
-from agents.infra.memory.aam.models import Memory
 from agents.infra.memory.aam.aam_core import AAMManager
+from agents.infra.memory.aam.models import Memory
 from agents.infra.memory.aam.realtime_retrieval import RealtimeRetrievalService
 
 logger = structlog.get_logger(__name__)
@@ -53,9 +53,7 @@ class HybridRAGService:
             max_workers: 並行檢索的最大工作線程數
         """
         self.aam_manager = aam_manager
-        self.retrieval_service = retrieval_service or RealtimeRetrievalService(
-            aam_manager
-        )
+        self.retrieval_service = retrieval_service or RealtimeRetrievalService(aam_manager)
         self.strategy = strategy
         self.vector_weight = vector_weight
         self.graph_weight = graph_weight
@@ -113,9 +111,7 @@ class HybridRAGService:
             self.logger.error("Failed to perform hybrid RAG retrieval", error=str(e))
             return []
 
-    def _vector_first_retrieval(
-        self, query: str, top_k: int, min_relevance: float
-    ) -> List[Memory]:
+    def _vector_first_retrieval(self, query: str, top_k: int, min_relevance: float) -> List[Memory]:
         """向量優先檢索"""
         # 先執行向量檢索
         vector_results = self.retrieval_service.retrieve(
@@ -129,9 +125,7 @@ class HybridRAGService:
 
         return vector_results[:top_k]
 
-    def _graph_first_retrieval(
-        self, query: str, top_k: int, min_relevance: float
-    ) -> List[Memory]:
+    def _graph_first_retrieval(self, query: str, top_k: int, min_relevance: float) -> List[Memory]:
         """圖優先檢索"""
         # 先執行圖檢索
         graph_results = self._graph_retrieval(query, top_k)
@@ -145,9 +139,7 @@ class HybridRAGService:
 
         return graph_results[:top_k]
 
-    def _hybrid_retrieval(
-        self, query: str, top_k: int, min_relevance: float
-    ) -> List[Memory]:
+    def _hybrid_retrieval(self, query: str, top_k: int, min_relevance: float) -> List[Memory]:
         """混合檢索（並行執行向量和圖檢索，然後融合結果）"""
         results: List[Memory] = []
 

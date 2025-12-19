@@ -6,12 +6,13 @@
 """知識圖譜構建路由 - 提供圖譜構建 API 端點"""
 
 from typing import List, Optional
+
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
-from genai.api.services.kg_builder_service import KGBuilderService
 from genai.api.models.triple_models import Triple
+from genai.api.services.kg_builder_service import KGBuilderService
 
 router = APIRouter(prefix="/kg", tags=["Knowledge Graph Builder"])
 

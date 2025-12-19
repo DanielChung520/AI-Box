@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+
 import structlog
 
 from database.rq.queue import get_redis_connection
@@ -29,17 +30,11 @@ def _require_rq() -> Tuple[
     """確保 rq 可用；否則拋出可讀錯誤。"""
     try:
         from rq import Queue, Worker
-        from rq.registry import (
-            FailedJobRegistry,
-            FinishedJobRegistry,
-            StartedJobRegistry,
-        )
+        from rq.registry import FailedJobRegistry, FinishedJobRegistry, StartedJobRegistry
 
         return Queue, Worker, StartedJobRegistry, FinishedJobRegistry, FailedJobRegistry
     except ImportError as exc:
-        raise RuntimeError(
-            "RQ is not installed. Please install it first: pip install rq"
-        ) from exc
+        raise RuntimeError("RQ is not installed. Please install it first: pip install rq") from exc
 
 
 def get_all_queues() -> List[str]:
@@ -75,9 +70,7 @@ def get_queue_stats(queue_name: str) -> Dict[str, Any]:
         隊列統計信息字典
     """
     try:
-        Queue, _, StartedJobRegistry, FinishedJobRegistry, FailedJobRegistry = (
-            _require_rq()
-        )
+        Queue, _, StartedJobRegistry, FinishedJobRegistry, FailedJobRegistry = _require_rq()
         redis_conn = get_redis_connection()
         queue = Queue(queue_name, connection=redis_conn)
 
@@ -138,9 +131,7 @@ def get_workers_info() -> List[Dict[str, Any]]:
                 "state": worker.state,
                 "queues": worker.queue_names(),
                 "current_job_id": worker.current_job.id if worker.current_job else None,
-                "birth_date": (
-                    worker.birth_date.isoformat() if worker.birth_date else None
-                ),
+                "birth_date": (worker.birth_date.isoformat() if worker.birth_date else None),
             }
             workers_info.append(worker_info)
 
@@ -214,18 +205,14 @@ def get_queue_jobs(
                         # 提取關鍵信息（file_id, user_id 等）
                         file_id = kwargs_dict.get("file_id") if kwargs_dict else None
                         user_id = kwargs_dict.get("user_id") if kwargs_dict else None
-                        file_path = (
-                            kwargs_dict.get("file_path") if kwargs_dict else None
-                        )
+                        file_path = kwargs_dict.get("file_path") if kwargs_dict else None
 
                         jobs_info.append(
                             {
                                 "job_id": job.id,
                                 "status": job_status,
                                 "created_at": (
-                                    job.created_at.isoformat()
-                                    if job.created_at
-                                    else None
+                                    job.created_at.isoformat() if job.created_at else None
                                 ),
                                 "func_name": job.func_name,
                                 "args": args_str,
@@ -263,9 +250,7 @@ def get_queue_jobs(
                                 "job_id": job.id,
                                 "status": job_status,
                                 "started_at": (
-                                    job.started_at.isoformat()
-                                    if job.started_at
-                                    else None
+                                    job.started_at.isoformat() if job.started_at else None
                                 ),
                                 "func_name": job.func_name,
                             }
@@ -289,13 +274,9 @@ def get_queue_jobs(
                         # 修改時間：2025-12-12 - 安全處理 exc_info，避免編碼錯誤
                         exc_info_str = None
                         try:
-                            exc_info_str = (
-                                str(job.exc_info)[:200] if job.exc_info else None
-                            )
+                            exc_info_str = str(job.exc_info)[:200] if job.exc_info else None
                         except (UnicodeDecodeError, UnicodeEncodeError):
-                            exc_info_str = (
-                                repr(job.exc_info)[:200] if job.exc_info else None
-                            )
+                            exc_info_str = repr(job.exc_info)[:200] if job.exc_info else None
 
                         # 修改時間：2025-12-12 - 將 JobStatus 枚舉轉換為字符串
                         job_status = job.get_status()
@@ -308,9 +289,7 @@ def get_queue_jobs(
                             {
                                 "job_id": job.id,
                                 "status": job_status,
-                                "ended_at": (
-                                    job.ended_at.isoformat() if job.ended_at else None
-                                ),
+                                "ended_at": (job.ended_at.isoformat() if job.ended_at else None),
                                 "exc_info": exc_info_str,
                                 "func_name": job.func_name,
                             }

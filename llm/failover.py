@@ -130,9 +130,7 @@ class LLMFailoverManager:
                     client = LLMClientFactory.create_client(provider, use_cache=True)
                 except Exception as exc:
                     latency = time.time() - start_time
-                    logger.warning(
-                        f"Failed to create client for {provider.value}: {exc}"
-                    )
+                    logger.warning(f"Failed to create client for {provider.value}: {exc}")
                     return HealthCheckResult(
                         provider=provider,
                         healthy=False,
@@ -167,8 +165,7 @@ class LLMFailoverManager:
                 )
                 latency = time.time() - start_time
                 logger.debug(
-                    f"Health check passed for {provider.value} "
-                    f"(latency: {latency:.3f}s)"
+                    f"Health check passed for {provider.value} " f"(latency: {latency:.3f}s)"
                 )
                 return HealthCheckResult(
                     provider=provider,
@@ -235,9 +232,7 @@ class LLMFailoverManager:
                 results[provider] = health_result
             else:
                 # result 在 else 分支中一定是 HealthCheckResult
-                assert isinstance(
-                    result, HealthCheckResult
-                ), "Expected HealthCheckResult"
+                assert isinstance(result, HealthCheckResult), "Expected HealthCheckResult"
                 results[provider] = result
                 health_result = result
 
@@ -249,9 +244,7 @@ class LLMFailoverManager:
             if health_result.healthy:
                 self._failure_counts[provider] = 0
             else:
-                self._failure_counts[provider] = (
-                    self._failure_counts.get(provider, 0) + 1
-                )
+                self._failure_counts[provider] = self._failure_counts.get(provider, 0) + 1
 
         return results
 
@@ -311,9 +304,7 @@ class LLMFailoverManager:
         if providers is None:
             providers = list(LLMProvider)
 
-        return [
-            provider for provider in providers if self.is_provider_healthy(provider)
-        ]
+        return [provider for provider in providers if self.is_provider_healthy(provider)]
 
     async def execute_with_retry(
         self,
@@ -371,9 +362,7 @@ class LLMFailoverManager:
                     continue
 
                 if not self.is_provider_healthy(fallback):
-                    logger.debug(
-                        f"Skipping {fallback.value} (not healthy or already checked)"
-                    )
+                    logger.debug(f"Skipping {fallback.value} (not healthy or already checked)")
                     continue
 
                 try:

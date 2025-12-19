@@ -5,12 +5,12 @@
 
 """CrewAI 多角色協作引擎整合模組。"""
 
-from agents.crewai.settings import CrewAISettings, load_crewai_settings
+from agents.crewai.factory import CrewAIWorkflowFactory
 from agents.crewai.llm_adapter import OllamaLLMAdapter
 from agents.crewai.manager import CrewManager
 from agents.crewai.process_engine import ProcessEngine
+from agents.crewai.settings import CrewAISettings, load_crewai_settings
 from agents.crewai.workflow import CrewAIWorkflow
-from agents.crewai.factory import CrewAIWorkflowFactory
 
 __all__ = [
     "CrewAISettings",

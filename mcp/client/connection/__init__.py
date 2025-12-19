@@ -5,13 +5,8 @@
 
 """MCP Client 連接管理模組"""
 
-from .pool import (
-    ConnectionPool,
-    ConnectionInfo,
-    ConnectionStatus,
-    LoadBalanceStrategy,
-)
 from .manager import MCPConnectionManager
+from .pool import ConnectionInfo, ConnectionPool, ConnectionStatus, LoadBalanceStrategy
 
 __all__ = [
     "ConnectionPool",

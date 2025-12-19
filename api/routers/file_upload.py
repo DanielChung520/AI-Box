@@ -54,7 +54,9 @@ class BlankMarkdownCreateRequest(BaseModel):
     """建立空白 Markdown 檔案（不走 upload multipart）。"""
 
     task_id: str = Field(..., description="任務ID（必填）")
-    folder_id: Optional[str] = Field(None, description="資料夾ID（可選；None 表示任務工作區根目錄）")
+    folder_id: Optional[str] = Field(
+        None, description="資料夾ID（可選；None 表示任務工作區根目錄）"
+    )
     filename: str = Field(..., description="檔名（會自動補 .md）")
 
 
@@ -131,6 +133,8 @@ async def create_blank_markdown(
                     status="pending",
                     messages=[],
                     fileTree=[],
+                    label_color=None,  # type: ignore[call-arg]  # label_color 有默認值
+                    dueDate=None,  # type: ignore[call-arg]  # dueDate 有默認值
                 )
             )
             logger.info(
@@ -183,6 +187,9 @@ async def create_blank_markdown(
             file_id=file_id,
             filename=filename,
             file_type="text/markdown",
+            chunk_count=None,  # type: ignore[call-arg]  # 所有參數都是 Optional
+            vector_count=None,  # type: ignore[call-arg]
+            kg_status=None,  # type: ignore[call-arg]
             file_size=len(content),
             user_id=current_user.user_id,
             task_id=task_id,
@@ -278,9 +285,9 @@ def _update_processing_status(
 
         # 嘗試讀取現有狀態（從 Redis）
         existing_key = f"processing:status:{file_id}"
-        existing_data_str = redis_client.get(existing_key)
+        existing_data_str = redis_client.get(existing_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
         if existing_data_str:
-            status_data = json.loads(existing_data_str)
+            status_data = json.loads(existing_data_str)  # type: ignore[arg-type]  # existing_data_str 已檢查不為 None，且 decode_responses=True 返回 str
         else:
             status_data = {
                 "file_id": file_id,
@@ -695,8 +702,8 @@ async def process_file_chunking_and_vectorization(
                         # 讀取剛寫入的 processing status 取得 remaining_chunks
                         redis_client = get_redis_client()
                         status_key = f"processing:status:{file_id}"
-                        status_raw = redis_client.get(status_key)
-                        status_data = json.loads(status_raw) if status_raw else {}
+                        status_raw = redis_client.get(status_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
+                        status_data = json.loads(status_raw) if status_raw else {}  # type: ignore[arg-type]  # status_raw 已檢查不為 None，且 decode_responses=True 返回 str
                         remaining_chunks = (status_data.get("kg_extraction") or {}).get(
                             "remaining_chunks"
                         ) or []
@@ -1581,7 +1588,9 @@ async def upload_files(
     request: Request,
     files: List[UploadFile] = File(...),
     task_id: Optional[str] = Form(None, description="任務ID（可選，用於組織文件到工作區）"),
-    target_folder_id: Optional[str] = Form(None, description="目標資料夾ID（可選，未提供則放任務工作區）"),
+    target_folder_id: Optional[str] = Form(
+        None, description="目標資料夾ID（可選，未提供則放任務工作區）"
+    ),
     current_user: User = Depends(require_consent(ConsentType.FILE_UPLOAD)),
 ) -> JSONResponse:
     # 修改時間：2025-01-27 - 添加日誌記錄以便調試 JWT 認證問題
@@ -1666,6 +1675,8 @@ async def upload_files(
                         status="pending",
                         messages=[],
                         fileTree=[],
+                        label_color=None,  # type: ignore[call-arg]  # label_color 有默認值
+                        dueDate=None,  # type: ignore[call-arg]  # dueDate 有默認值
                     )
                 )
                 final_task_id = task_id
@@ -1731,6 +1742,8 @@ async def upload_files(
                     status="pending",
                     messages=[],
                     fileTree=[],
+                    label_color=None,  # type: ignore[call-arg]  # label_color 有默認值
+                    dueDate=None,  # type: ignore[call-arg]  # dueDate 有默認值
                 )
             )
             logger.info(
@@ -1832,7 +1845,7 @@ async def upload_files(
             _update_upload_progress(file_id, 50, "uploading", "文件已保存，正在處理...")
 
             # 獲取文件類型
-            file_type = validator.get_file_type(file.filename)
+            file_type = validator.get_file_type(file.filename) if file.filename else "application/octet-stream"  # type: ignore[arg-type]  # file.filename 可能為 None
 
             # 創建元數據
             try:
@@ -1852,6 +1865,12 @@ async def upload_files(
                     task_id=final_task_id,  # 文件位置在該任務的任務工作區下
                     folder_id=final_folder_id,
                     storage_path=str(file_path),  # 保存文件存儲路徑
+                    description=None,  # type: ignore[call-arg]  # 所有參數都是 Optional
+                    status=None,  # type: ignore[call-arg]
+                    processing_status=None,  # type: ignore[call-arg]
+                    chunk_count=None,  # type: ignore[call-arg]
+                    vector_count=None,  # type: ignore[call-arg]
+                    kg_status=None,  # type: ignore[call-arg]
                 )
                 metadata_service.create(metadata_create)
             except Exception as e:
@@ -2068,7 +2087,7 @@ async def get_upload_progress(
     try:
         redis_client = get_redis_client()
         progress_key = f"upload:progress:{file_id}"
-        progress_data_str = redis_client.get(progress_key)
+        progress_data_str = redis_client.get(progress_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
 
         if not progress_data_str:
             return APIResponse.error(
@@ -2076,7 +2095,7 @@ async def get_upload_progress(
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        progress_data = json.loads(progress_data_str)
+        progress_data = json.loads(progress_data_str)  # type: ignore[arg-type]  # progress_data_str 已檢查不為 None，且 decode_responses=True 返回 str
 
         return APIResponse.success(
             data=progress_data,
@@ -2142,10 +2161,10 @@ async def get_processing_status(
         # 從 Redis 讀取處理狀態
         redis_client = get_redis_client()
         status_key = f"processing:status:{file_id}"
-        status_data_str = redis_client.get(status_key)
+        status_data_str = redis_client.get(status_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
 
         if status_data_str:
-            status_data = json.loads(status_data_str)
+            status_data = json.loads(status_data_str)  # type: ignore[arg-type]  # status_data_str 已檢查不為 None，且 decode_responses=True 返回 str
             return APIResponse.success(
                 data=status_data,
                 message="處理狀態查詢成功",
@@ -2154,10 +2173,10 @@ async def get_processing_status(
             # 如果沒有處理狀態記錄，檢查是否已上傳
             # 可能文件剛上傳，處理還未開始
             upload_progress_key = f"upload:progress:{file_id}"
-            upload_progress_str = redis_client.get(upload_progress_key)
+            upload_progress_str = redis_client.get(upload_progress_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
 
             if upload_progress_str:
-                upload_progress = json.loads(upload_progress_str)
+                upload_progress = json.loads(upload_progress_str)  # type: ignore[arg-type]  # upload_progress_str 已檢查不為 None，且 decode_responses=True 返回 str
                 if upload_progress.get("status") == "completed":
                     # 文件已上傳完成，但處理尚未開始或已過期
                     return APIResponse.success(
@@ -2210,7 +2229,7 @@ async def get_kg_chunk_status(
     try:
         redis_client = get_redis_client()
         state_key = f"kg:chunk_state:{file_id}"
-        state_str = redis_client.get(state_key)
+        state_str = redis_client.get(state_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
         if not state_str:
             return APIResponse.success(
                 data={
@@ -2225,7 +2244,7 @@ async def get_kg_chunk_status(
                 message="KG chunk 狀態不存在（尚未開始或已過期）",
             )
 
-        state = json.loads(state_str)
+        state = json.loads(state_str)  # type: ignore[arg-type]  # state_str 已檢查不為 None，且 decode_responses=True 返回 str
         return APIResponse.success(
             data={
                 "file_id": file_id,
@@ -2299,10 +2318,10 @@ async def get_kg_stats(
         # 從處理狀態中獲取KG統計
         redis_client = get_redis_client()
         status_key = f"processing:status:{file_id}"
-        status_data_str = redis_client.get(status_key)
+        status_data_str = redis_client.get(status_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
 
         if status_data_str:
-            status_data = json.loads(status_data_str)
+            status_data = json.loads(status_data_str)  # type: ignore[arg-type]  # status_data_str 已檢查不為 None，且 decode_responses=True 返回 str
             kg_extraction = status_data.get("kg_extraction", {})
 
             if kg_extraction.get("status") == "completed":

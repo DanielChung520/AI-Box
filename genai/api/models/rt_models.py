@@ -6,6 +6,7 @@
 """RT 關係類型分類數據模型 - 定義 Pydantic Model"""
 
 from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -20,12 +21,8 @@ class RTRequest(BaseModel):
     """RT 請求模型"""
 
     relation_text: str = Field(..., description="關係文本（例如：'工作於'、'位於' 等）")
-    subject_text: Optional[str] = Field(
-        None, description="主體實體文本（可選，用於上下文）"
-    )
-    object_text: Optional[str] = Field(
-        None, description="客體實體文本（可選，用於上下文）"
-    )
+    subject_text: Optional[str] = Field(None, description="主體實體文本（可選，用於上下文）")
+    object_text: Optional[str] = Field(None, description="客體實體文本（可選，用於上下文）")
     model_type: Optional[str] = Field(
         None,
         description="指定使用的模型類型（ollama/transformers），不指定則使用配置默認值",
@@ -49,17 +46,13 @@ class RTResponse(BaseModel):
     relation_types: List[RelationType] = Field(
         default_factory=list, description="識別出的關係類型列表（多標籤）"
     )
-    primary_type: Optional[str] = Field(
-        None, description="主要關係類型（置信度最高的）"
-    )
+    primary_type: Optional[str] = Field(None, description="主要關係類型（置信度最高的）")
     model_used: str = Field(..., description="實際使用的模型類型")
 
 
 class RTBatchResponse(BaseModel):
     """RT 批量響應模型"""
 
-    results: List[RTResponse] = Field(
-        default_factory=list, description="每個關係的分類結果"
-    )
+    results: List[RTResponse] = Field(default_factory=list, description="每個關係的分類結果")
     total: int = Field(..., description="總關係數")
     processed: int = Field(..., description="成功處理的關係數")

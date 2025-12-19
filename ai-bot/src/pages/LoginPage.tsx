@@ -36,7 +36,7 @@ export default function LoginPage() {
           // 保存認證 token（必須先保存，確保後續請求能使用）
           const accessToken = response.data.access_token;
           const refreshToken = response.data.refresh_token;
-          
+
           if (!accessToken) {
             console.error('[Login] No access_token in response:', response);
             setError('登錄失敗：服務器未返回認證令牌');
@@ -82,7 +82,7 @@ export default function LoginPage() {
                 console.error('[Login] Token not found when syncing tasks. Login may have failed.');
                 return;
               }
-              
+
               console.log('[Login] Starting task sync with token length:', savedToken.length);
               const { syncTasksBidirectional } = await import('../lib/taskStorage');
               await syncTasksBidirectional();

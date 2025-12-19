@@ -5,11 +5,11 @@
 
 """LangChain 工作流模組：實現 LangGraph 工作流編排"""
 
-from .workflow import LangChainGraphWorkflow  # noqa: F401
 from .checkpoint import build_checkpointer  # noqa: F401
-from .context_recorder import build_context_recorder, ContextRecorder  # noqa: F401
+from .context_recorder import ContextRecorder, build_context_recorder  # noqa: F401
 from .state import LangGraphState, build_initial_state  # noqa: F401
 from .telemetry import WorkflowTelemetryCollector  # noqa: F401
+from .workflow import LangChainGraphWorkflow  # noqa: F401
 
 __all__ = [
     "LangChainGraphWorkflow",

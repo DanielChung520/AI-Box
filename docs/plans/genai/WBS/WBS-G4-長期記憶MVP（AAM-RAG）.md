@@ -8,11 +8,14 @@
 # WBS-G4：長期記憶 MVP（AAM/RAG）
 
 ## 目標
+
 在不做大重構前提下，先交付「可用的長期記憶」：
+
 - 根據 user query 檢索長期記憶（向量/圖譜至少一種）
 - 把檢索結果注入到 MoE Chat 的上下文
 
 ## 工作項
+
 - **G4.1 Retrieval 管線**
   - MVP：向量檢索（ChromaDB）
   - 可選：圖譜檢索（ArangoDB）
@@ -29,5 +32,6 @@
   - memory_hit_count、memory_sources、retrieval_latency
 
 ## 驗收
+
 - 同一 user 連續對話可以看到「長期記憶」對回覆的影響
 - memory hit 的指標可觀測

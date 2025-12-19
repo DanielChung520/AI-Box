@@ -6,17 +6,18 @@
 """Agent Registry API 路由 - 提供 Agent 註冊和管理接口"""
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 
-from api.core.response import APIResponse
-from agents.services.registry.registry import get_agent_registry
 from agents.services.registry.models import (
+    AgentPermissionConfig,
     AgentRegistrationRequest,
     AgentStatus,
-    AgentPermissionConfig,
 )
+from agents.services.registry.registry import get_agent_registry
+from api.core.response import APIResponse
 from system.security.dependencies import get_current_user
 from system.security.models import User
 
@@ -48,7 +49,7 @@ async def register_agent(
 
         # 對於外部 Agent，驗證認證配置
         if not request.endpoints.is_internal:
-            permissions = request.permissions or AgentPermissionConfig()
+            permissions = request.permissions or AgentPermissionConfig()  # type: ignore[call-arg]  # 所有參數都有默認值
 
             # Phase 1: 外部 Agent 必須提供 Secret ID（強制要求）
             if not permissions.secret_id:
@@ -113,13 +114,9 @@ async def register_agent(
                     "status": "registering",
                     "is_internal": request.endpoints.is_internal,
                     "protocol": (
-                        request.endpoints.protocol.value
-                        if request.endpoints.protocol
-                        else None
+                        request.endpoints.protocol.value if request.endpoints.protocol else None
                     ),
-                    "secret_id": (
-                        request.permissions.secret_id if request.permissions else None
-                    ),
+                    "secret_id": (request.permissions.secret_id if request.permissions else None),
                 },
                 message="Agent registered successfully. Waiting for admin approval.",
             )
@@ -167,9 +164,7 @@ async def get_agent(
             agent_data = agent_info.model_dump(mode="json")
             agent_data["is_internal"] = agent_info.endpoints.is_internal
             agent_data["protocol"] = (
-                agent_info.endpoints.protocol.value
-                if agent_info.endpoints.protocol
-                else None
+                agent_info.endpoints.protocol.value if agent_info.endpoints.protocol else None
             )
 
             return APIResponse.success(

@@ -10,19 +10,23 @@
 ## 1. 背景與目標
 
 ### 1.1 背景
+
 根據 [AI-Box 架構規劃](../../../../Notion/pages/AI-Box/AI-Box-架構規劃.md) 和 [階段四主計劃](./wbs-4-data-processing.md)，WBS 4.1 專注於實現完整的文件處理流程，包括文件上傳、分塊、多格式支持和元數據管理。
 
 ### 1.2 目標
+
 - 實現文件上傳、格式驗證、存儲功能
 - 實現文件分塊、Chunk 生成功能
 - 擴展支持多種文件格式（PDF、DOCX、TXT、MD、CSV、JSON、HTML、XLSX）
 - 實現文件元數據提取、存儲、查詢功能
 
 ### 1.3 總工期
+
 **6 個工作日**
 **優先級**: P0（關鍵路徑）
 
 ### 1.4 依賴關係
+
 - **前置依賴**:
   - 階段一：基礎架構（FastAPI 服務、ArangoDB）
   - 階段二：Agent 核心（Context Recorder）
@@ -60,6 +64,7 @@
 
 4. **配置管理**
    - 在 `config/config.example.json` 添加 `file_upload` 配置：
+
      ```json
      "file_upload": {
        "max_file_size": 104857600,
@@ -71,6 +76,7 @@
      ```
 
 **交付物**:
+
 - `services/api/routers/file_upload.py`
 - `services/api/utils/file_validator.py`
 - `services/api/storage/file_storage.py`
@@ -78,6 +84,7 @@
 - 單元測試：`tests/api/test_file_upload.py`
 
 **驗收標準**:
+
 - 支持多文件上傳（至少 5 個文件同時上傳）
 - 文件格式驗證準確率 100%
 - 文件存儲成功後返回文件 ID 和元數據
@@ -114,6 +121,7 @@
    - 實現處理進度查詢 API
 
 **交付物**:
+
 - `services/api/processors/chunk_processor.py`
 - `services/api/processors/parsers/pdf_parser.py`
 - `services/api/processors/parsers/docx_parser.py`
@@ -123,6 +131,7 @@
 - 單元測試：`tests/api/test_chunk_processor.py`
 
 **驗收標準**:
+
 - 支持 PDF、DOCX、TXT、MD 格式解析
 - 分塊準確率 > 95%（不截斷句子）
 - 10MB PDF 文件分塊處理時間 < 30 秒
@@ -158,6 +167,7 @@
    - 優化大文件內存使用（流式處理）
 
 **交付物**:
+
 - `services/api/processors/parsers/base_parser.py`
 - `services/api/processors/parsers/csv_parser.py`
 - `services/api/processors/parsers/json_parser.py`
@@ -167,6 +177,7 @@
 - 單元測試：`tests/api/test_parsers.py`
 
 **驗收標準**:
+
 - 支持至少 8 種文件格式（PDF、DOCX、TXT、MD、CSV、JSON、HTML、XLSX）
 - 格式檢測準確率 > 98%
 - 解析錯誤率 < 2%
@@ -201,12 +212,14 @@
    - 實現全文搜索（基於文件名、描述、tags）
 
 **交付物**:
+
 - `services/api/models/file_metadata.py`
 - `services/api/services/file_metadata_service.py`
 - `services/api/routers/file_metadata.py`
 - 單元測試：`tests/api/test_file_metadata.py`
 
 **驗收標準**:
+
 - 元數據存儲成功率 100%
 - 元數據查詢響應時間 < 500ms
 - 支持至少 5 種篩選條件（類型、大小、時間範圍、用戶、tags）
@@ -230,10 +243,12 @@
 ## 4. 資源需求
 
 ### 4.1 人力資源
+
 - **Backend-1**: 2.5 天（文件上傳、元數據管理）
 - **Data-1**: 3.5 天（文件分塊、多格式支持）
 
 ### 4.2 技術資源
+
 - **開發環境**: Python 3.11+、FastAPI
 - **數據庫**: ArangoDB（元數據存儲）
 - **工具庫**: PyPDF2、python-docx、openpyxl、BeautifulSoup
@@ -243,17 +258,20 @@
 ## 5. 驗收標準
 
 ### 5.1 功能驗收
+
 - ✅ 支持至少 8 種文件格式上傳
 - ✅ 文件分塊準確率 > 95%
 - ✅ 文件元數據管理完整
 - ✅ API 響應時間符合要求
 
 ### 5.2 性能驗收
+
 - ✅ 文件上傳處理：單文件 < 10MB，響應時間 < 2 秒
 - ✅ 文件分塊處理：10MB PDF，處理時間 < 30 秒
 - ✅ 元數據查詢響應時間 < 500ms
 
 ### 5.3 質量驗收
+
 - ✅ 單元測試覆蓋率 > 80%
 - ✅ 代碼審查通過
 - ✅ API 文檔完整

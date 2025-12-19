@@ -5,22 +5,23 @@
 
 """MCP Server 啟動入口文件"""
 
-import logging
 import argparse
-import uvicorn
-from contextlib import asynccontextmanager
-from typing import Optional
-
-from .server import MCPServer
-from .config import get_config
-from .monitoring import get_metrics
-from .tools.registry import get_registry
-from .tools.task_analyzer import TaskAnalyzerTool
-from .tools.file_tool import FileTool
+import logging
 
 # 修改時間：2025-12-08 12:30:00 UTC+8 - 使用統一的日誌配置模組
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Optional
+
+import uvicorn
+
+from .config import get_config
+from .monitoring import get_metrics
+from .server import MCPServer
+from .tools.file_tool import FileTool
+from .tools.registry import get_registry
+from .tools.task_analyzer import TaskAnalyzerTool
 
 # 添加項目根目錄到 Python 路徑
 project_root = Path(__file__).parent.parent.parent
@@ -143,9 +144,7 @@ def main():
     parser = argparse.ArgumentParser(description="MCP Server")
     parser.add_argument("--host", type=str, default=None, help="服務器主機地址")
     parser.add_argument("--port", type=int, default=None, help="服務器端口")
-    parser.add_argument(
-        "--reload", action="store_true", help="啟用自動重載（開發模式）"
-    )
+    parser.add_argument("--reload", action="store_true", help="啟用自動重載（開發模式）")
     parser.add_argument("--config", type=str, default=None, help="配置文件路徑")
 
     args = parser.parse_args()

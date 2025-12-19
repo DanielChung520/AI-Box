@@ -6,13 +6,13 @@
 """全局錯誤處理中間件"""
 
 import logging
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
+
+from api_gateway.core.response import APIResponse
 from fastapi import status
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
-
-from api_gateway.core.response import APIResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 logger = logging.getLogger(__name__)
 

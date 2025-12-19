@@ -42,6 +42,7 @@ AI-Box/
 **用途**：提供資料庫操作的 Python 客戶端庫封裝
 
 **內容**：
+
 - `databases/chromadb/` - ChromaDB 客戶端封裝
   - `client.py` - 客戶端類，提供連線池管理
   - `collection.py` - Collection 封裝類
@@ -56,6 +57,7 @@ AI-Box/
   - `README.md` - 使用文檔
 
 **使用方式**：
+
 ```python
 from databases.chromadb import ChromaDBClient
 from databases.arangodb import ArangoDBClient
@@ -69,16 +71,19 @@ client = ChromaDBClient()
 **用途**：存放實際的數據文件和配置
 
 **內容**：
+
 - `datasets/chromadb/` - ChromaDB 運行時數據存儲目錄（持久化模式）
 - `datasets/arangodb/` - ArangoDB 相關數據
   - `schema.yml` - Schema 定義文件
   - `seed_data.json` - 種子數據（初始數據）
 
 **設計意圖**：
+
 - `databases/` = **代碼庫**（如何操作資料庫）
 - `datasets/` = **數據庫**（實際存儲的數據）
 
 **類比**：
+
 - `databases/` 類似於 "驅動程序" 或 "SDK"
 - `datasets/` 類似於 "數據目錄" 或 "數據庫文件夾"
 
@@ -93,16 +98,19 @@ client = ChromaDBClient()
 **用途**：MCP 協議和服務器的核心實現（可復用的庫）
 
 **內容**：
+
 - `mcp_server/server.py` - `MCPServer` 核心類
 - `mcp_server/protocol/models.py` - MCP 協議數據模型
 
 **特點**：
+
 - 純 Python 類和函數
 - 不依賴 FastAPI 或其他 Web 框架
 - 可以被其他模組導入使用
 - 類似於一個"庫"或"SDK"
 
 **使用方式**：
+
 ```python
 from mcp_server.server import MCPServer
 
@@ -115,6 +123,7 @@ server = MCPServer(name="my-server")
 **用途**：將 MCP Server 包裝成一個可獨立運行的服務
 
 **內容**：
+
 - `services/mcp-server/main.py` - 服務啟動入口
 - `services/mcp-server/config.py` - 服務配置管理
 - `services/mcp-server/monitoring.py` - 監控指標
@@ -122,20 +131,24 @@ server = MCPServer(name="my-server")
 - `services/mcp-server/README.md` - 服務文檔
 
 **特點**：
+
 - 包含完整的服務配置（host, port, 環境變數）
 - 提供服務啟動入口（`main()` 函數）
 - 包含工具註冊邏輯
 - 可以被 Docker/K8s 部署
 
 **設計意圖**：
+
 - `mcp_server/` = **核心實現**（可復用的庫）
 - `services/mcp-server/` = **服務包裝**（可部署的服務）
 
 **類比**：
+
 - `mcp_server/` 類似於 "庫文件"（如 `requests` 庫）
 - `services/mcp-server/` 類似於 "應用程序"（如使用 `requests` 構建的 Web 服務）
 
 **使用方式**：
+
 ```bash
 # 作為服務啟動
 python -m services.mcp_server.main
@@ -155,6 +168,7 @@ docker-compose up mcp-server
 **用途**：實現具體的 Agent 類（業務邏輯層）
 
 **內容**：
+
 - `agents/planning/agent.py` - PlanningAgent 類
 - `agents/execution/agent.py` - ExecutionAgent 類
 - `agents/review/agent.py` - ReviewAgent 類
@@ -162,12 +176,14 @@ docker-compose up mcp-server
 - `agents/orchestrator/orchestrator.py` - AgentOrchestrator 類
 
 **特點**：
+
 - 每個子目錄對應一個具體的 Agent 類型
 - 包含 Agent 的業務邏輯
 - 使用 `agent_process/` 中的組件
 - 可以有對應的 MCP Server 實現
 
 **使用方式**：
+
 ```python
 from agents.planning.agent import PlanningAgent
 from agents.execution.agent import ExecutionAgent
@@ -182,6 +198,7 @@ plan = planning.generate_plan(request)
 **用途**：提供 Agent 運行的通用組件（基礎設施層）
 
 **內容**：
+
 - `agent_process/tools/registry.py` - 工具註冊表（所有 Agent 共享）
 - `agent_process/memory/manager.py` - 記憶管理器
 - `agent_process/prompt/manager.py` - 提示管理器
@@ -189,20 +206,24 @@ plan = planning.generate_plan(request)
 - `agent_process/context/recorder.py` - 上下文記錄器
 
 **特點**：
+
 - 提供通用的、可復用的組件
 - 不包含具體的業務邏輯
 - 可以被多個 Agent 共享使用
 - 類似於"中間件"或"工具庫"
 
 **設計意圖**：
+
 - `agents/` = **業務邏輯**（具體做什麼）
 - `agent_process/` = **基礎設施**（如何做）
 
 **類比**：
+
 - `agents/` 類似於 "應用程序"（如郵件客戶端）
 - `agent_process/` 類似於 "操作系統 API"（如文件系統、網絡庫）
 
 **使用方式**：
+
 ```python
 from agent_process.tools import ToolRegistry
 from agent_process.memory import MemoryManager
@@ -216,6 +237,7 @@ execution = ExecutionAgent(tool_registry=tool_registry)
 ```
 
 **依賴關係**：
+
 ```
 agents/ (依賴) → agent_process/
 ```
@@ -311,6 +333,7 @@ agents/ (依賴) → agent_process/
 | `agents/` vs `agent_process/` | 業務 vs 基礎設施 | 職責分離 |
 
 這些看似重複的目錄實際上是**分層設計**和**職責分離**的體現，有助於：
+
 - 提高代碼復用性
 - 降低耦合度
 - 便於獨立測試和部署

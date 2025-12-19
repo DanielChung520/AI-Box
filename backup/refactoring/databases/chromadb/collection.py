@@ -5,20 +5,14 @@
 
 """ChromaDB 集合操作封裝，提供 CRUD 和檢索功能"""
 
-from typing import List, Dict, Any, Optional, Union
-from chromadb.api.types import (
-    Where,
-    WhereDocument,
-)
 import logging
 import os
+from typing import Any, Dict, List, Optional, Union
 
-from .utils import (
-    validate_embedding_dimension,
-    normalize_embeddings,
-    batch_items,
-)
+from chromadb.api.types import Where, WhereDocument
+
 from .exceptions import ChromaDBOperationError
+from .utils import batch_items, normalize_embeddings, validate_embedding_dimension
 
 logger = logging.getLogger(__name__)
 
@@ -163,9 +157,7 @@ class ChromaCollection:
                 metadatas_list: list[dict[str, Any] | None] = [
                     item.get("metadata") for item in batch
                 ]
-                documents_list: list[str | None] = [
-                    item.get("document") for item in batch
-                ]
+                documents_list: list[str | None] = [item.get("document") for item in batch]
 
                 # 過濾 None 值，但保持列表長度一致
                 # 如果所有 embeddings 都是 None，則傳遞 None
@@ -206,9 +198,7 @@ class ChromaCollection:
             "failed": failed_count,
             "errors": errors,
         }
-        logger.info(
-            f"Batch add completed: {success_count}/{total} documents added successfully"
-        )
+        logger.info(f"Batch add completed: {success_count}/{total} documents added successfully")
         return result
 
     def get(
@@ -310,9 +300,7 @@ class ChromaCollection:
             self.collection.delete(ids=ids, where=where, where_document=where_document)
             logger.info(f"Deleted document(s) from collection '{self.name}'")
         except Exception as e:
-            logger.error(
-                f"Failed to delete documents from collection '{self.name}': {e}"
-            )
+            logger.error(f"Failed to delete documents from collection '{self.name}': {e}")
             raise
 
     def query(
@@ -370,9 +358,7 @@ class ChromaCollection:
         """
         try:
             result = self.collection.peek(limit=limit)
-            logger.debug(
-                f"Peeked {len(result['ids'])} document(s) from collection '{self.name}'"
-            )
+            logger.debug(f"Peeked {len(result['ids'])} document(s) from collection '{self.name}'")
             return result
         except Exception as e:
             logger.error(f"Failed to peek collection '{self.name}': {e}")

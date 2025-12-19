@@ -6,8 +6,8 @@
 
 """直接從數據庫恢復歸檔任務（不通過 API）"""
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

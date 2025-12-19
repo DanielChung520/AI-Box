@@ -28,21 +28,15 @@ class JWTConfig:
     def from_dict(cls, data: dict, env_prefix: str = "SECURITY_JWT") -> "JWTConfig":
         """從字典和環境變數創建 JWT 配置"""
         return cls(
-            enabled=os.getenv(
-                f"{env_prefix}_ENABLED", str(data.get("enabled", False))
-            ).lower()
+            enabled=os.getenv(f"{env_prefix}_ENABLED", str(data.get("enabled", False))).lower()
             == "true",
             secret_key=os.getenv(
                 f"{env_prefix}_SECRET_KEY",
                 data.get("secret_key", "SECURITY_JWT_SECRET_KEY"),
             ),
-            algorithm=os.getenv(
-                f"{env_prefix}_ALGORITHM", data.get("algorithm", "HS256")
-            ),
+            algorithm=os.getenv(f"{env_prefix}_ALGORITHM", data.get("algorithm", "HS256")),
             expiration_hours=int(
-                os.getenv(
-                    f"{env_prefix}_EXPIRATION_HOURS", data.get("expiration_hours", 24)
-                )
+                os.getenv(f"{env_prefix}_EXPIRATION_HOURS", data.get("expiration_hours", 24))
             ),
             refresh_expiration_days=int(
                 os.getenv(
@@ -60,14 +54,10 @@ class APIKeyConfig:
     enabled: bool
 
     @classmethod
-    def from_dict(
-        cls, data: dict, env_prefix: str = "SECURITY_API_KEY"
-    ) -> "APIKeyConfig":
+    def from_dict(cls, data: dict, env_prefix: str = "SECURITY_API_KEY") -> "APIKeyConfig":
         """從字典和環境變數創建 API Key 配置"""
         return cls(
-            enabled=os.getenv(
-                f"{env_prefix}_ENABLED", str(data.get("enabled", False))
-            ).lower()
+            enabled=os.getenv(f"{env_prefix}_ENABLED", str(data.get("enabled", False))).lower()
             == "true",
         )
 
@@ -82,9 +72,7 @@ class RBACConfig:
     def from_dict(cls, data: dict, env_prefix: str = "SECURITY_RBAC") -> "RBACConfig":
         """從字典和環境變數創建 RBAC 配置"""
         return cls(
-            enabled=os.getenv(
-                f"{env_prefix}_ENABLED", str(data.get("enabled", False))
-            ).lower()
+            enabled=os.getenv(f"{env_prefix}_ENABLED", str(data.get("enabled", False))).lower()
             == "true",
         )
 

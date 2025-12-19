@@ -8,12 +8,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
-from jose import jwt, JWTError  # type: ignore[import-untyped]
-import structlog
+from typing import Any, Dict, Optional
 
-from system.security.config import get_security_settings, JWTConfig
+import structlog
+from jose import JWTError, jwt  # type: ignore[import-untyped]
+
 from database.redis import get_redis_client
+from system.security.config import JWTConfig, get_security_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -36,11 +37,10 @@ class JWTService:
         """獲取 Redis 客戶端（懶加載）。"""
         if self._redis is None:
             try:
-                self._redis = get_redis_client()
+                redis_client = get_redis_client()
+                self._redis = redis_client  # type: ignore[assignment]  # Redis 客戶端類型
             except RuntimeError as e:
-                logger.warning(
-                    "Redis not available, blacklist will not work", error=str(e)
-                )
+                logger.warning("Redis not available, blacklist will not work", error=str(e))
         return self._redis
 
     def create_access_token(
@@ -96,9 +96,7 @@ class JWTService:
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(
-                days=self.config.refresh_expiration_days
-            )
+            expire = datetime.utcnow() + timedelta(days=self.config.refresh_expiration_days)
 
         to_encode.update(
             {
@@ -115,9 +113,7 @@ class JWTService:
         )
         return encoded_jwt
 
-    def verify_token(
-        self, token: str, token_type: str = "access"
-    ) -> Optional[Dict[str, Any]]:
+    def verify_token(self, token: str, token_type: str = "access") -> Optional[Dict[str, Any]]:
         """驗證 Token 並返回 payload。
 
         Args:

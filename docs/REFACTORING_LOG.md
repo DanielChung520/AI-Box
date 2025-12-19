@@ -21,10 +21,12 @@
 #### 遷移文件列表
 
 **備份文件**:
+
 - [x] 所有測試文件（64 個文件）→ `tests_backup/`
 - [x] `pytest.ini` → `tests_backup/pytest.ini`
 
 **創建目錄**:
+
 - [x] `database/{chromadb,arangodb,redis,personnel}/`
 - [x] `llm/{moe,abstraction,clients,routing/strategies}/`
 - [x] `mcp/{server/{protocol,tools},client/connection}/`
@@ -67,6 +69,7 @@
 #### 遷移文件列表
 
 **ChromaDB 模組**:
+
 - [x] `databases/chromadb/` → `database/chromadb/`
   - `__init__.py`
   - `client.py`
@@ -76,6 +79,7 @@
   - `tests/test_client.py`
 
 **ArangoDB 模組**:
+
 - [x] `databases/arangodb/` → `database/arangodb/`
   - `__init__.py`
   - `client.py`
@@ -88,11 +92,13 @@
   - `tests/test_settings.py`
 
 **根模組文件**:
+
 - [x] `databases/__init__.py` → `database/__init__.py`
 
 #### 導入路徑更新
 
 **更新的文件**（7個主要文件 + 測試文件和腳本）:
+
 - [x] `services/api/routers/chromadb.py`
 - [x] `agent_process/retrieval/manager.py`
 - [x] `agent_process/memory/aam/kg_query_integration.py`
@@ -106,6 +112,7 @@
 - [x] `scripts/*.py`
 
 **導入路徑替換**:
+
 - `from databases.chromadb` → `from database.chromadb`
 - `from databases.arangodb` → `from database.arangodb`
 - `import databases.chromadb` → `import database.chromadb`
@@ -144,7 +151,6 @@
 
 ---
 
-
 ## 📊 進度統計
 
 | 階段 | 狀態 | 完成度 | 開始日期 | 完成日期 |
@@ -159,7 +165,6 @@
 | 階段 7: API | ✅ 已完成 | 100% | 2025-01-27 | 2025-01-27 |
 | 階段 8: 清理優化 | ✅ 已完成 | 100% | 2025-01-27 | 2025-01-27 |
 
-
 ---
 
 ## 階段 6: System 模組遷移日誌
@@ -171,6 +176,7 @@
 ### 遷移文件列表
 
 **Security 服務**:
+
 - [x] `services/security/` → `system/security/`
   - `__init__.py`
   - `auth.py`
@@ -180,18 +186,22 @@
   - `models.py`
 
 **配置管理**:
+
 - [x] `core/config.py` → `system/infra/config/config.py`
 
 **日誌管理**:
+
 - [x] `services/api/middleware/logging.py` → `system/infra/logging/middleware.py`
 - [x] 創建 `system/infra/logging/__init__.py`
 
 **監控服務**:
+
 - [x] 創建 `system/infra/monitoring/metrics.py`（基於 `mcp/server/monitoring.py`）
 - [x] 創建 `system/infra/monitoring/middleware.py`
 - [x] 創建 `system/infra/monitoring/__init__.py`
 
 **適配器文件**:
+
 - [x] `services/security/__init__.py`（向後兼容適配器）
 - [x] `core/__init__.py`（向後兼容適配器）
 - [x] `core/config.py`（向後兼容適配器）
@@ -199,6 +209,7 @@
 ### 導入路徑更新
 
 **更新的文件**（18個主要文件）:
+
 - [x] `services/api/main.py` - `services.security.*` → `system.security.*`
 - [x] `services/api/routers/reports.py` - `services.security.*` → `system.security.*`
 - [x] `services/api/routers/agents.py` - `services.security.*` → `system.security.*`
@@ -220,6 +231,7 @@
 - [x] `agents/autogen/llm_adapter.py` - `core.config` → `system.infra.config.config`
 
 **導入路徑替換**:
+
 - `from services.security.*` → `from system.security.*`
 - `from core.config` → `from system.infra.config.config`
 - `import core.config` → `import system.infra.config.config`
@@ -256,8 +268,6 @@
 - 日誌中間件已遷移到 `system/infra/logging/`，但 `services/api/middleware/logging.py` 仍保留（後續階段 7 會遷移 API 中間件）
 - 原 `services/security/` 和 `core/config.py` 已創建適配器，確保向後兼容
 
-
-
 ---
 
 ## 階段 7: API 界面層整合遷移日誌
@@ -269,29 +279,35 @@
 ### 遷移文件列表
 
 **API 主應用**:
+
 - [x] `services/api/main.py` → `api/main.py`
 
 **中間件**:
+
 - [x] `services/api/middleware/` → `api/middleware/`
   - `request_id.py`
   - `logging.py`
   - `error_handler.py`
 
 **API 核心功能**:
+
 - [x] `services/api/core/` → `api/core/`
   - `response.py`
   - `version.py`
   - `settings.py`
 
 **文件存儲**:
+
 - [x] `services/api/storage/` → `storage/`
   - `file_storage.py`
 
 **路由**:
+
 - [x] `services/api/routers/*` → `api/routers/*` (27個路由文件)
   - 注意：GenAI 路由（ner, re, rt, kg_builder 等）已在階段 4 遷移到 `genai/api/routers/`，此處為適配器
 
 **適配器文件**:
+
 - [x] `services/api/__init__.py`（向後兼容適配器）
 - [x] `services/api/main.py`（向後兼容適配器）
 - [x] `services/api/middleware/__init__.py`（向後兼容適配器）
@@ -302,6 +318,7 @@
 ### 導入路徑更新
 
 **更新的文件**（多個文件）:
+
 - [x] `api/main.py` - 更新所有中間件和路由導入
 - [x] `api/middleware/error_handler.py` - `services.api.core` → `api.core`
 - [x] `api/routers/*` (27個文件) - `services.api.core` → `api.core`, `services.api.storage` → `storage`
@@ -310,6 +327,7 @@
 - [x] `agents/services/file_service/agent_file_service.py` - `services.api.storage` → `storage`
 
 **導入路徑替換**:
+
 - `from services.api.middleware.*` → `from api.middleware.*`
 - `from services.api.core.*` → `from api.core.*`
 - `from services.api.storage.*` → `from storage.*`
@@ -347,8 +365,6 @@
 - 文件存儲已遷移到獨立的 `storage/` 模組，便於後續擴展
 - 原 `services/api/` 目錄已創建適配器，確保向後兼容
 
-
-
 ---
 
 ## 階段 8: 清理和優化遷移日誌
@@ -360,6 +376,7 @@
 ### 清理任務
 
 **適配器驗證**:
+
 - [x] 驗證所有適配器正常工作
   - `services.api.main` ✅
   - `services.api.routers` ✅
@@ -367,11 +384,10 @@
   - `core.config` ✅
   - `services.api.storage` ✅
 
-
-
 ### 清理任務（續）
 
 **舊目錄刪除**:
+
 - [x] 刪除 `databases/` 目錄（已遷移到 `database/`）
 - [x] 刪除 `mcp_server/` 目錄（已遷移到 `mcp/server/`）
 - [x] 刪除 `mcp_client/` 目錄（已遷移到 `mcp/client/`）
@@ -387,10 +403,12 @@
   - 刪除 `services/api/utils/`, `storage/`, `processors/`, `telemetry/`, `main.py`
 
 **保留的目錄**:
+
 - [x] `agent_process/` - 保留 `memory/` 和 `tools/`（Agent 基礎設施，還在被使用）
 - [x] `services/` - 只保留適配器文件
 
 **最終根目錄結構**:
+
 - ✅ `api/` - API 界面層
 - ✅ `agents/` - Agent 服務層
 - ✅ `database/` - 數據庫模組
@@ -403,19 +421,21 @@
 - ✅ `services/` - 適配器目錄（向後兼容）
 - ✅ `docs/` - 文檔目錄
 
-
 **目錄清理**:
+
 - [x] 清理所有 `__pycache__` 目錄
 - [x] 保留適配器文件以確保向後兼容
 - [x] 舊目錄已通過適配器保持可用性
 
 **備份**:
+
 - [x] 創建 `backup/refactoring/` 目錄
 - [x] 舊目錄已通過適配器保留，無需額外備份
 
 ### 優化任務
 
 **代碼優化**:
+
 - [x] 所有導入路徑已更新
 - [x] 適配器文件已創建並驗證
 - [x] 代碼格式符合規範（black）
@@ -423,6 +443,7 @@
 - [x] 類型檢查通過（mypy）
 
 **文檔更新**:
+
 - [x] 遷移日誌已更新
 - [x] 所有階段完成記錄
 
@@ -442,7 +463,6 @@
 - `__pycache__` 目錄已清理
 - 遷移日誌已完整記錄所有階段
 - 項目重構完成，所有模組已遷移到新結構
-
 
 **總體進度**: 9/9 階段完成（100%）
 

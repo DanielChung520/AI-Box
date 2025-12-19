@@ -24,16 +24,12 @@ class LangGraphState(TypedDict, total=False):
     current_step: int
     outputs: Annotated[List[str], operator.add]
     route: Literal["standard", "deep_dive"]
-    status: Literal[
-        "initialized", "planning", "executing", "review", "completed", "failed"
-    ]
+    status: Literal["initialized", "planning", "executing", "review", "completed", "failed"]
     error: Optional[str]
     telemetry: Annotated[List[WorkflowTelemetryEvent], operator.add]
 
 
-def build_initial_state(
-    task: str, context: Optional[Dict[str, Any]] = None
-) -> LangGraphState:
+def build_initial_state(task: str, context: Optional[Dict[str, Any]] = None) -> LangGraphState:
     """建立 LangGraph 初始狀態。"""
 
     return LangGraphState(

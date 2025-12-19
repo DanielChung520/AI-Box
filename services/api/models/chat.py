@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Literal, Optional, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-
 ModelSelectorMode = Literal["auto", "manual", "favorite"]
 
 
@@ -54,16 +53,10 @@ class ChatAttachment(BaseModel):
 class RoutingInfo(BaseModel):
     """路由結果（最小集合）。"""
 
-    provider: str = Field(
-        ..., description="實際使用的 provider，例如 chatgpt/gemini/ollama"
-    )
+    provider: str = Field(..., description="實際使用的 provider，例如 chatgpt/gemini/ollama")
     model: Optional[str] = Field(None, description="實際使用的 model（若可得）")
-    strategy: str = Field(
-        ..., description="策略名稱，例如 manual/load_balancer_xxx/xxx"
-    )
-    latency_ms: Optional[float] = Field(
-        None, ge=0.0, description="LLM 呼叫延遲（毫秒）"
-    )
+    strategy: str = Field(..., description="策略名稱，例如 manual/load_balancer_xxx/xxx")
+    latency_ms: Optional[float] = Field(None, ge=0.0, description="LLM 呼叫延遲（毫秒）")
     failover_used: bool = Field(False, description="是否發生 failover")
     fallback_provider: Optional[str] = Field(
         None, description="failover 後使用的 provider（若可得）"
@@ -73,17 +66,13 @@ class RoutingInfo(BaseModel):
 class ObservabilityInfo(BaseModel):
     """觀測欄位（MVP 先放可選欄位，逐步補齊）。"""
 
-    request_id: Optional[str] = Field(
-        None, description="Request ID（若有 middleware 注入）"
-    )
+    request_id: Optional[str] = Field(None, description="Request ID（若有 middleware 注入）")
     session_id: Optional[str] = Field(None, description="Session ID")
     task_id: Optional[str] = Field(None, description="Task ID")
     token_input: Optional[int] = Field(None, ge=0, description="輸入 token（若可得）")
     token_output: Optional[int] = Field(None, ge=0, description="輸出 token（若可得）")
     cost: Optional[float] = Field(None, ge=0.0, description="成本估算（若可得）")
-    memory_hit_count: Optional[int] = Field(
-        None, ge=0, description="記憶命中數（若可得）"
-    )
+    memory_hit_count: Optional[int] = Field(None, ge=0, description="記憶命中數（若可得）")
     memory_sources: Optional[List[str]] = Field(
         None, description="記憶來源（例如 vector/graph）（若可得）"
     )
@@ -122,9 +111,7 @@ class ChatRequest(BaseModel):
     """產品級 Chat Request。"""
 
     messages: List[ChatMessage] = Field(..., min_length=1, description="訊息列表")
-    session_id: Optional[str] = Field(
-        None, description="Session ID（前端可生成，後端可兜底）"
-    )
+    session_id: Optional[str] = Field(None, description="Session ID（前端可生成，後端可兜底）")
     task_id: Optional[str] = Field(None, description="Task ID（用於任務維度追蹤）")
     model_selector: ModelSelector = Field(..., description="模型選擇器")
     attachments: Optional[List[ChatAttachment]] = Field(None, description="附件（MVP）")

@@ -130,13 +130,10 @@ class ConfigStoreService:
         # 確定使用哪個 collection
         if final_user_id:
             collection = self._user_collection
-            collection_name = USER_CONFIGS_COLLECTION
         elif final_tenant_id:
             collection = self._tenant_collection
-            collection_name = TENANT_CONFIGS_COLLECTION
         else:
             collection = self._system_collection
-            collection_name = SYSTEM_CONFIGS_COLLECTION
 
         config_key = _generate_config_key(config.scope, final_tenant_id, final_user_id)
         now = datetime.utcnow().isoformat()
@@ -447,7 +444,10 @@ class ConfigStoreService:
 
             # 如果是 tenant 配置，驗證收斂規則
             if tenant_id and updates.config_data:
-                system_config = self.get_config(doc.get("scope"), tenant_id=None, user_id=None)
+                scope = doc.get("scope")
+                if not scope or not isinstance(scope, str):
+                    raise ValueError("scope must be a string")
+                system_config = self.get_config(scope, tenant_id=None, user_id=None)  # type: ignore[arg-type]  # 已檢查為 str
                 if system_config:
                     if not self._validate_config_convergence(
                         system_config.config_data, updates.config_data
@@ -506,7 +506,6 @@ class ConfigStoreService:
             # 嘗試從各個 collection 查找
             doc = None
             collection = None
-            collection_name = None
 
             for coll_name, coll in [
                 (SYSTEM_CONFIGS_COLLECTION, self._system_collection),
@@ -516,7 +515,6 @@ class ConfigStoreService:
                 doc = coll.get(config_id)
                 if doc:
                     collection = coll
-                    collection_name = coll_name
                     break
 
             if not doc or not collection:

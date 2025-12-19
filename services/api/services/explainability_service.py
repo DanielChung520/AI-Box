@@ -5,7 +5,8 @@
 
 """AI決策可解釋性服務 - 為AI決策生成解釋"""
 
-from typing import List, Optional, Any
+from typing import Any, List, Optional
+
 import structlog
 
 from genai.api.models.ner_models import Entity
@@ -53,9 +54,7 @@ class ExplainabilityService:
         """初始化可解釋性服務"""
         self.logger = logger
 
-    def explain_ner_result(
-        self, entities: List[Entity], text: str
-    ) -> List[Explanation]:
+    def explain_ner_result(self, entities: List[Entity], text: str) -> List[Explanation]:
         """
         為NER結果生成解釋
 
@@ -96,9 +95,7 @@ class ExplainabilityService:
 
         return explanations
 
-    def explain_re_result(
-        self, relations: List[Relation], text: str
-    ) -> List[Explanation]:
+    def explain_re_result(self, relations: List[Relation], text: str) -> List[Explanation]:
         """
         為關係抽取結果生成解釋
 
@@ -151,8 +148,7 @@ class ExplainabilityService:
 
         for rt in relation_types:
             explanation_text = (
-                f"關係「{relation_text}」被分類為「{rt.type}」，"
-                f"置信度為 {rt.confidence:.2%}。"
+                f"關係「{relation_text}」被分類為「{rt.type}」，" f"置信度為 {rt.confidence:.2%}。"
             )
 
             explanations.append(

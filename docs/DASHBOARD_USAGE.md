@@ -35,8 +35,8 @@ export RQ_DASHBOARD_PORT=9182
 
 啟動後，訪問：
 
-- **默認端口**: http://localhost:9181
-- **自定義端口**: http://localhost:9182（如果設置了 `RQ_DASHBOARD_PORT=9182`）
+- **默認端口**: <http://localhost:9181>
+- **自定義端口**: <http://localhost:9182（如果設置了> `RQ_DASHBOARD_PORT=9182`）
 
 ## ⚙️ 端口配置
 

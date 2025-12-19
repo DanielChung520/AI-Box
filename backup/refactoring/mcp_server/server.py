@@ -8,19 +8,19 @@
 import json
 import logging
 import time
-from typing import Dict, Any, Optional, Callable
+from typing import Any, Callable, Dict, Optional
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-
 from mcp_server.protocol.models import (
-    MCPRequest,
-    MCPResponse,
     MCPError,
     MCPErrorResponse,
     MCPInitializeResponse,
-    MCPToolCallResponse,
     MCPListToolsResponse,
+    MCPRequest,
+    MCPResponse,
     MCPTool,
+    MCPToolCallResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -181,11 +181,7 @@ class MCPServer:
                 "content": [
                     {
                         "type": "text",
-                        "text": (
-                            json.dumps(result)
-                            if isinstance(result, dict)
-                            else str(result)
-                        ),
+                        "text": (json.dumps(result) if isinstance(result, dict) else str(result)),
                     }
                 ]
             },

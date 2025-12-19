@@ -71,9 +71,7 @@ async def authenticate_internal_agent(
                         message="Service identity mismatch",
                         error=f"Service identity '{service_identity}' does not match registered identity",
                     )
-            logger.debug(
-                f"Service identity verified for agent '{agent_id}': {service_identity}"
-            )
+            logger.debug(f"Service identity verified for agent '{agent_id}': {service_identity}")
 
         return AuthenticationResult(
             status=AuthenticationStatus.SUCCESS,
@@ -87,6 +85,7 @@ async def authenticate_internal_agent(
         return AuthenticationResult(
             status=AuthenticationStatus.ERROR,
             agent_id=agent_id,
+            message=None,  # type: ignore[call-arg]  # message 有默認值
             error=str(e),
         )
 

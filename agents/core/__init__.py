@@ -16,18 +16,17 @@
 import logging
 from typing import Dict, Optional
 
-from agents.services.protocol.base import AgentServiceProtocol
-from agents.services.registry.registry import get_agent_registry
+from agents.services.protocol.base import AgentServiceProtocol, AgentServiceProtocolType
 from agents.services.registry.models import (
-    AgentRegistrationRequest,
     AgentEndpoints,
     AgentMetadata,
     AgentPermissionConfig,
+    AgentRegistrationRequest,
 )
-from agents.services.protocol.base import AgentServiceProtocolType
+from agents.services.registry.registry import get_agent_registry
 
-from .planning.agent import PlanningAgent
 from .execution.agent import ExecutionAgent
+from .planning.agent import PlanningAgent
 from .review.agent import ReviewAgent
 
 __all__ = [
@@ -81,8 +80,8 @@ def register_core_agents() -> Dict[str, AgentServiceProtocol]:
             description="任務計劃生成和驗證服務",
             author="AI-Box Team",
             tags=["planning", "core"],
-        ),
-        permissions=AgentPermissionConfig(),  # 內部 Agent 使用默認權限（完整權限）
+        ),  # type: ignore[call-arg]  # icon 有默認值
+        permissions=AgentPermissionConfig(),  # type: ignore[call-arg]  # 所有參數都有默認值
     )
 
     success = registry.register_agent(planning_request, instance=planning_agent)
@@ -109,8 +108,8 @@ def register_core_agents() -> Dict[str, AgentServiceProtocol]:
             description="工具執行和任務執行服務",
             author="AI-Box Team",
             tags=["execution", "core"],
-        ),
-        permissions=AgentPermissionConfig(),  # 內部 Agent 使用默認權限（完整權限）
+        ),  # type: ignore[call-arg]  # icon 有默認值
+        permissions=AgentPermissionConfig(),  # type: ignore[call-arg]  # 所有參數都有默認值
     )
 
     success = registry.register_agent(execution_request, instance=execution_agent)
@@ -137,8 +136,8 @@ def register_core_agents() -> Dict[str, AgentServiceProtocol]:
             description="結果驗證和反饋生成服務",
             author="AI-Box Team",
             tags=["review", "core"],
-        ),
-        permissions=AgentPermissionConfig(),  # 內部 Agent 使用默認權限（完整權限）
+        ),  # type: ignore[call-arg]  # icon 有默認值
+        permissions=AgentPermissionConfig(),  # type: ignore[call-arg]  # 所有參數都有默認值
     )
 
     success = registry.register_agent(review_request, instance=review_agent)
