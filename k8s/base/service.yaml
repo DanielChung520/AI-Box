@@ -53,6 +53,8 @@ spec:
     - name: http
       port: 8529
       targetPort: 8529
+
+---
 # ChromaDB ClusterIP Service
 apiVersion: v1
 kind: Service
