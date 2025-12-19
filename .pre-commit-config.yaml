@@ -1,73 +1,80 @@
+# 代碼功能說明: Pre-commit Hooks 配置（WBS-2: DevSecOps 基礎設施）
+# 創建日期: 2025-12-18
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-18
+
 # Pre-commit hooks 配置
-# 功能說明：代碼提交前的自動檢查和格式化
-# 創建日期：2024-12-03
-# 創建人：Daniel Chung
-# 最後修改日期：2025-12-12
-
-# 默認配置：只檢查修改的文件，提高提交速度
-default_language_version:
-  python: python3
-
-# 只對修改的文件運行 hooks，大幅提升速度
-default_stages: [pre-commit]
+# 安裝方式: pip install pre-commit && pre-commit install
+# 手動運行: pre-commit run --all-files
 
 repos:
-  # 基礎檢查 hooks（快速）
+  # 通用文件檢查
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
-        files: ^
       - id: end-of-file-fixer
-        files: ^
       - id: check-yaml
-        args: [--unsafe]
-        files: \.(yaml|yml)$
-      - id: check-added-large-files
-        args: [--maxkb=1000]
-        exclude: \.svg$
       - id: check-json
-        exclude: tsconfig\.json$
-        files: \.json$
       - id: check-toml
-        files: \.(toml|pyproject\.toml)$
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
       - id: check-merge-conflict
-        files: ^
       - id: check-case-conflict
-        files: ^
+      - id: mixed-line-ending
+        args: ['--fix=lf']
 
-  # Black 代碼格式化（只檢查修改的 Python 文件）
+  # Python 代碼格式化
   - repo: https://github.com/psf/black
-    rev: 25.12.0
+    rev: 23.12.1
     hooks:
       - id: black
-        language_version: python3
-        files: \.py$
-        pass_filenames: true
+        language_version: python3.12
+        args: ['--line-length=100']
 
-  # Ruff 代碼檢查（快速，只檢查修改的文件）
+  # Import 排序
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ['--profile=black', '--line-length=100']
+
+  # 快速代碼檢查
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.9
+    rev: v0.1.8
     hooks:
       - id: ruff
-        args:
-          - --fix
-          - --exit-non-zero-on-fix
-          - --ignore=F401,F841
-        files: \.py$
-        exclude: ^(tests/|tests_backup/).*\.py$
+        args: ['--fix', '--exit-non-zero-on-fix']
 
-  # Mypy 類型檢查（優化配置，只檢查修改的文件）
+  # 類型檢查
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
+    rev: v1.8.0
     hooks:
       - id: mypy
-        args:
-          - --ignore-missing-imports
-          - --explicit-package-bases
-          - --incremental
-          - --cache-dir=.mypy_cache
-          - --skip-cache-mtime-checks
-        files: \.py$
-        exclude: ^(tests/|tests_backup/).*\.py$
-        timeout: 300
+        # additional_dependencies: [types-all]  # 已移除，因為 types-pkg-resources 不可用
+        args: ['--ignore-missing-imports', '--python-version=3.12']
+        exclude: ^(tests/|scripts/)
+
+  # 安全掃描
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ['-ll', '--skip', 'B101,B601']
+        exclude: ^(tests/|scripts/migration/)
+
+  # YAML 格式化
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types: [yaml]
+        exclude: ^(.github/|.pre-commit-config.yaml)
+
+  # Markdown 檢查
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix']
+        exclude: ^(docs/migration/.*\.md|CHANGELOG.md)
