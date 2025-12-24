@@ -1,7 +1,7 @@
 # 代碼功能說明: Python 服務基礎 Dockerfile 模板
-# 創建日期: 2025-01-27
+# 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-11-25
 
 FROM python:3.11-slim as base
 
@@ -38,6 +38,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# 啟動命令（待應用代碼完成後更新）
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
+# 啟動命令
+CMD ["python", "-m", "uvicorn", "services.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

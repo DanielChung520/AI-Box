@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Box Agent 架構設計</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+            border-bottom: 4px solid #3498db;
+            padding-bottom: 20px;
+        }
+
+        h2 {
+            color: #34495e;
+            font-size: 1.8em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-left: 15px;
+            border-left: 5px solid #3498db;
+        }
+
+        h3 {
+            color: #555;
+            font-size: 1.4em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .architecture-diagram {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .layer {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid;
+            position: relative;
+        }
+
+        .builtin-layer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #5a67d8;
+            color: white;
+        }
+
+        .builtin-layer h3 {
+            color: white;
+        }
+
+        .registry-layer {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-color: #e83e8c;
+            color: white;
+            text-align: center;
+            padding: 15px;
+        }
+
+        .business-layer {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-color: #007bff;
+            color: white;
+        }
+
+        .business-layer h3 {
+            color: white;
+        }
+
+        .function-layer {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .agent-box {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px;
+            min-width: 200px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .agent-box.builtin {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.6);
+        }
+
+        .agent-box.internal {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .agent-box.external {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        .arrow {
+            text-align: center;
+            font-size: 2em;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .comparison-table tr:hover {
+            background: #e9ecef;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin: 5px;
+        }
+
+        .badge.builtin {
+            background: #667eea;
+            color: white;
+        }
+
+        .badge.internal {
+            background: #4facfe;
+            color: white;
+        }
+
+        .badge.external {
+            background: #f5576c;
+            color: white;
+        }
+
+        .badge.function {
+            background: #43e97b;
+            color: #155724;
+        }
+
+        .badge.ai {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .badge.fixed {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+
+        .code-block .keyword {
+            color: #c678dd;
+        }
+
+        .code-block .string {
+            color: #98c379;
+        }
+
+        .code-block .comment {
+            color: #5c6370;
+            font-style: italic;
+        }
+
+        .code-block .function {
+            color: #61afef;
+        }
+
+        .feature-box {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .feature-box h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 2px solid #333;
+        }
+
+        .access-method {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .access-method h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .warning {
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #721c24;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #0c5460;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI-Box Agent 架構設計</h1>
+        <p style="text-align: center; color: #666; font-size: 1.1em; margin-top: 10px;">
+            版本 1.0 | 2025-01-27 | 團隊溝通文檔
+        </p>
+
+        <div class="info">
+            <strong>📋 文檔目的：</strong>本文檔說明 AI-Box Agent Platform 的架構設計，用於團隊溝通和技術決策參考。
+        </div>
+
+        <h2>一、架構總覽</h2>
+
+        <div class="architecture-diagram">
+            <div class="layer builtin-layer">
+                <h3>🔐 AI-Box 內建 Agent（無需註冊）</h3>
+                <p style="margin-bottom: 15px; opacity: 0.9;">
+                    <strong>特點：</strong>任務導向，使用 AI 思考和判斷，與 AI-Box 生命周期一致，不對外暴露
+                </p>
+                <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+                    <div class="agent-box builtin">
+                        <strong>📝 註冊管理員</strong><br>
+                        <small>AI 智能匹配</small>
+                    </div>
+                    <div class="agent-box builtin">
+                        <strong>🛡️ 安全管理員</strong><br>
+                        <small>AI 風險評估</small>
+                    </div>
+                    <div class="agent-box builtin">
+                        <strong>🎯 Agent 協調管理員</strong><br>
+                        <small>AI 任務路由</small>
+                    </div>
+                    <div class="agent-box builtin">
+                        <strong>💾 內部資料存儲員</strong><br>
+                        <small>AI 存儲策略</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">⬇️</div>
+
+            <div class="registry-layer">
+                <h3 style="color: white; margin: 0;">📋 Agent Registry（統一註冊中心）</h3>
+                <p style="margin-top: 10px; opacity: 0.9;">統一管理所有業務 Agent（內部 + 外部）</p>
+            </div>
+
+            <div class="arrow">⬇️</div>
+
+            <div class="layer business-layer">
+                <h3>💼 業務邏輯應用 Agent（需註冊）</h3>
+                <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px; margin: 10px;">
+                        <h4 style="color: white; margin-bottom: 10px;">內部開發</h4>
+                        <div class="agent-box internal">
+                            <strong>Planning Agent</strong><br>
+                            <small>直接調用</small>
+                        </div>
+                        <div class="agent-box internal">
+                            <strong>Execution Agent</strong><br>
+                            <small>直接調用</small>
+                        </div>
+                        <div class="agent-box internal">
+                            <strong>Review Agent</strong><br>
+                            <small>直接調用</small>
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 300px; margin: 10px;">
+                        <h4 style="color: white; margin-bottom: 10px;">外部開發</h4>
+                        <div class="agent-box external">
+                            <strong>Partner Agent</strong><br>
+                            <small>FastAPI / MCP</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">⬇️</div>
+
+            <div class="layer function-layer">
+                <h3>⚙️ 公用資源 Function（無需註冊）</h3>
+                <p style="margin-bottom: 15px;">
+                    <strong>特點：</strong>功能導向，輸入、處理流程、輸出固定，無需 AI 判斷
+                </p>
+                <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+                    <div class="agent-box" style="background: rgba(67, 233, 123, 0.2); border-color: #28a745;">
+                        <strong>🧠 LLM Client</strong>
+                    </div>
+                    <div class="agent-box" style="background: rgba(67, 233, 123, 0.2); border-color: #28a745;">
+                        <strong>🔒 Private Model</strong>
+                    </div>
+                    <div class="agent-box" style="background: rgba(67, 233, 123, 0.2); border-color: #28a745;">
+                        <strong>📁 File Server</strong>
+                    </div>
+                    <div class="agent-box" style="background: rgba(67, 233, 123, 0.2); border-color: #28a745;">
+                        <strong>🔍 VectorDB</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                <span><strong>內建 Agent：</strong>AI 決策的系統核心服務</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
+                <span><strong>業務 Agent：</strong>業務邏輯應用，需註冊</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);"></div>
+                <span><strong>Function：</strong>純功能服務，流程固定</span>
+            </div>
+        </div>
+
+        <h2>二、核心設計原則</h2>
+
+        <div class="feature-box">
+            <h4>🎯 Agent vs Function 的本質區別</h4>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>特性</th>
+                        <th>Agent（任務導向）</th>
+                        <th>Function（功能導向）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>輸入</strong></td>
+                        <td>概略明確（SecurityRequest）</td>
+                        <td>完全明確（key, value, ttl）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>處理流程</strong></td>
+                        <td><span class="badge ai">不固定，由 AI 決定</span></td>
+                        <td><span class="badge fixed">固定流程</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>輸出</strong></td>
+                        <td>概略明確（RiskAssessment）</td>
+                        <td>完全明確（bool 或 Optional）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>決策能力</strong></td>
+                        <td><span class="badge ai">✅ AI 思考和判斷</span></td>
+                        <td><span class="badge fixed">❌ 規則驅動</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>使用場景</strong></td>
+                        <td>需要 AI 決策的任務</td>
+                        <td>純功能操作</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>三、架構分層詳解</h2>
+
+        <h3>3.1 內建 Agent（AI-Box 核心服務）</h3>
+        <div class="feature-box">
+            <h4>🔐 特點</h4>
+            <ul>
+                <li><span class="badge builtin">任務導向</span>：輸入輸出概略明確，處理流程由 AI 決定</li>
+                <li><span class="badge builtin">AI 決策</span>：使用 LLM 進行思考和判斷</li>
+                <li><span class="badge builtin">生命周期綁定</span>：與 AI-Box 開發和生命周期一致</li>
+                <li><span class="badge builtin">不對外暴露</span>：僅內部使用，不註冊到 Registry</li>
+                <li><span class="badge builtin">不常變更</span>：不會時常變更，穩定可靠</li>
+            </ul>
+
+            <h4 style="margin-top: 20px;">📋 內建 Agent 列表</h4>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Agent</th>
+                        <th>職責</th>
+                        <th>AI 決策能力</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>註冊管理員</strong></td>
+                        <td>Agent 註冊、發現、智能匹配</td>
+                        <td>✅ AI 理解需求，智能推薦 Agent</td>
+                    </tr>
+                    <tr>
+                        <td><strong>安全管理員</strong></td>
+                        <td>風險評估、異常檢測、動態權限</td>
+                        <td>✅ AI 分析風險，動態決策</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Agent 協調管理員</strong></td>
+                        <td>任務路由、負載均衡、調度優化</td>
+                        <td>✅ AI 分析任務，選擇最優 Agent</td>
+                    </tr>
+                    <tr>
+                        <td><strong>內部資料存儲員</strong></td>
+                        <td>存儲策略選擇、數據分類、優化建議</td>
+                        <td>✅ AI 分析數據，選擇存儲策略</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="access-method">
+            <h4>🔧 訪問方式</h4>
+            <div class="code-block">
+<span class="comment"># 內建 Agent 不註冊，通過全局單例或依賴注入訪問</span>
+<span class="keyword">from</span> agents.infra.builtin <span class="keyword">import</span> get_builtin_agent_manager
+
+<span class="comment"># 獲取內建 Agent 管理器（僅內部使用）</span>
+manager = get_builtin_agent_manager()
+
+<span class="comment"># 使用安全管理員（AI 決策）</span>
+risk_assessment = <span class="keyword">await</span> manager.security_manager.assess_risk(request)
+</div>
+        </div>
+
+        <h3>3.2 業務邏輯應用 Agent</h3>
+        <div class="feature-box">
+            <h4>💼 內部開發 Agent</h4>
+            <ul>
+                <li><span class="badge internal">需註冊</span>：註冊到 Agent Registry</li>
+                <li><span class="badge internal">直接調用</span>：無網絡開銷，性能最優</li>
+                <li><span class="badge internal">統一管理</span>：通過 Registry 發現和路由</li>
+            </ul>
+
+            <h4 style="margin-top: 20px;">🌐 外部開發 Agent</h4>
+            <ul>
+                <li><span class="badge external">需註冊</span>：註冊到 Agent Registry</li>
+                <li><span class="badge external">Protocol 調用</span>：FastAPI REST API 或 MCP Protocol</li>
+                <li><span class="badge external">獨立部署</span>：外部團隊獨立開發和運維</li>
+            </ul>
+        </div>
+
+        <div class="access-method">
+            <h4>🔧 訪問方式</h4>
+            <div class="code-block">
+<span class="comment"># 內部 Agent：註冊後直接調用</span>
+<span class="keyword">from</span> agents.services.registry <span class="keyword">import</span> get_agent_registry
+
+registry = get_agent_registry()
+agent = registry.get_agent(<span class="string">"planning-agent"</span>)  <span class="comment"># 返回實例</span>
+result = <span class="keyword">await</span> agent.execute(request)  <span class="comment"># 直接調用</span>
+
+<span class="comment"># 外部 Agent：通過 Protocol 調用</span>
+client = registry.get_agent_client(<span class="string">"partner-agent"</span>)  <span class="comment"># 返回 Client</span>
+result = <span class="keyword">await</span> client.execute(request)  <span class="comment"># 通過 HTTP/MCP</span>
+</div>
+        </div>
+
+        <h3>3.3 公用資源 Function</h3>
+        <div class="feature-box">
+            <h4>⚙️ 特點</h4>
+            <ul>
+                <li><span class="badge function">功能導向</span>：輸入、處理流程、輸出都固定</li>
+                <li><span class="badge function">無需 AI</span>：純規則驅動，無需 AI 判斷</li>
+                <li><span class="badge function">直接使用</span>：直接導入，無需註冊</li>
+            </ul>
+
+            <h4 style="margin-top: 20px;">📋 Function 列表</h4>
+            <ul>
+                <li><strong>LLM Client：</strong>LLM 客戶端工廠，創建 LLM 實例</li>
+                <li><strong>Private Model：</strong>私有模型訪問接口</li>
+                <li><strong>File Server：</strong>文件上傳、下載、管理</li>
+                <li><strong>VectorDB：</strong>向量數據庫查詢、存儲</li>
+            </ul>
+        </div>
+
+        <div class="access-method">
+            <h4>🔧 訪問方式</h4>
+            <div class="code-block">
+<span class="comment"># Function 直接導入使用</span>
+<span class="keyword">from</span> llm.clients.factory <span class="keyword">import</span> LLMClientFactory
+<span class="keyword">from</span> storage.file_storage <span class="keyword">import</span> FileStorageService
+
+<span class="comment"># 直接使用，無需註冊</span>
+llm_client = LLMClientFactory.create(<span class="string">"openai"</span>)
+file_service = FileStorageService()
+</div>
+        </div>
+
+        <h2>四、架構優勢</h2>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+            <div class="feature-box">
+                <h4>✅ 職責清晰</h4>
+                <p>內建 Agent、業務 Agent、Function 職責明確，易於理解和維護</p>
+            </div>
+            <div class="feature-box">
+                <h4>🚀 性能最優</h4>
+                <p>內部 Agent 直接調用，無網絡開銷；外部 Agent 通過 Protocol，標準化通信</p>
+            </div>
+            <div class="feature-box">
+                <h4>🔒 安全可控</h4>
+                <p>內建 Agent 不對外暴露，僅內部使用；業務 Agent 統一註冊管理</p>
+            </div>
+            <div class="feature-box">
+                <h4>📈 易於擴展</h4>
+                <p>新增業務 Agent 只需註冊；新增 Function 直接導入使用</p>
+            </div>
+            <div class="feature-box">
+                <h4>🤖 AI-First</h4>
+                <p>需要 AI 決策的服務使用 Agent；純功能服務使用 Function</p>
+            </div>
+            <div class="feature-box">
+                <h4>🔄 生命周期管理</h4>
+                <p>內建 Agent 與 AI-Box 綁定，穩定可靠；業務 Agent 可獨立更新</p>
+            </div>
+        </div>
+
+        <h2>五、實施建議</h2>
+
+        <div class="warning">
+            <h4>⚠️ 注意事項</h4>
+            <ul>
+                <li>內建 Agent 不註冊到 Registry，避免循環依賴</li>
+                <li>內建 Agent 不對外暴露，僅內部使用</li>
+                <li>所有 Agent（內建+業務）都實現 <code>AgentServiceProtocol</code> 統一接口</li>
+                <li>內部業務 Agent 註冊時標記 <code>is_internal=True</code></li>
+            </ul>
+        </div>
+
+        <h3>5.1 優先級 1：核心實現</h3>
+        <ol>
+            <li>實現內建 Agent（RegistryManager, SecurityManager, OrchestratorManager, DataStorageManager）</li>
+            <li>擴展 <code>AgentEndpoints</code> 添加 <code>is_internal</code> 字段</li>
+            <li>擴展 <code>AgentRegistry</code> 支持內部 Agent 實例存儲</li>
+        </ol>
+
+        <h3>5.2 優先級 2：訪問機制</h3>
+        <ol>
+            <li>創建內建 Agent 服務定位器（不註冊到 Registry）</li>
+            <li>統一所有 Agent 實現 <code>AgentServiceProtocol</code></li>
+            <li>添加 Agent 緩存機制（在 Orchestrator 中）</li>
+        </ol>
+
+        <h2>六、總結</h2>
+
+        <div class="info">
+            <h4>📊 架構評估</h4>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>評估維度</th>
+                        <th>評分</th>
+                        <th>說明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>設計理念</strong></td>
+                        <td>10/10</td>
+                        <td>內建 Agent = AI 決策，Function = 規則固定，清晰明確</td>
+                    </tr>
+                    <tr>
+                        <td><strong>職責分離</strong></td>
+                        <td>10/10</td>
+                        <td>內建 Agent、業務 Agent、Function 職責明確</td>
+                    </tr>
+                    <tr>
+                        <td><strong>生命周期管理</strong></td>
+                        <td>9/10</td>
+                        <td>內建 Agent 與 AI-Box 綁定，合理</td>
+                    </tr>
+                    <tr>
+                        <td><strong>訪問控制</strong></td>
+                        <td>9/10</td>
+                        <td>內建 Agent 不對外暴露，合理</td>
+                    </tr>
+                    <tr>
+                        <td><strong>總體評分</strong></td>
+                        <td><strong>9.5/10</strong></td>
+                        <td><strong>優秀</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #dee2e6;">
+            <p style="color: #666; font-size: 0.9em;">
+                AI-Box Agent Platform Architecture Design | Version 1.0 | 2025-01-27
+            </p>
+        </div>
+    </div>
+</body>
+</html>

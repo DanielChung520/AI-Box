@@ -1,0 +1,95 @@
+{
+  "total": 14,
+  "passed": 6,
+  "failed": 0,
+  "skipped": 8,
+  "errors": 0,
+  "duration": 420.556,
+  "tests": [
+    {
+      "name": "tests.integration.phase3.test_autogen.TestAutoGenIntegration::test_autogen_agent_collaboration",
+      "status": "passed",
+      "duration": 60.052,
+      "reason": ""
+    },
+    {
+      "name": "tests.integration.phase3.test_autogen.TestAutoGenIntegration::test_autogen_planning",
+      "status": "passed",
+      "duration": 60.048,
+      "reason": ""
+    },
+    {
+      "name": "tests.integration.phase3.test_autogen.TestAutoGenIntegration::test_execution_planning_detailed",
+      "status": "passed",
+      "duration": 60.05,
+      "reason": ""
+    },
+    {
+      "name": "tests.integration.phase3.test_crewai.TestCrewAIIntegration::test_crew_creation",
+      "status": "skipped",
+      "duration": 0.028,
+      "reason": "Crew 創建測試跳過: Expected 200/201, got 404\nassert 404 in [200, 201]\n +  where 404 = <Response [404 Not Found]>.status_code"
+    },
+    {
+      "name": "tests.integration.phase3.test_crewai.TestCrewAIIntegration::test_process_engine_sequential",
+      "status": "skipped",
+      "duration": 0.018,
+      "reason": "Failed to create crew for sequential test"
+    },
+    {
+      "name": "tests.integration.phase3.test_crewai.TestCrewAIIntegration::test_process_engine_hierarchical",
+      "status": "skipped",
+      "duration": 0.016,
+      "reason": "Failed to create crew for hierarchical test"
+    },
+    {
+      "name": "tests.integration.phase3.test_crewai.TestCrewAIIntegration::test_process_engine_consensual",
+      "status": "skipped",
+      "duration": 0.015,
+      "reason": "Failed to create crew for consensual test"
+    },
+    {
+      "name": "tests.integration.phase3.test_crewai.TestCrewAIIntegration::test_crew_execution",
+      "status": "skipped",
+      "duration": 0.015,
+      "reason": "Failed to create crew for execution test"
+    },
+    {
+      "name": "tests.integration.phase3.test_hybrid_mode.TestHybridMode::test_mode_selection",
+      "status": "passed",
+      "duration": 120.09,
+      "reason": ""
+    },
+    {
+      "name": "tests.integration.phase3.test_hybrid_mode.TestHybridMode::test_mode_switching",
+      "status": "passed",
+      "duration": 60.057,
+      "reason": ""
+    },
+    {
+      "name": "tests.integration.phase3.test_hybrid_mode.TestHybridMode::test_hybrid_execution",
+      "status": "passed",
+      "duration": 60.058,
+      "reason": ""
+    },
+    {
+      "name": "tests.integration.phase3.test_langchain.TestLangChainIntegration::test_workflow_execution",
+      "status": "skipped",
+      "duration": 0.027,
+      "reason": "LangChain 工作流端點未實現或不可用: Expected 200/202, got 500\nassert 500 in [200, 202]\n +  where 500 = <Response [500 Internal Server Error]>.status_code"
+    },
+    {
+      "name": "tests.integration.phase3.test_langchain.TestLangChainIntegration::test_state_machine",
+      "status": "skipped",
+      "duration": 0.024,
+      "reason": "狀態機測試跳過: assert 500 in [200, 202]\n +  where 500 = <Response [500 Internal Server Error]>.status_code"
+    },
+    {
+      "name": "tests.integration.phase3.test_langchain.TestLangChainIntegration::test_conditional_routing",
+      "status": "skipped",
+      "duration": 0.019,
+      "reason": "分叉判斷測試跳過: assert 500 in [200, 202]\n +  where 500 = <Response [500 Internal Server Error]>.status_code"
+    }
+  ],
+  "pass_rate": 42.857142857142854
+}

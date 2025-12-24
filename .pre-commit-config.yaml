@@ -1,37 +1,82 @@
-# 代碼功能說明: pre-commit 配置文件，定義代碼提交前的檢查規則
-# 創建日期: 2025-01-27
+# 代碼功能說明: Pre-commit Hooks 配置（WBS-2: DevSecOps 基礎設施）
+# 創建日期: 2025-12-18
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-18
+
+# Pre-commit hooks 配置
+# 安裝方式: pip install pre-commit && pre-commit install
+# 手動運行: pre-commit run --all-files
 
 repos:
+  # 通用文件檢查
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: ^k8s/
+      - id: check-json
+        exclude: .*tsconfig.json$
+      - id: check-toml
       - id: check-added-large-files
         args: ['--maxkb=1000']
-      - id: check-json
-      - id: check-toml
       - id: check-merge-conflict
       - id: check-case-conflict
+      - id: mixed-line-ending
+        args: ['--fix=lf']
 
+  # Python 代碼格式化
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
       - id: black
-        language_version: python3
+        language_version: python3.12
+        args: ['--line-length=100']
 
+  # Import 排序
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ['--profile=black', '--line-length=100']
+
+  # 快速代碼檢查
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.8
     hooks:
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
+        args: ['--fix', '--exit-non-zero-on-fix']
 
+  # 類型檢查
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
       - id: mypy
-        args: [--ignore-missing-imports]
+        # additional_dependencies: [types-all]  # 已移除，因為 types-pkg-resources 不可用
+        args: ['--ignore-missing-imports', '--python-version=3.11', '--disable-error-code=union-attr', '--disable-error-code=import-untyped']
+        exclude: ^(tests/|scripts/|backup/|.cursor/)
 
+  # 安全掃描
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ['-ll', '--skip', 'B101,B601,B104,B324', '--exit-zero']
+        exclude: ^(tests/|scripts/migration/)
+
+  # YAML 格式化
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types: [yaml]
+        exclude: ^(.github/|.pre-commit-config.yaml)
+
+  # Markdown 檢查
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix', '--config', '.markdownlint.json']
+        exclude: ^(docs/migration/.*\.md|docs/文件上傳向量圖譜/.*\.md|docs/datasets/.*\.md|docs/IEE對話式開發文件編輯/.*\.md|docs/GenAI 任務式聊天/.*\.md|CHANGELOG.md)

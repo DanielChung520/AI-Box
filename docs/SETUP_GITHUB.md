@@ -1,8 +1,8 @@
 # GitHub 遠程倉庫設置指南
 
-**創建日期**: 2025-01-27  
-**創建人**: Daniel Chung  
-**最後修改日期**: 2025-01-27
+**創建日期**: 2025-10-25
+**創建人**: Daniel Chung
+**最後修改日期**: 2025-10-25
 
 ---
 
@@ -121,16 +121,19 @@ git remote add origin https://github.com/USERNAME/AI-Box.git
 如果推送時需要認證：
 
 **HTTPS 方式**：
+
 - 使用 Personal Access Token（PAT）作為密碼
 - 創建 PAT：Settings → Developer settings → Personal access tokens → Tokens (classic)
 
 **SSH 方式**：
+
 - 確保 SSH 密鑰已添加到 GitHub
 - 測試連接：`ssh -T git@github.com`
 
 ### 問題 3：分支保護規則設置
 
 如果無法直接推送到 main 分支：
+
 - 這是正常的，因為我們設置了分支保護
 - 應該通過 Pull Request 合併到 main 分支
 
@@ -147,5 +150,4 @@ git remote add origin https://github.com/USERNAME/AI-Box.git
 
 ---
 
-**最後更新**: 2025-01-27
-
+**最後更新**: 2025-10-25

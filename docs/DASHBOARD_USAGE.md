@@ -1,0 +1,137 @@
+# RQ Dashboard 使用說明
+
+**創建日期**: 2025-12-12
+**創建人**: Daniel Chung
+**最後修改日期**: 2025-12-12
+
+## 📋 概述
+
+RQ Dashboard 是一個 Web 界面，用於監控 RQ 任務隊列的狀態。它**不是 Worker 的一部分**，需要**單獨啟動**。
+
+## 🚀 啟動 Dashboard
+
+### 方式一：使用統一腳本（推薦）⭐
+
+```bash
+# 啟動 Dashboard（默認端口 9181）
+./scripts/start_services.sh dashboard
+
+# 使用環境變數設置端口為 9182
+export RQ_DASHBOARD_PORT=9182
+./scripts/start_services.sh dashboard
+```
+
+### 方式二：使用獨立腳本
+
+```bash
+# 使用默認端口 9181
+./scripts/rq_dashboard.sh
+
+# 指定端口 9182
+./scripts/rq_dashboard.sh --port 9182
+```
+
+## 🌐 訪問 Dashboard
+
+啟動後，訪問：
+
+- **默認端口**: <http://localhost:9181>
+- **自定義端口**: <http://localhost:9182（如果設置了> `RQ_DASHBOARD_PORT=9182`）
+
+## ⚙️ 端口配置
+
+### 環境變數配置
+
+在 `.env` 文件中設置：
+
+```bash
+RQ_DASHBOARD_PORT=9182
+```
+
+或在命令行中設置：
+
+```bash
+export RQ_DASHBOARD_PORT=9182
+./scripts/start_services.sh dashboard
+```
+
+### 默認端口
+
+如果不設置 `RQ_DASHBOARD_PORT`，默認使用端口 **9181**。
+
+## 📊 Dashboard 功能
+
+Dashboard 提供以下功能：
+
+- ✅ 查看所有隊列和任務
+- ✅ 查看 Worker 狀態
+- ✅ 查看任務詳情（包括參數、錯誤信息）
+- ✅ 重試失敗的任務
+- ✅ 刪除任務
+- ✅ 實時更新
+
+## 🔍 驗證 Dashboard 運行
+
+```bash
+# 方法一：使用 status 命令
+./scripts/start_services.sh status
+
+# 方法二：檢查端口
+lsof -i :9181
+# 或
+lsof -i :9182
+
+# 方法三：訪問 Web 界面
+curl http://localhost:9181
+```
+
+## ⚠️ 重要說明
+
+1. **Dashboard 是獨立服務**：啟動 Worker **不會自動啟動 Dashboard**
+2. **需要單獨啟動**：使用 `./scripts/start_services.sh dashboard` 啟動
+3. **端口配置**：可以通過環境變數 `RQ_DASHBOARD_PORT` 設置端口
+4. **依賴 Redis**：Dashboard 需要 Redis 運行才能正常工作
+
+## 🎯 推薦使用方式
+
+### 開發環境
+
+```bash
+# 啟動 Worker 和 Dashboard
+./scripts/start_services.sh worker
+./scripts/start_services.sh dashboard
+```
+
+### 生產環境
+
+```bash
+# 後台啟動 Dashboard
+nohup ./scripts/start_services.sh dashboard > logs/dashboard.log 2>&1 &
+```
+
+## 📝 日誌位置
+
+Dashboard 日誌保存在：`logs/rq_dashboard.log`
+
+查看日誌：
+
+```bash
+tail -f logs/rq_dashboard.log
+```
+
+## 🛑 停止 Dashboard
+
+```bash
+# 使用 stop 命令（停止所有服務，包括 Dashboard）
+./scripts/start_services.sh stop
+
+# 或手動停止
+lsof -ti :9181 | xargs kill -TERM
+# 或
+lsof -ti :9182 | xargs kill -TERM
+```
+
+## 📚 相關文檔
+
+- `docs/TASK_QUEUE_SYSTEM_GUIDE.md` - 完整的任務隊列系統指南
+- `docs/UNIFIED_SERVICES_GUIDE.md` - 統一服務管理指南

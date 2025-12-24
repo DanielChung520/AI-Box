@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartQ Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a1a;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            width: 80%;
+            max-width: 600px;
+            /* Animation 1: Scale from 3x to 1x */
+            animation: scaleDown 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            /* Start large */
+            transform: scale(3);
+        }
+
+        .smartq-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* The Light Beam Container */
+        .light-beam-container {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            transform: translateY(-50%);
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* The Light Beam itself */
+        .light-beam {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            /* Comet length: very long tail */
+            width: 200%;
+            height: 6px; /* Slightly thicker for better visibility */
+            z-index: 10; /* Ensure it stays on top */
+
+            /* High Visibility Comet Gradient:
+               - 0% to 30%: Fading tail
+               - 30% to 70%: Solid Yellow Body (Opaque)
+               - 70% to 95%: Solid White/Bright Head (Opaque)
+               - 100%: Sharp transparent tip
+            */
+            background: linear-gradient(90deg,
+                rgba(255, 215, 0, 0) 0%,
+                rgba(255, 215, 0, 1) 40%,
+                rgba(255, 255, 150, 1) 80%,
+                rgba(255, 255, 255, 1) 95%,
+                rgba(255, 255, 255, 0) 100%
+            );
+
+            /* Massive, intense glowing halo */
+            box-shadow:
+                0 0 20px rgba(255, 215, 0, 0.8), /* Inner tight glow */
+                0 0 50px rgba(255, 200, 0, 0.6), /* Middle glow */
+                0 0 100px rgba(255, 255, 255, 0.5); /* Outer massive halo */
+
+            /* Reduced blur on the element itself to keep the core solid/sharp,
+               relying on box-shadow for the softness */
+            filter: blur(0px);
+            border-radius: 50%;
+
+            /* Animation 2: Light sweep */
+            animation: lightSweep 2s ease-in-out 1.5s forwards;
+            opacity: 0;
+        }
+
+        @keyframes scaleDown {
+            0% {
+                transform: scale(3);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            100% {
+                /* Scale down to 80% as requested */
+                transform: scale(0.8);
+                opacity: 1;
+            }
+        }
+
+        @keyframes lightSweep {
+            0% {
+                left: -200%; /* Start fully offscreen left */
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            100% {
+                left: 100%; /* Exit to the right */
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Using the relative path to the new SVG -->
+        <img src="SmartQ.-logo.svg" alt="SmartQ Logo" class="smartq-image">
+
+        <!-- Light sweep overlay -->
+        <div class="light-beam-container">
+            <div class="light-beam"></div>
+        </div>
+    </div>
+
+    <!-- Script to replay animation for dev testing -->
+    <script>
+        document.body.addEventListener('click', () => {
+            const container = document.querySelector('.container');
+            const beam = document.querySelector('.light-beam');
+
+            // Reset animations
+            container.style.animation = 'none';
+            beam.style.animation = 'none';
+
+            container.offsetHeight; /* trigger reflow */
+            beam.offsetHeight; /* trigger reflow */
+
+            container.style.animation = null;
+            beam.style.animation = null;
+        });
+    </script>
+
+</body>
+</html>

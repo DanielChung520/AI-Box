@@ -1,3 +1,1421 @@
 ---
 alwaysApply: true
 ---
+凡是創建代碼檔案，最上方備註：代碼功能說明、創建日期、創建人（Daniel Chung）、最後修改日期
+凡是要創建、修改日期，請先上網(https://tw.piliapp.com/time/)確認當天的日期及時間
+配置規範（2025-11-25 22:46 UTC+8）：敏感資訊集中於 .env / Secret；非敏感環境參數寫入 config/config.json（由 config/config.example.json 派生），新增欄位時需同步更新樣板與文檔
+
+## pyproject.toml 配置規範（2025-01-27 UTC+8）
+
+**重要**：生成或修改 Python 代碼時，必須嚴格遵循 `pyproject.toml` 中的配置。
+
+### Ruff 配置要求
+
+1. **行長度**: 最大 100 字符（與 black 保持一致）
+2. **Python 版本**: 目標 Python 3.11
+3. **啟用的規則類別**:
+   - E: pycodestyle errors（基本錯誤）
+   - F: pyflakes（未定義變量、未使用導入等）
+   - W: pycodestyle warnings（基本警告）
+   - I: isort（導入排序）
+   - UP: pyupgrade（Python 版本升級建議）
+   - B: flake8-bugbear（常見 bug 模式）
+   - SIM: flake8-simplify（簡化建議）
+   - RET: flake8-return（返回值檢查）
+   - RUF: ruff-specific rules（ruff 特定規則）
+
+4. **必須避免的錯誤**（高優先級）:
+   - ❌ **F821**: 未定義的名稱（會導致運行時錯誤）- **必須修復**
+   - ❌ **E722**: 裸 except（必須使用 `except Exception` 或更具體的異常類型）- **必須修復**
+   - ❌ **F841**: 未使用的變量（除非在 scripts 目錄中）
+   - ❌ **E402**: 導入不在文件頂部（除非在 scripts/mcp 目錄中）
+
+5. **導入排序規則**:
+   - 標準庫 → 第三方庫 → 第一方包
+   - 第一方包列表：`api`, `agents`, `database`, `genai`, `llm`, `mcp`, `services`, `storage`, `system`, `workers`, `kag`
+
+### Mypy 配置要求
+
+1. **類型注解要求**:
+   - ✅ 所有函數參數必須有類型注解
+   - ✅ 所有返回值必須有類型注解
+   - ✅ 可能為 None 的變量使用 `Optional[T]` 而不是 `T = None`
+   - ✅ 不允許隱式的 Optional（必須明確使用 `Optional[T]`）
+
+2. **類型檢查要求**:
+   - ✅ 使用 `strict_optional = true`（嚴格檢查 Optional 類型）
+   - ✅ 使用 `no_implicit_optional = true`（不允許隱式 Optional）
+
+3. **必須避免的類型錯誤**:
+   - ❌ 未定義的變量或函數
+   - ❌ 類型不匹配
+   - ❌ 隱式的 Optional（如 `def func(param: str = None)` 應為 `def func(param: Optional[str] = None)`）
+
+### 生成代碼後的檢查流程
+
+**重要**：AI 生成或修改代碼後，必須執行以下檢查：
+
+1. **立即運行 Ruff 檢查**:
+   ```bash
+   ruff check --fix <文件路徑>
+   ```
+
+2. **立即運行 Mypy 檢查**:
+   ```bash
+   mypy <文件路徑>
+   ```
+
+3. **如果檢查失敗，修復錯誤後重新檢查**，直到通過為止。
+
+4. **高優先級錯誤（F821, E722）必須立即修復**，不能忽略。
+
+### 代碼生成範例
+
+**✅ 正確的代碼生成**：
+```python
+from typing import Optional, Dict, Any
+from fastapi import UploadFile
+
+async def process_file(
+    file: UploadFile,
+    user_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    處理文件
+
+    Args:
+        file: 文件對象
+        user_id: 用戶 ID（可選）
+        metadata: 元數據（可選）
+
+    Returns:
+        處理結果
+    """
+    try:
+        # 處理邏輯
+        result = {"status": "ok"}
+        return result
+    except Exception as e:
+        logger.error(f"處理失敗: {e}")
+        raise
+```
+
+**❌ 錯誤的代碼生成**：
+```python
+# ❌ 缺少類型注解
+async def process_file(file, user_id=None, metadata=None):
+    # ❌ 使用隱式 Optional
+    if user_id is None:
+        user_id = "default"
+    # ❌ 裸 except
+    try:
+        result = process(file)
+    except:  # 錯誤：應該使用 except Exception
+        return None
+    return result
+```
+
+---
+
+## 類型注解規範（2025-11-27 13:00 UTC+8）
+
+### 必須使用類型注解的情況
+1. **全局變量**：如果可能為 None，必須使用 `Optional[T]`
+   ```python
+   # ❌ 錯誤
+   _service: KGBuilderService = None
+
+   # ✅ 正確
+   _service: Optional[KGBuilderService] = None
+   ```
+
+2. **函數參數**：如果默認值為 None，必須使用 `Optional[T]`
+   ```python
+   # ❌ 錯誤
+   def func(model_type: str = None):
+
+   # ✅ 正確
+   def func(model_type: Optional[str] = None):
+   ```
+
+3. **局部變量**：複雜類型或可能為 None 的變量需要類型注解
+   ```python
+   # ✅ 正確
+   temp_queue: PriorityQueue = PriorityQueue()
+   model: Optional[BaseRTModel] = None
+   bind_vars: dict = {}
+   ```
+
+4. **類屬性**：所有類屬性都應該有類型注解
+   ```python
+   class Service:
+       _primary_model: Optional[BaseModel] = None
+       _fallback_model: Optional[BaseModel] = None
+   ```
+
+### 類型匹配要求
+- 使用正確的類型，不要混用（如 `List[Dict]` vs `List[WorkflowTelemetryEvent]`）
+- 對象類型要匹配（如 `CrewResourceQuota` 對象而非 `int`）
+- 避免隱式 Optional，明確使用 `Optional[T]` 或 `T | None`
+
+## 防御性編程規範（2025-11-27 13:00 UTC+8）
+
+### None 檢查要求
+1. **數據庫連接**：使用前必須檢查是否為 None
+   ```python
+   # ❌ 錯誤
+   collection = self.client.db.collection(COLLECTION_NAME)
+
+   # ✅ 正確
+   if self.client.db is None:
+       raise RuntimeError("ArangoDB client is not connected")
+   collection = self.client.db.collection(COLLECTION_NAME)
+   ```
+
+2. **可選參數**：處理可能為 None 的參數
+   ```python
+   # ❌ 錯誤
+   parser = get_parser(file_type)  # file_type 可能是 None
+
+   # ✅ 正確
+   if file_type is None:
+       file_type = "text/plain"  # 提供默認值
+   parser = get_parser(file_type)
+   ```
+
+3. **模型對象**：使用前檢查是否已初始化
+   ```python
+   # ❌ 錯誤
+   doc = self._model(text)  # _model 可能是 None
+
+   # ✅ 正確
+   if self._model is None:
+       raise RuntimeError(f"Model {self.model_name} is not available")
+   doc = self._model(text)
+   ```
+
+4. **AQL 查詢**：檢查 aql 屬性是否可用
+   ```python
+   # ✅ 正確
+   if self.client.db is None or self.client.db.aql is None:
+       raise RuntimeError("AQL is not available")
+   cursor = self.client.db.aql.execute(aql, bind_vars=bind_vars)
+   ```
+
+### API 調用檢查
+- 調用外部 API 前，確認參數名稱和類型正確
+- 檢查函數簽名，不要傳入不存在的參數
+- 使用 IDE 的類型提示功能驗證參數
+
+## 代碼結構規範（2025-11-27 13:00 UTC+8）
+
+### Import 語句規範
+1. **位置**：所有 import 必須在文件頂部，在模塊文檔字符串之後
+   ```python
+   """模塊說明"""
+
+   from typing import Optional, List
+   from fastapi import APIRouter
+   # ❌ 錯誤：不要在代碼中間添加 import
+   ```
+
+2. **順序**：
+   - 標準庫 import
+   - 第三方庫 import
+   - 本地模塊 import
+   - 類型相關 import（如 `from typing import ...`）
+
+### 變量使用規範
+1. **未使用的變量**：必須刪除或使用
+   ```python
+   # ❌ 錯誤：定義但未使用
+   type_names = [rt.type for rt in filtered]
+   pass
+
+   # ✅ 正確：刪除未使用的變量，或添加註釋說明為什麼需要
+   ```
+
+2. **全局變量**：使用單例模式時，類型必須正確
+   ```python
+   # ✅ 正確
+   _service: Optional[KGBuilderService] = None
+
+   def get_service() -> KGBuilderService:
+       global _service
+       if _service is None:
+           _service = KGBuilderService()
+       return _service
+   ```
+
+### 文件格式規範
+1. **文件末尾**：必須有換行符（由 pre-commit hook 自動修復）
+2. **行尾空格**：不允許有 trailing whitespace（由 pre-commit hook 自動檢查和修復）
+3. **代碼格式化**：使用 black 自動格式化
+4. **類型檢查**：提交前必須通過 mypy 檢查
+
+**Pre-commit Hooks 自動檢查項目**：
+- ✅ **trailing-whitespace**：自動移除行尾空格
+- ✅ **end-of-file-fixer**：自動修復文件末尾格式（確保文件末尾有換行符）
+- ✅ **black**：自動格式化 Python 代碼
+- ✅ **ruff**：自動檢查和修復代碼風格問題
+- ✅ **mypy**：類型檢查（必須通過）
+- ✅ **check-yaml/json/toml**：配置文件語法檢查
+- ✅ **check-added-large-files**：檢查大文件（>1MB）
+- ✅ **check-merge-conflict**：檢查合併衝突標記
+- ✅ **check-case-conflict**：檢查文件名大小寫衝突
+
+**提交前必須確保**：
+- 所有 pre-commit hooks 檢查通過
+- 如果檢查失敗，會自動修復部分問題，請重新提交修復後的代碼
+
+## 代碼審查檢查清單（2025-11-27 13:00 UTC+8）
+
+### 提交前必須檢查
+- [ ] 所有類型注解完整且正確
+- [ ] 所有可能為 None 的值都有檢查
+- [ ] Import 語句在文件頂部
+- [ ] 沒有未使用的變量
+- [ ] 通過 pre-commit hooks（black, ruff, mypy）
+- [ ] API 調用參數正確
+- [ ] 數據庫連接使用前有 None 檢查
+- [ ] 模型對象使用前有可用性檢查
+
+### 常見錯誤模式
+1. **類型不匹配**：`List[Dict]` vs `List[WorkflowTelemetryEvent]`
+2. **缺少 Optional**：`T = None` 應為 `Optional[T] = None`
+3. **缺少 None 檢查**：直接使用可能為 None 的對象
+4. **Import 位置錯誤**：在代碼中間添加 import
+5. **API 參數錯誤**：傳入不存在的參數名
+
+## 工具使用規範（2025-11-27 13:00 UTC+8）
+
+### 開發時使用
+- 啟用 IDE 的類型檢查功能
+- 使用 mypy 進行類型檢查：`mypy .`
+- 使用 ruff 進行代碼檢查：`ruff check .`
+- 使用 black 進行格式化：`black .`
+
+### CI/CD 檢查
+- pre-commit hooks 必須全部通過
+- mypy 類型檢查必須通過
+- ruff 代碼檢查必須通過
+- black 格式化檢查必須通過
+
+
+## Git 提交前檢查規範（2025-01-27 14:00 UTC+8）
+
+### 提交前必須執行的步驟
+
+**重要**：每次提交代碼前，必須確保所有 pre-commit hooks 檢查通過。如果檢查失敗，提交會被阻止。
+
+#### 1. 自動修復步驟（推薦）
+
+```bash
+# 方法一：使用 pre-commit 自動修復（推薦）
+pre-commit run --all-files
+
+# 方法二：手動運行各個工具
+# 格式化代碼
+black .
+
+# 檢查和修復代碼風格
+ruff check --fix .
+
+# 類型檢查（只檢查，不自動修復）
+mypy .
+```
+
+#### 2. 提交流程
+
+```bash
+# 1. 添加文件到暫存區
+git add .
+
+# 2. 提交（pre-commit hooks 會自動運行）
+git commit -m "your commit message"
+
+# 如果 hooks 失敗，會自動修復部分問題，然後需要：
+# - 重新添加修復後的文件：git add .
+# - 重新提交：git commit -m "your commit message"
+```
+
+### Pre-commit Hooks 檢查項目詳解
+
+#### Black 代碼格式化檢查
+
+**檢查內容**：
+- 代碼格式是否符合 Black 規範
+- 行長度、縮進、引號使用等
+
+**常見錯誤**：
+- 代碼格式不符合 Black 規範
+- 行尾有多餘空格
+- 文件末尾缺少換行符
+
+**修復方法**：
+```bash
+# 自動格式化所有文件
+black .
+
+# 格式化特定文件
+black path/to/file.py
+
+# 檢查但不修改（dry-run）
+black --check .
+```
+
+**注意事項**：
+- Black 會自動修改文件格式，修改後需要重新 `git add`
+- 如果 Black 修改了文件，提交會失敗，需要重新提交
+
+#### Ruff 代碼風格檢查
+
+**檢查內容**：
+- 未使用的變量（F841）
+- 未使用的導入
+- 代碼風格問題
+- 潛在的 bug
+
+**常見錯誤**：
+- `F841: Local variable 'xxx' is assigned to but never used`
+- 未使用的導入
+- 代碼風格不符合規範
+
+**修復方法**：
+```bash
+# 自動修復可修復的問題
+ruff check --fix .
+
+# 只檢查不修復
+ruff check .
+
+# 檢查特定文件
+ruff check path/to/file.py
+```
+
+**注意事項**：
+- Ruff 會自動修復部分問題，但有些問題需要手動修復
+- 未使用的變量必須刪除或使用
+- 修復後需要重新 `git add`
+
+#### Mypy 類型檢查
+
+**檢查內容**：
+- 類型注解是否正確
+- 類型是否匹配
+- 是否有類型錯誤
+
+**常見錯誤**：
+- `error: "Redis" expects no type arguments, but 1 given`
+- `error: Argument 1 has incompatible type`
+- `error: Item "X" has no attribute "__iter__"`
+- `error: Unsupported right operand type for in`
+
+**修復方法**：
+```bash
+# 檢查所有文件
+mypy .
+
+# 檢查特定文件
+mypy path/to/file.py
+
+# 忽略缺失的導入（用於第三方庫）
+mypy --ignore-missing-imports .
+```
+
+**常見類型錯誤修復**：
+
+1. **Redis 類型注解錯誤**：
+   ```python
+   # ❌ 錯誤
+   self._redis: Optional[redis.Redis[str]] = None
+
+   # ✅ 正確（redis-py 不支持類型參數）
+   self._redis: Optional[redis.Redis] = None
+   ```
+
+2. **異步操作類型錯誤**：
+   ```python
+   # ❌ 錯誤（忘記 await）
+   result = self._redis.get(key)
+
+   # ✅ 正確（同步 Redis）
+   result = self._redis.get(key)
+   # 或使用類型忽略（如果確定是同步的）
+   result = self._redis.get(key)  # type: ignore[union-attr]
+   ```
+
+3. **ArangoDB 查詢結果類型**：
+   ```python
+   # ❌ 錯誤
+   document = collection.get(session_id)
+   if "messages" in document:  # 類型錯誤
+
+   # ✅ 正確
+   document = collection.get(session_id)
+   if document is not None and isinstance(document, dict):
+       if "messages" in document:
+   ```
+
+### 提交失敗處理流程
+
+#### 情況 1：Black 格式化失敗
+
+**錯誤信息**：
+```
+black....................................................................Failed
+- hook id: black
+- files were modified by this hook
+```
+
+**處理步驟**：
+1. Black 已經自動修復了文件
+2. 重新添加修復後的文件：`git add .`
+3. 重新提交：`git commit -m "your message"`
+
+#### 情況 2：Ruff 檢查失敗
+
+**錯誤信息**：
+```
+ruff.....................................................................Failed
+- hook id: ruff
+- exit code: 1
+- files were modified by this hook
+```
+
+**處理步驟**：
+1. 檢查 Ruff 的錯誤信息
+2. 如果 Ruff 自動修復了，重新添加：`git add .`
+3. 如果有需要手動修復的問題（如未使用的變量），手動修復後重新添加
+4. 重新提交
+
+#### 情況 3：Mypy 類型檢查失敗
+
+**錯誤信息**：
+```
+mypy.....................................................................Failed
+- hook id: mypy
+- exit code: 1
+```
+
+**處理步驟**：
+1. 查看 mypy 的詳細錯誤信息
+2. 根據錯誤信息修復類型問題
+3. 如果無法修復（如第三方庫類型問題），使用 `# type: ignore[error-code]` 註釋
+4. 重新添加和提交
+
+### 提交前檢查清單
+
+在執行 `git commit` 前，請確保：
+
+- [ ] 已運行 `black .` 格式化代碼
+- [ ] 已運行 `ruff check --fix .` 修復代碼風格問題
+- [ ] 已運行 `mypy .` 檢查類型（或至少檢查修改的文件）
+- [ ] 所有測試通過（如果有）
+- [ ] 代碼符合項目規範
+- [ ] 沒有未使用的變量或導入
+- [ ] 所有類型注解正確
+
+### 快速修復命令
+
+```bash
+# 一鍵修復所有可自動修復的問題
+black . && ruff check --fix . && git add .
+
+# 然後檢查類型（不會自動修復）
+mypy . || echo "有類型錯誤，需要手動修復"
+
+# 最後提交
+git commit -m "your message"
+```
+
+### 常見問題解決方案
+
+#### Q1: pre-commit hooks 一直失敗，如何跳過？
+
+**不推薦跳過**，但如果有緊急情況：
+```bash
+# 跳過 pre-commit hooks（不推薦）
+git commit --no-verify -m "your message"
+```
+
+**注意**：跳過 hooks 會導致代碼質量問題，應該盡量避免。
+
+#### Q2: 如何只檢查特定文件？
+
+```bash
+# 只檢查特定文件
+black path/to/file.py
+ruff check path/to/file.py
+mypy path/to/file.py
+```
+
+#### Q3: 如何更新 pre-commit hooks？
+
+```bash
+# 更新 pre-commit hooks
+pre-commit autoupdate
+
+# 重新安裝 hooks
+pre-commit install
+```
+
+#### Q4: 如何查看詳細的錯誤信息？
+
+```bash
+# 查看詳細的 mypy 錯誤
+mypy . --show-error-codes
+
+# 查看詳細的 ruff 錯誤
+ruff check . --verbose
+
+# 查看詳細的 black 錯誤
+black . --diff
+```
+
+### 開發環境設置
+
+確保開發環境已正確設置：
+
+```bash
+# 1. 激活虛擬環境
+source venv/bin/activate  # Linux/Mac
+# 或
+venv\Scripts\activate  # Windows
+
+# 2. 安裝 pre-commit
+pip install pre-commit
+
+# 3. 安裝 pre-commit hooks
+pre-commit install
+
+# 4. 安裝開發依賴
+pip install black ruff mypy
+```
+
+### 持續集成（CI）檢查
+
+在 CI/CD 流程中，這些檢查也會自動運行：
+- 所有 pre-commit hooks 必須通過
+- 類型檢查必須通過
+- 代碼格式化檢查必須通過
+
+如果 CI 檢查失敗，請在本地修復後重新提交。
+
+## 項目控制表更新規範（2025-01-27 14:00 UTC+8）
+
+### 更新 PROJECT_CONTROL_TABLE.md 的強制要求
+
+**重要**：更新 `docs/PROJECT_CONTROL_TABLE.md` 時，**必須在原有文件基礎上進行更新**，**嚴禁直接創建新文件或覆蓋整個文件**。
+
+#### 更新原則
+
+1. **必須讀取現有文件**：更新前必須先讀取現有的 `PROJECT_CONTROL_TABLE.md` 文件內容
+2. **局部更新**：只更新需要修改的部分（如任務狀態、完成日期、進度百分比等）
+3. **保留原有結構**：保持文件的整體結構、格式和未修改的內容不變
+4. **禁止覆蓋**：不得使用 `write` 工具直接覆蓋整個文件
+
+#### 正確的更新方式
+
+**✅ 推薦方式 1：使用 Python 腳本讀取-修改-寫回**
+
+```python
+# 讀取現有文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# 只修改需要更新的部分
+content = content.replace("舊狀態", "新狀態")
+# 或使用正則表達式精確匹配需要更新的行
+
+# 寫回文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w', encoding='utf-8') as f:
+    f.write(content)
+```
+
+**✅ 推薦方式 2：使用 sed 或 grep 進行局部替換**
+
+```bash
+# 使用 sed 替換特定行
+sed -i 's/舊內容/新內容/g' docs/PROJECT_CONTROL_TABLE.md
+```
+
+**✅ 推薦方式 3：使用 search_replace 工具進行精確替換**
+
+```python
+# 使用 search_replace 工具，提供足夠的上下文確保唯一匹配
+search_replace(
+    file_path="docs/PROJECT_CONTROL_TABLE.md",
+    old_string="| 5.1.1 | LLM Router 核心 | 2 天 | ⏸️ | 0% | - | - | AI-1 |",
+    new_string="| 5.1.1 | LLM Router 核心 | 2 天 | ✅ | 100% | 2025-01-27 | 2025-01-27 | AI-1 |"
+)
+```
+
+#### 錯誤的更新方式（禁止）
+
+**❌ 錯誤方式 1：直接創建新文件**
+
+```python
+# ❌ 禁止：直接創建新文件
+write("docs/PROJECT_CONTROL_TABLE.md", "新內容...")
+```
+
+**❌ 錯誤方式 2：覆蓋整個文件**
+
+```python
+# ❌ 禁止：讀取備份文件然後覆蓋原文件
+with open("backup.md", 'r') as f:
+    content = f.read()
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w') as f:
+    f.write(content)  # 這會丟失原文件中的其他更新
+```
+
+**❌ 錯誤方式 3：不讀取原文件就更新**
+
+```python
+# ❌ 禁止：不讀取原文件，直接寫入
+content = "新內容..."
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w') as f:
+    f.write(content)
+```
+
+#### 更新前檢查清單
+
+在更新 `PROJECT_CONTROL_TABLE.md` 前，必須：
+
+- [ ] 確認已讀取現有文件內容
+- [ ] 確認只更新需要修改的部分
+- [ ] 確認保留文件的整體結構
+- [ ] 確認未修改的內容保持不變
+- [ ] 確認更新後的格式正確（Markdown 表格格式）
+
+#### 更新後驗證
+
+更新完成後，應該驗證：
+
+- [ ] 文件格式正確（Markdown 表格可以正常渲染）
+- [ ] 未修改的內容仍然存在
+- [ ] 更新的內容正確反映實際進度
+- [ ] 文件結構完整（所有章節都存在）
+
+#### 常見更新場景示例
+
+**場景 1：更新單個任務狀態**
+
+```python
+# 讀取文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# 更新特定任務
+content = content.replace(
+    "| 5.1.1 | LLM Router 核心 | 2 天 | ⏸️ | 0% | - | - | AI-1 |",
+    "| 5.1.1 | LLM Router 核心 | 2 天 | ✅ | 100% | 2025-01-27 | 2025-01-27 | AI-1 |"
+)
+
+# 寫回文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w', encoding='utf-8') as f:
+    f.write(content)
+```
+
+**場景 2：更新階段進度**
+
+```python
+# 讀取文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# 更新進度
+content = content.replace(
+    "| **階段五** | LLM MoE 階段 | ... | 🔄 進行中 | 25% |",
+    "| **階段五** | LLM MoE 階段 | ... | 🔄 進行中 | 78.6% (11/14) |"
+)
+
+# 寫回文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w', encoding='utf-8') as f:
+    f.write(content)
+```
+
+**場景 3：批量更新多個任務**
+
+```python
+# 讀取文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# 定義更新映射
+updates = {
+    "| 5.1.1 | ... | ⏸️ | 0% |": "| 5.1.1 | ... | ✅ | 100% | 2025-01-27 | 2025-01-27 |",
+    "| 5.1.2 | ... | ⏸️ | 0% |": "| 5.1.2 | ... | ✅ | 100% | 2025-01-27 | 2025-01-27 |",
+}
+
+# 批量更新
+for old, new in updates.items():
+    content = content.replace(old, new)
+
+# 寫回文件
+with open("docs/PROJECT_CONTROL_TABLE.md", 'w', encoding='utf-8') as f:
+    f.write(content)
+```
+
+#### 緊急情況處理
+
+如果誤操作導致文件損壞：
+
+1. **立即停止**：不要繼續修改
+2. **檢查 Git 歷史**：使用 `git log docs/PROJECT_CONTROL_TABLE.md` 查看歷史版本
+3. **恢復備份**：如果有備份文件（如 `.backup`），從備份恢復
+4. **從 Git 恢復**：使用 `git checkout HEAD -- docs/PROJECT_CONTROL_TABLE.md` 恢復到最後一次提交的版本
+5. **手動修復**：如果以上方法都不可用，手動對比並修復文件
+
+#### 總結
+
+**核心原則**：
+- ✅ **必須**在原有文件基礎上更新
+- ✅ **必須**先讀取現有文件內容
+- ✅ **必須**只更新需要修改的部分
+- ❌ **禁止**直接創建新文件
+- ❌ **禁止**覆蓋整個文件
+- ❌ **禁止**不讀取原文件就更新
+
+遵循這些規範可以確保項目控制表的更新不會丟失已有的進度記錄，避免因誤操作導致的數據丟失。
+
+## ArangoDB 數據存儲規範（2025-12-18 20:49:06 UTC+8）
+
+### 概述
+
+AI-Box 項目使用 ArangoDB 作為統一的數據存儲系統，替代文件系統和 Redis（部分場景）。本規範定義了 ArangoDB 中所有 Collections 的數據結構、存儲規則和使用規範。
+
+### ArangoDB Collections 完整列表
+
+#### Document Collections（文檔集合）
+
+| Collection 名稱 | 用途 | 服務 | 多租戶 | TTL |
+|----------------|------|------|--------|-----|
+| `ontologies` | Ontology 定義存儲 | `OntologyStoreService` | ✅ | - |
+| `system_configs` | 系統級配置 | `ConfigStoreService` | ❌ | - |
+| `tenant_configs` | 租戶級配置 | `ConfigStoreService` | ✅ | - |
+| `user_configs` | 用戶級配置 | `ConfigStoreService` | ✅ | - |
+| `audit_logs` | 審計日誌 | `AuditLogService` | ✅ | - |
+| `upload_progress` | 文件上傳進度 | `UploadStatusService` | ✅ | 1小時 |
+| `processing_status` | 文件處理狀態 | `UploadStatusService` | ✅ | 24小時 |
+| `file_metadata` | 文件元數據 | `FileMetadataService` | ✅ | - |
+| `folder_metadata` | 文件夾元數據 | `TaskWorkspaceService` | ✅ | - |
+| `genai_tenant_policies` | GenAI 租戶策略 | `GenAITenantPolicyService` | ✅ | - |
+| `genai_tenant_secrets` | GenAI 租戶密鑰（加密） | `GenAITenantPolicyService` | ✅ | - |
+| `genai_user_llm_secrets` | GenAI 用戶 LLM 密鑰（加密） | `GenAIUserLLMSecretService` | ✅ | - |
+| `model_usage` | 模型使用記錄 | `ModelUsageService` | ✅ | - |
+| `operation_logs` | 操作日誌 | `OperationLogService` | ✅ | - |
+| `user_tasks` | 用戶任務 | `UserTaskService` | ✅ | - |
+
+#### Graph Collections（圖集合 - 知識圖譜）
+
+| Collection 名稱 | 用途 | 類型 | 說明 |
+|----------------|------|------|------|
+| `entities` | 知識圖譜實體 | Edge/Vertex | 動態創建，按文件ID組織 |
+| `relations` | 知識圖譜關係 | Edge | 動態創建，按文件ID組織 |
+
+### 數據存儲規範
+
+#### 1. Collection 命名規範
+
+**必須遵循**：
+- ✅ 使用小寫字母和下劃線（snake_case）
+- ✅ 名稱必須清晰表達用途
+- ✅ Document Collections 使用複數形式（如 `ontologies`, `configs`）
+- ✅ 圖集合使用單數形式（如 `entities`, `relations`）
+
+**禁止**：
+- ❌ 使用大寫字母
+- ❌ 使用連字符（hyphen）
+- ❌ 使用中文或特殊字符
+- ❌ 動態 Collection 名稱必須包含可追溯的標識（如 `entities_{file_id}`）
+
+#### 2. 文檔結構規範
+
+**必需字段**：
+- `_key`: 文檔唯一標識（必須）
+- `created_at`: 創建時間（ISO 8601 格式字符串）
+- `updated_at`: 更新時間（ISO 8601 格式字符串）
+
+**多租戶字段**（如適用）：
+- `tenant_id`: 租戶 ID（字符串，null 表示系統級）
+- `user_id`: 用戶 ID（字符串，僅用戶級數據需要）
+
+**軟刪除字段**（如適用）：
+- `is_active`: 是否啟用（布爾值，默認 true）
+
+**數據分類字段**（WBS-4.2.1，如適用）：
+- `data_classification`: 數據分類級別（`PUBLIC` / `INTERNAL` / `CONFIDENTIAL` / `RESTRICTED`）
+- `sensitivity_labels`: 敏感性標籤列表（如 `["PII", "PHI", "FINANCIAL"]`）
+
+#### 3. 索引規範
+
+**必須創建索引**：
+- 所有查詢字段必須有索引
+- 多租戶查詢必須在 `tenant_id` 字段上創建索引
+- 時間範圍查詢必須在時間字段上創建索引
+- 複合查詢必須創建複合索引
+
+**索引類型**：
+- `persistent`: 持久索引（用於查詢和排序）
+- `ttl`: 生存時間索引（用於自動清理）
+
+**示例**：
+```python
+# 正確：創建複合索引
+collection.add_index({
+    "type": "persistent",
+    "fields": ["tenant_id", "scope", "is_active"]
+})
+
+# 正確：創建 TTL 索引
+collection.add_index({
+    "type": "ttl",
+    "fields": ["updated_at"],
+    "expireAfter": 3600  # 1小時
+})
+```
+
+#### 4. 多租戶隔離規範
+
+**應用層隔離**：
+- 所有查詢必須包含 `tenant_id` 過濾條件
+- 系統級數據使用 `tenant_id: null`
+- 租戶級數據必須包含有效的 `tenant_id`
+
+**必須檢查**：
+```python
+# ✅ 正確：查詢時必須過濾 tenant_id
+def get_config(self, scope: str, tenant_id: Optional[str]) -> ConfigModel:
+    filters = {"scope": scope, "is_active": True}
+    if tenant_id:
+        filters["tenant_id"] = tenant_id
+    else:
+        filters["tenant_id"] = None  # 系統級配置
+    # ...
+```
+
+#### 5. 數據類型規範
+
+**字符串**：
+- 所有 ID 字段使用字符串類型
+- 時間字段使用 ISO 8601 格式字符串（`datetime.utcnow().isoformat()`）
+
+**數值**：
+- 計數字段使用整數（`int`）
+- 百分比和比例使用浮點數（`float`）
+
+**布爾值**：
+- 狀態字段使用布爾值（`bool`），不允許使用字符串（如 `"true"`）
+
+**JSON 對象**：
+- 複雜結構使用字典（`Dict[str, Any]`）
+- 必須使用 Pydantic 模型進行驗證
+
+#### 6. 軟刪除規範
+
+**使用軟刪除**：
+- 不要物理刪除重要數據（審計、配置等）
+- 使用 `is_active: false` 標記為已刪除
+- 查詢時必須過濾 `is_active: true`
+
+**可以物理刪除**：
+- 臨時數據（如 `upload_progress`、`processing_status`）
+- TTL 過期的數據
+- 明確標記為可刪除的數據
+
+#### 7. 加密存儲規範
+
+**敏感數據必須加密**：
+- GenAI API Keys（`genai_tenant_secrets`, `genai_user_llm_secrets`）
+- 其他敏感配置數據
+
+**加密要求**：
+- 使用 `GenAISecretEncryptionService` 進行加密
+- 生產環境必須設置 `GENAI_SECRET_ENCRYPTION_KEY` 環境變數
+- 加密後的數據存儲在 ArangoDB 中
+
+#### 8. TTL（生存時間）規範
+
+**使用 TTL 索引**：
+- 臨時狀態數據（`upload_progress`: 1小時）
+- 處理狀態數據（`processing_status`: 24小時）
+
+**TTL 索引創建**：
+```python
+collection.add_index({
+    "type": "ttl",
+    "fields": ["updated_at"],
+    "expireAfter": 3600  # 秒數
+})
+```
+
+### Collection 詳細規範
+
+#### ontologies
+
+**用途**: 存儲 Ontology 定義（base/domain/major 三種類型）
+
+**必需字段**:
+- `_key`: `{type}-{name}-{version}` 或 `{type}-{name}-{version}-{tenant_id}`
+- `tenant_id`: 租戶 ID（可選，null 表示全局共享）
+- `type`: Ontology 類型（`base` / `domain` / `major`）
+- `name`: Ontology 名稱
+- `version`: 版本號（語義化版本，如 `"1.0.0"`）
+- `default_version`: 是否為默認版本（布爾值）
+- `ontology_name`: 完整 Ontology 名稱
+- `entity_classes`: 實體類別列表
+- `object_properties`: 物件屬性列表
+- `is_active`: 是否啟用
+
+**索引**:
+- `idx_ontologies_tenant_type_name`: `["tenant_id", "type", "name"]`
+- `idx_ontologies_tenant_type_name_version`: `["tenant_id", "type", "name", "version"]`
+- `idx_ontologies_type_name_default`: `["type", "name", "default_version"]`
+- `idx_ontologies_is_active`: `["is_active"]`
+
+**服務**: `OntologyStoreService`
+
+#### system_configs / tenant_configs / user_configs
+
+**用途**: 存儲系統/租戶/用戶級配置
+
+**必需字段**:
+- `_key`: `{scope}` / `{tenant_id}_{scope}` / `{tenant_id}_{user_id}_{scope}`
+- `tenant_id`: 租戶 ID（system_configs 為 null）
+- `user_id`: 用戶 ID（僅 user_configs 需要）
+- `scope`: 配置範圍（如 `"genai.policy"`, `"genai.model_registry"`）
+- `sub_scope`: 子範圍（可選）
+- `config_data`: 配置數據（JSON 對象）
+- `is_active`: 是否啟用
+
+**索引**:
+- `system_configs`: `idx_system_configs_scope_active` → `["scope", "is_active"]`
+- `tenant_configs`: `idx_tenant_configs_tenant_scope_active` → `["tenant_id", "scope", "is_active"]`
+- `user_configs`: `idx_user_configs_tenant_user_scope_active` → `["tenant_id", "user_id", "scope", "is_active"]`
+
+**服務**: `ConfigStoreService`
+
+**配置合併順序**: System → Tenant → User（優先級由低到高）
+
+#### audit_logs
+
+**用途**: 審計日誌追蹤（WBS-4.1）
+
+**必需字段**:
+- `_key`: 自動生成 UUID
+- `user_id`: 用戶 ID
+- `action`: 操作類型（`AuditAction` 枚舉值）
+- `resource_type`: 資源類型（字符串）
+- `resource_id`: 資源 ID（可選）
+- `timestamp`: 操作時間（datetime）
+- `ip_address`: IP 地址
+- `user_agent`: User Agent
+- `details`: 額外詳情（JSON 對象）
+
+**索引**:
+- `["user_id"]`
+- `["action"]`
+- `["timestamp"]`
+- `["resource_type", "resource_id"]`
+
+**服務**: `AuditLogService`
+
+#### upload_progress / processing_status
+
+**用途**: 文件上傳和處理狀態追蹤（WBS-3.7）
+
+**upload_progress 字段**:
+- `_key`: `{file_id}`
+- `file_id`: 文件 ID
+- `status`: 上傳狀態
+- `progress`: 進度百分比（0-100）
+- `file_size`: 文件大小（字節）
+- `uploaded_bytes`: 已上傳字節數
+- `updated_at`: 更新時間（TTL 索引，1小時）
+
+**processing_status 字段**:
+- `_key`: `{file_id}`
+- `file_id`: 文件 ID
+- `overall_status`: 總體狀態
+- `overall_progress`: 總體進度（0-100）
+- `chunking`: 分塊階段狀態
+- `vectorization`: 向量化階段狀態
+- `storage`: 存儲階段狀態
+- `kg_extraction`: 知識圖譜提取階段狀態
+- `updated_at`: 更新時間（TTL 索引，24小時）
+
+**服務**: `UploadStatusService`
+
+#### file_metadata
+
+**用途**: 文件元數據存儲
+
+**必需字段**:
+- `_key`: `{file_id}`
+- `file_id`: 文件 ID
+- `filename`: 文件名
+- `file_type`: 文件類型
+- `file_size`: 文件大小
+- `user_id`: 用戶 ID
+- `task_id`: 任務 ID（可選）
+- `folder_id`: 文件夾 ID（可選）
+- `storage_path`: 存儲路徑
+- `status`: 狀態
+- `created_at`: 創建時間
+- `updated_at`: 更新時間
+
+**索引**:
+- `["file_id"]`
+- `["filename"]`
+- `["file_type"]`
+- `["user_id"]`
+- `["task_id"]`
+- `["folder_id"]`
+- `["status"]`
+- `["upload_time"]`
+
+**服務**: `FileMetadataService`
+
+#### folder_metadata
+
+**用途**: 文件夾元數據存儲
+
+**必需字段**:
+- `_key`: `{folder_id}`
+- `folder_id`: 文件夾 ID
+- `folder_name`: 文件夾名稱
+- `parent_folder_id`: 父文件夾 ID（可選）
+- `user_id`: 用戶 ID
+- `task_id`: 任務 ID（可選）
+- `created_at`: 創建時間
+- `updated_at`: 更新時間
+
+**服務**: `TaskWorkspaceService`
+
+#### genai_tenant_policies / genai_tenant_secrets
+
+**用途**: GenAI 租戶策略和密鑰管理
+
+**genai_tenant_policies 字段**:
+- `_key`: `{tenant_id}`
+- `tenant_id`: 租戶 ID
+- `allowed_providers`: 允許的提供商列表
+- `allowed_models`: 允許的模型映射（按提供商）
+- `created_at`: 創建時間
+- `updated_at`: 更新時間
+
+**genai_tenant_secrets 字段**:
+- `_key`: `{tenant_id}_{provider}`
+- `tenant_id`: 租戶 ID
+- `provider`: 提供商名稱
+- `encrypted_api_key`: 加密後的 API Key
+- `created_at`: 創建時間
+- `updated_at`: 更新時間
+
+**服務**: `GenAITenantPolicyService`
+
+**注意**: Secrets 必須使用 `GenAISecretEncryptionService` 加密
+
+#### genai_user_llm_secrets
+
+**用途**: GenAI 用戶 LLM API Key 管理
+
+**必需字段**:
+- `_key`: `{tenant_id}_{user_id}_{provider}`
+- `tenant_id`: 租戶 ID
+- `user_id`: 用戶 ID
+- `provider`: 提供商名稱
+- `encrypted_api_key`: 加密後的 API Key
+- `created_at`: 創建時間
+- `updated_at`: 更新時間
+
+**服務**: `GenAIUserLLMSecretService`
+
+**注意**: 必須使用 `GenAISecretEncryptionService` 加密
+
+#### model_usage
+
+**用途**: 模型使用記錄和統計
+
+**必需字段**:
+- `_key`: 自動生成 UUID
+- `model_name`: 模型名稱
+- `provider`: 提供商名稱
+- `user_id`: 用戶 ID
+- `file_id`: 文件 ID（可選）
+- `request_tokens`: 請求 Token 數
+- `response_tokens`: 響應 Token 數
+- `total_tokens`: 總 Token 數
+- `timestamp`: 使用時間
+- `metadata`: 額外元數據（JSON 對象）
+
+**索引**:
+- `["model_name"]`
+- `["user_id"]`
+- `["file_id"]`
+- `["timestamp"]`
+
+**服務**: `ModelUsageService`
+
+#### operation_logs
+
+**用途**: 操作日誌記錄
+
+**必需字段**:
+- `_key`: 自動生成 UUID
+- `user_id`: 用戶 ID
+- `resource_id`: 資源 ID
+- `resource_type`: 資源類型（`"task"` 或 `"document"`）
+- `resource_name`: 資源名稱
+- `operation_type`: 操作類型（`"create"` / `"update"` / `"archive"` / `"delete"`）
+- `created_at`: 創建時間
+- `updated_at`: 更新時間
+- `archived_at`: 歸檔時間（可選）
+- `deleted_at`: 刪除時間（可選）
+
+**服務**: `OperationLogService`
+
+#### user_tasks
+
+**用途**: 用戶任務管理
+
+**必需字段**:
+- `_key`: `{task_id}`
+- `task_id`: 任務 ID
+- `user_id`: 用戶 ID
+- `task_name`: 任務名稱
+- `status`: 任務狀態
+- `created_at`: 創建時間
+- `updated_at`: 更新時間
+- `metadata`: 任務元數據（JSON 對象）
+
+**索引**:
+- `["task_id"]`
+- `["user_id"]`
+- `["status"]`
+- `["created_at"]`
+
+**服務**: `UserTaskService`
+
+### 知識圖譜 Collections（Graph）
+
+#### entities / relations
+
+**用途**: 知識圖譜實體和關係存儲
+
+**命名規範**:
+- 可選：使用 `entities_{file_id}` 和 `relations_{file_id}` 按文件組織
+- 或使用統一的 `entities` 和 `relations` collection，通過 `file_id` 字段區分
+
+**entities 字段**:
+- `_key`: 實體 ID
+- `name`: 實體名稱
+- `type`: 實體類型
+- `file_id`: 所屬文件 ID（如使用統一 collection）
+- `metadata`: 實體元數據（JSON 對象）
+
+**relations 字段**:
+- `_key`: 關係 ID
+- `_from`: 起始實體 ID（`entities/{entity_id}`）
+- `_to`: 目標實體 ID（`entities/{entity_id}`）
+- `type`: 關係類型
+- `file_id`: 所屬文件 ID（如使用統一 collection）
+- `metadata`: 關係元數據（JSON 對象）
+
+**注意**: 這些 Collections 在知識圖譜構建時動態創建，不通過 Schema 腳本創建
+
+### 服務層規範
+
+#### Store Services
+
+**必須實現**:
+- ✅ 所有數據操作必須通過 Store Service 進行
+- ✅ Store Service 必須封裝 ArangoDB 操作
+- ✅ 必須進行數據驗證（使用 Pydantic 模型）
+- ✅ 必須處理多租戶隔離
+- ✅ 必須進行錯誤處理和日誌記錄
+
+**Store Service 命名規範**:
+- 服務類名稱：`{Entity}StoreService`（如 `OntologyStoreService`）
+- 獲取服務函數：`get_{entity}_store_service()`（如 `get_ontology_store_service()`）
+- 服務文件：`{entity}_store_service.py`（如 `ontology_store_service.py`）
+
+#### 直接訪問 ArangoDB
+
+**禁止**:
+- ❌ 不要在路由層直接訪問 ArangoDB
+- ❌ 不要在業務邏輯中直接使用 `ArangoDBClient`
+- ❌ 不要繞過 Store Service 進行數據操作
+
+**允許**:
+- ✅ 在 Store Service 內部使用 `ArangoDBClient`
+- ✅ 在數據遷移腳本中直接使用 `ArangoDBClient`
+
+### Schema 管理規範
+
+#### Schema 創建
+
+**必須使用 Schema 腳本**:
+- 所有 Collections 和索引必須通過 `scripts/migration/create_schema.py` 創建
+- 不要手動在 ArangoDB Web UI 中創建 Collections
+
+**Schema 更新**:
+- 新增 Collection 時，更新 `create_schema.py`
+- 新增索引時，更新 `create_schema.py` 中的索引定義
+- 運行 Schema 腳本：`python scripts/migration/create_schema.py`
+
+#### 數據遷移
+
+**遷移腳本位置**: `scripts/migration/`
+
+**遷移腳本命名**: `migrate_{entity}.py`（如 `migrate_ontologies.py`）
+
+**遷移前必須**:
+- ✅ 備份現有數據
+- ✅ 檢查目標 Schema 是否已創建
+- ✅ 驗證源數據完整性
+
+### 數據查詢規範
+
+#### AQL 查詢
+
+**必須遵循**:
+- ✅ 所有 AQL 查詢必須使用綁定變數（bind vars）
+- ✅ 必須進行參數驗證
+- ✅ 必須處理查詢結果為空的情況
+
+**示例**:
+```python
+# ✅ 正確：使用綁定變數
+aql = """
+    FOR doc IN ontologies
+        FILTER doc.tenant_id == @tenant_id
+        AND doc.type == @type
+        AND doc.is_active == true
+        RETURN doc
+"""
+cursor = self.client.db.aql.execute(
+    aql,
+    bind_vars={"tenant_id": tenant_id, "type": ontology_type}
+)
+
+# ❌ 錯誤：字符串拼接（SQL 注入風險）
+aql = f"FOR doc IN ontologies FILTER doc.tenant_id == '{tenant_id}' RETURN doc"
+```
+
+#### Collection 查詢
+
+**使用 Collection API**:
+```python
+# ✅ 正確：使用 Collection API 進行簡單查詢
+filters = {"tenant_id": tenant_id, "is_active": True}
+docs = collection.find(filters, limit=100)
+
+# ✅ 正確：使用 AQL 進行複雜查詢
+aql = """
+    FOR doc IN ontologies
+        FILTER doc.tenant_id == @tenant_id
+        SORT doc.created_at DESC
+        LIMIT @limit
+        RETURN doc
+"""
+```
+
+### 錯誤處理規範
+
+#### 數據庫連接檢查
+
+**必須檢查**:
+```python
+# ✅ 正確：使用前檢查數據庫連接
+if self.client.db is None:
+    raise RuntimeError("ArangoDB client is not connected")
+
+# ✅ 正確：檢查 AQL 是否可用
+if self.client.db.aql is None:
+    raise RuntimeError("AQL is not available")
+```
+
+#### 異常處理
+
+**必須處理**:
+- ✅ Collection 不存在
+- ✅ 文檔不存在（`get()` 返回 `None`）
+- ✅ 索引創建失敗
+- ✅ AQL 查詢錯誤
+
+**示例**:
+```python
+# ✅ 正確：處理文檔不存在
+doc = collection.get(doc_id)
+if doc is None:
+    raise HTTPException(status_code=404, detail="Document not found")
+
+# ✅ 正確：處理異常
+try:
+    collection.insert(doc)
+except Exception as exc:
+    logger.error("insert_failed", error=str(exc))
+    raise RuntimeError(f"Failed to insert document: {exc}") from exc
+```
+
+### 性能優化規範
+
+#### 索引使用
+
+**必須創建索引**:
+- 所有查詢字段都必須有索引
+- 複合查詢必須創建複合索引
+- 排序字段必須有索引
+
+#### 查詢優化
+
+**最佳實踐**:
+- ✅ 使用 `LIMIT` 限制查詢結果數量
+- ✅ 使用 `SORT` 時確保排序字段有索引
+- ✅ 避免全表掃描
+- ✅ 使用 `EXPLAIN` 分析查詢計劃（開發階段）
+
+### 數據備份與恢復
+
+#### 備份策略
+
+**必須執行**:
+- ✅ 定期備份 ArangoDB 數據
+- ✅ 遷移前必須備份
+- ✅ 重要操作前必須備份
+
+#### 恢復流程
+
+**恢復步驟**:
+1. 停止應用服務
+2. 恢復 ArangoDB 數據
+3. 運行 Schema 腳本確保結構正確
+4. 驗證數據完整性
+5. 重啟應用服務
+
+### 開發檢查清單
+
+在開發 ArangoDB 相關功能時，必須檢查：
+
+- [ ] Collection 名稱符合命名規範
+- [ ] 文檔結構包含必需字段（`_key`, `created_at`, `updated_at`）
+- [ ] 多租戶數據包含 `tenant_id` 字段
+- [ ] 查詢時正確過濾 `tenant_id`
+- [ ] 已創建必要的索引
+- [ ] 使用 Store Service 進行數據操作
+- [ ] 進行數據驗證（Pydantic 模型）
+- [ ] 處理錯誤和異常情況
+- [ ] 記錄日誌
+- [ ] 敏感數據已加密（如適用）
+- [ ] TTL 索引已正確配置（如適用）
+
+### 參考文檔
+
+- ArangoDB 官方文檔: https://www.arangodb.com/docs/
+- 項目 Schema 腳本: `scripts/migration/create_schema.py`
+- Store Services: `services/api/services/*_store_service.py`
+- 數據模型: `services/api/models/`

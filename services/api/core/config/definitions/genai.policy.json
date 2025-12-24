@@ -1,0 +1,64 @@
+{
+  "scope": "genai.policy",
+  "description": "生成式 AI 核心策略設置",
+  "version": "1.0.0",
+  "last_updated": "2025-01-27T00:00:00Z",
+  "fields": {
+    "rate_limit": {
+      "type": "integer",
+      "min": 1,
+      "max": 1000,
+      "default": 100,
+      "unit": "RPM",
+      "description": "每分鐘請求數限制",
+      "is_modifiable_by_tenant": true,
+      "is_modifiable_by_user": false
+    },
+    "allowed_providers": {
+      "type": "array",
+      "item_type": "string",
+      "options": ["openai", "anthropic", "google", "azure"],
+      "description": "允許的 LLM 提供商列表",
+      "is_modifiable_by_tenant": true,
+      "is_modifiable_by_user": false
+    },
+    "allowed_models": {
+      "type": "object",
+      "description": "按提供商分組的允許模型列表",
+      "schema": {
+        "openai": {
+          "type": "array",
+          "item_type": "string",
+          "options": ["gpt-4o", "gpt-3.5-turbo", "gpt-4-turbo"]
+        },
+        "anthropic": {
+          "type": "array",
+          "item_type": "string",
+          "options": ["claude-3-5-sonnet", "claude-3-opus", "claude-3-haiku"]
+        }
+      },
+      "is_modifiable_by_tenant": true,
+      "is_modifiable_by_user": false
+    },
+    "default_model": {
+      "type": "string",
+      "options": ["gpt-4o", "gpt-3.5-turbo", "claude-3-5-sonnet", "gemini-1.5-pro"],
+      "default": "gpt-4o",
+      "description": "默認使用的模型",
+      "is_modifiable_by_tenant": true,
+      "is_modifiable_by_user": true
+    },
+    "enable_stream": {
+      "type": "boolean",
+      "default": true,
+      "description": "是否啟用串流輸出",
+      "is_modifiable_by_tenant": true,
+      "is_modifiable_by_user": false
+    }
+  },
+  "convergence_rules": {
+    "tenant_limit_must_be_less_than_system": true,
+    "must_subset_of_parent": ["allowed_providers", "allowed_models"],
+    "must_not_exceed_system_max": ["rate_limit"]
+  }
+}

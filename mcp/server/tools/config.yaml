@@ -1,0 +1,19 @@
+# 代碼功能說明: MCP Server 工具配置文件
+# 創建日期: 2025-10-25
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-11-25
+
+# MCP Server 工具配置
+tools:
+  # Task Analyzer 工具配置
+  - name: task_analyzer
+    enabled: true
+    class: services.mcp_server.tools.task_analyzer.TaskAnalyzerTool
+    config: {}
+
+  # File Tool 配置
+  - name: file_tool
+    enabled: true
+    class: services.mcp_server.tools.file_tool.FileTool
+    config:
+      base_path: /tmp

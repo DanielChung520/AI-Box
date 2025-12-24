@@ -1,0 +1,16 @@
+# 代碼功能說明: ArangoDB Kubernetes ConfigMap
+# 創建日期: 2025-11-25 22:25 (UTC+8)
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-11-25 22:25 (UTC+8)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: arangodb-config
+  namespace: ai-box
+data:
+  ARANGO_DB_NAME: "ai_box_kg"
+  ARANGO_PORT: "8529"
+  ARANGO_STORAGE_CLASS: "fast-ssd"
+  ARANGO_METRICS_ENDPOINT: "/_admin/metrics"
+  ARANGO_BACKUP_CRON: "0 2 * * *"

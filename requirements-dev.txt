@@ -1,22 +1,32 @@
-# 代碼功能說明: Python 開發環境依賴文件
-# 創建日期: 2025-01-27
+# 代碼功能說明: Python 開發環境依賴文件（WBS-2: DevSecOps 基礎設施）
+# 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-18
 
 # 代碼質量工具
 black>=23.12.1
+isort>=5.13.2
 ruff>=0.1.8
 mypy>=1.8.0
+pylint>=3.0.0
 
 # 測試工具
 pytest>=7.4.0
 pytest-cov>=4.1.0
 pytest-asyncio>=0.21.0
+pytest-xdist>=3.5.0
+
+# 安全掃描工具
+bandit>=1.7.6
+safety>=3.0.0
 
 # 開發工具
 pre-commit>=3.6.0
 
+# 監控與日誌工具（WBS-2.4）
+prometheus-client>=0.19.0
+structlog>=23.2.0
+
 # 文檔工具
 # sphinx>=7.0.0
 # sphinx-rtd-theme>=1.3.0
-

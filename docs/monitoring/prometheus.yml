@@ -1,0 +1,30 @@
+# 代碼功能說明: Prometheus 配置檔案（WBS-2.4: 監控與日誌）
+# 創建日期: 2025-12-18
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-18
+
+# Prometheus 配置範例
+# 用於抓取 AI-Box API 的指標數據
+
+global:
+  scrape_interval: 15s # 每 15 秒抓取一次指標
+  evaluation_interval: 15s # 每 15 秒評估一次規則
+  external_labels:
+    cluster: "ai-box"
+    environment: "production"
+
+# Prometheus 監控配置
+scrape_configs:
+  # AI-Box API 服務
+  - job_name: "ai-box-api"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["localhost:8000"] # 根據實際部署情況修改
+        labels:
+          service: "ai-box-api"
+          version: "1.0.0"
+
+  # Prometheus 自身監控
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

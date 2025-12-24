@@ -1,0 +1,383 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Sans TC", "PingFang TC"; /* 添加繁体中文字体支持 */
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* 默认深色主题变量 */
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --bg-hover: #4b5563;
+
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-tertiary: #9ca3af;
+  --text-muted: #6b7280;
+
+  --border-primary: #374151;
+  --border-secondary: #4b5563;
+
+  --accent-blue: #3b82f6;
+  --accent-blue-light: #60a5fa;
+  --accent-blue-dark: #1d4ed8;
+
+  --success-green: #10b981;
+  --warning-yellow: #f59e0b;
+  --danger-red: #ef4444;
+}
+
+/* 深色主题变量（当有 .dark 类时） */
+.dark {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --bg-hover: #4b5563;
+
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-tertiary: #9ca3af;
+  --text-muted: #6b7280;
+
+  --border-primary: #374151;
+  --border-secondary: #4b5563;
+
+  --accent-blue: #3b82f6;
+  --accent-blue-light: #60a5fa;
+  --accent-blue-dark: #1d4ed8;
+
+  --success-green: #10b981;
+  --warning-yellow: #f59e0b;
+  --danger-red: #ef4444;
+}
+
+/* 浅色主题变量 */
+.light {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+  --bg-hover: #d1d5db;
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+  --text-muted: #9ca3af;
+
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+
+  --accent-blue: #3b82f6;
+  --accent-blue-light: #60a5fa;
+  --accent-blue-dark: #1d4ed8;
+
+  --success-green: #10b981;
+  --warning-yellow: #f59e0b;
+  --danger-red: #ef4444;
+}
+
+/* 主题切换过渡动画 */
+.theme-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* 确保 html 和 body 元素使用主题背景色 */
+html,
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 浅色模式下确保背景色正确 */
+.light html,
+.light body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 深色模式下确保背景色正确 */
+.dark html,
+.dark body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-secondary);
+}
+
+/* 隐藏滚动条但保持功能 */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 自定义Markdown样式 */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  color: var(--text-primary);
+}
+
+.markdown-content p {
+  color: var(--text-secondary);
+}
+
+.markdown-content code {
+  color: var(--text-primary);
+}
+
+.markdown-content pre {
+  color: var(--text-primary);
+}
+
+.markdown-content a {
+  color: var(--accent-blue-light);
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+/* Mermaid图表容器样式 */
+.mermaid-container {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.mermaid-container pre {
+  color: var(--accent-blue-light);
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+
+/* DOCX 内容样式 */
+.docx-content {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.docx-content h1,
+.docx-content h2,
+.docx-content h3,
+.docx-content h4,
+.docx-content h5,
+.docx-content h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.docx-content h1 {
+  font-size: 2em;
+}
+
+.docx-content h2 {
+  font-size: 1.5em;
+}
+
+.docx-content h3 {
+  font-size: 1.25em;
+}
+
+.docx-content p {
+  margin-bottom: 1em;
+  color: var(--text-secondary);
+}
+
+.docx-content ul,
+.docx-content ol {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+  color: var(--text-secondary);
+}
+
+.docx-content li {
+  margin-bottom: 0.5em;
+}
+
+.docx-content strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.docx-content em {
+  font-style: italic;
+}
+
+.docx-content a {
+  color: var(--accent-blue-light);
+  text-decoration: none;
+}
+
+.docx-content a:hover {
+  text-decoration: underline;
+}
+
+.docx-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.docx-content table td,
+.docx-content table th {
+  border: 1px solid var(--border-primary);
+  padding: 0.5em;
+  color: var(--text-secondary);
+}
+
+.docx-content table th {
+  background-color: var(--bg-tertiary);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 应用主题颜色到Tailwind类 */
+.bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+.bg-hover {
+  background-color: var(--bg-hover);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.border-primary {
+  border-color: var(--border-primary);
+}
+
+.border-secondary {
+  border-color: var(--border-secondary);
+}
+
+/* Diff 視覺化樣式 */
+.diff-deletion {
+  background-color: rgba(255, 107, 107, 0.2);
+}
+
+.diff-deletion-inline {
+  background-color: rgba(255, 107, 107, 0.3);
+  text-decoration: line-through;
+  text-decoration-color: #ff6b6b;
+  text-decoration-thickness: 2px;
+}
+
+.diff-addition {
+  background-color: rgba(81, 207, 102, 0.2);
+}
+
+.diff-addition-inline {
+  background-color: rgba(81, 207, 102, 0.3);
+}
+
+/* Gutter 操作按鈕樣式 */
+.diff-gutter-actions {
+  cursor: pointer;
+}
+
+.gutter-action-container {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 2px 4px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.gutter-action-container:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.gutter-action-btn {
+  border: none;
+  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.gutter-action-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.gutter-action-btn:active {
+  transform: scale(0.95);
+}
+
+.gutter-action-accept {
+  background: #51cf66;
+  color: white;
+}
+
+.gutter-action-reject {
+  background: #ff6b6b;
+  color: white;
+}

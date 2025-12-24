@@ -1,0 +1,26 @@
+{
+  "generated_at": "2025-11-25T16:19:41.263863+00:00",
+  "target": "localhost:11434",
+  "models": [
+    {
+      "model": "gpt-oss:20b",
+      "status": "skipped",
+      "digest": "e7b273f9636059a689e3ddcab3716e4f65abe0143ac978e46673ad0e52d09efb"
+    },
+    {
+      "model": "qwen3-coder:30b",
+      "status": "skipped",
+      "digest": "1194192cf2a187eb02722edcc3f77b11d21f537048ce04b67ccf8ba78863006a"
+    },
+    {
+      "model": "llama3.1:8b",
+      "status": "synced",
+      "digest": "667b0c1932bc6ffc593ed1d03f895bf2dc8dc6df21db3042284a6f4416b06a29"
+    },
+    {
+      "model": "mistral-nemo:12b",
+      "status": "synced",
+      "digest": "b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94"
+    }
+  ]
+}

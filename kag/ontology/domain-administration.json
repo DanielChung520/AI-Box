@@ -1,0 +1,164 @@
+{
+    "ontology_name": "Administration_Domain_Ontology",
+    "version": "1.0",
+    "inherits_from": "5W1H_Base_Ontology_OWL",
+    "description": "行政管理領域通用本體論，定義行政流程、政策法規、審批流程與組織管理的核心概念。",
+    "last_modified": "2025-12-10",
+    "author": "Daniel Chung",
+
+    "entity_classes": [
+        {
+            "name": "Administrative_Process",
+            "base_class": "Process",
+            "description": "行政管理流程，如審批流程、申請流程、報銷流程等。"
+        },
+        {
+            "name": "Policy",
+            "base_class": "Document",
+            "description": "政策文件、規章制度、管理辦法等正式文檔。"
+        },
+        {
+            "name": "Regulation",
+            "base_class": "Document",
+            "description": "法規、條例、規範或標準文件。"
+        },
+        {
+            "name": "Approval",
+            "base_class": "Event",
+            "description": "審批、核准、批准或授權的事件。"
+        },
+        {
+            "name": "Department",
+            "base_class": "Organization",
+            "description": "部門、科室、單位或組織內部的管理單元。"
+        },
+        {
+            "name": "Employee",
+            "base_class": "Person",
+            "description": "員工、職員或組織內的工作人員。"
+        },
+        {
+            "name": "Application",
+            "base_class": "Document",
+            "description": "申請書、申請表或申請文件。"
+        },
+        {
+            "name": "Report",
+            "base_class": "Document",
+            "description": "報告、匯報、總結或分析文檔。"
+        },
+        {
+            "name": "Meeting",
+            "base_class": "Event",
+            "description": "會議、討論會、協調會等集體活動。"
+        },
+        {
+            "name": "Task",
+            "base_class": "Event",
+            "description": "任務、工作項目或待辦事項。"
+        },
+        {
+            "name": "Budget",
+            "base_class": "Document",
+            "description": "預算、經費計劃或財務規劃文件。"
+        },
+        {
+            "name": "Contract",
+            "base_class": "Document",
+            "description": "合同、協議、契約或正式約定文件。"
+        }
+    ],
+
+    "object_properties": [
+        {
+            "name": "submits",
+            "description": "表示員工或部門提交申請、報告或文件。",
+            "domain": ["Employee", "Department"],
+            "range": ["Application", "Report", "Document"]
+        },
+        {
+            "name": "approves",
+            "description": "表示人員或部門批准、核准申請或文件。",
+            "domain": ["Employee", "Department"],
+            "range": ["Application", "Approval", "Contract", "Budget"]
+        },
+        {
+            "name": "reviews",
+            "description": "表示人員或部門審查、審核文件或申請。",
+            "domain": ["Employee", "Department"],
+            "range": ["Application", "Report", "Document", "Contract"]
+        },
+        {
+            "name": "implements",
+            "description": "表示部門或人員實施、執行政策或流程。",
+            "domain": ["Department", "Employee"],
+            "range": ["Policy", "Regulation", "Administrative_Process"]
+        },
+        {
+            "name": "governs",
+            "description": "表示政策或法規管轄、規範某個流程或活動。",
+            "domain": ["Policy", "Regulation"],
+            "range": ["Administrative_Process", "Event", "Process"]
+        },
+        {
+            "name": "requires_approval",
+            "description": "表示流程、申請或任務需要審批。",
+            "domain": ["Administrative_Process", "Application", "Task"],
+            "range": ["Approval"]
+        },
+        {
+            "name": "attends",
+            "description": "表示人員或部門參加會議或活動。",
+            "domain": ["Employee", "Department"],
+            "range": ["Meeting", "Event"]
+        },
+        {
+            "name": "organizes",
+            "description": "表示人員或部門組織會議、活動或流程。",
+            "domain": ["Employee", "Department"],
+            "range": ["Meeting", "Event", "Administrative_Process"]
+        },
+        {
+            "name": "assigns",
+            "description": "表示人員或部門分配任務或工作。",
+            "domain": ["Employee", "Department"],
+            "range": ["Task", "Event"]
+        },
+        {
+            "name": "reports_to",
+            "description": "表示員工或部門向某個上級報告或匯報。",
+            "domain": ["Employee", "Department"],
+            "range": ["Employee", "Department", "Organization"]
+        },
+        {
+            "name": "supervises",
+            "description": "表示人員或部門監督、管理下屬或流程。",
+            "domain": ["Employee", "Department"],
+            "range": ["Employee", "Department", "Administrative_Process"]
+        },
+        {
+            "name": "complies_with",
+            "description": "表示流程、活動或文件符合政策或法規要求。",
+            "domain": ["Administrative_Process", "Event", "Document"],
+            "range": ["Policy", "Regulation"]
+        },
+        {
+            "name": "references_policy",
+            "description": "表示文件或流程引用、依據某個政策。",
+            "domain": ["Document", "Administrative_Process"],
+            "range": ["Policy", "Regulation"]
+        },
+        {
+            "name": "has_budget",
+            "description": "表示項目、流程或活動有預算。",
+            "domain": ["Event", "Process", "Project"],
+            "range": ["Budget"]
+        },
+        {
+            "name": "authorized_by",
+            "description": "表示流程、申請或行動由某個人員或部門授權。",
+            "domain": ["Administrative_Process", "Application", "Event"],
+            "range": ["Employee", "Department", "Approval"]
+        }
+    ]
+}

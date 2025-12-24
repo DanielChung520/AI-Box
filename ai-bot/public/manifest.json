@@ -1,0 +1,46 @@
+{
+  "name": "SmartQ 智慧任務文件編輯",
+  "short_name": "SmartQ IEE",
+  "description": "SmartQ 智慧任務文件編輯 - 智能任務文件編輯助手平台",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#9333ea",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/SmartQ.-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "開始聊天",
+      "short_name": "聊天",
+      "description": "開始新的對話",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/SmartQ.-logo.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

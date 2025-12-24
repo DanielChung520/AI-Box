@@ -1,7 +1,7 @@
 # 代碼功能說明: Kubernetes 命名空間配置
-# 創建日期: 2025-01-27
+# 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-11-25
 
 apiVersion: v1
 kind: Namespace
@@ -26,4 +26,3 @@ metadata:
   labels:
     name: ai-box-monitoring
     environment: development
-

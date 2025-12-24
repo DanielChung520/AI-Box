@@ -1,87 +1,233 @@
-# 代碼功能說明: GitHub Actions CI/CD 工作流配置，定義自動化測試和構建流程
-# 創建日期: 2025-01-27
+# 代碼功能說明: GitHub Actions CI/CD 工作流配置（WBS-2: DevSecOps 基礎設施）
+# 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-18
 
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
+  schedule:
+    # 每週一早上 2:00 UTC 運行安全掃描
+    - cron: '0 2 * * 1'
+
+env:
+  PYTHON_VERSION: '3.11'
+  POETRY_VERSION: '1.7.0'
 
 jobs:
   lint:
-    name: Lint and Format Check
+    name: Code Quality Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
+          python-version: ${{ env.PYTHON_VERSION }}
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install black ruff mypy
-      
-      - name: Run Ruff
-        run: |
-          ruff check .
-      
-      - name: Check Black formatting
-        run: |
-          black --check .
+          pip install black isort ruff mypy pylint
 
-  test:
-    name: Run Tests
+      - name: Run Black (code formatting)
+        run: |
+          black --check --diff .
+
+      - name: Run isort (import sorting)
+        run: |
+          isort --check-only --diff .
+
+      - name: Run Ruff (fast linting)
+        run: |
+          ruff check . --output-format=github
+
+      - name: Run Pylint
+        run: |
+          pylint --fail-under=7.0 services/api/ || true
+        continue-on-error: true
+
+      - name: Run mypy (type checking)
+        run: |
+          mypy . --ignore-missing-imports || true
+        continue-on-error: true
+
+  security-scan:
+    name: Security Scanning
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
+          python-version: ${{ env.PYTHON_VERSION }}
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install pytest pytest-cov
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-      
-      - name: Run tests
-        run: |
-          pytest --cov=. --cov-report=xml --cov-report=html || true
-      
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
+          pip install bandit safety
 
-  build:
-    name: Build Docker Image
+      - name: Run Bandit (Python security scanning)
+        run: |
+          bandit -r . -f json -o bandit-report.json || true
+          bandit -r . -ll  # Show results in console
+        continue-on-error: true
+
+      - name: Run Safety (dependency vulnerability check)
+        run: |
+          safety check --json --output safety-report.json || true
+          safety check  # Show results in console
+        continue-on-error: true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  container-scan:
+    name: Container Security Scan
     runs-on: ubuntu-latest
-    needs: [lint, test]
     if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
+
       - name: Build Docker image
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+        if: |
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
         run: |
           if [ -f Dockerfile ]; then
             docker build -t ai-box:latest .
           else
             echo "Dockerfile not found, skipping build"
+            exit 0
           fi
 
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        if: |
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        with:
+          image-ref: 'ai-box:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: [lint]
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest pytest-cov pytest-asyncio pytest-xdist
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          if [ -f services/api/pyproject.toml ]; then
+            pip install -e services/api/.[dev]
+          fi
+
+      - name: Run tests with coverage
+        run: |
+          pytest \
+            --cov=. \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-report=term \
+            --cov-fail-under=80 \
+            -n auto \
+            || true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage HTML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-${{ matrix.python-version }}
+          path: htmlcov/
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [lint, test, security-scan]
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub (if secret exists)
+        if: ${{ secrets.DOCKER_USERNAME != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.ref == 'refs/heads/develop'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ai-box:latest
+            ai-box:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Staging/Production
+    runs-on: ubuntu-latest
+    needs: [build, container-scan]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      url: ${{ secrets.DEPLOYMENT_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to environment
+        run: |
+          echo "Deployment would happen here"
+          echo "Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
+        # TODO: 根據實際部署流程添加具體的部署命令

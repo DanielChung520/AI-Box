@@ -1,0 +1,68 @@
+# 代碼功能說明: ArangoDB Kubernetes StatefulSet
+# 創建日期: 2025-11-25 22:25 (UTC+8)
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-11-25 22:25 (UTC+8)
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: arangodb
+  namespace: ai-box
+  labels:
+    app: arangodb
+spec:
+  serviceName: arangodb-internal
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arangodb
+  template:
+    metadata:
+      labels:
+        app: arangodb
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8529"
+        prometheus.io/path: "/_admin/metrics"
+    spec:
+      containers:
+        - name: arangodb
+          image: arangodb:3.12
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8529
+              name: http
+          env:
+            - name: ARANGO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: arangodb-secret
+                  key: ARANGO_ROOT_PASSWORD
+            - name: ARANGO_NO_AUTH
+              value: "false"
+            - name: ARANGO_STORAGE_ENGINE
+              value: rocksdb
+            - name: ARANGO_BACKUP_CRON
+              valueFrom:
+                configMapKeyRef:
+                  name: arangodb-config
+                  key: ARANGO_BACKUP_CRON
+          readinessProbe:
+            httpGet:
+              path: /_api/version
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_admin/server/availability
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: arangodb-data
+              mountPath: /var/lib/arangodb3
+      volumes:
+        - name: arangodb-data
+          persistentVolumeClaim:
+            claimName: arangodb-data

@@ -1,0 +1,40 @@
+{
+    "ontology_name": "Enterprise_Domain_Ontology",
+    "version": "1.0",
+    "inherits_from": "5W1H_Base_Ontology_OWL",
+    "description": "企業領域通用本體論，定義組織、財務與專案的核心概念。",
+
+    "entity_classes": [
+      {"name": "Organization", "base_class": "Concept", "description": "所有類型的企業、公司、部門或法人實體。"},
+      {"name": "Project", "base_class": "Event", "description": "一個具有起點和終點的業務項目。"},
+      {"name": "Financial_Record", "base_class": "Document", "description": "財務報表、發票或預算文件。"},
+      {"name": "Customer", "base_class": "Person", "description": "公司的服務對象或客戶。"}
+    ],
+
+    "object_properties": [
+      {
+        "name": "is_part_of",
+        "description": "表示部門或專案隸屬於哪個組織。",
+        "domain": ["Organization", "Project"],
+        "range": ["Organization"]
+      },
+      {
+        "name": "manages",
+        "description": "表示人員管理哪個專案、部門或資產。",
+        "domain": ["Person"],
+        "range": ["Project", "Organization", "Asset"]
+      },
+      {
+        "name": "involved_in",
+        "description": "表示實體參與了某個項目或活動。",
+        "domain": ["Person", "Organization"],
+        "range": ["Project"]
+      },
+      {
+        "name": "references",
+        "description": "表示文檔中提到了哪個財務或法律記錄。",
+        "domain": ["Document", "Project"],
+        "range": ["Financial_Record"]
+      }
+    ]
+  }

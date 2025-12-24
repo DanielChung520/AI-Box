@@ -1,7 +1,7 @@
 # 代碼功能說明: Kubernetes Service 配置示例
-# 創建日期: 2025-01-27
+# 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-11-25 21:22 (UTC+8)
 
 apiVersion: v1
 kind: Service
@@ -17,3 +17,58 @@ spec:
       targetPort: 8000
   type: ClusterIP
 
+---
+# ArangoDB ClusterIP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: arangodb-service
+  namespace: ai-box
+  labels:
+    app: arangodb
+spec:
+  selector:
+    app: arangodb
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8529
+      targetPort: 8529
+  type: ClusterIP
+
+---
+# ArangoDB Headless Service（提供 StatefulSet 成員內部解析）
+apiVersion: v1
+kind: Service
+metadata:
+  name: arangodb-internal
+  namespace: ai-box
+  labels:
+    app: arangodb
+spec:
+  clusterIP: None
+  selector:
+    app: arangodb
+  ports:
+    - name: http
+      port: 8529
+      targetPort: 8529
+
+---
+# ChromaDB ClusterIP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: chromadb-service
+  namespace: ai-box
+  labels:
+    app: chromadb
+spec:
+  selector:
+    app: chromadb
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

@@ -1,0 +1,167 @@
+{
+  "_metadata": {
+    "description": "AI-Box WBS 1.4 知識圖譜初始資料",
+    "created_at": "2025-11-25T22:58:00+08:00",
+    "created_by": "Daniel Chung"
+  },
+  "entities": [
+    {
+      "_key": "agent_planning",
+      "type": "agent",
+      "name": "Planning Agent",
+      "summary": "負責生成多步驟計畫與驗證任務分解。",
+      "owner": "AI-Core",
+      "status": "active",
+      "tags": [
+        "agent",
+        "planning",
+        "workflow"
+      ],
+      "metadata": {
+        "mcp_server": "planning-agent",
+        "capabilities": [
+          "plan_generation",
+          "plan_validation"
+        ]
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    },
+    {
+      "_key": "agent_execution",
+      "type": "agent",
+      "name": "Execution Agent",
+      "summary": "呼叫工具並執行具體任務。",
+      "owner": "AI-Core",
+      "status": "active",
+      "tags": [
+        "agent",
+        "execution"
+      ],
+      "metadata": {
+        "mcp_server": "execution-agent",
+        "capabilities": [
+          "tool_invocation",
+          "artifact_generation"
+        ]
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    },
+    {
+      "_key": "agent_review",
+      "type": "agent",
+      "name": "Review Agent",
+      "summary": "驗證輸出品質並建立回饋。",
+      "owner": "AI-Core",
+      "status": "active",
+      "tags": [
+        "agent",
+        "qa"
+      ],
+      "metadata": {
+        "mcp_server": "review-agent",
+        "capabilities": [
+          "validation",
+          "feedback"
+        ]
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    },
+    {
+      "_key": "task_langchain_integration",
+      "type": "task",
+      "name": "WBS 3.1 LangChain 整合",
+      "summary": "實作 LangChain/Graph 引擎與狀態機。",
+      "owner": "AI-Workflow",
+      "status": "planned",
+      "tags": [
+        "workflow",
+        "langchain"
+      ],
+      "metadata": {
+        "wbs": "3.1",
+        "milestone": "M3"
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    },
+    {
+      "_key": "dataset_contracts",
+      "type": "dataset",
+      "name": "Contracts Knowledge Pack",
+      "summary": "法律合約與審查案例的結構化資料。",
+      "owner": "Data-Team",
+      "status": "ready",
+      "tags": [
+        "dataset",
+        "legal"
+      ],
+      "metadata": {
+        "format": "pdf",
+        "ingestion_pipeline": "doc-ingestion-v1"
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    },
+    {
+      "_key": "resource_gpu_pool",
+      "type": "resource",
+      "name": "GPU Node Pool",
+      "summary": "Kubernetes GPU 叢集節點組，提供推理資源。",
+      "owner": "DevOps",
+      "status": "available",
+      "tags": [
+        "resource",
+        "infrastructure"
+      ],
+      "metadata": {
+        "capacity": "4xA100",
+        "region": "asia-east1"
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    }
+  ],
+  "relations": [
+    {
+      "_key": "planner_handles_langchain",
+      "_from": "entities/agent_planning",
+      "_to": "entities/task_langchain_integration",
+      "type": "handles",
+      "weight": 0.9,
+      "metadata": {
+        "deliverable": "planning_doc"
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    },
+    {
+      "_key": "execution_depends_gpu",
+      "_from": "entities/agent_execution",
+      "_to": "entities/resource_gpu_pool",
+      "type": "requires",
+      "weight": 0.8,
+      "metadata": {
+        "reason": "tool_runtime"
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    },
+    {
+      "_key": "review_consumes_dataset",
+      "_from": "entities/agent_review",
+      "_to": "entities/dataset_contracts",
+      "type": "consumes",
+      "weight": 0.7,
+      "metadata": {
+        "usage": "quality_checks"
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    },
+    {
+      "_key": "langchain_reads_dataset",
+      "_from": "entities/task_langchain_integration",
+      "_to": "entities/dataset_contracts",
+      "type": "needs",
+      "weight": 0.6,
+      "metadata": {
+        "scope": "graph_context"
+      },
+      "updated_at": "2025-11-25T22:58:00+08:00"
+    }
+  ]
+}

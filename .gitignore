@@ -22,6 +22,10 @@ yarn-error.log*
 .npm
 .yarn/
 
+# Vite build outputs
+dist/
+dev-dist/
+
 # IDE
 .vscode/
 .idea/
@@ -46,12 +50,16 @@ Desktop.ini
 
 # Project specific
 *.log
+*.log.*
+logs/
 .env
 .env.local
 .env.*.local
+.env.backup*
 *.pem
 *.key
 *.cert
+config/config.json
 
 # Testing
 .pytest_cache/
@@ -86,3 +94,27 @@ temp/
 *.bak
 *.swp
 
+# Test results and datasets
+data/datasets/files/
+tests/integration/*/junit*.xml
+tests/integration/*/test_results_*.json
+tests/integration/*/test_output*.txt
+
+# Database data directories
+data/chroma_data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Markdown files - only allow docs/ directory
+# Ignore all .md files
+*.md
+**/*.md
+
+# But allow .md files in docs/ directory
+!docs/**/*.md
+
+# Test files - ignore all test files
+# Ignore test_*.py and *_test.py files
+**/test_*.py
+**/*_test.py
