@@ -1,13 +1,22 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import Home from "@/pages/Home";
 import FileManagement from "@/pages/FileManagement";
 import DocumentAssistant from "@/pages/DocumentAssistant";
+import IEEEditor from "@/pages/IEEEditor";
 import WelcomePage from "@/pages/WelcomePage";
 import LoginPage from "@/pages/LoginPage";
 import { useState, useEffect } from "react";
 import { AuthContext } from '@/contexts/authContext';
 import { LanguageProvider, useLanguage } from '@/contexts/languageContext';
 import { performanceMonitor } from '@/lib/performance';
+
+// IEE Editor Wrapper 組件，用於從 URL 參數獲取 fileId
+function IEEEditorWrapper() {
+  const [searchParams] = useSearchParams();
+  const fileId = searchParams.get('fileId') || undefined;
+
+  return <IEEEditor fileId={fileId} />;
+}
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -78,6 +87,14 @@ function AppContent() {
           path="/docs"
           element={
             isAuthenticated ? <DocumentAssistant /> : <Navigate to="/login" replace />
+          }
+        />
+
+        {/* IEE 編輯器 - 需要認證 */}
+        <Route
+          path="/iee-editor"
+          element={
+            isAuthenticated ? <IEEEditorWrapper /> : <Navigate to="/login" replace />
           }
         />
 

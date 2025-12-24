@@ -39,13 +39,16 @@ from services.api.models.doc_generation_request import (
     DocGenStatus,
 )
 from services.api.models.file_metadata import FileMetadataCreate, FileMetadataUpdate
+from services.api.services.change_summary_service import get_change_summary_service
 from services.api.services.doc_edit_request_store_service import get_doc_edit_request_store_service
 from services.api.services.doc_generation_request_store_service import (
     get_doc_generation_request_store_service,
 )
+from services.api.services.incremental_reindex_service import get_incremental_reindex_service
 from services.api.services.doc_patch_service import (
     PatchApplyError,
     apply_json_patch,
+    apply_search_replace_patches,
     apply_unified_diff,
     detect_doc_format,
 )
@@ -213,7 +216,23 @@ async def _run_preview_request(*, request_id: str) -> None:
                 patch=str(patch_payload),
                 summary=str(summary or ""),
             )
+        elif patch_kind == "search_replace":
+            # Search-and-Replace 格式
+            if not isinstance(patch_payload, dict) or "patches" not in patch_payload:
+                raise PatchApplyError("Invalid search_replace payload")
+            patches = patch_payload.get("patches", [])
+            _ = apply_search_replace_patches(
+                original=base_text,
+                patches=patches,
+                cursor_position=None,  # TODO: 從請求中獲取游標位置
+            )
+            preview = DocEditPreview(
+                patch_kind="search_replace",
+                patch=patch_payload,
+                summary=str(summary or ""),
+            )
         else:
+            # json_patch
             if not isinstance(patch_payload, list):
                 raise PatchApplyError("Invalid json_patch payload")
             _ = apply_json_patch(
@@ -276,8 +295,9 @@ def _build_patch_prompt(*, doc_format: str, instruction: str, base_content: str)
 async def _call_llm_for_patch(prompt: str) -> tuple[str, Any, str]:
     """回傳 (patch_kind, patch_payload, summary)。
 
-    MVP：
+    支持的格式：
     - 若回傳為 JSON array → json_patch
+    - 若回傳為包含 "patches" 的 JSON 對象 → search_replace
     - 否則 → unified_diff
     """
 
@@ -289,11 +309,26 @@ async def _call_llm_for_patch(prompt: str) -> tuple[str, Any, str]:
     content = str(result.get("content") or result.get("text") or "")
     content = content.strip()
 
-    # 嘗試 parse JSON Patch
+    # 嘗試 parse JSON
     try:
         parsed = json.loads(content)
+        # 檢查是否為 JSON Patch（數組格式）
         if isinstance(parsed, list):
             return "json_patch", parsed, ""
+        # 檢查是否為 Search-and-Replace 格式（包含 "patches" 鍵的對象）
+        if isinstance(parsed, dict) and "patches" in parsed:
+            patches = parsed.get("patches", [])
+            if isinstance(patches, list) and len(patches) > 0:
+                # 驗證 patches 格式
+                for patch in patches:
+                    if not isinstance(patch, dict):
+                        break
+                    if "search_block" not in patch or "replace_block" not in patch:
+                        break
+                else:
+                    # 所有 patch 格式正確
+                    thought_chain = parsed.get("thought_chain", "")
+                    return "search_replace", parsed, thought_chain
     except Exception:
         pass
 
@@ -514,7 +549,18 @@ async def apply_doc_edit(
     try:
         if record.preview.patch_kind == "unified_diff":
             new_text = apply_unified_diff(original=base_text, diff_text=str(record.preview.patch))
+        elif record.preview.patch_kind == "search_replace":
+            # Search-and-Replace 格式
+            if not isinstance(record.preview.patch, dict) or "patches" not in record.preview.patch:
+                raise PatchApplyError("Invalid search_replace payload")
+            search_replace_patches = record.preview.patch.get("patches", [])
+            new_text = apply_search_replace_patches(
+                original=base_text,
+                patches=search_replace_patches,
+                cursor_position=None,  # TODO: 從請求中獲取游標位置
+            )
         else:
+            # json_patch
             if not isinstance(record.preview.patch, list):
                 raise PatchApplyError("Invalid json_patch payload")
             new_text = apply_json_patch(
@@ -545,6 +591,29 @@ async def apply_doc_edit(
         task_id=file_meta.task_id,
     )
 
+    # 生成變更摘要（如果 preview 中沒有摘要）
+    summary = record.preview.summary or ""
+    if not summary:
+        try:
+            change_summary_service = get_change_summary_service()
+            # 提取 patches 信息（如果可用）
+            summary_patches: Optional[List[Dict[str, Any]]] = None
+            if record.preview.patch_kind == "search_replace" and isinstance(
+                record.preview.patch, dict
+            ):
+                summary_patches = record.preview.patch.get("patches", [])
+
+            summary = await change_summary_service.generate_summary(
+                original_content=base_text,
+                modified_content=new_text,
+                patches=summary_patches,
+            )
+            logger.info(f"生成的變更摘要: {summary[:100]}...")
+        except Exception as e:
+            logger.warning(f"生成變更摘要失敗，使用默認摘要: {e}")
+            # 使用默認摘要
+            summary = "文檔內容已修改"
+
     # 更新 metadata：doc_versions + doc_version
     new_version = int(current_version) + 1
     new_meta = _append_version(
@@ -552,7 +621,7 @@ async def apply_doc_edit(
         version=int(current_version),
         version_file_id=version_file_id,
         storage_path=version_storage_path,
-        summary=record.preview.summary,
+        summary=summary,
         request_id=record.request_id,
     )
     new_meta["doc_version"] = new_version
@@ -572,6 +641,26 @@ async def apply_doc_edit(
         ),
     )
 
+    # 增量重新索引（可選，如果失敗不影響提交）
+    reindexed_chunks = 0
+    try:
+        incremental_reindex_service = get_incremental_reindex_service()
+        reindex_result = await incremental_reindex_service.reindex_modified_chunks(
+            file_id=record.file_id,
+            original_content=base_text,
+            modified_content=new_text,
+            user_id=current_user.user_id,
+        )
+        reindexed_chunks = reindex_result.get("reindexed_chunks", 0)
+        logger.info(
+            "增量重新索引完成",
+            file_id=record.file_id,
+            reindexed_chunks=reindexed_chunks,
+        )
+    except Exception as e:
+        # 重新索引失敗不影響提交，只記錄警告
+        logger.warning(f"增量重新索引失敗，但不影響提交: {e}", exc_info=True)
+
     record.apply_result = DocEditApplyResult(new_version=new_version)
     store.update(request_id=record.request_id, status=DocEditStatus.applied, record=record)
 
@@ -581,6 +670,7 @@ async def apply_doc_edit(
             "file_id": record.file_id,
             "status": "applied",
             "new_version": new_version,
+            "reindexed_chunks": reindexed_chunks,
         },
         message="Doc edit applied",
     )

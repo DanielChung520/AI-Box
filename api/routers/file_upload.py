@@ -54,9 +54,7 @@ class BlankMarkdownCreateRequest(BaseModel):
     """建立空白 Markdown 檔案（不走 upload multipart）。"""
 
     task_id: str = Field(..., description="任務ID（必填）")
-    folder_id: Optional[str] = Field(
-        None, description="資料夾ID（可選；None 表示任務工作區根目錄）"
-    )
+    folder_id: Optional[str] = Field(None, description="資料夾ID（可選；None 表示任務工作區根目錄）")
     filename: str = Field(..., description="檔名（會自動補 .md）")
 
 
@@ -1588,9 +1586,7 @@ async def upload_files(
     request: Request,
     files: List[UploadFile] = File(...),
     task_id: Optional[str] = Form(None, description="任務ID（可選，用於組織文件到工作區）"),
-    target_folder_id: Optional[str] = Form(
-        None, description="目標資料夾ID（可選，未提供則放任務工作區）"
-    ),
+    target_folder_id: Optional[str] = Form(None, description="目標資料夾ID（可選，未提供則放任務工作區）"),
     current_user: User = Depends(require_consent(ConsentType.FILE_UPLOAD)),
 ) -> JSONResponse:
     # 修改時間：2025-01-27 - 添加日誌記錄以便調試 JWT 認證問題

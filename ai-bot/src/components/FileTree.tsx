@@ -2,13 +2,14 @@
  * 代碼功能說明: 文件樹組件
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-14 14:20:04 (UTC+8)
+ * 最後修改日期: 2025-12-21
  *
  * 功能說明:
  * - 顯示按 task_id 組織的文件目錄結構
  * - 支持展開/折疊目錄
  * - 點擊目錄可以篩選文件列表
  * - 顯示"任務工作區"作為特殊目錄
+ * - 優雅處理任務不存在的情況（新任務創建時）
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -1473,6 +1474,23 @@ export default function FileTree({
     }
 
     switch (action) {
+      case 'openInIEE':
+        // 使用 IEE 編輯器打開文件
+        // 檢查文件類型是否為 Markdown
+        const fileType = contextMenu.fileName.toLowerCase();
+        const isMarkdown = fileType.endsWith('.md') || fileType.endsWith('.markdown');
+        if (!isMarkdown) {
+          setNotification({
+            message: 'IEE 編輯器目前僅支持 Markdown 文件',
+            type: 'warning',
+          });
+          setTimeout(() => setNotification(null), 3000);
+          closeContextMenu();
+          return;
+        }
+        // 導航到 IEE 編輯器頁面
+        window.location.href = `/iee-editor?fileId=${encodeURIComponent(contextMenu.fileId)}`;
+        break;
       case 'rename':
         // 實現重新命名文件功能
         // 確保文件 ID 不是 temp-workspace（文件 ID 不應該是 temp-workspace，但為了安全起見還是檢查）
@@ -2206,14 +2224,28 @@ export default function FileTree({
         setError('無法加載文件樹');
       }
     } catch (err: any) {
-      console.error('[FileTree] Error loading file tree:', err);
-      console.error('[FileTree] Error details:', {
-        message: err.message,
-        stack: err.stack,
-        name: err.name
-      });
-      // 超时错误应该显示给用户，而不是隐藏
-      if (err.message?.includes('timeout')) {
+      // 檢查是否為任務不存在錯誤（新任務創建時可能會出現）
+      const isTaskNotFound = err.message?.includes('不存在') ||
+                             err.message?.includes('not found') ||
+                             err.message?.includes('不屬於當前用戶');
+
+      if (isTaskNotFound) {
+        // 任務不存在時，顯示空文件樹（不顯示錯誤，因為任務可能正在創建中）
+        // 使用 console.debug 而不是 console.error，因為這是預期的行為
+        console.debug('[FileTree] Task not found yet, showing empty tree', { taskId });
+        setTreeData({
+          success: true,
+          data: {
+            tree: {},
+            folders: {},
+            total_tasks: 0,
+            total_files: 0,
+          },
+          message: '文件樹為空（任務可能正在創建中）',
+        });
+        setError(null); // 不顯示錯誤
+      } else if (err.message?.includes('timeout')) {
+        // 超时错误应该显示给用户，而不是隐藏
         console.error('[FileTree] API request timeout');
         setError('請求超時，請檢查網絡連接或稍後再試');
         setTreeData(null);
@@ -2223,9 +2255,25 @@ export default function FileTree({
         console.warn('[FileTree] Connection error');
         setError('無法連接到服務器，請確認後端服務是否正在運行');
         setTreeData(null);
+      } else if (err.message?.includes('cursor count not enabled')) {
+        // ArangoDB cursor count 錯誤，顯示空文件樹（不影響功能）
+        // 使用 console.debug 而不是 console.warn，因為這是預期的行為（後端配置問題，不影響功能）
+        console.debug('[FileTree] ArangoDB cursor count error, showing empty tree', { taskId });
+        setTreeData({
+          success: true,
+          data: {
+            tree: {},
+            folders: {},
+            total_tasks: 0,
+            total_files: 0,
+          },
+          message: '文件樹為空',
+        });
+        setError(null); // 不顯示錯誤
       } else {
-        console.error('[FileTree] Other error:', err.message);
-      setError(err.message || '加載文件樹失敗');
+        // 只有真正的錯誤才記錄為 console.error
+        console.error('[FileTree] Error loading file tree:', err);
+        setError(err.message || '加載文件樹失敗');
       }
     } finally {
       setLoading(false);
@@ -2723,6 +2771,13 @@ export default function FileTree({
               <span>貼上</span>
             </button>
             <div className="border-t border-primary my-1"></div>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('openInIEE')}
+            >
+              <i className="fa-solid fa-code w-4"></i>
+              <span>使用 IEE 編輯器打開</span>
+            </button>
             <button
               className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
               onClick={() => handleMenuAction('attachToChat')}
@@ -3771,14 +3826,21 @@ export default function FileTree({
             <i className="fa-solid fa-paste w-4"></i>
             <span>貼上</span>
           </button>
-          <div className="border-t border-primary my-1"></div>
-          <button
-            className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
-            onClick={() => handleMenuAction('attachToChat')}
-          >
-            <i className="fa-solid fa-paperclip w-4"></i>
-            <span>標註到任務指令區</span>
-          </button>
+            <div className="border-t border-primary my-1"></div>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('openInIEE')}
+            >
+              <i className="fa-solid fa-code w-4"></i>
+              <span>使用 IEE 編輯器打開</span>
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={() => handleMenuAction('attachToChat')}
+            >
+              <i className="fa-solid fa-paperclip w-4"></i>
+              <span>標註到任務指令區</span>
+            </button>
           <button
             className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
             onClick={() => handleMenuAction('viewVectors')}

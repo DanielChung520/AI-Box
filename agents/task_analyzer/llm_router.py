@@ -298,6 +298,40 @@ class LLMRouter:
                     except ValueError:
                         logger.warning(f"無效的提供商偏好: {preferred}")
 
+                # 考慮用戶收藏的模型（Auto 模式優先使用收藏模型）
+                favorite_models = context.get("favorite_models")
+                if favorite_models and isinstance(favorite_models, list):
+                    # 從收藏模型中推導 provider，並增加對應 provider 的得分
+                    for model_id in favorite_models:
+                        if not model_id or not isinstance(model_id, str):
+                            continue
+                        model_id_lower = model_id.lower()
+                        # 使用與 chat.py 相同的推導邏輯
+                        provider = None
+                        if ":" in model_id_lower or model_id_lower in {
+                            "llama2",
+                            "gpt-oss:20b",
+                            "qwen3-coder:30b",
+                        }:
+                            provider = LLMProvider.OLLAMA
+                        elif (
+                            model_id_lower.startswith("gpt-")
+                            or model_id_lower.startswith("openai")
+                            or "gpt" in model_id_lower
+                        ):
+                            provider = LLMProvider.CHATGPT
+                        elif model_id_lower.startswith("gemini"):
+                            provider = LLMProvider.GEMINI
+                        elif model_id_lower.startswith("grok"):
+                            provider = LLMProvider.GROK
+                        elif model_id_lower.startswith("qwen"):
+                            provider = LLMProvider.QWEN
+
+                        # 如果推導出 provider 且在規則中，增加得分
+                        if provider and provider in rules:
+                            rules[provider] += 0.3  # 收藏模型增加更高的優先級
+                            logger.debug(f"收藏模型 {model_id} 增加 {provider.value} provider 優先級")
+
                 # 考慮成本因素
                 if context.get("cost_sensitive", False):
                     # 成本敏感時優先使用本地或便宜的提供商
@@ -315,10 +349,7 @@ class LLMRouter:
             # 選擇得分最高的提供商
             provider = max(rules.items(), key=lambda x: x[1])[0]
             confidence = rules[provider]
-            reasoning = (
-                f"根據任務類型 {task_type.value}，選擇 {provider.value} 提供商，"
-                f"置信度 {confidence:.2f}"
-            )
+            reasoning = f"根據任務類型 {task_type.value}，選擇 {provider.value} 提供商，" f"置信度 {confidence:.2f}"
 
         # 獲取模型名稱
         model = self.model_mapping.get(provider, "default")

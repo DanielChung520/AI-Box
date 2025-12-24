@@ -6,7 +6,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { File as FileIcon, Download, Trash2, Eye, RefreshCw, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { File as FileIcon, Download, Trash2, Eye, RefreshCw, Search, Edit } from 'lucide-react';
 import { getFileList, deleteFile, downloadFile, FileMetadata, getProcessingStatus } from '../lib/api';
 import FilePreview from './FilePreview';
 
@@ -77,6 +78,7 @@ const getStatusBadge = (status?: string, processingStatus?: string, processingDa
 };
 
 export default function FileList({ userId, taskId, onFileSelect, viewMode = 'table', autoRefresh = true, refreshInterval = 5000 }: FileListProps) {
+  const navigate = useNavigate();
   const [files, setFiles] = useState<FileMetadata[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -206,6 +208,18 @@ export default function FileList({ userId, taskId, onFileSelect, viewMode = 'tab
     setShowPreview(true);
   };
 
+  const handleEdit = (file: FileMetadata) => {
+    // 檢查文件類型是否為 Markdown
+    const fileName = file.filename.toLowerCase();
+    const isMarkdown = fileName.endsWith('.md') || fileName.endsWith('.markdown');
+    if (!isMarkdown) {
+      alert('IEE 編輯器目前僅支持 Markdown 文件');
+      return;
+    }
+    // 導航到 IEE 編輯器頁面
+    navigate(`/iee-editor?fileId=${encodeURIComponent(file.file_id)}`);
+  };
+
   const filteredFiles = files.filter(file => {
     if (searchQuery) {
       return file.filename.toLowerCase().includes(searchQuery.toLowerCase());
@@ -277,6 +291,18 @@ export default function FileList({ userId, taskId, onFileSelect, viewMode = 'tab
                   <Eye className="w-4 h-4 inline mr-1" />
                   預覽
                 </button>
+                {(file.filename.toLowerCase().endsWith('.md') || file.filename.toLowerCase().endsWith('.markdown')) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(file);
+                    }}
+                    className="flex-1 px-3 py-1 text-sm border rounded hover:bg-blue-50 text-blue-600"
+                  >
+                    <Edit className="w-4 h-4 inline mr-1" />
+                    編輯
+                  </button>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -404,6 +430,15 @@ export default function FileList({ userId, taskId, onFileSelect, viewMode = 'tab
                     >
                       <Eye className="w-4 h-4" />
                     </button>
+                    {(file.filename.toLowerCase().endsWith('.md') || file.filename.toLowerCase().endsWith('.markdown')) && (
+                      <button
+                        onClick={() => handleEdit(file)}
+                        className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                        title="使用 IEE 編輯器打開"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDownload(file)}
                       className="p-1 hover:bg-gray-100 rounded"

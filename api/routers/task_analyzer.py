@@ -1,7 +1,7 @@
 # 代碼功能說明: Task Analyzer API 路由
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-12-21
 
 """Task Analyzer API 路由"""
 
@@ -51,7 +51,7 @@ async def analyze_task(request: TaskAnalysisAPIRequest) -> JSONResponse:
         )
 
         # 執行分析
-        result = task_analyzer.analyze(analysis_request)
+        result = await task_analyzer.analyze(analysis_request)
 
         return APIResponse.success(
             data=result.model_dump(mode="json"),

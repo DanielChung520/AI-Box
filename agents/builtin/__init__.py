@@ -1,7 +1,7 @@
 # 代碼功能說明: 内建 Agent 模組
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-21
 
 """内建 Agent 模組
 
@@ -10,6 +10,7 @@
 - Security Manager: 安全管理员
 - Orchestrator Manager: 协调管理员
 - Storage Manager: 数据存储员
+- System Config Agent: 系统配置代理
 
 这些 Agent 是 AI 驱动的任务导向服务，无需注册，与 AI-Box 生命周期一致。
 """
@@ -22,12 +23,14 @@ from .orchestrator_manager.agent import OrchestratorManagerAgent
 from .registry_manager.agent import RegistryManagerAgent
 from .security_manager.agent import SecurityManagerAgent
 from .storage_manager.agent import StorageManagerAgent
+from .system_config_agent.agent import SystemConfigAgent
 
 __all__ = [
     "RegistryManagerAgent",
     "SecurityManagerAgent",
     "OrchestratorManagerAgent",
     "StorageManagerAgent",
+    "SystemConfigAgent",
     "initialize_builtin_agents",
     "get_builtin_agent",
 ]
@@ -54,6 +57,7 @@ def initialize_builtin_agents() -> Dict[str, AgentServiceProtocol]:
     _builtin_agents["security_manager"] = SecurityManagerAgent()
     _builtin_agents["orchestrator_manager"] = OrchestratorManagerAgent()
     _builtin_agents["storage_manager"] = StorageManagerAgent()
+    _builtin_agents["system_config"] = SystemConfigAgent()
 
     return _builtin_agents
 
@@ -63,7 +67,7 @@ def get_builtin_agent(agent_id: str) -> Optional[AgentServiceProtocol]:
     获取内建 Agent 实例
 
     Args:
-        agent_id: Agent ID（registry_manager, security_manager, orchestrator_manager, storage_manager）
+        agent_id: Agent ID（registry_manager, security_manager, orchestrator_manager, storage_manager, system_config）
 
     Returns:
         内建 Agent 实例，如果不存在返回 None

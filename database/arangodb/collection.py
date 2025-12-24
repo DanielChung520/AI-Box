@@ -1,7 +1,7 @@
 # 代碼功能說明: ArangoDB 集合操作封裝
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-12-21
 
 """ArangoDB 集合操作封裝，提供文檔 CRUD 操作"""
 
@@ -203,9 +203,10 @@ class ArangoCollection:
         """
         try:
             # 轉換 sort 參數類型：list[str] -> list[dict[str, Any]]
+            # ArangoDB Python 客戶端期望的格式：{"sort_by": field, "sort_order": "asc"|"desc"}
             sort_converted: list[dict[str, Any]] | None = None
             if sort:
-                sort_converted = [{"field": s, "direction": "asc"} for s in sort]  # type: ignore[arg-type]  # 簡化轉換
+                sort_converted = [{"sort_by": s, "sort_order": "asc"} for s in sort]  # type: ignore[arg-type]
             result = self.collection.find(  # type: ignore[arg-type]
                 filters=filters or {}, skip=skip, limit=limit, sort=sort_converted
             )

@@ -94,8 +94,7 @@ class WorkflowSelector:
             workflow_type = max(rules.items(), key=lambda x: x[1])[0]
             confidence = rules[workflow_type]
             reasoning = (
-                f"根據任務類型 {task_type.value}，選擇 {workflow_type.value} 工作流，"
-                f"置信度 {confidence:.2f}"
+                f"根據任務類型 {task_type.value}，選擇 {workflow_type.value} 工作流，" f"置信度 {confidence:.2f}"
             )
 
         # 使用決策引擎決定策略

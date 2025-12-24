@@ -20,13 +20,15 @@ if TYPE_CHECKING:
     from rq.registry import FailedJobRegistry, FinishedJobRegistry, StartedJobRegistry
 
 
-def _require_rq() -> Tuple[
-    "type[Queue]",
-    "type[Worker]",
-    "type[StartedJobRegistry]",
-    "type[FinishedJobRegistry]",
-    "type[FailedJobRegistry]",
-]:
+def _require_rq() -> (
+    Tuple[
+        "type[Queue]",
+        "type[Worker]",
+        "type[StartedJobRegistry]",
+        "type[FinishedJobRegistry]",
+        "type[FailedJobRegistry]",
+    ]
+):
     """確保 rq 可用；否則拋出可讀錯誤。"""
     try:
         from rq import Queue, Worker

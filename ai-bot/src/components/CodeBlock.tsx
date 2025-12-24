@@ -1,7 +1,7 @@
 // 代碼功能說明：代碼塊組件，支持語法高亮和複製功能
 // 創建日期：2025-01-27
 // 創建人：Daniel Chung
-// 最後修改日期：2025-12-13 18:28:38 (UTC+8)
+// 最後修改日期：2025-01-27
 
 import { useState, useMemo } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
@@ -19,6 +19,11 @@ export default function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const { theme } = useTheme();
   const { t } = useLanguage();
+
+  // 調試：記錄渲染信息
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('[CodeBlock] Rendering:', { language, codeLength: code.length });
+  }
 
   const handleCopy = async () => {
     try {
@@ -64,15 +69,15 @@ export default function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
   }, [theme]);
 
   return (
-    <div className="relative my-4 rounded-lg overflow-hidden border border-primary bg-secondary">
+    <div className="relative my-4 rounded-lg overflow-hidden bg-secondary shadow-md" style={{ border: '0.5px solid rgb(148 163 184 / 0.2)' }}>
       {/* 語言標籤和複製按鈕 */}
-      <div className="flex items-center justify-between px-4 py-2 bg-tertiary border-b border-primary">
-        <span className="text-xs font-mono text-tertiary opacity-70">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-tertiary/60" style={{ borderBottom: '0.5px solid rgb(148 163 184 / 0.2)' }}>
+        <span className="text-xs font-mono text-primary/70 font-semibold uppercase tracking-wide">
           {language}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-tertiary hover:text-primary transition-colors rounded hover:bg-hover"
+          className="flex items-center gap-1 px-2 py-0.5 text-xs text-tertiary hover:text-primary transition-colors rounded hover:bg-hover"
           title={t('codeBlock.copy') || '複製代碼'}
           aria-label={t('codeBlock.copy') || '複製代碼'}
         >
@@ -100,18 +105,36 @@ export default function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
                 ...style,
                 margin: 0,
                 padding: '1rem',
-                backgroundColor: 'transparent',
                 fontSize: '0.875rem',
-                lineHeight: '1.5',
+                lineHeight: '1.6',
+                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+                overflow: 'auto',
               }}
             >
-              {tokens.map((line: Token[], i: number) => (
-                <div key={i} {...getLineProps({ line })}>
-                  {line.map((token: Token, key: number) => (
-                    <span key={key} {...getTokenProps({ token })} />
-                  ))}
-                </div>
-              ))}
+              {tokens.map((line: Token[], i: number) => {
+                const lineProps = getLineProps({ line, key: i });
+                // 分離 key，避免 React 警告（key 不能通過 spread 傳遞）
+                const { key: lineKey, ...linePropsWithoutKey } = lineProps;
+                return (
+                  <div key={lineKey || i} {...(linePropsWithoutKey as any)}>
+                    {line.map((token: Token, key: number) => {
+                      const tokenProps = getTokenProps({ token, key });
+                      // 分離 key，避免 React 警告（key 不能通過 spread 傳遞）
+                      const { key: tokenKey, ...tokenPropsWithoutKey } = tokenProps;
+                      return (
+                        <span
+                          key={tokenKey || key}
+                          {...(tokenPropsWithoutKey as any)}
+                          style={{
+                            ...tokenPropsWithoutKey.style,
+                            // 確保樣式被正確應用
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </pre>
           )}
         </Highlight>

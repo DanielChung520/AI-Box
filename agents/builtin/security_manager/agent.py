@@ -1,7 +1,7 @@
 # 代碼功能說明: Security Manager Agent 實現
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-21
 
 """Security Manager Agent 實現
 
@@ -10,7 +10,7 @@ AI 驱动的安全管理服务，提供智能风险评估、权限检查和安�
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from agents.services.protocol.base import (
     AgentServiceProtocol,
@@ -23,7 +23,15 @@ from agents.services.resource_controller import ResourceType, get_resource_contr
 from agents.task_analyzer.models import LLMProvider
 from llm.clients.factory import get_client
 
-from .models import RiskAssessmentResult, RiskLevel, SecurityManagerRequest, SecurityManagerResponse
+from .models import (
+    ConfigRiskAssessmentResult,
+    PermissionCheckResult,
+    RiskAssessmentResult,
+    RiskLevel,
+    SecurityCheckResult,
+    SecurityManagerRequest,
+    SecurityManagerResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -527,3 +535,214 @@ class SecurityManagerAgent(AgentServiceProtocol):
             "ai_enabled": True,
             "version": "1.0.0",
         }
+
+    async def verify_access(
+        self,
+        admin_id: str,
+        intent: Dict[str, Any],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> SecurityCheckResult:
+        """
+        驗證用戶權限並評估操作風險
+
+        這是符合 Security-Agent-規格書的標準接口，供 Orchestrator 調用。
+
+        Args:
+            admin_id: 管理員用戶 ID
+            intent: ConfigIntent（包含 action、level、scope 等）
+            context: 額外上下文（IP、User Agent、trace_id 等）
+
+        Returns:
+            SecurityCheckResult: 安全檢查結果
+        """
+        from datetime import datetime
+
+        try:
+            # 1. 獲取用戶角色（簡化實現，實際應該從 RBAC Service 獲取）
+            # TODO: 集成 RBAC Service
+            user_role = "tenant_admin"  # 暫時使用默認角色
+
+            # 2. 權限檢查
+            permission_check = await self._check_permission_for_config(admin_id, intent, user_role)
+            if not permission_check.allowed:
+                audit_context = {
+                    "admin_id": admin_id,
+                    "admin_role": user_role,
+                    "intent": intent,
+                    "ip": context.get("ip") if context else None,
+                    "user_agent": context.get("user_agent") if context else None,
+                }
+                return SecurityCheckResult(
+                    allowed=False,
+                    reason=permission_check.reason,
+                    audit_context=audit_context,
+                )
+
+            # 3. 風險評估
+            risk_assessment = await self._assess_config_risk(intent, user_role)
+
+            # 4. 構建審計上下文
+            audit_context = {
+                "admin_id": admin_id,
+                "admin_role": user_role,
+                "intent": intent,
+                "risk_level": risk_assessment.risk_level,
+                "ip": context.get("ip") if context else None,
+                "user_agent": context.get("user_agent") if context else None,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+
+            # 5. 記錄安全日誌（使用 LogService）
+            trace_id = context.get("trace_id") if context else None
+            if trace_id:
+                try:
+                    from services.api.core.log import get_log_service
+
+                    log_service = get_log_service()
+                    await log_service.log_security(
+                        trace_id=trace_id,
+                        actor=admin_id,
+                        action="check_permission",
+                        content={
+                            "intent": intent,
+                            "permission_check": {
+                                "allowed": permission_check.allowed,
+                                "user_role": user_role,
+                                "reason": permission_check.reason,
+                            },
+                            "risk_assessment": {
+                                "risk_level": risk_assessment.risk_level,
+                                "requires_double_check": risk_assessment.requires_double_check,
+                            },
+                            "audit_context": audit_context,
+                        },
+                    )
+                except Exception as e:
+                    self._logger.warning(f"Failed to log security event: {e}")
+
+            return SecurityCheckResult(
+                allowed=True,
+                reason=None,
+                requires_double_check=risk_assessment.requires_double_check,
+                risk_level=risk_assessment.risk_level,
+                audit_context=audit_context,
+            )
+
+        except Exception as e:
+            self._logger.error(f"verify_access failed: {e}", exc_info=True)
+            return SecurityCheckResult(
+                allowed=False,
+                reason=f"Security check failed: {str(e)}",
+                audit_context={
+                    "admin_id": admin_id,
+                    "intent": intent,
+                    "error": str(e),
+                },
+            )
+
+    async def _check_permission_for_config(
+        self, admin_id: str, intent: Dict[str, Any], user_role: str
+    ) -> PermissionCheckResult:
+        """
+        檢查用戶權限（針對配置操作）
+
+        Args:
+            admin_id: 管理員用戶 ID
+            intent: ConfigIntent
+            user_role: 用戶角色
+
+        Returns:
+            PermissionCheckResult: 權限檢查結果
+        """
+        action = intent.get("action")
+        level = intent.get("level")
+
+        # 1. 系統級配置：只有 system_admin 可以操作
+        if level == "system":
+            if user_role != "system_admin":
+                return PermissionCheckResult(
+                    allowed=False,
+                    reason="Security Error: 權限不足，僅系統管理員可修改全域配置",
+                )
+
+        # 2. 租戶級配置：tenant_admin 只能操作自己的租戶
+        elif level == "tenant":
+            if user_role == "tenant_admin":
+                # TODO: 獲取用戶所屬租戶（需要集成 RBAC Service）
+                # user_tenant = await self._rbac_service.get_user_tenant(admin_id)
+                # if tenant_id != user_tenant:
+                #     return PermissionCheckResult(
+                #         allowed=False,
+                #         reason=f"Security Error: 無權操作其他租戶的配置（您的租戶：{user_tenant}）",
+                #     )
+                pass
+            elif user_role != "system_admin":
+                return PermissionCheckResult(
+                    allowed=False,
+                    reason="Security Error: 無權操作租戶級配置",
+                )
+
+        # 3. 用戶級配置：檢查用戶是否有權限操作目標用戶
+        elif level == "user":
+            if user_role == "tenant_admin":
+                # TODO: 租戶管理員可以操作自己租戶下的用戶
+                # user_tenant = await self._rbac_service.get_user_tenant(admin_id)
+                # target_user_tenant = await self._rbac_service.get_user_tenant(intent.get("user_id"))
+                # if user_tenant != target_user_tenant:
+                #     return PermissionCheckResult(
+                #         allowed=False,
+                #         reason="Security Error: 無權操作其他租戶的用戶配置",
+                #     )
+                pass
+            elif user_role not in ["system_admin", "user"]:
+                return PermissionCheckResult(
+                    allowed=False,
+                    reason="Security Error: 無權操作用戶級配置",
+                )
+
+        # 4. 操作級別權限檢查
+        if action == "delete" and user_role not in ["system_admin", "tenant_admin"]:
+            return PermissionCheckResult(
+                allowed=False,
+                reason="Security Error: 無權執行刪除操作",
+            )
+
+        return PermissionCheckResult(allowed=True, reason=None)
+
+    async def _assess_config_risk(
+        self, intent: Dict[str, Any], user_role: str
+    ) -> ConfigRiskAssessmentResult:
+        """
+        評估配置操作風險
+
+        Args:
+            intent: ConfigIntent
+            user_role: 用戶角色
+
+        Returns:
+            ConfigRiskAssessmentResult: 風險評估結果
+        """
+        action = intent.get("action")
+        level = intent.get("level")
+
+        # 高風險操作：需要二次確認
+        is_high_risk = (action in ["delete", "update"] and level == "system") or action == "delete"
+
+        # 中風險操作：可選確認
+        is_medium_risk = (action == "update" and level == "tenant") or action == "create"
+
+        if is_high_risk:
+            return ConfigRiskAssessmentResult(
+                risk_level="high",
+                requires_double_check=True,
+            )
+        elif is_medium_risk:
+            return ConfigRiskAssessmentResult(
+                risk_level="medium",
+                requires_double_check=False,  # 可選，由 Orchestrator 決定
+            )
+        else:
+            return ConfigRiskAssessmentResult(
+                risk_level="low",
+                requires_double_check=False,
+            )

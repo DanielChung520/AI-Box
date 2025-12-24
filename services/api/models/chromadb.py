@@ -37,9 +37,7 @@ class DocumentAddRequest(BaseModel):
         None, description="元數據字典或字典列表"
     )
     documents: Optional[Union[str, List[str]]] = Field(None, description="文檔文本或文本列表")
-    auto_embed: bool = Field(
-        False, description="若未提供 embeddings，使用默認嵌入提供者（需 documents）"
-    )
+    auto_embed: bool = Field(False, description="若未提供 embeddings，使用默認嵌入提供者（需 documents）")
     embedding_model: Optional[str] = Field(
         None,
         description="覆寫嵌入模型（預設見 config.services.ollama.embedding_model）",
@@ -64,9 +62,7 @@ class QueryRequest(BaseModel):
     query_embeddings: Optional[Union[List[List[float]], List[float]]] = Field(
         None, description="查詢嵌入向量"
     )
-    query_texts: Optional[Union[str, List[str]]] = Field(
-        None, description="查詢文本（將使用集合的嵌入函數）"
-    )
+    query_texts: Optional[Union[str, List[str]]] = Field(None, description="查詢文本（將使用集合的嵌入函數）")
     n_results: int = Field(10, ge=1, le=100, description="返回結果數量")
     where: Optional[Dict[str, Any]] = Field(None, description="元數據過濾條件")
     where_document: Optional[Dict[str, Any]] = Field(None, description="文檔內容過濾條件")
@@ -116,9 +112,7 @@ class BatchAddRequest(BaseModel):
 
     items: List[DocumentItem] = Field(..., description="文檔項目列表")
     batch_size: Optional[int] = Field(None, ge=1, le=1000, description="批次大小")
-    auto_embed: bool = Field(
-        False, description="缺少 embedding 的項目將由嵌入提供者補齊（需 document）"
-    )
+    auto_embed: bool = Field(False, description="缺少 embedding 的項目將由嵌入提供者補齊（需 document）")
     embedding_model: Optional[str] = Field(None, description="覆寫嵌入模型")
 
 

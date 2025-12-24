@@ -33,9 +33,7 @@ class AutoGenSettings(BaseModel):
     budget_tokens: int = Field(default=100000, ge=1000, description="Token 預算上限")
     default_llm: str = Field(default="gpt-oss:20b", description="預設 LLM 模型 ID")
     enable_tools: bool = Field(default=True, description="是否啟用工具/函式呼叫")
-    enable_memory: bool = Field(
-        default=True, description="是否啟用 Working Memory/Context Recorder"
-    )
+    enable_memory: bool = Field(default=True, description="是否啟用 Working Memory/Context Recorder")
     checkpoint_enabled: bool = Field(default=True, description="是否啟用狀態持久化")
     checkpoint_dir: str = Field(
         default="./data/datasets/autogen/checkpoints",

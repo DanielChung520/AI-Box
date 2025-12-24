@@ -87,11 +87,18 @@ export default function MermaidRenderer({ code, className = '' }: MermaidRendere
     // 使用 mermaid 渲染（mermaid 10.x API）
     const renderChart = async () => {
       try {
+        // 檢查容器和臨時元素是否仍然存在
+        if (!container || !container.contains(tempDiv) || !tempDiv.parentNode) {
+          console.debug('Mermaid 容器元素已被移除，跳過渲染');
+          setIsRendering(false);
+          return;
+        }
+
         // 尝试使用 mermaid.run() (mermaid 10.x)
         if (typeof mermaid.run === 'function') {
           await mermaid.run({
             nodes: [tempDiv],
-            suppressErrors: false
+            suppressErrors: true  // 改為 true 以抑制內部錯誤
           });
         }
         // 尝试使用 mermaid.contentLoaded() (旧版本兼容)
@@ -104,7 +111,10 @@ export default function MermaidRenderer({ code, className = '' }: MermaidRendere
         else if (typeof mermaid.render === 'function') {
           const result = await mermaid.render(chartId, code.trim());
           if (result && result.svg) {
-            tempDiv.innerHTML = result.svg;
+            // 再次檢查元素是否仍然存在
+            if (tempDiv && tempDiv.parentNode) {
+              tempDiv.innerHTML = result.svg;
+            }
           }
         }
         else {
@@ -112,9 +122,18 @@ export default function MermaidRenderer({ code, className = '' }: MermaidRendere
         }
         setIsRendering(false);
       } catch (error) {
-        console.error('Mermaid渲染错误:', error);
-        setRenderError(error instanceof Error ? error.message : '渲染失败');
-        container.innerHTML = '';
+        // 只記錄真正的錯誤，忽略 getBoundingClientRect 相關的錯誤
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!errorMessage.includes('getBoundingClientRect') && !errorMessage.includes('null')) {
+          console.error('Mermaid渲染错误:', error);
+          setRenderError(errorMessage);
+          if (container) {
+            container.innerHTML = '';
+          }
+        } else {
+          // 靜默處理 getBoundingClientRect 錯誤，這些通常是時序問題，不影響顯示
+          console.debug('Mermaid getBoundingClientRect 錯誤（已忽略）:', errorMessage);
+        }
         setIsRendering(false);
       }
     };

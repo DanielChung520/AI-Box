@@ -1,7 +1,7 @@
 // 代碼功能說明：聊天消息組件，整合 Markdown 渲染、代碼高亮、Mermaid 圖表等功能
 // 創建日期：2025-01-27
 // 創建人：Daniel Chung
-// 最後修改日期：2025-01-27
+// 最後修改日期：2025-12-21
 
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -22,32 +22,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
 
   // 自定義代碼塊渲染器
   const components = {
-    // 處理代碼塊容器（pre 標籤）
-    pre: ({ children, ...props }: any) => {
-      // 檢查子元素是否是 code 標籤
-      const codeElement = React.Children.toArray(children).find(
-        (child: any) => child?.type === 'code'
-      ) as any;
-
-      if (codeElement) {
-        const className = codeElement.props?.className || '';
-      const match = /language-(\w+)/.exec(className || '');
-      const language = match ? match[1] : '';
-        const codeString = String(codeElement.props?.children || '').replace(/\n$/, '');
-
-      // 如果是 Mermaid 代碼塊
-      if (language === 'mermaid') {
-        return <MermaidToggle code={codeString} />;
-      }
-
-        // 使用 CodeBlock 組件渲染代碼塊
-        return <CodeBlock code={codeString} language={language || 'text'} />;
-      }
-
-      // 默認處理
-      return <pre {...props}>{children}</pre>;
-    },
-    // 處理行內代碼和代碼塊內的 code 標籤
+    // 處理代碼塊（直接處理 code 標籤，通過 inline 屬性區分行內和代碼塊）
     code({ node, inline, className, children, ...props }: any) {
       // 如果是行內代碼
       if (inline) {
@@ -58,8 +33,55 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         );
       }
 
-      // 如果是代碼塊內的 code 標籤，只返回純文本（pre 組件會處理樣式）
-      return <code {...props}>{children}</code>;
+      // 如果是代碼塊（inline === false）
+      const match = /language-(\w+)/.exec(className || '');
+      const language = match ? match[1] : '';
+      const codeString = String(children || '').replace(/\n$/, '');
+
+      // 如果是 Mermaid 代碼塊
+      if (language === 'mermaid') {
+        return <MermaidToggle code={codeString} />;
+      }
+
+      // 使用 CodeBlock 組件渲染代碼塊（帶語法高亮）
+      // 如果沒有指定語言，嘗試自動檢測（特別是 Python 代碼）
+      let detectedLanguage = language || 'text';
+      if (!language && codeString.trim()) {
+        // 簡單的語言檢測：檢查常見的 Python 關鍵字
+        const pythonKeywords = /^(def|import|from|class|if|elif|else|for|while|try|except|with|async|await)/m;
+        if (pythonKeywords.test(codeString)) {
+          detectedLanguage = 'python';
+        }
+      }
+
+      // 調試：記錄代碼塊信息
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[ChatMessage] Rendering code block:', {
+          language: detectedLanguage,
+          codeLength: codeString.length,
+          preview: codeString.substring(0, 50),
+        });
+      }
+
+      return <CodeBlock code={codeString} language={detectedLanguage} />;
+    },
+    // 處理 pre 標籤（代碼塊的容器）
+    pre: ({ children, ...props }: any) => {
+      // 如果 children 是我們自定義的 CodeBlock 或 MermaidToggle，直接返回（不使用 pre 包裹）
+      const childrenArray = React.Children.toArray(children);
+      const firstChild = childrenArray[0] as any;
+
+      // 檢查是否是我們的組件實例
+      if (firstChild && React.isValidElement(firstChild)) {
+        const componentType = firstChild.type;
+        if (componentType === CodeBlock || componentType === MermaidToggle) {
+          // 直接返回，不使用 pre 包裹（避免 p > pre > CodeBlock 的嵌套問題）
+          return <>{children}</>;
+        }
+      }
+
+      // 默認處理（fallback）
+      return <pre {...props}>{children}</pre>;
     },
     // 自定義標題樣式
     h1: ({ node, ...props }: any) => (
@@ -81,9 +103,46 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       <h6 className="text-lg font-bold mt-4 mb-2 text-primary" {...props} />
     ),
     // 段落 - 保留換行和縮排
-    p: ({ node, ...props }: any) => (
-      <p className="mb-4 text-primary leading-relaxed whitespace-pre-wrap" {...props} />
-    ),
+    // 如果包含代碼塊（pre 標籤或 code 標籤），使用 div 而不是 p
+    p: ({ node, children, ...props }: any) => {
+      // 檢查 node.children 是否包含 pre 或 code 節點（代碼塊）
+      const hasCodeBlock = node?.children?.some((child: any) => {
+        if (child.type === 'element') {
+          return child.tagName === 'pre' || (child.tagName === 'code' && !child.properties?.inline);
+        }
+        return false;
+      });
+
+      // 檢查 React children 是否包含 CodeBlock 或 MermaidToggle 組件
+      // 由於組件可能被包裝，我們需要遞歸檢查
+      const checkForBlockComponent = (child: any): boolean => {
+        if (React.isValidElement(child)) {
+          const componentType = child.type;
+          // 直接檢查組件類型
+          if (componentType === CodeBlock || componentType === MermaidToggle) {
+            return true;
+          }
+          // 如果是 Fragment 或其他容器，檢查其 children
+          const childProps = child.props as any;
+          if (childProps?.children) {
+            const nestedChildren = React.Children.toArray(childProps.children);
+            return nestedChildren.some(checkForBlockComponent);
+          }
+        }
+        return false;
+      };
+
+      const childrenArray = React.Children.toArray(children);
+      const hasBlockComponent = childrenArray.some(checkForBlockComponent);
+
+      // 如果包含代碼塊或塊級組件，使用 div 而不是 p
+      if (hasCodeBlock || hasBlockComponent) {
+        return <div className="mb-4 text-primary leading-relaxed whitespace-pre-wrap" {...props}>{children}</div>;
+      }
+
+      // 否則使用正常的 p 標籤
+      return <p className="mb-4 text-primary leading-relaxed whitespace-pre-wrap" {...props}>{children}</p>;
+    },
     // 列表 - 支持嵌套縮排
     ul: ({ node, children, ...props }: any) => {
       // 計算嵌套深度
@@ -215,7 +274,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         }`}
       >
         <div
-          className="prose prose-invert max-w-none"
+          className="prose prose-invert max-w-none [&_pre]:!bg-transparent [&_pre]:!my-0"
           style={{
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word'

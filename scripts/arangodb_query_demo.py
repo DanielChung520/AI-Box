@@ -21,9 +21,7 @@ LOGGER = structlog.get_logger(__name__)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Demo queries against the AI-Box knowledge graph.")
-    parser.add_argument(
-        "--vertex", required=True, help="起始頂點 ID（例如 entities/agent_planning）"
-    )
+    parser.add_argument("--vertex", required=True, help="起始頂點 ID（例如 entities/agent_planning）")
     parser.add_argument(
         "--relation-types",
         nargs="*",

@@ -2,23 +2,24 @@
 代碼功能說明: 產品級 Chat API 路由（/api/v1/chat），串接 MoE Auto/Manual/Favorite 與最小觀測欄位
 創建日期: 2025-12-13 17:28:02 (UTC+8)
 創建人: Daniel Chung
-最後修改日期: 2025-12-14 14:30:00 (UTC+8)
+最後修改日期: 2025-01-27
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 import time
 import uuid
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from agents.task_analyzer.classifier import TaskClassifier
@@ -823,6 +824,21 @@ async def _process_chat_request(
     llm_call_start = time.perf_counter()
     if model_selector.mode == "auto":
         allowed_providers = policy_gate.get_allowed_providers()
+
+        # 獲取用戶的收藏模型列表（用於 Auto 模式優先選擇）
+        favorite_model_ids: List[str] = []
+        try:
+            from services.api.services.user_preference_service import get_user_preference_service
+
+            preference_service = get_user_preference_service()
+            favorite_model_ids = preference_service.get_favorite_models(
+                user_id=current_user.user_id
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug(f"Failed to get favorite models for user {current_user.user_id}: {exc}")
+            # fallback 到內存緩存
+            favorite_model_ids = _favorite_models_by_user.get(current_user.user_id, [])
+
         llm_api_keys = config_resolver.resolve_api_keys_map(
             tenant_id=tenant_id,
             user_id=current_user.user_id,
@@ -847,6 +863,7 @@ async def _process_chat_request(
                 "task_id": task_id,
                 "allowed_providers": allowed_providers,
                 "llm_api_keys": llm_api_keys,
+                "favorite_models": favorite_model_ids,  # 傳遞收藏模型列表
             },
         )
     else:
@@ -1019,6 +1036,227 @@ async def _process_chat_request(
     )
 
     return response
+
+
+@router.post("/stream", status_code=status.HTTP_200_OK)
+async def chat_product_stream(
+    request_body: ChatRequest,
+    request: Request,
+    tenant_id: str = Depends(get_current_tenant_id),
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """
+    產品級 Chat 流式入口：返回 SSE 格式的流式響應。
+
+    - Auto：TaskClassifier → task_classification → 選擇 provider → 調用客戶端 stream
+    - Manual/Favorite：以 model_id 推導 provider，並做 provider/model override
+    """
+    moe = get_moe_manager()
+    classifier = get_task_classifier()
+    context_manager = get_context_manager()
+    memory_service = get_chat_memory_service()
+    policy_gate = get_genai_policy_gate_service()
+    config_resolver = get_genai_config_resolver_service()
+
+    session_id = request_body.session_id or str(uuid.uuid4())
+    task_id = request_body.task_id
+    request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
+
+    messages = [m.model_dump() for m in request_body.messages]
+    model_selector = request_body.model_selector
+
+    async def generate_stream() -> AsyncGenerator[str, None]:
+        """生成 SSE 格式的流式數據"""
+        try:
+            # 取最後一則 user message
+            user_messages = [m for m in messages if m.get("role") == "user"]
+            last_user_text = str(user_messages[-1].get("content", "")) if user_messages else ""
+            if not last_user_text and messages:
+                last_user_text = str(messages[-1].get("content", ""))
+
+            # 記錄 user message
+            _record_if_changed(
+                context_manager=context_manager,
+                session_id=session_id,
+                role="user",
+                content=last_user_text,
+                metadata={
+                    "user_id": current_user.user_id,
+                    "session_id": session_id,
+                    "task_id": task_id,
+                    "request_id": request_id,
+                },
+            )
+
+            # G3：用 windowed history 作為 MoE 的 messages（並保留前端提供的 system message）
+            system_messages = [m for m in messages if m.get("role") == "system"]
+            windowed_history = context_manager.get_context_with_window(session_id=session_id)
+
+            # G6：Data consent gate（AI_PROCESSING）- 未同意則不檢索/不注入/不寫入
+            has_ai_consent = False
+            try:
+                from services.api.models.data_consent import ConsentType
+
+                consent_service = get_consent_service()
+                has_ai_consent = consent_service.check_consent(
+                    current_user.user_id, ConsentType.AI_PROCESSING
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug(
+                    "Failed to check AI consent, assuming no consent", error=str(exc), exc_info=True
+                )
+                has_ai_consent = False
+
+            if has_ai_consent:
+                memory_result = await memory_service.retrieve_for_prompt(
+                    user_id=current_user.user_id,
+                    session_id=session_id,
+                    task_id=task_id,
+                    request_id=request_id,
+                    query=last_user_text,
+                    attachments=request_body.attachments,
+                )
+            else:
+                from services.api.services.chat_memory_service import MemoryRetrievalResult
+
+                memory_result = MemoryRetrievalResult(
+                    injection_messages=[],
+                    memory_hit_count=0,
+                    memory_sources=[],
+                    retrieval_latency_ms=0.0,
+                )
+
+            base_system = system_messages[:1] if system_messages else []
+            messages_for_llm = base_system + memory_result.injection_messages + windowed_history
+
+            # 準備 MoE context
+            task_classification = None
+            provider = None
+            model = None
+
+            if model_selector.mode == "auto":
+                # G6：provider allowlist（Auto）- 將 allowlist 傳給 MoE 做 provider 過濾
+                allowed_providers = policy_gate.get_allowed_providers()
+
+                # 獲取用戶的收藏模型列表（用於 Auto 模式優先選擇）
+                favorite_model_ids: List[str] = []
+                try:
+                    from services.api.services.user_preference_service import (
+                        get_user_preference_service,
+                    )
+
+                    preference_service = get_user_preference_service()
+                    favorite_model_ids = preference_service.get_favorite_models(
+                        user_id=current_user.user_id
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug(
+                        f"Failed to get favorite models for user {current_user.user_id}: {exc}"
+                    )
+                    # fallback 到內存緩存
+                    favorite_model_ids = _favorite_models_by_user.get(current_user.user_id, [])
+
+                task_classification = classifier.classify(
+                    last_user_text,
+                    context={
+                        "user_id": current_user.user_id,
+                        "session_id": session_id,
+                        "task_id": task_id,
+                    },
+                )
+
+                # 獲取 API keys（所有允許的 providers）
+                llm_api_keys = config_resolver.resolve_api_keys_map(
+                    tenant_id=tenant_id,
+                    user_id=current_user.user_id,
+                    providers=allowed_providers,
+                )
+            else:
+                # manual/favorite：provider/model override
+                selected_model_id = model_selector.model_id or ""
+                provider = _infer_provider_from_model_id(selected_model_id)
+                model = selected_model_id
+
+                # G6：manual/favorite allowlist gate
+                if not policy_gate.is_model_allowed(provider.value, selected_model_id):
+                    yield f"data: {json.dumps({'type': 'error', 'data': {'error': f'Model {selected_model_id} is not allowed by policy'}})}\n\n"
+                    return
+
+                # 獲取 API keys（指定的 provider）
+                llm_api_keys = config_resolver.resolve_api_keys_map(
+                    tenant_id=tenant_id,
+                    user_id=current_user.user_id,
+                    providers=[provider.value],
+                )
+
+            # 構建 MoE context
+            moe_context = {
+                "user_id": current_user.user_id,
+                "tenant_id": tenant_id,
+                "session_id": session_id,
+                "task_id": task_id,
+                "llm_api_keys": llm_api_keys,
+            }
+
+            if model_selector.mode == "auto":
+                moe_context["allowed_providers"] = allowed_providers
+                moe_context["favorite_models"] = favorite_model_ids
+
+            # 發送開始消息（此時還不知道 provider 和 model，先發送基本信息）
+            yield f"data: {json.dumps({'type': 'start', 'data': {'request_id': request_id, 'session_id': session_id}})}\n\n"
+
+            # 累積完整內容（用於後續記錄）
+            full_content = ""
+
+            # 調用 MoE Manager 的 chat_stream 方法
+            try:
+                async for chunk in moe.chat_stream(
+                    messages_for_llm,
+                    task_classification=task_classification,
+                    provider=provider,
+                    model=model,
+                    temperature=0.7,
+                    max_tokens=2000,
+                    context=moe_context,
+                ):
+                    full_content += chunk
+                    # 發送內容塊
+                    yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': chunk}})}\n\n"
+            except Exception as stream_exc:
+                logger.error(f"Error during streaming: {stream_exc}", exc_info=True)
+                yield f"data: {json.dumps({'type': 'error', 'data': {'error': str(stream_exc)}})}\n\n"
+                return
+
+            # 發送結束消息
+            yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
+
+            # 記錄 assistant message（異步執行，不阻塞流式響應）
+            _record_if_changed(
+                context_manager=context_manager,
+                session_id=session_id,
+                role="assistant",
+                content=full_content,
+                metadata={
+                    "user_id": current_user.user_id,
+                    "session_id": session_id,
+                    "task_id": task_id,
+                    "request_id": request_id,
+                },
+            )
+
+        except Exception as exc:
+            logger.error(f"Streaming chat error: {exc}", exc_info=True)
+            yield f"data: {json.dumps({'type': 'error', 'data': {'error': str(exc)}})}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # 禁用 Nginx 緩衝
+        },
+    )
 
 
 @router.post("", status_code=status.HTTP_200_OK)
@@ -1194,6 +1432,25 @@ async def chat_product(
         if model_selector.mode == "auto":
             # G6：provider allowlist（Auto）- 將 allowlist 傳給 MoE 做 provider 過濾
             allowed_providers = policy_gate.get_allowed_providers()
+
+            # 獲取用戶的收藏模型列表（用於 Auto 模式優先選擇）
+            favorite_model_ids: List[str] = []
+            try:
+                from services.api.services.user_preference_service import (
+                    get_user_preference_service,
+                )
+
+                preference_service = get_user_preference_service()
+                favorite_model_ids = preference_service.get_favorite_models(
+                    user_id=current_user.user_id
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug(
+                    f"Failed to get favorite models for user {current_user.user_id}: {exc}"
+                )
+                # fallback 到內存緩存
+                favorite_model_ids = _favorite_models_by_user.get(current_user.user_id, [])
+
             task_classification = classifier.classify(
                 last_user_text,
                 context={
@@ -1211,6 +1468,7 @@ async def chat_product(
                     "session_id": session_id,
                     "task_id": task_id,
                     "allowed_providers": allowed_providers,
+                    "favorite_models": favorite_model_ids,  # 傳遞收藏模型列表
                 },
             )
 

@@ -1,7 +1,7 @@
 # 代碼功能說明: Security Manager Agent 數據模型
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-21
 
 """Security Manager Agent 數據模型定義"""
 
@@ -42,6 +42,37 @@ class RiskAssessmentResult(BaseModel):
     details: Optional[Dict[str, Any]] = Field(None, description="详细信息")
 
 
+class PermissionCheckResult(BaseModel):
+    """權限檢查結果（用於內部權限檢查）"""
+
+    allowed: bool = Field(..., description="是否允許")
+    reason: Optional[str] = Field(None, description="如果不允許，說明原因")
+
+
+class SecurityCheckRequest(BaseModel):
+    """安全檢查請求
+
+    用於 Orchestrator 調用 Security Agent 進行權限檢查。
+    """
+
+    admin_id: str = Field(..., description="管理員用戶 ID")
+    intent: Dict[str, Any] = Field(..., description="ConfigIntent（由 Orchestrator 傳遞）")
+    context: Optional[Dict[str, Any]] = Field(None, description="額外上下文（IP、User Agent、trace_id 等）")
+
+
+class SecurityCheckResult(BaseModel):
+    """安全檢查結果
+
+    用於 Security Agent 返回權限檢查和風險評估結果。
+    """
+
+    allowed: bool = Field(..., description="是否允許執行")
+    reason: Optional[str] = Field(None, description="如果不允許，說明原因")
+    requires_double_check: bool = Field(default=False, description="是否需要二次確認")
+    risk_level: str = Field(default="low", description="風險級別：low/medium/high")
+    audit_context: Dict[str, Any] = Field(default_factory=dict, description="審計上下文")
+
+
 class SecurityManagerResponse(BaseModel):
     """安全管理响应模型"""
 
@@ -53,3 +84,10 @@ class SecurityManagerResponse(BaseModel):
     analysis: Optional[Dict[str, Any]] = Field(None, description="分析结果")
     message: Optional[str] = Field(None, description="响应消息")
     error: Optional[str] = Field(None, description="错误信息")
+
+
+class ConfigRiskAssessmentResult(BaseModel):
+    """配置操作風險評估結果（用於配置操作的風險評估）"""
+
+    risk_level: str = Field(..., description="風險級別：low/medium/high")
+    requires_double_check: bool = Field(default=False, description="是否需要二次確認")

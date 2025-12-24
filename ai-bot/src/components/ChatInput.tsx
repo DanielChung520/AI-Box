@@ -2,7 +2,7 @@
  * 代碼功能說明: AI 聊天輸入框組件, 包含代理, 助理, 模型選擇器
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-13 17:42:45 (UTC+8)
+ * 最後修改日期: 2025-12-21 (UTC+8)
  */
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
@@ -10,7 +10,7 @@ import { useLanguage } from '../contexts/languageContext';
 import { createPortal } from 'react-dom';
 import FileUploadModal, { FileWithMetadata } from './FileUploadModal';
 import UploadProgress from './UploadProgress';
-import { uploadFiles, getFavoriteModels, setFavoriteModels } from '../lib/api';
+import { uploadFiles, getFavoriteModels, setFavoriteModels, getModels, type LLMModel } from '../lib/api';
 import { Task } from './Sidebar';
 // 修改時間：2025-12-08 10:40:00 UTC+8 - 添加文件引用組件
 import FileReference, { FileReferenceData } from './FileReference';
@@ -98,6 +98,8 @@ interface ChatInputProps {
   onTaskDelete?: (taskId: number) => void; // 刪除任務回調
   // 修改時間：2025-12-08 11:30:00 UTC+8 - 添加預覽模式狀態，用於控制按鈕顯示
   isPreviewMode?: boolean; // 是否處於預覽模式（右側文件預覽展開時為 true）
+  // 修改時間：2025-12-21 - 添加 AI 回復加載狀態
+  isLoadingAI?: boolean; // AI 是否正在回復
 }
 
 export default function ChatInput({
@@ -116,6 +118,7 @@ export default function ChatInput({
   onTaskCreate,
   onTaskDelete,
   isPreviewMode = false, // 修改時間：2025-12-08 11:30:00 UTC+8 - 預覽模式狀態
+  isLoadingAI = false, // 修改時間：2025-12-21 - AI 回復加載狀態
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [showAssistantSelector, setShowAssistantSelector] = useState(false);
@@ -137,6 +140,9 @@ export default function ChatInput({
   const [favoriteAssistants, setFavoriteAssistants] = useState<Map<string, string>>(() => loadFavoritesFromStorage('favoriteAssistants'));
   // 修改時間：2025-12-13 17:28:02 (UTC+8) - 收藏模型（Set）
   const [favoriteModels, setFavoriteModelsState] = useState<Set<string>>(() => loadFavoriteModelsFromStorage());
+
+  // 修改時間：2025-12-21 - 從 API 獲取模型列表
+  const [llmModels, setLlmModels] = useState<Array<{ id: string; name: string; provider: string; icon?: string; color?: string }>>([]);
 
   // 使用 ref 跟踪用户是否手动选择过（防止 prop 覆盖用户选择）
   const hasUserSelectedAgent = useRef(false);
@@ -235,6 +241,104 @@ export default function ChatInput({
     };
   }, []);
 
+  // 修改時間：2025-12-21 - 從 API 獲取模型列表
+  useEffect(() => {
+    let cancelled = false;
+    getModels({
+      include_discovered: true,
+      include_favorite_status: true,
+      limit: 1000, // 獲取所有模型
+    })
+      .then((resp) => {
+        if (cancelled) return;
+        console.log('[ChatInput] API response:', resp); // 調試：查看 API 響應
+        if (resp?.success && resp.data?.models && Array.isArray(resp.data.models) && resp.data.models.length > 0) {
+          console.log('[ChatInput] Models from API:', resp.data.models); // 調試：查看模型列表
+          console.log('[ChatInput] Models count from API:', resp.data.models.length); // 調試
+          // 將 API 返回的模型轉換為組件需要的格式
+          const models = resp.data.models.map((model: LLMModel) => {
+            // 調試：詳細查看每個模型的結構
+            console.log('[ChatInput] Processing model:', {
+              raw: model,
+              model_id: model.model_id,
+              name: model.name,
+              provider: model.provider,
+              providerType: typeof model.provider,
+              icon: model.icon,
+              color: model.color,
+              order: (model as any).order,
+            });
+
+            // 確保 provider 是字符串（如果是 Enum，取值）
+            const providerStr = typeof model.provider === 'string'
+              ? model.provider
+              : (model.provider as any)?.value || String(model.provider);
+
+            return {
+              id: model.model_id,
+              name: model.name,
+              provider: providerStr,
+              icon: model.icon,
+              color: model.color,
+            };
+          });
+          console.log('[ChatInput] Transformed models:', models); // 調試：查看轉換後的模型
+          console.log('[ChatInput] Models count:', models.length); // 調試：查看模型數量
+          // 確保 auto 模型在最前面
+          const autoModel = models.find((m) => m.id === 'auto') || {
+            id: 'auto',
+            name: t('chatInput.model.auto', 'Auto'),
+            provider: 'auto',
+            icon: 'fa-magic',
+            color: 'text-purple-400',
+          };
+          const otherModels = models.filter((m) => m.id !== 'auto');
+          // 按 order 排序（如果有的話），否則保持原順序
+          const sortedModels = [...otherModels].sort((a, b) => {
+            const aOrder = resp.data?.models.find((m: LLMModel) => m.model_id === a.id)?.order || 999;
+            const bOrder = resp.data?.models.find((m: LLMModel) => m.model_id === b.id)?.order || 999;
+            return aOrder - bOrder;
+          });
+          setLlmModels([autoModel, ...sortedModels]);
+          console.log('[ChatInput] Final models set:', [autoModel, ...sortedModels].length); // 調試
+        } else {
+          console.warn('[ChatInput] API response missing models:', {
+            success: resp?.success,
+            hasData: !!resp?.data,
+            hasModels: !!resp?.data?.models,
+            modelsLength: resp?.data?.models?.length || 0,
+            fullResponse: resp
+          });
+          // 如果 API 返回成功但沒有模型，使用 fallback
+          const fallbackModels = [
+            { id: 'auto', name: t('chatInput.model.auto', 'Auto'), provider: 'auto', icon: 'fa-magic', color: 'text-purple-400' },
+          ];
+          setLlmModels(fallbackModels);
+        }
+      })
+      .catch((error) => {
+        console.error('[ChatInput] Failed to fetch models:', error);
+        // 失敗時使用默認模型列表（fallback）
+        const fallbackModels = [
+          { id: 'auto', name: t('chatInput.model.auto', 'Auto'), provider: 'auto', icon: 'fa-magic', color: 'text-purple-400' },
+          { id: 'smartq-iee', name: t('chatInput.model.smartqIEE', 'SmartQ IEE'), provider: 'smartq', icon: 'fa-microchip', color: 'text-blue-400' },
+          { id: 'smartq-hci', name: t('chatInput.model.smartqHCI', 'SmartQ HCI'), provider: 'smartq', icon: 'fa-robot', color: 'text-green-400' },
+          { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'chatgpt', icon: 'fa-robot', color: 'text-green-400' },
+          { id: 'gpt-4', name: 'GPT-4', provider: 'chatgpt', icon: 'fa-robot', color: 'text-green-400' },
+          { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'chatgpt', icon: 'fa-robot', color: 'text-green-400' },
+          { id: 'gemini-pro', name: 'Gemini Pro', provider: 'gemini', icon: 'fa-gem', color: 'text-blue-400' },
+          { id: 'gemini-ultra', name: 'Gemini Ultra', provider: 'gemini', icon: 'fa-gem', color: 'text-blue-400' },
+          { id: 'qwen-turbo', name: 'Qwen Turbo', provider: 'qwen', icon: 'fa-code', color: 'text-orange-400' },
+          { id: 'qwen-plus', name: 'Qwen Plus', provider: 'qwen', icon: 'fa-code', color: 'text-orange-400' },
+          { id: 'grok-beta', name: 'Grok Beta', provider: 'grok', icon: 'fa-bolt', color: 'text-yellow-400' },
+        ];
+        setLlmModels(fallbackModels);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
+
   // 監聽 localStorage 變化（跨窗口和同窗口）
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -289,23 +393,7 @@ export default function ChatInput({
     };
   };
 
-  // LLM 模型列表
-  const llmModels = useMemo(() => [
-    { id: 'auto', name: t('chatInput.model.auto', 'Auto'), provider: 'auto' },
-    { id: 'smartq-iee', name: t('chatInput.model.smartqIEE', 'SmartQ IEE'), provider: 'smartq' },
-    { id: 'smartq-hci', name: t('chatInput.model.smartqHCI', 'SmartQ HCI'), provider: 'smartq' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'chatgpt' },
-    { id: 'gpt-4', name: 'GPT-4', provider: 'chatgpt' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'chatgpt' },
-    { id: 'gemini-pro', name: 'Gemini Pro', provider: 'gemini' },
-    { id: 'gemini-ultra', name: 'Gemini Ultra', provider: 'gemini' },
-    { id: 'qwen-turbo', name: 'Qwen Turbo', provider: 'qwen' },
-    { id: 'qwen-plus', name: 'Qwen Plus', provider: 'qwen' },
-    { id: 'grok-beta', name: 'Grok Beta', provider: 'grok' },
-    { id: 'llama2', name: 'Llama 2', provider: 'ollama' },
-    { id: 'qwen3-coder:30b', name: 'Qwen3 Coder 30B', provider: 'ollama' },
-    { id: 'gpt-oss:20b', name: 'GPT-OSS 20B', provider: 'ollama' },
-  ], [t]);
+  // LLM 模型列表現在從 API 獲取（見上面的 useEffect）
 
   // 更新下拉菜單位置
   useEffect(() => {
@@ -552,6 +640,7 @@ export default function ChatInput({
   // 獲取選中的模型名稱
   const selectedModel = llmModels.find(m => m.id === selectedModelId);
   const selectedModelName = selectedModel ? selectedModel.name : t('chatInput.model.auto', 'Auto');
+  console.log('[ChatInput] Selected model:', { selectedModelId, selectedModel, selectedModelName, llmModelsLength: llmModels.length }); // 調試
 
   // 跟踪选中状态变化（已移除調試日誌）
 
@@ -1291,9 +1380,14 @@ export default function ChatInput({
                 {t('chatInput.selectModel', '選擇模型')}
               </div>
               {(() => {
+                console.log('[ChatInput] Rendering model selector, llmModels:', llmModels); // 調試：查看渲染時的模型列表
+                console.log('[ChatInput] favoriteModels:', favoriteModels); // 調試：查看收藏的模型
                 const autoModel = llmModels.find(m => m.id === 'auto');
                 const favoriteModelItems = llmModels.filter(m => m.id !== 'auto' && favoriteModels.has(m.id));
                 const allModelItems = llmModels.filter(m => m.id !== 'auto');
+                console.log('[ChatInput] autoModel:', autoModel); // 調試
+                console.log('[ChatInput] favoriteModelItems:', favoriteModelItems); // 調試
+                console.log('[ChatInput] allModelItems:', allModelItems); // 調試
 
                 const renderModelRow = (model: any, showStar: boolean = true) => {
                   const isSelected = selectedModelId === model.id;
@@ -1316,23 +1410,36 @@ export default function ChatInput({
                       }}
                     >
                       <i className={`fa-solid ${
-                        model.id === 'auto' ? 'fa-magic' :
-                        model.id === 'smartq-iee' ? 'fa-microchip' :
-                        model.id === 'smartq-hci' ? 'fa-robot' :
-                        model.provider === 'chatgpt' ? 'fa-robot' :
-                        model.provider === 'gemini' ? 'fa-gem' :
-                        model.provider === 'qwen' ? 'fa-code' :
-                        model.provider === 'grok' ? 'fa-bolt' :
-                        'fa-server'
+                        // 如果 API 返回的 icon 已經包含 fa- 前綴，直接使用；否則添加 fa- 前綴
+                        (model.icon && (model.icon.startsWith('fa-') ? model.icon : `fa-${model.icon}`)) || (
+                          model.id === 'auto' ? 'fa-magic' :
+                          model.id === 'smartq-iee' ? 'fa-microchip' :
+                          model.id === 'smartq-hci' ? 'fa-robot' :
+                          model.provider === 'chatgpt' ? 'fa-robot' :
+                          model.provider === 'gemini' ? 'fa-gem' :
+                          model.provider === 'qwen' ? 'fa-code' :
+                          model.provider === 'grok' ? 'fa-bolt' :
+                          model.provider === 'ollama' ? 'fa-server' :
+                          model.provider === 'anthropic' ? 'fa-brain' :
+                          model.provider === 'mistral' ? 'fa-wind' :
+                          model.provider === 'deepseek' ? 'fa-search' :
+                          'fa-server'
+                        )
                       } ${
-                        model.id === 'auto' ? 'text-purple-400' :
-                        model.id === 'smartq-iee' ? 'text-blue-400' :
-                        model.id === 'smartq-hci' ? 'text-green-400' :
-                        model.provider === 'chatgpt' ? 'text-green-400' :
-                        model.provider === 'gemini' ? 'text-blue-400' :
-                        model.provider === 'qwen' ? 'text-orange-400' :
-                        model.provider === 'grok' ? 'text-yellow-400' :
-                        'text-gray-400'
+                        model.color || (
+                          model.id === 'auto' ? 'text-purple-400' :
+                          model.id === 'smartq-iee' ? 'text-blue-400' :
+                          model.id === 'smartq-hci' ? 'text-green-400' :
+                          model.provider === 'chatgpt' ? 'text-green-400' :
+                          model.provider === 'gemini' ? 'text-blue-400' :
+                          model.provider === 'qwen' ? 'text-orange-400' :
+                          model.provider === 'grok' ? 'text-yellow-400' :
+                          model.provider === 'ollama' ? 'text-gray-400' :
+                          model.provider === 'anthropic' ? 'text-orange-400' :
+                          model.provider === 'mistral' ? 'text-purple-400' :
+                          model.provider === 'deepseek' ? 'text-blue-400' :
+                          'text-gray-400'
+                        )
                       }`}></i>
 
                       <span className="text-secondary flex-1 truncate">{model.name}</span>
@@ -1500,11 +1607,22 @@ export default function ChatInput({
 
           {/* 發送按鈕 */}
           <button
-            className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center ${isPreviewMode ? 'px-2' : ''}`}
+            className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center ${isPreviewMode ? 'px-2' : ''} ${isLoadingAI ? 'opacity-75 cursor-not-allowed' : ''}`}
             onClick={handleSend}
+            disabled={isLoadingAI} // 修改時間：2025-12-21 - 加載時禁用按鈕
           >
-            {!isPreviewMode && <span>{t('chatInput.send', '發送')}</span>}
-            <i className={`fa-solid fa-paper-plane ${!isPreviewMode ? 'ml-2' : ''}`}></i>
+            {isLoadingAI ? (
+              // 修改時間：2025-12-21 - 顯示 spinner
+              <>
+                {!isPreviewMode && <span>{t('chatInput.sending', '發送中')}</span>}
+                <i className={`fa-solid fa-spinner fa-spin ${!isPreviewMode ? 'ml-2' : ''}`}></i>
+              </>
+            ) : (
+              <>
+                {!isPreviewMode && <span>{t('chatInput.send', '發送')}</span>}
+                <i className={`fa-solid fa-paper-plane ${!isPreviewMode ? 'ml-2' : ''}`}></i>
+              </>
+            )}
           </button>
         </div>
       </div>

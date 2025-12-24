@@ -33,9 +33,7 @@ class ConfigModel(BaseModel):
     data_classification: Optional[str] = Field(
         default=None, description="數據分類級別（public/internal/confidential/restricted）"
     )
-    sensitivity_labels: Optional[List[str]] = Field(
-        default=None, description="敏感性標籤列表（可多選）"
-    )
+    sensitivity_labels: Optional[List[str]] = Field(default=None, description="敏感性標籤列表（可多選）")
     created_at: Optional[datetime] = Field(default=None, description="創建時間")
     updated_at: Optional[datetime] = Field(default=None, description="更新時間")
     created_by: Optional[str] = Field(default=None, description="創建者")
@@ -67,9 +65,7 @@ class ConfigCreate(BaseModel):
     data_classification: Optional[str] = Field(
         default=None, description="數據分類級別（public/internal/confidential/restricted）"
     )
-    sensitivity_labels: Optional[List[str]] = Field(
-        default=None, description="敏感性標籤列表（可多選）"
-    )
+    sensitivity_labels: Optional[List[str]] = Field(default=None, description="敏感性標籤列表（可多選）")
 
 
 class ConfigUpdate(BaseModel):

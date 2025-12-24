@@ -115,9 +115,7 @@ class OntologyManager:
         entity_classes = ontology_rules.get("entity_classes")
         relationship_types = ontology_rules.get("relationship_types")
         if not entity_classes or not relationship_types:
-            raise RuntimeError(
-                "Ontology 規則未初始化。請先調用 merge_ontologies() 方法載入並合併 Ontology。"
-            )
+            raise RuntimeError("Ontology 規則未初始化。請先調用 merge_ontologies() 方法載入並合併 Ontology。")
 
         # 生成提示詞（簡化實現，實際應該重用原邏輯）
         # TODO: 重用原 kag_schema_manager.py 中的 _format_entity_list 等方法

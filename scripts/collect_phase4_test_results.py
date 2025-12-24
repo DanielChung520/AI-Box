@@ -182,9 +182,7 @@ def main():
 
     print("\n各測試劇本結果:")
     for test_id, test_data in results["tests"].items():
-        print(
-            f"  {test_id}: {test_data['status']} ({test_data['passed']}/{test_data['total']} 通過)"
-        )
+        print(f"  {test_id}: {test_data['status']} ({test_data['passed']}/{test_data['total']} 通過)")
 
 
 if __name__ == "__main__":

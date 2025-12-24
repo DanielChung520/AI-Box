@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@antv/g6": "^5.0.50",
+    "@monaco-editor/react": "^4.7.0",
     "antd": "^6.1.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.9.2",
@@ -19,6 +20,7 @@
     "mammoth": "^1.11.0",
     "markdown-to-jsx": "^9.3.5",
     "mermaid": "^10.9.0",
+    "monaco-editor": "^0.55.1",
     "prism-react-renderer": "^2.3.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -32,20 +34,27 @@
     "sonner": "^2.0.2",
     "tailwind-merge": "^3.0.2",
     "xlsx": "^0.18.5",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@types/mermaid": "^9.2.0",
     "@types/node": "^24.10.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/ui": "^4.0.16",
     "autoprefixer": "^10.4.21",
+    "jsdom": "^27.3.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.7.2",
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^1.2.0",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.16"
   }
 }

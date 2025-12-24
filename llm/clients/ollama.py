@@ -1,15 +1,16 @@
 # 代碼功能說明: Ollama 客戶端實現（實現 BaseLLMClient 接口）
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-29
+# 最後修改日期: 2025-12-21 (UTC+8)
 
 """Ollama 客戶端實現，整合 Ollama API，實現 BaseLLMClient 接口。"""
 
 from __future__ import annotations
 
+import json
 import logging
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import httpx
 
@@ -392,6 +393,95 @@ class OllamaClient(BaseLLMClient):
         except Exception as exc:
             logger.error(f"Ollama chat error: {exc}")
             raise OllamaClientError(f"Failed to chat: {exc}") from exc
+
+    async def chat_stream(
+        self,
+        messages: List[Dict[str, Any]],
+        *,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        images: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> AsyncGenerator[str, None]:
+        """
+        流式對話生成。
+
+        Args:
+            messages: 消息列表，每個消息包含 'role' 和 'content'
+            model: 模型名稱（可選）
+            temperature: 溫度參數
+            max_tokens: 最大 token 數
+            images: base64 編碼的圖片列表（可選，用於多模態模型）
+            **kwargs: 其他參數
+
+        Yields:
+            每個 chunk 的文本內容
+        """
+        model = model or self.default_model
+
+        # 轉換消息格式為 Ollama 格式
+        formatted_messages = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            formatted_msg = {"role": role, "content": content}
+
+            # 如果提供了圖片，且當前消息是用戶消息，添加圖片
+            if images and role == "user":
+                formatted_msg["images"] = images
+
+            formatted_messages.append(formatted_msg)
+
+        payload: Dict[str, Any] = {
+            "model": model,
+            "messages": formatted_messages,
+            "stream": True,  # 啟用流式響應
+        }
+
+        # 構建 options
+        options: Dict[str, Any] = {}
+        if temperature is not None:
+            options["temperature"] = temperature
+        if max_tokens is not None:
+            options["num_predict"] = max_tokens
+        options.update(kwargs.get("options", {}))
+
+        if options:
+            payload["options"] = options
+
+        # 處理其他參數
+        if "keep_alive" in kwargs:
+            payload["keep_alive"] = kwargs["keep_alive"]
+
+        try:
+            # 選擇節點
+            node = self._router.select_node()
+            base_url = f"http://{node.host}:{node.port}"
+
+            # 使用 httpx 流式請求
+            async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client:
+                async with client.stream("POST", f"{base_url}/api/chat", json=payload) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        try:
+                            chunk_data = json.loads(line)
+                            if "message" in chunk_data and "content" in chunk_data["message"]:
+                                content = chunk_data["message"]["content"]
+                                if content:
+                                    yield content
+                            # 如果包含 "done" 且為 True，表示流結束
+                            if chunk_data.get("done", False):
+                                break
+                        except json.JSONDecodeError:
+                            # 忽略無法解析的行
+                            continue
+
+        except Exception as exc:
+            logger.error(f"Ollama chat_stream error: {exc}")
+            raise OllamaClientError(f"Failed to stream chat: {exc}") from exc
 
     async def embeddings(
         self,

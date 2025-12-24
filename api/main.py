@@ -54,6 +54,7 @@ from api.routers import (
     data_quality,
     docs_editing,
     execution,
+    file_lookup,
     file_management,
     file_metadata,
     file_upload,
@@ -63,8 +64,10 @@ from api.routers import (
     kg_builder,
     kg_query,
     llm,
+    llm_models,
     mcp,
     model_usage,
+    modular_documents,
     ner,
     orchestrator,
     planning,
@@ -278,6 +281,30 @@ app.include_router(llm.router, prefix=API_PREFIX, tags=["LLM"])
 # 修改時間：2025-12-13 17:28:02 (UTC+8) - 註冊產品級 Chat 入口
 app.include_router(chat.router, prefix=API_PREFIX, tags=["Chat"])
 app.include_router(docs_editing.router, prefix=API_PREFIX, tags=["Docs Editing"])
+app.include_router(modular_documents.router, prefix=API_PREFIX, tags=["Modular Documents"])
+app.include_router(file_lookup.router, prefix=API_PREFIX, tags=["File Lookup"])
+try:
+    from api.routers import editing_session
+
+    app.include_router(editing_session.router, prefix=API_PREFIX, tags=["Editing Session"])
+    logger.info("Editing Session 路由已註冊")
+except ImportError as e:
+    logger.warning(f"Editing Session 路由未註冊（模組不可用）: {e}")
+
+try:
+    from api.routers import streaming
+
+    app.include_router(streaming.router, prefix=API_PREFIX, tags=["Streaming"])
+    logger.info("Streaming 路由已註冊")
+except ImportError as e:
+    logger.warning(f"Streaming 路由未註冊（模組不可用）: {e}")
+
+# LLM Models 路由
+try:
+    app.include_router(llm_models.router, prefix=API_PREFIX, tags=["LLM Models"])
+    logger.info("LLM Models 路由已註冊")
+except ImportError as e:
+    logger.warning(f"LLM Models 路由未註冊（模組不可用）: {e}")
 app.include_router(genai_tenant_config.router, prefix=API_PREFIX, tags=["GenAI Tenant Config"])
 app.include_router(genai_user_config.router, prefix=API_PREFIX, tags=["GenAI User Config"])
 
@@ -334,6 +361,18 @@ async def startup_event():
     """應用啟動事件"""
     logger.info(f"AI Box API Gateway starting up... Version: {version_info['version']}")
 
+    # 加載配置定義（Phase 1: ConfigMetadata）
+    try:
+        from services.api.core.config import get_definition_loader
+
+        loader = get_definition_loader()
+        definitions = loader.load_all()
+        logger.info(
+            f"Config definitions loaded: {len(definitions)} scopes - {list(definitions.keys())}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to load config definitions: {e}")
+
     # 初始化内建 Agent（无需注册到 Registry）
     try:
         from agents.builtin import initialize_builtin_agents
@@ -353,6 +392,27 @@ async def startup_event():
         logger.info(f"Registered {len(core_agents)} core agents: {list(core_agents.keys())}")
     except Exception as e:
         logger.error(f"Failed to register core agents: {e}")
+
+    # 初始化 LLM 模型數據（如果數據庫為空）
+    try:
+        from services.api.services.llm_model_service import get_llm_model_service
+
+        service = get_llm_model_service()
+        # 檢查數據庫中是否有模型
+        existing_models = service.get_all(None)
+        if len(existing_models) == 0:
+            logger.info("數據庫中沒有模型數據，開始自動遷移...")
+            # 執行遷移（同步函數，在異步上下文中運行）
+            import asyncio
+
+            from services.api.services.migrations.migrate_llm_models import migrate
+
+            await asyncio.to_thread(migrate)
+            logger.info("LLM 模型數據遷移完成")
+        else:
+            logger.info(f"數據庫中已有 {len(existing_models)} 個模型，跳過遷移")
+    except Exception as e:
+        logger.warning(f"LLM 模型數據遷移失敗（不影響啟動）: {e}")
 
     # 啟動 Agent 健康監控（可選，根據配置啟用）
     try:

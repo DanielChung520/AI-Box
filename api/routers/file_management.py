@@ -61,9 +61,7 @@ class FileMoveRequest(BaseModel):
     """文件移動請求模型"""
 
     target_task_id: str = Field(..., description="目標任務ID")
-    target_folder_id: Optional[str] = Field(
-        None, description="目標資料夾ID（可選，未提供時移動到任務工作區）"
-    )
+    target_folder_id: Optional[str] = Field(None, description="目標資料夾ID（可選，未提供時移動到任務工作區）")
 
 
 class FolderCreateRequest(BaseModel):
@@ -697,7 +695,7 @@ async def preview_file(
         )
 
 
-@router.put("/{file_id}/rename")
+@router.put("/{file_id}/rename", response_model=None)
 @audit_log(
     action=AuditAction.FILE_UPDATE,
     resource_type="file",
@@ -706,7 +704,6 @@ async def preview_file(
 async def rename_file(
     file_id: str,
     request_body: FileRenameRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """重命名文件
@@ -714,7 +711,6 @@ async def rename_file(
     Args:
         file_id: 文件ID
         request_body: 重命名請求體
-        request: FastAPI Request對象
         current_user: 當前認證用戶
 
     Returns:
@@ -864,7 +860,6 @@ async def rename_file(
 async def copy_file(
     file_id: str,
     request_body: FileCopyRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """複製文件
@@ -975,8 +970,8 @@ async def copy_file(
 )
 async def move_file(
     file_id: str,
+    request: Request,
     request_body: FileMoveRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """移動文件（更改所屬任務）
@@ -1176,7 +1171,6 @@ async def move_file(
 )
 async def delete_file(
     file_id: str,
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """刪除文件（多數據源清理）
@@ -1613,7 +1607,6 @@ def _ensure_folder_collection() -> None:
 )
 async def create_folder(
     request_body: FolderCreateRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """創建資料夾（實際上是創建任務）
@@ -1772,7 +1765,6 @@ async def create_folder(
 async def rename_folder(
     folder_id: str,
     request_body: FolderRenameRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """重命名資料夾
@@ -1927,7 +1919,6 @@ async def rename_folder(
 async def move_folder(
     folder_id: str,
     request_body: FolderMoveRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> Any:
     """移動資料夾（更改父資料夾）
@@ -2046,7 +2037,6 @@ async def move_folder(
 )
 async def delete_folder(
     folder_id: str,
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """刪除資料夾（級聯刪除該資料夾下的所有文件）
@@ -2185,7 +2175,6 @@ async def delete_folder(
 )
 async def batch_download_files(
     request_body: BatchDownloadRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> StreamingResponse:
     """批量下載文件（打包為ZIP）
@@ -2292,7 +2281,6 @@ async def batch_download_files(
 )
 async def attach_file_to_chat(
     file_id: str,
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """附加文件到聊天（返回文件摘要用於聊天上下文）
@@ -2491,7 +2479,6 @@ class RegenerateRequest(BaseModel):
 async def regenerate_file_data(
     file_id: str,
     request_body: RegenerateRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """重新生成文件的向量或圖譜數據
@@ -3099,7 +3086,6 @@ LIBRARY_TASK_ID = "library"  # 文件庫的特殊 task_id 標識
 )
 async def upload_from_library(
     request_body: LibraryUploadRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """從文件庫上傳文件到當前任務
@@ -3218,7 +3204,6 @@ async def upload_from_library(
 )
 async def return_to_library(
     request_body: LibraryReturnRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """將文件傳回文件庫
@@ -3325,7 +3310,6 @@ async def return_to_library(
 )
 async def sync_files(
     request_body: SyncFilesRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """同步文件狀態和元數據

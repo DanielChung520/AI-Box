@@ -43,9 +43,7 @@ class RTResponse(BaseModel):
     """RT 響應模型"""
 
     relation_text: str = Field(..., description="原始關係文本")
-    relation_types: List[RelationType] = Field(
-        default_factory=list, description="識別出的關係類型列表（多標籤）"
-    )
+    relation_types: List[RelationType] = Field(default_factory=list, description="識別出的關係類型列表（多標籤）")
     primary_type: Optional[str] = Field(None, description="主要關係類型（置信度最高的）")
     model_used: str = Field(..., description="實際使用的模型類型")
 

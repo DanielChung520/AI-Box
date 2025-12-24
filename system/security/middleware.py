@@ -111,8 +111,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         # Strict-Transport-Security (HSTS) - 僅在生產環境啟用
         settings = get_security_settings()
         if not settings.is_development_mode:
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains; preload"
-            )
+            response.headers[
+                "Strict-Transport-Security"
+            ] = "max-age=31536000; includeSubDomains; preload"
 
         return response

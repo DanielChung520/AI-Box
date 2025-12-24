@@ -28,9 +28,7 @@ router = APIRouter()
 
 
 class TenantSecretsUpsertRequest(BaseModel):
-    keys: dict[str, str] = Field(
-        default_factory=dict, description="provider -> api_key（不會回傳明文）"
-    )
+    keys: dict[str, str] = Field(default_factory=dict, description="provider -> api_key（不會回傳明文）")
 
 
 @router.get(

@@ -6,7 +6,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, FileText, Database, Network, Download, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, Loader2, FileText, Database, Network, Download, RefreshCw, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { previewFile, getFileVectors, getFileGraph, getProcessingStatus, getKgChunkStatus, downloadFile, FileMetadata, regenerateFileData } from '../lib/api';
 import PDFViewer from './PDFViewer';
@@ -24,6 +25,7 @@ interface FilePreviewProps {
 type PreviewMode = 'text' | 'vector' | 'graph';
 
 export default function FilePreview({ file, isOpen, onClose }: FilePreviewProps) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<PreviewMode>('text'); // 默認為文件模式
   const [content, setContent] = useState<string>('');
   const [vectorData, setVectorData] = useState<any>(null);
@@ -39,6 +41,20 @@ export default function FilePreview({ file, isOpen, onClose }: FilePreviewProps)
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [regenerationJobId, setRegenerationJobId] = useState<string | null>(null);
   const [regenerationStartTime, setRegenerationStartTime] = useState<number | null>(null);
+
+  const handleOpenInIEE = () => {
+    // 檢查文件類型是否為 Markdown
+    const fileName = file.filename.toLowerCase();
+    const isMarkdown = fileName.endsWith('.md') || fileName.endsWith('.markdown');
+    if (!isMarkdown) {
+      toast.error('IEE 編輯器目前僅支持 Markdown 文件');
+      return;
+    }
+    // 關閉預覽窗口
+    onClose();
+    // 導航到 IEE 編輯器頁面
+    navigate(`/iee-editor?fileId=${encodeURIComponent(file.file_id)}`);
+  };
 
   useEffect(() => {
     if (isOpen && file) {
@@ -906,6 +922,16 @@ export default function FilePreview({ file, isOpen, onClose }: FilePreviewProps)
                 {!graphAvailable && mode === 'graph' && <span className="text-xs opacity-75">(未生成)</span>}
               </button>
             </div>
+            {/* IEE 編輯器按鈕（僅 Markdown 文件顯示） */}
+            {(file.filename.toLowerCase().endsWith('.md') || file.filename.toLowerCase().endsWith('.markdown')) && (
+              <button
+                onClick={handleOpenInIEE}
+                className="p-2 hover:bg-blue-100 rounded transition-colors text-blue-600"
+                title="使用 IEE 編輯器打開"
+              >
+                <Edit className="w-5 h-5" />
+              </button>
+            )}
             {/* 下載按鈕 */}
             <button
               onClick={async () => {

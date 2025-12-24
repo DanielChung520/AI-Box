@@ -6,10 +6,10 @@
 """用戶任務管理路由 - 提供任務 CRUD 和同步功能"""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import structlog
-from fastapi import APIRouter, Body, Depends, Query, Request, status
+from fastapi import APIRouter, Body, Depends, Query, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -147,7 +147,6 @@ async def get_user_task(
 )
 async def create_user_task(
     request_body: UserTaskCreate = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """創建用戶任務
@@ -227,7 +226,6 @@ async def create_user_task(
 async def update_user_task(
     task_id: str,
     request_body: UserTaskUpdate = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """更新用戶任務
@@ -660,7 +658,6 @@ async def delete_user_task(
 )
 async def sync_user_tasks(
     request_body: SyncTasksRequest = Body(...),
-    request: Optional[Request] = None,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """同步用戶任務列表（批量創建或更新）

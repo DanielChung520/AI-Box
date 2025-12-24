@@ -1,7 +1,7 @@
 // 代碼功能說明: API 客戶端配置
 // 創建日期: 2025-01-27
 // 創建人: Daniel Chung
-// 最後修改日期: 2025-12-14 11:12:09 (UTC+8)
+// 最後修改日期: 2025-12-21 (UTC+8)
 
 /**
  * API 客戶端配置
@@ -75,7 +75,7 @@ export const API_URL = `${API_BASE_URL}${API_PREFIX}`;
  */
 export const apiConfig = {
   baseURL: API_URL,
-  timeout: 30000, // 30 秒超時
+  timeout: 120000, // 120 秒超時（LLM 生成可能需要較長時間）
   headers: {
     'Content-Type': 'application/json',
   },
@@ -123,7 +123,10 @@ export async function apiRequest<T = any>(
   try {
     // 添加超时控制
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+    // 對於 chat 請求，使用更長的超時時間（120 秒），因為 LLM 生成可能需要較長時間
+    const isChatRequest = url.includes('/chat');
+    const timeoutDuration = isChatRequest ? 120000 : 30000; // chat: 120秒，其他: 30秒
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
     const response = await fetch(url, {
       ...fetchOptions,
@@ -176,11 +179,6 @@ export async function apiRequest<T = any>(
         }
       }
 
-      // 404 錯誤特別處理
-      if (response.status === 404) {
-        console.warn(`API endpoint not found: ${url}. Make sure the backend server is running and the endpoint exists.`);
-      }
-
       let errorData: any;
       try {
         errorData = await response.json();
@@ -195,9 +193,40 @@ export async function apiRequest<T = any>(
         errorData?.error ||
         `HTTP error! status: ${response.status}`;
 
+      // 檢查是否為預期錯誤（新任務創建時的常見情況）
+      const isExpectedError =
+        // 任務不存在或不屬於當前用戶（403）
+        (response.status === 403 && (
+          errorMessage.includes('不存在') ||
+          errorMessage.includes('不屬於當前用戶') ||
+          errorMessage.includes('not found')
+        )) ||
+        // cursor count not enabled（500，後端配置問題，不影響功能）
+        (response.status === 500 && errorMessage.includes('cursor count not enabled')) ||
+        // 任務未找到（404，更新任務時可能出現）
+        (response.status === 404 && (
+          errorMessage.includes('Task not found') ||
+          errorMessage.includes('任務') && errorMessage.includes('不存在')
+        )) ||
+        // 任務已存在（409，並發創建時的常見情況）
+        (response.status === 409 && (
+          errorMessage.includes('unique constraint') ||
+          errorMessage.includes('already exists') ||
+          errorMessage.includes('已存在')
+        ));
+
+      // 如果是預期錯誤，使用 console.debug 而不是 console.error
+      if (isExpectedError) {
+        console.debug(`[apiRequest] Expected error for ${url}:`, errorMessage);
+      } else if (response.status === 404) {
+        // 404 錯誤特別處理（非預期錯誤）
+        console.warn(`API endpoint not found: ${url}. Make sure the backend server is running and the endpoint exists.`);
+      }
+
       const error = new Error(errorMessage);
       (error as any).status = response.status;
       (error as any).data = errorData;
+      (error as any).isExpected = isExpectedError; // 標記為預期錯誤，供上層使用
       throw error;
     }
 
@@ -206,14 +235,21 @@ export async function apiRequest<T = any>(
     // 超时错误处理
     if (error.name === 'AbortError') {
       console.error(`[apiRequest] Request timeout for ${url}`);
-      throw new Error('API request timeout after 30 seconds');
+      const isChatRequest = url.includes('/chat');
+      const timeoutDuration = isChatRequest ? 120 : 30;
+      throw new Error(`API request timeout after ${timeoutDuration} seconds`);
     }
     // 網絡錯誤處理（如 CORS、連接失敗等）
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
       console.error(`[apiRequest] Failed to fetch from ${url}. Check if the backend server is running and accessible.`, error);
       throw new Error(`無法連接到服務器: ${url}. 請確認後端服務器是否正在運行。`);
     }
-    console.error(`[apiRequest] Error for ${url}:`, error);
+    // 如果是預期錯誤，使用 console.debug 而不是 console.error
+    if (error.isExpected) {
+      console.debug(`[apiRequest] Expected error for ${url}:`, error.message);
+    } else {
+      console.error(`[apiRequest] Error for ${url}:`, error);
+    }
     throw error;
   }
 }
@@ -907,6 +943,72 @@ export async function previewFile(fileId: string): Promise<FilePreviewResponse> 
 }
 
 /**
+ * 保存文件内容
+ * @param fileId - 文件 ID
+ * @param content - 文件内容
+ */
+/**
+ * 保存文件内容
+ * @param fileId - 文件 ID
+ * @param content - 文件内容
+ */
+export async function saveFile(
+  fileId: string,
+  content: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    // 使用文档编辑 API 保存文件
+    // 创建编辑请求
+    const editResponse = await createDocEdit({
+      file_id: fileId,
+      instruction: 'Save file content',
+    });
+
+    if (!editResponse.success || !editResponse.data?.request_id) {
+      return { success: false, message: 'Failed to create edit request' };
+    }
+
+    const requestId = editResponse.data.request_id;
+
+    // 等待编辑请求完成
+    const maxRetries = 20;
+    let retries = 0;
+    let stateResponse;
+
+    while (retries < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      stateResponse = await getDocEditState(requestId);
+
+      if (stateResponse.success && stateResponse.data) {
+        const status = stateResponse.data.status;
+        if (status === 'succeeded' || status === 'completed') {
+          break;
+        }
+        if (status === 'failed' || status === 'aborted') {
+          return {
+            success: false,
+            message: stateResponse.data.error_message || 'Edit request failed',
+          };
+        }
+      }
+
+      retries++;
+    }
+
+    if (!stateResponse?.success || stateResponse.data?.status !== 'succeeded') {
+      return { success: false, message: 'Edit request timeout' };
+    }
+
+    // 应用编辑（实际保存文件）
+    await applyDocEdit(requestId);
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error?.message || 'Failed to save file' };
+  }
+}
+
+/**
  * 文件助手（Doc Editing / Generation）
  */
 export interface DocEditCreateRequest {
@@ -1510,6 +1612,142 @@ async function getFileInfo(fileId: string): Promise<{ success: boolean; data?: {
 /**
  * 導出 api 對象（用於兼容性）
  */
+/**
+ * 模組化文檔 API
+ */
+
+/**
+ * 模組化文檔子文檔引用
+ */
+export interface SubDocumentRef {
+  sub_file_id: string;
+  filename: string;
+  section_title: string;
+  order: number;
+  transclusion_syntax: string;
+  header_path?: string;
+}
+
+/**
+ * 模組化文檔
+ */
+export interface ModularDocument {
+  doc_id: string;
+  master_file_id: string;
+  title: string;
+  task_id: string;
+  description?: string;
+  metadata: Record<string, any>;
+  sub_documents: SubDocumentRef[];
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 創建模組化文檔請求
+ */
+export interface ModularDocumentCreateRequest {
+  doc_id?: string;
+  master_file_id: string;
+  title: string;
+  task_id: string;
+  description?: string;
+  metadata?: Record<string, any>;
+  sub_documents?: SubDocumentRef[];
+}
+
+/**
+ * 模組化文檔 API 響應
+ */
+export interface ModularDocumentResponse {
+  success: boolean;
+  data: ModularDocument;
+  message?: string;
+}
+
+/**
+ * 模組化文檔列表響應
+ */
+export interface ModularDocumentListResponse {
+  success: boolean;
+  data: ModularDocument[];
+  message?: string;
+}
+
+/**
+ * 創建模組化文檔
+ */
+export async function createModularDocument(
+  request: ModularDocumentCreateRequest
+): Promise<ModularDocumentResponse> {
+  return apiPost<ModularDocumentResponse>('/modular-documents', request);
+}
+
+/**
+ * 獲取模組化文檔
+ */
+export async function getModularDocument(
+  docId: string
+): Promise<ModularDocumentResponse> {
+  return apiGet<ModularDocumentResponse>(`/modular-documents/${docId}`);
+}
+
+/**
+ * 根據主文檔文件 ID 獲取模組化文檔
+ */
+export async function getModularDocumentByMasterFile(
+  masterFileId: string
+): Promise<ModularDocumentResponse> {
+  return apiGet<ModularDocumentResponse>(`/modular-documents/master-file/${masterFileId}`);
+}
+
+/**
+ * 根據任務 ID 列出模組化文檔
+ */
+export async function listModularDocumentsByTask(
+  taskId: string
+): Promise<ModularDocumentListResponse> {
+  return apiGet<ModularDocumentListResponse>(`/modular-documents/task/${taskId}/list`);
+}
+
+/**
+ * 添加分文檔請求
+ */
+export interface AddSubDocumentRequest {
+  sub_file_id: string;
+  filename: string;
+  section_title: string;
+  order?: number;
+  header_path?: string;
+}
+
+/**
+ * 添加分文檔
+ */
+export async function addSubDocument(
+  docId: string,
+  request: AddSubDocumentRequest
+): Promise<ModularDocumentResponse> {
+  return apiPost<ModularDocumentResponse>(`/modular-documents/${docId}/sub-documents`, request);
+}
+
+/**
+ * 移除分文檔請求
+ */
+export interface RemoveSubDocumentRequest {
+  sub_file_id: string;
+}
+
+/**
+ * 移除分文檔
+ */
+export async function removeSubDocument(
+  docId: string,
+  request: RemoveSubDocumentRequest
+): Promise<ModularDocumentResponse> {
+  return apiDelete<ModularDocumentResponse>(`/modular-documents/${docId}/sub-documents`, request);
+}
+
 export const api = {
   get: apiGet,
   post: apiPost,
@@ -1903,6 +2141,96 @@ export async function chatProduct(request: ChatProductRequest): Promise<ChatProd
 }
 
 /**
+ * 產品級 Chat API - 流式版本（/api/v1/chat/stream）
+ * 返回一個 async generator，逐塊接收內容
+ */
+export async function* chatProductStream(
+  request: ChatProductRequest
+): AsyncGenerator<{ type: string; data: any }, void, unknown> {
+  const url = `${API_URL}/chat/stream`;
+  const token = localStorage.getItem('access_token');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120000); // 120秒超時
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...apiConfig.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(request),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error('Response body is null');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // 處理 SSE 格式：每行以 "data: " 開頭
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // 保留最後一個不完整的行
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6); // 移除 "data: " 前綴
+              const event = JSON.parse(jsonStr);
+              yield event;
+            } catch (e) {
+              console.warn('[chatProductStream] Failed to parse SSE data:', line, e);
+            }
+          }
+        }
+      }
+
+      // 處理最後的 buffer
+      if (buffer.trim()) {
+        const lines = buffer.split('\n');
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6);
+              const event = JSON.parse(jsonStr);
+              yield event;
+            } catch (e) {
+              console.warn('[chatProductStream] Failed to parse SSE data:', line, e);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error('API request timeout after 120 seconds');
+    }
+    throw error;
+  }
+}
+
+/**
  * 收藏模型偏好（hybrid：API 優先，失敗 fallback localStorage）
  */
 
@@ -1961,5 +2289,82 @@ export async function setFavoriteModels(model_ids: string[]): Promise<FavoriteMo
       data: { model_ids },
       message: 'Saved to localStorage (API unavailable)',
     };
+  }
+}
+
+/**
+ * LLM 模型相關 API
+ */
+
+export interface LLMModel {
+  model_id: string;
+  name: string;
+  provider: string;
+  description?: string;
+  capabilities?: string[];
+  status?: string;
+  context_window?: number;
+  max_output_tokens?: number;
+  parameters?: string;
+  release_date?: string;
+  license?: string;
+  languages?: string[];
+  icon?: string;
+  color?: string;
+  order?: number;
+  is_default?: boolean;
+  metadata?: Record<string, any>;
+  source?: string; // 'database' | 'ollama_discovered'
+  ollama_endpoint?: string;
+  ollama_node?: string;
+  is_favorite?: boolean;
+  is_active?: boolean; // 模型是否可用（根據 Provider API Key 配置判斷）
+}
+
+export interface LLMModelsResponse {
+  success: boolean;
+  data?: {
+    models: LLMModel[];
+    total: number;
+  };
+  message?: string;
+  error_code?: string;
+}
+
+export interface GetModelsParams {
+  provider?: string;
+  status_filter?: string;
+  capability?: string;
+  search?: string;
+  include_discovered?: boolean;
+  include_favorite_status?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * 獲取 LLM 模型列表
+ */
+export async function getModels(params?: GetModelsParams): Promise<LLMModelsResponse> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params?.provider) queryParams.append('provider', params.provider);
+    if (params?.status_filter) queryParams.append('status_filter', params.status_filter);
+    if (params?.capability) queryParams.append('capability', params.capability);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.include_discovered !== undefined) {
+      queryParams.append('include_discovered', String(params.include_discovered));
+    }
+    if (params?.include_favorite_status !== undefined) {
+      queryParams.append('include_favorite_status', String(params.include_favorite_status));
+    }
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+    if (params?.offset) queryParams.append('offset', String(params.offset));
+
+    const endpoint = `/models${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return await apiGet<LLMModelsResponse>(endpoint);
+  } catch (error: any) {
+    console.error('[getModels] Failed to fetch models:', error);
+    throw error;
   }
 }

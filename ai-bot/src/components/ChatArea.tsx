@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import AgentCard from './AgentCard';
 import AssistantCard from './AssistantCard';
@@ -62,9 +62,11 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     onTaskDelete?: (taskId: number) => void; // 任務刪除回調
     // 修改時間：2025-12-08 11:30:00 UTC+8 - 添加預覽模式狀態
     isPreviewMode?: boolean; // 是否處於預覽模式（右側文件預覽展開時為 true）
+    // 修改時間：2025-12-21 - 添加 AI 回復加載狀態
+    isLoadingAI?: boolean; // AI 是否正在回復
   }
 
-  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, onModelSelect, onMessageSend, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete, isPreviewMode = false }: ChatAreaProps) {
+  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, onModelSelect, onMessageSend, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete, isPreviewMode = false, isLoadingAI = false }: ChatAreaProps) {
     const [activeTab, setActiveTab] = useState('human-resource');
     const [activeAssistantTab, setActiveAssistantTab] = useState('human-resource');
     const { theme, toggleTheme } = useTheme();
@@ -75,6 +77,22 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     const [maintainingAssistantId, setMaintainingAssistantId] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deletingAssistantId, setDeletingAssistantId] = useState<string | null>(null);
+
+    // 用於自動滾動到底部的 ref
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+    // 當消息更新時，自動滾動到底部
+    useEffect(() => {
+      if (selectedTask?.messages && selectedTask.messages.length > 0 && messagesEndRef.current) {
+        // 使用 requestAnimationFrame 確保 DOM 已經更新後再滾動
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          }, 50);
+        });
+      }
+    }, [selectedTask?.messages]);
 
     // Mock数据 - 不同类别的Agent - 使用useMemo和updateCounter确保语言变更时重新渲染
     const agentCategories: AgentCategory[] = useMemo(() => [
@@ -513,7 +531,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
       </div>
 
       {/* 聊天内容区域 */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef}>
         {/* 優先顯示任務內容：如果有選中的任務，優先顯示任務內容，而不是瀏覽頁面 */}
         {selectedTask && selectedTask.messages ? (
           // 显示任务相关的对话
@@ -521,6 +539,8 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
             {selectedTask.messages.map(message => (
               <ChatMessage key={message.id} message={message} />
             ))}
+            {/* 用於滾動到底部的錨點 */}
+            <div ref={messagesEndRef} />
           </div>
         ) : selectedTask ? (
           // 显示任务但还没有消息
@@ -705,6 +725,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
           onTaskCreate={onTaskCreate}
           onTaskDelete={onTaskDelete}
           isPreviewMode={isPreviewMode}
+          isLoadingAI={isLoadingAI} // 修改時間：2025-12-21 - 傳遞 AI 回復加載狀態
           onMessageSend={onMessageSend}
           onTaskTitleGenerate={(title) => {
             // 生成任务标题（只在任务标题还是默认值时更新）

@@ -78,9 +78,7 @@ class OntologyManager:
         file_path = os.path.join(self.base_path, filename)
         try:
             if not os.path.exists(file_path):
-                raise FileNotFoundError(
-                    f"文件未找到: {filename}. " f"請確保文件存在於 {self.base_path} 目錄中。"
-                )
+                raise FileNotFoundError(f"文件未找到: {filename}. " f"請確保文件存在於 {self.base_path} 目錄中。")
 
             if os.path.getsize(file_path) == 0:
                 raise ValueError(f"文件為空: {filename}")
@@ -185,9 +183,7 @@ class OntologyManager:
 
         # 最終填充實體列表
         ONTOLOGY_RULES["entity_classes"] = list(all_entities)
-        ONTOLOGY_RULES["relationship_types"] = list(
-            set(ONTOLOGY_RULES["relationship_types"])
-        )  # 去重
+        ONTOLOGY_RULES["relationship_types"] = list(set(ONTOLOGY_RULES["relationship_types"]))  # 去重
 
         print(
             f"Ontology 合併完成（文件系統模式）。總實體數: {len(ONTOLOGY_RULES['entity_classes'])}，總關係數: {len(ONTOLOGY_RULES['relationship_types'])}"
@@ -225,9 +221,7 @@ class OntologyManager:
         entity_classes = ontology_rules.get("entity_classes")
         relationship_types = ontology_rules.get("relationship_types")
         if not entity_classes or not relationship_types:
-            raise RuntimeError(
-                "Ontology 規則未初始化。請先調用 merge_ontologies() 方法載入並合併 Ontology。"
-            )
+            raise RuntimeError("Ontology 規則未初始化。請先調用 merge_ontologies() 方法載入並合併 Ontology。")
 
         # 載入提示詞模板
         template = self.load_prompt_template()
@@ -318,9 +312,7 @@ class OntologyManager:
                 valid_combinations.append(f"({domain_type}, {range_type})")
 
             if valid_combinations:
-                constraints.append(
-                    f"  - 關係 '{rel_name}' 的有效組合: {', '.join(valid_combinations)}"
-                )
+                constraints.append(f"  - 關係 '{rel_name}' 的有效組合: {', '.join(valid_combinations)}")
 
         if constraints:
             return "\n".join(constraints)
@@ -363,9 +355,7 @@ class Triple(BaseModel):
         if rel in ONTOLOGY_RULES["owl_domain_range"]:
             # 檢查 (主體類型, 客體類型) 元組是否在允許的列表中
             if (sub_type, obj_type) not in ONTOLOGY_RULES["owl_domain_range"][rel]:
-                raise ValueError(
-                    f"OWL 約束失敗: 關係 '{rel}' 不允許連接 ({sub_type}, {obj_type})。"
-                )
+                raise ValueError(f"OWL 約束失敗: 關係 '{rel}' 不允許連接 ({sub_type}, {obj_type})。")
         return v
 
 

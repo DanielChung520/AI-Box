@@ -1,14 +1,14 @@
 # 代碼功能說明: LLM MoE 管理器實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-13 23:34:17 (UTC+8)
+# 最後修改日期: 2025-01-27
 
 """LLM MoE（Mixture of Experts）管理器，整合所有 LLM 客戶端和路由策略系統。"""
 
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import structlog
 
@@ -209,7 +209,33 @@ class LLMMoEManager:
             keys = context.get("llm_api_keys")
             if isinstance(keys, dict):
                 api_key = keys.get(getattr(provider, "value", str(provider)))
-        client = self.get_client(provider, api_key=api_key)
+
+        # 獲取客戶端（捕獲初始化異常，如缺少 SDK 或 API key）
+        try:
+            client = self.get_client(provider, api_key=api_key)
+        except (ImportError, ValueError) as client_init_error:
+            # 客戶端初始化失敗（如缺少 SDK 或 API key），直接觸發 fallback
+            logger.warning(
+                f"Client initialization failed for {provider.value}: {client_init_error}. "
+                "Triggering failover immediately."
+            )
+            # 記錄失敗並觸發 fallover
+            if self.enable_failover:
+                return await self._failover_generate(
+                    prompt,
+                    failed_provider=provider,
+                    task_classification=task_classification,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    context=context,
+                    failed_strategy=strategy_name,
+                    **kwargs,
+                )
+            # 如果未啟用 failover，直接拋出異常
+            raise Exception(
+                f"Client initialization failed for {provider.value}: {client_init_error}"
+            ) from client_init_error
 
         # 嘗試調用
         latency: Optional[float] = None
@@ -344,13 +370,50 @@ class LLMMoEManager:
             provider = provider or LLMProvider.CHATGPT
             strategy_name = "manual"
 
-        # 獲取客戶端
+        # 獲取客戶端（捕獲初始化異常，如缺少 SDK 或 API key）
         api_key = None
         if isinstance(context, dict):
             keys = context.get("llm_api_keys")
             if isinstance(keys, dict):
                 api_key = keys.get(getattr(provider, "value", str(provider)))
-        client = self.get_client(provider, api_key=api_key)
+
+        try:
+            client = self.get_client(provider, api_key=api_key)
+        except (ImportError, ValueError) as client_init_error:
+            # 客戶端初始化失敗（如缺少 SDK 或 API key），直接觸發 fallback
+            logger.warning(
+                f"Client initialization failed for {provider.value}: {client_init_error}. "
+                "Triggering failover immediately."
+            )
+            # 記錄失敗並觸發 fallback
+            if self.enable_failover:
+                return await self._failover_chat(
+                    messages,
+                    failed_provider=provider,
+                    task_classification=task_classification,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    context=context,
+                    failed_strategy=strategy_name,
+                    **kwargs,
+                )
+            # 如果未啟用 failover，直接拋出異常
+            raise Exception(
+                f"Client initialization failed for {provider.value}: {client_init_error}"
+            ) from client_init_error
+
+        # 對於 Ollama provider，如果 model 包含 ollama:host:port:model_name 格式，
+        # 需要提取實際的模型名稱
+        normalized_model = model
+        if provider == LLMProvider.OLLAMA and model and ":" in model:
+            parts = model.split(":")
+            if len(parts) >= 4 and parts[0] == "ollama":
+                # 提取模型名稱（從第4部分開始，因為模型名稱可能包含 :）
+                normalized_model = ":".join(parts[3:])
+                logger.debug(
+                    f"Extracted Ollama model name from model_id: {model} -> {normalized_model}"
+                )
 
         # 嘗試調用
         latency: Optional[float] = None
@@ -358,7 +421,7 @@ class LLMMoEManager:
         try:
             result = await client.chat(
                 messages,
-                model=model,
+                model=normalized_model,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 **kwargs,
@@ -423,6 +486,213 @@ class LLMMoEManager:
                     failed_strategy=strategy_name,
                     **kwargs,
                 )
+
+            raise
+
+    async def chat_stream(
+        self,
+        messages: List[Dict[str, Any]],
+        *,
+        task_classification: Optional[TaskClassificationResult] = None,
+        provider: Optional[LLMProvider] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        context: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> AsyncGenerator[str, None]:
+        """
+        流式對話生成（統一接口）。
+
+        Args:
+            messages: 消息列表
+            task_classification: 任務分類結果（用於路由選擇）
+            provider: 指定的 LLM 提供商（可選）
+            model: 模型名稱（可選）
+            temperature: 溫度參數
+            max_tokens: 最大 token 數
+            context: 上下文信息
+            **kwargs: 其他參數
+
+        Yields:
+            內容塊（字符串）
+        """
+        start_time = time.time()
+
+        # 選擇 LLM 提供商（與 chat 方法相同的邏輯）
+        if provider is None and task_classification is not None:
+            # 優先使用負載均衡器選擇提供商（如果啟用）
+            if self.load_balancer is not None:
+                allowed_values = (
+                    context.get("allowed_providers") if isinstance(context, dict) else None
+                )
+                if isinstance(allowed_values, list) and allowed_values:
+                    allowed_set = {str(x).strip().lower() for x in allowed_values}
+                    allowed = [
+                        p for p in self.load_balancer.get_providers() if p.value in allowed_set
+                    ]
+                    provider = self.load_balancer.select_provider_filtered(allowed)
+                    strategy_name = f"load_balancer_{self.load_balancer.strategy}_policy"
+                else:
+                    provider = self.load_balancer.select_provider()
+                    strategy_name = f"load_balancer_{self.load_balancer.strategy}"
+            else:
+                # 使用路由策略選擇提供商
+                # 從最後一條消息提取任務描述
+                task_description = messages[-1].get("content", "") if messages else ""
+                routing_result = self.dynamic_router.get_strategy().select_provider(
+                    task_classification, task_description, context
+                )
+                provider = routing_result.provider
+                strategy_name = routing_result.metadata.get("strategy", "unknown")
+
+                allowed_values = (
+                    context.get("allowed_providers") if isinstance(context, dict) else None
+                )
+                if isinstance(allowed_values, list) and allowed_values:
+                    allowed_set = {str(x).strip().lower() for x in allowed_values}
+                    if provider.value not in allowed_set:
+                        fallback = next(
+                            (p for p in LLMProvider if p.value in allowed_set),
+                            None,
+                        )
+                        if fallback is not None:
+                            provider = fallback
+                            strategy_name = f"{strategy_name}_policy_fallback"
+        else:
+            provider = provider or LLMProvider.CHATGPT
+            strategy_name = "manual"
+
+        # 獲取客戶端（捕獲初始化異常，如缺少 SDK 或 API key）
+        api_key = None
+        if isinstance(context, dict):
+            keys = context.get("llm_api_keys")
+            if isinstance(keys, dict):
+                api_key = keys.get(getattr(provider, "value", str(provider)))
+
+        try:
+            client = self.get_client(provider, api_key=api_key)
+        except (ImportError, ValueError) as client_init_error:
+            # 客戶端初始化失敗（如缺少 SDK 或 API key），直接觸發 fallback
+            logger.warning(
+                f"Client initialization failed for {provider.value}: {client_init_error}. "
+                "Triggering failover immediately."
+            )
+            # 記錄失敗並觸發 fallback
+            if self.enable_failover:
+                async for chunk in self._failover_chat_stream(
+                    messages,
+                    failed_provider=provider,
+                    task_classification=task_classification,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    context=context,
+                    failed_strategy=strategy_name,
+                    **kwargs,
+                ):
+                    yield chunk
+                return
+            # 如果未啟用 failover，直接拋出異常
+            raise Exception(
+                f"Client initialization failed for {provider.value}: {client_init_error}"
+            ) from client_init_error
+
+        # 對於 Ollama provider，如果 model 包含 ollama:host:port:model_name 格式，
+        # 需要提取實際的模型名稱
+        normalized_model = model
+        if provider == LLMProvider.OLLAMA and model and ":" in model:
+            parts = model.split(":")
+            if len(parts) >= 4 and parts[0] == "ollama":
+                # 提取模型名稱（從第4部分開始，因為模型名稱可能包含 :）
+                normalized_model = ":".join(parts[3:])
+                logger.debug(
+                    f"Extracted Ollama model name from model_id: {model} -> {normalized_model}"
+                )
+
+        # 檢查客戶端是否支持 streaming
+        if not hasattr(client, "chat_stream"):
+            logger.error(f"Provider {provider.value} does not support streaming")
+            if self.enable_failover:
+                async for chunk in self._failover_chat_stream(
+                    messages,
+                    failed_provider=provider,
+                    task_classification=task_classification,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    context=context,
+                    failed_strategy=strategy_name,
+                    **kwargs,
+                ):
+                    yield chunk
+                return
+            raise Exception(f"Provider {provider.value} does not support streaming")
+
+        # 嘗試調用
+        latency: Optional[float] = None
+        full_content = ""
+
+        try:
+            async for chunk in client.chat_stream(
+                messages,
+                model=normalized_model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **kwargs,
+            ):
+                full_content += chunk
+                yield chunk
+
+            latency = time.time() - start_time
+
+            # 標記負載均衡器成功
+            if self.load_balancer is not None:
+                self.load_balancer.mark_success(provider, latency=latency)
+
+            # 記錄路由結果
+            if task_classification is not None:
+                self.evaluator.record_decision(
+                    provider=provider,
+                    strategy=strategy_name,
+                    task_type=task_classification.task_type.value,
+                    success=True,
+                    latency=latency,
+                )
+
+        except Exception as exc:
+            latency = time.time() - start_time
+            logger.error(f"LLM chat_stream error with {provider.value}: {exc}")
+
+            # 標記負載均衡器失敗
+            if self.load_balancer is not None:
+                self.load_balancer.mark_failure(provider)
+
+            # 記錄失敗
+            if task_classification is not None:
+                self.evaluator.record_decision(
+                    provider=provider,
+                    strategy=strategy_name,
+                    task_type=task_classification.task_type.value,
+                    success=False,
+                    latency=latency,
+                )
+
+            # 故障轉移
+            if self.enable_failover:
+                async for chunk in self._failover_chat_stream(
+                    messages,
+                    failed_provider=provider,
+                    task_classification=task_classification,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    context=context,
+                    failed_strategy=strategy_name,
+                    **kwargs,
+                ):
+                    yield chunk
+                return
 
             raise
 
@@ -632,16 +902,19 @@ class LLMMoEManager:
             Exception: 如果所有提供商都失敗
         """
         # 定義備用提供商順序（優先級從高到低）
+        # 注意：OLLAMA 不在常規 fallback 列表中，作為最後的 fallback（使用 gpt-oss:20b）
         fallback_providers = [
             LLMProvider.GEMINI,
             LLMProvider.QWEN,
             LLMProvider.CHATGPT,
-            LLMProvider.OLLAMA,
+            # OLLAMA 不在這裡，作為最終 fallback（見最後的 fallback 邏輯）
         ]
 
         # 移除失敗的提供商
         if failed_provider in fallback_providers:
             fallback_providers.remove(failed_provider)
+
+        # 如果原始 provider 是 OLLAMA，不要將它加入 fallback 列表（它會在最後作為最終 fallback 使用）
 
         # 如果啟用了故障轉移管理器，優先選擇健康的提供商
         if self.failover_manager is not None:
@@ -653,20 +926,55 @@ class LLMMoEManager:
                 ]
 
         last_exception: Optional[Exception] = None
+        skipped_providers: List[tuple[str, str]] = []  # (provider, reason)
 
         # 嘗試備用提供商
         for fallback in fallback_providers:
             try:
                 logger.info(f"Failing over from {failed_provider.value} to {fallback.value}")
+
+                # 對於需要 API key 的 provider，先檢查是否有 API key（除非提供了 per-request key）
                 fallback_api_key = None
                 if isinstance(context, dict):
                     keys = context.get("llm_api_keys")
                     if isinstance(keys, dict):
                         fallback_api_key = keys.get(getattr(fallback, "value", str(fallback)))
-                client = self.get_client(fallback, api_key=fallback_api_key)
+
+                # 如果沒有 per-request API key，且不是 OLLAMA（不需要 API key），
+                # 先檢查 provider 是否有 API key 配置
+                # 注意：LLMProvider 枚舉中沒有 AUTO，fallback 列表中也不包含 AUTO
+                if not fallback_api_key and fallback != LLMProvider.OLLAMA:
+                    try:
+                        from services.api.services.llm_provider_config_service import (
+                            get_llm_provider_config_service,
+                        )
+
+                        config_service = get_llm_provider_config_service()
+                        status = config_service.get_status(fallback)
+                        if not status or not status.has_api_key:
+                            reason = "no API key configured"
+                            logger.debug(f"Provider {fallback.value}: {reason}")
+                            skipped_providers.append((fallback.value, reason))
+                            continue
+                    except Exception as config_check_error:
+                        # 如果檢查配置時出錯，記錄但不阻止嘗試（可能是配置服務不可用）
+                        logger.warning(
+                            f"Failed to check API key status for {fallback.value}: {config_check_error}"
+                        )
+
+                # 嘗試創建客戶端（如果沒有 API key 會在此處失敗）
+                try:
+                    client = self.get_client(fallback, api_key=fallback_api_key)
+                except (ValueError, ImportError) as client_init_error:
+                    # 客戶端初始化失敗（如缺少 API key），跳過該 provider
+                    reason = f"client initialization failed: {client_init_error}"
+                    logger.debug(f"Provider {fallback.value}: {reason}")
+                    skipped_providers.append((fallback.value, reason))
+                    continue
 
                 if not client.is_available():
                     logger.debug(f"Provider {fallback.value} is not available")
+                    skipped_providers.append((fallback.value, "client is not available"))
                     continue
 
                 # 檢查健康狀態（如果啟用了故障轉移管理器）
@@ -675,6 +983,7 @@ class LLMMoEManager:
                     and not self.failover_manager.is_provider_healthy(fallback)
                 ):
                     logger.debug(f"Provider {fallback.value} is not healthy, skipping")
+                    skipped_providers.append((fallback.value, "provider is not healthy"))
                     continue
 
                 start_time = time.time()
@@ -721,8 +1030,342 @@ class LLMMoEManager:
 
                 continue
 
-        # 所有提供商都失敗
-        error_msg = f"All LLM providers failed. " f"Original provider: {failed_provider.value}"
+        # 所有提供商都失敗，最後嘗試本機 gpt-oss:20b（強制使用 localhost:11434）
+        # 注意：即使原始 provider 是 OLLAMA，也嘗試最終 fallback（可能是其他節點失敗，嘗試本地節點）
+        try:
+            logger.info(
+                f"All fallback providers failed (original: {failed_provider.value}), "
+                "attempting final fallback to local gpt-oss:20b on localhost:11434"
+            )
+            # 為最終 fallback 創建只使用 localhost 的 Ollama 客戶端
+            from llm.clients.ollama import OllamaClient
+            from llm.router import LLMNodeConfig, LLMNodeRouter
+
+            localhost_node = LLMNodeConfig(
+                name="localhost-fallback",
+                host="localhost",
+                port=11434,
+                weight=1,
+            )
+            localhost_router = LLMNodeRouter(
+                nodes=[localhost_node],
+                strategy="round_robin",
+                cooldown_seconds=30,
+            )
+            client = OllamaClient(router=localhost_router, default_model="gpt-oss:20b")
+            if client.is_available():
+                start_time = time.time()
+                # 對於最終 fallback，如果原始 model 是 ollama:host:port:model_name 格式，
+                # 提取實際的模型名稱；否則使用 gpt-oss:20b
+                fallback_model = "gpt-oss:20b"
+                if model and ":" in model:
+                    parts = model.split(":")
+                    if len(parts) >= 4 and parts[0] == "ollama":
+                        fallback_model = ":".join(parts[3:])
+
+                result = await client.chat(
+                    messages,
+                    model=fallback_model,  # 使用提取的模型名稱或 gpt-oss:20b
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    **kwargs,
+                )
+                latency = time.time() - start_time
+
+                logger.info("Successfully used final fallback to local gpt-oss:20b")
+
+                # 標記負載均衡器成功（如果啟用）
+                if self.load_balancer is not None:
+                    self.load_balancer.mark_success(LLMProvider.OLLAMA, latency=latency)
+
+                # 產品級入口需要的 routing metadata
+                if isinstance(result, dict):
+                    result["_routing"] = {
+                        "provider": LLMProvider.OLLAMA.value,
+                        "model": fallback_model,
+                        "strategy": f"final_fallback({failed_strategy or 'unknown'})",
+                        "latency_ms": ((latency * 1000.0) if latency is not None else None),
+                        "failover_used": True,
+                        "failed_provider": failed_provider.value,
+                        "final_fallback": True,
+                    }
+
+                return result
+            else:
+                logger.warning("Final fallback: localhost Ollama client is not available")
+        except Exception as final_fallback_exc:
+            logger.warning(
+                f"Final fallback to local gpt-oss:20b also failed: {final_fallback_exc}",
+                exc_info=True,
+            )
+            # 記錄最終 fallback 失敗的原因
+            last_exception = final_fallback_exc
+
+        # 所有提供商（包括最終 fallback）都失敗
+        error_msg = f"All LLM providers failed. Original provider: {failed_provider.value}"
+        if skipped_providers:
+            skipped_details = ", ".join([f"{p} ({r})" for p, r in skipped_providers])
+            error_msg += f". Skipped providers: {skipped_details}"
+        if last_exception:
+            error_msg += f". Last error: {last_exception}"
+        raise Exception(error_msg)
+
+    async def _failover_chat_stream(
+        self,
+        messages: List[Dict[str, Any]],
+        failed_provider: LLMProvider,
+        task_classification: Optional[TaskClassificationResult] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        context: Optional[Dict[str, Any]] = None,
+        failed_strategy: Optional[str] = None,
+        **kwargs: Any,
+    ) -> AsyncGenerator[str, None]:
+        """
+        故障轉移流式對話（嘗試備用提供商）。
+
+        Args:
+            messages: 消息列表
+            failed_provider: 失敗的提供商
+            task_classification: 任務分類結果
+            model: 模型名稱
+            temperature: 溫度參數
+            max_tokens: 最大 token 數
+            context: 上下文信息
+            failed_strategy: 失敗的策略名稱
+            **kwargs: 其他參數
+
+        Yields:
+            內容塊（字符串）
+
+        Raises:
+            Exception: 如果所有提供商都失敗
+        """
+        # 定義備用提供商順序（優先級從高到低）
+        # 注意：OLLAMA 不在常規 fallback 列表中，作為最後的 fallback（使用 gpt-oss:20b）
+        fallback_providers = [
+            LLMProvider.GEMINI,
+            LLMProvider.QWEN,
+            LLMProvider.CHATGPT,
+            # OLLAMA 不在這裡，作為最終 fallback（見最後的 fallback 邏輯）
+        ]
+
+        # 移除失敗的提供商
+        if failed_provider in fallback_providers:
+            fallback_providers.remove(failed_provider)
+
+        # 如果啟用了故障轉移管理器，優先選擇健康的提供商
+        if self.failover_manager is not None:
+            healthy_providers = self.failover_manager.get_healthy_providers(fallback_providers)
+            if healthy_providers:
+                # 優先使用健康的提供商
+                fallback_providers = healthy_providers + [
+                    p for p in fallback_providers if p not in healthy_providers
+                ]
+
+        last_exception: Optional[Exception] = None
+        skipped_providers: List[tuple[str, str]] = []  # (provider, reason)
+
+        # 嘗試備用提供商
+        for fallback in fallback_providers:
+            try:
+                logger.info(f"Failing over from {failed_provider.value} to {fallback.value}")
+
+                # 對於需要 API key 的 provider，先檢查是否有 API key（除非提供了 per-request key）
+                fallback_api_key = None
+                if isinstance(context, dict):
+                    keys = context.get("llm_api_keys")
+                    if isinstance(keys, dict):
+                        fallback_api_key = keys.get(getattr(fallback, "value", str(fallback)))
+
+                # 如果沒有 per-request API key，且不是 OLLAMA（不需要 API key），
+                # 先檢查 provider 是否有 API key 配置
+                if not fallback_api_key and fallback != LLMProvider.OLLAMA:
+                    try:
+                        from services.api.services.llm_provider_config_service import (
+                            get_llm_provider_config_service,
+                        )
+
+                        config_service = get_llm_provider_config_service()
+                        status = config_service.get_status(fallback)
+                        if not status or not status.has_api_key:
+                            reason = "no API key configured"
+                            logger.debug(f"Provider {fallback.value}: {reason}")
+                            skipped_providers.append((fallback.value, reason))
+                            continue
+                    except Exception as config_check_error:
+                        # 如果檢查配置時出錯，記錄但不阻止嘗試（可能是配置服務不可用）
+                        logger.warning(
+                            f"Failed to check API key status for {fallback.value}: {config_check_error}"
+                        )
+
+                # 嘗試創建客戶端（如果沒有 API key 會在此處失敗）
+                try:
+                    client = self.get_client(fallback, api_key=fallback_api_key)
+                except (ValueError, ImportError) as client_init_error:
+                    # 客戶端初始化失敗（如缺少 API key），跳過該 provider
+                    reason = f"client initialization failed: {client_init_error}"
+                    logger.debug(f"Provider {fallback.value}: {reason}")
+                    skipped_providers.append((fallback.value, reason))
+                    continue
+
+                if not client.is_available():
+                    logger.debug(f"Provider {fallback.value} is not available")
+                    skipped_providers.append((fallback.value, "client is not available"))
+                    continue
+
+                # 檢查健康狀態（如果啟用了故障轉移管理器）
+                if (
+                    self.failover_manager is not None
+                    and not self.failover_manager.is_provider_healthy(fallback)
+                ):
+                    logger.debug(f"Provider {fallback.value} is not healthy, skipping")
+                    skipped_providers.append((fallback.value, "provider is not healthy"))
+                    continue
+
+                # 檢查客戶端是否支持 streaming
+                if not hasattr(client, "chat_stream"):
+                    logger.debug(f"Provider {fallback.value} does not support streaming")
+                    skipped_providers.append((fallback.value, "streaming not supported"))
+                    continue
+
+                # 對於 Ollama provider，如果 model 包含 ollama:host:port:model_name 格式，
+                # 需要提取實際的模型名稱
+                normalized_model = model
+                if fallback == LLMProvider.OLLAMA and model and ":" in model:
+                    parts = model.split(":")
+                    if len(parts) >= 4 and parts[0] == "ollama":
+                        normalized_model = ":".join(parts[3:])
+                        logger.debug(
+                            f"Extracted Ollama model name from model_id: {model} -> {normalized_model}"
+                        )
+
+                start_time = time.time()
+                # 流式調用
+                async for chunk in client.chat_stream(
+                    messages,
+                    model=normalized_model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    **kwargs,
+                ):
+                    yield chunk
+                latency = time.time() - start_time
+
+                logger.info(
+                    f"Successfully failed over from {failed_provider.value} " f"to {fallback.value}"
+                )
+
+                # 標記負載均衡器成功（如果啟用）
+                if self.load_balancer is not None:
+                    self.load_balancer.mark_success(fallback, latency=latency)
+
+                # 記錄路由結果
+                if task_classification is not None:
+                    self.evaluator.record_decision(
+                        provider=fallback,
+                        strategy=f"failover({failed_strategy or 'unknown'})",
+                        task_type=task_classification.task_type.value,
+                        success=True,
+                        latency=latency,
+                    )
+
+                # 成功，返回
+                return
+
+            except Exception as exc:
+                last_exception = exc
+                logger.warning(
+                    f"Fallback to {fallback.value} failed: {exc}",
+                    exc_info=True,
+                )
+
+                # 標記負載均衡器失敗（如果啟用）
+                if self.load_balancer is not None:
+                    self.load_balancer.mark_failure(fallback)
+
+                continue
+
+        # 所有提供商都失敗，最後嘗試本機 gpt-oss:20b（強制使用 localhost:11434）
+        # 注意：即使原始 provider 是 OLLAMA，也嘗試最終 fallback（可能是其他節點失敗，嘗試本地節點）
+        try:
+            logger.info(
+                f"All fallback providers failed (original: {failed_provider.value}), "
+                "attempting final fallback to local gpt-oss:20b on localhost:11434"
+            )
+            # 為最終 fallback 創建只使用 localhost 的 Ollama 客戶端
+            from llm.clients.ollama import OllamaClient
+            from llm.router import LLMNodeConfig, LLMNodeRouter
+
+            localhost_node = LLMNodeConfig(
+                name="localhost-fallback",
+                host="localhost",
+                port=11434,
+                weight=1,
+            )
+            localhost_router = LLMNodeRouter(
+                nodes=[localhost_node],
+                strategy="round_robin",
+                cooldown_seconds=30,
+            )
+            client = OllamaClient(router=localhost_router, default_model="gpt-oss:20b")
+            if client.is_available() and hasattr(client, "chat_stream"):
+                # 對於最終 fallback，如果原始 model 是 ollama:host:port:model_name 格式，
+                # 提取實際的模型名稱；否則使用 gpt-oss:20b
+                fallback_model = "gpt-oss:20b"
+                if model and ":" in model:
+                    parts = model.split(":")
+                    if len(parts) >= 4 and parts[0] == "ollama":
+                        fallback_model = ":".join(parts[3:])
+
+                start_time = time.time()
+                # 流式調用
+                async for chunk in client.chat_stream(
+                    messages,
+                    model=fallback_model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    **kwargs,
+                ):
+                    yield chunk
+                latency = time.time() - start_time
+
+                logger.info("Successfully used final fallback to local gpt-oss:20b")
+
+                # 標記負載均衡器成功（如果啟用）
+                if self.load_balancer is not None:
+                    self.load_balancer.mark_success(LLMProvider.OLLAMA, latency=latency)
+
+                # 記錄路由結果
+                if task_classification is not None:
+                    self.evaluator.record_decision(
+                        provider=LLMProvider.OLLAMA,
+                        strategy=f"final_fallback({failed_strategy or 'unknown'})",
+                        task_type=task_classification.task_type.value,
+                        success=True,
+                        latency=latency,
+                    )
+
+                # 成功，返回
+                return
+            else:
+                logger.warning(
+                    "Final fallback: localhost Ollama client is not available or does not support streaming"
+                )
+        except Exception as final_fallback_exc:
+            logger.warning(
+                f"Final fallback to local gpt-oss:20b also failed: {final_fallback_exc}",
+                exc_info=True,
+            )
+            # 記錄最終 fallback 失敗的原因
+            last_exception = final_fallback_exc
+
+        # 所有提供商（包括最終 fallback）都失敗
+        error_msg = f"All LLM providers failed. Original provider: {failed_provider.value}"
+        if skipped_providers:
+            skipped_details = ", ".join([f"{p} ({r})" for p, r in skipped_providers])
+            error_msg += f". Skipped providers: {skipped_details}"
         if last_exception:
             error_msg += f". Last error: {last_exception}"
         raise Exception(error_msg)

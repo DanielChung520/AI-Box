@@ -1,7 +1,7 @@
 # 代碼功能說明: ChatGPT 客戶端實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-29
+# 最後修改日期: 2025-12-21 (UTC+8)
 
 """ChatGPT 客戶端實現，整合 OpenAI SDK。"""
 
@@ -9,16 +9,17 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 try:
     from openai import AsyncOpenAI
-    from openai.types.chat import ChatCompletion
+    from openai.types.chat import ChatCompletion, ChatCompletionChunk
     from openai.types.completion import Completion
     from openai.types.embedding import Embedding
 except ImportError:
     AsyncOpenAI = None  # type: ignore[assignment, misc]
     ChatCompletion = None  # type: ignore[assignment, misc]
+    ChatCompletionChunk = None  # type: ignore[assignment, misc]
     Completion = None  # type: ignore[assignment, misc]
     Embedding = None  # type: ignore[assignment, misc]
 
@@ -225,6 +226,59 @@ class ChatGPTClient(BaseLLMClient):
         except Exception as exc:
             logger.error(f"ChatGPT chat error: {exc}")
             raise ChatGPTClientError(f"Failed to chat: {exc}") from exc
+
+    async def chat_stream(
+        self,
+        messages: List[Dict[str, Any]],
+        *,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **kwargs: Any,
+    ) -> AsyncGenerator[str, None]:
+        """
+        流式對話生成。
+
+        Args:
+            messages: 消息列表，每個消息包含 'role' 和 'content'
+            model: 模型名稱（可選）
+            temperature: 溫度參數
+            max_tokens: 最大 token 數
+            **kwargs: 其他參數
+
+        Yields:
+            每個 chunk 的文本內容
+        """
+        model = model or self.default_model
+
+        try:
+            # 轉換消息格式（確保符合 OpenAI API 格式）
+            formatted_messages = []
+            for msg in messages:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                formatted_messages.append({"role": role, "content": content})
+
+            # 使用 stream=True 啟用流式響應
+            stream = await self._client.chat.completions.create(
+                model=model,
+                messages=formatted_messages,  # type: ignore[arg-type]
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+                **kwargs,
+            )
+
+            # 逐塊提取內容
+            async for chunk in stream:
+                if isinstance(chunk, ChatCompletionChunk) and chunk.choices:
+                    delta = chunk.choices[0].delta
+                    if delta and delta.content:
+                        yield delta.content
+
+        except Exception as exc:
+            logger.error(f"ChatGPT chat_stream error: {exc}")
+            raise ChatGPTClientError(f"Failed to stream chat: {exc}") from exc
 
     async def embeddings(
         self,

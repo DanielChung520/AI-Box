@@ -221,6 +221,12 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       loadSavedTasks();
     };
 
+    // 修改時間：2025-12-21 - 監聽任務更新事件（用於更新任務標題）
+    const handleTaskUpdated = () => {
+      console.log('[Sidebar] Task updated, reloading task list');
+      loadSavedTasks();
+    };
+
     // 修改時間：2025-12-08 09:04:21 UTC+8 - 監聽任務同步事件
     const handleTasksSynced = () => {
       console.log('[Sidebar] Tasks synced, reloading task list');
@@ -240,12 +246,14 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     };
 
     window.addEventListener('taskCreated', handleTaskCreated as EventListener);
+    window.addEventListener('taskUpdated', handleTaskUpdated as EventListener); // 修改時間：2025-12-21 - 監聽任務更新事件
     window.addEventListener('storage', loadSavedTasks);
     window.addEventListener('tasksSynced', handleTasksSynced as EventListener);
     window.addEventListener('userLoggedIn', handleUserLoggedIn as EventListener);
 
     return () => {
       window.removeEventListener('taskCreated', handleTaskCreated as EventListener);
+      window.removeEventListener('taskUpdated', handleTaskUpdated as EventListener); // 修改時間：2025-12-21 - 移除任務更新事件監聽
       window.removeEventListener('storage', loadSavedTasks);
       window.removeEventListener('tasksSynced', handleTasksSynced as EventListener);
       window.removeEventListener('userLoggedIn', handleUserLoggedIn as EventListener);

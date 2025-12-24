@@ -44,9 +44,7 @@ class ProcessingStatusModel(BaseModel):
     """文件處理狀態模型"""
 
     file_id: str = Field(..., description="文件ID")
-    overall_status: str = Field(
-        ..., description="總體狀態 (pending, processing, completed, failed)"
-    )
+    overall_status: str = Field(..., description="總體狀態 (pending, processing, completed, failed)")
     overall_progress: int = Field(0, ge=0, le=100, description="總體進度百分比 (0-100)")
     message: Optional[str] = Field(None, description="狀態消息")
     chunking: Optional[ProcessingStageStatus] = Field(None, description="分塊階段狀態")

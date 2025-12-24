@@ -32,9 +32,7 @@ class StorageStrategy(str, Enum):
 class StorageManagerRequest(BaseModel):
     """存储管理请求模型"""
 
-    action: str = Field(
-        ..., description="操作类型（store, retrieve, optimize, analyze, recommend）"
-    )
+    action: str = Field(..., description="操作类型（store, retrieve, optimize, analyze, recommend）")
     storage_type: Optional[StorageType] = Field(None, description="存储类型")
     data_key: Optional[str] = Field(None, description="数据键")
     data_value: Optional[Any] = Field(None, description="数据值")

@@ -90,13 +90,13 @@ def update_test_progress_table(content: str, results: Dict[str, Any]) -> str:
         pattern = rf"(\| {re.escape(test_id)} \| {re.escape(test_descriptions[test_id])} \| )⏸️( 待實現 \| - \| - \|)"
 
         if status == "已實現":
-            replacement = f"\\1✅ 通過\\2 {total_duration:.2f}s | {test_date} | {passed_count}個測試用例全部通過 |"
+            replacement = (
+                f"\\1✅ 通過\\2 {total_duration:.2f}s | {test_date} | {passed_count}個測試用例全部通過 |"
+            )
         elif status == "部分實現":
             replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | {passed_count}/{total_count} 個測試通過，{skipped_count} 個跳過 |"
         else:
-            replacement = (
-                f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
-            )
+            replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | API 端點部分實現，需驗證 |"
 
         content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
 
@@ -180,7 +180,9 @@ def update_test_scenario_steps(content: str, test_id: str, results: Dict[str, An
             note_text = reason_short
         else:
             status_mark = "❌ 失敗"
-            result_text = f"**測試結果**: ❌ 失敗\n**實際響應時間**: {duration:.3f}s\n**實際響應內容**:\n```\n{reason}\n```"
+            result_text = (
+                f"**測試結果**: ❌ 失敗\n**實際響應時間**: {duration:.3f}s\n**實際響應內容**:\n```\n{reason}\n```"
+            )
             note_text = "測試失敗，需要修復"
 
         # 匹配測試步驟的測試結果部分

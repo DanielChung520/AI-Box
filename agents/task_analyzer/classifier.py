@@ -1,7 +1,7 @@
 # 代碼功能說明: 任務分類器實現
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-12-21
 
 """任務分類器 - 實現任務類型分類邏輯"""
 
@@ -40,6 +40,10 @@ class TaskClassifier:
             TaskType.COMPLEX: [
                 r"複雜|多步驟|綜合|整合|協作|多任務",
                 r"complex|multi-step|comprehensive|integrate|collaborate|multi-task",
+            ],
+            TaskType.LOG_QUERY: [
+                r"日誌|審計|安全日誌|任務日誌|查看日誌|查詢日誌|顯示日誌|列出日誌|log|audit|security.*log|task.*log",
+                r"log|audit|security.*log|task.*log|view.*log|query.*log|show.*log|list.*log",
             ],
         }
 

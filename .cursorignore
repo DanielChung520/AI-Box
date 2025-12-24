@@ -1,10 +1,15 @@
 # Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
 # 排除不需要索引的目錄和文件
 
-# 測試文件
-tests/
-**/test_*.py
-**/*_test.py
+# 測試文件（排除新建的測試目錄，允許開發新的測試文件）
+tests/api/services/test_*.py
+tests/integration/**/test_*.py
+tests/performance/**/test_*.py
+tests/security/**/test_*.py
+# 允許新建的測試目錄
+!tests/agents/
+!tests/agents/builtin/
+!tests/agents/builtin/system_config_agent/
 
 # 環境變數文件（敏感資訊）
 .env

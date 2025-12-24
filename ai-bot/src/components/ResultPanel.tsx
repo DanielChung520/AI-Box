@@ -7,6 +7,7 @@ import FileSearchModal from './FileSearchModal';
 import FileUploadModal, { FileWithMetadata } from './FileUploadModal';
 import FileLibraryModal from './FileLibraryModal';
 import UploadProgress from './UploadProgress';
+import IEEEditor from '../pages/IEEEditor';
 import { useKeyboardShortcuts } from '../lib/hooks/useKeyboardShortcuts';
 import { getMockFileContent, getMockFile, getMockFiles } from '../lib/mockFileStorage';
 import { getFileTree, FileTreeResponse, previewFile, uploadFiles, uploadFromLibrary, returnToLibrary, syncFiles } from '../lib/api';
@@ -24,7 +25,7 @@ interface ResultPanelProps {
 }
 
 export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onToggle, onViewChange, fileTree, onFileTreeChange, taskId, userId }: ResultPanelProps) {
-  const [activeTab, setActiveTab] = useState<'files' | 'preview'>('files');
+  const [activeTab, setActiveTab] = useState<'files' | 'preview' | 'edit'>('files');
 
   useEffect(() => {
     console.log('[ResultPanel] Component mounted/updated', { taskId, userId, activeTab, hasFileTree: !!fileTree });
@@ -55,8 +56,16 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
             setFileTreeData(response);
           }
         })
-        .catch(() => {
-          // 忽略錯誤，使用其他方式查找文件名
+        .catch((err: any) => {
+          // 忽略預期錯誤（任務不存在、cursor count 等），使用其他方式查找文件名
+          const isExpectedError = err.message?.includes('不存在') ||
+                                  err.message?.includes('not found') ||
+                                  err.message?.includes('不屬於當前用戶') ||
+                                  err.message?.includes('cursor count not enabled');
+          if (!isExpectedError) {
+            // 只記錄非預期錯誤
+            console.error('[ResultPanel] Error loading file tree:', err);
+          }
         });
     }
   }, [taskId, userId]);
@@ -73,6 +82,39 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
       }
     }
   }, [collapsed, wasCollapsed, onViewChange]);
+
+  // 判斷選中的文件是否為 Markdown 文件
+  const isMarkdownFile = (fileName: string | null): boolean => {
+    if (!fileName) return false;
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    return extension === 'md' || extension === 'markdown';
+  };
+
+  // 獲取當前選中文件的文件名
+  const getCurrentFileName = (): string | null => {
+    if (selectedFileName) return selectedFileName;
+    if (!selectedFile) return null;
+
+    // 嘗試從多個來源查找文件名
+    if (taskId) {
+      const mockFile = getMockFile(String(taskId), selectedFile);
+      if (mockFile) return mockFile.filename;
+    }
+
+    if (fileTree) {
+      const fileNode = fileTree.find((node) => node.id === selectedFile);
+      if (fileNode) return fileNode.name;
+    }
+
+    if (fileTreeData?.data?.tree) {
+      for (const taskFiles of Object.values(fileTreeData.data.tree)) {
+        const file = taskFiles.find((f) => f.file_id === selectedFile);
+        if (file && file.filename) return file.filename;
+      }
+    }
+
+    return null;
+  };
 
   // 點擊外部關閉更多菜單
   useEffect(() => {
@@ -622,6 +664,31 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
           >
             {t('resultPanel.preview')}
           </button>
+          <button
+            className={`px-3 py-1 rounded-t-lg text-sm flex items-center gap-1.5 ${
+              activeTab === 'edit' ? 'bg-tertiary text-primary' : 'text-tertiary'
+            }`}
+            onClick={() => {
+              const fileName = getCurrentFileName();
+              if (selectedFile && fileName && isMarkdownFile(fileName)) {
+                setActiveTab('edit');
+                if (onViewChange) {
+                  onViewChange(true);
+                }
+              }
+            }}
+            disabled={!selectedFile || !isMarkdownFile(getCurrentFileName())}
+            title={
+              !selectedFile
+                ? '請先選擇文件'
+                : !isMarkdownFile(getCurrentFileName())
+                  ? '僅支持 Markdown 文件'
+                  : '使用 IEE 編輯器編輯'
+            }
+          >
+            <i className="fa-solid fa-edit text-xs"></i>
+            <span>編輯</span>
+          </button>
         </div>
       </div>
 
@@ -791,6 +858,34 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
         {activeTab === 'preview' && !selectedFile && (
           <div className="p-4 h-full flex items-center justify-center text-tertiary">
             {t('resultPanel.noFileSelected', '請選擇一個文件進行預覽')}
+          </div>
+        )}
+        {activeTab === 'edit' && selectedFile && (() => {
+          const fileName = getCurrentFileName();
+          if (!fileName || !isMarkdownFile(fileName)) {
+            return (
+              <div className="p-4 h-full flex items-center justify-center text-tertiary">
+                <div className="text-center">
+                  <i className="fa-solid fa-file-lines text-4xl mb-4 opacity-50"></i>
+                  <p>僅支持 Markdown 文件編輯</p>
+                  <p className="text-sm mt-2 opacity-75">請選擇 .md 或 .markdown 文件</p>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="h-full w-full overflow-hidden flex flex-col">
+              <IEEEditor fileId={selectedFile} />
+            </div>
+          );
+        })()}
+        {activeTab === 'edit' && !selectedFile && (
+          <div className="p-4 h-full flex items-center justify-center text-tertiary">
+            <div className="text-center">
+              <i className="fa-solid fa-file-lines text-4xl mb-4 opacity-50"></i>
+              <p>請選擇一個 Markdown 文件進行編輯</p>
+            </div>
           </div>
         )}
       </div>

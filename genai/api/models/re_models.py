@@ -36,9 +36,7 @@ class RERequest(BaseModel):
     """RE 請求模型"""
 
     text: str = Field(..., description="待抽取關係的文本")
-    entities: Optional[List[Entity]] = Field(
-        None, description="預先識別的實體列表（可選，如果不提供則自動識別）"
-    )
+    entities: Optional[List[Entity]] = Field(None, description="預先識別的實體列表（可選，如果不提供則自動識別）")
     model_type: Optional[str] = Field(
         None,
         description="指定使用的模型類型（transformers/ollama），不指定則使用配置默認值",

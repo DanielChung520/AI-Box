@@ -1,7 +1,7 @@
 # 代碼功能說明: Agent Orchestrator 數據模型
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-21
 
 """Agent Orchestrator 數據模型定義
 
@@ -67,3 +67,13 @@ class AgentRegistrationRequest(BaseModel):
     agent_type: str = Field(..., description="Agent 類型")
     capabilities: List[str] = Field(default_factory=list, description="能力列表")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
+
+
+class ValidationResult(BaseModel):
+    """驗證結果模型
+
+    用於第一層預檢的驗證結果。
+    """
+
+    valid: bool = Field(..., description="驗證是否通過")
+    reason: Optional[str] = Field(None, description="驗證失敗的原因（如果驗證失敗）")

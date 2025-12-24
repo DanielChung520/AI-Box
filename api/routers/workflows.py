@@ -30,9 +30,7 @@ class WorkflowExecuteRequest(BaseModel):
     workflow_type: Optional[str] = Field(default="langchain", description="工作流類型")
     user_id: Optional[str] = Field(default=None, description="用戶ID")
     context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
-    workflow_config: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="工作流配置"
-    )
+    workflow_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="工作流配置")
 
 
 class HybridWorkflowExecuteRequest(BaseModel):
@@ -47,9 +45,7 @@ class HybridWorkflowExecuteRequest(BaseModel):
     )
     user_id: Optional[str] = Field(default=None, description="用戶ID")
     context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
-    workflow_config: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="工作流配置"
-    )
+    workflow_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="工作流配置")
 
 
 class AutoGenPlanRequest(BaseModel):
@@ -59,9 +55,7 @@ class AutoGenPlanRequest(BaseModel):
     context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
     user_id: Optional[str] = Field(default=None, description="用戶ID")
     max_steps: Optional[int] = Field(default=10, description="最大步驟數")
-    workflow_config: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="工作流配置"
-    )
+    workflow_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="工作流配置")
 
 
 @router.post("/workflows/langchain/execute", status_code=status.HTTP_200_OK)

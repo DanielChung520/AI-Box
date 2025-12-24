@@ -1,0 +1,35 @@
+{
+  "scope": "llm.provider_config",
+  "description": "LLM 提供商配置",
+  "version": "1.0.0",
+  "last_updated": "2025-01-27T00:00:00Z",
+  "fields": {
+    "api_endpoint": {
+      "type": "string",
+      "format": "url",
+      "description": "API 端點 URL",
+      "is_modifiable_by_tenant": false,
+      "is_modifiable_by_user": false
+    },
+    "timeout": {
+      "type": "integer",
+      "min": 1,
+      "max": 300,
+      "default": 30,
+      "unit": "seconds",
+      "description": "請求超時時間",
+      "is_modifiable_by_tenant": true,
+      "is_modifiable_by_user": false
+    },
+    "max_retries": {
+      "type": "integer",
+      "min": 0,
+      "max": 5,
+      "default": 3,
+      "description": "最大重試次數",
+      "is_modifiable_by_tenant": true,
+      "is_modifiable_by_user": false
+    }
+  },
+  "convergence_rules": {}
+}

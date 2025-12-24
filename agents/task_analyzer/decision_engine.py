@@ -78,9 +78,7 @@ class DecisionEngine:
             mode = "hybrid"
             primary = WorkflowType.AUTOGEN
             fallback = [WorkflowType.LANGCHAIN]
-            reasoning_parts.append(
-                f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式"
-            )
+            reasoning_parts.append(f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式")
 
         # 規則 3: 需要可觀測性 → LangGraph 作為主要模式
         elif requires_observability:

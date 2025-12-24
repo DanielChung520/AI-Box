@@ -117,16 +117,18 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
             } catch (updateError: any) {
               lastError = updateError;
               // 如果更新失敗（任務不存在），嘗試創建
-              if (updateError?.status === 404 || updateError?.message?.includes('404') || updateError?.message?.includes('not found')) {
-                console.log('[TaskStorage] Task not found, trying to create', { taskId: task.id });
+              if (updateError?.status === 404 || updateError?.message?.includes('404') || updateError?.message?.includes('not found') || updateError?.isExpected) {
+                // 使用 console.debug 而不是 console.log，因為這是預期行為
+                console.debug('[TaskStorage] Task not found, trying to create', { taskId: task.id });
                 try {
                   syncResult = await createUserTask(backendTask);
                   console.log('[TaskStorage] Task created successfully', { taskId: task.id });
                 } catch (createError: any) {
                   lastError = createError;
                   // 檢查是否為 409 錯誤（任務已存在）
-                  if (createError?.status === 409 || createError?.message?.includes('409') || createError?.message?.includes('unique constraint')) {
-                    console.log('[TaskStorage] Task already exists (409), retrying update', { taskId: task.id });
+                  if (createError?.status === 409 || createError?.message?.includes('409') || createError?.message?.includes('unique constraint') || createError?.isExpected) {
+                    // 使用 console.debug 而不是 console.log，因為這是預期行為（並發創建）
+                    console.debug('[TaskStorage] Task already exists (409), retrying update', { taskId: task.id });
                     // 再次嘗試更新
                     try {
                       syncResult = await updateUserTask(String(task.id), {
