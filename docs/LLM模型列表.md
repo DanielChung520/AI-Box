@@ -1,8 +1,8 @@
 # LLM 模型列表
 
-**版本**: 1.0  
-**創建日期**: 2025-12-20  
-**創建人**: Daniel Chung  
+**版本**: 1.0
+**創建日期**: 2025-12-20
+**創建人**: Daniel Chung
 **最後修改日期**: 2025-12-20
 
 ---
@@ -70,11 +70,13 @@
 | `ollama:ai.sunlyc.com:443:*` | [動態發現] | ollama | Active | 🟢 | - | 遠端模型（ai.sunlyc.com） |
 
 **說明**:
+
 - ✅ **Active**: 模型已配置且可用
 - ⚠️ **Inactive**: 需要配置 Provider API Key 後才能使用
 - 🟢 **Local**: 本地 Ollama 模型，無需 API Key（但需要 Ollama 服務運行）
 
-**備註**: 
+**備註**:
+
 - 所有雲端模型的 Active 狀態取決於是否已配置對應 Provider 的 API Key
 - Ollama 模型的 Active 狀態取決於 Ollama 服務是否運行以及模型是否已下載
 - 實際的 Active 狀態會根據系統配置動態變化
@@ -234,7 +236,8 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 
 **總計**: 遠端服務器有 **15 個模型**（根據 2025-12-20 查詢結果）
 
-**注意**: 
+**注意**:
+
 - 遠端服務器支持 Ollama 原生 API 格式（`/api/tags`）
 - 系統同時支持兩種格式（Ollama 原生 `/api/tags` 和 OpenAI 兼容 `/v1/models`），會自動適配
 - 所有模型都會在 API 查詢時動態發現並列出
@@ -321,7 +324,8 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 | Databricks | 1 | - | 需要 API Key |
 | Ollama | 動態發現（本地+遠端） | - | Ollama 服務運行且模型已拉取（本地 localhost:11434，遠端 ai.sunlyc.com:443） |
 
-**總計**: 
+**總計**:
+
 - **數據庫模型**: 26 個（預定義模型）
 - **本地 Ollama 模型**: 動態發現（根據本地 Ollama 服務實際下載的模型）
 - **遠端 Ollama 模型**: 15 個（ai.sunlyc.com，見上方詳細列表）
@@ -330,6 +334,7 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 ### Active 狀態說明
 
 **雲端模型（需要 API Key）**:
+
 - OpenAI (chatgpt): 需要配置 `chatgpt` Provider API Key
 - Google (gemini): 需要配置 `gemini` Provider API Key
 - Anthropic (anthropic): 需要配置 `anthropic` Provider API Key
@@ -341,12 +346,14 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 - SmartQ (smartq): 需要配置 `smartq` Provider API Key
 
 **本地模型（無需 API Key）**:
+
 - Ollama 模型: 只需要 Ollama 服務運行，無需 API Key
   - 模型格式: `ollama:{host}:{port}:{model_name}`
   - 示例: `ollama:localhost:11434:llama3.1:8b`
   - 系統會自動發現所有配置節點上的可用模型
 
 **檢查 Active 狀態**:
+
 - 通過 `GET /api/v1/models/providers/{provider}/api-key` 查詢 Provider 是否已配置 API Key
 - 對於 Ollama 模型，Active 狀態取決於模型是否已被下載到對應的 Ollama 服務器
 
@@ -370,7 +377,6 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 
 ---
 
-**文檔版本**: 1.0  
-**最後更新**: 2025-12-20  
+**文檔版本**: 1.0
+**最後更新**: 2025-12-20
 **維護者**: Daniel Chung
-

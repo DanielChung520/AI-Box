@@ -1,8 +1,8 @@
 # LogService 統一日誌服務規格書
 
-**版本**：1.1  
-**創建日期**：2025-12-20  
-**創建人**：Daniel Chung  
+**版本**：1.1
+**創建日期**：2025-12-20
+**創建人**：Daniel Chung
 **最後修改日期**：2025-12-21
 
 > **📋 相關文檔**：
@@ -67,6 +67,7 @@
 **「兩者並行，但職責不同」**
 
 就像一家公司：
+
 - **總經理辦公室（Orchestrator）**：有一份總體的任務跟蹤表（任務級日誌）
 - **各個部門（Agent）**：有自己的工作筆記（執行級日誌）
 
@@ -109,35 +110,35 @@ graph TB
         AO[Agent Orchestrator]
         LogService1[LogService<br/>記錄 TASK 日誌]
     end
-    
+
     subgraph SecurityAgent["Security Agent"]
         SA[Security Agent]
         LogService2[LogService<br/>記錄 SECURITY 日誌]
     end
-    
+
     subgraph ConfigAgent["System Config Agent"]
         CA[System Config Agent]
         LogService3[LogService<br/>記錄 AUDIT 日誌]
     end
-    
+
     subgraph ArangoDB["ArangoDB"]
         SystemLogs[system_logs<br/>Collection]
     end
-    
+
     TA --> AO
     AO --> LogService1
     SA --> LogService2
     CA --> LogService3
-    
+
     LogService1 --> SystemLogs
     LogService2 --> SystemLogs
     LogService3 --> SystemLogs
-    
+
     classDef orchestrator fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     classDef security fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef config fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     classDef db fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    
+
     class TA,AO,LogService1 orchestrator
     class SA,LogService2 security
     class CA,LogService3 config
@@ -201,12 +202,12 @@ class LogType(str, Enum):
 
 class LogService:
     """統一日誌服務，支援任務追蹤與審計合規"""
-    
+
     def __init__(self, client: Optional[ArangoDBClient] = None):
         """初始化日誌服務"""
         self.client = client or ArangoDBClient()
         self._ensure_collection()
-    
+
     async def log_event(
         self,
         trace_id: str,
@@ -221,7 +222,7 @@ class LogService:
     ) -> str:
         """
         記錄日誌事件（統一接口）
-        
+
         Args:
             trace_id: 追蹤 ID（用於串聯整個請求）
             log_type: 日誌類型（TASK/AUDIT/SECURITY）
@@ -232,7 +233,7 @@ class LogService:
             level: 配置層級（system/tenant/user，僅 AUDIT 類型需要）
             tenant_id: 租戶 ID（可選）
             user_id: 用戶 ID（可選）
-        
+
         Returns:
             log_id: 日誌記錄 ID
         """
@@ -249,12 +250,12 @@ class LogService:
             "content": content,
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
-        
+
         # 執行 AQL 寫入 system_logs Collection
         collection = self.client.db.collection("system_logs")
         result = collection.insert(log_entry)
         return result["_key"]
-    
+
     async def log_task(
         self,
         trace_id: str,
@@ -264,13 +265,13 @@ class LogService:
     ) -> str:
         """
         記錄任務級日誌（Orchestrator 專用）
-        
+
         Args:
             trace_id: 追蹤 ID
             actor: 執行者（用戶 ID）
             action: 操作類型（如 "task_routing", "agent_selection"）
             content: 日誌內容（包含任務路由路徑、決策邏輯等）
-        
+
         Returns:
             log_id: 日誌記錄 ID
         """
@@ -282,7 +283,7 @@ class LogService:
             action=action,
             content=content
         )
-    
+
     async def log_audit(
         self,
         trace_id: str,
@@ -295,7 +296,7 @@ class LogService:
     ) -> str:
         """
         記錄審計日誌（System Config Agent 專用）
-        
+
         Args:
             trace_id: 追蹤 ID
             actor: 執行者（用戶 ID）
@@ -304,7 +305,7 @@ class LogService:
             level: 配置層級（system/tenant/user）
             tenant_id: 租戶 ID（可選）
             user_id: 用戶 ID（可選）
-        
+
         Returns:
             log_id: 日誌記錄 ID
         """
@@ -319,7 +320,7 @@ class LogService:
             tenant_id=tenant_id,
             user_id=user_id
         )
-    
+
     async def log_security(
         self,
         trace_id: str,
@@ -329,13 +330,13 @@ class LogService:
     ) -> str:
         """
         記錄安全日誌（Security Agent 專用）
-        
+
         Args:
             trace_id: 追蹤 ID
             actor: 執行者（用戶 ID）
             action: 操作類型（如 "check_permission", "assess_risk"）
             content: 日誌內容（包含權限檢查結果、風險評估分數、攔截記錄等）
-        
+
         Returns:
             log_id: 日誌記錄 ID
         """
@@ -354,19 +355,19 @@ class LogService:
 ```python
 class LogService:
     """統一日誌服務"""
-    
+
     async def get_logs_by_trace_id(
         self,
         trace_id: str
     ) -> List[Dict[str, Any]]:
         """
         根據 trace_id 查詢所有相關日誌
-        
+
         用於追蹤整個請求的生命週期
-        
+
         Args:
             trace_id: 追蹤 ID
-        
+
         Returns:
             日誌列表（按時間排序）
         """
@@ -378,7 +379,7 @@ class LogService:
         """
         cursor = self.client.db.aql.execute(aql, bind_vars={"trace_id": trace_id})
         return list(cursor)
-    
+
     async def get_audit_logs(
         self,
         actor: Optional[str] = None,
@@ -390,7 +391,7 @@ class LogService:
     ) -> List[Dict[str, Any]]:
         """
         查詢審計日誌
-        
+
         Args:
             actor: 執行者（可選）
             level: 配置層級（可選）
@@ -398,7 +399,7 @@ class LogService:
             start_time: 開始時間（可選）
             end_time: 結束時間（可選）
             limit: 返回數量限制
-        
+
         Returns:
             審計日誌列表
         """
@@ -409,7 +410,7 @@ class LogService:
             filters["level"] = level
         if tenant_id:
             filters["tenant_id"] = tenant_id
-        
+
         aql = """
             FOR log IN system_logs
                 FILTER log.type == "AUDIT"
@@ -434,7 +435,7 @@ class LogService:
             }
         )
         return list(cursor)
-    
+
     async def get_security_logs(
         self,
         actor: Optional[str] = None,
@@ -445,14 +446,14 @@ class LogService:
     ) -> List[Dict[str, Any]]:
         """
         查詢安全日誌
-        
+
         Args:
             actor: 執行者（可選）
             action: 操作類型（可選）
             start_time: 開始時間（可選）
             end_time: 結束時間（可選）
             limit: 返回數量限制
-        
+
         Returns:
             安全日誌列表
         """
@@ -524,6 +525,7 @@ class LogService:
 ```
 
 **用途**：
+
 - ✅ **除錯 (Debugging)**：當管理員抱怨「為什麼我的設置沒反應」時，Orchestrator 的日誌能立刻告訴你卡在哪個 Agent
 - ✅ **效能分析**：分析任務流轉路徑，優化系統性能
 - ✅ **問題追蹤**：追蹤任務的完整生命週期
@@ -571,6 +573,7 @@ class LogService:
 ```
 
 **用途**：
+
 - ✅ **安全審計 (Auditing)**：記錄所有配置變更，支持審計追蹤
 - ✅ **合規證明**：符合 ISO/IEC 42001 標準，支持合規審計
 - ✅ **時光機功能**：基於 before/after 實現配置回滾
@@ -654,6 +657,7 @@ class LogService:
 ```
 
 **用途**：
+
 - ✅ **安全審計**：記錄所有權限檢查和攔截記錄
 - ✅ **威脅分析**：分析非法請求模式和攻擊嘗試
 - ✅ **合規證明**：證明系統有完善的安全控制機制
@@ -755,12 +759,12 @@ collection.add_index({
 # 在 Orchestrator 中的使用示例
 class AgentOrchestrator:
     """Agent 協調器"""
-    
+
     def __init__(self, registry: Optional[Any] = None):
         self._registry = registry or get_agent_registry()
         self._task_analyzer = TaskAnalyzer()
         self._log_service = get_log_service()  # ⭐ 獲取 LogService
-    
+
     async def process_natural_language_request(
         self,
         instruction: str,
@@ -770,7 +774,7 @@ class AgentOrchestrator:
         """處理自然語言請求"""
         # 1. 生成 trace_id
         trace_id = str(uuid.uuid4())
-        
+
         # 2. 記錄任務開始
         await self._log_service.log_task(
             trace_id=trace_id,
@@ -781,10 +785,10 @@ class AgentOrchestrator:
                 "context": context
             }
         )
-        
+
         # 3. Task Analyzer 解析意圖
         analysis_result = await self._task_analyzer.analyze(...)
-        
+
         # 4. 記錄任務路由決策
         await self._log_service.log_task(
             trace_id=trace_id,
@@ -799,10 +803,10 @@ class AgentOrchestrator:
                 }
             }
         )
-        
+
         # 5. Security Agent 權限檢查
         security_result = await self._security_agent.verify_access(...)
-        
+
         # 6. 記錄權限檢查結果
         await self._log_service.log_task(
             trace_id=trace_id,
@@ -815,10 +819,10 @@ class AgentOrchestrator:
                 }
             }
         )
-        
+
         # 7. 調用目標 Agent
         agent_result = await self._dispatch_task(...)
-        
+
         # 8. 記錄任務完成
         await self._log_service.log_task(
             trace_id=trace_id,
@@ -830,7 +834,7 @@ class AgentOrchestrator:
                 "total_duration_ms": duration_ms
             }
         )
-        
+
         return TaskResult(...)
 ```
 
@@ -840,11 +844,11 @@ class AgentOrchestrator:
 # 在 Security Agent 中的使用示例
 class SecurityAgent(AgentServiceProtocol):
     """負責權限驗證與操作風險評估"""
-    
+
     def __init__(self):
         self._rbac_service = get_rbac_service()
         self._log_service = get_log_service()  # ⭐ 獲取 LogService
-    
+
     async def verify_access(
         self,
         admin_id: str,
@@ -855,10 +859,10 @@ class SecurityAgent(AgentServiceProtocol):
         """驗證用戶權限並評估操作風險"""
         # 1. 權限檢查
         permission_check = await self._check_permission(...)
-        
+
         # 2. 風險評估
         risk_assessment = await self._assess_risk(...)
-        
+
         # 3. 記錄安全日誌
         await self._log_service.log_security(
             trace_id=trace_id or str(uuid.uuid4()),
@@ -878,7 +882,7 @@ class SecurityAgent(AgentServiceProtocol):
                 "audit_context": audit_context
             }
         )
-        
+
         # 4. 如果被攔截，記錄攔截日誌
         if not permission_check.allowed:
             await self._log_service.log_security(
@@ -891,7 +895,7 @@ class SecurityAgent(AgentServiceProtocol):
                     "blocked": True
                 }
             )
-        
+
         return SecurityCheckResult(...)
 ```
 
@@ -901,11 +905,11 @@ class SecurityAgent(AgentServiceProtocol):
 # 在 System Config Agent 中的使用示例
 class SystemConfigAgent(AgentServiceProtocol):
     """負責配置的合規檢查與 ArangoDB 交互"""
-    
+
     def __init__(self):
         self._config_service = get_config_store_service()
         self._log_service = get_log_service()  # ⭐ 獲取 LogService
-    
+
     async def execute_task(
         self,
         intent: ConfigIntent,
@@ -916,18 +920,18 @@ class SystemConfigAgent(AgentServiceProtocol):
         # 1. 獲取當前配置（用於 before/after 對照）
         current_config = await self._config_service.get_config(...)
         before_config = current_config.config_data if current_config else {}
-        
+
         # 2. 執行配置更新
         db_result = await self._config_service.update_config(...)
         after_config = db_result.config_data
-        
+
         # 3. 構建 AQL 查詢記錄
         aql_query = f"""
-            UPDATE {{_key: '{db_result._key}'}} 
-            WITH {{config_data: {json.dumps(after_config)}}} 
+            UPDATE {{_key: '{db_result._key}'}}
+            WITH {{config_data: {json.dumps(after_config)}}}
             IN tenant_configs
         """
-        
+
         # 4. 記錄審計日誌（包含 before/after）
         await self._log_service.log_audit(
             trace_id=trace_id or str(uuid.uuid4()),
@@ -949,9 +953,9 @@ class SystemConfigAgent(AgentServiceProtocol):
             tenant_id=intent.tenant_id,
             user_id=intent.user_id
         )
-        
+
         return ConfigOperationResult(...)
-    
+
     def _calculate_changes(
         self,
         before: Dict[str, Any],
@@ -976,22 +980,22 @@ class SystemConfigAgent(AgentServiceProtocol):
 # Orchestrator 在任務完成後，聚合所有日誌生成任務報告
 class AgentOrchestrator:
     """Agent 協調器"""
-    
+
     async def generate_task_report(self, trace_id: str) -> Dict[str, Any]:
         """
         生成任務報告（聚合所有相關日誌）
-        
+
         當管理員問：「昨天下午誰動了租戶 A 的設置？」時，
         可以通過 trace_id 快速查詢所有相關日誌
         """
         # 1. 查詢所有相關日誌
         logs = await self._log_service.get_logs_by_trace_id(trace_id)
-        
+
         # 2. 按類型分類
         task_logs = [log for log in logs if log["type"] == "TASK"]
         audit_logs = [log for log in logs if log["type"] == "AUDIT"]
         security_logs = [log for log in logs if log["type"] == "SECURITY"]
-        
+
         # 3. 構建任務報告
         report = {
             "trace_id": trace_id,
@@ -1013,7 +1017,7 @@ class AgentOrchestrator:
             "config_changes": audit_logs,
             "timeline": sorted(logs, key=lambda x: x["timestamp"])
         }
-        
+
         return report
 ```
 
@@ -1207,8 +1211,8 @@ aql = """
 
 ---
 
-**文檔版本**：1.1  
-**最後更新**：2025-12-21  
+**文檔版本**：1.1
+**最後更新**：2025-12-21
 **維護者**：Daniel Chung
 
 ---
@@ -1219,4 +1223,3 @@ aql = """
 |------|------|--------|---------|
 | 1.1 | 2025-12-21 | Daniel Chung | 添加內容大小管理、TTL 策略、日誌統計、與系統日誌區別等章節 |
 | 1.0 | 2025-12-20 | Daniel Chung | 初始版本 |
-

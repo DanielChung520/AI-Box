@@ -41,10 +41,10 @@ export default function ChangeNavigation({
       next: () => {
         const changes = diffEditor.getLineChanges();
         if (!changes || changes.length === 0) return false;
-        
+
         const nextIndex = currentIndex < changes.length - 1 ? currentIndex + 1 : 0;
         const change = changes[nextIndex];
-        
+
         if (change) {
           const modifiedEditor = diffEditor.getModifiedEditor();
           modifiedEditor.revealLineInCenter(change.modifiedStartLineNumber);
@@ -53,7 +53,7 @@ export default function ChangeNavigation({
             column: 1,
           });
           modifiedEditor.focus();
-          
+
           if (onIndexChange) {
             onIndexChange(nextIndex);
           }
@@ -64,10 +64,10 @@ export default function ChangeNavigation({
       previous: () => {
         const changes = diffEditor.getLineChanges();
         if (!changes || changes.length === 0) return false;
-        
+
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : changes.length - 1;
         const change = changes[prevIndex];
-        
+
         if (change) {
           const modifiedEditor = diffEditor.getModifiedEditor();
           modifiedEditor.revealLineInCenter(change.modifiedStartLineNumber);
@@ -76,7 +76,7 @@ export default function ChangeNavigation({
             column: 1,
           });
           modifiedEditor.focus();
-          
+
           if (onIndexChange) {
             onIndexChange(prevIndex);
           }
@@ -85,7 +85,7 @@ export default function ChangeNavigation({
         return false;
       },
     };
-    
+
     setNavigator(navigatorInstance);
   }, [diffEditor, currentIndex, onIndexChange]);
 
@@ -131,4 +131,3 @@ export default function ChangeNavigation({
     </div>
   );
 }
-

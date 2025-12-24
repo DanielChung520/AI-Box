@@ -16,9 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from api.core.response import APIResponse
-from services.api.services.editing_session_service import (
-    get_editing_session_service,
-)
+from services.api.services.editing_session_service import get_editing_session_service
 from system.security.dependencies import get_current_tenant_id, get_current_user
 from system.security.models import User
 

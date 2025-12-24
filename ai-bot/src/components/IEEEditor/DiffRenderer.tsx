@@ -179,4 +179,3 @@ export default function DiffRenderer({ editor, patches, content }: DiffRendererP
   // 這個組件不渲染任何 UI，只管理裝飾器
   return null;
 }
-

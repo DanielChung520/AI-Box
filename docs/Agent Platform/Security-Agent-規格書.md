@@ -1,8 +1,8 @@
 # Security Agent 規格書
 
-**版本**：1.0  
-**創建日期**：2025-12-20  
-**創建人**：Daniel Chung  
+**版本**：1.0
+**創建日期**：2025-12-20
+**創建人**：Daniel Chung
 **最後修改日期**：2025-12-20
 
 > **📋 相關文檔**：
@@ -75,11 +75,13 @@
 **「這件事誰能做」以及「這件事危不危險」**
 
 Security Agent 專注於：
+
 - ✅ **權限驗證**：誰有權限執行此操作
 - ✅ **風險評估**：此操作是否危險，是否需要二次確認
 - ✅ **審計上下文**：為後續審計日誌提供安全上下文
 
 Security Agent **不負責**：
+
 - ❌ **業務邏輯驗證**：配置值是否正確（由 System Config Agent 負責）
 - ❌ **合規性檢查**：配置是否符合收斂規則（由 System Config Agent 負責）
 - ❌ **數據庫操作**：實際的配置 CRUD 操作（由 System Config Agent 負責）
@@ -102,6 +104,7 @@ Security Agent **不負責**：
 **職責**：檢查用戶是否有權限執行特定操作
 
 **檢查維度**：
+
 1. **角色權限**：用戶角色是否允許此操作
 2. **層級權限**：用戶是否有權限操作此層級的配置
 3. **租戶隔離**：租戶管理員只能操作自己的租戶
@@ -112,6 +115,7 @@ Security Agent **不負責**：
 **職責**：評估操作的危險程度，決定是否需要二次確認
 
 **風險級別**：
+
 - **高風險**：系統級配置更新、配置刪除 → 需要二次確認
 - **中風險**：租戶級配置更新、批量操作 → 可選確認
 - **低風險**：配置查詢、只讀操作 → 無需確認
@@ -121,6 +125,7 @@ Security Agent **不負責**：
 **職責**：為審計日誌提供安全相關的上下文信息
 
 **包含信息**：
+
 - 用戶角色
 - IP 地址
 - 操作時間
@@ -157,43 +162,43 @@ class SecurityCheckResult(BaseModel):
 ```python
 class SecurityAgent(AgentServiceProtocol):
     """負責權限驗證與操作風險評估"""
-    
+
     def __init__(self):
         self._rbac_service = get_rbac_service()
         self._audit_service = get_audit_log_service()
         self._log_service = get_log_service()  # ⭐ 集成 LogService（詳見 LogService 規格書）
-    
+
     async def verify_access(
-        self, 
-        admin_id: str, 
+        self,
+        admin_id: str,
         intent: Dict[str, Any],
         context: Optional[Dict[str, Any]] = None
     ) -> SecurityCheckResult:
         """
         驗證用戶權限並評估操作風險
-        
+
         Args:
             admin_id: 管理員用戶 ID
             intent: ConfigIntent（包含 action、level、scope 等）
             context: 額外上下文（IP、User Agent、trace_id 等）
-        
+
         Returns:
             SecurityCheckResult: 安全檢查結果
         """
         """
         驗證用戶權限並評估操作風險
-        
+
         Args:
             admin_id: 管理員用戶 ID
             intent: ConfigIntent（包含 action、level、scope 等）
             context: 額外上下文（IP、User Agent 等）
-        
+
         Returns:
             SecurityCheckResult: 安全檢查結果
         """
         # 1. 獲取用戶角色
         user_role = await self._rbac_service.get_role(admin_id)
-        
+
         # 2. 權限檢查
         permission_check = await self._check_permission(admin_id, intent, user_role)
         if not permission_check.allowed:
@@ -208,10 +213,10 @@ class SecurityAgent(AgentServiceProtocol):
                     "user_agent": context.get("user_agent") if context else None
                 }
             )
-        
+
         # 3. 風險評估
         risk_assessment = await self._assess_risk(intent, user_role)
-        
+
         # 4. 構建審計上下文
         audit_context = {
             "admin_id": admin_id,
@@ -222,7 +227,7 @@ class SecurityAgent(AgentServiceProtocol):
             "user_agent": context.get("user_agent") if context else None,
             "timestamp": datetime.utcnow().isoformat()
         }
-        
+
         # 5. 記錄安全日誌（使用 LogService）
         trace_id = context.get("trace_id") if context else None
         if trace_id:
@@ -244,7 +249,7 @@ class SecurityAgent(AgentServiceProtocol):
                     "audit_context": audit_context
                 }
             )
-            
+
             # 如果被攔截，記錄攔截日誌
             if not permission_check.allowed:
                 await self._log_service.log_security(
@@ -258,14 +263,14 @@ class SecurityAgent(AgentServiceProtocol):
                         "user_role": user_role
                     }
                 )
-        
+
         return SecurityCheckResult(
             allowed=True,
             requires_double_check=risk_assessment.requires_double_check,
             risk_level=risk_assessment.risk_level,
             audit_context=audit_context
         )
-    
+
     async def _check_permission(
         self,
         admin_id: str,
@@ -274,14 +279,14 @@ class SecurityAgent(AgentServiceProtocol):
     ) -> PermissionCheckResult:
         """
         檢查用戶權限
-        
+
         Returns:
             PermissionCheckResult: 權限檢查結果
         """
         action = intent.get("action")
         level = intent.get("level")
         tenant_id = intent.get("tenant_id")
-        
+
         # 1. 系統級配置：只有 system_admin 可以操作
         if level == "system":
             if user_role != "system_admin":
@@ -289,7 +294,7 @@ class SecurityAgent(AgentServiceProtocol):
                     allowed=False,
                     reason="Security Error: 權限不足，僅系統管理員可修改全域配置"
                 )
-        
+
         # 2. 租戶級配置：tenant_admin 只能操作自己的租戶
         elif level == "tenant":
             if user_role == "tenant_admin":
@@ -305,7 +310,7 @@ class SecurityAgent(AgentServiceProtocol):
                     allowed=False,
                     reason="Security Error: 無權操作租戶級配置"
                 )
-        
+
         # 3. 用戶級配置：檢查用戶是否有權限操作目標用戶
         elif level == "user":
             if user_role == "tenant_admin":
@@ -322,16 +327,16 @@ class SecurityAgent(AgentServiceProtocol):
                     allowed=False,
                     reason="Security Error: 無權操作用戶級配置"
                 )
-        
+
         # 4. 操作級別權限檢查
         if action == "delete" and user_role not in ["system_admin", "tenant_admin"]:
             return PermissionCheckResult(
                 allowed=False,
                 reason="Security Error: 無權執行刪除操作"
             )
-        
+
         return PermissionCheckResult(allowed=True)
-    
+
     async def _assess_risk(
         self,
         intent: Dict[str, Any],
@@ -339,25 +344,25 @@ class SecurityAgent(AgentServiceProtocol):
     ) -> RiskAssessmentResult:
         """
         評估操作風險
-        
+
         Returns:
             RiskAssessmentResult: 風險評估結果
         """
         action = intent.get("action")
         level = intent.get("level")
-        
+
         # 高風險操作：需要二次確認
         is_high_risk = (
             (action in ["delete", "update"] and level == "system") or
             action == "delete"
         )
-        
+
         # 中風險操作：可選確認
         is_medium_risk = (
             action == "update" and level == "tenant" or
             action == "create"
         )
-        
+
         if is_high_risk:
             return RiskAssessmentResult(
                 risk_level="high",
@@ -427,18 +432,18 @@ class RiskAssessmentResult(BaseModel):
 flowchart TD
     Start([開始權限檢查]) --> GetRole[獲取用戶角色]
     GetRole --> CheckLevel{檢查配置層級}
-    
+
     CheckLevel -->|system| CheckSystemRole{是否為 system_admin?}
     CheckSystemRole -->|是| CheckAction[檢查操作權限]
     CheckSystemRole -->|否| Deny1[拒絕：僅系統管理員可操作]
-    
+
     CheckLevel -->|tenant| CheckTenantRole{角色類型?}
     CheckTenantRole -->|system_admin| CheckAction
     CheckTenantRole -->|tenant_admin| CheckTenantMatch{租戶是否匹配?}
     CheckTenantMatch -->|是| CheckAction
     CheckTenantMatch -->|否| Deny2[拒絕：無權操作其他租戶]
     CheckTenantRole -->|其他| Deny3[拒絕：無權操作租戶級配置]
-    
+
     CheckLevel -->|user| CheckUserRole{角色類型?}
     CheckUserRole -->|system_admin| CheckAction
     CheckUserRole -->|tenant_admin| CheckUserTenant{用戶租戶是否匹配?}
@@ -447,13 +452,13 @@ flowchart TD
     CheckUserRole -->|user| CheckSelf{是否為自己的配置?}
     CheckSelf -->|是| CheckAction
     CheckSelf -->|否| Deny5[拒絕：無權操作其他用戶的配置]
-    
+
     CheckAction --> CheckDelete{是否為刪除操作?}
     CheckDelete -->|是| CheckDeleteRole{是否有刪除權限?}
     CheckDeleteRole -->|是| Allow[允許]
     CheckDeleteRole -->|否| Deny6[拒絕：無權執行刪除操作]
     CheckDelete -->|否| Allow
-    
+
     Deny1 --> End([返回拒絕結果])
     Deny2 --> End
     Deny3 --> End
@@ -483,11 +488,11 @@ def assess_risk(action: str, level: str) -> RiskLevel:
     # 高風險：系統級刪除或更新
     if (action in ["delete", "update"] and level == "system") or action == "delete":
         return RiskLevel.HIGH
-    
+
     # 中風險：租戶級更新或創建
     if action in ["update", "create"] and level == "tenant":
         return RiskLevel.MEDIUM
-    
+
     # 低風險：查詢或列表
     return RiskLevel.LOW
 ```
@@ -497,16 +502,16 @@ def assess_risk(action: str, level: str) -> RiskLevel:
 ```mermaid
 flowchart TD
     Start([開始風險評估]) --> CheckAction{檢查操作類型}
-    
+
     CheckAction -->|delete| HighRisk[高風險：需要二次確認]
     CheckAction -->|update| CheckLevel{檢查配置層級}
     CheckAction -->|create| CheckLevel
     CheckAction -->|query/list| LowRisk[低風險：無需確認]
-    
+
     CheckLevel -->|system| HighRisk
     CheckLevel -->|tenant| MediumRisk[中風險：可選確認]
     CheckLevel -->|user| LowRisk
-    
+
     HighRisk --> End([返回風險評估結果])
     MediumRisk --> End
     LowRisk --> End
@@ -526,17 +531,17 @@ sequenceDiagram
     participant ConfigAgent as System Config Agent
 
     Note over Orchestrator: Task Analyzer 已解析出 ConfigIntent
-    
+
     Orchestrator->>SecurityAgent: 1. verify_access(admin_id, intent, context)
-    
+
     SecurityAgent->>RBAC: 2. 獲取用戶角色<br/>get_role(admin_id)
     RBAC-->>SecurityAgent: 3. 返回用戶角色
-    
+
     SecurityAgent->>SecurityAgent: 4. 權限檢查<br/>_check_permission()
     SecurityAgent->>SecurityAgent: 5. 風險評估<br/>_assess_risk()
-    
+
     SecurityAgent-->>Orchestrator: 6. 返回 SecurityCheckResult<br/>{allowed: true/false,<br/>requires_double_check: true/false,<br/>risk_level: "high",<br/>audit_context: {...}}
-    
+
     alt 權限檢查通過
         alt 需要二次確認
             Orchestrator-->>Orchestrator: 7. 返回確認要求給前端
@@ -561,10 +566,10 @@ async def process_natural_language_request(
     specified_agent_id: Optional[str] = None
 ) -> TaskResult:
     """處理自然語言請求（完整流程）"""
-    
+
     # 1. Task Analyzer 解析意圖
     analysis_result = await self._task_analyzer.analyze(...)
-    
+
     # 2. Security Agent 權限檢查
     security_result = await self._security_agent.verify_access(
         admin_id=user_id,
@@ -574,13 +579,13 @@ async def process_natural_language_request(
             "user_agent": context.get("user_agent")
         }
     )
-    
+
     if not security_result.allowed:
         return TaskResult(
             status="permission_denied",
             result={"error": security_result.reason}
         )
-    
+
     # 3. 高風險操作需要二次確認
     if security_result.requires_double_check:
         return TaskResult(
@@ -593,16 +598,16 @@ async def process_natural_language_request(
                 "audit_context": security_result.audit_context
             }
         )
-    
+
     # 4. 調用 System Config Agent（傳遞 audit_context）
     config_result = await self._config_agent.execute_task(
         intent=analysis_result.intent,
         auth_context=security_result.audit_context  # ⭐ 傳遞審計上下文
     )
-    
+
     # 5. 結果修飾
     formatted_result = await self._format_result(...)
-    
+
     return TaskResult(
         task_id=task_id,
         status="completed",
@@ -656,7 +661,7 @@ System Config Agent 使用 audit_context 記錄審計日誌
 # 在 System Config Agent 中的使用示例
 class SystemConfigAgent(AgentServiceProtocol):
     """負責配置的合規檢查與 ArangoDB 交互"""
-    
+
     async def execute_task(
         self,
         intent: ConfigIntent,
@@ -664,7 +669,7 @@ class SystemConfigAgent(AgentServiceProtocol):
     ) -> ConfigOperationResult:
         """
         執行配置任務
-        
+
         Args:
             intent: 配置操作意圖
             auth_context: 安全上下文（包含 admin_id、admin_role、ip 等）
@@ -676,10 +681,10 @@ class SystemConfigAgent(AgentServiceProtocol):
                 success=False,
                 message=f"Compliance Failure: {compliance.reason}"
             )
-        
+
         # 2. 執行 ArangoDB 操作
         db_result = await config_store_service.update_config(...)
-        
+
         # 3. 觸發審計日誌記錄（使用 auth_context）
         await audit_log_service.log(
             user_id=auth_context["admin_id"],  # ⭐ 使用 Security Agent 提供的上下文
@@ -697,7 +702,7 @@ class SystemConfigAgent(AgentServiceProtocol):
                 "admin_role": auth_context.get("admin_role")  # ⭐ 用戶角色
             }
         )
-        
+
         return ConfigOperationResult(
             success=True,
             message=f"已成功更新 {intent.scope} 設置",
@@ -841,7 +846,6 @@ class SystemConfigAgent(AgentServiceProtocol):
 
 ---
 
-**文檔版本**：1.0  
-**最後更新**：2025-12-20  
+**文檔版本**：1.0
+**最後更新**：2025-12-20
 **維護者**：Daniel Chung
-

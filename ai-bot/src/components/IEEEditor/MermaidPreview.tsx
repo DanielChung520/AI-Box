@@ -220,4 +220,3 @@ export default function MermaidPreview({ editor, content }: MermaidPreviewProps)
   // 這個組件不渲染任何 UI，只管理 Content Widgets
   return null;
 }
-

@@ -29,7 +29,7 @@ export function useAutoSave({ fileId, delay = 2000 }: UseAutoSaveOptions) {
       try {
         // 获取当前稳定内容
         const currentStable = stableContent[fileId] || '';
-        
+
         // 如果内容没有变化，直接标记为已保存
         if (currentStable === content) {
           setAutoSaveStatus(fileId, 'saved');
@@ -43,7 +43,7 @@ export function useAutoSave({ fileId, delay = 2000 }: UseAutoSaveOptions) {
         // TODO: 后续可以创建直接保存文件的 API 端点
         const apiModule = await import('../lib/api');
         const saveResult = await apiModule.saveFile(fileId, content);
-        
+
         if (!saveResult.success) {
           throw new Error(saveResult.message || 'Failed to save file');
         }

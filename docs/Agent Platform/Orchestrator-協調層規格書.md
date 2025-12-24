@@ -1,8 +1,8 @@
 # Agent Orchestrator 協調層規格書
 
-**版本**：1.1  
-**創建日期**：2025-12-20  
-**創建人**：Daniel Chung  
+**版本**：1.1
+**創建日期**：2025-12-20
+**創建人**：Daniel Chung
 **最後修改日期**：2025-12-21
 
 > **📋 相關文檔**：
@@ -92,18 +92,18 @@ graph TB
         AO[Agent Orchestrator<br/>Agent 協調器]
         TT[Task Tracker<br/>任務追蹤器]
     end
-    
+
     subgraph External["外部組件"]
         LangChain[LangChain<br/>任務識別]
         SecurityAgent[Security Agent<br/>權限檢查]
         LLMRouter[LLM Router<br/>模型路由]
     end
-    
+
     subgraph Agents["Agent 層"]
         SystemConfig[System Config Agent]
         OtherAgents[其他 Agent]
     end
-    
+
     LangChain --> AO
     AO --> TA
     AO --> AR
@@ -112,11 +112,11 @@ graph TB
     TA --> LLMRouter
     AO --> SystemConfig
     AO --> OtherAgents
-    
+
     classDef orchestrator fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     classDef external fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef agents fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    
+
     class TA,AR,AO,TT orchestrator
     class LangChain,SecurityAgent,LLMRouter external
     class SystemConfig,OtherAgents agents
@@ -171,11 +171,13 @@ Task Analyzer 是 Orchestrator 的核心組件，負責：
 #### 3.1.2 核心功能
 
 **✅ 已實現**：
+
 - 任務分類（`agents/task_analyzer/classifier.py`）
 - 工作流選擇（`agents/task_analyzer/workflow_selector.py`）
 - LLM 路由選擇（`agents/task_analyzer/llm_router.py`）
 
 **❌ 需要新增**：
+
 - 指令澄清機制（槽位提取、澄清問題生成）
 - 意圖識別增強（支持配置操作、系統設置等）
 - 前端指定 Agent 的驗證邏輯
@@ -271,6 +273,7 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
 **輸入**：「幫我把租戶 A 的限流改為 500」
 
 **輸出**：
+
 ```json
 {
   "action": "update",
@@ -290,38 +293,38 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
 ```python
 class TaskAnalyzer:
     """任務分析器"""
-    
+
     def __init__(self):
         self._classifier = TaskClassifier()
         self._workflow_selector = WorkflowSelector()
         self._llm_router = LLMRouter()
         self._intent_extractor = IntentExtractor()
-    
+
     def analyze(self, request: TaskAnalysisRequest) -> TaskAnalysisResult:
         """
         分析任務並生成結構化意圖
-        
+
         Args:
             request: 任務分析請求
-            
+
         Returns:
             TaskAnalysisResult: 任務分析結果
         """
         # 1. 任務分類
         classification = self._classifier.classify(request.task)
-        
+
         # 2. 工作流選擇
         workflow_type = self._workflow_selector.select_workflow(classification)
-        
+
         # 3. 意圖提取
         intent = self._extract_intent(request, classification)
-        
+
         # 4. 指令澄清檢查
         clarification_result = self._check_clarification(intent)
-        
+
         # 5. Agent 匹配
         suggested_agents = self._match_agents(intent, classification)
-        
+
         return TaskAnalysisResult(
             task_type=classification.task_type,
             workflow_type=workflow_type,
@@ -332,35 +335,35 @@ class TaskAnalyzer:
             missing_slots=clarification_result.missing_slots,
             confidence=classification.confidence
         )
-    
+
     def _extract_intent(
-        self, 
-        request: TaskAnalysisRequest, 
+        self,
+        request: TaskAnalysisRequest,
         classification: TaskClassificationResult
     ) -> Optional[BaseModel]:
         """提取結構化意圖"""
         # 如果是配置操作，生成 ConfigIntent
         if self._is_config_operation(classification):
             return self._extract_config_intent(request.task, classification)
-        
+
         # 其他類型的意圖提取...
         return None
-    
+
     def _is_config_operation(self, classification: TaskClassificationResult) -> bool:
         """判斷是否為配置操作"""
         config_keywords = ["配置", "設置", "系統設置", "config", "setting"]
         task_lower = classification.task.lower()
         return any(keyword in task_lower for keyword in config_keywords)
-    
+
     def _extract_config_intent(
-        self, 
-        instruction: str, 
+        self,
+        instruction: str,
         classification: TaskClassificationResult
     ) -> ConfigIntent:
         """提取配置操作意圖（使用 LLM）"""
         # 使用 LLM Router 調用合適的模型
         llm = self._llm_router.get_model("intent_extraction")
-        
+
         # 構建 System Prompt（詳細版本）
         system_prompt = """
 Role: 你是 AI-Box 的 Task Analyzer。
@@ -421,6 +424,7 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
 若資訊不足，請標註 `clarification_needed: true` 並生成 `clarification_question`。
 
 常見缺失的槽位：
+
 - **level**: 未明確指定是系統級、租戶級還是用戶級
 - **scope**: 未明確指定配置範圍
 - **config_data**: 更新操作時未明確指定要修改的具體配置項
@@ -432,6 +436,7 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
 **範例 1**：
 指令：「幫我把租戶 A 的限流改為 500」
 輸出：
+
 ```json
 {
   "action": "update",
@@ -449,6 +454,7 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
 **範例 2**：
 指令：「查看系統的 LLM 配置」
 輸出：
+
 ```json
 {
   "action": "query",
@@ -465,6 +471,7 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
 **範例 3**：
 指令：「修改 LLM 配置」
 輸出：
+
 ```json
 {
   "action": "update",
@@ -479,8 +486,9 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
   "original_instruction": "修改 LLM 配置"
 }
 ```
+
 """
-        
+
         # 構建用戶提示詞
         user_prompt = f"""
 分析以下配置操作指令，提取結構化意圖：
@@ -489,15 +497,16 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
 
 請嚴格按照 System Prompt 的要求，返回符合 ConfigIntent 格式的 JSON。
 """
-        
+
         # 調用 LLM（使用 System Prompt + User Prompt）
         response = llm.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt
         )
-        
+
         # 解析並返回 ConfigIntent
         return ConfigIntent.parse_raw(response)
+
 ```
 
 ### 3.2 Agent Registry（Agent 註冊表）
@@ -541,7 +550,7 @@ Agent Orchestrator 是協調層的核心，負責：
 ```python
 class AgentOrchestrator:
     """Agent 協調器"""
-    
+
     def __init__(self, registry: Optional[Any] = None):
         self._registry = registry or get_agent_registry()
         self._discovery = AgentDiscovery(registry=self._registry)
@@ -549,7 +558,7 @@ class AgentOrchestrator:
         self._task_tracker = TaskTracker()
         self._llm_router = get_llm_router()
         self._log_service = get_log_service()  # ⭐ 集成 LogService（詳見 LogService 規格書）
-    
+
     async def process_natural_language_request(
         self,
         instruction: str,
@@ -560,7 +569,7 @@ class AgentOrchestrator:
     ) -> TaskResult:
         """
         處理自然語言請求（完整流程）
-        
+
         1. 使用 Task Analyzer 解析意圖
         2. 通過 Security Agent 檢查權限
         3. 發現合適的 Agent
@@ -571,7 +580,7 @@ class AgentOrchestrator:
         """
         # 0. 生成 trace_id（用於串聯整個請求的生命週期）
         trace_id = str(uuid.uuid4())
-        
+
         # 記錄任務開始
         await self._log_service.log_task(
             trace_id=trace_id,
@@ -583,7 +592,7 @@ class AgentOrchestrator:
                 "specified_agent_id": specified_agent_id
             }
         )
-        
+
         # 1. 解析自然語言意圖
         analysis_result = await self._task_analyzer.analyze(
             TaskAnalysisRequest(
@@ -594,7 +603,7 @@ class AgentOrchestrator:
                 specified_agent_id=specified_agent_id
             )
         )
-        
+
         # 記錄任務路由決策
         await self._log_service.log_task(
             trace_id=trace_id,
@@ -607,7 +616,7 @@ class AgentOrchestrator:
                 "confidence": analysis_result.confidence
             }
         )
-        
+
         # 2.1 第一層預檢：格式與邊界驗證 ⭐ **新增**
         # 詳細說明請參考：[ConfigMetadata-配置元數據機制規格書.md](./Tools/ConfigMetadata-配置元數據機制規格書.md)
         if analysis_result.intent and analysis_result.suggested_agents:
@@ -616,7 +625,7 @@ class AgentOrchestrator:
                 intent=analysis_result.intent,
                 agent_id=target_agent_id
             )
-            
+
             if not pre_check_result.valid:
                 await self._log_service.log_task(
                     trace_id=trace_id,
@@ -631,7 +640,7 @@ class AgentOrchestrator:
                     status="validation_failed",
                     result={"error": pre_check_result.reason}
                 )
-        
+
         # 2.2 如果需要澄清，返回澄清問題
         if analysis_result.clarification_needed:
             return TaskResult(
@@ -641,7 +650,7 @@ class AgentOrchestrator:
                     "missing_slots": analysis_result.missing_slots
                 }
             )
-        
+
         # 3. 權限檢查（通過 Security Agent）
         # ⭐ 關鍵判斷：安全過濾
         # 檢查該管理員是否擁有對應層級和租戶的修改權限
@@ -652,7 +661,7 @@ class AgentOrchestrator:
             target_agents=analysis_result.suggested_agents,
             context={**(context or {}), "trace_id": trace_id}  # ⭐ 傳遞 trace_id
         )
-        
+
         # 記錄權限檢查結果
         await self._log_service.log_task(
             trace_id=trace_id,
@@ -666,13 +675,13 @@ class AgentOrchestrator:
                 }
             }
         )
-        
+
         if not security_result.allowed:
             return TaskResult(
                 status="permission_denied",
                 result={"error": security_result.reason}
             )
-        
+
         # ⭐ 關鍵判斷：高風險操作需要二次確認
         if security_result.requires_double_check:
             return TaskResult(
@@ -685,7 +694,7 @@ class AgentOrchestrator:
                     "audit_context": security_result.audit_context
                 }
             )
-        
+
         # ⭐ 關鍵判斷：合規驗證（針對配置操作）
         # 如果是配置更新操作，檢查收斂規則
         if analysis_result.intent and analysis_result.intent.get("action") == "update":
@@ -698,13 +707,13 @@ class AgentOrchestrator:
                     status="compliance_check_failed",
                     result={"error": compliance_result.reason}
                 )
-        
+
         # 4. 發現合適的 Agent
         if specified_agent_id:
             target_agent_id = specified_agent_id
         else:
             target_agent_id = self._select_best_agent(analysis_result.suggested_agents)
-        
+
         # 5. 創建任務記錄
         # ⭐ 關鍵判斷：異步執行
         # 在 Task Tracker 中創建任務，並準備在 ArangoDB 寫入審計日誌
@@ -714,7 +723,7 @@ class AgentOrchestrator:
             target_agent_id=target_agent_id,
             user_id=user_id
         )
-        
+
         # 6. 分發任務給目標 Agent
         # ⭐ 關鍵：傳遞 audit_context 和 trace_id 給目標 Agent
         # 目標 Agent 可以使用 audit_context 和 trace_id 記錄審計日誌
@@ -728,17 +737,17 @@ class AgentOrchestrator:
                 "trace_id": trace_id  # ⭐ 傳遞 trace_id
             }
         )
-        
+
         # 7. 結果修飾（使用 LLM 轉換為自然語言）
         formatted_result = await self._format_result(
             agent_result=agent_result,
             original_instruction=instruction,
             intent=analysis_result.intent
         )
-        
+
         # 8. 更新任務狀態
         self._task_tracker.update_task_status(task_id, "completed")
-        
+
         # 9. 記錄任務完成
         await self._log_service.log_task(
             trace_id=trace_id,
@@ -751,14 +760,14 @@ class AgentOrchestrator:
                 "total_duration_ms": (datetime.utcnow() - start_time).total_seconds() * 1000
             }
         )
-        
+
         return TaskResult(
             task_id=task_id,
             status="completed",
             result=formatted_result,
             trace_id=trace_id  # ⭐ 返回 trace_id，用於後續查詢
         )
-    
+
     async def _format_result(
         self,
         agent_result: Dict[str, Any],
@@ -767,19 +776,19 @@ class AgentOrchestrator:
     ) -> str:
         """使用 LLM 將技術性結果轉換為友好的自然語言"""
         llm = self._llm_router.get_model("result_formatting")
-        
+
         prompt = f"""
         將以下技術性結果轉換為友好的自然語言響應：
-        
+
         原始指令：{original_instruction}
         執行結果：{agent_result}
-        
+
         請生成一個清晰、友好的自然語言響應，說明執行結果。
         """
-        
+
         formatted = llm.generate(prompt)
         return formatted
-    
+
     async def _check_permission(
         self,
         user_id: str,
@@ -789,11 +798,11 @@ class AgentOrchestrator:
     ) -> SecurityCheckResult:
         """
         權限檢查（通過 Security Agent）
-        
+
         ⭐ 關鍵判斷：安全過濾
         - 檢查該管理員是否擁有對應層級和租戶的修改權限
         - 例如：租戶級操作時，檢查是否擁有該租戶的權限
-        
+
         詳細說明請參考：[Security-Agent-規格書.md](./Security-Agent-規格書.md)
         """
         # 調用 Security Agent 進行權限檢查
@@ -803,7 +812,7 @@ class AgentOrchestrator:
             context=context or {}
         )
         return security_result
-    
+
     async def _pre_check_config_intent(
         self,
         intent: Dict[str, Any],
@@ -811,18 +820,18 @@ class AgentOrchestrator:
     ) -> ValidationResult:
         """
         第一層預檢：格式與邊界驗證
-        
+
         ⭐ 關鍵判斷：快速止損
         - 檢查型別是否正確
         - 檢查數值是否在 min/max 內
         - 檢查選項是否在 options 列表中
-        
+
         詳細說明請參考：[ConfigMetadata-配置元數據機制規格書.md](./Tools/ConfigMetadata-配置元數據機制規格書.md)
-        
+
         Args:
             intent: ConfigIntent
             agent_id: 目標 Agent ID
-        
+
         Returns:
             ValidationResult: 驗證結果
         """
@@ -830,14 +839,14 @@ class AgentOrchestrator:
         scope = intent.get("scope")
         if not scope:
             return ValidationResult(valid=False, reason="scope is required")
-        
+
         definition = await self._get_config_definition(scope)
         if not definition:
             return ValidationResult(
                 valid=False,
                 reason=f"Config definition not found for scope: {scope}。請檢查 JSON 文件是否存在。"
             )
-        
+
         # 2. 驗證每個配置字段
         config_data = intent.get("config_data", {})
         for field_name, field_value in config_data.items():
@@ -846,15 +855,15 @@ class AgentOrchestrator:
                     valid=False,
                     reason=f"未知的配置字段：{field_name}"
                 )
-            
+
             field_def = definition["fields"][field_name]
             validation_result = self._validate_field(field_name, field_value, field_def)
-            
+
             if not validation_result.valid:
                 return validation_result
-        
+
         return ValidationResult(valid=True)
-    
+
     def _validate_field(
         self,
         field_name: str,
@@ -869,7 +878,7 @@ class AgentOrchestrator:
                 valid=False,
                 reason=f"{field_name} 的類型錯誤：期望 {expected_type}，實際 {type(field_value).__name__}"
             )
-        
+
         # 2. 數值邊界檢查
         if expected_type == "integer" or expected_type == "number":
             if "min" in field_def and field_value < field_def["min"]:
@@ -882,7 +891,7 @@ class AgentOrchestrator:
                     valid=False,
                     reason=f"{field_name} ({field_value}) 大於最大值 {field_def['max']}"
                 )
-        
+
         # 3. 枚舉值檢查
         if "options" in field_def:
             if isinstance(field_value, list):
@@ -900,9 +909,9 @@ class AgentOrchestrator:
                         valid=False,
                         reason=f"{field_name} ({field_value}) 不在允許列表中。允許的值：{field_def['options']}"
                     )
-        
+
         return ValidationResult(valid=True)
-    
+
     def _check_type(self, value: Any, expected_type: str) -> bool:
         """檢查類型是否匹配"""
         type_map = {
@@ -916,29 +925,29 @@ class AgentOrchestrator:
         expected = type_map.get(expected_type)
         if expected is None:
             return True  # 未知類型，跳過檢查
-        
+
         if isinstance(expected, tuple):
             return isinstance(value, expected)
         return isinstance(value, expected)
-    
+
     async def _get_config_definition(self, scope: str) -> Optional[Dict[str, Any]]:
         """
         獲取配置定義（只從內存緩存讀取）
-        
+
         JSON 文件是唯一數據源，啟動時已加載到內存緩存。
         不再從 ArangoDB 讀取備用，避免讀到舊數據。
-        
+
         實現詳見 ConfigMetadata 規格書
         """
         # 從內存緩存讀取（JSON 文件是唯一數據源）
         definition = self._definition_loader.get_definition(scope)
-        
+
         if not definition:
             logger.error(
                 f"配置定義缺失: {scope}，請檢查 JSON 文件是否存在",
                 scope=scope
             )
-        
+
         return definition
 ```
 
@@ -990,28 +999,28 @@ sequenceDiagram
 
     User->>LangChain: 1. 發送自然語言指令
     LangChain->>Orchestrator: 2. 轉發指令<br/>(包含：用戶身份、目標 Agent)
-    
+
     Orchestrator->>TaskAnalyzer: 3. 解析自然語言意圖
     TaskAnalyzer->>TaskAnalyzer: 4. 任務分類、槽位提取
     TaskAnalyzer-->>Orchestrator: 5. 返回結構化意圖
-    
+
     alt 需要澄清
         Orchestrator-->>LangChain: 返回澄清問題
         LangChain-->>User: 顯示澄清問題
     end
-    
+
     Orchestrator->>SecurityAgent: 6. 權限檢查
     SecurityAgent-->>Orchestrator: 7. 權限驗證結果
-    
+
     Orchestrator->>TaskTracker: 8. 創建任務記錄
     TaskTracker-->>Orchestrator: 9. 返回任務 ID
-    
+
     Orchestrator->>TargetAgent: 10. 分發任務<br/>(包含：任務 ID、意圖、用戶身份)
     TargetAgent->>TargetAgent: 11. 執行任務
     TargetAgent-->>Orchestrator: 12. 返回執行結果
-    
+
     Orchestrator->>Orchestrator: 13. 結果修飾<br/>(使用 LLM 轉換為自然語言)
-    
+
     Orchestrator->>TaskTracker: 14. 更新任務狀態
     Orchestrator-->>LangChain: 15. 返回修飾後的結果
     LangChain-->>User: 16. 顯示結果
@@ -1029,14 +1038,14 @@ sequenceDiagram
     Orchestrator->>TaskAnalyzer: 2. 分析指令
     TaskAnalyzer->>TaskAnalyzer: 3. 槽位提取
     TaskAnalyzer-->>Orchestrator: 4. 發現缺失槽位<br/>{missing_slots: ["level", "config_data"]}
-    
+
     Orchestrator->>Orchestrator: 5. 生成澄清問題<br/>(使用 LLM)
     Orchestrator-->>User: 6. "請確認：<br/>1. 要修改哪一層配置？<br/>2. 要修改哪些具體配置項？"
-    
+
     User->>Orchestrator: 7. "系統級，將默認模型改為 gpt-4o"
     Orchestrator->>TaskAnalyzer: 8. 重新分析指令<br/>(結合上下文)
     TaskAnalyzer-->>Orchestrator: 9. 指令清楚，意圖明確<br/>{action: "update", scope: "genai.policy",<br/>level: "system", config_data: {...}}
-    
+
     Note over Orchestrator: 繼續執行任務流程
 ```
 
@@ -1067,16 +1076,16 @@ sequenceDiagram
 
     Orchestrator->>Registry: 1. 發現合適的 Agent<br/>(根據能力需求)
     Registry-->>Orchestrator: 2. 返回 Agent 列表
-    
+
     Orchestrator->>Orchestrator: 3. 選擇最佳 Agent<br/>(負載均衡、健康狀態)
-    
+
     Orchestrator->>TaskTracker: 4. 創建任務記錄
     TaskTracker-->>Orchestrator: 5. 返回任務 ID
-    
+
     Orchestrator->>TargetAgent: 6. 調用 Agent Service<br/>(包含：任務 ID、意圖、上下文)
     TargetAgent->>TargetAgent: 7. 執行任務
     TargetAgent-->>Orchestrator: 8. 返回執行結果
-    
+
     Orchestrator->>TaskTracker: 9. 更新任務狀態
 ```
 
@@ -1107,7 +1116,7 @@ sequenceDiagram
     Orchestrator->>TaskAnalyzer: 2. 解析意圖
     TaskAnalyzer->>TaskAnalyzer: 3. 識別為 LOG_QUERY<br/>提取 LogQueryIntent
     TaskAnalyzer-->>Orchestrator: 4. 返回分析結果<br/>(task_type=LOG_QUERY)
-    
+
     Note over Orchestrator: ⭐ 直接處理，不路由到 Agent
     Orchestrator->>LogService: 5. 調用查詢方法<br/>(get_audit_logs)
     LogService->>ArangoDB: 6. 執行 AQL 查詢
@@ -1172,11 +1181,11 @@ sequenceDiagram
     Orchestrator->>Orchestrator: 1. 接收 Agent 原始結果<br/>(技術性數據)
     Orchestrator->>LLMRouter: 2. 獲取合適的 LLM 模型<br/>(用於結果格式化)
     LLMRouter-->>Orchestrator: 3. 返回 LLM 實例
-    
+
     Orchestrator->>LLM: 4. 生成格式化提示詞<br/>(原始指令 + 執行結果)
     LLM->>LLM: 5. 生成自然語言響應
     LLM-->>Orchestrator: 6. 返回格式化結果
-    
+
     Orchestrator->>Orchestrator: 7. 返回修飾後的結果
 ```
 
@@ -1217,22 +1226,22 @@ sequenceDiagram
     User->>Orchestrator: 1. 提交長時間運行的任務
     Orchestrator->>TaskTracker: 2. 創建任務記錄<br/>(status: pending)
     TaskTracker-->>Orchestrator: 3. 返回任務 ID
-    
+
     Orchestrator-->>User: 4. 立即返回任務 ID<br/>"任務已提交，ID: task-123"
-    
+
     Orchestrator->>Agent: 5. 異步分發任務
     Agent->>Agent: 6. 執行任務（長時間運行）
-    
+
     Note over User: 用戶可以離開，稍後查詢狀態
-    
+
     User->>Orchestrator: 7. 查詢任務狀態<br/>GET /api/tasks/task-123
     Orchestrator->>TaskTracker: 8. 查詢任務狀態
     TaskTracker-->>Orchestrator: 9. 返回任務狀態<br/>{status: "running", progress: 50%}
     Orchestrator-->>User: 10. 返回任務狀態
-    
+
     Agent-->>Orchestrator: 11. 任務完成
     Orchestrator->>TaskTracker: 12. 更新任務狀態<br/>(status: completed)
-    
+
     User->>Orchestrator: 13. 再次查詢任務狀態
     Orchestrator->>TaskTracker: 14. 查詢任務狀態
     TaskTracker-->>Orchestrator: 15. 返回任務結果
@@ -1268,7 +1277,7 @@ sequenceDiagram
     Orchestrator->>TaskAnalyzer: 2. 解析意圖
     TaskAnalyzer->>TaskAnalyzer: 3. 識別為 LOG_QUERY<br/>提取 LogQueryIntent
     TaskAnalyzer-->>Orchestrator: 4. 返回分析結果<br/>(task_type=LOG_QUERY)
-    
+
     Note over Orchestrator: ⭐ 直接處理，不路由到 Agent
     Orchestrator->>LogService: 5. 調用查詢方法<br/>(get_audit_logs)
     LogService->>ArangoDB: 6. 執行 AQL 查詢
@@ -1329,6 +1338,7 @@ Task Analyzer 支持以下時間表達的識別：
 **`POST /api/v1/orchestrator/process`**
 
 **請求**：
+
 ```json
 {
   "instruction": "查看系統的 LLM 配置",
@@ -1342,6 +1352,7 @@ Task Analyzer 支持以下時間表達的識別：
 ```
 
 **響應**：
+
 ```json
 {
   "task_id": "task-uuid-123",
@@ -1363,6 +1374,7 @@ Task Analyzer 支持以下時間表達的識別：
 **`GET /api/v1/orchestrator/tasks/{task_id}`**
 
 **響應**：
+
 ```json
 {
   "task_id": "task-uuid-123",
@@ -1379,6 +1391,7 @@ Task Analyzer 支持以下時間表達的識別：
 ### 6.3 指令澄清響應
 
 **響應**（當需要澄清時）：
+
 ```json
 {
   "status": "clarification_needed",
@@ -1470,17 +1483,20 @@ Task Analyzer 支持以下時間表達的識別：
 ### 8.1 數據流銜接
 
 **Orchestrator 負責**：
+
 1. 接收自然語言指令
 2. 使用 Task Analyzer 解析為 `ConfigIntent`
 3. 權限檢查
 4. 任務分發
 
 **System Config Agent 負責**：
+
 1. 接收已解析的 `ConfigIntent`
 2. 執行配置操作（CRUD）
 3. 返回原始結果
 
 **Orchestrator 再次負責**：
+
 1. 接收 System Config Agent 的原始結果
 2. 使用 LLM 修飾為自然語言
 3. 返回給前端
@@ -1513,11 +1529,13 @@ admin_user_id = request.task_data.get("admin_user_id")
 ### 8.3 文檔銜接
 
 **在 System Config Agent 規格書中**：
+
 - 明確說明意圖解析由 Orchestrator 完成
 - 說明 System Config Agent 接收已解析的 `ConfigIntent`
 - 引用 Orchestrator 規格書了解完整的協調流程
 
 **在 Orchestrator 規格書中**：
+
 - 詳細說明 Task Analyzer 如何解析配置操作
 - 說明如何生成 `ConfigIntent`
 - 說明如何與 System Config Agent 協作
@@ -1545,24 +1563,27 @@ admin_user_id = request.task_data.get("admin_user_id")
 ### 9.3 下一步行動
 
 **立即開始**：
+
 1. 在 Orchestrator 中集成 Task Analyzer
 2. 實現配置操作專用解析
 3. 實現指令澄清機制
 
 **短期目標（1-2週）**：
+
 1. 完成 Task Analyzer 集成
 2. 實現權限檢查集成
 3. 實現結果修飾功能
 
 **中期目標（2-4週）**：
+
 1. 實現異步任務支持
 2. 完善測試和文檔
 3. 性能優化
 
 ---
 
-**文檔版本**：1.1  
-**最後更新**：2025-12-21  
+**文檔版本**：1.1
+**最後更新**：2025-12-21
 **維護者**：Daniel Chung
 
 ---
@@ -1573,4 +1594,3 @@ admin_user_id = request.task_data.get("admin_user_id")
 |------|------|--------|---------|
 | 1.1 | 2025-12-21 | Daniel Chung | 添加日誌查詢功能設計（4.2 節），實現 Function/Tool 模式的自然語言日誌查詢 |
 | 1.0 | 2025-12-20 | Daniel Chung | 初始版本 |
-

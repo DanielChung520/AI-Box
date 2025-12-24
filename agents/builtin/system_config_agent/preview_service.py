@@ -193,7 +193,9 @@ class ConfigPreviewService:
 
             # 計算變化百分比
             if current_config and cost_change["estimated_monthly_change"] != 0:
-                cost_change["change_percentage"] = float((cost_change["estimated_monthly_change"] / 100.0) * 100)
+                cost_change["change_percentage"] = float(
+                    (cost_change["estimated_monthly_change"] / 100.0) * 100
+                )
 
             return cost_change if cost_change["factors"] else None
 

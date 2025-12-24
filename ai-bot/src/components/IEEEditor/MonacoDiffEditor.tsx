@@ -30,15 +30,15 @@ export default function MonacoDiffEditor({
 
   const handleEditorDidMount = (editor: editor.IStandaloneDiffEditor) => {
     editorRef.current = editor;
-    
+
     // 配置同步滾動（Monaco Diff Editor 默認啟用同步滾動）
     const originalEditor = editor.getOriginalEditor();
     const modifiedEditor = editor.getModifiedEditor();
-    
+
     // 確保兩個編輯器使用相同的滾動設置
     originalEditor.updateOptions({ scrollBeyondLastLine: false });
     modifiedEditor.updateOptions({ scrollBeyondLastLine: false });
-    
+
     if (onMount) {
       onMount(editor);
     }
@@ -69,4 +69,3 @@ export default function MonacoDiffEditor({
     />
   );
 }
-

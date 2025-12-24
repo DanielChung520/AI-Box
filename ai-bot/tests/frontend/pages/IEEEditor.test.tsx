@@ -87,7 +87,7 @@ describe('IEEEditor', () => {
 
   it('應該渲染編輯器頁面', () => {
     render(<IEEEditor fileId="test-file-1" />);
-    
+
     expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
     expect(screen.getByTestId('toolbar')).toBeInTheDocument();
     expect(screen.getByTestId('sidebar')).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('IEEEditor', () => {
     mockPreviewFile.mockImplementation(() => new Promise(() => {})); // 永遠不 resolve
 
     render(<IEEEditor fileId="test-file-1" />);
-    
+
     expect(screen.getByText('載入中...')).toBeInTheDocument();
   });
 
@@ -129,12 +129,12 @@ describe('IEEEditor', () => {
   it('應該在 previewFile 失敗時嘗試 downloadFile', async () => {
     const mockPreviewFile = vi.mocked(apiModule.previewFile);
     const mockDownloadFile = vi.mocked(apiModule.downloadFile);
-    
+
     mockPreviewFile.mockResolvedValue({
       success: false,
       data: null,
     });
-    
+
     mockDownloadFile.mockResolvedValue(new Blob(['下載的內容'], { type: 'text/plain' }));
 
     render(<IEEEditor fileId="test-file-1" />);
@@ -165,7 +165,7 @@ describe('IEEEditor', () => {
     });
 
     const textarea = screen.getByTestId('editor-textarea') as HTMLTextAreaElement;
-    
+
     // 模擬內容變化
     textarea.value = '修改後的內容';
     textarea.dispatchEvent(new Event('change', { bubbles: true }));
@@ -179,7 +179,7 @@ describe('IEEEditor', () => {
   it('應該支持手動保存', async () => {
     const mockPreviewFile = vi.mocked(apiModule.previewFile);
     const mockSaveFile = vi.mocked(apiModule.saveFile);
-    
+
     mockPreviewFile.mockResolvedValue({
       success: true,
       data: {
@@ -187,7 +187,7 @@ describe('IEEEditor', () => {
         filename: 'test.md',
       },
     });
-    
+
     mockSaveFile.mockResolvedValue({ success: true });
 
     render(<IEEEditor fileId="test-file-1" />);
@@ -223,7 +223,7 @@ describe('IEEEditor', () => {
 
   it('應該在沒有 fileId 時正常渲染', () => {
     render(<IEEEditor />);
-    
+
     expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
   });
 });

@@ -10,10 +10,10 @@
 使用方法:
     # 遷移 gemini API key
     python -m services.api.services.migrations.migrate_env_api_key gemini
-    
+
     # 遷移所有 Provider 的 API key
     python -m services.api.services.migrations.migrate_env_api_key --all
-    
+
     # 直接指定 API key
     python -m services.api.services.migrations.migrate_env_api_key gemini --api-key YOUR_API_KEY
 """
@@ -38,8 +38,10 @@ try:
 except ImportError:
     print("⚠️  python-dotenv 未安裝，將從環境變數讀取（如果已設置）")
 
-from services.api.models.llm_model import LLMProvider
-from services.api.services.llm_provider_config_service import get_llm_provider_config_service
+from services.api.models.llm_model import LLMProvider  # noqa: E402
+from services.api.services.llm_provider_config_service import (  # noqa: E402
+    get_llm_provider_config_service,
+)
 
 # Provider 與環境變數的映射
 PROVIDER_ENV_MAP = {
@@ -101,12 +103,12 @@ def migrate_provider_api_key(provider: str, api_key: str | None = None) -> bool:
             return False
 
     if not api_key or len(api_key.strip()) == 0:
-        print(f"  ❌ API Key 為空")
+        print("  ❌ API Key 為空")
         return False
 
     try:
         config_service = get_llm_provider_config_service()
-        
+
         # 檢查是否已存在
         existing = config_service.get_by_provider(provider_enum)
         if existing and existing.has_api_key:
@@ -121,12 +123,13 @@ def migrate_provider_api_key(provider: str, api_key: str | None = None) -> bool:
             print(f"  ✅ 成功設置 {provider} API Key 到 ArangoDB（已加密存儲）")
             return True
         else:
-            print(f"  ⚠️  設置成功，但驗證失敗（長度不匹配）")
+            print("  ⚠️  設置成功，但驗證失敗（長度不匹配）")
             return True  # 可能是加密後的比較問題，但實際已設置成功
 
     except Exception as e:
         print(f"  ❌ 設置 {provider} API Key 失敗: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -197,4 +200,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

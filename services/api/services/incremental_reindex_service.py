@@ -97,9 +97,7 @@ class IncrementalReindexService:
             ]
 
             if not chunks_to_reindex:
-                logger.warning(
-                    f"文件 {file_id} 檢測到受影響的 chunks，但新 chunks 中找不到對應的索引"
-                )
+                logger.warning(f"文件 {file_id} 檢測到受影響的 chunks，但新 chunks 中找不到對應的索引")
                 return {
                     "reindexed_chunks": 0,
                     "total_chunks": len(existing_vectors),

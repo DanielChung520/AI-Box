@@ -187,9 +187,7 @@ class LogService:
         # 添加截斷標記
         truncated_content["_truncated"] = True
         truncated_content["_original_size"] = content_size
-        truncated_content["_truncated_fields"] = [
-            k for k in content.keys() if k not in key_fields
-        ]
+        truncated_content["_truncated_fields"] = [k for k in content.keys() if k not in key_fields]
 
         # 檢查截斷後的大小
         truncated_str = json.dumps(truncated_content, ensure_ascii=False)
@@ -658,8 +656,7 @@ class LogService:
         average_size = 0
         if samples:
             total_size = sum(
-                len(json.dumps(log, ensure_ascii=False).encode("utf-8"))
-                for log in samples
+                len(json.dumps(log, ensure_ascii=False).encode("utf-8")) for log in samples
             )
             average_size = total_size // len(samples)
 
@@ -693,4 +690,3 @@ def get_log_service() -> LogService:
     if _log_service is None:
         _log_service = LogService()
     return _log_service
-

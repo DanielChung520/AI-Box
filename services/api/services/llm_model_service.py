@@ -102,8 +102,12 @@ class LLMModelService:
             ollama_endpoint=doc.get("ollama_endpoint"),
             ollama_node=doc.get("ollama_node"),
             is_favorite=doc.get("is_favorite"),  # 查詢時可能設置
-            created_at=datetime.fromisoformat(doc["created_at"]) if doc.get("created_at") else datetime.now(),
-            updated_at=datetime.fromisoformat(doc["updated_at"]) if doc.get("updated_at") else datetime.now(),
+            created_at=datetime.fromisoformat(doc["created_at"])
+            if doc.get("created_at")
+            else datetime.now(),
+            updated_at=datetime.fromisoformat(doc["updated_at"])
+            if doc.get("updated_at")
+            else datetime.now(),
         )
 
     def create(self, model: LLMModelCreate) -> LLMModel:
@@ -297,7 +301,9 @@ class LLMModelService:
         self.logger.info("model_deleted", model_id=model_id)
         return True
 
-    def get_by_provider(self, provider: LLMProvider, status: Optional[ModelStatus] = None) -> List[LLMModel]:
+    def get_by_provider(
+        self, provider: LLMProvider, status: Optional[ModelStatus] = None
+    ) -> List[LLMModel]:
         """
         根據提供商獲取模型列表
 
@@ -332,7 +338,6 @@ class LLMModelService:
                         response.raise_for_status()
                         data = response.json()
                         models = data.get("models", [])
-                        is_openai_format = False
                     except Exception as e1:
                         # 如果失敗，嘗試 OpenAI 兼容格式 /v1/models
                         try:
@@ -344,12 +349,13 @@ class LLMModelService:
                             models = []
                             for model_item in models_data:
                                 # 轉換為 Ollama 格式
-                                models.append({
-                                    "name": model_item.get("id", ""),
-                                    "size": None,
-                                    "modified_at": model_item.get("created"),
-                                })
-                            is_openai_format = True
+                                models.append(
+                                    {
+                                        "name": model_item.get("id", ""),
+                                        "size": None,
+                                        "modified_at": model_item.get("created"),
+                                    }
+                                )
                         except Exception as e2:
                             # 兩種格式都失敗，記錄錯誤並跳過
                             self.logger.warning(
@@ -474,7 +480,9 @@ class LLMModelService:
         # 3. 如果請求用戶收藏狀態，標記收藏的模型
         if include_favorite_status and user_id:
             try:
-                from services.api.services.user_preference_service import get_user_preference_service
+                from services.api.services.user_preference_service import (
+                    get_user_preference_service,
+                )
 
                 pref_service = get_user_preference_service()
                 favorite_ids = set(pref_service.get_favorite_models(user_id=user_id))
@@ -487,14 +495,18 @@ class LLMModelService:
                     if model.model_id in favorite_ids:
                         is_favorite = True
                     # 對於 Ollama 模型，檢查簡化的 model_name
-                    elif model.source == "ollama_discovered" and model.metadata.get("ollama_model_name"):
+                    elif model.source == "ollama_discovered" and model.metadata.get(
+                        "ollama_model_name"
+                    ):
                         ollama_name = model.metadata.get("ollama_model_name")
                         if ollama_name in favorite_ids:
                             is_favorite = True
                         # 支持模糊匹配（例如用戶收藏 "llama3.1:8b"，匹配 "ollama:*:llama3.1:8b"）
                         else:
                             for fav_id in favorite_ids:
-                                if fav_id in model.model_id or model.model_id.endswith(f":{fav_id}"):
+                                if fav_id in model.model_id or model.model_id.endswith(
+                                    f":{fav_id}"
+                                ):
                                     is_favorite = True
                                     break
 
@@ -513,7 +525,9 @@ class LLMModelService:
 
         # 4. 標記模型的 Active 狀態（根據 Provider API Key 配置）
         try:
-            from services.api.services.llm_provider_config_service import get_llm_provider_config_service
+            from services.api.services.llm_provider_config_service import (
+                get_llm_provider_config_service,
+            )
 
             config_service = get_llm_provider_config_service()
             # 緩存每個 provider 的 API key 狀態
@@ -528,7 +542,9 @@ class LLMModelService:
                     # 檢查緩存
                     if model.provider not in provider_status_cache:
                         status_obj = config_service.get_status(model.provider)
-                        provider_status_cache[model.provider] = status_obj.has_api_key if status_obj else False
+                        provider_status_cache[model.provider] = (
+                            status_obj.has_api_key if status_obj else False
+                        )
 
                     is_active = provider_status_cache[model.provider]
                 # Ollama 模型默認可用（不需要 API key）
@@ -567,4 +583,3 @@ def get_llm_model_service(client: Optional[ArangoDBClient] = None) -> LLMModelSe
         LLMModelService 實例
     """
     return LLMModelService(client=client)
-

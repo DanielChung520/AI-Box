@@ -16,9 +16,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from services.api.services.editing_session_service import (
-    get_editing_session_service,
-)
+from services.api.services.editing_session_service import get_editing_session_service
 from system.security.dependencies import get_current_tenant_id, get_current_user
 from system.security.models import User
 
@@ -97,7 +95,9 @@ async def _generate_streaming_patches(
         # 如果從 Agent 獲取了結果，使用它；否則使用模擬數據
         if agent_result and isinstance(agent_result, dict):
             # 嘗試從 Agent 結果中提取 Search-and-Replace 格式的數據
-            patches_data = agent_result.get("patches") or agent_result.get("result", {}).get("patches")
+            patches_data = agent_result.get("patches") or agent_result.get("result", {}).get(
+                "patches"
+            )
             if patches_data:
                 # 將 patches 轉換為 JSON 字符串並流式發送
                 patches_json = json.dumps({"patches": patches_data})

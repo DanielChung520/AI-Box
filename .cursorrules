@@ -51,4 +51,3 @@ python check_code_quality.py <文件路徑>
 ```
 
 該腳本會自動執行所有檢查步驟。
-

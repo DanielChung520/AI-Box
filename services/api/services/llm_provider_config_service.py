@@ -169,7 +169,9 @@ class LLMProviderConfigService:
         docs = collection.find(sort=["provider"])
         return [self._document_to_config(doc) for doc in docs]
 
-    def update(self, provider: LLMProvider, update: LLMProviderConfigUpdate) -> Optional[LLMProviderConfig]:
+    def update(
+        self, provider: LLMProvider, update: LLMProviderConfigUpdate
+    ) -> Optional[LLMProviderConfig]:
         """
         更新配置
 
@@ -319,4 +321,3 @@ def get_llm_provider_config_service(
         LLMProviderConfigService 實例
     """
     return LLMProviderConfigService(client=client, encryption=encryption)
-

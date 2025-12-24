@@ -5,7 +5,7 @@
 
 """模組化文檔 API 路由 - 實現主從架構文檔管理"""
 
-from typing import List, Optional
+from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,7 +13,6 @@ from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
 from services.api.models.modular_document import (
-    ModularDocument,
     ModularDocumentAddSubDocumentRequest,
     ModularDocumentCreate,
     ModularDocumentRemoveSubDocumentRequest,

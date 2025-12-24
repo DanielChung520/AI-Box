@@ -5,14 +5,13 @@
 最後修改日期: 2025-12-20
 """
 
-from typing import List, Optional
+from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
-from services.api.models.file_metadata import FileMetadata
 from services.api.services.file_metadata_service import FileMetadataService
 from system.security.dependencies import get_current_tenant_id, get_current_user
 from system.security.models import User

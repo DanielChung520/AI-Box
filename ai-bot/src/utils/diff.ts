@@ -12,16 +12,16 @@
 export function generateUnifiedDiff(original: string, modified: string): string {
   const originalLines = original.split('\n');
   const modifiedLines = modified.split('\n');
-  
+
   // 使用簡單的算法生成 diff
   // 這裡使用基本的行對比算法
   const diff: string[] = [];
   diff.push('--- original');
   diff.push('+++ modified');
-  
+
   let i = 0;
   let j = 0;
-  
+
   while (i < originalLines.length || j < modifiedLines.length) {
     if (i >= originalLines.length) {
       // 原始文件已結束，剩餘的都是新增
@@ -32,7 +32,7 @@ export function generateUnifiedDiff(original: string, modified: string): string 
       }
       break;
     }
-    
+
     if (j >= modifiedLines.length) {
       // 修改後文件已結束，剩餘的都是刪除
       diff.push(`@@ -${i},${originalLines.length - i} +${j},0 @@`);
@@ -42,7 +42,7 @@ export function generateUnifiedDiff(original: string, modified: string): string 
       }
       break;
     }
-    
+
     if (originalLines[i] === modifiedLines[j]) {
       // 行相同，保持不變
       diff.push(` ${originalLines[i]}`);
@@ -54,7 +54,7 @@ export function generateUnifiedDiff(original: string, modified: string): string 
       const hunkStart = i + 1;
       let removedCount = 0;
       let addedCount = 0;
-      
+
       // 嘗試找到匹配的行
       let foundMatch = false;
       for (let k = j; k < Math.min(j + 10, modifiedLines.length); k++) {
@@ -72,7 +72,7 @@ export function generateUnifiedDiff(original: string, modified: string): string 
           break;
         }
       }
-      
+
       if (!foundMatch) {
         // 沒找到匹配，刪除舊行，添加新行
         removedCount = 1;
@@ -85,6 +85,6 @@ export function generateUnifiedDiff(original: string, modified: string): string 
       }
     }
   }
-  
+
   return diff.join('\n');
 }

@@ -8,4 +8,3 @@
 from .log_service import LogService, LogType, get_log_service
 
 __all__ = ["LogService", "LogType", "get_log_service"]
-

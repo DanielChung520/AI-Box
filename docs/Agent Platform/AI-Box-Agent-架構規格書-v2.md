@@ -1,8 +1,8 @@
 # AI-Box Agent 架構規格書 v2
 
-**版本**：2.0  
-**創建日期**：2025-01-27  
-**創建人**：Daniel Chung  
+**版本**：2.0
+**創建日期**：2025-01-27
+**創建人**：Daniel Chung
 **最後修改日期**：2025-12-20
 
 > **📋 相關文檔**：
@@ -79,13 +79,13 @@ graph TB
         AR["Agent Registry<br/>Agent 註冊表<br/>✅ 已實現<br/>🔄 需增強"]
         AO["Agent Orchestrator<br/>Agent 協調器<br/>✅ 已實現<br/>🔄 需增強"]
         TT["Task Tracker<br/>任務追蹤器<br/>❌ 需實現"]
-        
+
         TA -->|任務分類<br/>意圖解析| AR
         AR -->|Agent 發現<br/>負載均衡| AO
         AO -->|任務路由<br/>結果聚合| TA
         AO -->|任務追蹤| TT
     end
-    
+
     subgraph Layer2["第二層：專屬服務層"]
         SEC["Security Agent<br/>✅ 已實現<br/>🔄 需增強"]
         REP["Reports Agent<br/>🔄 部分實現"]
@@ -99,12 +99,12 @@ graph TB
         STO["Storage Manager Agent<br/>✅ 已實現"]
         SYS["System Config Agent<br/>🔄 部分實現"]
     end
-    
+
     subgraph Tools["工具層（Tools）"]
         LOG["LogService<br/>統一日誌服務<br/>❌ 需實現"]
         CFG["ConfigMetadata<br/>配置元數據<br/>❌ 需實現"]
     end
-    
+
     subgraph Layer3["第三層：業務執行層"]
         HR["HR Recruiting Agent<br/>未實現"]
         FIN["Finance Auditing Agent<br/>未實現"]
@@ -115,7 +115,7 @@ graph TB
         EXEC["Execution Agent<br/>已實現"]
         REV["Review Agent<br/>已實現"]
     end
-    
+
     AO -->|統一調用接口| SEC
     AO -->|統一調用接口| REP
     AO -->|統一調用接口| COD
@@ -125,13 +125,13 @@ graph TB
     AO -->|統一調用接口| ANA
     AO -->|統一調用接口| STA
     AO -->|統一調用接口| SYS
-    
+
     AO -->|日誌記錄| LOG
     AO -->|配置驗證| CFG
     SEC -->|日誌記錄| LOG
     SYS -->|日誌記錄| LOG
     SYS -->|配置驗證| CFG
-    
+
     SEC -->|服務支持| HR
     REP -->|服務支持| FIN
     DAT -->|服務支持| QUO
@@ -141,11 +141,11 @@ graph TB
     ANA -->|服務支持| EXEC
     STA -->|服務支持| REV
     SYS -->|服務支持| PLAN
-    
+
     classDef implemented fill:#d4edda,stroke:#28a745,stroke-width:2px
     classDef partial fill:#fff3cd,stroke:#ffc107,stroke-width:2px
     classDef notImplemented fill:#f8d7da,stroke:#dc3545,stroke-width:2px
-    
+
     class TA,AR,AO,SEC,REG,STO,PLAN,EXEC,REV implemented
     class REP,MOE,KAG,SYS partial
     class COD,DAT,ANA,STA,HR,FIN,QUO,PUR,QC,TT,LOG,CFG notImplemented
@@ -271,19 +271,19 @@ class InstructionClarificationResult(BaseModel):
 
 class TaskAnalyzer:
     def analyze_with_clarification(
-        self, 
-        instruction: str, 
+        self,
+        instruction: str,
         context: dict,
         specified_agent_id: Optional[str] = None
     ) -> InstructionClarificationResult:
         """
         分析指令並判斷是否需要澄清
-      
+
         Args:
             instruction: 用戶指令
             context: 上下文信息
             specified_agent_id: 前端指定的 Agent ID（可選）
-      
+
         Returns:
             澄清結果
         """
@@ -298,7 +298,7 @@ class TaskAnalyzer:
                     matched_agents=[],
                     task_id=""
                 )
-          
+
             # 驗證 Agent 能力是否匹配
             if not self._validate_agent_capability(agent, instruction):
                 return InstructionClarificationResult(
@@ -308,7 +308,7 @@ class TaskAnalyzer:
                     matched_agents=[],
                     task_id=""
                 )
-          
+
             return InstructionClarificationResult(
                 is_clear=True,
                 required_slots=[],
@@ -316,13 +316,13 @@ class TaskAnalyzer:
                 matched_agents=[specified_agent_id],
                 task_id=str(uuid.uuid4())
             )
-      
+
         # 2. 未指定 Agent，進行意圖分析和槽位提取
         intent_result = self._extract_intent(instruction, context)
         slots = self._extract_slots(instruction, intent_result)
         required_slots = self._get_required_slots(intent_result.intent)
         missing_slots = [s for s in required_slots if s not in slots]
-      
+
         # 3. 如果槽位不全，生成澄清問題
         if missing_slots:
             clarification = self._generate_clarification(missing_slots, intent_result)
@@ -333,7 +333,7 @@ class TaskAnalyzer:
                 matched_agents=[],
                 task_id=str(uuid.uuid4())
             )
-      
+
         # 4. 槽位完整，匹配 Agent
         matched_agents = self._discover_agents_by_capability(intent_result, slots)
         return InstructionClarificationResult(
@@ -418,18 +418,18 @@ class AgentOrchestrator:
     ) -> Any:
         """
         調用專屬服務 Agent（統一入口）
-      
+
         所有業務 Agent 必須通過此方法調用專屬服務
-      
+
         Args:
             service_type: 服務類型（"reports", "data", "moe", "kag", etc.）
             service_method: 服務方法名稱
             params: 方法參數
             caller_agent_id: 調用者 Agent ID
-      
+
         Returns:
             服務調用結果
-      
+
         Raises:
             ServiceNotFoundError: 服務不存在
             PermissionError: 無權限調用
@@ -438,19 +438,19 @@ class AgentOrchestrator:
         caller = self._registry.get_agent_info(caller_agent_id)
         if not caller:
             raise PermissionError(f"Agent {caller_agent_id} not found")
-      
+
         # 2. 發現專屬服務 Agent
         service_agents = self._discovery.discover_agents(
             agent_type=service_type,
             category="dedicated_service"
         )
-      
+
         if not service_agents:
             raise ServiceNotFoundError(f"Service {service_type} not available")
-      
+
         # 3. 選擇服務 Agent（負載均衡）
         service_agent = self._select_best_agent(service_agents)
-      
+
         # 4. 調用服務
         service_request = AgentServiceRequest(
             task_id=str(uuid.uuid4()),
@@ -461,10 +461,10 @@ class AgentOrchestrator:
                 "caller": caller_agent_id
             }
         )
-      
+
         service = self._registry.get_agent(service_agent.agent_id)
         response = await service.execute(service_request)
-      
+
         return response.result
 ```
 
@@ -481,12 +481,12 @@ class AgentOrchestrator:
 ```python
 class TaskTracker:
     """任務追蹤服務（支持異步查詢）"""
-  
+
     def __init__(self, storage: Optional[Any] = None):
         self._storage = storage or ArangoDBTaskStorage()
-  
+
     def create_task(
-        self, 
+        self,
         instruction: str,
         clarification_result: InstructionClarificationResult
     ) -> str:
@@ -502,13 +502,13 @@ class TaskTracker:
         )
         self._storage.save_task(task_record)
         return task_id
-  
+
     def get_task_status(self, task_id: str) -> Optional[TaskStatus]:
         """獲取任務狀態（支持異步查詢）"""
         task_record = self._storage.get_task(task_id)
         if not task_record:
             return None
-      
+
         return TaskStatus(
             task_id=task_id,
             status=task_record.status,
@@ -714,6 +714,7 @@ async def verify_access(
 **實現位置**：`agents/builtin/system_config_agent/`（需實現）
 
 **基礎服務**：🔄 **部分實現**
+
 - ✅ ConfigStoreService 已實現（`services/api/services/config_store_service.py`）
 - ✅ AuditLogService 已實現（`services/api/services/audit_log_service.py`）
 - ✅ ComplianceService 已實現（`services/api/services/compliance_service.py`）
@@ -1101,20 +1102,20 @@ from agents.services.protocol.base import (
 
 class ReportsAgent(AgentServiceProtocol):
     """Reports Agent - 報告生成服務"""
-  
+
     async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
         """執行報告生成任務"""
         task_data = request.task_data
         method = task_data.get("method")
         params = task_data.get("params", {})
-      
+
         if method == "generate_report":
             result = await self._generate_report(params)
         elif method == "generate_inline_data":
             result = await self._generate_inline_data(params)
         else:
             raise ValueError(f"Unknown method: {method}")
-      
+
         return AgentServiceResponse(
             task_id=request.task_id,
             status="completed",
@@ -1135,15 +1136,15 @@ class ReportsAgent(AgentServiceProtocol):
 ```python
 class HRRecruitingAgent(AgentServiceProtocol):
     """HR Recruiting Agent - 人力資源招聘業務"""
-  
+
     def __init__(self, orchestrator: AgentOrchestrator):
         self._orchestrator = orchestrator
-  
+
     async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
         """執行招聘業務邏輯"""
         # 1. 業務邏輯處理
         # ...
-      
+
         # 2. 調用專屬服務（必須通過 Orchestrator）
         report_result = await self._orchestrator.call_service(
             service_type="reports",
@@ -1151,7 +1152,7 @@ class HRRecruitingAgent(AgentServiceProtocol):
             params={"data": data},
             caller_agent_id=self.agent_id
         )
-      
+
         # 3. 返回結果
         return AgentServiceResponse(
             task_id=request.task_id,

@@ -1,8 +1,8 @@
 # LLM 模型遷移到 ArangoDB 遷移計劃
 
-**版本**: 1.0  
-**創建日期**: 2025-12-20  
-**創建人**: Daniel Chung  
+**版本**: 1.0
+**創建日期**: 2025-12-20
+**創建人**: Daniel Chung
 **最後修改日期**: 2025-12-20
 
 ---
@@ -109,6 +109,7 @@ llm_models
 文件位置: `services/api/models/llm_model.py`
 
 主要類別:
+
 - `LLMProvider` (Enum): 提供商枚舉
 - `ModelCapability` (Enum): 模型能力枚舉
 - `ModelStatus` (Enum): 模型狀態枚舉
@@ -127,6 +128,7 @@ llm_models
 文件位置: `services/api/services/llm_model_service.py`
 
 主要方法:
+
 - `create(model: LLMModelCreate) -> LLMModel`: 創建模型
 - `get_by_id(model_id: str) -> Optional[LLMModel]`: 根據 ID 獲取模型
 - `get_all(query: Optional[LLMModelQuery]) -> List[LLMModel]`: 獲取所有模型（支持篩選）
@@ -149,6 +151,7 @@ GET /api/v1/models
 ```
 
 **查詢參數**:
+
 - `provider` (optional): 提供商篩選
 - `status` (optional): 狀態篩選
 - `capability` (optional): 能力篩選
@@ -157,6 +160,7 @@ GET /api/v1/models
 - `offset` (optional, default: 0): 偏移量
 
 **響應**:
+
 ```json
 {
   "success": true,
@@ -182,6 +186,7 @@ GET /api/v1/models/{model_id}
 ```
 
 **響應**:
+
 ```json
 {
   "success": true,
@@ -198,6 +203,7 @@ POST /api/v1/models
 ```
 
 **請求體**:
+
 ```json
 {
   "model_id": "new-model",
@@ -337,6 +343,7 @@ DELETE /api/v1/models/{model_id}
 ### 階段 2: 數據遷移
 
 1. **執行遷移腳本**
+
    ```bash
    python -m services.api.services.migrations.migrate_llm_models
    ```
@@ -460,7 +467,6 @@ DELETE /api/v1/models/{model_id}
 
 ---
 
-**計劃版本**: 1.0  
-**最後更新**: 2025-12-20  
+**計劃版本**: 1.0
+**最後更新**: 2025-12-20
 **維護者**: Daniel Chung
-

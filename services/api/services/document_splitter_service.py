@@ -9,10 +9,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from services.api.models.modular_document import (
-    ModularDocumentCreate,
-    SubDocumentRef,
-)
+from services.api.models.modular_document import ModularDocumentCreate, SubDocumentRef
 from services.api.processors.chunk_processor import ChunkProcessor, ChunkStrategy
 from services.api.processors.markdown_ast import MarkdownASTParser
 

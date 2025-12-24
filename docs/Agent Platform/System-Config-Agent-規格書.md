@@ -1,8 +1,8 @@
 # 系統設置代理（System Config Agent）規格書
 
-**版本**：1.0  
-**創建日期**：2025-12-20  
-**創建人**：Daniel Chung  
+**版本**：1.0
+**創建日期**：2025-12-20
+**創建人**：Daniel Chung
 **最後修改日期**：2025-12-20
 
 > **📋 相關文檔**：
@@ -75,35 +75,35 @@ sequenceDiagram
 
     Note over Admin,GenAI: 前置：用戶已選擇系統設置代理，建立聊天會話
     Note over Admin,GenAI: 系統已知：用戶身份、目標 Agent (System Config Agent)
-    
+
     Admin->>GenAI: 1. 發送自然語言指令<br/>"查看系統的 LLM 配置"
     GenAI->>LangChain: 2. 轉發指令<br/>(已識別為系統設置任務)
     LangChain->>Orchestrator: 3. 轉發到 Orchestrator Agent<br/>(包含：用戶身份、目標 Agent)
-    
+
     Note over Orchestrator: Orchestrator 內部流程（詳見 Orchestrator 規格書）
     Orchestrator->>Orchestrator: 4. 理解意圖<br/>(使用 Task Analyzer 解析指令，<br/>生成 ConfigIntent)
     Orchestrator->>SecurityAgent: 5. 權限檢查<br/>(驗證用戶是否有系統設置權限)
     SecurityAgent-->>Orchestrator: 6. 權限驗證通過
-    
+
     Orchestrator->>TaskTracker: 7. 記錄任務<br/>(創建異步任務記錄)
     TaskTracker-->>Orchestrator: 8. 返回任務 ID
-    
+
     Orchestrator->>ConfigAgent: 9. 安排任務給 System Config Agent<br/>(包含：任務 ID、ConfigIntent、用戶身份)
-    
+
     ConfigAgent->>ConfigStore: 10. 查詢配置<br/>get_config(scope="genai.policy")
     ConfigStore->>ArangoDB: 11. 查詢 system_configs collection
     ArangoDB-->>ConfigStore: 12. 返回配置數據
     ConfigStore-->>ConfigAgent: 13. 返回 ConfigModel
-    
+
     ConfigAgent->>AuditLog: 14. 記錄審計日誌<br/>(CONFIG_READ)
-    
+
     ConfigAgent-->>Orchestrator: 15. 匯報執行結果<br/>(原始配置數據 + 任務 ID)
-    
+
     Note over Orchestrator: Orchestrator 內部流程
     Orchestrator->>Orchestrator: 16. 結果修飾<br/>(使用 LLM 將配置轉為可讀的自然語言)
-    
+
     Orchestrator->>TaskTracker: 17. 更新任務狀態<br/>(標記為完成)
-    
+
     Orchestrator-->>LangChain: 18. 返回修飾後的結果
     LangChain-->>GenAI: 19. 轉發響應
     GenAI-->>Admin: 20. 顯示配置信息<br/>"系統的 GenAI 策略配置：<br/>- 允許的提供商：OpenAI、Anthropic<br/>- 默認模型：gpt-4o<br/>..."
@@ -128,54 +128,54 @@ sequenceDiagram
     Admin->>GenAI: 1. "幫我設置一個XXX設置"<br/>"將租戶 A 的 API 限流改為 500/分鐘"
     GenAI->>LangChain: 2. 轉發指令<br/>(已識別為系統設置任務)
     LangChain->>Orchestrator: 3. 轉發到 Orchestrator Agent
-    
+
     Note over Orchestrator: Orchestrator 內部流程（詳見 Orchestrator 規格書）
     Orchestrator->>Orchestrator: 4. 理解意圖<br/>(使用 Task Analyzer 解析，<br/>生成 ConfigIntent)
     Orchestrator->>SecurityAgent: 5. 權限檢查<br/>(驗證用戶是否有設置權限)
     SecurityAgent-->>Orchestrator: 6. 權限驗證通過
-    
+
     Orchestrator->>TaskTracker: 7. 記錄任務<br/>(創建異步任務，狀態: pending)
     TaskTracker-->>Orchestrator: 8. 返回任務 ID: task-123
-    
+
     Orchestrator->>ConfigAgent: 9. 安排任務給 System Config Agent<br/>(任務 ID、ConfigIntent、用戶身份)
-    
+
     Note over ConfigAgent,ArangoDB: System Config Agent 執行設置操作
-    
+
     ConfigAgent->>Compliance: 12. 驗證設置合規性<br/>(檢查收斂規則、安全策略)
     Compliance-->>ConfigAgent: 13. 合規性檢查通過
-    
+
     ConfigAgent->>ConfigStore: 14. 獲取當前配置<br/>(用於變更前後對比)
     ConfigStore->>ArangoDB: 15. 查詢 tenant_configs
     ArangoDB-->>ConfigStore: 16. 返回當前配置
     ConfigStore-->>ConfigAgent: 17. 返回當前配置<br/>(rate_limit: 1000)
-    
+
     ConfigAgent->>ConfigAgent: 18. 生成預覽結果<br/>(影響分析、成本預估)
     ConfigAgent-->>Orchestrator: 19. 匯報預覽結果<br/>(包含：變更內容、影響範圍、成本變化)
-    
+
     Orchestrator->>Orchestrator: 20. 結果修飾<br/>(將預覽轉為可讀的自然語言)
     Orchestrator-->>LangChain: 21. 返回預覽確認<br/>"我將要把租戶 A 的 API 限流從 1000/分鐘<br/>改為 500/分鐘，這會降低 50% 的 API 使用量，<br/>確定執行嗎？(yes/no)"
     LangChain-->>GenAI: 22. 轉發預覽確認
     GenAI-->>Admin: 23. 顯示預覽並等待確認
-    
+
     Admin->>GenAI: 24. "yes" (確認執行)
     GenAI->>LangChain: 25. 轉發確認
     LangChain->>Orchestrator: 26. 轉發確認到 Orchestrator
-    
+
     Orchestrator->>ConfigAgent: 27. 確認執行配置更新
-    
+
     ConfigAgent->>ConfigStore: 28. 更新配置<br/>update_config(config_id, updates)
     ConfigStore->>ArangoDB: 29. 更新 tenant_configs collection
     ArangoDB-->>ConfigStore: 30. 更新成功
     ConfigStore-->>ConfigAgent: 31. 返回更新後的配置<br/>(rate_limit: 500)
-    
+
     ConfigAgent->>AuditLog: 32. 記錄審計日誌<br/>(CONFIG_UPDATE, 變更前後值, rollback_id)
-    
+
     ConfigAgent-->>Orchestrator: 33. 匯報執行結果<br/>(任務 ID: task-123,<br/>原始結果: {success: true, config: {...},<br/>rollback_id: "rb-uuid-123"})
-    
+
     Orchestrator->>Orchestrator: 34. 結果修飾<br/>(使用 LLM 將結果轉為可讀的自然語言)
-    
+
     Orchestrator->>TaskTracker: 35. 更新任務狀態<br/>(標記為 completed)
-    
+
     Orchestrator-->>LangChain: 36. 返回修飾後的結果<br/>"已成功更新租戶 A 的 API 限流為 500/分鐘<br/>(原值: 1000/分鐘)<br/>如需復原，請說「復原剛才的設置」"
     LangChain-->>GenAI: 37. 轉發響應
     GenAI-->>Admin: 38. 顯示設置結果
@@ -194,25 +194,25 @@ sequenceDiagram
     Admin->>GenAI: 1. "修改 LLM 配置"
     GenAI->>LangChain: 2. 轉發指令
     LangChain->>Orchestrator: 3. 轉發到 Orchestrator Agent
-    
+
     Note over Orchestrator: Orchestrator 內部流程（詳見 Orchestrator 規格書）
     Orchestrator->>Orchestrator: 4. 理解意圖<br/>(使用 Task Analyzer 解析，<br/>發現缺失槽位)
     Orchestrator->>SecurityAgent: 5. 權限檢查
     SecurityAgent-->>Orchestrator: 6. 權限驗證通過
-    
+
     Orchestrator->>Orchestrator: 7. 生成澄清問題<br/>(使用 LLM 生成友好的澄清問題)
-    
+
     Orchestrator-->>LangChain: 8. 返回澄清問題
     LangChain-->>GenAI: 9. 轉發澄清問題
     GenAI-->>Admin: 10. "請確認：<br/>1. 要修改哪一層配置？(系統級/租戶級/用戶級)<br/>2. 要修改哪些具體配置項？"
-    
+
     Admin->>GenAI: 11. "系統級，將默認模型改為 gpt-4o"
     GenAI->>LangChain: 12. 轉發補充指令
     LangChain->>Orchestrator: 13. 轉發到 Orchestrator Agent
-    
+
     Note over Orchestrator: Orchestrator 內部流程
     Orchestrator->>Orchestrator: 14. 重新分析指令<br/>(結合上下文，生成完整 ConfigIntent)
-    
+
     Note over Orchestrator: 繼續執行配置更新流程（參考 2.2）
 ```
 
@@ -251,10 +251,12 @@ sequenceDiagram
 #### 2.4.2 為什麼需要 Orchestrator？
 
 **分離關注點**：
+
 - **Orchestrator**：負責協調、理解、安全、追蹤
 - **System Config Agent**：專注於配置的實際操作（CRUD）
 
 **統一入口**：
+
 - 所有 Agent 調用都通過 Orchestrator，便於：
   - 統一的安全檢查
   - 統一的審計追蹤
@@ -262,6 +264,7 @@ sequenceDiagram
   - 統一的結果格式化
 
 **異步支持**：
+
 - Orchestrator 負責任務追蹤，支持：
   - 長時間運行的配置操作
   - 用戶可以離開後再回來查看狀態
@@ -327,11 +330,13 @@ System Config Agent 接收結構化意圖，執行配置操作
 ```
 
 **輸入示例**（管理員輸入）：
+
 - "查看系統的 LLM 配置"
 - "將租戶 A 的 API 限流改為 500/分鐘"
 - "為所有租戶啟用 Claude 3 Sonnet 模型"
 
 **輸出結構**（Orchestrator 生成）：
+
 ```python
 class ConfigIntent(BaseModel):
     """配置操作意圖（由 Orchestrator 通過 Task Analyzer 生成）"""
@@ -348,6 +353,7 @@ class ConfigIntent(BaseModel):
 ```
 
 **System Config Agent 的職責**：
+
 - ✅ 接收已解析的 `ConfigIntent`（由 Orchestrator 傳遞）
 - ✅ 執行配置操作（CRUD）
 - ❌ **不負責**自然語言解析（由 Orchestrator 完成）
@@ -371,6 +377,7 @@ class ConfigIntent(BaseModel):
    - 按 scope 模式查詢（如 `genai.*`）
 
 **自然語言示例**：
+
 - "查看系統的 GenAI 策略配置" → `get_config("genai.policy", level="system")`
 - "查看租戶 A 的有效配置" → `get_effective_config("genai.policy", "tenant_a")`
 - "列出所有 LLM 相關配置" → `list_configs(scope_pattern="genai.*")`
@@ -393,6 +400,7 @@ class ConfigIntent(BaseModel):
    - 硬刪除（物理刪除，需確認）
 
 **自然語言示例**：
+
 - "將系統默認模型設為 gpt-4o" → `update_config("genai.policy", {"default_model": "gpt-4o"}, level="system")`
 - "為租戶 A 添加 Claude 3 Sonnet 到允許列表" → `update_config("genai.policy", {"allowed_models": {...}}, tenant_id="tenant_a")`
 
@@ -428,11 +436,13 @@ class ConfigIntent(BaseModel):
 **功能描述**：查詢配置變更歷史
 
 **支持的查詢**：
+
 - 查詢某配置項的變更歷史
 - 查詢某時間範圍內的所有配置變更
 - 查詢某管理員的所有操作記錄
 
 **自然語言示例**：
+
 - "查看 genai.policy 的變更歷史"
 - "查看最近一週的配置變更"
 - "查看我昨天修改的配置"
@@ -479,6 +489,7 @@ class ConfigIntent(BaseModel):
 **示例**：
 
 **輸入**（ConfigModel）：
+
 ```json
 {
   "scope": "genai.policy",
@@ -495,6 +506,7 @@ class ConfigIntent(BaseModel):
 ```
 
 **輸出**（自然語言）：
+
 ```
 系統的 GenAI 策略配置：
 - 允許的提供商：OpenAI、Anthropic
@@ -516,6 +528,7 @@ class ConfigIntent(BaseModel):
 **已存在的 Collections**：
 
 1. **`system_configs`** - 系統級配置
+
    ```json
    {
      "_key": "genai.policy",
@@ -538,6 +551,7 @@ class ConfigIntent(BaseModel):
    ```
 
 2. **`tenant_configs`** - 租戶級配置
+
    ```json
    {
      "_key": "tenant_a_genai.policy",
@@ -559,6 +573,7 @@ class ConfigIntent(BaseModel):
    ```
 
 3. **`user_configs`** - 用戶級配置（可選）
+
    ```json
    {
      "_key": "tenant_a_user_123_genai.policy",
@@ -575,6 +590,7 @@ class ConfigIntent(BaseModel):
    ```
 
 4. **`ontologies`** - Ontology 定義
+
    ```json
    {
      "_key": "base-finance-1.0.0",
@@ -593,6 +609,7 @@ class ConfigIntent(BaseModel):
    ```
 
 5. **`llm_provider_configs`** - LLM 提供商配置
+
    ```json
    {
      "_key": "openai_prod",
@@ -609,6 +626,7 @@ class ConfigIntent(BaseModel):
 #### 4.1.2 審計日誌 Collection
 
 **`audit_logs`** - 配置操作審計日誌
+
 ```json
 {
   "_key": "audit-uuid-123",
@@ -640,7 +658,7 @@ class ConfigIntent(BaseModel):
 ```python
 class ConfigPreviewService:
     """配置預覽服務 - 生成配置變更預覽"""
-    
+
     async def generate_preview(
         self,
         intent: ConfigIntent,
@@ -648,19 +666,19 @@ class ConfigPreviewService:
     ) -> ConfigPreview:
         """
         生成配置變更預覽
-        
+
         Returns:
             ConfigPreview: 包含影響分析、成本預估、風險評估
         """
         # 1. 分析影響範圍
         impact = await self._analyze_impact(intent, current_config)
-        
+
         # 2. 計算成本變化
         cost_change = await self._calculate_cost_change(intent, current_config)
-        
+
         # 3. 評估風險
         risk = await self._assess_risk(intent, current_config)
-        
+
         return ConfigPreview(
             changes=intent.config_data,
             impact_analysis=impact,
@@ -675,7 +693,7 @@ class ConfigPreviewService:
 ```python
 class ConfigRollbackService:
     """配置回滾服務 - 基於審計日誌實現回滾"""
-    
+
     async def rollback_config(
         self,
         rollback_id: str,
@@ -683,20 +701,20 @@ class ConfigRollbackService:
     ) -> RollbackResult:
         """
         回滾配置到指定狀態
-        
+
         Args:
             rollback_id: 審計日誌中的 rollback_id
             admin_user_id: 執行回滾的管理員 ID
-        
+
         Returns:
             RollbackResult: 回滾結果
         """
         # 1. 從審計日誌中獲取變更記錄
         audit_log = await self._get_audit_log_by_rollback_id(rollback_id)
-        
+
         # 2. 提取變更前的配置
         before_config = audit_log.details["changes"]["before"]
-        
+
         # 3. 執行回滾
         result = await self._restore_config(
             scope=audit_log.details["scope"],
@@ -704,12 +722,12 @@ class ConfigRollbackService:
             config_data=before_config,
             admin_user_id=admin_user_id
         )
-        
+
         # 4. 記錄回滾操作
         await self._log_rollback_audit(rollback_id, admin_user_id, result)
-        
+
         return result
-    
+
     async def get_recent_changes(
         self,
         limit: int = 10
@@ -723,34 +741,34 @@ class ConfigRollbackService:
 ```python
 class ConfigInspectionService:
     """配置巡檢服務 - 主動檢測配置問題"""
-    
+
     async def inspect_all_configs(self) -> List[InspectionIssue]:
         """
         巡檢所有配置，發現問題
-        
+
         Returns:
             List[InspectionIssue]: 發現的問題列表
         """
         issues = []
-        
+
         # 1. 檢查收斂規則違反
         convergence_issues = await self._check_convergence_rules()
         issues.extend(convergence_issues)
-        
+
         # 2. 檢查配置不一致
         consistency_issues = await self._check_consistency()
         issues.extend(consistency_issues)
-        
+
         # 3. 檢查安全策略違規
         security_issues = await self._check_security_policies()
         issues.extend(security_issues)
-        
+
         return issues
-    
+
     async def suggest_fix(self, issue: InspectionIssue) -> FixSuggestion:
         """
         為問題生成修復建議
-        
+
         Returns:
             FixSuggestion: 修復建議（包含自動修復方案）
         """
@@ -802,7 +820,7 @@ class ConfigInspectionService:
 ```python
 class SystemConfigAgent(AgentServiceProtocol):
     """系統設置代理 - 通過自然語言進行系統配置管理"""
-    
+
     def __init__(self):
         self._config_service = get_config_store_service()
         self._audit_service = get_audit_log_service()
@@ -813,18 +831,18 @@ class SystemConfigAgent(AgentServiceProtocol):
         self._ontology_service = get_ontology_store_service()
         self._log_service = get_log_service()  # ⭐ 集成 LogService（詳見 LogService 規格書）
         self._config_definition_service = get_config_definition_service()  # ⭐ 集成 ConfigDefinitionService（詳見 ConfigMetadata 規格書）
-    
+
     async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
         """
         處理系統配置相關的任務
-        
+
         Args:
             request: Agent 服務請求，包含：
                 - intent: 已解析的配置意圖（ConfigIntent，由 Orchestrator 解析，詳見 Orchestrator 規格書）
                 - admin_user_id: 管理員用戶 ID
                 - context: 上下文信息（包含原始指令、任務 ID、audit_context 等）
                     - audit_context: 由 Security Agent 構建的審計上下文（詳見 Security Agent 規格書）
-        
+
         Returns:
             AgentServiceResponse: 包含配置查詢結果或設置確認
         """
@@ -833,16 +851,16 @@ class SystemConfigAgent(AgentServiceProtocol):
         if not intent:
             # 如果沒有提供 intent，說明 Orchestrator 沒有正確解析
             raise ValueError("ConfigIntent is required. Orchestrator should parse intent and pass it to System Config Agent.")
-        
+
         admin_user_id = request.task_data.get("admin_user_id")
         context = request.task_data.get("context", {})
         audit_context = context.get("audit_context", {})  # ⭐ 由 Security Agent 提供的審計上下文
         trace_id = context.get("trace_id")  # ⭐ 由 Orchestrator 提供的 trace_id
-        
+
         # 1. 權限驗證（已在 Orchestrator 層通過 Security Agent 驗證，這裡做二次確認）
         # 詳細說明請參考：[Security-Agent-規格書.md](./Security-Agent-規格書.md)
         await self._verify_permission(admin_user_id, intent)
-        
+
         # 2. 第二層深檢：配置合規性驗證 ⭐ **新增**
         # 詳細說明請參考：[ConfigMetadata-配置元數據機制規格書.md](./Tools/ConfigMetadata-配置元數據機制規格書.md)
         # 注意：第一層預檢已在 Orchestrator 層完成（格式與邊界驗證）
@@ -856,7 +874,7 @@ class SystemConfigAgent(AgentServiceProtocol):
                     status="compliance_check_failed",
                     result={"error": compliance_result.reason}
                 )
-        
+
         # 3. 執行操作
         if intent.action == "query":
             result = await self._handle_query(intent)
@@ -874,20 +892,20 @@ class SystemConfigAgent(AgentServiceProtocol):
             result = await self._handle_rollback(intent, admin_user_id)
         else:
             result = {"error": f"Unsupported action: {intent.action}"}
-        
+
         # 3. 記錄審計日誌（使用 LogService）
         # 詳細說明請參考：[LogService-規格書.md](./Tools/LogService-規格書.md)
         # 注意：配置變更的審計日誌已在各操作方法中記錄（包含 before/after）
         # 這裡只記錄操作結果摘要
         if trace_id and intent.action in ["create", "update", "delete"]:
             await self._log_audit_summary(intent, admin_user_id, result, trace_id)
-        
+
         return AgentServiceResponse(
             task_id=request.task_id,
             status="completed",
             result=result
         )
-    
+
     async def _handle_query(self, intent: ConfigIntent) -> Dict[str, Any]:
         """處理配置查詢"""
         if intent.level == "system":
@@ -896,8 +914,8 @@ class SystemConfigAgent(AgentServiceProtocol):
             config = self._config_service.get_config(intent.scope, tenant_id=intent.tenant_id, user_id=None)
         elif intent.level == "user":
             config = self._config_service.get_config(
-                intent.scope, 
-                tenant_id=intent.tenant_id, 
+                intent.scope,
+                tenant_id=intent.tenant_id,
                 user_id=intent.user_id
             )
         else:
@@ -907,23 +925,23 @@ class SystemConfigAgent(AgentServiceProtocol):
                 tenant_id=intent.tenant_id or "",
                 user_id=intent.user_id
             )
-        
+
         return {
             "action": "query",
             "scope": intent.scope,
             "level": intent.level,
             "config": config.dict() if config else None
         }
-    
+
     async def _handle_update_with_preview(
-        self, 
-        intent: ConfigIntent, 
+        self,
+        intent: ConfigIntent,
         admin_user_id: str,
         trace_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         處理配置更新（含預覽機制）
-        
+
         注意：此方法會先生成預覽，實際更新需要管理員確認
         """
         # 1. 獲取當前配置（用於 before/after 對照）
@@ -933,10 +951,10 @@ class SystemConfigAgent(AgentServiceProtocol):
             user_id=intent.user_id
         )
         before_config = current_config.config_data if current_config else {}
-        
+
         # 2. 生成預覽（影響分析、成本預估）
         preview = await self._preview_service.generate_preview(intent, current_config)
-        
+
         # 3. 記錄預覽日誌（使用 LogService）
         if trace_id:
             await self._log_service.log_audit(
@@ -953,7 +971,7 @@ class SystemConfigAgent(AgentServiceProtocol):
                 tenant_id=intent.tenant_id,
                 user_id=intent.user_id
             )
-        
+
         # 4. 返回預覽結果（等待 Orchestrator 確認）
         return {
             "action": "update",
@@ -961,7 +979,7 @@ class SystemConfigAgent(AgentServiceProtocol):
             "requires_confirmation": True,
             "confirmation_prompt": self._generate_confirmation_prompt(preview)
         }
-    
+
     async def _handle_rollback(
         self,
         intent: ConfigIntent,
@@ -970,30 +988,30 @@ class SystemConfigAgent(AgentServiceProtocol):
         """處理配置回滾（時光機功能）"""
         # 從 intent 中提取 rollback_id
         rollback_id = intent.config_data.get("rollback_id") if intent.config_data else None
-        
+
         if not rollback_id:
             # 如果沒有指定 rollback_id，獲取最近的變更
             recent_changes = await self._rollback_service.get_recent_changes(limit=1)
             if not recent_changes:
                 return {"error": "沒有找到可回滾的配置變更"}
             rollback_id = recent_changes[0].details.get("rollback_id")
-        
+
         # 執行回滾
         result = await self._rollback_service.rollback_config(rollback_id, admin_user_id)
-        
+
         return {
             "action": "rollback",
             "rollback_id": rollback_id,
             "success": result.success,
             "message": result.message
         }
-    
+
     async def _verify_permission(self, user_id: str, intent: ConfigIntent) -> None:
         """驗證用戶權限（二次確認）"""
         # 權限驗證邏輯
         # 注意：主要權限檢查已在 Orchestrator 層通過 Security Agent 完成
         # ...
-    
+
     async def _handle_update(
         self,
         intent: ConfigIntent,
@@ -1002,9 +1020,9 @@ class SystemConfigAgent(AgentServiceProtocol):
     ) -> Dict[str, Any]:
         """
         處理配置更新（實際執行）
-        
+
         注意：此方法在管理員確認後執行
-        
+
         詳細說明請參考：[ConfigMetadata-配置元數據機制規格書.md](./Tools/ConfigMetadata-配置元數據機制規格書.md)
         """
         # 1. 獲取配置定義（用於第二層深檢）⭐ **新增**
@@ -1015,7 +1033,7 @@ class SystemConfigAgent(AgentServiceProtocol):
             compliance_result = await self._validate_config_compliance(intent, definition)
             if not compliance_result.valid:
                 raise ConvergenceRuleViolationError(compliance_result.reason)
-        
+
         # 2. 獲取當前配置（用於 before/after 對照）
         current_config = await self._config_service.get_config(
             intent.scope,
@@ -1023,7 +1041,7 @@ class SystemConfigAgent(AgentServiceProtocol):
             user_id=intent.user_id
         )
         before_config = current_config.config_data if current_config else {}
-        
+
         # 3. 執行配置更新
         db_result = await self._config_service.update_config(
             scope=intent.scope,
@@ -1033,17 +1051,17 @@ class SystemConfigAgent(AgentServiceProtocol):
             user_id=intent.user_id
         )
         after_config = db_result.config_data
-        
+
         # 3. 構建 AQL 查詢記錄
         aql_query = f"""
-            UPDATE {{_key: '{db_result._key}'}} 
-            WITH {{config_data: {json.dumps(after_config)}}} 
+            UPDATE {{_key: '{db_result._key}'}}
+            WITH {{config_data: {json.dumps(after_config)}}}
             IN {'system_configs' if intent.level == 'system' else 'tenant_configs' if intent.level == 'tenant' else 'user_configs'}
         """
-        
+
         # 4. 計算變更內容
         changes = self._calculate_changes(before_config, after_config)
-        
+
         # 5. 記錄審計日誌（使用 LogService，包含 before/after）
         if trace_id:
             await self._log_service.log_audit(
@@ -1066,7 +1084,7 @@ class SystemConfigAgent(AgentServiceProtocol):
                 tenant_id=intent.tenant_id,
                 user_id=intent.user_id
             )
-        
+
         return {
             "action": "update",
             "scope": intent.scope,
@@ -1075,7 +1093,7 @@ class SystemConfigAgent(AgentServiceProtocol):
             "config": after_config,
             "changes": changes
         }
-    
+
     def _calculate_changes(
         self,
         before: Dict[str, Any],
@@ -1090,7 +1108,7 @@ class SystemConfigAgent(AgentServiceProtocol):
                     "new": after.get(key)
                 }
         return changes
-    
+
     async def _log_audit_summary(
         self,
         intent: ConfigIntent,
@@ -1100,10 +1118,10 @@ class SystemConfigAgent(AgentServiceProtocol):
     ) -> None:
         """
         記錄審計日誌摘要（操作結果）
-        
+
         詳細的配置變更日誌已在各操作方法中記錄（包含 before/after）。
         這裡只記錄操作結果摘要。
-        
+
         詳細說明請參考：[LogService-規格書.md](./Tools/LogService-規格書.md)
         """
         # 操作結果摘要已包含在主要審計日誌中，這裡可以記錄額外的摘要信息
@@ -1165,6 +1183,7 @@ result = await orchestrator.call_service(
 ```
 
 **響應**：
+
 ```json
 {
   "task_id": "task-uuid-123",
@@ -1204,11 +1223,11 @@ result = await orchestrator.call_service(
 async def _verify_permission(self, user_id: str, intent: ConfigIntent) -> None:
     """驗證用戶權限"""
     user_role = await self._get_user_role(user_id)
-    
+
     # 系統級配置：只有 system_admin 可以操作
     if intent.level == "system" and user_role != "system_admin":
         raise PermissionError("只有系統管理員可以操作系統級配置")
-    
+
     # 租戶級配置：tenant_admin 只能操作自己的租戶
     if intent.level == "tenant":
         if user_role == "tenant_admin":
@@ -1294,21 +1313,21 @@ await self._log_service.log_audit(...)
 async def _validate_compliance(self, intent: ConfigIntent) -> List[ComplianceCheckResult]:
     """驗證配置合規性"""
     results = []
-    
+
     # 1. 檢查收斂規則（tenant 配置不能擴權）
     if intent.level == "tenant" and intent.action in ["create", "update"]:
         convergence_check = await self._check_convergence_rule(intent)
         results.append(convergence_check)
-    
+
     # 2. 檢查數據分類標記（WBS-4.2.1）
     if intent.config_data:
         classification_check = await self._check_data_classification(intent)
         results.append(classification_check)
-    
+
     # 3. 檢查安全策略
     security_check = await self._check_security_policy(intent)
     results.append(security_check)
-    
+
     return results
 ```
 
@@ -1341,6 +1360,7 @@ async def _validate_compliance(self, intent: ConfigIntent) -> List[ComplianceChe
 | `RESTRICTED` | 受限配置 | 安全策略、訪問控制規則 |
 
 **敏感性標籤**：
+
 - `PII` - 個人身份信息
 - `PHI` - 健康信息
 - `FINANCIAL` - 財務信息
@@ -1353,7 +1373,7 @@ async def _validate_compliance(self, intent: ConfigIntent) -> List[ComplianceChe
 ```python
 async def _analyze_impact(self, intent: ConfigIntent) -> Dict[str, Any]:
     """分析配置變更的影響範圍"""
-    
+
     impact = {
         "affected_tenants": [],
         "affected_users": [],
@@ -1361,20 +1381,20 @@ async def _analyze_impact(self, intent: ConfigIntent) -> Dict[str, Any]:
         "risk_level": "low",
         "recommendations": []
     }
-    
+
     # 系統級配置變更：影響所有租戶
     if intent.level == "system":
         impact["affected_tenants"] = await self._get_all_tenants()
         impact["risk_level"] = "high"
         impact["recommendations"].append("建議在非業務時間執行")
         impact["recommendations"].append("建議先通知所有租戶")
-    
+
     # 租戶級配置變更：影響該租戶的所有用戶
     elif intent.level == "tenant":
         impact["affected_tenants"] = [intent.tenant_id]
         impact["affected_users"] = await self._get_tenant_users(intent.tenant_id)
         impact["risk_level"] = "medium"
-    
+
     return impact
 ```
 
@@ -1490,11 +1510,13 @@ async def _analyze_impact(self, intent: ConfigIntent) -> Dict[str, Any]:
 ### 7.1 配置查詢示例
 
 **管理員輸入**：
+
 ```
 查看系統的 GenAI 策略配置
 ```
 
 **Agent 響應**：
+
 ```
 系統的 GenAI 策略配置：
 
@@ -1510,11 +1532,13 @@ async def _analyze_impact(self, intent: ConfigIntent) -> Dict[str, Any]:
 ### 7.2 配置設置示例（含預覽確認）⭐ **優化功能**
 
 **管理員輸入**：
+
 ```
 將系統默認模型改為 gpt-4o
 ```
 
 **Agent 預覽響應**（先預覽，後執行）：
+
 ```
 我將要把系統默認模型從 GPT-3.5-Turbo 改為 GPT-4o。
 
@@ -1532,11 +1556,13 @@ async def _analyze_impact(self, intent: ConfigIntent) -> Dict[str, Any]:
 ```
 
 **管理員確認**：
+
 ```
 yes
 ```
 
 **Agent 執行響應**：
+
 ```
 ✅ 已成功更新系統默認模型為 gpt-4o
 
@@ -1556,11 +1582,13 @@ yes
 ### 7.4 時光機功能示例（Rollback）⭐ **優化功能**
 
 **管理員輸入**：
+
 ```
 復原剛才的設置
 ```
 
 **Agent 響應**：
+
 ```
 已找到最近的配置變更：
 - 配置項：genai.policy (系統級)
@@ -1573,11 +1601,13 @@ yes
 ```
 
 **管理員確認**：
+
 ```
 yes
 ```
 
 **Agent 響應**：
+
 ```
 ✅ 已成功復原配置
 
@@ -1593,6 +1623,7 @@ yes
 ### 7.5 主動式巡檢示例 ⭐ **優化功能**
 
 **Agent 主動提醒**（無需管理員輸入）：
+
 ```
 🔍 配置巡檢發現問題：
 
@@ -1605,11 +1636,13 @@ yes
 ```
 
 **管理員確認**：
+
 ```
 yes
 ```
 
 **Agent 響應**：
+
 ```
 ✅ 已修正租戶 B 的配置
 
@@ -1626,11 +1659,13 @@ yes
 ### 7.3 配置澄清示例
 
 **管理員輸入**：
+
 ```
 修改 LLM 配置
 ```
 
 **Agent 響應**：
+
 ```
 我需要更多信息來執行此操作：
 
@@ -1777,8 +1812,8 @@ class ConfigOperationResult(BaseModel):
 
 ---
 
-**文檔版本**：1.1  
-**最後更新**：2025-12-20  
+**文檔版本**：1.1
+**最後更新**：2025-12-20
 **維護者**：Daniel Chung
 
 ---
@@ -1835,12 +1870,13 @@ admin_user_id = request.task_data.get("admin_user_id")
 ### A.3 文檔銜接
 
 **在 System Config Agent 規格書中**：
+
 - 明確說明意圖解析由 Orchestrator 完成
 - 說明 System Config Agent 接收已解析的 `ConfigIntent`
 - 引用 Orchestrator 規格書了解完整的協調流程
 
 **在 Orchestrator 規格書中**：
+
 - 詳細說明 Task Analyzer 如何解析配置操作
 - 說明如何生成 `ConfigIntent`
 - 說明如何與 System Config Agent 協作
-

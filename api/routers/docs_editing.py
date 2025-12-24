@@ -44,7 +44,6 @@ from services.api.services.doc_edit_request_store_service import get_doc_edit_re
 from services.api.services.doc_generation_request_store_service import (
     get_doc_generation_request_store_service,
 )
-from services.api.services.incremental_reindex_service import get_incremental_reindex_service
 from services.api.services.doc_patch_service import (
     PatchApplyError,
     apply_json_patch,
@@ -54,6 +53,7 @@ from services.api.services.doc_patch_service import (
 )
 from services.api.services.file_metadata_service import FileMetadataService
 from services.api.services.file_permission_service import get_file_permission_service
+from services.api.services.incremental_reindex_service import get_incremental_reindex_service
 from storage.file_storage import FileStorage, create_storage_from_config
 from system.infra.config.config import get_config_section
 from system.security.audit_decorator import audit_log

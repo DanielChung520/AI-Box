@@ -1,8 +1,8 @@
 # 配置元數據（Configuration Metadata）機制規格書
 
-**版本**：2.0  
-**創建日期**：2025-12-20  
-**創建人**：Daniel Chung  
+**版本**：2.0
+**創建日期**：2025-12-20
+**創建人**：Daniel Chung
 **最後修改日期**：2025-01-27
 
 > **📋 相關文檔**：
@@ -39,6 +39,7 @@
 **核心問題**：如何確保 AI 在設置系統配置時「不亂改」？
 
 **傳統方案的問題**：
+
 - ❌ 只靠 Prompt（口頭叮囑）無法防止 AI 幻想（Hallucination）
 - ❌ AI 可能設置系統不支持的值（如不存在的模型名稱）
 - ❌ AI 可能設置超出範圍的數值（如負數或天文數字）
@@ -122,6 +123,7 @@
 **存儲位置**：`services/api/core/config/definitions/*.json`
 
 **設計理念**：
+
 - ✅ **單一數據源**：JSON 文件是唯一數據源，避免同步問題
 - ✅ **直觀易用**：在 IDE 中直接編輯，語法高亮和自動補全
 - ✅ **版本控制**：通過 Git 追蹤所有變更，支持 Code Review
@@ -185,11 +187,13 @@
 **目的**：防止 Agent 幻想（Hallucination）出系統不支持的值。
 
 **範例**：
+
 - 管理員說：「幫我改用 Llama-3」
 - System Config Agent 讀取 `fields.allowed_models.options`
 - 發現沒有 Llama-3，主動回覆：「抱歉，目前系統僅支援 gpt-4o 等模型，請重新選擇。」
 
 **實現**：
+
 ```python
 # 在 System Config Agent 中
 definition = await self._get_config_definition(intent.scope)
@@ -207,11 +211,13 @@ if intent.config_data.get("default_model") not in allowed_models:
 **目的**：確保數值類型的配置不會導致系統崩潰（例如設為負數或天文數字）。
 
 **範例**：
+
 - 管理員要求將 `rate_limit` 設為 2000
 - System Config Agent 讀取定義：`min: 1, max: 1000`
 - 攔截此操作，拋出 `ValidationError`：「rate_limit 必須在 1-1000 之間」
 
 **實現**：
+
 ```python
 # 在 System Config Agent 中
 definition = await self._get_config_definition(intent.scope)
@@ -230,11 +236,13 @@ if intent.config_data.get("rate_limit"):
 **目的**：確保租戶配置永遠在系統級框架內。
 
 **範例**：
+
 - 系統級設定最大模型數為 5
 - AI 試圖幫租戶設為 10
 - ConfigAgent 攔截並回報 `ConvergenceRuleViolationError`：「抱歉，系統全域限制最大為 5，我無法設為 10」
 
 **實現**：
+
 ```python
 # 在 System Config Agent 中
 if intent.level == "tenant":
@@ -242,13 +250,13 @@ if intent.level == "tenant":
     system_config = await self._config_service.get_config(
         intent.scope, level="system"
     )
-    
+
     # 檢查收斂規則
     if "must_subset_of_parent" in definition.convergence_rules:
         for field in definition.convergence_rules["must_subset_of_parent"]:
             tenant_value = intent.config_data.get(field)
             system_value = system_config.config_data.get(field)
-            
+
             if isinstance(tenant_value, list) and isinstance(system_value, list):
                 if not set(tenant_value).issubset(set(system_value)):
                     raise ConvergenceRuleViolationError(
@@ -298,6 +306,7 @@ if intent.level == "tenant":
 - ✅ **可靠性高**：冷啟動不依賴數據庫，系統更可靠
 
 **注意**：
+
 - 實際配置值（如租戶 A 的 rate_limit=500）仍然存儲在 ArangoDB 的 `system_configs`、`tenant_configs`、`user_configs` Collection 中
 - JSON 文件只存儲「定義」（約束條件），不存儲「值」
 
@@ -321,6 +330,7 @@ AI-Box/
 ```
 
 **文件命名規範**：
+
 - 使用 `{scope}.json` 格式
 - 例如：`genai.policy.json`、`llm.provider_config.json`
 
@@ -374,17 +384,20 @@ AI-Box/
 #### 4.2.3 JSON 文件存儲的優勢
 
 **✅ 版本與代碼同步**：
+
 - 當您更版新增了 `gpt-5` 支持時，只需修改目錄下的 JSON
 - 代碼與約束條件會同時通過 Git 提交、測試、發布
 - 確保「新功能」不會因為「舊資料庫」的限制而失效
 
 **✅ 系統冷啟動（Cold Start）**：
+
 - 在資料庫尚未建立、或是資料庫遷移（Migration）失敗時
 - 系統依賴目錄下的 JSON 依然可以進行基本的「指令預檢」
 - 確保系統在資料庫不可用時仍能提供基本驗證功能
 - **無需同步**：不需要從 JSON 同步到 ArangoDB，系統直接從內存緩存讀取
 
 **✅ 直覺性與可讀性**：
+
 - 開發者直接在 IDE 修改 JSON，比透過後台介面或 SQL/AQL 操作資料庫更直覺
 - 方便進行 Code Review
 - 版本控制系統可以追蹤配置變更歷史
@@ -407,11 +420,11 @@ logger = structlog.get_logger(__name__)
 
 class DefinitionLoader:
     """配置定義加載器"""
-    
+
     def __init__(self, definitions_dir: Optional[Path] = None):
         """
         初始化定義加載器
-        
+
         Args:
             definitions_dir: 定義文件目錄（默認：services/api/core/config/definitions）
         """
@@ -419,14 +432,14 @@ class DefinitionLoader:
             # 默認路徑：相對於項目根目錄
             base_dir = Path(__file__).parent.parent.parent.parent.parent
             definitions_dir = base_dir / "services" / "api" / "core" / "config" / "definitions"
-        
+
         self.definitions_dir = Path(definitions_dir)
         self._cache: Dict[str, Dict[str, Any]] = {}  # 內存緩存
-    
+
     def load_all(self) -> Dict[str, Dict[str, Any]]:
         """
         加載所有定義文件到內存
-        
+
         Returns:
             所有配置定義的字典（key: scope, value: 定義內容）
         """
@@ -436,9 +449,9 @@ class DefinitionLoader:
                 directory=str(self.definitions_dir)
             )
             return {}
-        
+
         definitions = {}
-        
+
         # 遍歷所有 JSON 文件
         for json_file in self.definitions_dir.glob("*.json"):
             try:
@@ -456,29 +469,29 @@ class DefinitionLoader:
                     file=str(json_file),
                     error=str(e)
                 )
-        
+
         # 更新內存緩存
         self._cache = definitions
-        
+
         return definitions
-    
+
     def _load_file(self, file_path: Path) -> Dict[str, Any]:
         """加載單個定義文件"""
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
-    
+
     def get_definition(self, scope: str) -> Optional[Dict[str, Any]]:
         """
         從內存緩存獲取定義
-        
+
         Args:
             scope: 配置範圍
-        
+
         Returns:
             配置定義（如果存在）
         """
         return self._cache.get(scope)
-    
+
     def reload(self) -> Dict[str, Dict[str, Any]]:
         """重新加載所有定義文件"""
         return self.load_all()
@@ -524,7 +537,7 @@ async def startup_event():
 ```python
 class AgentOrchestrator:
     """Agent 協調器"""
-    
+
     def __init__(self, registry: Optional[Any] = None):
         self._registry = registry or get_agent_registry()
         self._task_analyzer = TaskAnalyzer()
@@ -532,17 +545,17 @@ class AgentOrchestrator:
         self._llm_router = get_llm_router()
         self._log_service = get_log_service()
         self._definition_loader = get_definition_loader()  # ⭐ 獲取定義加載器
-    
+
     async def _get_config_definition(self, scope: str) -> Optional[Dict[str, Any]]:
         """
         獲取配置定義（只從內存緩存讀取）
-        
+
         Args:
             scope: 配置範圍
-        
+
         Returns:
             配置定義（如果存在）
-        
+
         注意：
         - JSON 文件是唯一數據源
         - 啟動時應該已經加載所有定義到內存
@@ -550,15 +563,15 @@ class AgentOrchestrator:
         - 不再從 ArangoDB 讀取備用，避免讀到舊數據
         """
         definition = self._definition_loader.get_definition(scope)
-        
+
         if not definition:
             logger.error(
                 f"配置定義缺失: {scope}，請檢查 JSON 文件是否存在",
                 scope=scope
             )
-        
+
         return definition
-    
+
     async def _pre_check_config_intent(
         self,
         intent: Dict[str, Any],
@@ -568,7 +581,7 @@ class AgentOrchestrator:
         scope = intent.get("scope")
         if not scope:
             return ValidationResult(valid=False, reason="scope is required")
-        
+
         # ⭐ 從內存緩存讀取定義（快速）
         definition = self._definition_loader.get_definition(scope)
         if not definition:
@@ -576,7 +589,7 @@ class AgentOrchestrator:
                 valid=False,
                 reason=f"Config definition not found for scope: {scope}"
             )
-        
+
         # 驗證配置字段
         config_data = intent.get("config_data", {})
         for field_name, field_value in config_data.items():
@@ -585,10 +598,10 @@ class AgentOrchestrator:
                     valid=False,
                     reason=f"未知的配置字段：{field_name}"
                 )
-            
+
             field_def = definition["fields"][field_name]
             validation_result = self._validate_field(field_name, field_value, field_def)
-            
+
             if not validation_result.valid:
                 # ⭐ 使用定義中的 description 生成友好錯誤信息
                 error_msg = (
@@ -597,7 +610,7 @@ class AgentOrchestrator:
                     f"合法範圍：{field_def.get('min', 'N/A')}-{field_def.get('max', 'N/A')}"
                 )
                 return ValidationResult(valid=False, reason=error_msg)
-        
+
         return ValidationResult(valid=True)
 ```
 
@@ -616,6 +629,7 @@ if field_value > field_def["max"]:
 ```
 
 **範例錯誤信息**：
+
 ```
 設置失敗：rate_limit (2000) 超出系統定義上限 (1000)。
 每分鐘 API 請求上限 合法範圍：1-1000
@@ -747,6 +761,7 @@ if field_value > field_def["max"]:
 **負責組件**：Orchestrator
 
 **驗證內容**：
+
 - ✅ 格式與邊界：型別是否正確？數值是否在 min/max 內？
 - ✅ 枚舉值檢查：選項是否在 options 列表中？
 
@@ -765,12 +780,12 @@ sequenceDiagram
     User->>Orchestrator: "將 rate_limit 改為 2000"
     Orchestrator->>TaskAnalyzer: 解析意圖
     TaskAnalyzer-->>Orchestrator: ConfigIntent<br/>{action: "update", scope: "genai.policy",<br/>config_data: {rate_limit: 2000}}
-    
+
     Orchestrator->>ConfigDefs: 查詢 genai.policy 的定義<br/>（從內存緩存讀取）
     ConfigDefs-->>Orchestrator: 定義（rate_limit: min=1, max=1000）
-    
+
     Orchestrator->>Orchestrator: 預檢驗證<br/>2000 > 1000 → 驗證失敗
-    
+
     Orchestrator-->>User: "抱歉，rate_limit 必須在 1-1000 之間，<br/>您設置的 2000 超出範圍"
 ```
 
@@ -779,7 +794,7 @@ sequenceDiagram
 ```python
 class AgentOrchestrator:
     """Agent 協調器"""
-    
+
     async def _pre_check_config_intent(
         self,
         intent: Dict[str, Any],
@@ -787,21 +802,21 @@ class AgentOrchestrator:
     ) -> ValidationResult:
         """
         第一層預檢：格式與邊界驗證
-        
+
         基於 Agent Registry 的 input_schema 進行驗證
         """
         # 1. 獲取配置定義（從內存緩存，JSON 文件是唯一數據源）
         scope = intent.get("scope")
         if not scope:
             return ValidationResult(valid=False, reason="scope is required")
-        
+
         definition = await self._get_config_definition(scope)
         if not definition:
             return ValidationResult(
                 valid=False,
                 reason=f"Config definition not found for scope: {scope}。請檢查 JSON 文件是否存在。"
             )
-        
+
         # 2. 驗證每個配置字段
         config_data = intent.get("config_data", {})
         for field_name, field_value in config_data.items():
@@ -810,15 +825,15 @@ class AgentOrchestrator:
                     valid=False,
                     reason=f"未知的配置字段：{field_name}"
                 )
-            
+
             field_def = definition["fields"][field_name]
             validation_result = self._validate_field(field_name, field_value, field_def)
-            
+
             if not validation_result.valid:
                 return validation_result
-        
+
         return ValidationResult(valid=True)
-    
+
     def _validate_field(
         self,
         field_name: str,
@@ -833,7 +848,7 @@ class AgentOrchestrator:
                 valid=False,
                 reason=f"{field_name} 的類型錯誤：期望 {expected_type}，實際 {type(field_value).__name__}"
             )
-        
+
         # 2. 數值邊界檢查
         if expected_type == "integer" or expected_type == "number":
             if "min" in field_def and field_value < field_def["min"]:
@@ -846,7 +861,7 @@ class AgentOrchestrator:
                     valid=False,
                     reason=f"{field_name} ({field_value}) 大於最大值 {field_def['max']}"
                 )
-        
+
         # 3. 枚舉值檢查
         if "options" in field_def:
             if isinstance(field_value, list):
@@ -864,9 +879,9 @@ class AgentOrchestrator:
                         valid=False,
                         reason=f"{field_name} ({field_value}) 不在允許列表中。允許的值：{field_def['options']}"
                     )
-        
+
         return ValidationResult(valid=True)
-    
+
     def _check_type(self, value: Any, expected_type: str) -> bool:
         """檢查類型是否匹配"""
         type_map = {
@@ -880,7 +895,7 @@ class AgentOrchestrator:
         expected = type_map.get(expected_type)
         if expected is None:
             return True  # 未知類型，跳過檢查
-        
+
         if isinstance(expected, tuple):
             return isinstance(value, expected)
         return isinstance(value, expected)
@@ -891,6 +906,7 @@ class AgentOrchestrator:
 **負責組件**：System Config Agent
 
 **驗證內容**：
+
 - ✅ 邏輯與收斂：是否違反租戶/系統層級關係？
 - ✅ 業務規則：是否符合業務邏輯？
 
@@ -907,18 +923,18 @@ sequenceDiagram
     participant ArangoDB as ArangoDB
 
     Orchestrator->>ConfigAgent: 分發任務<br/>(已通過預檢)
-    
+
     ConfigAgent->>ConfigDefs: 讀取配置定義<br/>get_config_definition(scope)
     ConfigDefs-->>ConfigAgent: 定義（包含收斂規則）
-    
+
     alt 租戶級配置
         ConfigAgent->>ConfigStore: 獲取系統級配置<br/>get_config(scope, level="system")
         ConfigStore->>ArangoDB: 查詢 system_configs
         ArangoDB-->>ConfigStore: 系統級配置
         ConfigStore-->>ConfigAgent: 系統級配置數據
-        
+
         ConfigAgent->>ConfigAgent: 檢查收斂規則<br/>租戶配置是否為系統配置的子集？
-        
+
         alt 違反收斂規則
             ConfigAgent-->>Orchestrator: ConvergenceRuleViolationError<br/>"租戶配置必須是系統配置的子集"
         else 通過驗證
@@ -934,7 +950,7 @@ sequenceDiagram
 ```python
 class SystemConfigAgent(AgentServiceProtocol):
     """負責配置的合規檢查與 ArangoDB 交互"""
-    
+
     async def _validate_config_compliance(
         self,
         intent: ConfigIntent,
@@ -942,11 +958,11 @@ class SystemConfigAgent(AgentServiceProtocol):
     ) -> ComplianceCheckResult:
         """
         第二層深檢：邏輯與收斂驗證
-        
+
         Args:
             intent: 配置操作意圖
             definition: 配置定義（從 JSON 文件加載到內存緩存）
-        
+
         Returns:
             ComplianceCheckResult: 合規檢查結果
         """
@@ -957,14 +973,14 @@ class SystemConfigAgent(AgentServiceProtocol):
             )
             if not convergence_result.valid:
                 return convergence_result
-        
+
         # 2. 檢查業務規則
         business_result = await self._check_business_rules(intent, definition)
         if not business_result.valid:
             return business_result
-        
+
         return ComplianceCheckResult(valid=True)
-    
+
     async def _check_convergence_rules(
         self,
         intent: ConfigIntent,
@@ -980,18 +996,18 @@ class SystemConfigAgent(AgentServiceProtocol):
                 valid=False,
                 reason="系統級配置不存在，無法驗證收斂規則"
             )
-        
+
         convergence_rules = definition.convergence_rules
-        
+
         # 2. 檢查 must_subset_of_parent 規則
         if "must_subset_of_parent" in convergence_rules:
             for field in convergence_rules["must_subset_of_parent"]:
                 tenant_value = intent.config_data.get(field)
                 system_value = system_config.config_data.get(field)
-                
+
                 if tenant_value is None:
                     continue
-                
+
                 if isinstance(tenant_value, list) and isinstance(system_value, list):
                     if not set(tenant_value).issubset(set(system_value)):
                         return ComplianceCheckResult(
@@ -1001,16 +1017,16 @@ class SystemConfigAgent(AgentServiceProtocol):
                                 f"系統允許：{system_value}，您設置：{tenant_value}"
                             )
                         )
-        
+
         # 3. 檢查 must_not_exceed_system_max 規則
         if "must_not_exceed_system_max" in convergence_rules:
             for field in convergence_rules["must_not_exceed_system_max"]:
                 tenant_value = intent.config_data.get(field)
                 system_value = system_config.config_data.get(field)
-                
+
                 if tenant_value is None or system_value is None:
                     continue
-                
+
                 if isinstance(tenant_value, (int, float)) and isinstance(system_value, (int, float)):
                     if tenant_value > system_value:
                         return ComplianceCheckResult(
@@ -1020,7 +1036,7 @@ class SystemConfigAgent(AgentServiceProtocol):
                                 f"不能超過系統級最大值 ({system_value})"
                             )
                         )
-        
+
         return ComplianceCheckResult(valid=True)
 ```
 
@@ -1031,27 +1047,27 @@ flowchart TD
     Start([管理員輸入指令]) --> Parse[Task Analyzer 解析意圖]
     Parse --> GetDef[查詢配置定義<br/>（從內存緩存讀取）]
     GetDef --> PreCheck{第一層預檢<br/>格式與邊界}
-    
+
     PreCheck -->|驗證失敗| Reject1[返回錯誤<br/>"數值需在 1-1000 之間"]
     PreCheck -->|驗證通過| Security[Security Agent 權限檢查]
-    
+
     Security -->|權限通過| DeepCheck{第二層深檢<br/>邏輯與收斂}
     Security -->|權限失敗| Reject2[返回錯誤<br/>"權限不足"]
-    
+
     DeepCheck -->|驗證失敗| Reject3[返回錯誤<br/>"違反收斂規則"]
     DeepCheck -->|驗證通過| Preview[生成預覽]
-    
+
     Preview --> Confirm{管理員確認}
     Confirm -->|確認| Execute[執行配置更新]
     Confirm -->|取消| Cancel[取消操作]
-    
+
     Execute --> Log[記錄審計日誌]
     Log --> End([完成])
-    
+
     classDef preCheck fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef deepCheck fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     classDef execute fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    
+
     class PreCheck,Reject1 preCheck
     class DeepCheck,Reject3 deepCheck
     class Execute,Log execute
@@ -1091,10 +1107,10 @@ class AgentMetadata(BaseModel):
 # 在 System Config Agent 註冊時
 async def register_system_config_agent():
     """註冊 System Config Agent"""
-    
+
     # 1. 從 JSON 文件生成 input_schema（可選）
     input_schema = await generate_input_schema_from_definitions()
-    
+
     # 2. 註冊 Agent
     request = AgentRegistrationRequest(
         agent_id="system_config_agent",
@@ -1107,7 +1123,7 @@ async def register_system_config_agent():
             input_schema=input_schema  # ⭐ 可選，僅用於能力描述
         )
     )
-    
+
     await registry.register_agent(request)
 
 async def generate_input_schema_from_definitions() -> Dict[str, Any]:
@@ -1117,12 +1133,12 @@ async def generate_input_schema_from_definitions() -> Dict[str, Any]:
     definitions = {}
     for scope in loader._cache.keys():
         definitions[scope] = loader.get_definition(scope)
-    
+
     input_schema = {
         "type": "object",
         "properties": {}
     }
-    
+
     for scope, definition in definitions.items():
         if definition:
             for field_name, field_def in definition["fields"].items():
@@ -1131,16 +1147,16 @@ async def generate_input_schema_from_definitions() -> Dict[str, Any]:
                 "type": field_def["type"],
                 "description": field_def.get("description", "")
             }
-            
+
             if "min" in field_def:
                 field_schema["minimum"] = field_def["min"]
             if "max" in field_def:
                 field_schema["maximum"] = field_def["max"]
             if "options" in field_def:
                 field_schema["enum"] = field_def["options"]
-            
+
             input_schema["properties"][f"{scope}.{field_name}"] = field_schema
-    
+
     return input_schema
 
 # 注意：input_schema 僅用於 Agent 能力描述，不用於實際驗證
@@ -1152,7 +1168,7 @@ async def generate_input_schema_from_definitions() -> Dict[str, Any]:
 ```python
 class AgentOrchestrator:
     """Agent 協調器"""
-    
+
     async def process_natural_language_request(
         self,
         instruction: str,
@@ -1162,7 +1178,7 @@ class AgentOrchestrator:
         """處理自然語言請求"""
         # 1. 解析意圖
         analysis_result = await self._task_analyzer.analyze(...)
-        
+
         # 2. 第一層預檢（基於 Schema）
         if analysis_result.intent:
             target_agent_id = analysis_result.suggested_agents[0]
@@ -1170,13 +1186,13 @@ class AgentOrchestrator:
                 intent=analysis_result.intent,
                 agent_id=target_agent_id
             )
-            
+
             if not pre_check_result.valid:
                 return TaskResult(
                     status="validation_failed",
                     result={"error": pre_check_result.reason}
                 )
-        
+
         # 3. 繼續後續流程（Security Agent、System Config Agent 等）
         # ...
 ```
@@ -1198,42 +1214,42 @@ sequenceDiagram
     participant ArangoDB as ArangoDB
 
     Admin->>Orchestrator: "將 rate_limit 改為 2000"
-    
+
     Orchestrator->>TaskAnalyzer: 1. 解析意圖
     TaskAnalyzer-->>Orchestrator: ConfigIntent<br/>{action: "update", scope: "genai.policy",<br/>config_data: {rate_limit: 2000}}
-    
+
     Orchestrator->>ConfigDefs: 2. 查詢 genai.policy 的定義<br/>（從內存緩存讀取）
     ConfigDefs-->>Orchestrator: 定義（rate_limit: min=1, max=1000）
-    
+
     Orchestrator->>Orchestrator: 3. 第一層預檢<br/>2000 > 1000 → 驗證失敗
-    
+
     Orchestrator-->>Admin: "抱歉，rate_limit 必須在 1-1000 之間，<br/>您設置的 2000 超出範圍"
-    
+
     Note over Admin: 管理員修正指令
-    
+
     Admin->>Orchestrator: "將 rate_limit 改為 500"
-    
+
     Orchestrator->>TaskAnalyzer: 4. 重新解析意圖
     TaskAnalyzer-->>Orchestrator: ConfigIntent<br/>{config_data: {rate_limit: 500}}
-    
+
     Orchestrator->>ConfigDefs: 5. 查詢 genai.policy 的定義<br/>（從內存緩存讀取）
     ConfigDefs-->>Orchestrator: 定義（rate_limit: min=1, max=1000）
-    
+
     Orchestrator->>Orchestrator: 6. 第一層預檢<br/>500 在 1-1000 範圍內 → 驗證通過
-    
+
     Orchestrator->>SecurityAgent: 7. 權限檢查
     SecurityAgent-->>Orchestrator: 權限驗證通過
-    
+
     Orchestrator->>ConfigAgent: 8. 分發任務（已通過預檢）
-    
+
     ConfigAgent->>ConfigDefs: 9. 讀取配置定義<br/>（從內存緩存讀取）
     ConfigDefs-->>ConfigAgent: 定義（包含收斂規則）
-    
+
     ConfigAgent->>ConfigAgent: 10. 第二層深檢<br/>檢查收斂規則
-    
+
     ConfigAgent->>ArangoDB: 11. 執行配置更新
     ArangoDB-->>ConfigAgent: 更新成功
-    
+
     ConfigAgent-->>Orchestrator: 12. 返回執行結果
     Orchestrator-->>Admin: "已成功將 rate_limit 更新為 500"
 ```
@@ -1249,12 +1265,12 @@ sequenceDiagram
 ```python
 class TaskAnalyzer:
     """任務分析器"""
-    
+
     async def analyze(self, request: TaskAnalysisRequest) -> TaskAnalysisResult:
         """分析任務並生成結構化意圖"""
         # 1. 初步分類
         classification = self._classifier.classify(request.task)
-        
+
         # 2. 如果是配置操作，獲取配置定義並注入 Context
         if self._is_config_operation(classification):
             scope = self._extract_scope(request.task)
@@ -1265,12 +1281,12 @@ class TaskAnalyzer:
                     request.context = request.context or {}
                     request.context["config_definition"] = definition.dict()
                     request.context["allowed_values"] = self._extract_allowed_values(definition)
-        
+
         # 3. 使用增強後的 Context 進行意圖提取
         intent = self._extract_intent(request, classification)
-        
+
         return TaskAnalysisResult(...)
-    
+
     def _extract_allowed_values(self, definition: ConfigDefinition) -> Dict[str, List[str]]:
         """提取所有允許的值（用於動態提示）"""
         allowed_values = {}
@@ -1312,7 +1328,7 @@ class ConfigDataModel(BaseModel):
     rate_limit: Optional[int] = None
     allowed_models: Optional[List[str]] = None
     default_model: Optional[str] = None
-    
+
     @validator('rate_limit')
     def validate_rate_limit(cls, v, values):
         """驗證 rate_limit 範圍（從內存緩存讀取定義）"""
@@ -1326,7 +1342,7 @@ class ConfigDataModel(BaseModel):
                         f"rate_limit ({v}) 超出範圍！合法區間為 {field_def['min']}-{field_def['max']}"
                     )
         return v
-    
+
     @validator('default_model')
     def validate_default_model(cls, v):
         """驗證 default_model 選項（從內存緩存讀取定義）"""
@@ -1363,12 +1379,12 @@ async def validate_config_value(
 ) -> ValidationResult:
     """
     使用 AQL 驗證配置值是否符合定義
-    
+
     Args:
         scope: 配置範圍
         field_name: 字段名稱
         proposed_value: 提議的值
-    
+
     Returns:
         ValidationResult: 驗證結果
     """
@@ -1380,17 +1396,17 @@ async def validate_config_value(
             valid=False,
             reason=f"Config definition not found for scope: {scope}"
         )
-    
+
     field_def = definition["fields"].get(field_name)
     if not field_def:
         return ValidationResult(
             valid=False,
             reason=f"Field '{field_name}' not found in definition"
         )
-    
+
     # 使用 Python 邏輯驗證（不再使用 AQL）
     # 原 AQL 驗證邏輯改為 Python 代碼：
-    
+
     # 類型檢查
     expected_type = field_def.get("type")
     if expected_type == "integer" or expected_type == "number":
@@ -1416,7 +1432,7 @@ async def validate_config_value(
                 valid=False,
                 reason=f"類型錯誤：期望 boolean，實際 {type(proposed_value).__name__}"
             )
-    
+
     return ValidationResult(valid=True)
 ```
 
@@ -1553,8 +1569,8 @@ async def validate_config_value(
 
 ---
 
-**文檔版本**：2.0  
-**最後更新**：2025-01-27  
+**文檔版本**：2.0
+**最後更新**：2025-01-27
 **維護者**：Daniel Chung
 
 ---
@@ -1564,11 +1580,13 @@ async def validate_config_value(
 ### A.1 為什麼簡化為單一存儲機制？
 
 **原設計問題**：
+
 - 雙重存儲機制（JSON + ArangoDB）導致同步問題
 - 需要維護兩個數據源的一致性
 - 增加系統複雜度
 
 **簡化方案優勢**：
+
 - ✅ **極度簡單**：單一數據源（JSON 文件），無同步問題
 - ✅ **直觀易用**：在 IDE 中直接編輯，語法高亮和自動補全
 - ✅ **版本控制**：通過 Git 追蹤所有變更，支持 Code Review
@@ -1586,6 +1604,7 @@ Orchestrator / System Config Agent
 ```
 
 **注意**：
+
 - 實際配置值（如租戶 A 的 rate_limit=500）仍然存儲在 ArangoDB 的 `system_configs`、`tenant_configs`、`user_configs` Collection 中
 - JSON 文件只存儲「定義」（約束條件），不存儲「值」
 
@@ -1607,4 +1626,3 @@ Orchestrator / System Config Agent
    - 可以進行 Code Review
    - 部署流程統一
    - 避免運行時直接修改導致的問題
-

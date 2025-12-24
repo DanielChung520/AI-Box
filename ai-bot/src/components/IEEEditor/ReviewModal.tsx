@@ -55,13 +55,13 @@ export default function ReviewModal({
       // 獲取當前版本（最新的穩定版本）
       const currentVersion = versionsResponse.data.doc_version || 1;
       const versions = versionsResponse.data.versions || [];
-      
+
       // 如果沒有版本信息，使用當前文件內容作為原始內容
       // 否則使用最新版本的內容
       if (versions.length === 0 || currentVersion === 1) {
         // 獲取當前文件內容作為原始內容
         const previewResponse = await previewFile(fileId);
-        
+
         if (previewResponse.success && previewResponse.data?.content) {
           setOriginalContent(previewResponse.data.content);
         } else {
@@ -74,7 +74,7 @@ export default function ReviewModal({
         if (latestVersion.version_file_id) {
           // 通過版本文件 ID 獲取內容
           const versionContentResponse = await previewFile(latestVersion.version_file_id);
-          
+
           if (versionContentResponse.success && versionContentResponse.data?.content) {
             setOriginalContent(versionContentResponse.data.content);
           } else {
@@ -117,7 +117,7 @@ export default function ReviewModal({
 
   const handleEditorMount = (editor: editor.IStandaloneDiffEditor) => {
     setDiffEditor(editor);
-    
+
     // 初始化變更統計
     const changes = editor.getLineChanges();
     if (changes) {
@@ -204,4 +204,3 @@ export default function ReviewModal({
     </div>
   );
 }
-

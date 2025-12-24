@@ -55,17 +55,17 @@ class LLMProviderConfig(LLMProviderConfigBase):
     class Config:
         from_attributes = True
         populate_by_name = True
-    
+
     @property
     def _key(self) -> str:
         """兼容舊接口"""
         return self.key
-    
+
     @property
     def _id(self) -> Optional[str]:
         """兼容舊接口"""
         return self.id
-    
+
     @property
     def _rev(self) -> Optional[str]:
         """兼容舊接口"""
@@ -80,4 +80,3 @@ class LLMProviderConfigStatus(BaseModel):
     base_url: Optional[str] = Field(None, description="API 基礎 URL")
     created_at: Optional[datetime] = Field(None, description="創建時間")
     updated_at: Optional[datetime] = Field(None, description="更新時間")
-

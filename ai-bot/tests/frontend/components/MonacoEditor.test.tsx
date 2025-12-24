@@ -24,7 +24,7 @@ vi.mock('@monaco-editor/react', () => ({
         onMount(mockEditorInstance);
       }, 0);
     }
-    
+
     return (
       <div data-testid="monaco-editor" data-language={language} data-theme={theme} data-height={height}>
         <textarea
@@ -45,20 +45,20 @@ describe('MonacoEditor', () => {
 
   it('應該渲染編輯器', () => {
     render(<MonacoEditor value="測試內容" />);
-    
+
     expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
   });
 
   it('應該顯示初始內容', () => {
     render(<MonacoEditor value="初始內容" />);
-    
+
     const textarea = screen.getByTestId('monaco-editor-textarea') as HTMLTextAreaElement;
     expect(textarea.value).toBe('初始內容');
   });
 
   it('應該使用默認語言和主題', () => {
     render(<MonacoEditor value="內容" />);
-    
+
     const editor = screen.getByTestId('monaco-editor');
     expect(editor).toHaveAttribute('data-language', 'markdown');
     expect(editor).toHaveAttribute('data-theme', 'vs-dark');
@@ -66,7 +66,7 @@ describe('MonacoEditor', () => {
 
   it('應該支持自定義語言和主題', () => {
     render(<MonacoEditor value="內容" language="javascript" theme="vs-light" />);
-    
+
     const editor = screen.getByTestId('monaco-editor');
     expect(editor).toHaveAttribute('data-language', 'javascript');
     expect(editor).toHaveAttribute('data-theme', 'vs-light');
@@ -75,7 +75,7 @@ describe('MonacoEditor', () => {
   it('應該在掛載時調用 onMount 回調', async () => {
     const handleMount = vi.fn();
     render(<MonacoEditor value="內容" onMount={handleMount} />);
-    
+
     await waitFor(() => {
       expect(handleMount).toHaveBeenCalledWith(mockEditorInstance);
     });
@@ -83,21 +83,21 @@ describe('MonacoEditor', () => {
 
   it('應該支持只讀模式', () => {
     render(<MonacoEditor value="內容" readOnly={true} />);
-    
+
     const textarea = screen.getByTestId('monaco-editor-textarea') as HTMLTextAreaElement;
     expect(textarea.readOnly).toBe(true);
   });
 
   it('應該支持編輯模式', () => {
     render(<MonacoEditor value="內容" readOnly={false} />);
-    
+
     const textarea = screen.getByTestId('monaco-editor-textarea') as HTMLTextAreaElement;
     expect(textarea.readOnly).toBe(false);
   });
 
   it('應該支持自定義高度', () => {
     render(<MonacoEditor value="內容" height="500px" />);
-    
+
     const editor = screen.getByTestId('monaco-editor');
     expect(editor).toHaveAttribute('data-height', '500px');
   });

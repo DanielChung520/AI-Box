@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 
 from api.core.response import APIResponse
 from services.api.models.llm_model import (
-    LLMModel,
     LLMModelCreate,
     LLMModelQuery,
     LLMModelUpdate,
@@ -88,7 +87,9 @@ async def get_models(
 
             # 如果需要，添加收藏狀態
             if include_favorite_status:
-                from services.api.services.user_preference_service import get_user_preference_service
+                from services.api.services.user_preference_service import (
+                    get_user_preference_service,
+                )
 
                 pref_service = get_user_preference_service()
                 favorite_ids = set(pref_service.get_favorite_models(user_id=current_user.user_id))
@@ -105,7 +106,10 @@ async def get_models(
                             models[i] = model
 
         return APIResponse.success(
-            data={"models": [model.model_dump(mode="json", exclude_none=True) for model in models], "total": len(models)},
+            data={
+                "models": [model.model_dump(mode="json", exclude_none=True) for model in models],
+                "total": len(models),
+            },
             message="Models retrieved successfully",
         )
     except ValueError as e:
@@ -129,9 +133,14 @@ async def get_model(model_id: str) -> JSONResponse:
         service = get_llm_model_service()
         model = service.get_by_id(model_id)
         if not model:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Model '{model_id}' not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Model '{model_id}' not found"
+            )
 
-        return APIResponse.success(data={"model": model.model_dump(mode="json", exclude_none=True)}, message="Model retrieved successfully")
+        return APIResponse.success(
+            data={"model": model.model_dump(mode="json", exclude_none=True)},
+            message="Model retrieved successfully",
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -197,7 +206,9 @@ async def update_model(
         service = get_llm_model_service()
         updated_model = service.update(model_id, update)
         if not updated_model:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Model '{model_id}' not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Model '{model_id}' not found"
+            )
 
         return APIResponse.success(
             data={"model": updated_model.model_dump(mode="json", exclude_none=True)},
@@ -232,7 +243,9 @@ async def delete_model(
         service = get_llm_model_service()
         success = service.delete(model_id)
         if not success:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Model '{model_id}' not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Model '{model_id}' not found"
+            )
 
         return APIResponse.success(data={"deleted": True}, message="Model deleted successfully")
     except HTTPException:
@@ -270,7 +283,9 @@ async def set_provider_api_key(
     #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
     try:
-        from services.api.services.llm_provider_config_service import get_llm_provider_config_service
+        from services.api.services.llm_provider_config_service import (
+            get_llm_provider_config_service,
+        )
 
         provider_enum = LLMProvider(provider)
         config_service = get_llm_provider_config_service()
@@ -306,7 +321,9 @@ async def get_provider_api_key_status(
     #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
     try:
-        from services.api.services.llm_provider_config_service import get_llm_provider_config_service
+        from services.api.services.llm_provider_config_service import (
+            get_llm_provider_config_service,
+        )
 
         provider_enum = LLMProvider(provider)
         config_service = get_llm_provider_config_service()
@@ -314,7 +331,8 @@ async def get_provider_api_key_status(
 
         if not status_obj:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Provider config for '{provider}' not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Provider config for '{provider}' not found",
             )
 
         return APIResponse.success(
@@ -349,7 +367,9 @@ async def delete_provider_api_key(
     #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
     try:
-        from services.api.services.llm_provider_config_service import get_llm_provider_config_service
+        from services.api.services.llm_provider_config_service import (
+            get_llm_provider_config_service,
+        )
 
         provider_enum = LLMProvider(provider)
         config_service = get_llm_provider_config_service()
@@ -357,10 +377,13 @@ async def delete_provider_api_key(
 
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Provider config for '{provider}' not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Provider config for '{provider}' not found",
             )
 
-        return APIResponse.success(data={"deleted": True}, message="Provider API key deleted successfully")
+        return APIResponse.success(
+            data={"deleted": True}, message="Provider API key deleted successfully"
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except HTTPException:

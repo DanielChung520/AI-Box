@@ -1,8 +1,8 @@
 # Agent 註冊規格書
 
-**版本**：2.0  
-**創建日期**：2025-01-27  
-**創建人**：Daniel Chung  
+**版本**：2.0
+**創建日期**：2025-01-27
+**創建人**：Daniel Chung
 **最後修改日期**：2025-12-20
 
 > **📋 相關文檔**：
@@ -298,6 +298,7 @@ Agent 註冊 Modal
 ### 狀態管理
 
 **Secret 相關**：
+
 - `secretId`：Secret ID 輸入值
 - `secretKey`：Secret Key 輸入值
 - `secretVerified`：驗證狀態
@@ -305,6 +306,7 @@ Agent 註冊 Modal
 - `secretVerificationError`：驗證錯誤信息
 
 **Schema 相關** ⭐ **新增**：
+
 - `inputSchema`：JSON Schema 字符串
 - `schemaValidated`：Schema 驗證狀態
 - `isValidatingSchema`：正在驗證標誌
@@ -332,10 +334,12 @@ Agent 註冊 Modal
 當此 Agent 註冊成功後，其 `input_schema` 會同步存入 ArangoDB 的 `AgentRegistry`。
 
 **存儲位置**：
+
 - Collection：`agent_registry`
 - 字段：`metadata.capabilities.input_schema`
 
 **數據結構**：
+
 ```json
 {
   "agent_id": "system_config_agent",
@@ -371,31 +375,35 @@ sequenceDiagram
     Orchestrator->>Orchestrator: 解析意圖<br/>{action: "update", rate_limit: 2000}
     Orchestrator->>Registry: 獲取 System Config Agent 的 input_schema
     Registry-->>Orchestrator: input_schema<br/>{rate_limit: {maximum: 1000}}
-    
+
     Orchestrator->>Orchestrator: 第一層預檢<br/>2000 > 1000 → 驗證失敗
-    
+
     Orchestrator-->>User: "抱歉，rate_limit 必須在 1-1000 之間，<br/>您設置的 2000 超出範圍"
-    
+
     Note over ConfigAgent: Agent 未被調用，節省資源
 ```
 
 **詳細說明請參考**：
+
 - [ConfigMetadata-配置元數據機制規格書.md](./Tools/ConfigMetadata-配置元數據機制規格書.md) - 了解雙層驗證機制
 - [Orchestrator-協調層規格書.md](./Orchestrator-協調層規格書.md) - 了解前置檢查實現
 
 #### 3. 優勢說明
 
 **解決 Agent 負擔問題**：
+
 - ✅ 若未來 Agent 數量增加，Orchestrator 只要讀取這份註冊時填好的 Schema 就能做「通用驗證」
 - ✅ 不需要為每個新 Agent 寫死代碼
 - ✅ Orchestrator 只是一個「Schema 驗證引擎」，極致簡單
 
 **明確前置條件**：
+
 - ✅ 這份文件從單純的「身份驗證 (Secret)」升級到了「行為定義 (Schema)」
 - ✅ Agent 在註冊時就明確聲明自己的硬性限制
 - ✅ 管理員和開發者都能清楚了解 Agent 的約束條件
 
 **UI 完備性**：
+
 - ✅ 讓前端開發者知道除了 ID/Key 之外，還需要提供一個 JSON 編輯區域
 - ✅ 供進階 Agent 開發者定義約束
 - ✅ 提供 Monaco Editor 提供專業的代碼編輯體驗
@@ -430,12 +438,13 @@ sequenceDiagram
 ### 核心價值
 
 **「註冊即防護」**：通過在註冊時定義 `input_schema`，讓 Orchestrator 能夠在調用前攔截非法指令，實現：
+
 - ✅ 節省資源：不需要調用 Agent 就能發現錯誤
 - ✅ 確保安全：硬性約束防止 AI 設置非法值
 - ✅ 高擴展性：未來新增 Agent 只需提供 Schema，無需修改 Orchestrator 代碼
 
 ---
 
-**文檔版本**：2.0  
-**最後更新**：2025-12-20  
+**文檔版本**：2.0
+**最後更新**：2025-12-20
 **維護者**：Daniel Chung

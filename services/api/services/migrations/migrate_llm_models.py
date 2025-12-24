@@ -18,14 +18,13 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from services.api.models.llm_model import (
+from services.api.models.llm_model import (  # noqa: E402
     LLMModelCreate,
     LLMProvider,
     ModelCapability,
     ModelStatus,
 )
-from services.api.services.llm_model_service import get_llm_model_service
-
+from services.api.services.llm_model_service import get_llm_model_service  # noqa: E402
 
 # 完整的模型列表數據（從前端硬編碼遷移並擴展）
 LLM_MODELS_DATA = [
@@ -365,7 +364,11 @@ LLM_MODELS_DATA = [
         "name": "Grok Beta",
         "provider": LLMProvider.XAI,
         "description": "Grok Beta - xAI 的對話模型",
-        "capabilities": [ModelCapability.CHAT, ModelCapability.COMPLETION, ModelCapability.STREAMING],
+        "capabilities": [
+            ModelCapability.CHAT,
+            ModelCapability.COMPLETION,
+            ModelCapability.STREAMING,
+        ],
         "status": ModelStatus.BETA,
         "context_window": 131072,
         "parameters": "~314B",
@@ -540,4 +543,3 @@ def migrate():
 
 if __name__ == "__main__":
     migrate()
-

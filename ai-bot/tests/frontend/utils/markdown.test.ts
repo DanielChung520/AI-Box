@@ -10,7 +10,7 @@ describe('parseHeadings', () => {
   it('應該解析單個 H1 標題', () => {
     const content = '# 標題 1\n\n這是內容';
     const headings = parseHeadings(content);
-    
+
     expect(headings).toHaveLength(1);
     expect(headings[0]).toEqual({
       level: 1,
@@ -28,7 +28,7 @@ describe('parseHeadings', () => {
 ### 標題 3
 細節內容`;
     const headings = parseHeadings(content);
-    
+
     expect(headings).toHaveLength(3);
     expect(headings[0].level).toBe(1);
     expect(headings[1].level).toBe(2);
@@ -42,7 +42,7 @@ describe('parseHeadings', () => {
 第四行
 ## 標題在第 5 行`;
     const headings = parseHeadings(content);
-    
+
     expect(headings[0].lineNumber).toBe(3);
     expect(headings[1].lineNumber).toBe(5);
   });
@@ -50,14 +50,14 @@ describe('parseHeadings', () => {
   it('應該處理沒有標題的內容', () => {
     const content = '這是一段沒有標題的內容';
     const headings = parseHeadings(content);
-    
+
     expect(headings).toHaveLength(0);
   });
 
   it('應該處理空內容', () => {
     const content = '';
     const headings = parseHeadings(content);
-    
+
     expect(headings).toHaveLength(0);
   });
 });

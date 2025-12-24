@@ -62,9 +62,7 @@ class LLMModelBase(BaseModel):
     name: str = Field(..., description="模型顯示名稱（例如：GPT-4 Turbo）")
     provider: LLMProvider = Field(..., description="提供商")
     description: Optional[str] = Field(None, description="模型描述")
-    capabilities: List[ModelCapability] = Field(
-        default_factory=list, description="模型支持的能力列表"
-    )
+    capabilities: List[ModelCapability] = Field(default_factory=list, description="模型支持的能力列表")
     status: ModelStatus = Field(ModelStatus.ACTIVE, description="模型狀態")
     context_window: Optional[int] = Field(None, description="上下文窗口大小（tokens）")
     max_output_tokens: Optional[int] = Field(None, description="最大輸出 tokens")
@@ -127,17 +125,17 @@ class LLMModel(LLMModelBase):
     class Config:
         from_attributes = True
         populate_by_name = True
-    
+
     @property
     def _key(self) -> str:
         """兼容舊接口"""
         return self.key
-    
+
     @property
     def _id(self) -> Optional[str]:
         """兼容舊接口"""
         return self.id
-    
+
     @property
     def _rev(self) -> Optional[str]:
         """兼容舊接口"""
@@ -153,4 +151,3 @@ class LLMModelQuery(BaseModel):
     search: Optional[str] = Field(None, description="搜索關鍵詞（名稱、描述）")
     limit: int = Field(100, ge=1, le=1000, description="返回數量限制")
     offset: int = Field(0, ge=0, description="偏移量")
-

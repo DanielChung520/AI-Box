@@ -5,10 +5,10 @@
 
 """配置定義加載器 - 從 JSON 文件加載配置定義到內存緩存"""
 
+import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import json
 import structlog
 
 logger = structlog.get_logger(__name__)
