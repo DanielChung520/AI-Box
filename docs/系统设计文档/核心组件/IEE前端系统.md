@@ -12,8 +12,8 @@ IEE（Intelligent Editor Environment，智能编辑环境）是 AI-Box 的前端
 
 > **相关文档**：
 >
-> - [IEE式Markdown文件编辑器开发规格书](../../IEE對話式開發文件編輯/AI-Box-IEE-式-Markdown-文件編輯器開發規格書.md)
-> - [IEE编辑器操作说明](../../IEE對話式開發文件編輯/IEE編輯器操作說明.md)
+> - [IEE式Markdown文件编辑器开发规格书](./IEE對話式開發文件編輯/AI-Box-IEE-式-Markdown-文件編輯器開發規格書.md)
+> - [IEE编辑器操作说明](./IEE對話式開發文件編輯/IEE編輯器操作說明.md)
 
 ---
 
@@ -82,8 +82,8 @@ IEE（Intelligent Editor Environment，智能编辑环境）是 AI-Box 的前端
 
 ### 相关文档
 
-- [IEE式Markdown文件编辑器开发规格书](../../IEE對話式開發文件編輯/AI-Box-IEE-式-Markdown-文件編輯器開發規格書.md)
-- [IEE编辑器操作说明](../../IEE對話式開發文件編輯/IEE編輯器操作說明.md)
+- [IEE式Markdown文件编辑器开发规格书](./IEE對話式開發文件編輯/AI-Box-IEE-式-Markdown-文件編輯器開發規格書.md)
+- [IEE编辑器操作说明](./IEE對話式開發文件編輯/IEE編輯器操作說明.md)
 
 ---
 

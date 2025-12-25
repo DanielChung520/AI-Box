@@ -12,9 +12,9 @@ Agent Platform 是 AI-Box 系统的核心协调中心，采用**三层分离架�
 
 > **相关文档**：
 >
-> - [Agent架构规格书-v2](../../Agent%20Platform/AI-Box-Agent-架構規格書-v2.md) - 详细架构规格
-> - [Orchestrator协调层规格书](../../Agent%20Platform/Orchestrator-協調層規格書.md) - 协调层详细说明
-> - [Agent架构分离设计](../../Agent%20Platform/ARCHITECTURE_AGENT_SEPARATION.md) - 架构分离开发指南
+> - [Agent架构规格书-v2](../datasets/Agent Platform/AI-Box-Agent-架構規格書-v2.md) - 详细架构规格
+> - [Orchestrator协调层规格书](../datasets/Agent Platform/Orchestrator-協調層規格書.md) - 协调层详细说明
+> - [Agent架构分离设计](../datasets/Agent Platform/ARCHITECTURE_AGENT_SEPARATION.md) - 架构分离开发指南
 
 ---
 
@@ -129,7 +129,7 @@ graph TB
 - 🔄 指令澄清机制（部分实现，需增强）
 - 🔄 配置操作专用解析（需增强）
 
-**相关文档**：[Orchestrator协调层规格书](../../Agent%20Platform/Orchestrator-協調層規格書.md) 第 3.1 节
+**相关文档**：[Orchestrator协调层规格书](../datasets/Agent Platform/Orchestrator-協調層規格書.md) 第 3.1 节
 
 #### 2. Agent Registry（Agent 注册表）
 
@@ -165,7 +165,7 @@ AgentRegistryInfo {
 }
 ```
 
-**相关文档**：[Agent注册规格书](../../Agent%20Platform/Agent-註冊-規格書.md)
+**相关文档**：[Agent注册规格书](../datasets/Agent Platform/Agent-註冊-規格書.md)
 
 #### 3. Agent Orchestrator（Agent 协调器）
 
@@ -210,7 +210,7 @@ Orchestrator 收集结果
 返回给前端
 ```
 
-**相关文档**：[Orchestrator协调层规格书](../../Agent%20Platform/Orchestrator-協調層規格書.md)
+**相关文档**：[Orchestrator协调层规格书](../datasets/Agent Platform/Orchestrator-協調層規格書.md)
 
 #### 4. Task Tracker（任务追踪器）
 
@@ -222,7 +222,7 @@ Orchestrator 收集结果
 
 **实现状态**：🔄 **部分实现**
 
-**相关文档**：[Orchestrator协调层规格书](../../Agent%20Platform/Orchestrator-協調層規格書.md) 第 3.4 节
+**相关文档**：[Orchestrator协调层规格书](../datasets/Agent Platform/Orchestrator-協調層規格書.md) 第 3.4 节
 
 ---
 
@@ -236,13 +236,13 @@ Orchestrator 收集结果
    - 权限检查
    - 安全检测
    - 审计日志
-   - **详细文档**：[Security-Agent-规格书](../../Agent%20Platform/Security-Agent-規格書.md)
+   - **详细文档**：[Security-Agent-规格书](../datasets/Agent Platform/Security-Agent-規格書.md)
 
 2. **System Config Agent** ✅
    - 系统配置管理
    - 配置验证
    - 配置元数据机制
-   - **详细文档**：[System-Config-Agent-规格书](../../Agent%20Platform/System-Config-Agent-規格書.md)
+   - **详细文档**：[System-Config-Agent-规格书](../datasets/Agent Platform/System-Config-Agent-規格書.md)
 
 3. **Reports Agent** 🔄
    - 报告生成
@@ -290,7 +290,7 @@ Orchestrator 收集结果
 - **Purchase Inquiry Agent**：采购询价 Agent
 - **QC Analyzer Agent**：质量控制分析 Agent
 
-**开发规范**：[Agent开发规范](../../Agent%20Platform/Agent-開發規範.md)
+**开发规范**：[Agent开发规范](../datasets/Agent Platform/Agent-開發規範.md)
 
 ---
 
@@ -329,7 +329,7 @@ class AgentServiceResponse:
     metadata: Dict[str, Any]
 ```
 
-**详细说明**：[ARCHITECTURE_AGENT_SEPARATION.md](../../Agent%20Platform/ARCHITECTURE_AGENT_SEPARATION.md)
+**详细说明**：[ARCHITECTURE_AGENT_SEPARATION.md](../datasets/Agent Platform/ARCHITECTURE_AGENT_SEPARATION.md)
 
 ---
 
@@ -430,26 +430,26 @@ class AgentServiceResponse:
 
 ### 架构文档
 
-- [AI-Box-Agent-架构规格书-v2](../../Agent%20Platform/AI-Box-Agent-架構規格書-v2.md)
-- [Orchestrator-协调层规格书](../../Agent%20Platform/Orchestrator-協調層規格書.md)
-- [ARCHITECTURE_AGENT_SEPARATION.md](../../Agent%20Platform/ARCHITECTURE_AGENT_SEPARATION.md)
-- [ARCHITECTURE_DIAGRAM_EXPLANATION.md](../../Agent%20Platform/ARCHITECTURE_DIAGRAM_EXPLANATION.md)
+- [AI-Box-Agent-架构规格书-v2](../datasets/Agent Platform/AI-Box-Agent-架構規格書-v2.md)
+- [Orchestrator-协调层规格书](../datasets/Agent Platform/Orchestrator-協調層規格書.md)
+- [ARCHITECTURE_AGENT_SEPARATION.md](../datasets/Agent Platform/ARCHITECTURE_AGENT_SEPARATION.md)
+- [ARCHITECTURE_DIAGRAM_EXPLANATION.md](../datasets/Agent Platform/ARCHITECTURE_DIAGRAM_EXPLANATION.md)
 
 ### Agent 规格文档
 
-- [Security-Agent-规格书](../../Agent%20Platform/Security-Agent-規格書.md)
-- [System-Config-Agent-规格书](../../Agent%20Platform/System-Config-Agent-規格書.md)
-- [Agent-注册-规格书](../../Agent%20Platform/Agent-註冊-規格書.md)
+- [Security-Agent-规格书](../datasets/Agent Platform/Security-Agent-規格書.md)
+- [System-Config-Agent-规格书](../datasets/Agent Platform/System-Config-Agent-規格書.md)
+- [Agent-注册-规格书](../datasets/Agent Platform/Agent-註冊-規格書.md)
 
 ### 开发文档
 
-- [Agent-开发规范](../../Agent%20Platform/Agent-開發規範.md)
-- [Agent生命周期](../../Agent%20Platform/AGENT_LIFECYCLE.md)
+- [Agent-开发规范](../datasets/Agent Platform/Agent-開發規範.md)
+- [Agent生命周期](../datasets/Agent Platform/AGENT_LIFECYCLE.md)
 
 ### 工具文档
 
-- [LogService-规格书](../../Agent%20Platform/Tools/LogService-規格書.md)
-- [ConfigMetadata-配置元数据机制规格书](../../Agent%20Platform/Tools/ConfigMetadata-配置元數據機制規格書.md)
+- [LogService-规格书](../datasets/Agent Platform/Tools/LogService-規格書.md)
+- [ConfigMetadata-配置元数据机制规格书](../datasets/Agent Platform/Tools/ConfigMetadata-配置元數據機制規格書.md)
 
 ---
 

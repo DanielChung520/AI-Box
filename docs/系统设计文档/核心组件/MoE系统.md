@@ -12,8 +12,8 @@ MoE（Mixture of Experts，专家模型混合）系统是 AI-Box 的多模型路
 
 > **相关文档**：
 >
-> - [LLM路由架构文档](../../architecture/llm-routing-architecture.md)
-> - [GenAI主计划](../../plans/genai/GENAI_MASTER_PLAN.md)
+> - [LLM路由架构文档](../../備份與歸檔/architecture/llm-routing-architecture.md)
+> - [GenAI主计划](../../開發過程文件/plans/genai/GENAI_MASTER_PLAN.md)
 
 ---
 
@@ -125,8 +125,8 @@ graph TB
 
 ### 相关文档
 
-- [LLM路由架构文档](../../architecture/llm-routing-architecture.md)
-- [GenAI主计划](../../plans/genai/GENAI_MASTER_PLAN.md)
+- [LLM路由架构文档](../../備份與歸檔/architecture/llm-routing-architecture.md)
+- [GenAI主计划](../../開發過程文件/plans/genai/GENAI_MASTER_PLAN.md)
 
 ### 代码位置
 

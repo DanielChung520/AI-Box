@@ -12,8 +12,8 @@ AAM（AI-Augmented Memory，AI增强记忆）系统是 AI-Box 的核心记忆架
 
 > **参考文档**：
 >
-> - Notion: [AAM-(AI-Augmented-Memory).md](../../../Documents/Notion/pages/AI-Box/AAM/AAM-(AI-Augmented-Memory).md) - 详细设计理念
-> - [WBS 4.4 AAM模块整合](../../plans/phase4/wbs-4.4-aam-integration.md) - 开发计划
+> - Notion: [AAM-(AI-Augmented-Memory).md](../../參考文件/AAM-(AI-Augmented-Memory).md) - 详细设计理念
+> - [WBS 4.4 AAM模块整合](../../開發過程文件/plans/phase4/wbs-4.4-aam-integration.md) - 开发计划
 
 ---
 
@@ -380,9 +380,9 @@ Gen AI Records（对话日志）
 
 ### 设计文档
 
-- Notion: [AAM-(AI-Augmented-Memory).md](../../../Documents/Notion/pages/AI-Box/AAM/AAM-(AI-Augmented-Memory).md)
-- [WBS 4.4 AAM模块整合](../../plans/phase4/wbs-4.4-aam-integration.md)
-- [WBS-G4 长期记忆MVP](../../plans/genai/WBS/WBS-G4-長期記憶MVP（AAM-RAG）.md)
+- Notion: [AAM-(AI-Augmented-Memory).md](../../參考文件/AAM-(AI-Augmented-Memory).md)
+- [WBS 4.4 AAM模块整合](../../開發過程文件/plans/phase4/wbs-4.4-aam-integration.md)
+- [WBS-G4 长期记忆MVP](../../開發過程文件/plans/genai/WBS/WBS-G4-長期記憶MVP（AAM-RAG）.md)
 
 ### 相关组件文档
 

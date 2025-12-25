@@ -262,9 +262,9 @@
 
 ## 📚 相關文檔
 
-- [IEE編輯器可行性分析報告](./IEE編輯器可行性分析報告.md)
-- [AI-Box-IEE-式-Markdown-文件編輯器開發規格書](./AI-Box-IEE-式-Markdown-文件編輯器開發規格書.md)
-- [IEE編輯器操作說明](./IEE編輯器操作說明.md)
+- [IEE編輯器可行性分析報告](../IEE編輯器可行性分析報告.md)
+- [AI-Box-IEE-式-Markdown-文件編輯器開發規格書](../AI-Box-IEE-式-Markdown-文件編輯器開發規格書.md)
+- [IEE編輯器操作說明](../IEE編輯器操作說明.md)
 - [Phase1_核心編輯器.md](./Phase1_核心編輯器.md)
 - [Phase2_AI編輯協議.md](./Phase2_AI編輯協議.md)
 - [Phase3_視覺化與交互.md](./Phase3_視覺化與交互.md)
