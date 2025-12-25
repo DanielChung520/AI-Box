@@ -124,13 +124,31 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: getPlugins(),
+    // 配置中间件，允许所有主机访问（用于 Cloudflare Tunnel 等代理场景）
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        // 允许所有 Host header，解决 "Blocked request. This host is not allowed" 错误
+        // 这是 Vite 6 的安全检查机制
+        const host = req.headers.host;
+        if (host && (host.includes('iee.k84.org') || host.includes('localhost') || host.includes('127.0.0.1'))) {
+          next();
+        } else {
+          next();
+        }
+      });
+    },
     server: {
       host: true, // 允许外部访问，等同于 '0.0.0.0'
       port: 3000,
       strictPort: false,
-      // Vite 默认允许所有主机访问，host: true 会监听所有网络接口
-      // 如果遇到 "Blocked request. This host is not allowed" 错误，
-      // 可能是 Vite 的 HMR 安全检查，可以通过配置 hmr.clientHost 解决
+      // 允许的主机名列表（用于防止 DNS 重绑定攻击）
+      // 当通过代理访问（如 Cloudflare Tunnel）时，需要明确允许代理域名
+      allowedHosts: [
+        'iee.k84.org',      // 代理域名
+        'localhost',        // 本地开发
+        '127.0.0.1',        // 本地 IP
+        '.localhost',       // localhost 子域名
+      ],
       // 配置 HMR WebSocket（用於代理環境）
       // 當通過 Cloudflare Tunnel 等代理訪問時，需要正確配置客戶端連接參數
       hmr: env.VITE_HMR_DISABLE === 'true'
