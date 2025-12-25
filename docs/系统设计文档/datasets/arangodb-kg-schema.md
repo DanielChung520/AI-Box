@@ -32,6 +32,7 @@
   - `weight`：供優先度與 traversal 排序使用。
 
 版本欄位：
+
 - `updated_at`（ISO 8601, UTC+8）為所有節點與邊的樂觀鎖欄位。
 - 若 Schema 需要變更，請新增 `version` 欄位並在 `schema.yml` 中提升 `version` 數值，同時提供 migration 腳本或 AQL。
 
@@ -48,6 +49,7 @@ poetry run python scripts/arangodb_seed.py --dry-run
 ```
 
 `datasets/arangodb/seed_data.json` 內含：
+
 - 3 個核心 Agent 節點。
 - 任務、資料集與資源樣本。
 - 4 條示範性關係（handles/requires/consumes/needs）。

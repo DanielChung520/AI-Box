@@ -8,13 +8,13 @@
 
 ## 概述
 
-工作管制表 (`PROJECT_CONTROL_TABLE.md`) 是項目管理的核心文檔，用於追蹤所有階段的工作進度、里程碑狀態和風險。
+工作管制表 (`../項目控制表.md`) 是項目管理的核心文檔，用於追蹤所有階段的工作進度、里程碑狀態和風險。
 
 ---
 
 ## 文件位置
 
-- **工作管制表**: `docs/PROJECT_CONTROL_TABLE.md`
+- **工作管制表**: `docs/../項目控制表.md`
 - **更新腳本**: `scripts/update_project_control.sh`
 - **週報生成腳本**: `scripts/generate_weekly_summary.sh`
 

@@ -10,6 +10,7 @@
 **待完成項目**: 修復 IEEEditor 和 useAutoSave 測試中的 Mock 配置問題（可選，不影響核心功能）
 
 **最新進度更新（2025-12-20 12:05 UTC+8）**:
+
 - ✅ 核心單元測試已完成：22 個測試用例全部通過
   - markdown 工具函數：5/5 通過
   - draftStore：9/9 通過
@@ -305,6 +306,7 @@ Phase 1 旨在實現 IEE 編輯器的核心功能，包括 Monaco Editor 集成�
 - **代碼覆蓋率**: 約 60% - 核心組件和功能已覆蓋
 
 **備註**: IEEEditor 和 useAutoSave 測試文件已創建，但部分測試用例需要進一步調試和修復 Mock 配置。核心功能測試（markdown、draftStore、MonacoEditor）已全部通過。
+
 - **代碼規範檢查**: ✅ 通過
   - **TypeScript 檢查**: ✅ 通過（所有文件已通過 `tsc --noEmit` 檢查）
   - **前端代碼規範**: ✅ 符合規範（TypeScript strict mode，所有類型注解完整）
@@ -351,6 +353,7 @@ Phase 1 旨在實現 IEE 編輯器的核心功能，包括 Monaco Editor 集成�
 **狀態**: 🔄 進行中（基礎測試已完成）
 
 **已完成**:
+
 - [x] 配置測試框架（Vitest）
 - [x] 實現 markdown 工具函數測試（5 個測試用例，100% 通過）
 - [x] 實現 draftStore 測試（9 個測試用例，100% 通過）
@@ -360,10 +363,12 @@ Phase 1 旨在實現 IEE 編輯器的核心功能，包括 Monaco Editor 集成�
 - [x] 達到約 70% 代碼覆蓋率（核心組件和功能已覆蓋）
 
 **待實現**（可選）:
+
 - [ ] 集成測試（端到端測試）
 - [ ] 擴展測試覆蓋率至 ≥ 80%（非核心功能）
 
 **測試文件位置**:
+
 - `tests/frontend/components/MonacoEditor.test.tsx`
 - `tests/frontend/pages/IEEEditor.test.tsx`
 - `tests/frontend/stores/draftStore.test.ts`
@@ -376,12 +381,14 @@ Phase 1 旨在實現 IEE 編輯器的核心功能，包括 Monaco Editor 集成�
 **狀態**: ✅ 已完成（2025-12-20）
 
 **實現內容**:
+
 - [x] 實現 `saveFile` API 函數（使用 `createDocEdit` + `applyDocEdit`）
 - [x] 集成到自動保存功能（`useAutoSave.ts`）
 - [x] 處理保存失敗的情況（錯誤處理和 toast 提示）
 - [x] 實現保存進度指示（saving/saved/unsaved 狀態）
 
 **實現方案**:
+
 - 使用現有的 `/docs/edits` API（`createDocEdit` + `applyDocEdit`）
 - 在 `useAutoSave.ts` 中調用 `saveFile` API
 - 處理異步保存和錯誤情況
@@ -395,6 +402,7 @@ Phase 1 旨在實現 IEE 編輯器的核心功能，包括 Monaco Editor 集成�
 **狀態**: ✅ 已完成
 
 **實現內容**:
+
 - [x] 路由已配置（`/iee-editor?fileId=xxx`）
 - [x] 在 FileTree 右鍵菜單中添加「使用 IEE 編輯器打開」選項
 - [x] 在 FileList 中添加「編輯」按鈕（僅 Markdown 文件顯示）
@@ -403,6 +411,7 @@ Phase 1 旨在實現 IEE 編輯器的核心功能，包括 Monaco Editor 集成�
 - [x] 處理文件打開錯誤情況（顯示提示信息）
 
 **實現細節**:
+
 - FileTree: 在右鍵菜單中添加 `openInIEE` 選項，檢查文件類型並導航
 - FileList: 在操作列中添加「編輯」按鈕（僅 .md 文件顯示）
 - FilePreview: 在工具欄中添加「使用 IEE 編輯器打開」按鈕（僅 .md 文件顯示）
@@ -451,6 +460,7 @@ Phase 1 旨在實現 IEE 編輯器的核心功能，包括 Monaco Editor 集成�
 ### 最新更新記錄
 
 **2025-12-20 12:05 (UTC+8)**:
+
 - ✅ 完成核心單元測試實現
   - ✅ MonacoEditor 組件測試：8 個測試用例全部通過
   - ✅ markdown 工具函數測試：5 個測試用例全部通過

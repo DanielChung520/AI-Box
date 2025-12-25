@@ -232,4 +232,4 @@ start http://localhost:8529
 
 - `database/arangodb/settings.py` - ArangoDB 配置
 - `scripts/restore_tasks.aql` - 恢復任務的 AQL 查詢
-- `docs/RESTORE_ARCHIVED_TASKS.md` - 恢復歸檔任務指南
+- `../開發過程文件/恢復歸檔任務指南.md` - 恢復歸檔任務指南
