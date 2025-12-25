@@ -125,33 +125,28 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: getPlugins(),
     server: {
-      host: true,
+      host: true, // 允许外部访问，等同于 '0.0.0.0'
       port: 3000,
-      // 允許 Cloudflare Tunnel 域名
-      allowedHosts: [
-        'iee.k84.org',
-        'localhost',
-        '.localhost',
-      ],
+      strictPort: false,
+      // Vite 默认允许所有主机访问，host: true 会监听所有网络接口
+      // 如果遇到 "Blocked request. This host is not allowed" 错误，
+      // 可能是 Vite 的 HMR 安全检查，可以通过配置 hmr.clientHost 解决
       // 配置 HMR WebSocket（用於代理環境）
       // 當通過 Cloudflare Tunnel 等代理訪問時，需要正確配置客戶端連接參數
       hmr: env.VITE_HMR_DISABLE === 'true'
         ? false // 完全禁用 HMR（如果 WebSocket 無法工作）
-        : env.VITE_HMR_CLIENT_HOST || env.VITE_HMR_CLIENT_PORT
-        ? {
-            // 服務器在本地監聽（不設置 host，使用默認的 localhost）
-            // 服務器監聽的本地端口（與 server.port 一致）
+        : {
+            // 服務器在本地監聽的端口（與 server.port 一致）
             port: 3000,
             // WebSocket 協議（wss 用於 HTTPS，ws 用於 HTTP）
             protocol: (env.VITE_HMR_PROTOCOL as 'ws' | 'wss') || 'wss',
             // 客戶端應該連接的主機名（代理域名，如 iee.k84.org）
             // 這告訴瀏覽器連接到代理域名而不是 localhost
-            clientHost: env.VITE_HMR_CLIENT_HOST || undefined,
+            clientHost: env.VITE_HMR_CLIENT_HOST || 'iee.k84.org',
             // 客戶端應該連接的端口（代理端口，443 用於 HTTPS，80 用於 HTTP）
             // 這告訴瀏覽器連接到代理端口而不是本地端口
             clientPort: env.VITE_HMR_CLIENT_PORT ? parseInt(env.VITE_HMR_CLIENT_PORT) : 443,
-          }
-        : undefined, // 使用默認配置，Vite 會自動處理
+          },
       proxy: {
         // 代理 API 請求到後端服務器
         '/api': {
