@@ -116,5 +116,8 @@ data/chroma_data/
 
 # Test files - ignore all test files
 # Ignore test_*.py and *_test.py files
+# But allow tests/ directory (explicitly tracked)
 **/test_*.py
 **/*_test.py
+# Allow tests/ directory
+!tests/**/*.py

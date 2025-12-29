@@ -1,0 +1,29 @@
+# 代碼功能說明: AI-Box SeaweedFS Filer 服務暴露配置
+# 創建日期: 2025-12-29
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-29
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-ai-box-filer
+  namespace: seaweedfs-ai-box
+  labels:
+    app: seaweedfs
+    component: filer
+    project: ai-box
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8888
+      targetPort: 8888
+      protocol: TCP
+      name: filer
+    - port: 8333
+      targetPort: 8333
+      protocol: TCP
+      name: s3
+  selector:
+    app: seaweedfs
+    component: filer
+    project: ai-box

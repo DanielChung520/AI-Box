@@ -1,0 +1,73 @@
+# 代碼功能說明: AI-Box SeaweedFS Master 節點部署配置
+# 創建日期: 2025-12-29
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-29
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-ai-box-master
+  namespace: seaweedfs-ai-box
+  labels:
+    app: seaweedfs
+    component: master
+    project: ai-box
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: seaweedfs
+      component: master
+      project: ai-box
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        component: master
+        project: ai-box
+    spec:
+      containers:
+        - name: master
+          image: chrislusf/seaweedfs:latest
+          command:
+            - /usr/bin/weed
+            - master
+            - -ip=$(POD_IP)
+            - -port=9333
+            - -volumeSizeLimitMB=30000
+            - -defaultReplication=000
+            - -garbageThreshold=0.3
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          ports:
+            - containerPort: 9333
+              name: http
+            - containerPort: 19333
+              name: grpc
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /dir/status
+              port: 9333
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /dir/status
+              port: 9333
+            initialDelaySeconds: 10
+            periodSeconds: 5

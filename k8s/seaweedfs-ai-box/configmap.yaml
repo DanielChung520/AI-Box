@@ -1,0 +1,25 @@
+# 代碼功能說明: AI-Box SeaweedFS 服務 ConfigMap 配置
+# 創建日期: 2025-12-29
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-29
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seaweedfs-ai-box-config
+  namespace: seaweedfs-ai-box
+data:
+  # Master 配置
+  master.port: "9333"
+  master.volumeSizeLimitMB: "30000"
+  master.defaultReplication: "000"
+  master.garbageThreshold: "0.3"
+
+  # Volume 配置
+  volume.max: "7"
+  volume.publicUrl: ""
+
+  # Filer 配置
+  filer.port: "8888"
+  filer.s3.port: "8333"
+  filer.s3.enabled: "true"

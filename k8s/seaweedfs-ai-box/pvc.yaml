@@ -1,0 +1,22 @@
+# 代碼功能說明: AI-Box SeaweedFS Volume 節點持久化存儲卷聲明
+# 創建日期: 2025-12-29
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-29
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-ai-box-volume-pvc
+  namespace: seaweedfs-ai-box
+  labels:
+    app: seaweedfs
+    component: volume
+    project: ai-box
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  # 注意：實際部署時需要根據存儲類（StorageClass）調整
+  # storageClassName: standard

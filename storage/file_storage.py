@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件存儲模組
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27 23:30 (UTC+8)
+# 最後修改日期: 2025-12-29
 
 """文件存儲模組 - 提供本地和雲存儲接口"""
 
@@ -479,17 +479,21 @@ class OSSFileStorage(FileStorage):
         raise NotImplementedError("OSS 存儲尚未實現")
 
 
-def create_storage_from_config(config: Optional[dict] = None) -> FileStorage:
+def create_storage_from_config(
+    config: Optional[dict] = None, service_type: Optional[str] = None
+) -> FileStorage:
     """
     從配置創建文件存儲實例
 
     Args:
         config: 配置文件中的 file_upload 區塊（如果為 None，使用默認配置）
+        service_type: SeaweedFS 服務類型（"ai_box" 或 "datalake"），僅在 storage_backend="s3" 時使用
 
     Returns:
         FileStorage 實例
     """
     # 修改時間：2025-12-09 - 處理 config 為 None 的情況
+    # 修改時間：2025-01-27 - 添加 S3 存儲支持和雙服務選擇
     if config is None:
         config = {}
 
@@ -503,7 +507,73 @@ def create_storage_from_config(config: Optional[dict] = None) -> FileStorage:
     if storage_backend == "local":
         return LocalFileStorage(storage_path=storage_path, enable_encryption=enable_encryption)
     elif storage_backend == "s3":
-        raise NotImplementedError("S3 存儲尚未實現")
+        # 導入 S3FileStorage 和 SeaweedFSService（延遲導入避免循環依賴）
+        from storage.s3_storage import S3FileStorage, SeaweedFSService
+
+        # 確定服務類型
+        if service_type is None:
+            service_type = config.get("service_type", "ai_box")
+
+        # 根據服務類型選擇配置
+        if service_type == "ai_box" or service_type == SeaweedFSService.AI_BOX:
+            endpoint = (
+                config.get("ai_box_seaweedfs_s3_endpoint")
+                or os.getenv("AI_BOX_SEAWEEDFS_S3_ENDPOINT")
+                or "http://seaweedfs-ai-box-filer:8333"
+            )
+            access_key = (
+                config.get("ai_box_seaweedfs_s3_access_key")
+                or os.getenv("AI_BOX_SEAWEEDFS_S3_ACCESS_KEY")
+                or ""
+            )
+            secret_key = (
+                config.get("ai_box_seaweedfs_s3_secret_key")
+                or os.getenv("AI_BOX_SEAWEEDFS_S3_SECRET_KEY")
+                or ""
+            )
+            use_ssl = (
+                config.get("ai_box_seaweedfs_use_ssl", False)
+                or os.getenv("AI_BOX_SEAWEEDFS_USE_SSL", "false").lower() == "true"
+            )
+            seaweedfs_service = SeaweedFSService.AI_BOX
+        elif service_type == "datalake" or service_type == SeaweedFSService.DATALAKE:
+            endpoint = (
+                config.get("datalake_seaweedfs_s3_endpoint")
+                or os.getenv("DATALAKE_SEAWEEDFS_S3_ENDPOINT")
+                or "http://seaweedfs-datalake-filer:8333"
+            )
+            access_key = (
+                config.get("datalake_seaweedfs_s3_access_key")
+                or os.getenv("DATALAKE_SEAWEEDFS_S3_ACCESS_KEY")
+                or ""
+            )
+            secret_key = (
+                config.get("datalake_seaweedfs_s3_secret_key")
+                or os.getenv("DATALAKE_SEAWEEDFS_S3_SECRET_KEY")
+                or ""
+            )
+            use_ssl = (
+                config.get("datalake_seaweedfs_use_ssl", False)
+                or os.getenv("DATALAKE_SEAWEEDFS_USE_SSL", "false").lower() == "true"
+            )
+            seaweedfs_service = SeaweedFSService.DATALAKE
+        else:
+            raise ValueError(f"不支持的服務類型: {service_type}")
+
+        # 驗證必要的配置
+        if not endpoint:
+            raise ValueError("SeaweedFS S3 endpoint 未配置")
+        if not access_key or not secret_key:
+            raise ValueError("SeaweedFS S3 access_key 或 secret_key 未配置")
+
+        # 創建 S3FileStorage 實例
+        return S3FileStorage(
+            endpoint=endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            use_ssl=use_ssl,
+            service_type=seaweedfs_service,
+        )
     elif storage_backend == "oss":
         raise NotImplementedError("OSS 存儲尚未實現")
     else:

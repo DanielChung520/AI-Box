@@ -1,0 +1,13 @@
+# 代碼功能說明: DataLake SeaweedFS 服務 Namespace 配置
+# 創建日期: 2025-12-29
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-29
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: seaweedfs-datalake
+  labels:
+    app: seaweedfs
+    project: datalake
+    component: storage

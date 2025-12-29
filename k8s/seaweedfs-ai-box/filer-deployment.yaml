@@ -1,0 +1,91 @@
+# 代碼功能說明: AI-Box SeaweedFS Filer 節點部署配置
+# 創建日期: 2025-12-29
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-29
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-ai-box-filer
+  namespace: seaweedfs-ai-box
+  labels:
+    app: seaweedfs
+    component: filer
+    project: ai-box
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: seaweedfs
+      component: filer
+      project: ai-box
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        component: filer
+        project: ai-box
+    spec:
+      containers:
+        - name: filer
+          image: chrislusf/seaweedfs:latest
+          command:
+            - /usr/bin/weed
+            - filer
+            - -master=seaweedfs-ai-box-master:9333
+            - -port=8888
+            - -s3
+            - -s3.port=8333
+            - -s3.config=/etc/seaweedfs/s3.json
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: seaweedfs-ai-box-secret
+                  key: access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: seaweedfs-ai-box-secret
+                  key: secret-key
+          ports:
+            - containerPort: 8888
+              name: filer
+            - containerPort: 8333
+              name: s3
+          volumeMounts:
+            - name: s3-config
+              mountPath: /etc/seaweedfs
+              readOnly: true
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8888
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8888
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: s3-config
+          configMap:
+            name: seaweedfs-ai-box-s3-config

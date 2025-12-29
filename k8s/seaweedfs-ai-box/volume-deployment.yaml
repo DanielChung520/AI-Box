@@ -1,0 +1,80 @@
+# 代碼功能說明: AI-Box SeaweedFS Volume 節點部署配置
+# 創建日期: 2025-12-29
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-29
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-ai-box-volume
+  namespace: seaweedfs-ai-box
+  labels:
+    app: seaweedfs
+    component: volume
+    project: ai-box
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: seaweedfs
+      component: volume
+      project: ai-box
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        component: volume
+        project: ai-box
+    spec:
+      containers:
+        - name: volume
+          image: chrislusf/seaweedfs:latest
+          command:
+            - /usr/bin/weed
+            - volume
+            - -mserver=seaweedfs-ai-box-master:9333
+            - -port=8080
+            - -max=7
+            - -dataCenter=dc1
+            - -rack=rack1
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 18080
+              name: grpc
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: seaweedfs-ai-box-volume-pvc
