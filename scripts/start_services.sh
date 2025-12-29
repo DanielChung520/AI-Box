@@ -10,7 +10,7 @@ fi
 
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-08 08:57:04 UTC+8
+# 最後修改日期: 2025-12-29
 
 set -e
 
@@ -28,6 +28,14 @@ FASTAPI_PORT=8000
 REDIS_PORT=6379
 MCP_SERVER_PORT=8002
 FRONTEND_PORT=3000
+
+# SeaweedFS 端口配置
+AI_BOX_SEAWEEDFS_MASTER_PORT=9333
+AI_BOX_SEAWEEDFS_FILER_PORT=8888
+AI_BOX_SEAWEEDFS_S3_PORT=8333
+DATALAKE_SEAWEEDFS_MASTER_PORT=9334
+DATALAKE_SEAWEEDFS_FILER_PORT=8889
+DATALAKE_SEAWEEDFS_S3_PORT=8334
 
 # 項目根目錄
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -634,6 +642,10 @@ show_usage() {
     echo "  mcp        啟動 MCP Server"
     echo "  frontend   啟動前端服務 (Vite)"
     echo "  worker     啟動 RQ Worker (後台任務處理)"
+    echo "  seaweedfs          啟動 SeaweedFS (AI-Box 和 DataLake)
+  seaweedfs-ai-box    啟動 AI-Box SeaweedFS
+  seaweedfs-datalake  啟動 DataLake SeaweedFS"
+    echo "  buckets      創建 SeaweedFS Buckets"
     echo "  dashboard  啟動 RQ Dashboard (任務監控界面)"
     echo "  status     檢查服務狀態"
     echo "  monitor    實時監控 FastAPI 運行狀態"
@@ -799,6 +811,162 @@ start_rq_dashboard() {
     fi
 }
 
+# 函數：啟動 AI-Box SeaweedFS（Docker Compose）
+start_seaweedfs_ai_box() {
+    echo -e "${BLUE}=== 啟動 AI-Box SeaweedFS (Docker Compose) ===${NC}"
+
+    local compose_file="docker-compose.seaweedfs.yml"
+
+    if [ ! -f "$compose_file" ]; then
+        echo -e "${YELLOW}⚠️  未找到 $compose_file，跳過 AI-Box SeaweedFS 啟動${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}檢查 AI-Box SeaweedFS 是否已運行...${NC}"
+
+    if check_port $AI_BOX_SEAWEEDFS_S3_PORT; then
+        echo -e "${GREEN}✅ AI-Box SeaweedFS 已在運行（端口 $AI_BOX_SEAWEEDFS_S3_PORT）${NC}"
+        return 0
+    fi
+
+    echo -e "${BLUE}啟動 AI-Box SeaweedFS（Docker Compose）...${NC}"
+
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+    elif command -v docker &> /dev/null && docker compose version &> /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker compose"
+    else
+        echo -e "${RED}❌ 錯誤：未找到 docker-compose 或 docker compose 命令${NC}"
+        return 1
+    fi
+
+    $DOCKER_COMPOSE_CMD -f "$compose_file" up -d
+
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ AI-Box SeaweedFS 啟動失敗${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}等待 AI-Box SeaweedFS 啟動...${NC}"
+    local max_attempts=30
+    local attempt=0
+
+    while [ $attempt -lt $max_attempts ]; do
+        if check_port $AI_BOX_SEAWEEDFS_S3_PORT; then
+            echo -e "${GREEN}✅ AI-Box SeaweedFS 啟動成功（端口 $AI_BOX_SEAWEEDFS_S3_PORT）${NC}"
+            sleep 2
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+        echo -e "${YELLOW}  等待中... ($attempt/$max_attempts)${NC}"
+    done
+
+    echo -e "${RED}❌ AI-Box SeaweedFS 啟動超時${NC}"
+    return 1
+}
+
+# 函數：啟動 DataLake SeaweedFS（Docker Compose）
+start_seaweedfs_datalake() {
+    echo -e "${BLUE}=== 啟動 DataLake SeaweedFS (Docker Compose) ===${NC}"
+
+    local compose_file="docker-compose.seaweedfs-datalake.yml"
+
+    if [ ! -f "$compose_file" ]; then
+        echo -e "${YELLOW}⚠️  未找到 $compose_file，跳過 DataLake SeaweedFS 啟動${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}檢查 DataLake SeaweedFS 是否已運行...${NC}"
+
+    if check_port $DATALAKE_SEAWEEDFS_S3_PORT; then
+        echo -e "${GREEN}✅ DataLake SeaweedFS 已在運行（端口 $DATALAKE_SEAWEEDFS_S3_PORT）${NC}"
+        return 0
+    fi
+
+    echo -e "${BLUE}啟動 DataLake SeaweedFS（Docker Compose）...${NC}"
+
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+    elif command -v docker &> /dev/null && docker compose version &> /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker compose"
+    else
+        echo -e "${RED}❌ 錯誤：未找到 docker-compose 或 docker compose 命令${NC}"
+        return 1
+    fi
+
+    $DOCKER_COMPOSE_CMD -f "$compose_file" up -d
+
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ DataLake SeaweedFS 啟動失敗${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}等待 DataLake SeaweedFS 啟動...${NC}"
+    local max_attempts=30
+    local attempt=0
+
+    while [ $attempt -lt $max_attempts ]; do
+        if check_port $DATALAKE_SEAWEEDFS_S3_PORT; then
+            echo -e "${GREEN}✅ DataLake SeaweedFS 啟動成功（端口 $DATALAKE_SEAWEEDFS_S3_PORT）${NC}"
+            sleep 2
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+        echo -e "${YELLOW}  等待中... ($attempt/$max_attempts)${NC}"
+    done
+
+    echo -e "${RED}❌ DataLake SeaweedFS 啟動超時${NC}"
+    return 1
+}
+
+# 函數：啟動所有 SeaweedFS 服務（兼容舊版本）
+start_seaweedfs_docker() {
+    echo -e "${BLUE}=== 啟動 SeaweedFS 服務（AI-Box 和 DataLake） ===${NC}"
+    start_seaweedfs_ai_box || true
+    start_seaweedfs_datalake || true
+}
+
+# 函數：創建 SeaweedFS Buckets
+create_seaweedfs_buckets() {
+    echo -e "${BLUE}=== 創建 SeaweedFS Buckets ===${NC}"
+
+    local script_path="scripts/migration/create_seaweedfs_buckets.py"
+
+    if [ ! -f "$script_path" ]; then
+        echo -e "${YELLOW}⚠️  未找到 $script_path，跳過 Buckets 創建${NC}"
+        return 1
+    fi
+
+    # 檢查是否配置了 SeaweedFS 環境變數
+    if [ -z "$AI_BOX_SEAWEEDFS_S3_ENDPOINT" ] && [ -z "$DATALAKE_SEAWEEDFS_S3_ENDPOINT" ]; then
+        echo -e "${YELLOW}⚠️  未配置 SeaweedFS 環境變數，跳過 Buckets 創建${NC}"
+        echo -e "${YELLOW}提示: 如需使用 SeaweedFS，請在 .env 文件中配置相關環境變數${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}創建 SeaweedFS Buckets...${NC}"
+
+    # 確定 Python 路徑
+    PYTHON_CMD="python3"
+    if [ -d "venv" ]; then
+        source venv/bin/activate
+        PYTHON_CMD="venv/bin/python"
+    elif [ -d ".venv" ]; then
+        source .venv/bin/activate
+        PYTHON_CMD=".venv/bin/python"
+    fi
+
+    # 運行 Buckets 創建腳本
+    if "$PYTHON_CMD" "$script_path" --service all; then
+        echo -e "${GREEN}✅ SeaweedFS Buckets 創建成功${NC}"
+        return 0
+    else
+        echo -e "${YELLOW}⚠️  SeaweedFS Buckets 創建失敗或已存在${NC}"
+        return 1
+    fi
+}
 # 函數：檢查服務狀態
 check_status() {
     echo -e "${BLUE}=== 服務狀態檢查 ===${NC}"
@@ -833,6 +1001,20 @@ check_status() {
         echo -e "${GREEN}  訪問地址: http://localhost:$dashboard_port${NC}"
     else
         echo -e "${RED}❌ RQ Dashboard${NC} - 未運行 (端口 $dashboard_port)"
+    fi
+    # 檢查 SeaweedFS 狀態
+    echo -e "${BLUE}SeaweedFS 狀態:${NC}"
+    if check_port $AI_BOX_SEAWEEDFS_S3_PORT; then
+        local pid=$(lsof -ti :$AI_BOX_SEAWEEDFS_S3_PORT | head -1)
+        echo -e "${GREEN}✅ AI-Box SeaweedFS${NC} - 運行中 (S3 API: $AI_BOX_SEAWEEDFS_S3_PORT, Filer: $AI_BOX_SEAWEEDFS_FILER_PORT)"
+    else
+        echo -e "${RED}❌ AI-Box SeaweedFS${NC} - 未運行 (S3 API: $AI_BOX_SEAWEEDFS_S3_PORT)"
+    fi
+    if check_port $DATALAKE_SEAWEEDFS_S3_PORT; then
+        local pid=$(lsof -ti :$DATALAKE_SEAWEEDFS_S3_PORT | head -1)
+        echo -e "${GREEN}✅ DataLake SeaweedFS${NC} - 運行中 (S3 API: $DATALAKE_SEAWEEDFS_S3_PORT, Filer: $DATALAKE_SEAWEEDFS_FILER_PORT)"
+    else
+        echo -e "${RED}❌ DataLake SeaweedFS${NC} - 未運行 (S3 API: $DATALAKE_SEAWEEDFS_S3_PORT)"
     fi
 
     for service_info in "${services[@]}"; do
@@ -1065,6 +1247,8 @@ main() {
         case "$arg" in
             all)
                 echo -e "${BLUE}啟動所有服務...${NC}"
+                start_seaweedfs_docker || true
+                create_seaweedfs_buckets || true
                 start_arangodb || true
                 start_chromadb || true
                 start_redis || true
@@ -1099,6 +1283,18 @@ main() {
                 ;;
             dashboard)
                 start_rq_dashboard
+                ;;
+            seaweedfs)
+                start_seaweedfs_docker
+                ;;
+            seaweedfs-ai-box)
+                start_seaweedfs_ai_box
+                ;;
+            seaweedfs-datalake)
+                start_seaweedfs_datalake
+                ;;
+            buckets)
+                create_seaweedfs_buckets
                 ;;
             status)
                 check_status

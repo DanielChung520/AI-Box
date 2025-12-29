@@ -1,0 +1,59 @@
+# 代碼功能說明: SeaweedFS Docker Compose 配置（AI-Box 服務）
+# 創建日期: 2025-12-29
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-29
+
+version: "3.8"
+
+services:
+  # SeaweedFS Master 節點
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs-ai-box-master
+    command: "master -ip=seaweedfs-master -port=9333"
+    ports:
+      - "9333:9333"
+    networks:
+      - seaweedfs-network
+    volumes:
+      - seaweedfs-master-data:/data
+    restart: unless-stopped
+
+  # SeaweedFS Volume 節點
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs-ai-box-volume
+    command: "volume -mserver=seaweedfs-master:9333 -port=8080"
+    depends_on:
+      - seaweedfs-master
+    networks:
+      - seaweedfs-network
+    volumes:
+      - seaweedfs-volume-data:/data
+    restart: unless-stopped
+
+  # SeaweedFS Filer 節點（提供 S3 API 和 Filer API）
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs-ai-box-filer
+    command: "filer -master=seaweedfs-master:9333"
+    ports:
+      - "8888:8888" # Filer API
+      - "8333:8333" # S3 API
+    depends_on:
+      - seaweedfs-master
+      - seaweedfs-volume
+    networks:
+      - seaweedfs-network
+    environment:
+      - SEAWEEDFS_S3_ACCESS_KEY=${AI_BOX_SEAWEEDFS_S3_ACCESS_KEY:-admin}
+      - SEAWEEDFS_S3_SECRET_KEY=${AI_BOX_SEAWEEDFS_S3_SECRET_KEY:-admin123}
+    restart: unless-stopped
+
+networks:
+  seaweedfs-network:
+    driver: bridge
+
+volumes:
+  seaweedfs-master-data:
+  seaweedfs-volume-data:

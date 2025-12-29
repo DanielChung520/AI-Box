@@ -13,9 +13,17 @@ from typing import Any, Dict, List, Optional
 import structlog
 
 from database.arangodb import ArangoDBClient
-from services.api.services.governance.seaweedfs_log_service import SeaweedFSSystemLogService
 
 logger = structlog.get_logger(__name__)
+
+# 延遲導入 SeaweedFS 服務，避免在 boto3 未安裝時導致模塊級導入錯誤
+try:
+    from services.api.services.governance.seaweedfs_log_service import SeaweedFSSystemLogService
+except ImportError as e:
+    logger.warning(
+        "Failed to import SeaweedFSSystemLogService, will use ArangoDB only", error=str(e)
+    )
+    SeaweedFSSystemLogService = None  # type: ignore[assignment,misc]
 
 # ArangoDB Collection 名稱
 SYSTEM_LOGS_COLLECTION_NAME = "system_logs"
@@ -62,14 +70,19 @@ class LogService:
         self.max_content_size = max_content_size
 
         # 嘗試初始化 SeaweedFS 服務（優先使用）
-        self._seaweedfs_service: Optional[SeaweedFSSystemLogService] = None
-        try:
-            self._seaweedfs_service = SeaweedFSSystemLogService()
-            logger.info("SeaweedFS system log service initialized")
-        except Exception as e:
-            logger.warning(
-                "Failed to initialize SeaweedFS system log service, will use ArangoDB fallback",
-                error=str(e),
+        self._seaweedfs_service: Optional[Any] = None
+        if SeaweedFSSystemLogService is not None:
+            try:
+                self._seaweedfs_service = SeaweedFSSystemLogService()
+                logger.info("SeaweedFS system log service initialized")
+            except Exception as e:
+                logger.warning(
+                    "Failed to initialize SeaweedFS system log service, will use ArangoDB fallback",
+                    error=str(e),
+                )
+        else:
+            logger.info(
+                "SeaweedFSSystemLogService not available (boto3 not installed), using ArangoDB only"
             )
 
         self._collection_ensured = False

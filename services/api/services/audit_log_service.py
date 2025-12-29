@@ -18,9 +18,17 @@ import structlog
 
 from database.arangodb import ArangoCollection, ArangoDBClient
 from services.api.models.audit_log import AuditAction, AuditLog, AuditLogCreate
-from services.api.services.governance.seaweedfs_log_service import SeaweedFSAuditLogService
 
 logger = structlog.get_logger(__name__)
+
+# 延遲導入 SeaweedFS 服務，避免在 boto3 未安裝時導致模塊級導入錯誤
+try:
+    from services.api.services.governance.seaweedfs_log_service import SeaweedFSAuditLogService
+except ImportError as e:
+    logger.warning(
+        "Failed to import SeaweedFSAuditLogService, will use ArangoDB only", error=str(e)
+    )
+    SeaweedFSAuditLogService = None  # type: ignore[assignment,misc]
 
 # ArangoDB 集合名稱
 AUDIT_LOG_COLLECTION_NAME = "audit_logs"
@@ -38,14 +46,19 @@ class AuditLogService:
         self.client = client or ArangoDBClient()
 
         # 嘗試初始化 SeaweedFS 服務（優先使用）
-        self._seaweedfs_service: Optional[SeaweedFSAuditLogService] = None
-        try:
-            self._seaweedfs_service = SeaweedFSAuditLogService()
-            logger.info("SeaweedFS audit log service initialized")
-        except Exception as e:
-            logger.warning(
-                "Failed to initialize SeaweedFS audit log service, will use ArangoDB fallback",
-                error=str(e),
+        self._seaweedfs_service: Optional[Any] = None
+        if SeaweedFSAuditLogService is not None:
+            try:
+                self._seaweedfs_service = SeaweedFSAuditLogService()
+                logger.info("SeaweedFS audit log service initialized")
+            except Exception as e:
+                logger.warning(
+                    "Failed to initialize SeaweedFS audit log service, will use ArangoDB fallback",
+                    error=str(e),
+                )
+        else:
+            logger.info(
+                "SeaweedFSAuditLogService not available (boto3 not installed), using ArangoDB only"
             )
 
         # 初始化 ArangoDB 集合（fallback）

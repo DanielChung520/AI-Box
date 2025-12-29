@@ -1,0 +1,59 @@
+# 代碼功能說明: SeaweedFS Docker Compose 配置（DataLake 服務）
+# 創建日期: 2025-12-29
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-29
+
+version: "3.8"
+
+services:
+  # SeaweedFS Master 節點（DataLake）
+  seaweedfs-datalake-master:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs-datalake-master
+    command: "master -ip=seaweedfs-datalake-master -port=9334"
+    ports:
+      - "9334:9333"
+    networks:
+      - seaweedfs-datalake-network
+    volumes:
+      - seaweedfs-datalake-master-data:/data
+    restart: unless-stopped
+
+  # SeaweedFS Volume 節點（DataLake）
+  seaweedfs-datalake-volume:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs-datalake-volume
+    command: "volume -mserver=seaweedfs-datalake-master:9333 -port=8081"
+    depends_on:
+      - seaweedfs-datalake-master
+    networks:
+      - seaweedfs-datalake-network
+    volumes:
+      - seaweedfs-datalake-volume-data:/data
+    restart: unless-stopped
+
+  # SeaweedFS Filer 節點（DataLake，使用不同端口）
+  seaweedfs-datalake-filer:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs-datalake-filer
+    command: "filer -master=seaweedfs-datalake-master:9333"
+    ports:
+      - "8889:8888" # Filer API
+      - "8334:8333" # S3 API
+    depends_on:
+      - seaweedfs-datalake-master
+      - seaweedfs-datalake-volume
+    networks:
+      - seaweedfs-datalake-network
+    environment:
+      - SEAWEEDFS_S3_ACCESS_KEY=${DATALAKE_SEAWEEDFS_S3_ACCESS_KEY:-admin}
+      - SEAWEEDFS_S3_SECRET_KEY=${DATALAKE_SEAWEEDFS_S3_SECRET_KEY:-admin123}
+    restart: unless-stopped
+
+networks:
+  seaweedfs-datalake-network:
+    driver: bridge
+
+volumes:
+  seaweedfs-datalake-master-data:
+  seaweedfs-datalake-volume-data:

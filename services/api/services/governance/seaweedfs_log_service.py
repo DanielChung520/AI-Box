@@ -7,46 +7,99 @@
 
 import json
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import structlog
-from botocore.exceptions import ClientError
 
-from services.api.core.log.log_service import LogType
 from services.api.models.audit_log import AuditAction, AuditLog, AuditLogCreate
-from storage.file_storage import create_storage_from_config
-from storage.s3_storage import S3FileStorage
 
 logger = structlog.get_logger(__name__)
 
+# 定義 LogType 枚舉（避免循環導入）
+# 注意：這個定義應該與 log_service.py 中的 LogType 保持一致
 
-def _get_seaweedfs_storage() -> S3FileStorage:
+
+class LogType(str, Enum):
+    """日誌類型（本地定義，避免循環導入）"""
+
+    TASK = "TASK"
+    AUDIT = "AUDIT"
+    SECURITY = "SECURITY"
+
+
+# 延遲導入 boto3 相關模塊，避免在 boto3 未安裝時導致模塊級導入錯誤
+try:
+    from botocore.exceptions import ClientError
+except ImportError:
+    ClientError = Exception  # type: ignore[assignment,misc]
+
+try:
+    from storage.file_storage import create_storage_from_config
+    from storage.s3_storage import S3FileStorage
+except ImportError as e:
+    # 如果 boto3 未安裝，S3FileStorage 無法導入
+    logger.warning(
+        "Failed to import S3FileStorage, SeaweedFS features will be disabled", error=str(e)
+    )
+    S3FileStorage = None  # type: ignore[assignment,misc]
+    create_storage_from_config = None  # type: ignore[assignment]
+
+
+def _get_seaweedfs_storage() -> "S3FileStorage":
     """
     獲取 SeaweedFS 存儲實例（用於治理服務）
 
     Returns:
         S3FileStorage 實例（AI-Box 服務）
+
+    Raises:
+        ImportError: 如果 boto3 未安裝或 S3FileStorage 無法導入
+        ValueError: 如果 SeaweedFS 配置不完整
     """
-    config = {}
-    return create_storage_from_config(config, service_type="ai_box")  # type: ignore[return-value]
+    if S3FileStorage is None or create_storage_from_config is None:
+        raise ImportError("boto3 is not installed. Please install it with: pip install boto3")
+
+    config: Dict[str, Any] = {}
+    storage = create_storage_from_config(config, service_type="ai_box")
+    if not isinstance(storage, S3FileStorage):
+        raise ValueError("Failed to create S3FileStorage instance. Check SeaweedFS configuration.")
+    return storage
 
 
 class SeaweedFSAuditLogService:
     """SeaweedFS 審計日誌服務"""
 
-    def __init__(self, storage: Optional[S3FileStorage] = None):
+    def __init__(self, storage: Optional["S3FileStorage"] = None):
         """
         初始化 SeaweedFS 審計日誌服務
 
         Args:
             storage: S3FileStorage 實例（如果不提供則自動創建）
+
+        Raises:
+            ImportError: 如果 boto3 未安裝
+            ValueError: 如果 SeaweedFS 配置不完整
+            Exception: 如果 Bucket 創建失敗
         """
-        self.storage = storage or _get_seaweedfs_storage()
+        if S3FileStorage is None:
+            raise ImportError("boto3 is not installed. Please install it with: pip install boto3")
+
+        try:
+            self.storage = storage or _get_seaweedfs_storage()
+        except (ImportError, ValueError) as e:
+            logger.error("Failed to initialize SeaweedFS storage", error=str(e))
+            raise
+
         self.bucket = "bucket-governance-logs"
         self.logger = logger.bind(service="SeaweedFSAuditLogService", bucket=self.bucket)
 
         # 確保 Bucket 存在
-        self._ensure_bucket_exists()
+        try:
+            self._ensure_bucket_exists()
+        except Exception as e:
+            logger.error("Failed to ensure bucket exists", bucket=self.bucket, error=str(e))
+            raise
 
     def _ensure_bucket_exists(self) -> None:
         """確保 Bucket 存在"""
@@ -302,19 +355,36 @@ class SeaweedFSAuditLogService:
 class SeaweedFSSystemLogService:
     """SeaweedFS 系統日誌服務"""
 
-    def __init__(self, storage: Optional[S3FileStorage] = None):
+    def __init__(self, storage: Optional["S3FileStorage"] = None):
         """
         初始化 SeaweedFS 系統日誌服務
 
         Args:
             storage: S3FileStorage 實例（如果不提供則自動創建）
+
+        Raises:
+            ImportError: 如果 boto3 未安裝
+            ValueError: 如果 SeaweedFS 配置不完整
+            Exception: 如果 Bucket 創建失敗
         """
-        self.storage = storage or _get_seaweedfs_storage()
+        if S3FileStorage is None:
+            raise ImportError("boto3 is not installed. Please install it with: pip install boto3")
+
+        try:
+            self.storage = storage or _get_seaweedfs_storage()
+        except (ImportError, ValueError) as e:
+            logger.error("Failed to initialize SeaweedFS storage", error=str(e))
+            raise
+
         self.bucket = "bucket-governance-logs"
         self.logger = logger.bind(service="SeaweedFSSystemLogService", bucket=self.bucket)
 
         # 確保 Bucket 存在
-        self._ensure_bucket_exists()
+        try:
+            self._ensure_bucket_exists()
+        except Exception as e:
+            logger.error("Failed to ensure bucket exists", bucket=self.bucket, error=str(e))
+            raise
 
     def _ensure_bucket_exists(self) -> None:
         """確保 Bucket 存在"""
