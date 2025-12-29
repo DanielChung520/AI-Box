@@ -1,7 +1,7 @@
 # 代碼功能說明: LogService 統一日誌服務
 # 創建日期: 2025-12-21
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-21
+# 最後修改日期: 2025-01-27
 
 """LogService 統一日誌服務 - 提供統一的日誌記錄接口，支持任務追蹤與審計合規"""
 
@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 import structlog
 
 from database.arangodb import ArangoDBClient
+from services.api.services.governance.seaweedfs_log_service import SeaweedFSSystemLogService
 
 logger = structlog.get_logger(__name__)
 
@@ -43,7 +44,7 @@ class LogType(str, Enum):
 
 
 class LogService:
-    """統一日誌服務，支援任務追蹤與審計合規"""
+    """統一日誌服務，支援任務追蹤與審計合規（適配器模式：優先使用 SeaweedFS，fallback 到 ArangoDB）"""
 
     def __init__(
         self,
@@ -59,6 +60,18 @@ class LogService:
         """
         self.client = client or ArangoDBClient()
         self.max_content_size = max_content_size
+
+        # 嘗試初始化 SeaweedFS 服務（優先使用）
+        self._seaweedfs_service: Optional[SeaweedFSSystemLogService] = None
+        try:
+            self._seaweedfs_service = SeaweedFSSystemLogService()
+            logger.info("SeaweedFS system log service initialized")
+        except Exception as e:
+            logger.warning(
+                "Failed to initialize SeaweedFS system log service, will use ArangoDB fallback",
+                error=str(e),
+            )
+
         self._collection_ensured = False
         self._ensure_collection()
 
@@ -227,6 +240,8 @@ class LogService:
         """
         記錄日誌事件（統一接口）
 
+        優先使用 SeaweedFS，如果失敗則 fallback 到 ArangoDB。
+
         Args:
             trace_id: 追蹤 ID（用於串聯整個請求）
             log_type: 日誌類型（TASK/AUDIT/SECURITY）
@@ -241,9 +256,6 @@ class LogService:
         Returns:
             log_id: 日誌記錄 ID
         """
-        if self.client.db is None:
-            raise RuntimeError("ArangoDB client is not connected")
-
         # 檢查並截斷過大的 content
         content_str = json.dumps(content, ensure_ascii=False)
         content_size = len(content_str.encode("utf-8"))
@@ -257,6 +269,30 @@ class LogService:
                 original_size=content_size,
                 max_size=self.max_content_size,
             )
+
+        # 優先使用 SeaweedFS
+        if self._seaweedfs_service:
+            try:
+                return await self._seaweedfs_service.log_event(
+                    trace_id=trace_id,
+                    log_type=log_type,
+                    agent_name=agent_name,
+                    actor=actor,
+                    action=action,
+                    content=content,
+                    level=level,
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to log event to SeaweedFS, falling back to ArangoDB",
+                    error=str(e),
+                )
+
+        # Fallback 到 ArangoDB
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
 
         timestamp = datetime.utcnow()
         log_entry = {
@@ -387,6 +423,7 @@ class LogService:
         根據 trace_id 查詢所有相關日誌
 
         用於追蹤整個請求的生命週期
+        優先使用 SeaweedFS，如果失敗則 fallback 到 ArangoDB。
 
         Args:
             trace_id: 追蹤 ID
@@ -394,6 +431,17 @@ class LogService:
         Returns:
             日誌列表（按時間排序）
         """
+        # 優先使用 SeaweedFS
+        if self._seaweedfs_service:
+            try:
+                return await self._seaweedfs_service.get_logs_by_trace_id(trace_id)
+            except Exception as e:
+                logger.warning(
+                    "Failed to get logs from SeaweedFS, falling back to ArangoDB",
+                    error=str(e),
+                )
+
+        # Fallback 到 ArangoDB
         if self.client.db is None or self.client.db.aql is None:
             raise RuntimeError("ArangoDB client or AQL is not available")
 
@@ -424,6 +472,8 @@ class LogService:
         """
         查詢審計日誌
 
+        優先使用 SeaweedFS，如果失敗則 fallback 到 ArangoDB。
+
         Args:
             actor: 執行者（可選）
             level: 配置層級（可選）
@@ -435,6 +485,24 @@ class LogService:
         Returns:
             審計日誌列表
         """
+        # 優先使用 SeaweedFS
+        if self._seaweedfs_service:
+            try:
+                return await self._seaweedfs_service.get_audit_logs(
+                    actor=actor,
+                    level=level,
+                    tenant_id=tenant_id,
+                    start_time=start_time,
+                    end_time=end_time,
+                    limit=limit,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to get audit logs from SeaweedFS, falling back to ArangoDB",
+                    error=str(e),
+                )
+
+        # Fallback 到 ArangoDB
         if self.client.db is None or self.client.db.aql is None:
             raise RuntimeError("ArangoDB client or AQL is not available")
 
@@ -478,6 +546,8 @@ class LogService:
         """
         查詢安全日誌
 
+        優先使用 SeaweedFS，如果失敗則 fallback 到 ArangoDB。
+
         Args:
             actor: 執行者（可選）
             action: 操作類型（可選）
@@ -488,6 +558,23 @@ class LogService:
         Returns:
             安全日誌列表
         """
+        # 優先使用 SeaweedFS
+        if self._seaweedfs_service:
+            try:
+                return await self._seaweedfs_service.get_security_logs(
+                    actor=actor,
+                    action=action,
+                    start_time=start_time,
+                    end_time=end_time,
+                    limit=limit,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to get security logs from SeaweedFS, falling back to ArangoDB",
+                    error=str(e),
+                )
+
+        # Fallback 到 ArangoDB
         if self.client.db is None or self.client.db.aql is None:
             raise RuntimeError("ArangoDB client or AQL is not available")
 

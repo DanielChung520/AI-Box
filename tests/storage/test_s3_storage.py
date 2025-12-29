@@ -311,3 +311,183 @@ class TestS3FileStorage:
         assert storage_ai_box._guess_content_type("test.json") == "application/json"
         assert storage_ai_box._guess_content_type("test.pdf") == "application/pdf"
         assert storage_ai_box._guess_content_type("test.unknown") == "application/octet-stream"
+
+    def test_save_file_error_handling(self, storage_ai_box, mock_s3_client):
+        """測試保存文件錯誤處理"""
+        file_content = b"test file content"
+        filename = "test.txt"
+        file_id = "test-file-id"
+
+        # 模擬 put_object 失敗
+        mock_s3_client.put_object.side_effect = ClientError(
+            {"Error": {"Code": "InternalError"}}, "PutObject"
+        )
+
+        with pytest.raises(RuntimeError, match="Failed to save file to S3"):
+            storage_ai_box.save_file(file_content=file_content, filename=filename, file_id=file_id)
+
+    def test_read_file_error_handling(self, storage_ai_box, mock_s3_client):
+        """測試讀取文件錯誤處理"""
+        file_id = "test-file-id"
+        s3_uri = "s3://bucket-ai-box-assets/ab/test-file-id.txt"
+
+        # 模擬 get_object 失敗（非 NoSuchKey 錯誤）
+        mock_s3_client.get_object.side_effect = ClientError(
+            {"Error": {"Code": "InternalError"}}, "GetObject"
+        )
+
+        with patch.object(
+            storage_ai_box,
+            "_parse_s3_uri",
+            return_value=("bucket-ai-box-assets", "ab/test-file-id.txt"),
+        ):
+            result = storage_ai_box.read_file(file_id=file_id, metadata_storage_path=s3_uri)
+
+            assert result is None
+
+    def test_delete_file_error_handling(self, storage_ai_box, mock_s3_client):
+        """測試刪除文件錯誤處理"""
+        file_id = "test-file-id"
+        s3_uri = "s3://bucket-ai-box-assets/ab/test-file-id.txt"
+
+        # 模擬 delete_object 失敗
+        mock_s3_client.delete_object.side_effect = ClientError(
+            {"Error": {"Code": "InternalError"}}, "DeleteObject"
+        )
+
+        with patch.object(
+            storage_ai_box,
+            "_parse_s3_uri",
+            return_value=("bucket-ai-box-assets", "ab/test-file-id.txt"),
+        ):
+            result = storage_ai_box.delete_file(file_id=file_id, metadata_storage_path=s3_uri)
+
+            assert result is False
+
+    def test_file_version_management(self, storage_ai_box, mock_s3_client):
+        """測試文件版本管理（通過不同的 file_id 和路徑）"""
+        file_content_v1 = b"version 1 content"
+        file_content_v2 = b"version 2 content"
+        filename = "test.txt"
+        file_id_v1 = "file-123-v1"
+        file_id_v2 = "file-123-v2"
+
+        mock_s3_client.put_object.return_value = {}
+
+        # 保存版本 1
+        file_id_result_1, s3_uri_1 = storage_ai_box.save_file(
+            file_content=file_content_v1, filename=filename, file_id=file_id_v1
+        )
+
+        # 保存版本 2
+        file_id_result_2, s3_uri_2 = storage_ai_box.save_file(
+            file_content=file_content_v2, filename=filename, file_id=file_id_v2
+        )
+
+        assert file_id_result_1 == file_id_v1
+        assert file_id_result_2 == file_id_v2
+        assert s3_uri_1 != s3_uri_2
+        assert mock_s3_client.put_object.call_count == 2
+
+    def test_different_buckets_auto_create(self, mock_s3_client):
+        """測試不同 Bucket 的自動創建"""
+        # 模擬 head_bucket 返回 404（Bucket 不存在）
+        mock_s3_client.head_bucket.side_effect = [
+            ClientError({"Error": {"Code": "404"}}, "HeadBucket"),  # 默認 Bucket
+            None,  # 創建後檢查
+        ]
+        mock_s3_client.create_bucket.return_value = None
+
+        S3FileStorage(
+            endpoint="http://test-endpoint:8333",
+            access_key="test-access-key",
+            secret_key="test-secret-key",
+            service_type=SeaweedFSService.AI_BOX,
+        )
+
+        # 驗證默認 Bucket 被創建
+        mock_s3_client.create_bucket.assert_called_with(Bucket="bucket-ai-box-assets")
+
+    def test_datalake_bucket_auto_create(self, mock_s3_client):
+        """測試 DataLake Bucket 的自動創建"""
+        mock_s3_client.head_bucket.side_effect = [
+            ClientError({"Error": {"Code": "404"}}, "HeadBucket"),
+            None,
+        ]
+        mock_s3_client.create_bucket.return_value = None
+
+        S3FileStorage(
+            endpoint="http://test-endpoint:8333",
+            access_key="test-access-key",
+            secret_key="test-secret-key",
+            service_type=SeaweedFSService.DATALAKE,
+        )
+
+        mock_s3_client.create_bucket.assert_called_with(Bucket="bucket-datalake-assets")
+
+    def test_parse_s3_uri_https_format(self, storage_ai_box):
+        """測試解析 HTTPS 格式的 S3 URI"""
+        result = storage_ai_box._parse_s3_uri(
+            "https://endpoint.example.com/bucket-name/path/to/file.txt"
+        )
+        assert result == ("bucket-name", "path/to/file.txt")
+
+    def test_parse_s3_uri_http_format(self, storage_ai_box):
+        """測試解析 HTTP 格式的 S3 URI"""
+        result = storage_ai_box._parse_s3_uri(
+            "http://endpoint.example.com/bucket-name/path/to/file.txt"
+        )
+        assert result == ("bucket-name", "path/to/file.txt")
+
+    def test_get_file_path_with_metadata_storage_path(self, storage_ai_box):
+        """測試使用 metadata_storage_path 獲取文件路徑"""
+        file_id = "test-file-id"
+        s3_uri = "s3://bucket-ai-box-assets/ab/test-file-id.txt"
+
+        result = storage_ai_box.get_file_path(file_id=file_id, metadata_storage_path=s3_uri)
+
+        assert result == s3_uri
+
+    def test_read_file_with_metadata_storage_path(self, storage_ai_box, mock_s3_client):
+        """測試使用 metadata_storage_path 讀取文件"""
+        file_id = "test-file-id"
+        s3_uri = "s3://bucket-ai-box-assets/ab/test-file-id.txt"
+        file_content = b"test file content"
+
+        mock_response = {"Body": Mock(read=Mock(return_value=file_content))}
+        mock_s3_client.get_object.return_value = mock_response
+
+        result = storage_ai_box.read_file(file_id=file_id, metadata_storage_path=s3_uri)
+
+        assert result == file_content
+        mock_s3_client.get_object.assert_called_once_with(
+            Bucket="bucket-ai-box-assets", Key="ab/test-file-id.txt"
+        )
+
+    def test_delete_file_with_metadata_storage_path(self, storage_ai_box, mock_s3_client):
+        """測試使用 metadata_storage_path 刪除文件"""
+        file_id = "test-file-id"
+        s3_uri = "s3://bucket-ai-box-assets/ab/test-file-id.txt"
+
+        mock_s3_client.delete_object.return_value = {}
+
+        result = storage_ai_box.delete_file(file_id=file_id, metadata_storage_path=s3_uri)
+
+        assert result is True
+        mock_s3_client.delete_object.assert_called_once_with(
+            Bucket="bucket-ai-box-assets", Key="ab/test-file-id.txt"
+        )
+
+    def test_file_exists_with_metadata_storage_path(self, storage_ai_box, mock_s3_client):
+        """測試使用 metadata_storage_path 檢查文件是否存在"""
+        file_id = "test-file-id"
+        s3_uri = "s3://bucket-ai-box-assets/ab/test-file-id.txt"
+
+        mock_s3_client.head_object.return_value = {}
+
+        result = storage_ai_box.file_exists(file_id=file_id, metadata_storage_path=s3_uri)
+
+        assert result is True
+        mock_s3_client.head_object.assert_called_once_with(
+            Bucket="bucket-ai-box-assets", Key="ab/test-file-id.txt"
+        )

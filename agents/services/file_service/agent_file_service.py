@@ -1,16 +1,16 @@
 # 代碼功能說明: Agent File Service Agent 產出物文件服務
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2025-12-29
 
 """Agent File Service - 實現 Agent 產出物（HTML/PDF）的存儲和訪問"""
 
 import logging
-import os
 from pathlib import Path
 from typing import List, Optional
 
-from storage.file_storage import FileStorage, LocalFileStorage
+from storage.file_storage import FileStorage, create_storage_from_config
+from system.infra.config.config import get_config_section
 
 from .models import AgentFileInfo, FileType
 
@@ -29,12 +29,14 @@ class AgentFileService:
         初始化 Agent 文件服務
 
         Args:
-            storage: 文件存儲接口（可選，默認使用本地存儲）
+            storage: 文件存儲接口（可選，默認從配置創建，支持 S3/SeaweedFS）
             base_url: 文件訪問基礎 URL
         """
-        self._storage = storage or LocalFileStorage(
-            storage_path=os.getenv("AGENT_FILES_STORAGE_PATH", "./data/datasets/agent_files")
-        )
+        if storage is None:
+            # 從配置創建存儲實例（支持 S3/SeaweedFS）
+            config = get_config_section("file_upload", default={}) or {}
+            storage = create_storage_from_config(config, service_type="ai_box")
+        self._storage = storage
         self._base_url = base_url.rstrip("/")
         self._logger = logger
 
@@ -69,8 +71,10 @@ class AgentFileService:
             # 生成文件 ID
             file_id = self._generate_file_id(agent_id, task_id, filename)
 
-            # 保存文件
-            file_id, saved_path = self._storage.save_file(file_content, filename, file_id=file_id)
+            # 保存文件（傳遞 task_id 以便文件存儲在任務工作區）
+            file_id, saved_path = self._storage.save_file(
+                file_content, filename, file_id=file_id, task_id=task_id
+            )
 
             # 如果保存路徑不包含組織化結構，需要手動組織
             # 這裡暫時使用保存後的路徑，後續可以擴展 FileStorage 支持組織化路徑
@@ -115,17 +119,24 @@ class AgentFileService:
             文件信息，如果不存在則返回 None
         """
         try:
-            file_path = self._storage.get_file_path(file_id)
+            # 使用 task_id 獲取文件路徑（支持任務工作區）
+            file_path = self._storage.get_file_path(file_id, task_id=task_id)
             if not file_path:
                 return None
 
-            # 讀取文件獲取大小
-            file_content = self._storage.read_file(file_id)
+            # 讀取文件獲取大小（使用 task_id 和 file_path）
+            file_content = self._storage.read_file(
+                file_id, task_id=task_id, metadata_storage_path=file_path
+            )
             if file_content is None:
                 return None
 
-            # 從文件路徑推斷文件名
-            filename = Path(file_path).name
+            # 從文件路徑推斷文件名（支持 S3 URI）
+            if file_path.startswith("s3://"):
+                # S3 URI 格式：s3://bucket/key，從 key 中提取文件名
+                filename = file_path.split("/")[-1]
+            else:
+                filename = Path(file_path).name
             file_type = self._infer_file_type(filename)
 
             # 生成文件 URL
@@ -156,13 +167,21 @@ class AgentFileService:
 
         Returns:
             文件信息列表
+
+        注意：
+        - 對於 S3/SeaweedFS 存儲，需要通過 S3 API 列出文件（需要實現）
+        - 目前僅支持 LocalFileStorage 的文件列表
+        - 後續可以擴展為數據庫查詢或 S3 list_objects
         """
-        # 簡單實現：列出特定路徑下的文件
-        # 後續可以擴展為數據庫查詢
         files: List[AgentFileInfo] = []
         # 檢查是否為 LocalFileStorage（有 storage_path 屬性）
         if not hasattr(self._storage, "storage_path"):
-            # 如果不是本地存儲，返回空列表（後續可以擴展為數據庫查詢）
+            # 如果不是本地存儲，返回空列表
+            # TODO: 實現 S3 list_objects 支持
+            self._logger.warning(
+                "list_agent_files not supported for S3 storage yet, "
+                "consider using database query or S3 list_objects"
+            )
             return files
         base_path = Path(self._storage.storage_path) / agent_id
 

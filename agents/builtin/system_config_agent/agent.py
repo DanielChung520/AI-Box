@@ -1,7 +1,7 @@
 # 代碼功能說明: System Config Agent 實現
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-21
+# 最後修改日期: 2025-12-29
 
 """System Config Agent 實現
 
@@ -21,6 +21,7 @@ from agents.services.protocol.base import (
 )
 from agents.task_analyzer.models import ConfigIntent
 from services.api.core.log.log_service import LogService, get_log_service
+from services.api.models.change_proposal import ChangeProposalCreate
 from services.api.models.config import ConfigCreate, ConfigUpdate
 from services.api.services.config_store_service import ConfigStoreService, get_config_store_service
 
@@ -46,6 +47,9 @@ class SystemConfigAgent(AgentServiceProtocol):
         self._rollback_service = ConfigRollbackService()
         self._inspection_service = ConfigInspectionService()
         self._logger = logger
+
+        # 延遲初始化變更提案服務（可選）
+        self._change_proposal_service: Optional[Any] = None
 
     async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
         """
@@ -386,6 +390,24 @@ class SystemConfigAgent(AgentServiceProtocol):
                     error=f"Compliance check failed: {compliance_result.reason}",
                 )
 
+            # 可選：創建變更提案（如果啟用提案流程）
+            proposal_id: Optional[str] = None
+            use_proposal_flow = False  # 可以通過配置啟用
+
+            if use_proposal_flow:
+                try:
+                    proposal_id = await self._create_config_change_proposal(
+                        intent=intent,
+                        config_id=config_id,
+                        before_config=before_config,
+                        proposed_by=admin_user_id,
+                    )
+                    # 如果提案需要審批，返回提案ID，等待審批
+                    # 這裡簡化實現，直接繼續執行（實際應該檢查提案是否需要審批）
+                except Exception as e:
+                    self._logger.warning(f"Failed to create change proposal: {e}", exc_info=True)
+                    # 提案創建失敗，繼續執行原有流程
+
             # 創建 ConfigUpdate 對象
             config_update = ConfigUpdate(config_data=intent.config_data)
 
@@ -444,6 +466,10 @@ RETURN NEW
                     user_id=intent.user_id,
                 )
 
+            result_message = f"Config updated successfully: {config_id}"
+            if proposal_id:
+                result_message += f" (Proposal ID: {proposal_id})"
+
             return ConfigOperationResult(  # type: ignore[call-arg]  # 字段都有默認值
                 action="update",
                 scope=intent.scope,
@@ -451,7 +477,7 @@ RETURN NEW
                 success=True,
                 config={"id": config_id, "config_data": after_config},
                 changes=changes,
-                message=f"Config updated successfully: {config_id}",
+                message=result_message,
                 audit_log_id=trace_id,
                 rollback_id=rollback_id,
             )
@@ -465,6 +491,79 @@ RETURN NEW
                 success=False,
                 error=str(e),
             )
+
+    async def _create_config_change_proposal(
+        self,
+        intent: ConfigIntent,
+        config_id: str,
+        before_config: Dict[str, Any],
+        proposed_by: str,
+    ) -> Optional[str]:
+        """創建配置變更提案
+
+        Args:
+            intent: 配置意圖
+            config_id: 配置 ID
+            before_config: 變更前的配置
+            proposed_by: 提案者（用戶 ID）
+
+        Returns:
+            提案 ID，如果失敗則返回 None
+        """
+        try:
+            # 延遲導入，避免循環依賴
+            from services.api.services.governance.change_proposal_service import (
+                SeaweedFSChangeProposalService,
+            )
+
+            # 延遲初始化變更提案服務
+            if self._change_proposal_service is None:
+                try:
+                    self._change_proposal_service = SeaweedFSChangeProposalService()
+                except Exception as e:
+                    self._logger.warning(
+                        "Failed to initialize change proposal service",
+                        error=str(e),
+                    )
+                    return None
+
+            # 創建提案數據
+            proposal_data = ChangeProposalCreate(
+                proposal_type="config_update",
+                resource_id=config_id,
+                proposed_by=proposed_by,
+                proposal_data={
+                    "scope": intent.scope,
+                    "level": intent.level or "system",
+                    "tenant_id": intent.tenant_id,
+                    "user_id": intent.user_id,
+                    "before_config": before_config,
+                    "after_config": intent.config_data,
+                    "compliance_check": {
+                        "valid": True,  # 假設合規性檢查已通過
+                    },
+                },
+                approval_required=False,  # 可以根據配置決定是否需要審批
+            )
+
+            # 創建提案
+            proposal_id = await self._change_proposal_service.create_proposal(proposal_data)
+            self._logger.info(
+                "Change proposal created",
+                proposal_id=proposal_id,
+                config_id=config_id,
+                scope=intent.scope,
+            )
+            return proposal_id
+
+        except Exception as e:
+            # 提案創建失敗不影響主流程
+            self._logger.warning(
+                "Failed to create change proposal",
+                config_id=config_id,
+                error=str(e),
+            )
+            return None
 
     async def _handle_delete(
         self, intent: ConfigIntent, admin_user_id: str, trace_id: Optional[str] = None

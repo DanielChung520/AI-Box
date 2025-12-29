@@ -1,7 +1,7 @@
 # 代碼功能說明: Config 存儲服務 - 提供 Config 的 CRUD 操作和多層級配置合併
 # 創建日期: 2025-12-18 19:39:14 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-18 19:39:14 (UTC+8)
+# 最後修改日期: 2025-12-29
 
 """Config Store Service
 
@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,7 @@ import structlog
 
 from database.arangodb import ArangoCollection, ArangoDBClient
 from services.api.models.config import ConfigCreate, ConfigModel, ConfigUpdate, EffectiveConfig
+from services.api.models.version_history import VersionHistoryCreate
 
 logger = structlog.get_logger(__name__)
 
@@ -110,8 +112,15 @@ class ConfigStoreService:
         self._tenant_collection = ArangoCollection(tenant_collection)
         self._user_collection = ArangoCollection(user_collection)
 
+        # 延遲初始化版本歷史服務（可選）
+        self._version_history_service: Optional[Any] = None
+
     def save_config(
-        self, config: ConfigCreate, tenant_id: Optional[str] = None, user_id: Optional[str] = None
+        self,
+        config: ConfigCreate,
+        tenant_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        changed_by: Optional[str] = None,
     ) -> str:
         """
         保存配置（system/tenant/user）
@@ -120,6 +129,7 @@ class ConfigStoreService:
             config: Config 創建數據
             tenant_id: 租戶 ID（覆寫 config.tenant_id）
             user_id: 用戶 ID（覆寫 config.user_id）
+            changed_by: 變更者（用戶 ID），用於版本歷史記錄（可選）
 
         Returns:
             Config ID
@@ -137,6 +147,13 @@ class ConfigStoreService:
 
         config_key = _generate_config_key(config.scope, final_tenant_id, final_user_id)
         now = datetime.utcnow().isoformat()
+
+        # 獲取舊版本數據（用於版本歷史記錄）
+        existing = collection.get(config_key)
+        previous_version_data: Dict[str, Any] = {}
+        if existing:
+            # 複製現有數據作為舊版本
+            previous_version_data = dict(existing)
 
         doc: Dict[str, Any] = {
             "_key": config_key,
@@ -157,7 +174,6 @@ class ConfigStoreService:
             doc["user_id"] = final_user_id
 
         try:
-            existing = collection.get(config_key)
             if existing:
                 # 更新
                 doc["created_at"] = existing.get("created_at", now)
@@ -170,6 +186,7 @@ class ConfigStoreService:
                     tenant_id=final_tenant_id,
                     user_id=final_user_id,
                 )
+                change_type = "update"
             else:
                 # 創建
                 collection.insert(doc)
@@ -180,10 +197,94 @@ class ConfigStoreService:
                     tenant_id=final_tenant_id,
                     user_id=final_user_id,
                 )
+                change_type = "create"
+
+            # 記錄版本歷史（可選，失敗不影響主流程）
+            if changed_by:
+                self._record_version_history(
+                    resource_type="configs",
+                    resource_id=config_key,
+                    change_type=change_type,
+                    changed_by=changed_by,
+                    previous_version=previous_version_data,
+                    current_version=doc,
+                    scope=config.scope,
+                )
+
             return config_key
         except Exception as exc:
             self._logger.error("config_save_failed", id=config_key, error=str(exc))
             raise
+
+    def _record_version_history(
+        self,
+        resource_type: str,
+        resource_id: str,
+        change_type: str,
+        changed_by: str,
+        previous_version: Dict[str, Any],
+        current_version: Dict[str, Any],
+        scope: Optional[str] = None,
+    ) -> None:
+        """記錄版本歷史（後台執行，失敗不影響主流程）"""
+        try:
+            # 延遲導入，避免循環依賴
+            from services.api.services.governance.version_history_service import (
+                SeaweedFSVersionHistoryService,
+            )
+
+            # 延遲初始化版本歷史服務
+            if self._version_history_service is None:
+                try:
+                    self._version_history_service = SeaweedFSVersionHistoryService()
+                except Exception as e:
+                    self._logger.warning(
+                        "Failed to initialize version history service",
+                        error=str(e),
+                    )
+                    return
+
+            # 創建版本歷史記錄
+            change_summary = f"{change_type.title()} config"
+            if scope:
+                change_summary += f": {scope}"
+
+            version_data = VersionHistoryCreate(
+                resource_type=resource_type,
+                resource_id=resource_id,
+                change_type=change_type,
+                changed_by=changed_by,
+                change_summary=change_summary,
+                previous_version=previous_version,
+                current_version=current_version,
+            )
+
+            # 嘗試在異步上下文中執行（如果可用）
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # 如果事件循環正在運行，使用 create_task（不阻塞）
+                    asyncio.create_task(self._version_history_service.create_version(version_data))
+                else:
+                    # 如果沒有運行的事件循環，使用 run
+                    asyncio.run(self._version_history_service.create_version(version_data))
+            except RuntimeError:
+                # 沒有事件循環，創建新的
+                try:
+                    asyncio.run(self._version_history_service.create_version(version_data))
+                except Exception as run_error:
+                    self._logger.warning(
+                        "Failed to run version history recording",
+                        error=str(run_error),
+                    )
+        except Exception as e:
+            # 版本歷史記錄失敗不影響主流程
+            self._logger.warning(
+                "Failed to record version history",
+                resource_type=resource_type,
+                resource_id=resource_id,
+                error=str(e),
+            )
 
     def get_config(
         self,

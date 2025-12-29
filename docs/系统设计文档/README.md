@@ -2,7 +2,11 @@
 
 **创建日期**: 2025-12-25
 **创建人**: Daniel Chung
-**最后修改日期**: 2025-12-25
+**最后修改日期**: 2025-12-29
+
+**更新记录**：
+
+- 2025-12-29：更新数据层架构图，添加 SeaweedFS 节点，反映最新的存储架构
 
 ---
 
@@ -91,7 +95,7 @@ graph TB
         ChromaDB[(ChromaDB<br/>向量存储)]
         ArangoDB[(ArangoDB<br/>图数据库)]
         Redis[(Redis<br/>缓存/队列)]
-        FileStorage[文件存储]
+        SeaweedFS[(SeaweedFS<br/>分布式文件系统)]
     end
 
     subgraph Infrastructure["基础设施层"]
@@ -114,6 +118,8 @@ graph TB
 
     KnowledgeLayer --> DataLayer
     AgentLayer --> DataLayer
+    AgentLayer --> SeaweedFS
+    GenAILayer --> SeaweedFS
     MoELayer --> Infrastructure
 
     Infrastructure --> LLMProviders
@@ -127,7 +133,7 @@ graph TB
 
     class IEE_UI,IEE_Chat,FileTree frontend
     class TaskAnalyzer,AgentOrchestrator,AgentLayer,GenAILayer,MemoryLayer,KnowledgeLayer,MoELayer backend
-    class ChromaDB,ArangoDB,Redis,FileStorage data
+    class ChromaDB,ArangoDB,Redis,SeaweedFS data
     class K8s,Workers,LLMProviders infra
 ```
 
@@ -225,7 +231,19 @@ graph TB
 
 **详细文档**：[生成式AI链式处理系统.md](./核心组件/生成式AI链式处理系统.md)
 
-### 9. 部署架构
+### 9. 存储架构
+
+**统一对象存储与治理数据存储**：
+
+- **SeaweedFS 分布式文件系统**：统一对象存储，支持 Kubernetes 环境下的弹性扩展
+- **双服务部署架构**：AI-Box 和 DataLake 项目各自独立的 SeaweedFS 服务实例
+- **治理数据存储**：审计日志、系统日志、版本历史、变更提案存储在 SeaweedFS（Append-Only 模式）
+- **文件存储**：用户上传文件、Agent 产出文件存储在 SeaweedFS
+- **Active State 数据**：知识图谱、当前生效的配置保留在 ArangoDB
+
+**详细文档**：[资料架构建议报告](./資料架构建议报告.md)、[资料存储架构重构分析与计划](./資料存儲架構重構分析與計劃.md)
+
+### 10. 部署架构
 
 **混合部署策略**：
 
@@ -236,7 +254,7 @@ graph TB
 
 **详细文档**：[部署架构.md](./核心组件/部署架构.md)
 
-### 10. Personal Data / RoLA（规划中）
+### 11. Personal Data / RoLA（规划中）
 
 **个人化学习系统**：
 
@@ -292,7 +310,11 @@ graph TB
 - [MoE系统](./核心组件/MoE系统.md) - Multi-model专家模型架构
 - [IEE前端系统](./核心组件/IEE前端系统.md) - Intelligent Editor Environment
 - [生成式AI链式处理系统](./核心组件/生成式AI链式处理系统.md) - System prompt与文件处理流程
-- [部署架构](./核心组件/部署架构.md) - 混合部署、k8s、Redis Worker
+- [存储架构](./資料架构建议报告.md) - SeaweedFS 统一对象存储与治理数据存储
+- [存储架构详细说明](./核心组件/存储架构.md) - SeaweedFS 双服务部署架构详细说明
+- [SeaweedFS 使用指南](./核心组件/SeaweedFS使用指南.md) - SeaweedFS 使用指南和 API 示例
+- [日志存储格式说明](./核心组件/日志存储格式说明.md) - JSON Lines 格式和日志存储规范
+- [部署架构](./核心组件/部署架构.md) - 混合部署、k8s、Redis Worker、SeaweedFS 部署
 - [Personal Data / RoLA](./核心组件/Personal-Data-RoLA.md) - 个人化学习系统（规划中）
 
 ### 开发进度文档
@@ -305,12 +327,23 @@ graph TB
 
 - [系统价值与独特性](./系统价值与独特性.md) - 技术创新点、商业价值、竞争优势分析
 
+### API 文档
+
+- [治理 API 文档](./API文档/治理API文档.md) - 版本历史、变更提案、审计日志 API
+
+### 开发指南
+
+- [开发环境设置指南](./开发环境设置指南.md) - 开发环境配置，包括 SeaweedFS 配置
+
 ### 相关参考文档
 
 - [项目控制表](../開發過程文件/項目控制表.md) - 项目开发进度追踪
 - [项目结构说明](./项目结构说明.md) - 项目目录结构说明
 - [Agent平台详细规格](./核心组件/Agent-Platform.md) - Agent平台架构规格
-- [文件上传架构说明](./核心组件/文件上傳向量圖譜/上傳的功能架構說明-v2.0.md) - 文件处理流程详解
+- [文件上传架构说明](./核心组件/文件上傳向量圖譜/上傳的功能架構說明-v2.0.md) - 文件处理流程详解（已更新 S3 URI 返回格式）
+- [资料存储架构重构分析与计划](./資料存儲架構重構分析與計劃.md) - 存储架构重构实施计划
+- [文件迁移指南](./資料存儲架構重構/文件遷移指南.md) - 文件从本地文件系统迁移到 SeaweedFS
+- [DataLake 数据迁移指南](./資料存儲架構重構/DataLake數據遷移指南.md) - DataLake 数据从 ArangoDB 迁移到 SeaweedFS
 
 ---
 
@@ -318,7 +351,15 @@ graph TB
 
 本文档集将随系统开发持续更新，各组件文档中的"实现状态"与"开发进度"部分会定期与 [项目控制表](../開發過程文件/項目控制表.md) 同步。
 
-**最后更新日期**: 2025-12-25
+**最后更新日期**: 2025-12-29
+
+**更新摘要**（2025-12-29）：
+
+- 更新数据层架构图，将 FileStorage 替换为 SeaweedFS 分布式文件系统
+- 添加 Agent 层和 GenAI 层到 SeaweedFS 的连接关系
+- 反映最新的存储架构：ArangoDB + ChromaDB + Redis + SeaweedFS
+- 添加新文档导航：治理 API 文档、开发环境设置指南
+- 更新文件上传架构说明，添加 S3 URI 返回格式说明
 
 ---
 

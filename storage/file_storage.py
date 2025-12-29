@@ -9,9 +9,12 @@ import os
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import structlog
+
+if TYPE_CHECKING:
+    from storage.s3_storage import SeaweedFSService
 
 logger = structlog.get_logger(__name__)
 
@@ -479,6 +482,81 @@ class OSSFileStorage(FileStorage):
         raise NotImplementedError("OSS 存儲尚未實現")
 
 
+def _get_s3_config(
+    config: dict, service_type: Optional[str] = None
+) -> Optional[Tuple[str, str, str, bool, "SeaweedFSService"]]:
+    """
+    獲取 S3 配置
+
+    Args:
+        config: 配置文件
+        service_type: 服務類型（"ai_box" 或 "datalake"）
+
+    Returns:
+        如果配置可用，返回 (endpoint, access_key, secret_key, use_ssl, service_type_enum)
+        否則返回 None
+    """
+    from storage.s3_storage import SeaweedFSService
+
+    # 確定服務類型
+    if service_type is None:
+        service_type = config.get("service_type", "ai_box")
+
+    # 根據服務類型選擇配置
+    if service_type == "ai_box" or service_type == SeaweedFSService.AI_BOX:
+        endpoint = (
+            config.get("ai_box_seaweedfs_s3_endpoint")
+            or os.getenv("AI_BOX_SEAWEEDFS_S3_ENDPOINT")
+            or "http://seaweedfs-ai-box-filer:8333"
+        )
+        access_key = (
+            config.get("ai_box_seaweedfs_s3_access_key")
+            or os.getenv("AI_BOX_SEAWEEDFS_S3_ACCESS_KEY")
+            or ""
+        )
+        secret_key = (
+            config.get("ai_box_seaweedfs_s3_secret_key")
+            or os.getenv("AI_BOX_SEAWEEDFS_S3_SECRET_KEY")
+            or ""
+        )
+        use_ssl = (
+            config.get("ai_box_seaweedfs_use_ssl", False)
+            or os.getenv("AI_BOX_SEAWEEDFS_USE_SSL", "false").lower() == "true"
+        )
+        seaweedfs_service = SeaweedFSService.AI_BOX
+    elif service_type == "datalake" or service_type == SeaweedFSService.DATALAKE:
+        endpoint = (
+            config.get("datalake_seaweedfs_s3_endpoint")
+            or os.getenv("DATALAKE_SEAWEEDFS_S3_ENDPOINT")
+            or "http://seaweedfs-datalake-filer:8333"
+        )
+        access_key = (
+            config.get("datalake_seaweedfs_s3_access_key")
+            or os.getenv("DATALAKE_SEAWEEDFS_S3_ACCESS_KEY")
+            or ""
+        )
+        secret_key = (
+            config.get("datalake_seaweedfs_s3_secret_key")
+            or os.getenv("DATALAKE_SEAWEEDFS_S3_SECRET_KEY")
+            or ""
+        )
+        use_ssl = (
+            config.get("datalake_seaweedfs_use_ssl", False)
+            or os.getenv("DATALAKE_SEAWEEDFS_USE_SSL", "false").lower() == "true"
+        )
+        seaweedfs_service = SeaweedFSService.DATALAKE
+    else:
+        return None
+
+    # 檢查配置是否完整（endpoint 必須有，access_key 和 secret_key 必須都有）
+    if not endpoint:
+        return None
+    if not access_key or not secret_key:
+        return None
+
+    return (endpoint, access_key, secret_key, use_ssl, seaweedfs_service)
+
+
 def create_storage_from_config(
     config: Optional[dict] = None, service_type: Optional[str] = None
 ) -> FileStorage:
@@ -491,80 +569,39 @@ def create_storage_from_config(
 
     Returns:
         FileStorage 實例
+
+    配置優先級：
+    - 如果明確指定 storage_backend，使用指定值
+    - 否則，生產環境（ENV=production）優先使用 S3，開發環境使用 Local
+    - 如果 S3 配置可用，優先使用 S3
+    - 否則回退到 Local
     """
     # 修改時間：2025-12-09 - 處理 config 為 None 的情況
     # 修改時間：2025-01-27 - 添加 S3 存儲支持和雙服務選擇
+    # 修改時間：2025-01-27 - 實現配置優先級：S3 > Local（生產環境使用 S3）
     if config is None:
         config = {}
 
-    storage_backend = config.get("storage_backend", "local")
+    storage_backend = config.get("storage_backend")
     storage_path = config.get("storage_path", "./data/datasets/files")
     encryption_config = config.get("encryption", {}) if config.get("encryption") else {}
     enable_encryption = (
         encryption_config.get("enabled", False) if isinstance(encryption_config, dict) else False
     )
 
+    # 如果明確指定了 storage_backend，使用指定值
     if storage_backend == "local":
         return LocalFileStorage(storage_path=storage_path, enable_encryption=enable_encryption)
     elif storage_backend == "s3":
-        # 導入 S3FileStorage 和 SeaweedFSService（延遲導入避免循環依賴）
-        from storage.s3_storage import S3FileStorage, SeaweedFSService
+        # 導入 S3FileStorage（延遲導入避免循環依賴）
+        from storage.s3_storage import S3FileStorage
 
-        # 確定服務類型
-        if service_type is None:
-            service_type = config.get("service_type", "ai_box")
+        # 獲取 S3 配置
+        s3_config = _get_s3_config(config, service_type)
+        if s3_config is None:
+            raise ValueError("SeaweedFS S3 配置不完整或服務類型不支持")
 
-        # 根據服務類型選擇配置
-        if service_type == "ai_box" or service_type == SeaweedFSService.AI_BOX:
-            endpoint = (
-                config.get("ai_box_seaweedfs_s3_endpoint")
-                or os.getenv("AI_BOX_SEAWEEDFS_S3_ENDPOINT")
-                or "http://seaweedfs-ai-box-filer:8333"
-            )
-            access_key = (
-                config.get("ai_box_seaweedfs_s3_access_key")
-                or os.getenv("AI_BOX_SEAWEEDFS_S3_ACCESS_KEY")
-                or ""
-            )
-            secret_key = (
-                config.get("ai_box_seaweedfs_s3_secret_key")
-                or os.getenv("AI_BOX_SEAWEEDFS_S3_SECRET_KEY")
-                or ""
-            )
-            use_ssl = (
-                config.get("ai_box_seaweedfs_use_ssl", False)
-                or os.getenv("AI_BOX_SEAWEEDFS_USE_SSL", "false").lower() == "true"
-            )
-            seaweedfs_service = SeaweedFSService.AI_BOX
-        elif service_type == "datalake" or service_type == SeaweedFSService.DATALAKE:
-            endpoint = (
-                config.get("datalake_seaweedfs_s3_endpoint")
-                or os.getenv("DATALAKE_SEAWEEDFS_S3_ENDPOINT")
-                or "http://seaweedfs-datalake-filer:8333"
-            )
-            access_key = (
-                config.get("datalake_seaweedfs_s3_access_key")
-                or os.getenv("DATALAKE_SEAWEEDFS_S3_ACCESS_KEY")
-                or ""
-            )
-            secret_key = (
-                config.get("datalake_seaweedfs_s3_secret_key")
-                or os.getenv("DATALAKE_SEAWEEDFS_S3_SECRET_KEY")
-                or ""
-            )
-            use_ssl = (
-                config.get("datalake_seaweedfs_use_ssl", False)
-                or os.getenv("DATALAKE_SEAWEEDFS_USE_SSL", "false").lower() == "true"
-            )
-            seaweedfs_service = SeaweedFSService.DATALAKE
-        else:
-            raise ValueError(f"不支持的服務類型: {service_type}")
-
-        # 驗證必要的配置
-        if not endpoint:
-            raise ValueError("SeaweedFS S3 endpoint 未配置")
-        if not access_key or not secret_key:
-            raise ValueError("SeaweedFS S3 access_key 或 secret_key 未配置")
+        endpoint, access_key, secret_key, use_ssl, seaweedfs_service = s3_config
 
         # 創建 S3FileStorage 實例
         return S3FileStorage(
@@ -577,4 +614,37 @@ def create_storage_from_config(
     elif storage_backend == "oss":
         raise NotImplementedError("OSS 存儲尚未實現")
     else:
-        raise ValueError(f"不支持的存儲後端: {storage_backend}")
+        # 如果未明確指定 storage_backend，根據環境和配置自動選擇
+        # 優先級：S3 > Local（生產環境使用 S3）
+        env = os.getenv("ENV", "development").lower()
+
+        # 檢查 S3 配置是否可用
+        s3_config = _get_s3_config(config, service_type)
+
+        # 生產環境優先使用 S3，如果 S3 配置可用
+        if env == "production" and s3_config is not None:
+            from storage.s3_storage import S3FileStorage
+
+            endpoint, access_key, secret_key, use_ssl, seaweedfs_service = s3_config
+            return S3FileStorage(
+                endpoint=endpoint,
+                access_key=access_key,
+                secret_key=secret_key,
+                use_ssl=use_ssl,
+                service_type=seaweedfs_service,
+            )
+        elif s3_config is not None:
+            # 開發環境：如果 S3 配置可用，也可以使用 S3
+            from storage.s3_storage import S3FileStorage
+
+            endpoint, access_key, secret_key, use_ssl, seaweedfs_service = s3_config
+            return S3FileStorage(
+                endpoint=endpoint,
+                access_key=access_key,
+                secret_key=secret_key,
+                use_ssl=use_ssl,
+                service_type=seaweedfs_service,
+            )
+        else:
+            # 默認使用 LocalFileStorage（S3 配置不可用時）
+            return LocalFileStorage(storage_path=storage_path, enable_encryption=enable_encryption)

@@ -1,7 +1,7 @@
 # 代碼功能說明: 審計日誌服務
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-06
+# 最後修改日期: 2025-01-27
 
 """審計日誌服務 - 管理審計日誌記錄。"""
 
@@ -18,6 +18,7 @@ import structlog
 
 from database.arangodb import ArangoCollection, ArangoDBClient
 from services.api.models.audit_log import AuditAction, AuditLog, AuditLogCreate
+from services.api.services.governance.seaweedfs_log_service import SeaweedFSAuditLogService
 
 logger = structlog.get_logger(__name__)
 
@@ -26,7 +27,7 @@ AUDIT_LOG_COLLECTION_NAME = "audit_logs"
 
 
 class AuditLogService:
-    """審計日誌服務類"""
+    """審計日誌服務類（適配器模式：優先使用 SeaweedFS，fallback 到 ArangoDB）"""
 
     def __init__(self, client: Optional[ArangoDBClient] = None):
         """初始化審計日誌服務。
@@ -36,6 +37,18 @@ class AuditLogService:
         """
         self.client = client or ArangoDBClient()
 
+        # 嘗試初始化 SeaweedFS 服務（優先使用）
+        self._seaweedfs_service: Optional[SeaweedFSAuditLogService] = None
+        try:
+            self._seaweedfs_service = SeaweedFSAuditLogService()
+            logger.info("SeaweedFS audit log service initialized")
+        except Exception as e:
+            logger.warning(
+                "Failed to initialize SeaweedFS audit log service, will use ArangoDB fallback",
+                error=str(e),
+            )
+
+        # 初始化 ArangoDB 集合（fallback）
         # 確保集合存在
         if self.client.db is not None:
             if not self.client.db.has_collection(AUDIT_LOG_COLLECTION_NAME):
@@ -52,11 +65,14 @@ class AuditLogService:
                 )
                 logger.info("Created indexes for audit logs collection")
         else:
-            raise RuntimeError("ArangoDB client is not connected")
+            logger.warning("ArangoDB client is not connected, only SeaweedFS will be available")
 
         # 獲取集合
-        collection = self.client.db.collection(AUDIT_LOG_COLLECTION_NAME)
-        self.collection = ArangoCollection(collection)
+        if self.client.db is not None:
+            collection = self.client.db.collection(AUDIT_LOG_COLLECTION_NAME)
+            self.collection = ArangoCollection(collection)
+        else:
+            self.collection = None
 
     def log(
         self,
@@ -66,6 +82,7 @@ class AuditLogService:
         """記錄審計日誌。
 
         此方法支持異步模式，在異步模式下不會阻塞主流程。
+        優先使用 SeaweedFS，如果失敗則 fallback 到 ArangoDB。
 
         Args:
             log_create: 審計日誌創建請求
@@ -76,14 +93,28 @@ class AuditLogService:
             asyncio.create_task(self._log_async(log_create))
         else:
             # 同步執行
-            self._log_sync(log_create)
+            asyncio.run(self._log_async(log_create))
 
     async def _log_async(self, log_create: AuditLogCreate) -> None:
         """異步記錄審計日誌。
 
+        優先使用 SeaweedFS，如果失敗則 fallback 到 ArangoDB。
+
         Args:
             log_create: 審計日誌創建請求
         """
+        # 優先使用 SeaweedFS
+        if self._seaweedfs_service:
+            try:
+                await self._seaweedfs_service.create_audit_log(log_create)
+                return
+            except Exception as e:
+                logger.warning(
+                    "Failed to log audit event to SeaweedFS, falling back to ArangoDB",
+                    error=str(e),
+                )
+
+        # Fallback 到 ArangoDB
         try:
             self._log_sync(log_create)
         except Exception as e:
@@ -134,6 +165,8 @@ class AuditLogService:
     ) -> tuple[List[AuditLog], int]:
         """查詢審計日誌。
 
+        優先使用 SeaweedFS，如果失敗則 fallback 到 ArangoDB。
+
         Args:
             user_id: 用戶ID（可選）
             action: 操作類型（可選）
@@ -147,6 +180,36 @@ class AuditLogService:
         Returns:
             (審計日誌列表, 總記錄數)
         """
+        # 優先使用 SeaweedFS
+        if self._seaweedfs_service:
+            try:
+                logs = asyncio.run(
+                    self._seaweedfs_service.get_audit_logs(
+                        user_id=user_id,
+                        action=action,
+                        start_time=start_date,
+                        end_time=end_date,
+                        limit=limit + offset,  # 為了支持 offset，我們需要獲取更多記錄
+                    )
+                )
+                # 應用 offset
+                logs = logs[offset:]
+                # 應用 resource_type 和 resource_id 過濾（SeaweedFS 服務目前不支持這些過濾）
+                if resource_type:
+                    logs = [log for log in logs if log.resource_type == resource_type]
+                if resource_id:
+                    logs = [log for log in logs if log.resource_id == resource_id]
+                # 限制返回數量
+                logs = logs[:limit]
+                # SeaweedFS 不返回總數，使用列表長度作為近似值
+                return logs, len(logs)
+            except Exception as e:
+                logger.warning(
+                    "Failed to query audit logs from SeaweedFS, falling back to ArangoDB",
+                    error=str(e),
+                )
+
+        # Fallback 到 ArangoDB
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
 
