@@ -41,6 +41,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     icon: string;
     status: 'registering' | 'online' | 'maintenance' | 'deprecated';
     usageCount: number;
+    allowedTools?: string[]; // 可使用的工具列表
   }
 
   interface ChatAreaProps {
@@ -756,11 +757,72 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
         isOpen={showAssistantMaintenanceModal}
         assistantId={maintainingAssistantId || undefined}
         assistant={maintainingAssistantId ? currentAssistants.find(a => a.id === maintainingAssistantId) : undefined}
+        key={maintainingAssistantId || 'new-assistant'} // 添加 key 确保组件正确更新
         onClose={() => {
           setShowAssistantMaintenanceModal(false);
           setMaintainingAssistantId(null);
         }}
-        onSave={(_data) => {
+        onSave={(data) => {
+          console.log('[ChatArea] 🎯 onSave callback received!', {
+            maintainingAssistantId,
+            dataId: data.id,
+            dataAllowedTools: data.allowedTools,
+            dataAllowedToolsLength: data.allowedTools?.length,
+            hasWebSearch: data.allowedTools?.includes('web_search'),
+            fullData: data,
+          });
+
+          // 保存助理的 allowedTools 到 localStorage
+          // 优先使用 data.id（从 AssistantMaintenanceModal 传递），然后是 maintainingAssistantId
+          const assistantIdToSave = data.id || maintainingAssistantId;
+
+          console.log('[ChatArea] Assistant ID resolution:', {
+            dataId: data.id,
+            maintainingAssistantId,
+            assistantIdToSave,
+            hasAllowedTools: !!data.allowedTools,
+            allowedToolsCount: data.allowedTools?.length || 0,
+          });
+
+          if (data.allowedTools && assistantIdToSave) {
+            try {
+              const storageKey = `assistant_${assistantIdToSave}_allowedTools`;
+              localStorage.setItem(storageKey, JSON.stringify(data.allowedTools));
+              console.log('[ChatArea] ✅ Saved assistant allowedTools to localStorage:', {
+                assistantId: assistantIdToSave,
+                storageKey,
+                allowedTools: data.allowedTools,
+                allowedToolsCount: data.allowedTools.length,
+                hasWebSearch: data.allowedTools.includes('web_search'),
+                webSearchIndex: data.allowedTools.indexOf('web_search'),
+              });
+
+              // 验证保存是否成功
+              const verify = localStorage.getItem(storageKey);
+              console.log('[ChatArea] Verification - localStorage value:', {
+                storageKey,
+                stored: verify,
+                parsed: verify ? JSON.parse(verify) : null,
+              });
+
+              // 触发自定义事件，通知其他组件更新
+              window.dispatchEvent(new CustomEvent('assistantToolsUpdated', {
+                detail: {
+                  assistantId: assistantIdToSave,
+                  allowedTools: data.allowedTools,
+                }
+              }));
+            } catch (error) {
+              console.error('[ChatArea] ❌ Failed to save assistant allowedTools:', error);
+            }
+          } else {
+            console.warn('[ChatArea] ⚠️ Cannot save allowedTools:', {
+              hasAllowedTools: !!data.allowedTools,
+              allowedTools: data.allowedTools,
+              hasAssistantId: !!assistantIdToSave,
+              maintainingAssistantId,
+            });
+          }
           // TODO: 調用 API 保存助理維護數據
           setShowAssistantMaintenanceModal(false);
           setMaintainingAssistantId(null);

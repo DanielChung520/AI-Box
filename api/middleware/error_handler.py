@@ -27,11 +27,47 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             return response
         except RequestValidationError as e:
-            logger.error(f"Validation error: {e}")
+            # 记录详细的验证错误信息
+            error_details = e.errors()
+            # 尝试读取请求体（用于调试）
+            try:
+                body = await request.body()
+                body_str = body.decode("utf-8")[:1000] if body else None  # 记录前1000个字符
+            except Exception:
+                body_str = None
+
+            # 使用 print 确保错误信息一定会输出（即使日志级别设置不当）
+            print(f"\n{'='*80}")
+            print(f"❌ RequestValidationError: {request.method} {request.url.path}")
+            print(f"{'='*80}")
+            print(f"Request body preview: {body_str}")
+            print(f"Validation errors ({len(error_details)}):")
+            for i, error in enumerate(error_details, 1):
+                print(f"  {i}. Location: {error.get('loc')}")
+                print(f"     Type: {error.get('type')}")
+                print(f"     Message: {error.get('msg')}")
+                print(f"     Input: {error.get('input')}")
+            print(f"{'='*80}\n")
+
+            logger.error(
+                f"Request validation error: path={request.url.path}, method={request.method}",
+                extra={
+                    "path": request.url.path,
+                    "method": request.method,
+                    "errors": error_details,
+                    "body_preview": body_str,
+                },
+            )
+            # 记录每个验证错误
+            for error in error_details:
+                logger.error(
+                    f"Validation error detail: loc={error.get('loc')}, msg={error.get('msg')}, type={error.get('type')}",
+                    extra={"error": error},
+                )
             return APIResponse.error(
                 message="Request validation failed",
                 error_code="VALIDATION_ERROR",
-                details={"errors": e.errors()},
+                details={"errors": error_details},
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         except HTTPException as e:

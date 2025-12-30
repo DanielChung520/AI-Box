@@ -857,6 +857,36 @@ export const translations: Translations = {
     zh_CN: "其他頁面 - 即將推出",
     zh_TW: "其他頁面 - 即將推出"
   },
+  'common.all': {
+    en: "All",
+    zh_CN: "全部",
+    zh_TW: "全部"
+  },
+  'common.clearAll': {
+    en: "Clear All",
+    zh_CN: "清除全部",
+    zh_TW: "清除全部"
+  },
+  'common.selectAll': {
+    en: "Select All",
+    zh_CN: "全选",
+    zh_TW: "全選當前"
+  },
+  'common.deselectAll': {
+    en: "Deselect All",
+    zh_CN: "取消全选",
+    zh_TW: "取消當前"
+  },
+  'common.selected': {
+    en: "Selected",
+    zh_CN: "已选",
+    zh_TW: "已選"
+  },
+  'common.loading': {
+    en: "Loading...",
+    zh_CN: "加载中...",
+    zh_TW: "載入中..."
+  },
 
   // Agent 註冊相關翻譯
   'agentRegistration.title': {
@@ -1320,6 +1350,198 @@ export const translations: Translations = {
     zh_TW: '取消'
   },
 
+  // 助理維護相關翻譯
+  'assistant.maintenance.title': {
+    en: 'Assistant Maintenance',
+    zh_CN: '助理维护',
+    zh_TW: '助理維護'
+  },
+  'assistant.maintenance.new': {
+    en: 'New Assistant',
+    zh_CN: '新建助理',
+    zh_TW: '新建助理'
+  },
+  'assistant.maintenance.tabs.basic': {
+    en: 'Basic Information',
+    zh_CN: '基本信息',
+    zh_TW: '基本資訊'
+  },
+  'assistant.maintenance.tabs.resources': {
+    en: 'Resources',
+    zh_CN: '资源配置',
+    zh_TW: '資源配置'
+  },
+  'assistant.maintenance.tabs.behavior': {
+    en: 'Behavior',
+    zh_CN: '行为配置',
+    zh_TW: '行為配置'
+  },
+  'assistant.maintenance.tabs.visibility': {
+    en: 'Visibility',
+    zh_CN: '可见性',
+    zh_TW: '可見性'
+  },
+  'assistant.maintenance.name': {
+    en: 'Assistant Name',
+    zh_CN: '助理名称',
+    zh_TW: '助理名稱'
+  },
+  'assistant.maintenance.namePlaceholder': {
+    en: 'Enter assistant name',
+    zh_CN: '输入助理名称',
+    zh_TW: '輸入助理名稱'
+  },
+  'assistant.maintenance.icon': {
+    en: 'Icon',
+    zh_CN: '图标',
+    zh_TW: '圖標'
+  },
+  'assistant.maintenance.role': {
+    en: 'Role Description',
+    zh_CN: '角色说明',
+    zh_TW: '角色說明'
+  },
+  'assistant.maintenance.rolePlaceholder': {
+    en: 'Describe the role and responsibilities of the assistant',
+    zh_CN: '描述助理的角色和职责',
+    zh_TW: '描述助理的角色和職責'
+  },
+  'assistant.maintenance.skills': {
+    en: 'Skills',
+    zh_CN: '技能',
+    zh_TW: '技能'
+  },
+  'assistant.maintenance.skillPlaceholder': {
+    en: 'Enter skill and press Enter',
+    zh_CN: '输入技能后按 Enter',
+    zh_TW: '輸入技能後按 Enter'
+  },
+  'assistant.maintenance.limitations': {
+    en: 'Limitations',
+    zh_CN: '限制',
+    zh_TW: '限制'
+  },
+  'assistant.maintenance.limitationPlaceholder': {
+    en: 'Enter limitation and press Enter',
+    zh_CN: '输入限制后按 Enter',
+    zh_TW: '輸入限制後按 Enter'
+  },
+  'assistant.maintenance.outputFormat': {
+    en: 'Output Format',
+    zh_CN: '输出格式',
+    zh_TW: '輸出格式'
+  },
+  'assistant.maintenance.outputFormatPlaceholder': {
+    en: 'Describe output format requirements',
+    zh_CN: '描述输出格式要求',
+    zh_TW: '描述輸出格式要求'
+  },
+  'assistant.maintenance.knowledgeBases': {
+    en: 'Accessible Knowledge Bases',
+    zh_CN: '可接触的知识库',
+    zh_TW: '可接觸的知識庫'
+  },
+  'assistant.maintenance.knowledgeBasePlaceholder': {
+    en: 'Enter knowledge base name and press Enter',
+    zh_CN: '输入知识库名称后按 Enter',
+    zh_TW: '輸入知識庫名稱後按 Enter'
+  },
+  'assistant.maintenance.allowedTools': {
+    en: 'Allowed Tools',
+    zh_CN: '可使用的工具',
+    zh_TW: '可使用的Tools'
+  },
+  'assistant.maintenance.searchTools': {
+    en: 'Search tools...',
+    zh_CN: '搜索工具...',
+    zh_TW: '搜索工具...'
+  },
+  'assistant.maintenance.selectedTools': {
+    en: 'Selected Tools',
+    zh_CN: '已选工具',
+    zh_TW: '已選工具'
+  },
+  'assistant.maintenance.noToolsFound': {
+    en: 'No matching tools found',
+    zh_CN: '未找到匹配的工具',
+    zh_TW: '未找到匹配的工具'
+  },
+  'assistant.maintenance.toolsNote': {
+    en: 'Note: Tool options are continuously added by the development team',
+    zh_CN: '提示：工具选项由开发团队持续增加',
+    zh_TW: '提示：工具選項由開發團隊持續增加'
+  },
+  'assistant.maintenance.temperature': {
+    en: 'Response Temperature',
+    zh_CN: '回应温度',
+    zh_TW: '回應溫度'
+  },
+  'assistant.maintenance.temperatureLow': {
+    en: 'More Certain',
+    zh_CN: '更确定',
+    zh_TW: '更確定'
+  },
+  'assistant.maintenance.temperatureHigh': {
+    en: 'More Creative',
+    zh_CN: '更创造',
+    zh_TW: '更創造'
+  },
+  'assistant.maintenance.greeting': {
+    en: 'Greeting',
+    zh_CN: '开场问候',
+    zh_TW: '開場問候'
+  },
+  'assistant.maintenance.greetingPlaceholder': {
+    en: 'Enter greeting message',
+    zh_CN: '输入开场问候语',
+    zh_TW: '輸入開場問候語'
+  },
+  'assistant.maintenance.presetResponses': {
+    en: 'Preset Responses (3 questions)',
+    zh_CN: '预设回应（3个问题）',
+    zh_TW: '預設回應（3個問題）'
+  },
+  'assistant.maintenance.question': {
+    en: 'Question',
+    zh_CN: '问题',
+    zh_TW: '問題'
+  },
+  'assistant.maintenance.responsePlaceholder': {
+    en: 'Enter preset response',
+    zh_CN: '输入预设回应',
+    zh_TW: '輸入預設回應'
+  },
+  'assistant.maintenance.visibility': {
+    en: 'Assistant Visibility',
+    zh_CN: '助理可见性',
+    zh_TW: '助理可見性'
+  },
+  'assistant.maintenance.private': {
+    en: 'Private',
+    zh_CN: '私有 (Private)',
+    zh_TW: '私有 (Private)'
+  },
+  'assistant.maintenance.privateDesc': {
+    en: 'Only you can see and use this assistant',
+    zh_CN: '只有您可以看到和使用此助理',
+    zh_TW: '只有您可以看到和使用此助理'
+  },
+  'assistant.maintenance.public': {
+    en: 'Public',
+    zh_CN: '公开 (Public)',
+    zh_TW: '公開 (Public)'
+  },
+  'assistant.maintenance.publicDesc': {
+    en: 'All users can see and use this assistant',
+    zh_CN: '所有用户都可以看到和使用此助理',
+    zh_TW: '所有用戶都可以看到和使用此助理'
+  },
+  'assistant.maintenance.noReviewNote': {
+    en: 'Note: Assistants do not require AI-Box management review and are available immediately after creation.',
+    zh_CN: '注意：助理不需要 AI-Box 管理审查，创建后立即可用。',
+    zh_TW: '注意：助理不需要 AI-Box 管理審查，創建後立即可用。'
+  },
+
   // 聊天输入相关翻译
   'chatInput.agent': {
     en: 'Agent',
@@ -1462,6 +1684,43 @@ export const translations: Translations = {
     en: 'Mention a function',
     zh_CN: '提及函数',
     zh_TW: '提及函數'
+  },
+
+  // 上网功能相关翻译
+  'chatInput.webSearch.toggle': {
+    en: 'Toggle Web Search',
+    zh_CN: '切换上网功能',
+    zh_TW: '切換上網功能'
+  },
+  'chatInput.webSearch.active': {
+    en: 'Web Search Enabled',
+    zh_CN: '上网功能已启用',
+    zh_TW: '上網功能已啟用'
+  },
+  'chatInput.webSearch.inactive': {
+    en: 'Click to Enable Web Search',
+    zh_CN: '点击启用上网功能',
+    zh_TW: '點擊啟用上網功能'
+  },
+  'chatInput.webSearch.noAssistant': {
+    en: 'Please select an assistant first',
+    zh_CN: '请先选择助理',
+    zh_TW: '請先選擇助理'
+  },
+  'chatInput.webSearch.assistantNotFound': {
+    en: 'Selected assistant not found',
+    zh_CN: '找不到选中的助理',
+    zh_TW: '找不到選中的助理'
+  },
+  'chatInput.webSearch.notAvailable': {
+    en: 'Current assistant cannot use web search. Please enable web_search tool in assistant maintenance.',
+    zh_CN: '当前助理无法使用上网功能，请在助理维护中启用 web_search 工具',
+    zh_TW: '當前助理無法使用上網功能，請在助理維護中啟用 web_search 工具'
+  },
+  'chatInput.webSearch.error': {
+    en: 'An error occurred, please try again later',
+    zh_CN: '发生错误，请稍后再试',
+    zh_TW: '發生錯誤，請稍後再試'
   }
 }
 

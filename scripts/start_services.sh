@@ -638,7 +638,7 @@ show_usage() {
     echo "  all        啟動所有服務 (ArangoDB, ChromaDB, FastAPI)"
     echo "  arangodb   啟動 ArangoDB"
     echo "  chromadb   啟動 ChromaDB"
-    echo "  fastapi    啟動 FastAPI"
+    echo "  fastapi|api  啟動 FastAPI (API 服務)"
     echo "  mcp        啟動 MCP Server"
     echo "  frontend   啟動前端服務 (Vite)"
     echo "  worker     啟動 RQ Worker (後台任務處理)"
@@ -654,7 +654,8 @@ show_usage() {
     echo ""
     echo "範例:"
     echo "  $0 all              # 啟動所有服務"
-    echo "  $0 fastapi          # 只啟動 FastAPI"
+    echo "  $0 fastapi          # 只啟動 FastAPI
+  $0 api              # 同上（別名）"
     echo "  $0 arangodb chromadb # 啟動 ArangoDB 和 ChromaDB"
 }
 
@@ -1269,7 +1270,7 @@ main() {
             redis)
                 start_redis
                 ;;
-            fastapi)
+            fastapi|api)
                 start_fastapi
                 ;;
             mcp)

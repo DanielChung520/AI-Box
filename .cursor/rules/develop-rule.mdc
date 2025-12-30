@@ -1,6 +1,13 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
+# ⚠️ 此文件已整合到 .cursorrules，請勿使用
+# 所有規則已統一整合到項目根目錄的 .cursorrules 文件中
+# 此文件保留僅作為備份參考，不會被 Cursor 讀取（alwaysApply: false）
+#
+# 新的規則文件位置：
+# - 主規則文件：.cursorrules（項目根目錄）
+# - 引用文件：.cursor/rules/main-rules.mdc（指向 .cursorrules）
 凡是創建代碼檔案，最上方備註：代碼功能說明、創建日期、創建人（Daniel Chung）、最後修改日期
 凡是要創建、修改日期，請先上網(https://tw.piliapp.com/time/)確認當天的日期及時間
 配置規範（2025-11-25 22:46 UTC+8）：敏感資訊集中於 .env / Secret；非敏感環境參數寫入 config/config.json（由 config/config.example.json 派生），新增欄位時需同步更新樣板與文檔

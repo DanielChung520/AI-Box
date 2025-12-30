@@ -1,7 +1,7 @@
 # 代碼功能說明: LLM 模型數據模型
 # 創建日期: 2025-12-20
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-21
+# 最後修改日期: 2025-12-30
 
 """LLM 模型數據模型 - 定義 LLM 模型相關的數據結構"""
 
@@ -29,6 +29,8 @@ class LLMProvider(str, Enum):
     DATABRICKS = "databricks"  # Databricks (DBRX)
     COHERE = "cohere"  # Cohere
     PERPLEXITY = "perplexity"  # Perplexity
+    VOLCANO = "volcano"  # 字節跳動火山引擎 (Volcano Engine / Doubao)
+    CHATGLM = "chatglm"  # 智譜 AI (ChatGLM)
 
 
 class ModelCapability(str, Enum):

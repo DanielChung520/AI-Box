@@ -37,6 +37,8 @@ AUDIT_LOG_COLLECTION_NAME = "audit_logs"
 class AuditLogService:
     """審計日誌服務類（適配器模式：優先使用 SeaweedFS，fallback 到 ArangoDB）"""
 
+    collection: Optional[ArangoCollection]
+
     def __init__(self, client: Optional[ArangoDBClient] = None):
         """初始化審計日誌服務。
 
@@ -139,6 +141,10 @@ class AuditLogService:
         Args:
             log_create: 審計日誌創建請求
         """
+        if self.collection is None:
+            logger.warning("ArangoDB collection is not available, cannot log audit event")
+            return
+
         try:
             log_data = {
                 "user_id": log_create.user_id,

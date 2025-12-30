@@ -1,7 +1,7 @@
 # 代碼功能說明: LLM 路由選擇器實現
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-29
+# 最後修改日期: 2025-12-30
 
 """LLM 路由選擇器 - 實現 LLM 路由選擇邏輯，集成新的路由策略架構。"""
 
@@ -43,6 +43,8 @@ class LLMRouter:
             LLMProvider.GROK: "grok-beta",
             LLMProvider.QWEN: "qwen-turbo",
             LLMProvider.OLLAMA: "llama2",
+            LLMProvider.VOLCANO: "doubao-pro-4k",
+            LLMProvider.CHATGLM: "glm-4",
         }
 
         # 定義備用提供商
@@ -52,6 +54,8 @@ class LLMRouter:
             LLMProvider.GROK: [LLMProvider.CHATGPT, LLMProvider.GEMINI],
             LLMProvider.QWEN: [LLMProvider.CHATGPT, LLMProvider.GEMINI],
             LLMProvider.OLLAMA: [LLMProvider.QWEN, LLMProvider.CHATGPT],
+            LLMProvider.VOLCANO: [LLMProvider.QWEN, LLMProvider.CHATGPT],
+            LLMProvider.CHATGLM: [LLMProvider.QWEN, LLMProvider.CHATGPT],
         }
 
         # 舊版路由規則（向後兼容）
@@ -350,6 +354,12 @@ class LLMRouter:
             provider = max(rules.items(), key=lambda x: x[1])[0]
             confidence = rules[provider]
             reasoning = f"根據任務類型 {task_type.value}，選擇 {provider.value} 提供商，" f"置信度 {confidence:.2f}"
+
+        # 確保 provider 不為 None
+        if provider is None:
+            provider = LLMProvider.CHATGPT
+            confidence = 0.5
+            reasoning = "使用默認提供商 ChatGPT"
 
         # 獲取模型名稱
         model = self.model_mapping.get(provider, "default")

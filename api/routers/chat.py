@@ -1065,6 +1065,26 @@ async def chat_product_stream(
     messages = [m.model_dump() for m in request_body.messages]
     model_selector = request_body.model_selector
 
+    # 記錄工具信息
+    allowed_tools = request_body.allowed_tools or []
+
+    # 添加详细的工具日志
+    logger.info(
+        "chat_request_tools_received",
+        request_id=request_id,
+        allowed_tools=allowed_tools,
+        has_web_search="web_search" in allowed_tools,
+        allowed_tools_count=len(allowed_tools),
+    )
+    logger.info(
+        "chat_request_tools",
+        request_id=request_id,
+        session_id=session_id,
+        task_id=task_id,
+        allowed_tools=allowed_tools,
+        has_web_search="web_search" in allowed_tools,
+    )
+
     async def generate_stream() -> AsyncGenerator[str, None]:
         """生成 SSE 格式的流式數據"""
         try:
@@ -1091,6 +1111,210 @@ async def chat_product_stream(
             # G3：用 windowed history 作為 MoE 的 messages（並保留前端提供的 system message）
             system_messages = [m for m in messages if m.get("role") == "system"]
             windowed_history = context_manager.get_context_with_window(session_id=session_id)
+
+            # 工具调用：如果启用了 web_search 且消息中包含搜索意图，直接调用工具
+            logger.info(
+                "web_search_check",
+                request_id=request_id,
+                allowed_tools=allowed_tools,
+                has_web_search="web_search" in (allowed_tools or []),
+                user_text=last_user_text[:200],  # 记录前200个字符
+            )
+
+            # 添加 print 调试输出
+            print(
+                f"\n[DEBUG] web_search_check: allowed_tools={allowed_tools}, has_web_search={'web_search' in (allowed_tools or [])}"
+            )
+
+            if allowed_tools and "web_search" in allowed_tools:
+                # 检测是否需要搜索（简单的关键词检测）
+                # 扩展关键词列表，包括更多搜索意图
+                search_keywords = [
+                    "上網",
+                    "查詢",
+                    "搜索",
+                    "搜尋",
+                    "現在",
+                    "時間",
+                    "時刻",
+                    "最新",
+                    "當前",
+                    "http",
+                    "https",
+                    "www.",
+                    ".com",
+                    ".net",
+                    ".org",  # URL 关键词
+                    "網站",
+                    "網頁",
+                    "連結",
+                    "鏈接",
+                    "網址",  # 网站相关
+                    "查找",
+                    "找",
+                    "搜",
+                    "查",  # 搜索相关
+                ]
+                needs_search = any(keyword in last_user_text for keyword in search_keywords)
+                matched_keywords = [kw for kw in search_keywords if kw in last_user_text]
+
+                logger.info(
+                    "web_search_intent_check",
+                    request_id=request_id,
+                    needs_search=needs_search,
+                    matched_keywords=matched_keywords,
+                    user_text=last_user_text[:200],
+                    search_keywords_count=len(search_keywords),
+                )
+
+                # 添加 print 调试输出
+                print(
+                    f"[DEBUG] web_search_intent_check: needs_search={needs_search}, matched_keywords={matched_keywords}"
+                )
+
+                if needs_search:
+                    try:
+                        # 直接导入 web_search 模块，避免触发 tools/__init__.py 中的其他导入
+                        from tools.web_search.web_search_tool import WebSearchInput, WebSearchTool
+
+                        logger.info(
+                            "web_search_triggered",
+                            request_id=request_id,
+                            query=last_user_text,
+                        )
+
+                        # 添加 print 调试输出
+                        print(f"[DEBUG] web_search_triggered: query={last_user_text[:100]}")
+
+                        # 调用 web_search 工具
+                        search_tool = WebSearchTool()
+                        search_input = WebSearchInput(query=last_user_text, num=5)
+                        search_result = await search_tool.execute(search_input)
+
+                        # 添加 print 调试输出
+                        print(
+                            f"[DEBUG] web_search_result: status={search_result.status}, results_count={len(search_result.results) if search_result.results else 0}"
+                        )
+
+                        # 将搜索结果添加到消息中
+                        logger.info(
+                            "web_search_result",
+                            request_id=request_id,
+                            status=search_result.status,
+                            results_count=(
+                                len(search_result.results) if search_result.results else 0
+                            ),
+                            provider=search_result.provider,
+                        )
+
+                        if search_result.status == "success" and search_result.results:
+                            search_summary = "\n\n=== 🔍 網絡搜索結果（來自真實搜索） ===\n"
+                            search_summary += f"搜索提供商: {search_result.provider}\n"
+                            search_summary += f"結果數量: {len(search_result.results)}\n"
+                            search_summary += "---\n"
+                            logger.debug(
+                                "web_search_formatting_results",
+                                request_id=request_id,
+                                results_type=type(search_result.results).__name__,
+                                results_count=len(search_result.results),
+                            )
+
+                            for i, result in enumerate(search_result.results[:3], 1):
+                                # 处理不同的结果格式（可能是 dict 或对象）
+                                try:
+                                    if isinstance(result, dict):
+                                        title = result.get("title", "無標題")
+                                        snippet = result.get("snippet", "無摘要")
+                                        link = result.get("link", "無鏈接")
+                                    elif hasattr(result, "model_dump"):
+                                        # 如果是 Pydantic 模型（SearchResult），使用 model_dump
+                                        result_dict = result.model_dump()
+                                        title = result_dict.get("title", "無標題")
+                                        snippet = result_dict.get("snippet", "無摘要")
+                                        link = result_dict.get("link", "無鏈接")
+                                    elif hasattr(result, "to_dict"):
+                                        # 如果是 SearchResultItem 对象，转换为字典
+                                        result_dict = result.to_dict()
+                                        title = result_dict.get("title", "無標題")
+                                        snippet = result_dict.get("snippet", "無摘要")
+                                        link = result_dict.get("link", "無鏈接")
+                                    else:
+                                        # 如果是对象，尝试直接访问属性（Pydantic 模型支持属性访问）
+                                        title = getattr(result, "title", "無標題") or "無標題"
+                                        snippet = getattr(result, "snippet", "無摘要") or "無摘要"
+                                        link = getattr(result, "link", "無鏈接") or "無鏈接"
+
+                                    search_summary += f"\n【搜索結果 {i}】\n"
+                                    search_summary += f"標題: {title}\n"
+                                    search_summary += f"摘要: {snippet}\n"
+                                    search_summary += f"來源鏈接: {link}\n"
+                                except Exception as format_error:
+                                    logger.warning(
+                                        "web_search_result_format_error",
+                                        request_id=request_id,
+                                        result_index=i,
+                                        error=str(format_error),
+                                        result_type=type(result).__name__,
+                                        result_repr=str(result)[:200],
+                                    )
+                                    # 如果格式化失败，至少添加基本信息
+                                    search_summary += (
+                                        f"{i}. 搜索結果 {i} (格式化失敗: {str(format_error)[:50]})\n\n"
+                                    )
+
+                            logger.info(
+                                "web_search_summary_created",
+                                request_id=request_id,
+                                summary_length=len(search_summary),
+                                summary_preview=search_summary[:500],  # 记录前500字符
+                            )
+
+                            # 添加 print 调试输出
+                            print(
+                                f"[DEBUG] web_search_summary_created: length={len(search_summary)}"
+                            )
+                            print(f"[DEBUG] search_summary_preview:\n{search_summary[:500]}")
+
+                            # 更新最後一條用戶消息，添加搜索結果
+                            # 在搜索結果前添加明确的提示，让AI知道这是真实搜索结果
+                            search_summary_with_note = (
+                                "\n\n【重要提示：以下是真實的網絡搜索結果，請基於這些結果回答問題。"
+                                "如果搜索結果中沒有相關信息，請明確說明，不要編造內容。】\n" + search_summary
+                            )
+
+                            if windowed_history:
+                                windowed_history[-1]["content"] = (
+                                    windowed_history[-1].get("content", "")
+                                    + search_summary_with_note
+                                )
+                            else:
+                                # 如果沒有歷史消息，創建一條包含搜索結果的消息
+                                windowed_history.append(
+                                    {
+                                        "role": "user",
+                                        "content": last_user_text + search_summary_with_note,
+                                    }
+                                )
+
+                            logger.info(
+                                "web_search_completed",
+                                request_id=request_id,
+                                results_count=len(search_result.results),
+                            )
+                        else:
+                            logger.warning(
+                                "web_search_failed",
+                                request_id=request_id,
+                                status=search_result.status,
+                            )
+                    except Exception as tool_error:
+                        logger.error(
+                            "web_search_error",
+                            request_id=request_id,
+                            error=str(tool_error),
+                            exc_info=True,
+                        )
+                        # 工具調用失敗不影響正常流程，繼續執行
 
             # G6：Data consent gate（AI_PROCESSING）- 未同意則不檢索/不注入/不寫入
             has_ai_consent = False
@@ -1156,6 +1380,16 @@ async def chat_product_stream(
                     # fallback 到內存緩存
                     favorite_model_ids = _favorite_models_by_user.get(current_user.user_id, [])
 
+                # 任务分析：使用 TaskClassifier 对用户输入进行分类
+                logger.info(
+                    "task_analysis_start",
+                    request_id=request_id,
+                    user_text=last_user_text[:200],
+                    user_id=current_user.user_id,
+                    session_id=session_id,
+                    task_id=task_id,
+                )
+
                 task_classification = classifier.classify(
                     last_user_text,
                     context={
@@ -1164,6 +1398,31 @@ async def chat_product_stream(
                         "task_id": task_id,
                     },
                 )
+
+                logger.info(
+                    "task_analysis_completed",
+                    request_id=request_id,
+                    task_type=task_classification.type.value if task_classification else None,
+                    confidence=task_classification.confidence if task_classification else None,
+                    reasoning=(
+                        task_classification.reasoning[:200]
+                        if task_classification and task_classification.reasoning
+                        else None
+                    ),
+                )
+
+                # 添加 print 调试输出
+                print("\n[DEBUG] Task Analysis Result:")
+                print(
+                    f"  Type: {task_classification.type.value if task_classification else 'None'}"
+                )
+                print(
+                    f"  Confidence: {task_classification.confidence if task_classification else 'None'}"
+                )
+                print(
+                    f"  Reasoning: {task_classification.reasoning[:200] if task_classification and task_classification.reasoning else 'None'}"
+                )
+                print()
 
                 # 獲取 API keys（所有允許的 providers）
                 llm_api_keys = config_resolver.resolve_api_keys_map(
@@ -1190,7 +1449,7 @@ async def chat_product_stream(
                 )
 
             # 構建 MoE context
-            moe_context = {
+            moe_context: Dict[str, Any] = {
                 "user_id": current_user.user_id,
                 "tenant_id": tenant_id,
                 "session_id": session_id,
@@ -1202,14 +1461,40 @@ async def chat_product_stream(
                 moe_context["allowed_providers"] = allowed_providers
                 moe_context["favorite_models"] = favorite_model_ids
 
+            # 添加工具信息到 context
+            # allowed_tools 已在函数开始处定义（第1069行）
+            if allowed_tools:
+                moe_context["allowed_tools"] = allowed_tools
+                logger.debug(
+                    "tools_enabled",
+                    request_id=request_id,
+                    allowed_tools=allowed_tools,
+                )
+
             # 發送開始消息（此時還不知道 provider 和 model，先發送基本信息）
+            logger.info(
+                "stream_start",
+                request_id=request_id,
+                messages_count=len(messages_for_llm),
+                has_web_search_results=any(
+                    "網絡搜索結果" in str(m.get("content", "")) for m in messages_for_llm
+                ),
+            )
             yield f"data: {json.dumps({'type': 'start', 'data': {'request_id': request_id, 'session_id': session_id}})}\n\n"
 
             # 累積完整內容（用於後續記錄）
             full_content = ""
+            chunk_count = 0
 
             # 調用 MoE Manager 的 chat_stream 方法
             try:
+                logger.info(
+                    "moe_chat_stream_start",
+                    request_id=request_id,
+                    provider=provider.value if provider else None,
+                    model=model,
+                    task_classification=task_classification.type if task_classification else None,
+                )
                 async for chunk in moe.chat_stream(
                     messages_for_llm,
                     task_classification=task_classification,
@@ -1219,11 +1504,26 @@ async def chat_product_stream(
                     max_tokens=2000,
                     context=moe_context,
                 ):
+                    chunk_count += 1
                     full_content += chunk
                     # 發送內容塊
                     yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': chunk}})}\n\n"
+
+                logger.info(
+                    "moe_chat_stream_completed",
+                    request_id=request_id,
+                    chunk_count=chunk_count,
+                    content_length=len(full_content),
+                )
             except Exception as stream_exc:
-                logger.error(f"Error during streaming: {stream_exc}", exc_info=True)
+                logger.error(
+                    "moe_chat_stream_error",
+                    request_id=request_id,
+                    error=str(stream_exc),
+                    chunk_count=chunk_count,
+                    content_length=len(full_content),
+                    exc_info=True,
+                )
                 yield f"data: {json.dumps({'type': 'error', 'data': {'error': str(stream_exc)}})}\n\n"
                 return
 

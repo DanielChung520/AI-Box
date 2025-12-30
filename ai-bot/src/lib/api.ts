@@ -2110,6 +2110,8 @@ export interface ChatProductRequest {
   task_id?: string;
   model_selector: ModelSelector;
   attachments?: ChatAttachment[];
+  allowed_tools?: string[]; // 允许使用的工具列表，例如 ['web_search']
+  assistant_id?: string; // 当前选中的助理 ID
 }
 
 export interface ChatProductResult {

@@ -1,0 +1,990 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-12-30",
+  "description": "AI-Box 工具註冊清單，包含所有工具的詳細說明，供 AI 任務分析使用",
+  "tools": [
+    {
+      "name": "datetime",
+      "version": "1.0.0",
+      "category": "時間與日期",
+      "description": "獲取當前日期時間，支持時區轉換和多種格式輸出",
+      "purpose": "提供準確的當前日期時間信息，支持不同時區和格式需求",
+      "use_cases": [
+        "獲取當前日期時間用於日誌記錄",
+        "根據用戶時區顯示本地時間",
+        "任務調度需要當前時間",
+        "多租戶環境下不同地區的時間顯示"
+      ],
+      "input_parameters": {
+        "timezone": {
+          "type": "Optional[str]",
+          "required": false,
+          "default": null,
+          "description": "時區（如 \"Asia/Taipei\"），None 表示使用配置中的默認時區"
+        },
+        "format": {
+          "type": "Optional[str]",
+          "required": false,
+          "default": null,
+          "description": "輸出格式（如 \"%Y-%m-%d %H:%M:%S\"），None 表示使用配置中的默認格式"
+        },
+        "tenant_id": {
+          "type": "Optional[str]",
+          "required": false,
+          "default": null,
+          "description": "租戶 ID（用於讀取租戶級配置）"
+        },
+        "user_id": {
+          "type": "Optional[str]",
+          "required": false,
+          "default": null,
+          "description": "用戶 ID（用於讀取用戶級配置）"
+        }
+      },
+      "output_fields": {
+        "datetime": "格式化後的日期時間字符串",
+        "timestamp": "Unix 時間戳",
+        "timezone": "時區名稱",
+        "iso_format": "ISO 8601 格式",
+        "local_format": "本地格式"
+      },
+      "example_scenarios": [
+        "用戶詢問：『現在幾點？』→ 使用 datetime 工具獲取當前時間",
+        "任務需要記錄執行時間 → 使用 datetime 工具獲取時間戳",
+        "顯示用戶本地時間 → 使用 datetime 工具，指定用戶時區"
+      ]
+    },
+    {
+      "name": "date_formatter",
+      "version": "1.0.0",
+      "category": "時間與日期",
+      "description": "日期格式化和解析工具",
+      "purpose": "將日期字符串轉換為不同格式，或解析日期字符串",
+      "use_cases": [
+        "將日期轉換為用戶友好的格式（如「2025年12月30日」）",
+        "解析用戶輸入的日期字符串",
+        "根據用戶語言環境自動選擇合適的格式",
+        "多租戶環境下的格式本地化"
+      ],
+      "input_parameters": {
+        "date": {
+          "type": "str",
+          "required": true,
+          "description": "日期字符串或 ISO 8601 格式"
+        },
+        "format": {
+          "type": "str",
+          "required": true,
+          "description": "目標格式（如 \"%Y年%m月%d日\"）"
+        },
+        "source_format": {
+          "type": "Optional[str]",
+          "required": false,
+          "description": "源格式（如果 date 不是 ISO 8601）"
+        }
+      },
+      "output_fields": {
+        "formatted": "格式化後的日期字符串",
+        "iso_format": "ISO 8601 格式",
+        "timestamp": "Unix 時間戳"
+      },
+      "example_scenarios": [
+        "用戶輸入：『2025-12-30』→ 轉換為『2025年12月30日』",
+        "需要將日期顯示為英文格式 → 使用 date_formatter 轉換",
+        "解析非標準格式的日期字符串 → 使用 date_formatter 解析"
+      ]
+    },
+    {
+      "name": "date_calculator",
+      "version": "1.0.0",
+      "category": "時間與日期",
+      "description": "日期計算工具，支持日期差值計算、加減運算和工作日計算",
+      "purpose": "進行日期相關的數學運算，計算日期差值、加減天數等",
+      "use_cases": [
+        "計算任務截止日期",
+        "計算兩個日期之間的時間間隔",
+        "計算工作日（排除週末和節假日）",
+        "計算未來或過去的日期"
+      ],
+      "input_parameters": {
+        "operation": {
+          "type": "str",
+          "required": true,
+          "description": "操作類型：add（加）、subtract（減）、diff（差值）"
+        },
+        "date1": {
+          "type": "str",
+          "required": true,
+          "description": "第一個日期（ISO 8601）"
+        },
+        "date2": {
+          "type": "Optional[str]",
+          "required": false,
+          "description": "第二個日期（用於 diff 操作）"
+        },
+        "days": {
+          "type": "Optional[int]",
+          "required": false,
+          "description": "天數（用於 add/subtract）"
+        },
+        "months": {
+          "type": "Optional[int]",
+          "required": false,
+          "description": "月數（用於 add/subtract）"
+        },
+        "years": {
+          "type": "Optional[int]",
+          "required": false,
+          "description": "年數（用於 add/subtract）"
+        }
+      },
+      "output_fields": {
+        "result": "計算結果（ISO 8601 格式）",
+        "days_diff": "天數差值（diff 操作）",
+        "hours_diff": "小時差值（diff 操作）"
+      },
+      "example_scenarios": [
+        "用戶詢問：『30天後是幾號？』→ 使用 date_calculator，operation=add, days=30",
+        "計算項目開始和結束日期之間的間隔 → 使用 date_calculator，operation=diff",
+        "計算工作日 → 使用 date_calculator 計算，排除週末"
+      ]
+    },
+    {
+      "name": "weather",
+      "version": "1.0.0",
+      "category": "天氣",
+      "description": "根據城市名稱或經緯度獲取當前天氣信息",
+      "purpose": "提供實時天氣信息，幫助用戶了解當前天氣狀況",
+      "use_cases": [
+        "用戶詢問當前天氣 → 使用 weather 工具獲取天氣信息",
+        "根據天氣情況調整建議（如高溫提醒多喝水）",
+        "任務執行需要考慮天氣因素",
+        "顯示用戶所在位置的天氣"
+      ],
+      "input_parameters": {
+        "city": {
+          "type": "Optional[str]",
+          "required": false,
+          "default": null,
+          "description": "城市名稱（如 \"Taipei\"）"
+        },
+        "lat": {
+          "type": "Optional[float]",
+          "required": false,
+          "default": null,
+          "description": "緯度"
+        },
+        "lon": {
+          "type": "Optional[float]",
+          "required": false,
+          "default": null,
+          "description": "經度"
+        },
+        "units": {
+          "type": "str",
+          "required": false,
+          "default": "metric",
+          "description": "單位：metric（攝氏度）、imperial（華氏度）"
+        },
+        "provider": {
+          "type": "Optional[str]",
+          "required": false,
+          "default": null,
+          "description": "天氣 API 提供商（如 \"openweathermap\"）"
+        }
+      },
+      "output_fields": {
+        "city": "城市名稱",
+        "country": "國家代碼",
+        "temperature": "溫度",
+        "feels_like": "體感溫度",
+        "humidity": "濕度（百分比）",
+        "pressure": "氣壓（hPa）",
+        "description": "天氣描述",
+        "icon": "天氣圖標代碼",
+        "wind_speed": "風速",
+        "wind_direction": "風向（度數）",
+        "visibility": "能見度（米）",
+        "uv_index": "UV 指數",
+        "timestamp": "數據時間戳"
+      },
+      "example_scenarios": [
+        "用戶詢問：『台北現在天氣如何？』→ 使用 weather 工具，city=\"Taipei\"",
+        "根據用戶位置顯示天氣 → 使用 weather 工具，lat/lon 參數",
+        "高溫預警 → 使用 weather 工具獲取溫度，如果 > 30°C 提醒用戶"
+      ]
+    },
+    {
+      "name": "forecast",
+      "version": "1.0.0",
+      "category": "天氣",
+      "description": "獲取未來幾天的天氣預報",
+      "purpose": "提供未來天氣預報信息，幫助用戶規劃活動",
+      "use_cases": [
+        "用戶詢問未來幾天天氣 → 使用 forecast 工具",
+        "計劃戶外活動需要查看天氣預報",
+        "天氣趨勢分析",
+        "提供天氣預警信息"
+      ],
+      "input_parameters": {
+        "city": {
+          "type": "Optional[str]",
+          "required": false,
+          "default": null,
+          "description": "城市名稱"
+        },
+        "lat": {
+          "type": "Optional[float]",
+          "required": false,
+          "default": null,
+          "description": "緯度"
+        },
+        "lon": {
+          "type": "Optional[float]",
+          "required": false,
+          "default": null,
+          "description": "經度"
+        },
+        "days": {
+          "type": "int",
+          "required": false,
+          "default": 5,
+          "description": "預報天數（1-7）"
+        },
+        "units": {
+          "type": "str",
+          "required": false,
+          "default": "metric",
+          "description": "單位：metric（攝氏度）、imperial（華氏度）"
+        }
+      },
+      "output_fields": {
+        "city": "城市名稱",
+        "country": "國家代碼",
+        "forecast": "預報列表，包含每日天氣信息",
+        "hourly_forecast": "小時級別預報（可選）"
+      },
+      "example_scenarios": [
+        "用戶詢問：『未來5天台北天氣如何？』→ 使用 forecast 工具，city=\"Taipei\", days=5",
+        "計劃週末戶外活動 → 使用 forecast 工具查看週末天氣",
+        "天氣趨勢分析 → 使用 forecast 工具獲取多天預報，分析趨勢"
+      ]
+    },
+    {
+      "name": "ip_location",
+      "version": "1.0.0",
+      "category": "地理位置",
+      "description": "根據 IP 地址獲取地理位置信息",
+      "purpose": "通過 IP 地址定位用戶地理位置，用於個性化服務",
+      "use_cases": [
+        "根據用戶 IP 獲取地理位置",
+        "安全審計和日誌分析",
+        "提供基於位置的服務",
+        "檢測異常登錄位置"
+      ],
+      "input_parameters": {
+        "ip_address": {
+          "type": "str",
+          "required": true,
+          "description": "IP 地址（IPv4 或 IPv6）"
+        }
+      },
+      "output_fields": {
+        "ip": "IP 地址",
+        "country": "國家",
+        "region": "地區/省份",
+        "city": "城市",
+        "latitude": "緯度",
+        "longitude": "經度",
+        "timezone": "時區",
+        "isp": "ISP 提供商"
+      },
+      "example_scenarios": [
+        "用戶登錄時記錄位置 → 使用 ip_location 工具獲取位置信息",
+        "安全審計需要定位異常 IP → 使用 ip_location 工具",
+        "根據 IP 顯示用戶所在城市天氣 → 先使用 ip_location，再使用 weather"
+      ]
+    },
+    {
+      "name": "geocoding",
+      "version": "1.0.0",
+      "category": "地理位置",
+      "description": "地理編碼工具，地址與經緯度之間的轉換",
+      "purpose": "實現地址和坐標之間的雙向轉換，用於地圖服務和位置查詢",
+      "use_cases": [
+        "將地址轉換為坐標用於地圖顯示",
+        "根據坐標獲取地址信息",
+        "地址驗證和標準化",
+        "批量地址處理"
+      ],
+      "input_parameters": {
+        "operation": {
+          "type": "str",
+          "required": true,
+          "description": "操作類型：forward（地址→坐標）、reverse（坐標→地址）"
+        },
+        "address": {
+          "type": "Optional[str]",
+          "required": false,
+          "description": "地址（forward 操作需要）"
+        },
+        "lat": {
+          "type": "Optional[float]",
+          "required": false,
+          "description": "緯度（reverse 操作需要）"
+        },
+        "lon": {
+          "type": "Optional[float]",
+          "required": false,
+          "description": "經度（reverse 操作需要）"
+        }
+      },
+      "output_fields": {
+        "address": "地址信息",
+        "latitude": "緯度",
+        "longitude": "經度",
+        "country": "國家",
+        "region": "地區",
+        "city": "城市",
+        "postal_code": "郵政編碼"
+      },
+      "example_scenarios": [
+        "用戶輸入地址需要轉換為坐標 → 使用 geocoding，operation=forward",
+        "根據 GPS 坐標獲取地址 → 使用 geocoding，operation=reverse",
+        "地址驗證 → 使用 geocoding 驗證地址是否存在"
+      ]
+    },
+    {
+      "name": "distance",
+      "version": "1.0.0",
+      "category": "地理位置",
+      "description": "計算兩個地理位置之間的距離",
+      "purpose": "計算兩點之間的距離，支持直線距離、駕車距離、步行距離",
+      "use_cases": [
+        "計算配送距離",
+        "位置相關的推薦",
+        "路線規劃",
+        "距離估算"
+      ],
+      "input_parameters": {
+        "lat1": {
+          "type": "float",
+          "required": true,
+          "description": "起點緯度"
+        },
+        "lon1": {
+          "type": "float",
+          "required": true,
+          "description": "起點經度"
+        },
+        "lat2": {
+          "type": "float",
+          "required": true,
+          "description": "終點緯度"
+        },
+        "lon2": {
+          "type": "float",
+          "required": true,
+          "description": "終點經度"
+        },
+        "method": {
+          "type": "str",
+          "required": false,
+          "default": "haversine",
+          "description": "計算方法：haversine（直線）、driving（駕車）、walking（步行）"
+        },
+        "unit": {
+          "type": "str",
+          "required": false,
+          "default": "km",
+          "description": "距離單位：km（公里）、mi（英里）"
+        }
+      },
+      "output_fields": {
+        "distance": "距離值",
+        "unit": "距離單位",
+        "method": "計算方法",
+        "duration": "預計時間（駕車/步行，秒）"
+      },
+      "example_scenarios": [
+        "計算兩個城市之間的距離 → 使用 distance 工具",
+        "配送距離計算 → 使用 distance 工具，method=driving",
+        "附近地點推薦 → 使用 distance 工具計算距離，篩選最近的"
+      ]
+    },
+    {
+      "name": "timezone",
+      "version": "1.0.0",
+      "category": "地理位置",
+      "description": "根據地理位置獲取時區信息",
+      "purpose": "獲取指定位置的時區信息，用於時間轉換",
+      "use_cases": [
+        "時間轉換需要時區信息",
+        "多時區協作",
+        "根據位置自動設置時區",
+        "時區偏移量計算"
+      ],
+      "input_parameters": {
+        "lat": {
+          "type": "float",
+          "required": true,
+          "description": "緯度"
+        },
+        "lon": {
+          "type": "float",
+          "required": true,
+          "description": "經度"
+        }
+      },
+      "output_fields": {
+        "timezone": "時區名稱（如 \"Asia/Taipei\"）",
+        "offset": "UTC 偏移量（秒）",
+        "offset_hours": "UTC 偏移量（小時）",
+        "dst": "是否使用夏令時"
+      },
+      "example_scenarios": [
+        "根據用戶位置獲取時區 → 使用 timezone 工具",
+        "多時區會議時間轉換 → 使用 timezone 工具獲取各時區信息",
+        "自動設置用戶時區 → 使用 timezone 工具根據位置設置"
+      ]
+    },
+    {
+      "name": "length_converter",
+      "version": "1.0.0",
+      "category": "單位轉換",
+      "description": "長度單位轉換工具",
+      "purpose": "在不同長度單位之間進行轉換（米、英尺、英里等）",
+      "use_cases": [
+        "數據處理需要單位轉換",
+        "國際化支持（公制/英制）",
+        "用戶輸入不同單位的數據需要統一",
+        "單位換算查詢"
+      ],
+      "input_parameters": {
+        "value": {
+          "type": "float",
+          "required": true,
+          "description": "數值"
+        },
+        "from_unit": {
+          "type": "str",
+          "required": true,
+          "description": "源單位（如 \"m\", \"ft\", \"mi\"）"
+        },
+        "to_unit": {
+          "type": "str",
+          "required": true,
+          "description": "目標單位"
+        }
+      },
+      "output_fields": {
+        "value": "轉換後的數值",
+        "from_unit": "源單位",
+        "to_unit": "目標單位",
+        "original_value": "原始數值"
+      },
+      "example_scenarios": [
+        "用戶詢問：『100 英尺等於多少米？』→ 使用 length_converter",
+        "數據處理需要統一單位 → 使用 length_converter 轉換",
+        "國際化顯示 → 根據用戶地區使用不同單位"
+      ]
+    },
+    {
+      "name": "weight_converter",
+      "version": "1.0.0",
+      "category": "單位轉換",
+      "description": "重量單位轉換工具",
+      "purpose": "在不同重量單位之間進行轉換（公斤、磅、盎司等）",
+      "use_cases": [
+        "重量單位轉換",
+        "國際化支持",
+        "數據處理需要統一單位",
+        "單位換算查詢"
+      ],
+      "input_parameters": {
+        "value": {
+          "type": "float",
+          "required": true,
+          "description": "數值"
+        },
+        "from_unit": {
+          "type": "str",
+          "required": true,
+          "description": "源單位（如 \"kg\", \"lb\", \"oz\"）"
+        },
+        "to_unit": {
+          "type": "str",
+          "required": true,
+          "description": "目標單位"
+        }
+      },
+      "output_fields": {
+        "value": "轉換後的數值",
+        "from_unit": "源單位",
+        "to_unit": "目標單位",
+        "original_value": "原始數值"
+      },
+      "example_scenarios": [
+        "用戶詢問：『1 磅等於多少公斤？』→ 使用 weight_converter",
+        "數據處理需要統一單位 → 使用 weight_converter 轉換"
+      ]
+    },
+    {
+      "name": "temperature_converter",
+      "version": "1.0.0",
+      "category": "單位轉換",
+      "description": "溫度單位轉換工具",
+      "purpose": "在攝氏度、華氏度、開爾文之間進行轉換",
+      "use_cases": [
+        "溫度單位轉換",
+        "國際化支持（攝氏度/華氏度）",
+        "科學計算需要開爾文",
+        "單位換算查詢"
+      ],
+      "input_parameters": {
+        "value": {
+          "type": "float",
+          "required": true,
+          "description": "數值"
+        },
+        "from_unit": {
+          "type": "str",
+          "required": true,
+          "description": "源單位（\"c\"（攝氏度）、\"f\"（華氏度）、\"k\"（開爾文））"
+        },
+        "to_unit": {
+          "type": "str",
+          "required": true,
+          "description": "目標單位"
+        }
+      },
+      "output_fields": {
+        "value": "轉換後的數值",
+        "from_unit": "源單位",
+        "to_unit": "目標單位",
+        "original_value": "原始數值"
+      },
+      "example_scenarios": [
+        "用戶詢問：『32 華氏度等於多少攝氏度？』→ 使用 temperature_converter",
+        "天氣數據需要轉換單位 → 使用 temperature_converter"
+      ]
+    },
+    {
+      "name": "currency_converter",
+      "version": "1.0.0",
+      "category": "單位轉換",
+      "description": "貨幣轉換工具，支持實時匯率 API",
+      "purpose": "在不同貨幣之間進行轉換，使用實時匯率",
+      "use_cases": [
+        "貨幣匯率查詢",
+        "國際交易金額轉換",
+        "價格比較（不同貨幣）",
+        "財務計算需要貨幣轉換"
+      ],
+      "input_parameters": {
+        "amount": {
+          "type": "float",
+          "required": true,
+          "description": "金額"
+        },
+        "from_currency": {
+          "type": "str",
+          "required": true,
+          "description": "源貨幣代碼（如 \"USD\", \"TWD\"）"
+        },
+        "to_currency": {
+          "type": "str",
+          "required": true,
+          "description": "目標貨幣代碼"
+        },
+        "date": {
+          "type": "Optional[str]",
+          "required": false,
+          "description": "匯率日期（ISO 8601），None 表示使用最新匯率"
+        }
+      },
+      "output_fields": {
+        "amount": "轉換後的金額",
+        "from_currency": "源貨幣",
+        "to_currency": "目標貨幣",
+        "exchange_rate": "匯率",
+        "date": "匯率日期"
+      },
+      "example_scenarios": [
+        "用戶詢問：『100 美元等於多少台幣？』→ 使用 currency_converter",
+        "國際購物價格比較 → 使用 currency_converter 轉換為同一貨幣",
+        "財務報表需要貨幣轉換 → 使用 currency_converter"
+      ]
+    },
+    {
+      "name": "volume_converter",
+      "version": "1.0.0",
+      "category": "單位轉換",
+      "description": "體積單位轉換工具",
+      "purpose": "在不同體積單位之間進行轉換（升、加侖、毫升等）",
+      "use_cases": [
+        "體積單位轉換",
+        "國際化支持",
+        "數據處理需要統一單位",
+        "單位換算查詢"
+      ],
+      "input_parameters": {
+        "value": {
+          "type": "float",
+          "required": true,
+          "description": "數值"
+        },
+        "from_unit": {
+          "type": "str",
+          "required": true,
+          "description": "源單位（如 \"L\", \"gal\", \"ml\"）"
+        },
+        "to_unit": {
+          "type": "str",
+          "required": true,
+          "description": "目標單位"
+        }
+      },
+      "output_fields": {
+        "value": "轉換後的數值",
+        "from_unit": "源單位",
+        "to_unit": "目標單位",
+        "original_value": "原始數值"
+      },
+      "example_scenarios": [
+        "用戶詢問：『1 加侖等於多少升？』→ 使用 volume_converter",
+        "數據處理需要統一單位 → 使用 volume_converter 轉換"
+      ]
+    },
+    {
+      "name": "area_converter",
+      "version": "1.0.0",
+      "category": "單位轉換",
+      "description": "面積單位轉換工具",
+      "purpose": "在不同面積單位之間進行轉換（平方米、平方英尺、公頃等）",
+      "use_cases": [
+        "面積單位轉換",
+        "國際化支持",
+        "數據處理需要統一單位",
+        "單位換算查詢"
+      ],
+      "input_parameters": {
+        "value": {
+          "type": "float",
+          "required": true,
+          "description": "數值"
+        },
+        "from_unit": {
+          "type": "str",
+          "required": true,
+          "description": "源單位（如 \"m2\", \"ft2\", \"ha\"）"
+        },
+        "to_unit": {
+          "type": "str",
+          "required": true,
+          "description": "目標單位"
+        }
+      },
+      "output_fields": {
+        "value": "轉換後的數值",
+        "from_unit": "源單位",
+        "to_unit": "目標單位",
+        "original_value": "原始數值"
+      },
+      "example_scenarios": [
+        "用戶詢問：『100 平方英尺等於多少平方米？』→ 使用 area_converter",
+        "數據處理需要統一單位 → 使用 area_converter 轉換"
+      ]
+    },
+    {
+      "name": "math_calculator",
+      "version": "1.0.0",
+      "category": "計算",
+      "description": "數學計算工具，支持基本運算和科學計算",
+      "purpose": "執行數學運算，包括基本運算（加減乘除）和科學計算（三角函數、對數等）",
+      "use_cases": [
+        "執行數學表達式計算",
+        "科學計算（三角函數、對數、指數等）",
+        "數據處理中的數學運算",
+        "用戶詢問數學問題"
+      ],
+      "input_parameters": {
+        "expression": {
+          "type": "str",
+          "required": true,
+          "description": "數學表達式（如 \"2 + 3 * 4\"）"
+        },
+        "variables": {
+          "type": "Optional[Dict[str, float]]",
+          "required": false,
+          "description": "變量字典（用於表達式中的變量）"
+        }
+      },
+      "output_fields": {
+        "result": "計算結果",
+        "expression": "原始表達式"
+      },
+      "example_scenarios": [
+        "用戶詢問：『計算 2 + 3 * 4』→ 使用 math_calculator",
+        "科學計算需要 → 使用 math_calculator 計算三角函數、對數等",
+        "數據處理中的數學運算 → 使用 math_calculator"
+      ]
+    },
+    {
+      "name": "statistics_calculator",
+      "version": "1.0.0",
+      "category": "計算",
+      "description": "統計計算工具，平均值、中位數、標準差等統計功能",
+      "purpose": "對數據集進行統計分析，計算各種統計指標",
+      "use_cases": [
+        "計算數據集的平均值、中位數、標準差",
+        "數據分析和統計",
+        "數據質量檢查",
+        "統計報表生成"
+      ],
+      "input_parameters": {
+        "data": {
+          "type": "List[float]",
+          "required": true,
+          "description": "數據列表"
+        },
+        "operations": {
+          "type": "List[str]",
+          "required": false,
+          "default": ["mean", "median", "std"],
+          "description": "統計操作列表（mean, median, std, min, max, sum 等）"
+        }
+      },
+      "output_fields": {
+        "mean": "平均值",
+        "median": "中位數",
+        "std": "標準差",
+        "min": "最小值",
+        "max": "最大值",
+        "sum": "總和",
+        "count": "數據點數量"
+      },
+      "example_scenarios": [
+        "用戶詢問：『這組數據的平均值是多少？』→ 使用 statistics_calculator",
+        "數據分析需要統計指標 → 使用 statistics_calculator",
+        "數據質量檢查 → 使用 statistics_calculator 計算統計指標"
+      ]
+    },
+    {
+      "name": "text_formatter",
+      "version": "1.0.0",
+      "category": "文本處理",
+      "description": "文本格式化工具，大小寫轉換、首字母大寫等",
+      "purpose": "對文本進行格式化處理，如大小寫轉換、首字母大寫等",
+      "use_cases": [
+        "文本大小寫轉換",
+        "首字母大寫處理",
+        "文本標準化",
+        "數據清理"
+      ],
+      "input_parameters": {
+        "text": {
+          "type": "str",
+          "required": true,
+          "description": "要格式化的文本"
+        },
+        "format_type": {
+          "type": "str",
+          "required": true,
+          "description": "格式化類型：lower（小寫）、upper（大寫）、title（標題）、capitalize（首字母大寫）"
+        }
+      },
+      "output_fields": {
+        "formatted": "格式化後的文本",
+        "original": "原始文本"
+      },
+      "example_scenarios": [
+        "用戶輸入需要標準化 → 使用 text_formatter 轉換大小寫",
+        "數據清理需要統一格式 → 使用 text_formatter",
+        "標題格式化 → 使用 text_formatter，format_type=title"
+      ]
+    },
+    {
+      "name": "text_cleaner",
+      "version": "1.0.0",
+      "category": "文本處理",
+      "description": "文本清理工具，去除空白、特殊字符等",
+      "purpose": "清理文本中的多餘空白、特殊字符、控制字符等",
+      "use_cases": [
+        "去除文本中的多餘空白",
+        "清理特殊字符和控制字符",
+        "數據清理和預處理",
+        "文本標準化"
+      ],
+      "input_parameters": {
+        "text": {
+          "type": "str",
+          "required": true,
+          "description": "要清理的文本"
+        },
+        "remove_whitespace": {
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "description": "是否移除多餘空白"
+        },
+        "remove_special_chars": {
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "是否移除特殊字符"
+        }
+      },
+      "output_fields": {
+        "cleaned": "清理後的文本",
+        "original": "原始文本"
+      },
+      "example_scenarios": [
+        "數據清理需要去除多餘空白 → 使用 text_cleaner",
+        "文本預處理 → 使用 text_cleaner 清理特殊字符",
+        "用戶輸入清理 → 使用 text_cleaner 標準化輸入"
+      ]
+    },
+    {
+      "name": "text_converter",
+      "version": "1.0.0",
+      "category": "文本處理",
+      "description": "文本轉換工具，Markdown、HTML、純文本互轉",
+      "purpose": "在不同文本格式之間進行轉換（Markdown、HTML、純文本）",
+      "use_cases": [
+        "Markdown 轉 HTML",
+        "HTML 轉純文本",
+        "文本格式轉換",
+        "內容格式標準化"
+      ],
+      "input_parameters": {
+        "text": {
+          "type": "str",
+          "required": true,
+          "description": "要轉換的文本"
+        },
+        "from_format": {
+          "type": "str",
+          "required": true,
+          "description": "源格式（markdown, html, plain）"
+        },
+        "to_format": {
+          "type": "str",
+          "required": true,
+          "description": "目標格式（markdown, html, plain）"
+        }
+      },
+      "output_fields": {
+        "converted": "轉換後的文本",
+        "from_format": "源格式",
+        "to_format": "目標格式"
+      },
+      "example_scenarios": [
+        "Markdown 內容需要轉為 HTML → 使用 text_converter",
+        "HTML 內容需要提取純文本 → 使用 text_converter",
+        "格式標準化 → 使用 text_converter 統一格式"
+      ]
+    },
+    {
+      "name": "text_summarizer",
+      "version": "1.0.0",
+      "category": "文本處理",
+      "description": "文本摘要工具，提取關鍵信息",
+      "purpose": "從長文本中提取關鍵信息，生成摘要",
+      "use_cases": [
+        "長文本摘要生成",
+        "關鍵信息提取",
+        "內容預覽",
+        "文檔摘要"
+      ],
+      "input_parameters": {
+        "text": {
+          "type": "str",
+          "required": true,
+          "description": "要摘要的文本"
+        },
+        "max_length": {
+          "type": "int",
+          "required": false,
+          "default": 200,
+          "description": "摘要最大長度（字符數）"
+        },
+        "method": {
+          "type": "str",
+          "required": false,
+          "default": "extractive",
+          "description": "摘要方法：extractive（抽取式）、abstractive（生成式）"
+        }
+      },
+      "output_fields": {
+        "summary": "摘要文本",
+        "original_length": "原始文本長度",
+        "summary_length": "摘要長度",
+        "compression_ratio": "壓縮比"
+      },
+      "example_scenarios": [
+        "長文檔需要生成摘要 → 使用 text_summarizer",
+        "內容預覽 → 使用 text_summarizer 生成簡短預覽",
+        "關鍵信息提取 → 使用 text_summarizer 提取要點"
+      ]
+    },
+    {
+      "name": "web_search",
+      "version": "1.0.0",
+      "category": "網絡搜索",
+      "description": "執行 Web 搜索，支持多個搜索提供商的自動降級（Serper -> SerpAPI -> ScraperAPI -> Google CSE）",
+      "purpose": "提供統一的 Web 搜索功能，自動選擇可用的搜索提供商，確保搜索服務的高可用性",
+      "use_cases": [
+        "用戶詢問實時信息或最新資訊 → 使用 web_search 搜索網絡",
+        "需要獲取當前事件、新聞或趨勢 → 使用 web_search",
+        "本地知識庫無法回答的問題 → 使用 web_search 補充信息",
+        "需要驗證或查找最新資料 → 使用 web_search"
+      ],
+      "input_parameters": {
+        "query": {
+          "type": "str",
+          "required": true,
+          "description": "搜索查詢字符串"
+        },
+        "num": {
+          "type": "int",
+          "required": false,
+          "default": 10,
+          "description": "結果數量（1-100）"
+        },
+        "location": {
+          "type": "Optional[str]",
+          "required": false,
+          "default": null,
+          "description": "地理位置（可選，如 \"Taiwan\"）"
+        }
+      },
+      "output_fields": {
+        "query": "搜索查詢",
+        "provider": "使用的搜索提供商（serper/serpapi/scraper/google_cse）",
+        "results": "搜索結果列表，每個結果包含 title、link、snippet、type、position",
+        "total": "結果總數",
+        "status": "搜索狀態（success/failed）"
+      },
+      "example_scenarios": [
+        "用戶詢問：『最新的人工智能發展是什麼？』→ 使用 web_search 搜索最新資訊",
+        "需要查找特定產品的價格或規格 → 使用 web_search 搜索",
+        "驗證某個事實或數據 → 使用 web_search 查找權威來源",
+        "查找實時新聞或事件 → 使用 web_search 獲取最新信息"
+      ],
+      "provider_priority": [
+        "Serper.dev（首選，便宜快速）",
+        "SerpAPI（備用，功能全）",
+        "ScraperAPI（備用，大量爬取）",
+        "Google CSE（最後，官方但貴）"
+      ],
+      "environment_variables": {
+        "SERPER_API_KEY": "Serper.dev API 密鑰",
+        "SERPAPI_API_KEY": "SerpAPI API 密鑰",
+        "SCRAPER_API_KEY": "ScraperAPI API 密鑰",
+        "GOOGLE_CSE_API_KEY": "Google Custom Search Engine API 密鑰",
+        "GOOGLE_CSE_CX": "Google Custom Search Engine ID"
+      }
+    }
+  ]
+}

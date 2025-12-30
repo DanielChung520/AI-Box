@@ -5,23 +5,33 @@
 
 """Task Analyzer 核心實現 - 整合任務分析、分類、路由和工作流選擇"""
 
+import asyncio
 import json
 import logging
 import re
 import uuid
+from datetime import datetime
 from typing import Any, Dict, Optional
 
+from agents.task_analyzer.capability_matcher import CapabilityMatcher
 from agents.task_analyzer.classifier import TaskClassifier
+from agents.task_analyzer.decision_engine import DecisionEngine
 from agents.task_analyzer.llm_router import LLMRouter
 from agents.task_analyzer.models import (
     ConfigIntent,
+    DecisionLog,
+    DecisionResult,
     LogQueryIntent,
+    RouterInput,
     TaskAnalysisRequest,
     TaskAnalysisResult,
     TaskClassificationResult,
     TaskType,
     WorkflowType,
 )
+from agents.task_analyzer.router_llm import RouterLLM
+from agents.task_analyzer.routing_memory import RoutingMemoryService
+from agents.task_analyzer.rule_override import RuleOverride
 from agents.task_analyzer.workflow_selector import WorkflowSelector
 
 logger = logging.getLogger(__name__)
@@ -35,6 +45,12 @@ class TaskAnalyzer:
         self.classifier = TaskClassifier()
         self.workflow_selector = WorkflowSelector()
         self.llm_router = LLMRouter()
+        # 新增組件
+        self.router_llm = RouterLLM()
+        self.rule_override = RuleOverride()
+        self.capability_matcher = CapabilityMatcher()
+        self.decision_engine = DecisionEngine()
+        self.routing_memory = RoutingMemoryService()
 
     async def analyze(self, request: TaskAnalysisRequest) -> TaskAnalysisResult:
         """
@@ -51,54 +67,86 @@ class TaskAnalyzer:
         # 生成任務ID
         task_id = str(uuid.uuid4())
 
-        # 步驟1: 任務分類
+        # 步驟1: Pre-Filter（快速規則檢查簡單查詢）
+        if self._is_simple_query(request.task):
+            return await self._handle_simple_query(request, task_id)
+
+        # 步驟2: Router 前置 Recall（可選，提供 Context Bias）
+        similar_decisions = []
+        try:
+            similar_decisions = await self.routing_memory.recall_similar_decisions(
+                request.task, top_k=3, filters={"success": True}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to recall similar decisions: {e}")
+
+        # 步驟3: Router LLM（新架構）
+        router_input = RouterInput(
+            user_query=request.task,
+            session_context=request.context or {},
+            system_constraints=self.rule_override.get_system_constraints(request.task),
+        )
+
+        router_output = await self.router_llm.route(router_input, similar_decisions)
+
+        # 步驟4: Rule Override（硬性規則覆蓋）
+        router_output = self.rule_override.apply(router_output, request.task)
+
+        # 步驟5: Capability Matching
+        agent_candidates = await self.capability_matcher.match_agents(
+            router_output, request.context
+        )
+        tool_candidates = await self.capability_matcher.match_tools(router_output, request.context)
+        model_candidates = await self.capability_matcher.match_models(
+            router_output, request.context
+        )
+
+        # 步驟6: Decision Engine（綜合決策）
+        decision_result = self.decision_engine.decide(
+            router_output,
+            agent_candidates,
+            tool_candidates,
+            model_candidates,
+            request.context,
+        )
+
+        # 步驟7: 傳統流程（向後兼容）
+        # 任務分類
         classification = self.classifier.classify(
             request.task,
             request.context,
         )
 
-        # 步驟2: 工作流選擇
+        # 工作流選擇
         workflow_selection = self.workflow_selector.select(
             classification,
             request.task,
             request.context,
         )
 
-        # 步驟3: LLM 路由選擇
+        # LLM 路由選擇（用於向後兼容）
         llm_routing = self.llm_router.route(
             classification,
             request.task,
             request.context,
         )
 
-        # 判斷是否需要啟動 Agent（日誌查詢不需要 Agent）
-        if classification.task_type == TaskType.LOG_QUERY:
-            requires_agent = False
-        else:
-            requires_agent = self._should_use_agent(
-                classification.task_type,
-                request.task,
-                request.context,
-            )
+        # 判斷是否需要啟動 Agent（使用 Decision Engine 的結果）
+        requires_agent = decision_result.chosen_agent is not None
 
-        # 建議使用的 Agent 列表（日誌查詢不需要 Agent）
+        # 建議使用的 Agent 和工具列表（從 Decision Engine 獲取）
         suggested_agents = []
-        intent: Optional[Any] = None
+        if decision_result.chosen_agent:
+            suggested_agents.append(decision_result.chosen_agent)
+        suggested_tools = decision_result.chosen_tools
 
-        # 如果是日誌查詢，提取日誌查詢意圖
+        # 提取意圖（保留原有邏輯）
+        intent: Optional[Any] = None
         if classification.task_type == TaskType.LOG_QUERY:
             intent = self._extract_log_query_intent(request.task, request.context)
-        # 如果是配置操作，提取配置操作意圖
         elif self._is_config_operation(classification, request.task):
             intent = await self._extract_config_intent(
                 request.task, classification, request.context
-            )
-
-        # 對於其他任務類型，建議使用的 Agent
-        if classification.task_type != TaskType.LOG_QUERY:
-            suggested_agents = self._suggest_agents(
-                classification.task_type,
-                workflow_selection.workflow_type,
             )
 
         # 構建分析詳情
@@ -121,6 +169,16 @@ class TaskAnalyzer:
                 "reasoning": llm_routing.reasoning,
                 "fallback_providers": [p.value for p in llm_routing.fallback_providers],
             },
+            "router_decision": router_output.model_dump()
+            if hasattr(router_output, "model_dump")
+            else router_output.dict()
+            if hasattr(router_output, "dict")
+            else router_output,
+            "decision_result": decision_result.model_dump()
+            if hasattr(decision_result, "model_dump")
+            else decision_result.dict()
+            if hasattr(decision_result, "dict")
+            else decision_result,
         }
 
         # 如果是混合模式，添加 strategy 信息
@@ -149,7 +207,13 @@ class TaskAnalyzer:
 
         # 將 intent 添加到 analysis_details 中
         if intent:
-            analysis_details["intent"] = intent.dict() if hasattr(intent, "dict") else intent
+            analysis_details["intent"] = (
+                intent.model_dump()
+                if hasattr(intent, "model_dump")
+                else intent.dict()
+                if hasattr(intent, "dict")
+                else intent
+            )
 
             # 如果是 ConfigIntent，提取澄清信息並添加到分析詳情中
             if isinstance(intent, ConfigIntent):
@@ -160,7 +224,7 @@ class TaskAnalyzer:
                 if "system_config_agent" not in suggested_agents:
                     suggested_agents.insert(0, "system_config_agent")
 
-        return TaskAnalysisResult(
+        result = TaskAnalysisResult(
             task_id=task_id,
             task_type=classification.task_type,
             workflow_type=workflow_selection.workflow_type,
@@ -169,6 +233,101 @@ class TaskAnalyzer:
             requires_agent=requires_agent,
             analysis_details=analysis_details,
             suggested_agents=suggested_agents,
+            router_decision=router_output,
+            decision_result=decision_result,
+            suggested_tools=suggested_tools,
+        )
+
+        # 步驟8: 異步記錄決策到 Routing Memory（不阻塞）
+        try:
+            decision_log = DecisionLog(
+                decision_id=task_id,
+                timestamp=datetime.utcnow(),
+                query={"text": request.task},
+                router_output=router_output,
+                decision_engine=decision_result,
+                execution_result=None,  # 執行結果在執行後更新
+            )
+            asyncio.create_task(self.routing_memory.record_decision(decision_log))
+        except Exception as e:
+            logger.warning(f"Failed to record decision to routing memory: {e}")
+
+        return result
+
+    def _is_simple_query(self, task: str) -> bool:
+        """
+        判斷是否為簡單查詢（可以跳過 Router LLM）
+
+        Args:
+            task: 任務描述
+
+        Returns:
+            是否為簡單查詢
+        """
+        # 簡單查詢的關鍵詞
+        simple_keywords = ["你好", "hello", "hi", "謝謝", "thanks"]
+        task_lower = task.lower().strip()
+        return task_lower in simple_keywords or len(task_lower) < 10
+
+    async def _handle_simple_query(
+        self, request: TaskAnalysisRequest, task_id: str
+    ) -> TaskAnalysisResult:
+        """
+        處理簡單查詢（跳過 Router LLM）
+
+        Args:
+            request: 任務分析請求
+            task_id: 任務 ID
+
+        Returns:
+            任務分析結果
+        """
+        from agents.task_analyzer.models import LLMProvider, RouterDecision, TaskType, WorkflowType
+
+        # 使用默認配置
+        router_decision = RouterDecision(
+            intent_type="conversation",
+            complexity="low",
+            needs_agent=False,
+            needs_tools=False,
+            determinism_required=False,
+            risk_level="low",
+            confidence=1.0,
+        )
+
+        decision_result = DecisionResult(
+            router_result=router_decision,
+            chosen_agent=None,
+            chosen_tools=[],
+            chosen_model="ollama:llama2",
+            score=1.0,
+            fallback_used=False,
+            reasoning="簡單查詢，使用默認配置",
+        )
+
+        return TaskAnalysisResult(
+            task_id=task_id,
+            task_type=TaskType.QUERY,
+            workflow_type=WorkflowType.LANGCHAIN,
+            llm_provider=LLMProvider.OLLAMA,
+            confidence=1.0,
+            requires_agent=False,
+            analysis_details={
+                "router_decision": router_decision.model_dump()
+                if hasattr(router_decision, "model_dump")
+                else router_decision.dict()
+                if hasattr(router_decision, "dict")
+                else router_decision,
+                "decision_result": decision_result.model_dump()
+                if hasattr(decision_result, "model_dump")
+                else decision_result.dict()
+                if hasattr(decision_result, "dict")
+                else decision_result,
+            },
+            suggested_agents=[],
+            router_decision=router_decision,
+            decision_result=decision_result,
+            suggested_tools=[],
         )
 
     def _should_use_agent(

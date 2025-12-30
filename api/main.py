@@ -20,7 +20,8 @@ if env_file.exists():
 
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -77,6 +78,7 @@ from api.routers import (
     rq_monitor,
     rt,
     task_analyzer,
+    tools_registry,
     triple_extraction,
     user_tasks,
     workflows,
@@ -235,6 +237,67 @@ app.add_middleware(
     expose_headers=["*"],  # 暴露所有響應頭，包括自定義頭
 )
 
+
+# 添加 RequestValidationError 異常處理器（在路由之前）
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """處理請求驗證錯誤，輸出詳細的錯誤信息"""
+    error_details = exc.errors()
+
+    # 嘗試讀取請求體
+    try:
+        body = await request.body()
+        body_str = body.decode("utf-8")[:1000] if body else None
+    except Exception:
+        body_str = None
+
+    # 使用 print 確保錯誤信息一定會輸出（输出到 stdout，uvicorn 会捕获）
+    error_summary = f"""
+{'='*80}
+❌ RequestValidationError: {request.method} {request.url.path}
+{'='*80}
+Request body preview: {body_str}
+Validation errors ({len(error_details)}):"""
+
+    for i, error in enumerate(error_details, 1):
+        error_summary += f"""
+  {i}. Location: {error.get('loc')}
+     Type: {error.get('type')}
+     Message: {error.get('msg')}
+     Input: {error.get('input')}"""
+
+    error_summary += f"\n{'='*80}\n"
+
+    print(error_summary)
+
+    # 記錄到日誌（使用 logger.error 确保写入日志文件）
+    logger.error(
+        f"Request validation error: path={request.url.path}, method={request.method}",
+        extra={
+            "path": request.url.path,
+            "method": request.method,
+            "errors": error_details,
+            "body_preview": body_str,
+        },
+    )
+
+    # 也使用 logger.error 记录每个错误详情
+    for i, error in enumerate(error_details, 1):
+        logger.error(
+            f"Validation error {i}: loc={error.get('loc')}, type={error.get('type')}, msg={error.get('msg')}, input={error.get('input')}"
+        )
+
+    # 返回標準錯誤響應
+    from api.core.response import APIResponse
+
+    return APIResponse.error(
+        message="Request validation failed",
+        error_code="VALIDATION_ERROR",
+        details={"errors": error_details},
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    )
+
+
 # 註冊路由
 app.include_router(health.router, tags=["Health"])
 
@@ -343,6 +406,7 @@ app.include_router(chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Proc
 app.include_router(file_metadata.router, prefix=API_PREFIX, tags=["File Metadata"])
 app.include_router(model_usage.router, prefix=API_PREFIX, tags=["Model Usage"])
 app.include_router(data_quality.router, prefix=API_PREFIX, tags=["Data Quality"])
+app.include_router(tools_registry.router, prefix=API_PREFIX, tags=["Tools Registry"])
 if governance:
     app.include_router(governance.router, prefix=API_PREFIX, tags=["AI Governance"])
 app.include_router(ner.router, prefix=API_PREFIX, tags=["NER"])
@@ -429,6 +493,15 @@ async def startup_event():
         logger.info("Agent health monitor started")
     except Exception as e:
         logger.warning(f"Failed to start agent health monitor: {e}")
+
+    # 初始化時間服務（單例模式，無需後台任務）
+    try:
+        from tools.time.smart_time_service import get_time_service
+
+        get_time_service()  # 初始化單例
+        logger.info("Time service initialized")
+    except Exception as e:
+        logger.warning(f"Failed to initialize time service: {e}")
 
 
 @app.on_event("shutdown")

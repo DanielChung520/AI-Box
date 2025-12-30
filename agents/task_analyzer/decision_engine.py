@@ -11,6 +11,9 @@ import logging
 from typing import Any, Dict, Literal, Optional
 
 from agents.task_analyzer.models import (
+    CapabilityMatch,
+    DecisionResult,
+    RouterDecision,
     TaskClassificationResult,
     TaskType,
     WorkflowStrategy,
@@ -194,3 +197,166 @@ class DecisionEngine:
         if last_switch_time is None:
             return False
         return (current_time - last_switch_time) < self.cooldown_seconds
+
+    def decide(
+        self,
+        router_decision: RouterDecision,
+        agent_candidates: list[CapabilityMatch],
+        tool_candidates: list[CapabilityMatch],
+        model_candidates: list[CapabilityMatch],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> DecisionResult:
+        """
+        綜合決策：選擇 Agent、Tool、Model
+
+        Args:
+            router_decision: Router 決策
+            agent_candidates: Agent 候選列表
+            tool_candidates: Tool 候選列表
+            model_candidates: Model 候選列表
+            context: 上下文信息
+
+        Returns:
+            決策結果
+        """
+        context = context or {}
+        reasoning_parts = []
+
+        # 1. Rule Filter（硬性規則過濾）
+        # 風險等級過濾
+        max_risk_level = router_decision.risk_level
+        agent_candidates = [
+            a for a in agent_candidates if self._check_risk_level(a, max_risk_level)
+        ]
+        tool_candidates = [t for t in tool_candidates if self._check_risk_level(t, max_risk_level)]
+        model_candidates = [
+            m for m in model_candidates if self._check_risk_level(m, max_risk_level)
+        ]
+
+        # 成本限制
+        max_cost = context.get("max_cost", "medium")
+        agent_candidates = [a for a in agent_candidates if self._check_cost_constraint(a, max_cost)]
+        tool_candidates = [t for t in tool_candidates if self._check_cost_constraint(t, max_cost)]
+        model_candidates = [m for m in model_candidates if self._check_cost_constraint(m, max_cost)]
+
+        # 2. 選擇 Agent
+        chosen_agent = None
+        if router_decision.needs_agent and agent_candidates:
+            # 選擇評分最高的 Agent
+            best_agent = max(agent_candidates, key=lambda x: x.total_score)
+            if best_agent.total_score >= 0.5:  # 最低可接受評分
+                chosen_agent = best_agent.candidate_id
+                reasoning_parts.append(
+                    f"選擇 Agent: {chosen_agent} (評分: {best_agent.total_score:.2f})"
+                )
+            else:
+                reasoning_parts.append(f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent")
+
+        # 3. 選擇 Tool
+        chosen_tools = []
+        if router_decision.needs_tools and tool_candidates:
+            # 選擇評分最高的工具（可以選擇多個）
+            sorted_tools = sorted(tool_candidates, key=lambda x: x.total_score, reverse=True)
+            for tool in sorted_tools[:3]:  # 最多選擇 3 個工具
+                if tool.total_score >= 0.5:  # 最低可接受評分
+                    chosen_tools.append(tool.candidate_id)
+                    reasoning_parts.append(
+                        f"選擇 Tool: {tool.candidate_id} (評分: {tool.total_score:.2f})"
+                    )
+
+        # 4. 選擇 Model
+        chosen_model = None
+        if model_candidates:
+            best_model = max(model_candidates, key=lambda x: x.total_score)
+            chosen_model = best_model.candidate_id
+            reasoning_parts.append(f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})")
+
+        # 5. 計算總評分
+        scores = []
+        if chosen_agent:
+            agent_match = next(
+                (a for a in agent_candidates if a.candidate_id == chosen_agent), None
+            )
+            if agent_match:
+                scores.append(agent_match.total_score)
+        if chosen_tools:
+            tool_scores = [
+                next((t for t in tool_candidates if t.candidate_id == tool_id), None).total_score
+                for tool_id in chosen_tools
+                if next((t for t in tool_candidates if t.candidate_id == tool_id), None)
+            ]
+            if tool_scores:
+                scores.append(sum(tool_scores) / len(tool_scores))
+        if chosen_model:
+            model_match = next(
+                (m for m in model_candidates if m.candidate_id == chosen_model), None
+            )
+            if model_match:
+                scores.append(model_match.total_score)
+
+        overall_score = sum(scores) / len(scores) if scores else 0.5
+
+        # 6. Fallback 檢查
+        fallback_used = False
+        if overall_score < 0.5:  # 最低可接受評分
+            fallback_used = True
+            reasoning_parts.append("評分過低，使用 Fallback 模式")
+            # Fallback: 不使用 Agent，只使用基礎模型
+            chosen_agent = None
+            chosen_tools = []
+
+        # 7. 構建決策結果
+        reasoning = "；".join(reasoning_parts) if reasoning_parts else "使用默認決策"
+
+        result = DecisionResult(
+            router_result=router_decision,
+            chosen_agent=chosen_agent,
+            chosen_tools=chosen_tools,
+            chosen_model=chosen_model,
+            score=overall_score,
+            fallback_used=fallback_used,
+            reasoning=reasoning,
+        )
+
+        logger.info(
+            f"Decision made: agent={chosen_agent}, tools={chosen_tools}, "
+            f"model={chosen_model}, score={overall_score:.2f}"
+        )
+
+        return result
+
+    def _check_risk_level(self, candidate: CapabilityMatch, max_risk_level: str) -> bool:
+        """
+        檢查候選的風險等級
+
+        Args:
+            candidate: 候選匹配結果
+            max_risk_level: 最大允許風險等級
+
+        Returns:
+            是否符合風險要求
+        """
+        # 簡化實現：從 metadata 中獲取風險等級（如果有的話）
+        candidate_risk = candidate.metadata.get("risk_level", "low")
+
+        risk_levels = {"low": 0, "mid": 1, "high": 2}
+        return risk_levels.get(candidate_risk, 0) <= risk_levels.get(max_risk_level, 2)
+
+    def _check_cost_constraint(self, candidate: CapabilityMatch, max_cost: str) -> bool:
+        """
+        檢查候選的成本約束
+
+        Args:
+            candidate: 候選匹配結果
+            max_cost: 最大允許成本（low/medium/high）
+
+        Returns:
+            是否符合成本要求
+        """
+        # 簡化實現：根據 cost_score 判斷
+        if max_cost == "low":
+            return candidate.cost_score >= 0.7
+        elif max_cost == "medium":
+            return candidate.cost_score >= 0.5
+        else:  # high
+            return True  # 不限制

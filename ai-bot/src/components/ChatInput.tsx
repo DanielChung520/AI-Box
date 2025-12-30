@@ -2,7 +2,7 @@
  * 代碼功能說明: AI 聊天輸入框組件, 包含代理, 助理, 模型選擇器
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-21 (UTC+8)
+ * 最後修改日期: 2025-12-30
  */
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
@@ -79,6 +79,7 @@ interface Assistant {
   icon: string;
   status: 'registering' | 'online' | 'maintenance' | 'deprecated';
   usageCount: number;
+  allowedTools?: string[]; // 可使用的工具列表
 }
 
 interface ChatInputProps {
@@ -128,6 +129,9 @@ export default function ChatInput({
   const [assistantPosition, setAssistantPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const [agentPosition, setAgentPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const [modelPosition, setModelPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  // 上网功能激活状态
+  const [isWebSearchActive, setIsWebSearchActive] = useState(false);
   const assistantSelectorRef = useRef<HTMLDivElement>(null);
   const agentSelectorRef = useRef<HTMLDivElement>(null);
   const modelSelectorRef = useRef<HTMLDivElement>(null);
@@ -218,6 +222,165 @@ export default function ChatInput({
       setSelectedAssistantId(selectedAssistantIdProp);
     }
   }, [selectedAssistantIdProp, selectedAssistantId]);
+
+  // 确保 assistants 始终是数组（使用 useMemo 避免每次渲染都重新创建）
+  // 同时尝试从 localStorage 获取助理的 allowedTools（如果 assistants 中没有）
+  const [assistantToolsCache, setAssistantToolsCache] = useState<Map<string, string[]>>(new Map());
+
+  // 首先创建基础的 safeAssistants（不包含缓存）
+  const baseSafeAssistants = useMemo(() => {
+    try {
+      if (!assistants) {
+        return [];
+      }
+      if (!Array.isArray(assistants)) {
+        console.warn('[ChatInput] assistants is not an array:', typeof assistants, assistants);
+        return [];
+      }
+      return assistants;
+    } catch (error) {
+      console.error('[ChatInput] Error creating baseSafeAssistants:', error);
+      return [];
+    }
+  }, [assistants]);
+
+  // 从 localStorage 加载助理的 allowedTools
+  useEffect(() => {
+    const loadAssistantTools = () => {
+      const cache = new Map<string, string[]>();
+      if (baseSafeAssistants && baseSafeAssistants.length > 0) {
+        baseSafeAssistants.forEach(assistant => {
+          try {
+            const storageKey = `assistant_${assistant.id}_allowedTools`;
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+              const allowedTools = JSON.parse(stored);
+              if (Array.isArray(allowedTools)) {
+                cache.set(assistant.id, allowedTools);
+              }
+            }
+          } catch (e) {
+            // 忽略 localStorage 错误
+          }
+        });
+      }
+      setAssistantToolsCache(cache);
+    };
+
+    loadAssistantTools();
+
+    // 监听助理工具更新事件
+    const handleToolsUpdate = (event: CustomEvent) => {
+      const { assistantId, allowedTools } = event.detail;
+      if (assistantId && allowedTools) {
+        setAssistantToolsCache(prev => {
+          const newCache = new Map(prev);
+          newCache.set(assistantId, allowedTools);
+          return newCache;
+        });
+      }
+    };
+
+    window.addEventListener('assistantToolsUpdated', handleToolsUpdate as EventListener);
+    return () => {
+      window.removeEventListener('assistantToolsUpdated', handleToolsUpdate as EventListener);
+    };
+  }, [baseSafeAssistants]);
+
+  // 合并基础数据和缓存中的 allowedTools
+  const safeAssistants = useMemo(() => {
+    return baseSafeAssistants.map(assistant => {
+      // 如果已经有 allowedTools，直接返回
+      if (assistant.allowedTools && Array.isArray(assistant.allowedTools) && assistant.allowedTools.length > 0) {
+        return assistant;
+      }
+
+      // 尝试从缓存中获取
+      const cachedTools = assistantToolsCache.get(assistant.id);
+      if (cachedTools && Array.isArray(cachedTools) && cachedTools.length > 0) {
+        return { ...assistant, allowedTools: cachedTools };
+      }
+
+      return assistant;
+    });
+  }, [baseSafeAssistants, assistantToolsCache]);
+
+  // 当助理切换时，检查是否支持 web_search，如果不支持则取消激活
+  useEffect(() => {
+    try {
+      // 使用函数式更新，避免依赖 isWebSearchActive
+      setIsWebSearchActive((prevActive) => {
+        try {
+          // 如果当前未激活，不需要检查
+          if (!prevActive) {
+            return prevActive;
+          }
+
+          // 如果没有选中助理，取消激活
+          if (!selectedAssistantId) {
+            return false;
+          }
+
+          // 检查 safeAssistants 是否有效
+          if (!safeAssistants || !Array.isArray(safeAssistants) || safeAssistants.length === 0) {
+            return false;
+          }
+
+          // 查找选中的助理
+          const selectedAssistant = safeAssistants.find(a => a && a.id === selectedAssistantId);
+          if (!selectedAssistant) {
+            return false;
+          }
+
+          // 检查是否支持 web_search
+          // 首先从助理数据中获取
+          const baseTools = selectedAssistant.allowedTools || [];
+
+          // 然后从 localStorage 获取
+          let localStorageTools: string[] = [];
+          try {
+            const storageKey = `assistant_${selectedAssistant.id}_allowedTools`;
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+              localStorageTools = JSON.parse(stored);
+            }
+          } catch (e) {
+            // 忽略错误
+          }
+
+          // 合并所有工具
+          const allAllowedTools = Array.from(new Set([
+            ...(Array.isArray(baseTools) ? baseTools : []),
+            ...(Array.isArray(localStorageTools) ? localStorageTools : []),
+          ]));
+
+          // 检查是否包含 web_search（支持多种格式）
+          const toolNamesToCheck = ['web_search', 'webSearch', 'web-search'];
+          const hasWebSearch = allAllowedTools.length > 0 &&
+            toolNamesToCheck.some(toolName => allAllowedTools.includes(toolName));
+
+          // 调试日志
+          if (!hasWebSearch) {
+            console.log('[ChatInput] Web search not available for assistant:', {
+              assistantId: selectedAssistant.id,
+              assistantName: selectedAssistant.name,
+              baseTools,
+              localStorageTools,
+              allAllowedTools,
+              searchFor: toolNamesToCheck,
+            });
+          }
+
+          return hasWebSearch;
+        } catch (error) {
+          console.error('[ChatInput] Error in setIsWebSearchActive callback:', error);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('[ChatInput] Error in useEffect for web search:', error);
+    }
+  }, [selectedAssistantId, safeAssistants]);
 
   // 修改時間：2025-12-13 17:28:02 (UTC+8) - modelId 直接跟隨 props（任務切換可正確恢復）
   useEffect(() => {
@@ -582,12 +745,12 @@ export default function ChatInput({
 
   // 從 localStorage 讀取的收藏助理列表
   const favoriteAssistantsList = useMemo(() => {
-    if (!assistants || assistants.length === 0 || favoriteAssistants.size === 0) {
+    if (!safeAssistants || safeAssistants.length === 0 || favoriteAssistants.size === 0) {
       return [];
     }
-    const filtered = assistants.filter(assistant => favoriteAssistants.has(assistant.id));
+    const filtered = safeAssistants.filter(assistant => assistant && favoriteAssistants.has(assistant.id));
     return filtered;
-  }, [assistants, favoriteAssistants]);
+  }, [safeAssistants, favoriteAssistants]);
 
   // 獲取選中的代理名稱
   const selectedAgentName = useMemo(() => {
@@ -623,19 +786,21 @@ export default function ChatInput({
     }
 
     // 先檢查收藏的助理列表
-    const favoriteAssistant = favoriteAssistantsList.find(a => a.id === selectedAssistantId);
+    const favoriteAssistant = favoriteAssistantsList.find(a => a && a.id === selectedAssistantId);
     if (favoriteAssistant) {
       return favoriteAssistant.name;
     }
 
     // 再檢查所有助理列表
-    const assistant = assistants.find(a => a.id === selectedAssistantId);
-    if (assistant) {
-      return assistant.name;
+    if (safeAssistants && safeAssistants.length > 0) {
+      const assistant = safeAssistants.find(a => a && a.id === selectedAssistantId);
+      if (assistant) {
+        return assistant.name;
+      }
     }
 
     return t('chatInput.selectAssistant', '選擇助理');
-  }, [selectedAssistantId, favoriteAssistantsList, assistants, t]);
+  }, [selectedAssistantId, favoriteAssistantsList, safeAssistants, t]);
 
   // 獲取選中的模型名稱
   const selectedModel = llmModels.find(m => m.id === selectedModelId);
@@ -758,9 +923,34 @@ export default function ChatInput({
           filePath: ref.filePath,
           taskId: ref.taskId,
         })),
+        // 添加工具使用信息
+        tools: {
+          web_search: isWebSearchActive, // 是否启用网络搜索
+        },
+        // 添加选中的助理信息（用于后端确定可用的工具）
+        assistantId: selectedAssistantId,
       };
 
-      // 发送消息（傳遞包含文件引用的對象）
+      console.log('[ChatInput] 📤 Sending message with tools:', {
+        text: messageText.substring(0, 100),
+        textLength: messageText.length,
+        isWebSearchActive,
+        webSearchInTools: messageWithFiles.tools?.web_search,
+        assistantId: selectedAssistantId,
+        tools: messageWithFiles.tools,
+        fullPayload: messageWithFiles,
+      });
+
+      // 如果消息包含"上網"但 web_search 未激活，发出警告
+      if (messageText.includes('上網') && !isWebSearchActive) {
+        console.warn('[ChatInput] ⚠️ Message contains "上網" but web_search is NOT active!', {
+          messageText: messageText.substring(0, 100),
+          isWebSearchActive,
+          tools: messageWithFiles.tools,
+        });
+      }
+
+      // 发送消息（傳遞包含文件引用和工具信息的對象）
       onMessageSend?.(JSON.stringify(messageWithFiles));
 
       setMessage('');
@@ -1120,9 +1310,147 @@ export default function ChatInput({
     <div className="bg-secondary rounded-xl overflow-hidden theme-transition">
       {/* 工具欄 */}
       <div className="flex items-center p-2 border-b border-primary">
+        {/* 上网功能按钮 */}
         <button
-          className="p-2 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
-          aria-label="使用互聯網"
+          onClick={(e) => {
+            e.stopPropagation();
+            try {
+              // 检查当前选中的助理是否可以使用 web_search 工具
+              if (!selectedAssistantId) {
+                // 使用 alert 显示警示（可以后续改为 toast）
+                alert(t('chatInput.webSearch.noAssistant', '請先選擇助理'));
+                return;
+              }
+
+              if (!safeAssistants || safeAssistants.length === 0) {
+                alert(t('chatInput.webSearch.assistantNotFound', '找不到選中的助理'));
+                return;
+              }
+
+              const selectedAssistant = safeAssistants.find(a => a && a.id === selectedAssistantId);
+              if (!selectedAssistant) {
+                alert(t('chatInput.webSearch.assistantNotFound', '找不到選中的助理'));
+                return;
+              }
+
+              // 调试：输出助理信息
+              console.log('[ChatInput] Selected Assistant:', {
+                id: selectedAssistant.id,
+                name: selectedAssistant.name,
+                allowedTools: selectedAssistant.allowedTools,
+                allowedToolsType: typeof selectedAssistant.allowedTools,
+                isArray: Array.isArray(selectedAssistant.allowedTools),
+                fullAssistant: selectedAssistant,
+              });
+
+              // 检查 localStorage 中是否有该助理的工具数据
+              let localStorageTools: string[] = [];
+              try {
+                const storageKey = `assistant_${selectedAssistant.id}_allowedTools`;
+                const stored = localStorage.getItem(storageKey);
+                if (stored) {
+                  localStorageTools = JSON.parse(stored);
+                  console.log('[ChatInput] ✅ Found tools in localStorage:', {
+                    storageKey,
+                    storedTools: localStorageTools,
+                    isArray: Array.isArray(localStorageTools),
+                    hasWebSearch: localStorageTools.includes('web_search'),
+                  });
+                } else {
+                  console.log('[ChatInput] ❌ No tools found in localStorage for:', storageKey);
+
+                  // 尝试查找所有相关的 localStorage 键
+                  const allKeys: string[] = [];
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.includes('assistant') && key.includes('allowedTools')) {
+                      allKeys.push(key);
+                    }
+                  }
+                  console.log('[ChatInput] All assistant tool keys in localStorage:', allKeys);
+
+                  // 尝试读取所有相关的键
+                  allKeys.forEach(key => {
+                    try {
+                      const value = localStorage.getItem(key);
+                      if (value) {
+                        const parsed = JSON.parse(value);
+                        console.log(`[ChatInput] Key "${key}":`, parsed);
+                      }
+                    } catch (e) {
+                      console.error(`[ChatInput] Error parsing key "${key}":`, e);
+                    }
+                  });
+
+                  // 临时调试：尝试手动设置 web_search 工具
+                  console.warn('[ChatInput] ⚠️ 临时调试：尝试手动设置 web_search 工具到 localStorage');
+                  try {
+                    const testTools = ['web_search'];
+                    localStorage.setItem(storageKey, JSON.stringify(testTools));
+                    console.log('[ChatInput] ✅ 临时设置成功，请重新点击地球图标测试');
+                    localStorageTools = testTools;
+                  } catch (e) {
+                    console.error('[ChatInput] ❌ 临时设置失败:', e);
+                  }
+                }
+              } catch (e) {
+                console.error('[ChatInput] Error reading localStorage:', e);
+              }
+
+              // 合并 allowedTools 和 localStorage 中的工具
+              const baseTools = selectedAssistant.allowedTools || [];
+              const allAllowedTools = Array.from(new Set([
+                ...(Array.isArray(baseTools) ? baseTools : []),
+                ...(Array.isArray(localStorageTools) ? localStorageTools : []),
+              ]));
+
+              // 检查助理是否可以使用 web_search 工具
+              // 支持多种可能的工具名称格式
+              const toolNamesToCheck = ['web_search', 'webSearch', 'web-search'];
+              const hasWebSearch = allAllowedTools.length > 0 &&
+                toolNamesToCheck.some(toolName => allAllowedTools.includes(toolName));
+
+              console.log('[ChatInput] Web Search Check:', {
+                assistantId: selectedAssistant.id,
+                assistantName: selectedAssistant.name,
+                baseTools,
+                localStorageTools,
+                allAllowedTools,
+                hasWebSearch,
+                isWebSearchActive,
+                searchFor: toolNamesToCheck,
+                foundTools: allAllowedTools.filter(t => toolNamesToCheck.includes(t)),
+                cacheTools: assistantToolsCache.get(selectedAssistant.id),
+              });
+
+              if (!hasWebSearch && !isWebSearchActive) {
+                // 显示无法上网的警示，包含调试信息
+                console.warn('[ChatInput] Web search not available:', {
+                  assistantId: selectedAssistant.id,
+                  assistantName: selectedAssistant.name,
+                  baseTools,
+                  localStorageTools,
+                  allAllowedTools,
+                  hasWebSearch,
+                });
+                alert(t('chatInput.webSearch.notAvailable', '當前助理無法使用上網功能，請在助理維護中啟用 web_search 工具'));
+                return;
+              }
+
+              // 切换激活状态
+              setIsWebSearchActive((prev) => !prev);
+            } catch (error) {
+              console.error('[ChatInput] Error in web search toggle:', error);
+              alert(t('chatInput.webSearch.error', '發生錯誤，請稍後再試'));
+            }
+          }}
+          className={`p-2 rounded transition-colors ${
+            isWebSearchActive
+              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+              : 'hover:bg-tertiary text-tertiary hover:text-primary'
+          }`}
+          aria-label={t('chatInput.webSearch.toggle', '切換上網功能')}
+          title={isWebSearchActive ? t('chatInput.webSearch.active', '上網功能已啟用') : t('chatInput.webSearch.inactive', '點擊啟用上網功能')}
         >
           <i className="fa-solid fa-globe"></i>
         </button>

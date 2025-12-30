@@ -104,7 +104,7 @@ def create_modular_document(
             "Modular document created",
             doc_id=modular_doc.doc_id,
             master_file_id=modular_doc.master_file_id,
-            user_id=user.id,
+            user_id=user.user_id,
             tenant_id=tenant_id,
         )
 
@@ -212,7 +212,7 @@ def update_modular_document(
     logger.info(
         "Modular document updated",
         doc_id=doc_id,
-        user_id=user.id,
+        user_id=user.user_id,
         tenant_id=tenant_id,
     )
 
@@ -267,7 +267,7 @@ def add_sub_document(
         "Sub-document added to modular document",
         doc_id=doc_id,
         sub_file_id=add_request.sub_file_id,
-        user_id=user.id,
+        user_id=user.user_id,
         tenant_id=tenant_id,
     )
 
@@ -311,7 +311,7 @@ def remove_sub_document(
         "Sub-document removed from modular document",
         doc_id=doc_id,
         sub_file_id=remove_request.sub_file_id,
-        user_id=user.id,
+        user_id=user.user_id,
         tenant_id=tenant_id,
     )
 
@@ -375,7 +375,7 @@ def delete_modular_document(
     logger.info(
         "Modular document deleted",
         doc_id=doc_id,
-        user_id=user.id,
+        user_id=user.user_id,
         tenant_id=tenant_id,
     )
 

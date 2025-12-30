@@ -1,7 +1,7 @@
 # 代碼功能說明: LLM 客戶端工廠實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-13 23:34:17 (UTC+8)
+# 最後修改日期: 2025-12-30
 
 """LLM 客戶端工廠，根據 LLMProvider 創建對應客戶端，支持單例模式和資源訪問控制。"""
 
@@ -15,11 +15,13 @@ from agents.services.resource_controller import get_resource_controller
 from agents.task_analyzer.models import LLMProvider
 
 from .base import BaseLLMClient
+from .chatglm import ChatGLMClient
 from .chatgpt import ChatGPTClient
 from .gemini import GeminiClient
 from .grok import GrokClient
 from .ollama import OllamaClient
 from .qwen import QwenClient
+from .volcano import VolcanoClient
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +180,10 @@ class LLMClientFactory:
             client = QwenClient(**kwargs)
         elif provider == LLMProvider.OLLAMA:
             client = OllamaClient(**kwargs)
+        elif provider == LLMProvider.VOLCANO:
+            client = VolcanoClient(**kwargs)
+        elif provider == LLMProvider.CHATGLM:
+            client = ChatGLMClient(**kwargs)
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
 

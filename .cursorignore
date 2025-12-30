@@ -28,7 +28,7 @@ datasets/
 agent_templates.yaml
 
 # Cursor 內部文件
-.cursor/
+#.cursor/
 
 # Docker 和部署
 Dockerfile

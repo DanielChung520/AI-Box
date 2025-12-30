@@ -33,6 +33,7 @@ from . import (
     review,
     rt,
     task_analyzer,
+    tools_registry,
     triple_extraction,
     user_tasks,
     workflows,
@@ -69,4 +70,5 @@ __all__ = [
     "agent_catalog",
     "agent_files",
     "reports",
+    "tools_registry",
 ]

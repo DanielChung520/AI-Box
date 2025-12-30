@@ -333,13 +333,36 @@ export default function Home() {
 
     let text = '';
     let fileReferences: Array<any> = [];
+    let tools: { web_search?: boolean } = {};
+    let assistantId: string | undefined;
 
     try {
       const parsed = JSON.parse(raw);
       text = String(parsed?.text ?? '').trim();
       fileReferences = Array.isArray(parsed?.fileReferences) ? parsed.fileReferences : [];
+      tools = parsed?.tools || {};
+      assistantId = parsed?.assistantId;
     } catch {
       text = String(raw ?? '').trim();
+    }
+
+    console.log('[Home] 📥 Parsed message:', {
+      text: text.substring(0, 100),
+      textLength: text.length,
+      fileReferencesCount: fileReferences.length,
+      tools,
+      hasTools: !!tools,
+      webSearchEnabled: tools?.web_search,
+      assistantId,
+      isWebSearchActive: tools?.web_search,
+    });
+
+    // 如果 tools 为空但应该启用 web_search，发出警告
+    if (!tools?.web_search && text.includes('上網')) {
+      console.warn('[Home] ⚠️ User message contains "上網" but web_search tool is not enabled!', {
+        tools,
+        text: text.substring(0, 100),
+      });
     }
 
     const now = new Date();
@@ -406,6 +429,12 @@ export default function Home() {
           ? { mode: 'auto' }
           : { mode, model_id: modelId };
 
+      // 构建允许的工具列表
+      const allowedTools: string[] = [];
+      if (tools?.web_search) {
+        allowedTools.push('web_search');
+      }
+
       try {
         const resp = await chatProduct({
           messages: chatMessages,
@@ -413,7 +442,8 @@ export default function Home() {
           task_id: String(taskWithUserMessage.id),
           model_selector,
           attachments: attachments.length ? attachments : undefined,
-        });
+          allowed_tools: allowedTools.length > 0 ? allowedTools : undefined,
+        } as any); // 临时使用 any，因为接口定义可能还没有更新
 
         if (resp?.success && resp.data?.content !== undefined) {
           const aiMessage = {
@@ -476,10 +506,13 @@ export default function Home() {
     }
 
     const history = (taskWithUserMessage.messages || []).slice(-20);
-    const chatMessages: ChatProductMessage[] = history.map((m) => ({
-      role: (m.sender === 'ai' ? 'assistant' : 'user'),
-      content: m.content,
-    }));
+    // 过滤掉 content 为空的消息（避免验证错误）
+    const chatMessages: ChatProductMessage[] = history
+      .filter((m) => m.content && m.content.trim().length > 0) // 过滤空内容
+      .map((m) => ({
+        role: (m.sender === 'ai' ? 'assistant' : 'user'),
+        content: m.content.trim(), // 确保 content 不为空
+      }));
 
     const attachments = fileReferences.map((ref) => ({
       file_id: String(ref.fileId ?? ''),
@@ -519,16 +552,60 @@ export default function Home() {
       };
       setSelectedTask(taskWithInitialAiMessage);
 
+      // 构建允许的工具列表
+      const allowedTools: string[] = [];
+      if (tools?.web_search) {
+        allowedTools.push('web_search');
+      }
+
+      console.log('[Home] Calling chatProductStream with tools:', {
+        allowedTools,
+        isWebSearchActive: tools?.web_search,
+        assistantId,
+      });
+
+      // 添加详细的请求数据日志
+      const requestData = {
+        messages: chatMessages,
+        session_id: sessionId,
+        task_id: String(taskWithUserMessage.id),
+        model_selector,
+        attachments: attachments.length ? attachments : undefined,
+        allowed_tools: allowedTools.length > 0 ? allowedTools : undefined,
+        assistant_id: assistantId,
+      };
+
+      console.log('[Home] Request data:', {
+        messagesCount: chatMessages.length,
+        messages: chatMessages,
+        model_selector,
+        allowed_tools: requestData.allowed_tools,
+        assistant_id: requestData.assistant_id,
+        hasAttachments: !!requestData.attachments,
+      });
+
+      // 验证 messages 不为空
+      if (chatMessages.length === 0) {
+        console.error('[Home] ❌ Error: messages array is empty!');
+        const errorMessage = {
+          id: `msg-${Date.now()}-error`,
+          sender: 'ai' as const,
+          content: '错误：消息列表为空，无法发送请求',
+          timestamp: new Date().toLocaleString(),
+        };
+        const errorTask: Task = {
+          ...taskWithUserMessage,
+          messages: [...(taskWithUserMessage.messages || []), errorMessage],
+        };
+        setSelectedTask(errorTask);
+        setIsLoadingAI(false);
+        return;
+      }
+
       // 使用流式 API 接收內容
       let fullContent = '';
       try {
-        for await (const event of chatProductStream({
-          messages: chatMessages,
-          session_id: sessionId,
-          task_id: String(taskWithUserMessage.id),
-          model_selector,
-          attachments: attachments.length ? attachments : undefined,
-        })) {
+        for await (const event of chatProductStream(requestData as any)) { // 临时使用 any，因为接口定义可能还没有更新
           if (event.type === 'content' && event.data?.chunk) {
             // 累積內容並更新消息
             fullContent += event.data.chunk;

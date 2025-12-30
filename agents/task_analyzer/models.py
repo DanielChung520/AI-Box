@@ -1,7 +1,7 @@
 # 代碼功能說明: Task Analyzer 數據模型
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-21
+# 最後修改日期: 2025-12-30
 
 """Task Analyzer 數據模型定義"""
 
@@ -40,6 +40,8 @@ class LLMProvider(str, Enum):
     GROK = "grok"
     QWEN = "qwen"
     OLLAMA = "ollama"
+    VOLCANO = "volcano"  # 字節跳動火山引擎 (Volcano Engine / Doubao)
+    CHATGLM = "chatglm"  # 智譜 AI (ChatGLM)
 
 
 class TaskAnalysisRequest(BaseModel):
@@ -62,6 +64,9 @@ class TaskAnalysisResult(BaseModel):
     requires_agent: bool = Field(..., description="是否需要啟動Agent")
     analysis_details: Dict[str, Any] = Field(default_factory=dict, description="分析詳情")
     suggested_agents: List[str] = Field(default_factory=list, description="建議使用的Agent列表")
+    router_decision: Optional["RouterDecision"] = Field(None, description="Router 決策")
+    decision_result: Optional["DecisionResult"] = Field(None, description="決策引擎結果")
+    suggested_tools: List[str] = Field(default_factory=list, description="建議使用的工具列表")
 
     def get_intent(self) -> Optional[Any]:
         """
@@ -180,3 +185,64 @@ class ConfigIntent(BaseModel):
         default_factory=list, description="缺失的槽位列表（如 ['level', 'config_data']）"
     )
     original_instruction: str = Field(..., description="保留原始指令")
+
+
+class RouterInput(BaseModel):
+    """Router LLM 輸入模型"""
+
+    user_query: str = Field(..., description="用戶查詢")
+    session_context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="會話上下文")
+    system_constraints: Optional[Dict[str, Any]] = Field(default_factory=dict, description="系統約束")
+
+
+class RouterDecision(BaseModel):
+    """Router 決策輸出模型"""
+
+    intent_type: Literal["conversation", "retrieval", "analysis", "execution"] = Field(
+        ..., description="意圖類型"
+    )
+    complexity: Literal["low", "mid", "high"] = Field(..., description="複雜度")
+    needs_agent: bool = Field(..., description="是否需要 Agent")
+    needs_tools: bool = Field(..., description="是否需要工具")
+    determinism_required: bool = Field(..., description="是否需要確定性執行")
+    risk_level: Literal["low", "mid", "high"] = Field(..., description="風險等級")
+    confidence: float = Field(ge=0.0, le=1.0, description="置信度")
+
+
+class DecisionResult(BaseModel):
+    """決策結果模型"""
+
+    router_result: RouterDecision = Field(..., description="Router 決策結果")
+    chosen_agent: Optional[str] = Field(None, description="選擇的 Agent")
+    chosen_tools: List[str] = Field(default_factory=list, description="選擇的工具列表")
+    chosen_model: Optional[str] = Field(None, description="選擇的模型")
+    score: float = Field(..., description="評分", ge=0.0, le=1.0)
+    fallback_used: bool = Field(default=False, description="是否使用了 Fallback")
+    reasoning: str = Field(..., description="決策理由")
+
+
+class DecisionLog(BaseModel):
+    """決策日誌模型"""
+
+    decision_id: str = Field(..., description="決策 ID")
+    timestamp: datetime = Field(..., description="時間戳")
+    query: Dict[str, Any] = Field(..., description="查詢信息（text, embedding optional）")
+    router_output: RouterDecision = Field(..., description="Router 輸出")
+    decision_engine: DecisionResult = Field(..., description="決策引擎結果")
+    execution_result: Optional[Dict[str, Any]] = Field(
+        None, description="執行結果（success, latency_ms, cost）"
+    )
+
+
+class CapabilityMatch(BaseModel):
+    """能力匹配結果模型"""
+
+    candidate_id: str = Field(..., description="候選 ID（Agent/Tool/Model）")
+    candidate_type: Literal["agent", "tool", "model"] = Field(..., description="候選類型")
+    capability_match: float = Field(..., description="能力匹配度", ge=0.0, le=1.0)
+    cost_score: float = Field(..., description="成本評分", ge=0.0, le=1.0)
+    latency_score: float = Field(..., description="延遲評分", ge=0.0, le=1.0)
+    success_history: float = Field(..., description="歷史成功率", ge=0.0, le=1.0)
+    stability: float = Field(..., description="穩定度", ge=0.0, le=1.0)
+    total_score: float = Field(..., description="總評分", ge=0.0, le=1.0)
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")

@@ -107,6 +107,8 @@ class ChatRequest(BaseModel):
     task_id: Optional[str] = Field(None, description="Task ID（用於任務維度追蹤）")
     model_selector: ModelSelector = Field(..., description="模型選擇器")
     attachments: Optional[List[ChatAttachment]] = Field(None, description="附件（MVP）")
+    allowed_tools: Optional[List[str]] = Field(None, description="允許使用的工具列表，例如 ['web_search']")
+    assistant_id: Optional[str] = Field(None, description="當前選中的助理 ID")
 
 
 class ChatResponse(BaseModel):
