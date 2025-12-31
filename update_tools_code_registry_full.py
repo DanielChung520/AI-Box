@@ -801,7 +801,9 @@ def update_excel() -> None:
             if updated_col:
                 worksheet.cell(new_row, updated_col).value = UPDATED_DATE
             if related_col:
-                worksheet.cell(new_row, related_col).value = "docs/系统设计文档/tools/工具開發計劃管控表.md"
+                worksheet.cell(new_row, related_col).value = (
+                    "docs/系统设计文档/tools/工具開發計劃管控表.md"
+                )
             if difficulty_col:
                 worksheet.cell(new_row, difficulty_col).value = format_difficulty_hours(
                     difficulty, hours

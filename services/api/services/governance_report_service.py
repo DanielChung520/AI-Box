@@ -233,12 +233,16 @@ class GovernanceReportService:
         # 檢查成功率
         low_success_models = [stat for stat in model_stats if stat.success_rate < 0.8]
         if low_success_models:
-            recommendations.append(f"發現 {len(low_success_models)} 個模型的成功率低於80%，建議檢查模型配置和數據質量")
+            recommendations.append(
+                f"發現 {len(low_success_models)} 個模型的成功率低於80%，建議檢查模型配置和數據質量"
+            )
 
         # 檢查延遲
         high_latency_models = [stat for stat in model_stats if stat.avg_latency_ms > 5000]
         if high_latency_models:
-            recommendations.append(f"發現 {len(high_latency_models)} 個模型的平均延遲超過5秒，建議優化模型或使用更快的模型")
+            recommendations.append(
+                f"發現 {len(high_latency_models)} 個模型的平均延遲超過5秒，建議優化模型或使用更快的模型"
+            )
 
         return recommendations
 

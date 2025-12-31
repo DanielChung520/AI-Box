@@ -37,7 +37,9 @@ router = APIRouter(prefix="/rbac", tags=["RBAC"])
 )
 async def create_role(
     role_data: RoleCreate,
-    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),  # 只有管理員可以創建角色
+    current_user: User = Depends(
+        partial(require_permission, Permission.ALL.value)
+    ),  # 只有管理員可以創建角色
 ) -> JSONResponse:
     """
     創建角色

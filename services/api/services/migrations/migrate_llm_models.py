@@ -2,7 +2,7 @@
 # 代碼功能說明: LLM 模型遷移到 ArangoDB 遷移腳本
 # 創建日期: 2025-12-20
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-20
+# 最後修改日期: 2025-12-30
 
 """
 將前端硬編碼的 LLM 模型列表遷移到 ArangoDB
@@ -500,6 +500,114 @@ LLM_MODELS_DATA = [
         "order": 300,
         "icon": "fa-database",
         "color": "text-blue-500",
+    },
+    # 智譜 AI (ChatGLM) 模型
+    {
+        "model_id": "glm-4",
+        "name": "GLM-4",
+        "provider": LLMProvider.CHATGLM,
+        "description": "GLM-4 - 智譜 AI 最新對話模型",
+        "capabilities": [
+            ModelCapability.CHAT,
+            ModelCapability.COMPLETION,
+            ModelCapability.CODE,
+            ModelCapability.FUNCTION_CALLING,
+            ModelCapability.STREAMING,
+        ],
+        "status": ModelStatus.ACTIVE,
+        "context_window": 128000,
+        "order": 310,
+        "icon": "fa-brain",
+        "color": "text-blue-600",
+        "is_default": True,
+    },
+    {
+        "model_id": "glm-4v",
+        "name": "GLM-4V",
+        "provider": LLMProvider.CHATGLM,
+        "description": "GLM-4V - 智譜 AI 多模態視覺模型",
+        "capabilities": [
+            ModelCapability.CHAT,
+            ModelCapability.COMPLETION,
+            ModelCapability.MULTIMODAL,
+            ModelCapability.VISION,
+            ModelCapability.STREAMING,
+        ],
+        "status": ModelStatus.ACTIVE,
+        "context_window": 128000,
+        "order": 320,
+        "icon": "fa-eye",
+        "color": "text-blue-600",
+    },
+    {
+        "model_id": "glm-3-turbo",
+        "name": "GLM-3 Turbo",
+        "provider": LLMProvider.CHATGLM,
+        "description": "GLM-3 Turbo - 快速版本",
+        "capabilities": [
+            ModelCapability.CHAT,
+            ModelCapability.COMPLETION,
+            ModelCapability.STREAMING,
+        ],
+        "status": ModelStatus.ACTIVE,
+        "context_window": 32000,
+        "order": 330,
+        "icon": "fa-bolt",
+        "color": "text-blue-600",
+    },
+    # 字節跳動火山引擎 (Volcano Engine / Doubao) 模型
+    {
+        "model_id": "doubao-pro-4k",
+        "name": "豆包 Pro 4K",
+        "provider": LLMProvider.VOLCANO,
+        "description": "豆包 Pro 4K - 火山引擎專業版模型（4K 上下文）",
+        "capabilities": [
+            ModelCapability.CHAT,
+            ModelCapability.COMPLETION,
+            ModelCapability.CODE,
+            ModelCapability.FUNCTION_CALLING,
+            ModelCapability.STREAMING,
+        ],
+        "status": ModelStatus.ACTIVE,
+        "context_window": 4096,
+        "order": 340,
+        "icon": "fa-fire",
+        "color": "text-orange-500",
+        "is_default": True,
+    },
+    {
+        "model_id": "doubao-pro-32k",
+        "name": "豆包 Pro 32K",
+        "provider": LLMProvider.VOLCANO,
+        "description": "豆包 Pro 32K - 火山引擎專業版模型（32K 上下文）",
+        "capabilities": [
+            ModelCapability.CHAT,
+            ModelCapability.COMPLETION,
+            ModelCapability.CODE,
+            ModelCapability.FUNCTION_CALLING,
+            ModelCapability.STREAMING,
+        ],
+        "status": ModelStatus.ACTIVE,
+        "context_window": 32768,
+        "order": 350,
+        "icon": "fa-fire",
+        "color": "text-orange-500",
+    },
+    {
+        "model_id": "doubao-lite-4k",
+        "name": "豆包 Lite 4K",
+        "provider": LLMProvider.VOLCANO,
+        "description": "豆包 Lite 4K - 火山引擎輕量版模型（4K 上下文）",
+        "capabilities": [
+            ModelCapability.CHAT,
+            ModelCapability.COMPLETION,
+            ModelCapability.STREAMING,
+        ],
+        "status": ModelStatus.ACTIVE,
+        "context_window": 4096,
+        "order": 360,
+        "icon": "fa-fire",
+        "color": "text-orange-400",
     },
     # 註：Ollama 模型會通過動態發現功能自動添加，不需要在此處手動添加
 ]

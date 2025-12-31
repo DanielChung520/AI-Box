@@ -94,9 +94,7 @@ def update_phase5_stats(content: str, results: Dict[str, Any]) -> str:
     content = re.sub(phase5_status_pattern, replacement, content, flags=re.MULTILINE)
 
     total_stats_pattern = r"(\| \*\*階段五\*\* \| 4 \| )⏸️( \| ✅ \| - \| - \| - \| - \|)"
-    total_stats_replacement = (
-        f"\\1✅\\2 {phase5_passed}/{phase5_total} | 0 | {phase5_skipped} | {phase5_pass_rate:.1f}% |"
-    )
+    total_stats_replacement = f"\\1✅\\2 {phase5_passed}/{phase5_total} | 0 | {phase5_skipped} | {phase5_pass_rate:.1f}% |"
     content = re.sub(total_stats_pattern, total_stats_replacement, content, flags=re.MULTILINE)
 
     return content
@@ -156,9 +154,7 @@ def update_phase5_in_progress_table(content: str, results: Dict[str, Any]) -> st
         )
 
         if status == "已實現" or passed_count == total_count:
-            replacement = (
-                f"\\1✅ 通過\\2 {total_duration:.2f}s | {test_date} | {passed_count}個測試用例全部通過 |"
-            )
+            replacement = f"\\1✅ 通過\\2 {total_duration:.2f}s | {test_date} | {passed_count}個測試用例全部通過 |"
         elif status == "部分實現" or passed_count > 0:
             replacement = f"\\1⏸️ 部分實現\\2 {total_duration:.2f}s | {test_date} | {passed_count}/{total_count} 個測試通過，{skipped_count} 個跳過 |"
         else:

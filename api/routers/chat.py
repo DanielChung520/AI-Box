@@ -22,8 +22,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from agents.task_analyzer.analyzer import TaskAnalyzer
 from agents.task_analyzer.classifier import TaskClassifier
-from agents.task_analyzer.models import LLMProvider
+from agents.task_analyzer.models import LLMProvider, TaskAnalysisRequest
 from api.core.response import APIResponse
 from database.arangodb import ArangoDBClient
 from genai.workflows.context.manager import ContextManager
@@ -65,6 +66,7 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 
 _moe_manager: Optional[LLMMoEManager] = None
 _task_classifier: Optional[TaskClassifier] = None
+_task_analyzer: Optional[TaskAnalyzer] = None
 _context_manager: Optional[ContextManager] = None
 _file_permission_service: Optional[FilePermissionService] = None
 _storage: Optional[FileStorage] = None
@@ -89,6 +91,14 @@ def get_task_classifier() -> TaskClassifier:
     if _task_classifier is None:
         _task_classifier = TaskClassifier()
     return _task_classifier
+
+
+def get_task_analyzer() -> TaskAnalyzer:
+    """获取 Task Analyzer 单例"""
+    global _task_analyzer
+    if _task_analyzer is None:
+        _task_analyzer = TaskAnalyzer()
+    return _task_analyzer
 
 
 def get_context_manager() -> ContextManager:
@@ -746,6 +756,67 @@ async def _process_chat_request(
         },
     )
 
+    # ============================================
+    # 集成 Task Analyzer（4 层渐进式路由架构）
+    # ============================================
+    try:
+        task_analyzer = get_task_analyzer()
+        analysis_result = await task_analyzer.analyze(
+            TaskAnalysisRequest(
+                task=last_user_text,
+                context={
+                    "user_id": current_user.user_id,
+                    "session_id": session_id,
+                    "task_id": task_id,
+                    "request_id": request_id,
+                },
+                user_id=current_user.user_id,
+                session_id=session_id,
+            )
+        )
+
+        # 检查是否是 Layer 1 直接答案
+        if analysis_result.analysis_details.get("direct_answer"):
+            logger.info(
+                "task_analyzer_layer1_direct_answer",
+                request_id=request_id,
+                user_text=last_user_text[:200],
+                layer=analysis_result.analysis_details.get("layer"),
+                model=analysis_result.analysis_details.get("model"),
+            )
+
+            # 获取直接答案内容
+            response_content = analysis_result.analysis_details.get("response", "")
+            if response_content:
+                # 构建响应
+                from services.api.models.chat import ChatResponse
+
+                response = ChatResponse(
+                    content=response_content,
+                    request_id=request_id,
+                    session_id=session_id,
+                    task_id=task_id,
+                    routing=RoutingInfo(
+                        provider=(
+                            analysis_result.llm_provider.value
+                            if hasattr(analysis_result.llm_provider, "value")
+                            else str(analysis_result.llm_provider)
+                        ),
+                        model=analysis_result.analysis_details.get("model", "unknown"),
+                        task_classification="direct_answer",
+                    ),
+                    observability=observability,
+                )
+                return response
+    except Exception as analyzer_error:
+        # Task Analyzer 失败不影响主流程，记录日志后继续
+        logger.warning(
+            "task_analyzer_failed",
+            request_id=request_id,
+            error=str(analyzer_error),
+            exc_info=True,
+        )
+
     # G3：用 windowed history 作為 MoE 的 messages（並保留前端提供的 system message）
     system_messages = [m for m in messages if m.get("role") == "system"]
     windowed_history = context_manager.get_context_with_window(session_id=session_id)
@@ -1108,35 +1179,307 @@ async def chat_product_stream(
                 },
             )
 
+            # ============================================
+            # 快速路径：直接检测时间查询并执行 DateTimeTool（绕过 Task Analyzer）
+            # ============================================
+            time_keywords = ["時間", "時刻", "現在幾點", "現在時間", "current time", "what time"]
+            last_user_text_lower = last_user_text.lower().strip()
+            is_time_query = any(keyword in last_user_text_lower for keyword in time_keywords)
+
+            if is_time_query:
+                logger.info(
+                    "quick_path_datetime_query",
+                    request_id=request_id,
+                    user_text=last_user_text[:200],
+                )
+                try:
+                    from tools.time import DateTimeInput, DateTimeTool
+
+                    datetime_tool = DateTimeTool()
+                    datetime_input = DateTimeInput(
+                        tenant_id=(
+                            current_user.tenant_id if hasattr(current_user, "tenant_id") else None
+                        ),
+                        user_id=current_user.user_id,
+                    )
+                    tool_result = await datetime_tool.execute(datetime_input)
+
+                    # 格式化时间结果
+                    time_response = f"現在的時間是：{tool_result.datetime}"
+                    if hasattr(tool_result, "timezone"):
+                        time_response += f"（時區：{tool_result.timezone}）"
+
+                    logger.info(
+                        "quick_path_datetime_success",
+                        request_id=request_id,
+                        datetime=tool_result.datetime,
+                    )
+
+                    # 返回 SSE 格式的流式响应
+                    yield f"data: {json.dumps({'type': 'start', 'data': {'request_id': request_id, 'session_id': session_id}})}\n\n"
+                    yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': time_response}})}\n\n"
+                    yield f"data: {json.dumps({'type': 'done', 'data': {}})}\n\n"
+                    return
+                except Exception as e:
+                    logger.error(
+                        "quick_path_datetime_failed",
+                        request_id=request_id,
+                        error=str(e),
+                        exc_info=True,
+                    )
+                    # 如果快速路径失败，继续执行 Task Analyzer 流程
+
+            # ============================================
+            # 集成 Task Analyzer（4 层渐进式路由架构）
+            # ============================================
+            task_analyzer_result = None
+            try:
+                task_analyzer = get_task_analyzer()
+                analysis_result = await task_analyzer.analyze(
+                    TaskAnalysisRequest(
+                        task=last_user_text,
+                        context={
+                            "user_id": current_user.user_id,
+                            "session_id": session_id,
+                            "task_id": task_id,
+                            "request_id": request_id,
+                        },
+                        user_id=current_user.user_id,
+                        session_id=session_id,
+                    )
+                )
+                task_analyzer_result = analysis_result
+
+                logger.info(
+                    "task_analyzer_result_assigned",
+                    request_id=request_id,
+                    has_task_analyzer_result=task_analyzer_result is not None,
+                    has_decision_result=(
+                        task_analyzer_result.decision_result is not None
+                        if task_analyzer_result
+                        else False
+                    ),
+                    chosen_tools=(
+                        task_analyzer_result.decision_result.chosen_tools
+                        if task_analyzer_result and task_analyzer_result.decision_result
+                        else None
+                    ),
+                )
+
+                # 检查是否是 Layer 1 直接答案
+                if analysis_result.analysis_details.get("direct_answer"):
+                    logger.info(
+                        "task_analyzer_layer1_direct_answer",
+                        request_id=request_id,
+                        user_text=last_user_text[:200],
+                        layer=analysis_result.analysis_details.get("layer"),
+                        model=analysis_result.analysis_details.get("model"),
+                    )
+
+                    # 获取直接答案内容
+                    response_content = analysis_result.analysis_details.get("response", "")
+                    if response_content:
+                        # 返回 SSE 格式的流式响应
+                        yield f"data: {json.dumps({'type': 'start', 'data': {'request_id': request_id, 'session_id': session_id}})}\n\n"
+
+                        # 模拟流式输出（将内容分成多个块）
+                        chunk_size = 50
+                        for i in range(0, len(response_content), chunk_size):
+                            chunk = response_content[i : i + chunk_size]
+                            yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': chunk}})}\n\n"
+                            # 添加小延迟以模拟流式输出
+                            await asyncio.sleep(0.01)
+
+                        # 发送完成标记
+                        yield f"data: {json.dumps({'type': 'done', 'data': {}})}\n\n"
+                        return
+            except Exception as analyzer_error:
+                # Task Analyzer 失败不影响主流程，记录日志后继续
+                logger.warning(
+                    "task_analyzer_failed",
+                    request_id=request_id,
+                    error=str(analyzer_error),
+                    exc_info=True,
+                )
+
             # G3：用 windowed history 作為 MoE 的 messages（並保留前端提供的 system message）
             system_messages = [m for m in messages if m.get("role") == "system"]
             windowed_history = context_manager.get_context_with_window(session_id=session_id)
 
-            # 工具调用：如果启用了 web_search 且消息中包含搜索意图，直接调用工具
+            # ============================================
+            # WebSearch Fallback 逻辑：如果 Task Analyzer 需要工具但没有匹配的工具，fallback 到 WebSearch
+            # ============================================
+            should_trigger_web_search = False
+            task_analyzer_has_chosen_tools = False
+
+            if task_analyzer_result:
+                # 检查 Task Analyzer 是否已经选择了工具
+                decision_result = task_analyzer_result.decision_result
+                router_decision = task_analyzer_result.router_decision
+
+                logger.info(
+                    "task_analyzer_result_check",
+                    request_id=request_id,
+                    has_decision_result=decision_result is not None,
+                    has_router_decision=router_decision is not None,
+                    chosen_tools=decision_result.chosen_tools if decision_result else None,
+                    chosen_tools_len=(
+                        len(decision_result.chosen_tools)
+                        if decision_result and decision_result.chosen_tools
+                        else 0
+                    ),
+                )
+
+                if (
+                    decision_result
+                    and decision_result.chosen_tools
+                    and len(decision_result.chosen_tools) > 0
+                ):
+                    # Task Analyzer 已经选择了工具，应该优先使用这些工具
+                    task_analyzer_has_chosen_tools = True
+                    logger.info(
+                        "task_analyzer_has_chosen_tools",
+                        request_id=request_id,
+                        user_text=last_user_text[:200],
+                        chosen_tools=decision_result.chosen_tools,
+                    )
+
+                    # 执行 Task Analyzer 选择的工具
+                    try:
+                        from tools import get_tool_registry
+                        from tools.time import DateTimeInput, DateTimeTool
+                        from tools.web_search import WebSearchInput, WebSearchTool
+
+                        tool_registry = get_tool_registry()
+                        tool_results = []
+
+                        for tool_name in decision_result.chosen_tools:
+                            tool = tool_registry.get_tool(tool_name)
+                            if not tool:
+                                logger.warning(
+                                    "tool_not_found_in_registry",
+                                    request_id=request_id,
+                                    tool_name=tool_name,
+                                )
+                                continue
+
+                            logger.info(
+                                "executing_task_analyzer_tool",
+                                request_id=request_id,
+                                tool_name=tool_name,
+                                user_text=last_user_text[:200],
+                            )
+
+                            # 根据工具类型执行工具
+                            if tool_name == "datetime":
+                                # 执行 DateTimeTool
+                                datetime_tool = DateTimeTool()
+                                datetime_input = DateTimeInput(
+                                    tenant_id=(
+                                        current_user.tenant_id
+                                        if hasattr(current_user, "tenant_id")
+                                        else None
+                                    ),
+                                    user_id=current_user.user_id,
+                                )
+                                tool_result = await datetime_tool.execute(datetime_input)
+                                tool_results.append(
+                                    {
+                                        "tool_name": tool_name,
+                                        "result": (
+                                            tool_result.model_dump()
+                                            if hasattr(tool_result, "model_dump")
+                                            else str(tool_result)
+                                        ),
+                                    }
+                                )
+
+                                # 格式化时间结果用于返回给用户
+                                if hasattr(tool_result, "datetime"):
+                                    time_response = f"現在的時間是：{tool_result.datetime}"
+                                    if hasattr(tool_result, "timezone"):
+                                        time_response += f"（時區：{tool_result.timezone}）"
+
+                                    # 返回 SSE 格式的流式响应
+                                    yield f"data: {json.dumps({'type': 'start', 'data': {'request_id': request_id, 'session_id': session_id}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': time_response}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'done', 'data': {}})}\n\n"
+                                    return
+                            elif tool_name == "web_search":
+                                # WebSearchTool 会在后面的代码中处理
+                                should_trigger_web_search = True
+                            else:
+                                # 其他工具：尝试通用执行方式
+                                logger.warning(
+                                    "unknown_tool_type",
+                                    request_id=request_id,
+                                    tool_name=tool_name,
+                                )
+
+                        if tool_results:
+                            logger.info(
+                                "task_analyzer_tools_executed",
+                                request_id=request_id,
+                                tool_results_count=len(tool_results),
+                            )
+                    except Exception as tool_error:
+                        logger.error(
+                            "task_analyzer_tool_execution_failed",
+                            request_id=request_id,
+                            error=str(tool_error),
+                            exc_info=True,
+                        )
+                        # 工具执行失败不影响主流程，继续执行
+                elif (
+                    router_decision
+                    and router_decision.needs_tools
+                    and decision_result
+                    and (not decision_result.chosen_tools or len(decision_result.chosen_tools) == 0)
+                ):
+                    # 需要工具但没有匹配的工具，如果有 web_search 权限，则 fallback 到 WebSearch
+                    if "web_search" in allowed_tools:
+                        logger.info(
+                            "task_analyzer_web_search_fallback",
+                            request_id=request_id,
+                            user_text=last_user_text[:200],
+                            reason="needs_tools_but_no_matching_tools",
+                        )
+                        should_trigger_web_search = True
+
+            # 工具调用：如果启用了 web_search 且（消息中包含搜索意图 或 Task Analyzer 建议 fallback 到 WebSearch），直接调用工具
+            # 但是，如果 Task Analyzer 已经选择了工具，应该优先使用 Task Analyzer 的选择，而不是执行关键词匹配
             logger.info(
                 "web_search_check",
                 request_id=request_id,
                 allowed_tools=allowed_tools,
                 has_web_search="web_search" in (allowed_tools or []),
-                user_text=last_user_text[:200],  # 记录前200个字符
+                user_text=last_user_text[:200],
+                task_analyzer_has_chosen_tools=task_analyzer_has_chosen_tools,
             )
 
             # 添加 print 调试输出
             print(
-                f"\n[DEBUG] web_search_check: allowed_tools={allowed_tools}, has_web_search={'web_search' in (allowed_tools or [])}"
+                f"\n[DEBUG] web_search_check: allowed_tools={allowed_tools}, has_web_search={'web_search' in (allowed_tools or [])}, task_analyzer_has_chosen_tools={task_analyzer_has_chosen_tools}"
             )
 
-            if allowed_tools and "web_search" in allowed_tools:
+            # 如果 Task Analyzer 已经选择了工具，跳过关键词匹配，优先使用 Task Analyzer 的选择
+            # 但是，如果 Task Analyzer 选择的是 web_search，则允许执行 web_search
+            if (
+                (not task_analyzer_has_chosen_tools or should_trigger_web_search)
+                and allowed_tools
+                and "web_search" in allowed_tools
+            ):
                 # 检测是否需要搜索（简单的关键词检测）
                 # 扩展关键词列表，包括更多搜索意图
+                # 注意：从关键词列表中移除了"時間"和"時刻"，因为时间查询应该使用 DateTimeTool
                 search_keywords = [
                     "上網",
                     "查詢",
                     "搜索",
                     "搜尋",
                     "現在",
-                    "時間",
-                    "時刻",
+                    # "時間",  # 移除：应该使用 DateTimeTool
+                    # "時刻",  # 移除：应该使用 DateTimeTool
                     "最新",
                     "當前",
                     "http",
@@ -1154,6 +1497,13 @@ async def chat_product_stream(
                     "找",
                     "搜",
                     "查",  # 搜索相关
+                    "股價",  # 股价查询
+                    "股票",  # 股票查询
+                    "天氣",  # 天气查询
+                    "匯率",  # 汇率查询
+                    "stock price",  # 股价查询（英文）
+                    "weather",  # 天气查询（英文）
+                    "exchange rate",  # 汇率查询（英文）
                 ]
                 needs_search = any(keyword in last_user_text for keyword in search_keywords)
                 matched_keywords = [kw for kw in search_keywords if kw in last_user_text]
@@ -1172,7 +1522,7 @@ async def chat_product_stream(
                     f"[DEBUG] web_search_intent_check: needs_search={needs_search}, matched_keywords={matched_keywords}"
                 )
 
-                if needs_search:
+                if needs_search or should_trigger_web_search:
                     try:
                         # 直接导入 web_search 模块，避免触发 tools/__init__.py 中的其他导入
                         from tools.web_search.web_search_tool import WebSearchInput, WebSearchTool
@@ -1258,9 +1608,7 @@ async def chat_product_stream(
                                         result_repr=str(result)[:200],
                                     )
                                     # 如果格式化失败，至少添加基本信息
-                                    search_summary += (
-                                        f"{i}. 搜索結果 {i} (格式化失敗: {str(format_error)[:50]})\n\n"
-                                    )
+                                    search_summary += f"{i}. 搜索結果 {i} (格式化失敗: {str(format_error)[:50]})\n\n"
 
                             logger.info(
                                 "web_search_summary_created",
@@ -1279,7 +1627,8 @@ async def chat_product_stream(
                             # 在搜索結果前添加明确的提示，让AI知道这是真实搜索结果
                             search_summary_with_note = (
                                 "\n\n【重要提示：以下是真實的網絡搜索結果，請基於這些結果回答問題。"
-                                "如果搜索結果中沒有相關信息，請明確說明，不要編造內容。】\n" + search_summary
+                                "如果搜索結果中沒有相關信息，請明確說明，不要編造內容。】\n"
+                                + search_summary
                             )
 
                             if windowed_history:

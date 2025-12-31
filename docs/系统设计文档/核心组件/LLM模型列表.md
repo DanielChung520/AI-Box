@@ -66,6 +66,12 @@
 | `deepseek-chat` | DeepSeek Chat | deepseek | Active | ⚠️ | 64K | 需要配置 API Key (DeepSeek) |
 | `deepseek-coder` | DeepSeek Coder | deepseek | Active | ⚠️ | 16K | 需要配置 API Key (DeepSeek) |
 | `dbrx` | DBRX | databricks | Active | ⚠️ | 32K | 需要配置 API Key (Databricks) |
+| `glm-4` | GLM-4 | chatglm | Active | ⚠️ | 128K | 需要配置 API Key (智譜 AI) |
+| `glm-4v` | GLM-4V | chatglm | Active | ⚠️ | 128K | 需要配置 API Key (智譜 AI) |
+| `glm-3-turbo` | GLM-3 Turbo | chatglm | Active | ⚠️ | 32K | 需要配置 API Key (智譜 AI) |
+| `doubao-pro-4k` | 豆包 Pro 4K | volcano | Active | ⚠️ | 4K | 需要配置 API Key (火山引擎) |
+| `doubao-pro-32k` | 豆包 Pro 32K | volcano | Active | ⚠️ | 32K | 需要配置 API Key (火山引擎) |
+| `doubao-lite-4k` | 豆包 Lite 4K | volcano | Active | ⚠️ | 4K | 需要配置 API Key (火山引擎) |
 | `ollama:localhost:11434:*` | [動態發現] | ollama | Active | 🟢 | - | 本地模型（需 Ollama 服務運行） |
 | `ollama:ai.sunlyc.com:443:*` | [動態發現] | ollama | Active | 🟢 | - | 遠端模型（ai.sunlyc.com） |
 
@@ -191,6 +197,30 @@
 
 ---
 
+### 智譜 AI (ChatGLM)
+
+| Model ID | Name | Provider | Status | Context Window | Parameters | Capabilities |
+|----------|------|----------|--------|----------------|------------|--------------|
+| `glm-4` | GLM-4 | chatglm | Active | 128K | - | Chat, Completion, Code, Function Calling, Streaming |
+| `glm-4v` | GLM-4V | chatglm | Active | 128K | - | Chat, Completion, Multimodal, Vision, Streaming |
+| `glm-3-turbo` | GLM-3 Turbo | chatglm | Active | 32K | - | Chat, Completion, Streaming |
+
+**默認模型**: `glm-4`
+
+---
+
+### 字節跳動火山引擎 (Volcano Engine / Doubao)
+
+| Model ID | Name | Provider | Status | Context Window | Parameters | Capabilities |
+|----------|------|----------|--------|----------------|------------|--------------|
+| `doubao-pro-4k` | 豆包 Pro 4K | volcano | Active | 4K | - | Chat, Completion, Code, Function Calling, Streaming |
+| `doubao-pro-32k` | 豆包 Pro 32K | volcano | Active | 32K | - | Chat, Completion, Code, Function Calling, Streaming |
+| `doubao-lite-4k` | 豆包 Lite 4K | volcano | Active | 4K | - | Chat, Completion, Streaming |
+
+**默認模型**: `doubao-pro-4k`
+
+---
+
 ## 🔍 Ollama 模型（動態發現）
 
 Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為：`ollama:{host}:{port}:{model_name}`
@@ -295,6 +325,8 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 - Databricks (databricks)
 - Cohere (cohere)
 - Perplexity (perplexity)
+- 智譜 AI (chatglm)
+- 字節跳動火山引擎 (volcano)
 
 ### API Key 管理
 
@@ -322,11 +354,13 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 | Mistral AI | 3 | - | 需要 API Key |
 | DeepSeek | 2 | - | 需要 API Key |
 | Databricks | 1 | - | 需要 API Key |
+| 智譜 AI (ChatGLM) | 3 | glm-4 | 需要 API Key |
+| 火山引擎 (Volcano) | 3 | doubao-pro-4k | 需要 API Key |
 | Ollama | 動態發現（本地+遠端） | - | Ollama 服務運行且模型已拉取（本地 localhost:11434，遠端 ai.sunlyc.com:443） |
 
 **總計**:
 
-- **數據庫模型**: 26 個（預定義模型）
+- **數據庫模型**: 32 個（預定義模型，包含 ChatGLM 和火山引擎）
 - **本地 Ollama 模型**: 動態發現（根據本地 Ollama 服務實際下載的模型）
 - **遠端 Ollama 模型**: 15 個（ai.sunlyc.com，見上方詳細列表）
 - **總模型數**: 數據庫模型 + 本地 Ollama 模型 + 遠端 Ollama 模型（動態統計）
@@ -344,6 +378,8 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 - DeepSeek (deepseek): 需要配置 `deepseek` Provider API Key
 - Databricks (databricks): 需要配置 `databricks` Provider API Key
 - SmartQ (smartq): 需要配置 `smartq` Provider API Key
+- 智譜 AI (chatglm): 需要配置 `chatglm` Provider API Key
+- 火山引擎 (volcano): 需要配置 `volcano` Provider API Key
 
 **本地模型（無需 API Key）**:
 
@@ -361,6 +397,12 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 
 ## 🔄 更新記錄
 
+### 2025-12-30
+
+- ✅ 添加智譜 AI (ChatGLM) 模型：GLM-4, GLM-4V, GLM-3 Turbo
+- ✅ 添加字節跳動火山引擎 (Volcano Engine) 模型：豆包 Pro 4K, 豆包 Pro 32K, 豆包 Lite 4K
+- ✅ 更新 Provider 列表和統計信息
+
 ### 2025-12-20
 
 - ✅ 初始版本創建
@@ -377,6 +419,6 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 
 ---
 
-**文檔版本**: 1.0
-**最後更新**: 2025-12-20
+**文檔版本**: 1.1
+**最後更新**: 2025-12-30
 **維護者**: Daniel Chung

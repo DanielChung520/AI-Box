@@ -72,10 +72,14 @@ class AgentPermissionConfig(BaseModel):
         default_factory=list, description="允許使用的 LLM Provider 列表"
     )
     allowed_databases: List[str] = Field(default_factory=list, description="允許訪問的數據庫列表")
-    allowed_file_paths: List[str] = Field(default_factory=list, description="允許訪問的文件路徑列表")
+    allowed_file_paths: List[str] = Field(
+        default_factory=list, description="允許訪問的文件路徑列表"
+    )
 
     # 外部 Agent 認證配置
-    secret_id: Optional[str] = Field(None, description="Secret ID（由 AI-Box 簽發，用於外部 Agent 身份驗證）")
+    secret_id: Optional[str] = Field(
+        None, description="Secret ID（由 AI-Box 簽發，用於外部 Agent 身份驗證）"
+    )
     api_key: Optional[str] = Field(None, description="API Key（用於外部 Agent 認證）")
     server_certificate: Optional[str] = Field(None, description="服務器證書（用於 mTLS 認證）")
     ip_whitelist: List[str] = Field(default_factory=list, description="IP 白名單列表")
@@ -87,7 +91,9 @@ class AgentEndpoints(BaseModel):
 
     http: Optional[str] = Field(None, description="HTTP 端點 URL")
     mcp: Optional[str] = Field(None, description="MCP 端點 URL")
-    protocol: AgentServiceProtocolType = Field(AgentServiceProtocolType.HTTP, description="默認協議類型")
+    protocol: AgentServiceProtocolType = Field(
+        AgentServiceProtocolType.HTTP, description="默認協議類型"
+    )
     is_internal: bool = Field(False, description="是否為內部 Agent")
 
     # 兼容舊代碼：添加別名屬性
@@ -199,4 +205,6 @@ class AgentRegistrationRequest(BaseModel):
     endpoints: AgentEndpoints = Field(..., description="Agent 端點配置（包含 is_internal 標誌）")
     capabilities: List[str] = Field(default_factory=list, description="能力列表")
     metadata: Optional[AgentMetadata] = Field(None, description="元數據")
-    permissions: Optional[AgentPermissionConfig] = Field(None, description="權限配置（包含資源訪問權限和認證配置）")
+    permissions: Optional[AgentPermissionConfig] = Field(
+        None, description="權限配置（包含資源訪問權限和認證配置）"
+    )

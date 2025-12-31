@@ -12,7 +12,7 @@ from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 from agents.services.resource_controller import get_resource_controller
-from agents.task_analyzer.models import LLMProvider
+from services.api.models.llm_model import LLMProvider
 
 from .base import BaseLLMClient
 from .chatglm import ChatGLMClient
@@ -170,13 +170,18 @@ class LLMClientFactory:
         # 根據提供商創建對應的客戶端
         client: BaseLLMClient
 
-        if provider == LLMProvider.CHATGPT:
+        # 使用 services.api.models.llm_model.LLMProvider
+        # 注意：枚举名称不同但值相同（OPENAI="chatgpt", GOOGLE="gemini", XAI="grok", ALIBABA="qwen"）
+        # 使用 provider.value 进行比较以确保兼容性
+        provider_value = provider.value
+
+        if provider_value == "chatgpt" or provider == LLMProvider.OPENAI:
             client = ChatGPTClient(**kwargs)
-        elif provider == LLMProvider.GEMINI:
+        elif provider_value == "gemini" or provider == LLMProvider.GOOGLE:
             client = GeminiClient(**kwargs)
-        elif provider == LLMProvider.GROK:
+        elif provider_value == "grok" or provider == LLMProvider.XAI:
             client = GrokClient(**kwargs)
-        elif provider == LLMProvider.QWEN:
+        elif provider_value == "qwen" or provider == LLMProvider.ALIBABA:
             client = QwenClient(**kwargs)
         elif provider == LLMProvider.OLLAMA:
             client = OllamaClient(**kwargs)

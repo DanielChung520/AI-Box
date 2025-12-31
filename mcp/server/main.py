@@ -1,11 +1,12 @@
 # 代碼功能說明: MCP Server 啟動入口
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-12-30
 
 """MCP Server 啟動入口文件"""
 
 import argparse
+import asyncio
 import logging
 
 # 修改時間：2025-12-08 12:30:00 UTC+8 - 使用統一的日誌配置模組
@@ -19,6 +20,7 @@ import uvicorn
 from .config import get_config
 from .monitoring import get_metrics
 from .server import MCPServer
+from .tools.external_manager import get_external_tool_manager
 from .tools.file_tool import FileTool
 from .tools.registry import get_registry
 from .tools.task_analyzer import TaskAnalyzerTool
@@ -43,9 +45,29 @@ async def lifespan(app):
     """應用生命週期管理"""
     # 啟動時
     logger.info("Starting MCP Server...")
+
+    # 註冊外部工具
+    try:
+        external_manager = get_external_tool_manager()
+        await external_manager.register_all_external_tools(app)
+
+        # 啟動外部工具刷新循環
+        external_manager.refresh_task = asyncio.create_task(external_manager.start_refresh_loop())
+        logger.info("External tools refresh loop started")
+    except Exception as e:
+        logger.warning(f"Failed to initialize external tools: {e}")
+
     yield
+
     # 關閉時
     logger.info("Shutting down MCP Server...")
+
+    # 關閉外部工具管理器
+    try:
+        external_manager = get_external_tool_manager()
+        await external_manager.close()
+    except Exception as e:
+        logger.warning(f"Failed to close external tools manager: {e}")
 
 
 def create_app(config=None) -> MCPServer:
@@ -103,9 +125,9 @@ def _register_tools(server: MCPServer, config) -> None:
     """
     registry = get_registry()
 
-    # 註冊 Task Analyzer 工具
+    # 註冊 Task Analyzer 工具（內部工具）
     task_analyzer = TaskAnalyzerTool()
-    registry.register(task_analyzer)
+    registry.register(task_analyzer, tool_type="internal")
     server.register_tool(
         name=task_analyzer.name,
         description=task_analyzer.description,
@@ -113,10 +135,10 @@ def _register_tools(server: MCPServer, config) -> None:
         handler=task_analyzer.execute,
     )
 
-    # 註冊 File Tool
+    # 註冊 File Tool（內部工具）
     file_tool_base_path = "/tmp"  # 可以從配置讀取
     file_tool = FileTool(base_path=file_tool_base_path)
-    registry.register(file_tool)
+    registry.register(file_tool, tool_type="internal")
     server.register_tool(
         name=file_tool.name,
         description=file_tool.description,
@@ -124,7 +146,8 @@ def _register_tools(server: MCPServer, config) -> None:
         handler=file_tool.execute,
     )
 
-    logger.info(f"Registered {len(registry.list_all())} tools")
+    # 外部工具將在 lifespan 中異步註冊
+    logger.info(f"Registered {len(registry.list_all())} internal tools")
 
 
 def get_app() -> MCPServer:

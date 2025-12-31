@@ -31,7 +31,9 @@ class CrewAISettings(BaseModel):
     token_budget: int = Field(default=100000, ge=1000, description="Token 預算上限")
     default_llm: str = Field(default="gpt-oss:20b", description="預設 LLM 模型 ID")
     enable_tools: bool = Field(default=True, description="是否啟用工具/函式呼叫")
-    enable_memory: bool = Field(default=True, description="是否啟用 Working Memory/Context Recorder")
+    enable_memory: bool = Field(
+        default=True, description="是否啟用 Working Memory/Context Recorder"
+    )
     process_timeout: int = Field(default=3600, ge=60, description="流程執行超時時間（秒）")
     max_iterations: int = Field(default=20, ge=1, le=100, description="最大迭代次數")
 

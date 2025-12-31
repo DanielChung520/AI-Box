@@ -124,8 +124,34 @@ class MCPServer:
             return {
                 "status": "ready",
                 "server": self.name,
-                "tools_count": len(self.tools),
             }
+
+        @self.app.get("/metrics/tools")
+        async def tools_metrics():
+            """工具調用統計端點"""
+            from mcp.server.tools.metrics import get_tool_metrics
+
+            metrics = get_tool_metrics()
+            return {
+                "summary": metrics.get_summary(),
+                "tools": metrics.get_stats(),
+            }
+
+        @self.app.get("/metrics/tools/{tool_name}")
+        async def tool_metrics(tool_name: str):
+            """單個工具調用統計端點"""
+            from fastapi import HTTPException, status
+
+            from mcp.server.tools.metrics import get_tool_metrics
+
+            metrics = get_tool_metrics()
+            stats = metrics.get_stats(tool_name)
+            if not stats:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Tool '{tool_name}' not found or has no statistics",
+                )
+            return stats
 
     async def _handle_request(self, request: MCPRequest) -> MCPResponse:
         """
@@ -166,6 +192,11 @@ class MCPServer:
 
     async def _handle_tool_call(self, request: MCPRequest) -> MCPToolCallResponse:
         """處理工具調用請求"""
+        import time
+
+        from mcp.server.tools.metrics import get_tool_metrics
+        from mcp.server.tools.registry import get_registry
+
         params = request.params or {}
         tool_name = params.get("name")
         arguments = params.get("arguments", {})
@@ -174,19 +205,45 @@ class MCPServer:
             raise ValueError(f"Tool '{tool_name}' not found")
 
         handler = self.tool_handlers[tool_name]
-        result = await handler(arguments)
 
-        return MCPToolCallResponse(
-            id=request.id,
-            result={
-                "content": [
-                    {
-                        "type": "text",
-                        "text": (json.dumps(result) if isinstance(result, dict) else str(result)),
-                    }
-                ]
-            },
-        )
+        # 記錄調用開始時間
+        start_time = time.time()
+        metrics = get_tool_metrics()
+        registry = get_registry()
+
+        try:
+            result = await handler(arguments)
+            latency_ms = (time.time() - start_time) * 1000
+
+            # 記錄成功調用
+            metrics.record_call(tool_name, success=True, latency_ms=latency_ms)
+            registry.record_tool_call(tool_name, success=True)
+
+            return MCPToolCallResponse(
+                id=request.id,
+                result={
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                json.dumps(result) if isinstance(result, dict) else str(result)
+                            ),
+                        }
+                    ]
+                },
+            )
+        except Exception as e:
+            latency_ms = (time.time() - start_time) * 1000
+            error_type = type(e).__name__
+
+            # 記錄失敗調用
+            metrics.record_call(
+                tool_name, success=False, latency_ms=latency_ms, error_type=error_type
+            )
+            registry.record_tool_call(tool_name, success=False)
+
+            # 重新拋出異常
+            raise
 
     def register_tool(
         self,

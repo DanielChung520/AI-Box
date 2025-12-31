@@ -430,9 +430,7 @@ class SystemConfigAgent(AgentServiceProtocol):
             collection_name = (
                 "system_configs"
                 if intent.level == "system"
-                else "tenant_configs"
-                if intent.level == "tenant"
-                else "user_configs"
+                else "tenant_configs" if intent.level == "tenant" else "user_configs"
             )
             aql_query = f"""
 UPDATE {{_key: '{config_id}'}}

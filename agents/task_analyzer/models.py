@@ -125,7 +125,9 @@ class LLMRoutingResult(BaseModel):
     model: str = Field(..., description="模型名稱")
     confidence: float = Field(..., ge=0.0, le=1.0, description="置信度")
     reasoning: str = Field(..., description="選擇理由")
-    fallback_providers: List[LLMProvider] = Field(default_factory=list, description="備用提供商列表")
+    fallback_providers: List[LLMProvider] = Field(
+        default_factory=list, description="備用提供商列表"
+    )
     target_node: Optional[str] = Field(
         None,
         description="當 provider 為本地 LLM 時指派的節點",
@@ -135,7 +137,9 @@ class LLMRoutingResult(BaseModel):
     estimated_latency: Optional[float] = Field(None, description="預估延遲時間（秒）", ge=0.0)
     estimated_cost: Optional[float] = Field(None, description="預估成本", ge=0.0)
     quality_score: Optional[float] = Field(None, description="質量評分（0.0-1.0）", ge=0.0, le=1.0)
-    routing_metadata: Dict[str, Any] = Field(default_factory=dict, description="路由元數據（擴展信息）")
+    routing_metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="路由元數據（擴展信息）"
+    )
 
 
 class LogQueryIntent(BaseModel):
@@ -150,7 +154,9 @@ class LogQueryIntent(BaseModel):
         description="日誌類型：TASK（任務日誌）、AUDIT（審計日誌）、SECURITY（安全日誌）",
     )
     actor: Optional[str] = Field(None, description="執行者（用戶 ID 或 Agent ID）")
-    level: Optional[str] = Field(None, description="配置層級（system/tenant/user，僅 AUDIT 類型需要）")
+    level: Optional[str] = Field(
+        None, description="配置層級（system/tenant/user，僅 AUDIT 類型需要）"
+    )
     tenant_id: Optional[str] = Field(None, description="租戶 ID")
     user_id: Optional[str] = Field(None, description="用戶 ID")
     start_time: Optional[datetime] = Field(None, description="開始時間")
@@ -176,8 +182,12 @@ class ConfigIntent(BaseModel):
     )
     tenant_id: Optional[str] = Field(None, description="租戶 ID（租戶級操作時需要）")
     user_id: Optional[str] = Field(None, description="用戶 ID（用戶級操作時需要）")
-    config_data: Optional[Dict[str, Any]] = Field(None, description="配置數據（更新/創建操作時需要）")
-    clarification_needed: bool = Field(default=False, description="是否需要澄清（信息不足時為 true）")
+    config_data: Optional[Dict[str, Any]] = Field(
+        None, description="配置數據（更新/創建操作時需要）"
+    )
+    clarification_needed: bool = Field(
+        default=False, description="是否需要澄清（信息不足時為 true）"
+    )
     clarification_question: Optional[str] = Field(
         None, description="澄清問題（clarification_needed=true 時生成）"
     )
@@ -191,8 +201,12 @@ class RouterInput(BaseModel):
     """Router LLM 輸入模型"""
 
     user_query: str = Field(..., description="用戶查詢")
-    session_context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="會話上下文")
-    system_constraints: Optional[Dict[str, Any]] = Field(default_factory=dict, description="系統約束")
+    session_context: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="會話上下文"
+    )
+    system_constraints: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="系統約束"
+    )
 
 
 class RouterDecision(BaseModel):

@@ -140,7 +140,7 @@ class TestAgentRegistry:
         mock_agent = MockAgent("test-internal-agent")
         registry.register_agent(internal_agent_request, instance=mock_agent)
 
-        agent = registry.get_agent("test-internal-agent")
+        registry.get_agent("test-internal-agent")
         agent_info = registry.get_agent_info("test-internal-agent")
         assert agent_info is not None
         assert agent_info.agent_id == "test-internal-agent"

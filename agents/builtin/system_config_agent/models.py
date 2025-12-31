@@ -32,7 +32,9 @@ class ComplianceCheckResult(BaseModel):
     valid: bool = Field(..., description="是否通過檢查")
     reason: Optional[str] = Field(None, description="檢查失敗原因")
     convergence_violations: List[str] = Field(default_factory=list, description="收斂規則違反列表")
-    business_rule_violations: List[str] = Field(default_factory=list, description="業務規則違反列表")
+    business_rule_violations: List[str] = Field(
+        default_factory=list, description="業務規則違反列表"
+    )
     details: Optional[Dict[str, Any]] = Field(None, description="詳細檢查信息")
 
 

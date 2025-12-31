@@ -57,7 +57,9 @@ class SecurityCheckRequest(BaseModel):
 
     admin_id: str = Field(..., description="管理員用戶 ID")
     intent: Dict[str, Any] = Field(..., description="ConfigIntent（由 Orchestrator 傳遞）")
-    context: Optional[Dict[str, Any]] = Field(None, description="額外上下文（IP、User Agent、trace_id 等）")
+    context: Optional[Dict[str, Any]] = Field(
+        None, description="額外上下文（IP、User Agent、trace_id 等）"
+    )
 
 
 class SecurityCheckResult(BaseModel):

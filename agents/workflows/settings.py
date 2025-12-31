@@ -39,7 +39,9 @@ class LangGraphTelemetrySettings(BaseModel):
 class LangChainGraphSettings(BaseModel):
     """LangChain/Graph 工作流設定。"""
 
-    enable_memory: bool = Field(default=True, description="是否啟用 Working Memory/Context Recorder")
+    enable_memory: bool = Field(
+        default=True, description="是否啟用 Working Memory/Context Recorder"
+    )
     enable_rag: bool = Field(default=True, description="是否啟用 RAG 擴充")
     enable_tools: bool = Field(default=True, description="是否允許工具/函式呼叫")
     max_iterations: int = Field(default=10, ge=1, le=50, description="執行節點最大迭代數")

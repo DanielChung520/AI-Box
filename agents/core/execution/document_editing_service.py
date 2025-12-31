@@ -104,7 +104,9 @@ class DocumentEditingService:
             start = max(0, cursor_position - 1000)
             end = min(len(base_content), cursor_position + 1000)
             context_content = base_content[start:end]
-            cursor_context = f"\n游標位置：約第 {cursor_position} 字符\n上下文內容：\n{context_content}\n"
+            cursor_context = (
+                f"\n游標位置：約第 {cursor_position} 字符\n上下文內容：\n{context_content}\n"
+            )
 
         return (
             "你是一個專業的文檔編輯助手。你的任務是根據用戶要求，對 Markdown 文件進行精確的局部修改。\n"

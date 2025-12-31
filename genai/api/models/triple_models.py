@@ -34,7 +34,9 @@ class Triple(BaseModel):
     subject: TripleEntity = Field(..., description="主體實體")
     relation: TripleRelation = Field(..., description="關係")
     object: TripleEntity = Field(..., description="客體實體")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="三元組整體置信度（綜合 NER、RE、RT 置信度）")
+    confidence: float = Field(
+        ..., ge=0.0, le=1.0, description="三元組整體置信度（綜合 NER、RE、RT 置信度）"
+    )
     source_text: str = Field(..., description="原始文本")
     context: str = Field(..., description="上下文")
 
@@ -43,7 +45,9 @@ class TripleExtractionRequest(BaseModel):
     """三元組提取請求模型"""
 
     text: str = Field(..., description="待提取三元組的文本")
-    enable_ner: bool = Field(True, description="是否啟用實體識別（如果為 False，則需要提供 entities）")
+    enable_ner: bool = Field(
+        True, description="是否啟用實體識別（如果為 False，則需要提供 entities）"
+    )
     entities: Optional[List[Entity]] = Field(None, description="預先識別的實體列表（可選）")
 
 

@@ -102,12 +102,16 @@ class LLMModelService:
             ollama_endpoint=doc.get("ollama_endpoint"),
             ollama_node=doc.get("ollama_node"),
             is_favorite=doc.get("is_favorite"),  # 查詢時可能設置
-            created_at=datetime.fromisoformat(doc["created_at"])
-            if doc.get("created_at")
-            else datetime.now(),
-            updated_at=datetime.fromisoformat(doc["updated_at"])
-            if doc.get("updated_at")
-            else datetime.now(),
+            created_at=(
+                datetime.fromisoformat(doc["created_at"])
+                if doc.get("created_at")
+                else datetime.now()
+            ),
+            updated_at=(
+                datetime.fromisoformat(doc["updated_at"])
+                if doc.get("updated_at")
+                else datetime.now()
+            ),
         )
 
     def create(self, model: LLMModelCreate) -> LLMModel:

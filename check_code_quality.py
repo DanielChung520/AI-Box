@@ -56,7 +56,9 @@ def check_code_quality(target: str) -> bool:
         return False
 
     # 2. Ruff 檢查
-    if not run_command(["python", "-m", "ruff", "check", "--fix", str(target_path)], "運行 Ruff 檢查"):
+    if not run_command(
+        ["python", "-m", "ruff", "check", "--fix", str(target_path)], "運行 Ruff 檢查"
+    ):
         return False
 
     # 3. Mypy 檢查

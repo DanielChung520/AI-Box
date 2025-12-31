@@ -33,7 +33,9 @@ class DistanceInput(ToolInput):
     lon2: float  # 終點經度
     method: str = "haversine"  # 計算方法：haversine, driving, walking
     unit: str = "km"  # 單位：km, mile, meter
-    provider: Optional[str] = None  # 地圖服務提供商（用於 driving/walking，默認使用 OpenRouteService）
+    provider: Optional[str] = (
+        None  # 地圖服務提供商（用於 driving/walking，默認使用 OpenRouteService）
+    )
 
 
 class DistanceOutput(ToolOutput):

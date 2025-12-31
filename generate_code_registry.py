@@ -336,7 +336,9 @@ class CodeRegistryGenerator:
         registry_lines.append("---\n\n")
 
         # 表格標題
-        registry_lines.append("| 功能模組 | 編號 | 名稱 | 代碼 | 代碼功能描述 | 創建日期 | 最後更新日期 | 備註 |\n")
+        registry_lines.append(
+            "| 功能模組 | 編號 | 名稱 | 代碼 | 代碼功能描述 | 創建日期 | 最後更新日期 | 備註 |\n"
+        )
         registry_lines.append(
             "|---------|------|------|------|-------------|---------|-------------|------|\n"
         )

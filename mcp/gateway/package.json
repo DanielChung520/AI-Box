@@ -1,0 +1,25 @@
+{
+  "name": "mcp-gateway",
+  "version": "1.0.0",
+  "description": "Cloudflare MCP Gateway Worker for AI-Box",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:preview": "wrangler deploy --env preview",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "mcp",
+    "gateway"
+  ],
+  "author": "Daniel Chung",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.48.0"
+  }
+}

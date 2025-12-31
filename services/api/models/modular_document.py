@@ -19,7 +19,9 @@ class SubDocumentRef(BaseModel):
     section_title: str = Field(..., description="章節標題（從 H1-H3 標題提取）")
     order: int = Field(..., description="順序（用於排序）")
     transclusion_syntax: str = Field(..., description="Transclusion 語法（例如: ![[filename.md]]）")
-    header_path: Optional[str] = Field(None, description="標題路徑（Breadcrumbs，例如: # 系統架構 > ## 編輯器選型）")
+    header_path: Optional[str] = Field(
+        None, description="標題路徑（Breadcrumbs，例如: # 系統架構 > ## 編輯器選型）"
+    )
 
     class Config:
         from_attributes = True

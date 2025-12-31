@@ -1,0 +1,148 @@
+# 外部 MCP 工具配置文件示例
+# 複製此文件為 external_mcp_tools.yaml 並配置實際的工具信息
+#
+# 創建日期: 2025-12-31
+# 創建人: Daniel Chung
+# 最後修改日期: 2025-12-31
+
+external_tools:
+  # Yahoo Finance MCP Server 示例（通过 Gateway 代理）
+  # 注意：请替换为实际可用的 MCP Server 端点
+  - name: "yahoo_finance"
+    description: "Yahoo Finance MCP Server - 股票数据查询工具"
+    mcp_endpoint: "https://your-yahoo-finance-mcp-server.com/mcp"  # 真实端点（需要替换为实际端点）
+    proxy_endpoint: "https://mcp.k84.org"  # Cloudflare Gateway 端点
+    proxy_config:
+      enabled: true  # 必须启用 Gateway 代理（第三方服务）
+      audit_enabled: true  # 启用审计日志
+      hide_ip: true  # 隐藏真实 IP
+    network_type: "third_party"  # 标记为第三方服务
+    # 工具会在注册时自动发现，也可以手动指定
+    tool_name_on_server: null  # null 表示使用自动发现
+    auth_type: "none"  # 认证类型：none / api_key / bearer / oauth2
+    auth_config:
+      type: "none"
+    # 注意：input_schema 会在工具发现时自动获取，也可以手动指定
+    # input_schema:
+    #   type: object
+    #   properties:
+    #     symbol:
+    #       type: string
+    #       description: "股票代码（如 AAPL, TSLA）"
+    #   required: ["symbol"]
+
+  # Glama Office MCP Server 工具示例（使用 Gateway 代理）
+  - name: "glama_office_word"
+    description: "Glama Office Word 操作工具"
+    mcp_endpoint: "https://api.glama.office/mcp"  # 真實端點
+    proxy_endpoint: "https://mcp.k84.org"  # Cloudflare Gateway
+    proxy_config:
+      enabled: true
+      audit_enabled: true  # 啟用審計日誌
+      hide_ip: true  # 隱藏真實 IP
+    network_type: "third_party"
+    tool_name_on_server: "word_processor"  # 外部服務器上的工具名稱
+    auth_type: "api_key"
+    auth_config:
+      type: "api_key"
+      api_key: "${GLAMA_API_KEY}"  # 从环境变量读取
+      header_name: "X-API-Key"
+    input_schema:
+      type: object
+      properties:
+        operation:
+          type: string
+          enum: ["create", "edit", "read"]
+          description: "操作類型"
+        file_path:
+          type: string
+          description: "文件路徑"
+        content:
+          type: string
+          description: "文件內容（用於 create/edit）"
+      required: ["operation"]
+
+  # Slack MCP 工具示例（使用 Gateway 代理）
+  - name: "slack_send_message"
+    description: "Slack 發送消息工具"
+    mcp_endpoint: "https://slack-mcp-server.example.com/mcp"  # 真實端點
+    proxy_endpoint: "https://mcp.k84.org"  # Cloudflare Gateway
+    proxy_config:
+      enabled: true
+      audit_enabled: true
+      hide_ip: true
+    network_type: "third_party"
+    tool_name_on_server: "chat.postMessage"
+    auth_type: "bearer"
+    auth_config:
+      type: "bearer"
+      token: "${SLACK_BOT_TOKEN}"  # 从环境变量读取
+    input_schema:
+      type: object
+      properties:
+        channel:
+          type: string
+          description: "頻道 ID 或名稱"
+        text:
+          type: string
+          description: "消息內容"
+      required: ["channel", "text"]
+
+  # Notion MCP 工具示例（使用 Gateway 代理）
+  - name: "notion_create_page"
+    description: "Notion 創建頁面工具"
+    mcp_endpoint: "https://notion-mcp-server.example.com/mcp"  # 真實端點
+    proxy_endpoint: "https://mcp.k84.org"  # Cloudflare Gateway
+    proxy_config:
+      enabled: true
+      audit_enabled: true
+      hide_ip: true
+    network_type: "third_party"
+    tool_name_on_server: "pages.create"
+    auth_type: "bearer"
+    auth_config:
+      type: "bearer"
+      token: "${NOTION_API_KEY}"  # 从环境变量读取
+    input_schema:
+      type: object
+      properties:
+        parent:
+          type: object
+          description: "父頁面信息"
+          properties:
+            database_id:
+              type: string
+            page_id:
+              type: string
+        properties:
+          type: object
+          description: "頁面屬性"
+          additionalProperties: true
+      required: ["parent", "properties"]
+
+  # 内部信任网络 MCP Server 示例（直接访问，无需 Gateway）
+  - name: "internal_office_mcp"
+    description: "企業內部 Office MCP Server"
+    mcp_endpoint: "https://internal-office-mcp.company.local/mcp"  # 內網端點
+    proxy_endpoint: null  # 內部網絡不需要 Gateway
+    proxy_config:
+      enabled: false  # 內部網絡不需要代理
+      audit_enabled: true  # 可選：啟用基礎審計
+      hide_ip: false  # 內部網絡不需要隱藏 IP
+    network_type: "internal_trusted"  # 標記為內部信任網絡
+    tool_name_on_server: "office_processor"
+    auth_type: "mtls"
+    auth_config:
+      type: "mtls"
+      cert_path: "/etc/certs/client.crt"
+      key_path: "/etc/certs/client.key"
+      ca_cert_path: "/etc/certs/ca.crt"
+    input_schema:
+      type: object
+      properties:
+        operation:
+          type: string
+          enum: ["create", "edit", "read"]
+        file_path:
+          type: string
+      required: ["operation"]

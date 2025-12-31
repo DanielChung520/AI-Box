@@ -1,0 +1,82 @@
+# Cloudflare MCP Gateway Worker 配置
+#
+# 创建日期: 2025-12-31
+# 创建人: Daniel Chung
+# 最后修改日期: 2025-12-31
+
+name = "mcp-gateway"
+main = "src/index.ts"
+compatibility_date = "2024-12-31"
+
+# 环境变量
+[vars]
+# 默认 MCP 端点（如果路由不匹配时使用）
+DEFAULT_MCP_ENDPOINT = ""
+
+# 数据脱敏开关
+ENABLE_DATA_MASKING = "true"
+
+# 响应过滤开关
+ENABLE_RESPONSE_FILTERING = "false"
+
+# 默认速率限制（每分钟请求数）
+DEFAULT_RATE_LIMIT = "100"
+
+# MCP 路由配置（JSON 格式）
+# 格式: [{"pattern": "工具名称模式", "target": "目标 MCP Server URL"}]
+# 示例:
+# MCP_ROUTES = '''
+# [
+#   {
+#     "pattern": "office_*",
+#     "target": "https://office-mcp.example.com/mcp"
+#   },
+#   {
+#     "pattern": "finance_*",
+#     "target": "https://finance-mcp.example.com/mcp"
+#   }
+# ]
+# '''
+MCP_ROUTES = "[]"
+
+# KV 存储（用于认证配置）
+[[kv_namespaces]]
+binding = "AUTH_STORE"
+id = "5b6e229c21f649269e93db9dcb8a7e16"
+preview_id = "b1295b79c8f64b879d5d7a3fd8c65400"
+
+# KV 存储（用于权限配置）
+[[kv_namespaces]]
+binding = "PERMISSIONS_STORE"
+id = "75e2e224e5844e1ea7639094b87d1001"
+preview_id = "89d30fa67fc944e0a5bce820c2b6b4b3"
+
+# KV 存储（用于速率限制）
+[[kv_namespaces]]
+binding = "RATE_LIMIT_STORE"
+id = "e5b99f78db7c452aa70a080b662e0530"
+preview_id = "437f52b27010407ab1730f85d89d835a"
+
+# R2 存储（用于审计日志存储，可选）
+# 注意：需要先在 Cloudflare Dashboard 中启用 R2
+# [[r2_buckets]]
+# binding = "AUDIT_BUCKET"
+# bucket_name = "mcp-gateway-audit-logs"
+# preview_bucket_name = "mcp-gateway-audit-logs-preview"
+
+# Durable Objects（用于审计日志，可选）
+# 如果需要使用 Durable Objects，需要先创建并部署
+# [[durable_objects.bindings]]
+# name = "AUDIT_LOG"
+# class_name = "AuditLogDO"
+# script_name = "mcp-gateway"
+
+# 路由配置（自定义域名）
+routes = [
+  { pattern = "mcp.k84.org/*", zone_name = "k84.org" }
+]
+
+# 限制配置
+# 注意：CPU limits 需要付费计划，免费计划不支持
+# [limits]
+# cpu_ms = 50 # CPU 时间限制（毫秒）

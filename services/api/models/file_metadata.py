@@ -42,8 +42,12 @@ class FileMetadataCreate(FileMetadataBase):
 class FileMetadataUpdate(BaseModel):
     """更新文件元數據請求模型"""
 
-    task_id: Optional[str] = Field(None, description="任務 ID（可選，用於移動文件到其他任務工作區）")
-    folder_id: Optional[str] = Field(None, description="目標資料夾 ID（可選，用於移動到任務內子資料夾）")
+    task_id: Optional[str] = Field(
+        None, description="任務 ID（可選，用於移動文件到其他任務工作區）"
+    )
+    folder_id: Optional[str] = Field(
+        None, description="目標資料夾 ID（可選，用於移動到任務內子資料夾）"
+    )
     tags: Optional[List[str]] = Field(None, description="標籤列表")
     description: Optional[str] = Field(None, description="文件描述")
     custom_metadata: Optional[Dict[str, Any]] = Field(None, description="自定義元數據")

@@ -64,7 +64,9 @@ class CrewConfig(BaseModel):
     collaboration_mode: CollaborationMode = Field(
         default=CollaborationMode.SEQUENTIAL, description="協作模式"
     )
-    resource_quota: CrewResourceQuota = Field(default_factory=CrewResourceQuota, description="資源配額")
+    resource_quota: CrewResourceQuota = Field(
+        default_factory=CrewResourceQuota, description="資源配額"
+    )
     created_at: datetime = Field(default_factory=datetime.now, description="創建時間")
     updated_at: datetime = Field(default_factory=datetime.now, description="更新時間")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")

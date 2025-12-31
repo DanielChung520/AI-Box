@@ -28,7 +28,9 @@ class DateTimeInput(ToolInput):
     """日期時間工具輸入參數"""
 
     timezone: Optional[str] = None  # 時區（如 "Asia/Taipei"），None 表示使用配置中的默認時區
-    format: Optional[str] = None  # 輸出格式（如 "%Y-%m-%d %H:%M:%S"），None 表示使用配置中的默認格式
+    format: Optional[str] = (
+        None  # 輸出格式（如 "%Y-%m-%d %H:%M:%S"），None 表示使用配置中的默認格式
+    )
     tenant_id: Optional[str] = None  # 租戶 ID（用於讀取租戶級配置）
     user_id: Optional[str] = None  # 用戶 ID（用於讀取用戶級配置）
 

@@ -224,16 +224,20 @@ class LogService:
             if "before" in truncated_content:
                 truncated_content["before"] = {
                     "_too_large": True,
-                    "_original_keys": list(truncated_content["before"].keys())
-                    if isinstance(truncated_content["before"], dict)
-                    else None,
+                    "_original_keys": (
+                        list(truncated_content["before"].keys())
+                        if isinstance(truncated_content["before"], dict)
+                        else None
+                    ),
                 }
             if "after" in truncated_content:
                 truncated_content["after"] = {
                     "_too_large": True,
-                    "_original_keys": list(truncated_content["after"].keys())
-                    if isinstance(truncated_content["after"], dict)
-                    else None,
+                    "_original_keys": (
+                        list(truncated_content["after"].keys())
+                        if isinstance(truncated_content["after"], dict)
+                        else None
+                    ),
                 }
 
         return truncated_content

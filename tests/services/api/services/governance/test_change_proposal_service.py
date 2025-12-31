@@ -238,7 +238,9 @@ class TestSeaweedFSChangeProposalService:
         }
         mock_storage.s3_client.put_object.return_value = {}
 
-        result = await change_proposal_service.reject_proposal("proposal-123", "admin-123", "不符合規範")
+        result = await change_proposal_service.reject_proposal(
+            "proposal-123", "admin-123", "不符合規範"
+        )
 
         assert result is True
         mock_storage.s3_client.put_object.assert_called_once()

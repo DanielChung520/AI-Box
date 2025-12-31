@@ -38,7 +38,24 @@ class StorageManagerAgent(AgentServiceProtocol):
 
     def __init__(self):
         """初始化 Storage Manager Agent"""
-        self._file_service = get_agent_file_service()
+        # 文件服务初始化可能失败（如 SeaweedFS 未运行），优雅处理
+        try:
+            self._file_service = get_agent_file_service()
+        except Exception as e:
+            error_msg = str(e)
+            if (
+                "SeaweedFS" in error_msg
+                or "localhost:8333" in error_msg
+                or "Connection was closed" in error_msg
+            ):
+                self._logger.warning(
+                    f"File service not available (SeaweedFS may not be running): {e}. "
+                    "Storage Manager will continue without file service."
+                )
+                self._file_service = None
+            else:
+                self._logger.warning(f"Failed to initialize file service: {e}")
+                self._file_service = None
         # Memory Manager 和数据库客户端延迟初始化
         self._memory_manager = None
         self._llm_client = None

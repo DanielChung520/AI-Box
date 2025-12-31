@@ -61,7 +61,9 @@ class FileMoveRequest(BaseModel):
     """文件移動請求模型"""
 
     target_task_id: str = Field(..., description="目標任務ID")
-    target_folder_id: Optional[str] = Field(None, description="目標資料夾ID（可選，未提供時移動到任務工作區）")
+    target_folder_id: Optional[str] = Field(
+        None, description="目標資料夾ID（可選，未提供時移動到任務工作區）"
+    )
 
 
 class FolderCreateRequest(BaseModel):

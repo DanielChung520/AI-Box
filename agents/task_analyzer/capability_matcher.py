@@ -312,11 +312,54 @@ class CapabilityMatcher:
             # 提取所需能力
             required_capabilities = self._extract_required_capabilities(router_decision)
 
+            # 從 context 中獲取用戶查詢（用於基於查詢文本的匹配）
+            user_query = ""
+            if context:
+                user_query = context.get("task", "") or context.get("query", "") or ""
+            user_query_lower = user_query.lower() if user_query else ""
+
             matches = []
             for tool in tools:
                 tool_name = tool.get("name", "")
+                tool_category = tool.get("category", "")
                 tool_purpose = tool.get("purpose", "")
                 tool_use_cases = tool.get("use_cases", [])
+
+                # 基於工具名稱和類別的匹配（優先級最高）
+                name_category_match = 0.0
+                if tool_name == "datetime" and any(
+                    keyword in user_query_lower
+                    for keyword in [
+                        "時間",
+                        "時間",
+                        "time",
+                        "現在",
+                        "此刻",
+                        "當前",
+                        "當前時間",
+                        "現在幾點",
+                    ]
+                ):
+                    # datetime 工具 + 時間查詢 = 完美匹配
+                    name_category_match = 1.0
+                elif tool_category == "時間與日期" and any(
+                    keyword in user_query_lower
+                    for keyword in ["時間", "時間", "time", "現在", "此刻", "當前", "日期", "date"]
+                ):
+                    # 時間類別工具 + 時間查詢 = 高匹配度
+                    name_category_match = 0.9
+                elif tool_name == "weather" and any(
+                    keyword in user_query_lower
+                    for keyword in ["天氣", "weather", "氣象", "溫度", "temperature"]
+                ):
+                    # weather 工具 + 天氣查詢 = 完美匹配
+                    name_category_match = 1.0
+                elif tool_category == "天氣" and any(
+                    keyword in user_query_lower
+                    for keyword in ["天氣", "weather", "氣象", "溫度", "temperature"]
+                ):
+                    # 天氣類別工具 + 天氣查詢 = 高匹配度
+                    name_category_match = 0.9
 
                 # 簡單的匹配邏輯：檢查工具用途和使用場景
                 tool_capabilities = []
@@ -328,6 +371,16 @@ class CapabilityMatcher:
                 if "查詢" in tool_purpose or "query" in tool_purpose.lower():
                     tool_capabilities.append("query")
                     tool_capabilities.append("retrieval")
+                if (
+                    "時間" in tool_purpose
+                    or "時間" in tool_purpose
+                    or "time" in tool_purpose.lower()
+                ):
+                    tool_capabilities.append("time")
+                    tool_capabilities.append("retrieval")
+                if "天氣" in tool_purpose or "weather" in tool_purpose.lower():
+                    tool_capabilities.append("weather")
+                    tool_capabilities.append("retrieval")
 
                 # 根據 intent_type 匹配
                 if router_decision.intent_type == "retrieval" and "search" in tool_capabilities:
@@ -336,7 +389,10 @@ class CapabilityMatcher:
                     tool_capabilities.append("analysis")
 
                 # 計算能力匹配度
-                if required_capabilities:
+                if name_category_match > 0.0:
+                    # 如果有名稱/類別匹配，優先使用（最高優先級）
+                    capability_match = name_category_match
+                elif required_capabilities:
                     tool_cap_set = set(tool_capabilities)
                     required_set = set(required_capabilities)
                     capability_match = len(required_set.intersection(tool_cap_set)) / len(

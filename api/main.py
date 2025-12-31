@@ -446,7 +446,18 @@ async def startup_event():
             f"Initialized {len(builtin_agents)} builtin agents: {list(builtin_agents.keys())}"
         )
     except Exception as e:
-        logger.error(f"Failed to initialize builtin agents: {e}")
+        # SeaweedFS 连接失败是预期的（服务可能未运行），使用 WARNING 而不是 ERROR
+        error_msg = str(e)
+        if (
+            "SeaweedFS" in error_msg
+            or "localhost:8333" in error_msg
+            or "Connection was closed" in error_msg
+        ):
+            logger.warning(
+                f"Failed to initialize builtin agents (SeaweedFS not available, this is expected if service is not running): {e}"
+            )
+        else:
+            logger.error(f"Failed to initialize builtin agents: {e}")
 
     # 註冊核心 Agent（註冊為內部 Agent）
     try:

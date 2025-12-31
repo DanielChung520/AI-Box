@@ -87,18 +87,26 @@ class RoutingMetadataStore:
                 "chosen_model": decision_log.decision_engine.chosen_model,
                 "chosen_tools": decision_log.decision_engine.chosen_tools,
                 "fallback_used": decision_log.decision_engine.fallback_used,
-                "success": decision_log.execution_result.get("success", False)
-                if decision_log.execution_result
-                else False,
-                "latency_ms": decision_log.execution_result.get("latency_ms")
-                if decision_log.execution_result
-                else None,
-                "cost": decision_log.execution_result.get("cost")
-                if decision_log.execution_result
-                else None,
-                "created_at": decision_log.timestamp.isoformat()
-                if isinstance(decision_log.timestamp, datetime)
-                else decision_log.timestamp,
+                "success": (
+                    decision_log.execution_result.get("success", False)
+                    if decision_log.execution_result
+                    else False
+                ),
+                "latency_ms": (
+                    decision_log.execution_result.get("latency_ms")
+                    if decision_log.execution_result
+                    else None
+                ),
+                "cost": (
+                    decision_log.execution_result.get("cost")
+                    if decision_log.execution_result
+                    else None
+                ),
+                "created_at": (
+                    decision_log.timestamp.isoformat()
+                    if isinstance(decision_log.timestamp, datetime)
+                    else decision_log.timestamp
+                ),
             }
 
             # 保存文檔（如果已存在則更新）

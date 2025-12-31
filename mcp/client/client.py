@@ -1,7 +1,7 @@
 # 代碼功能說明: MCP Client 實現
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2025-12-30
 
 """MCP Client 核心實現"""
 
@@ -36,6 +36,7 @@ class MCPClient:
         max_retries: int = 3,
         retry_delay: float = 1.0,
         auto_reconnect: bool = True,
+        headers: Optional[Dict[str, str]] = None,
     ):
         """
         初始化 MCP Client
@@ -48,6 +49,7 @@ class MCPClient:
             max_retries: 最大重試次數
             retry_delay: 重試延遲（秒）
             auto_reconnect: 是否自動重連
+            headers: 自定義請求頭（用於認證等）
         """
         self.endpoint = endpoint
         self.client_name = client_name
@@ -56,12 +58,24 @@ class MCPClient:
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.auto_reconnect = auto_reconnect
-        self.client = httpx.AsyncClient(timeout=timeout)
+        self.headers = headers or {}
+        self.client = httpx.AsyncClient(timeout=timeout, headers=self.headers)
         self.initialized = False
         self.protocol_version: Optional[str] = None
         self.server_info: Optional[Dict[str, Any]] = None
         self.tools: List[MCPTool] = []
         self.request_id_counter = 0
+
+    def set_headers(self, headers: Dict[str, str]) -> None:
+        """
+        設置請求頭（用於認證等）
+
+        Args:
+            headers: 請求頭字典
+        """
+        self.headers.update(headers)
+        # 重新創建 client 以應用新的請求頭
+        self.client = httpx.AsyncClient(timeout=self.timeout, headers=self.headers)
 
     async def initialize(self) -> Dict[str, Any]:
         """

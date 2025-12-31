@@ -670,9 +670,7 @@ class OntologyStoreService:
                     op_dict = (
                         op
                         if isinstance(op, dict)
-                        else op.model_dump()
-                        if hasattr(op, "model_dump")
-                        else {}
+                        else op.model_dump() if hasattr(op, "model_dump") else {}
                     )
                     rel_name = op_dict.get("name", "")
                     if rel_name:
@@ -707,9 +705,7 @@ class OntologyStoreService:
                             ec_dict = (
                                 ec
                                 if isinstance(ec, dict)
-                                else ec.model_dump()
-                                if hasattr(ec, "model_dump")
-                                else {}
+                                else ec.model_dump() if hasattr(ec, "model_dump") else {}
                             )
                             entity_name = ec_dict.get("name", "")
                             if entity_name:
@@ -719,9 +715,7 @@ class OntologyStoreService:
                             op_dict = (
                                 op
                                 if isinstance(op, dict)
-                                else op.model_dump()
-                                if hasattr(op, "model_dump")
-                                else {}
+                                else op.model_dump() if hasattr(op, "model_dump") else {}
                             )
                             rel_name = op_dict.get("name", "")
                             if rel_name and rel_name not in merged_rules["relationship_types"]:
@@ -751,9 +745,7 @@ class OntologyStoreService:
                             ec_dict = (
                                 ec
                                 if isinstance(ec, dict)
-                                else ec.model_dump()
-                                if hasattr(ec, "model_dump")
-                                else {}
+                                else ec.model_dump() if hasattr(ec, "model_dump") else {}
                             )
                             entity_name = ec_dict.get("name", "")
                             if entity_name:
@@ -763,9 +755,7 @@ class OntologyStoreService:
                             op_dict = (
                                 op
                                 if isinstance(op, dict)
-                                else op.model_dump()
-                                if hasattr(op, "model_dump")
-                                else {}
+                                else op.model_dump() if hasattr(op, "model_dump") else {}
                             )
                             rel_name = op_dict.get("name", "")
                             if rel_name and rel_name not in merged_rules["relationship_types"]:

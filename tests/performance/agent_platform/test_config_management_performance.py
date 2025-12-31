@@ -70,7 +70,7 @@ class TestConfigManagementPerformance:
             loader.load_all()
 
             start_time = time.time()
-            definition = loader.get_definition("genai.policy")
+            loader.get_definition("genai.policy")
             elapsed_time = (time.time() - start_time) * 1000  # 轉換為毫秒
 
             # 驗證性能指標（10ms）

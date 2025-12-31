@@ -1,7 +1,7 @@
-# 代碼功能說明: Task Analyzer 核心邏輯實現
+# 代碼功能說明: Task Analyzer 核心邏輯實現（4 層漸進式路由架構）
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-21
+# 最後修改日期: 2025-12-30
 
 """Task Analyzer 核心實現 - 整合任務分析、分類、路由和工作流選擇"""
 
@@ -67,10 +67,23 @@ class TaskAnalyzer:
         # 生成任務ID
         task_id = str(uuid.uuid4())
 
-        # 步驟1: Pre-Filter（快速規則檢查簡單查詢）
+        # ============================================
+        # Layer 0: Cheap Gating（快速過濾）
+        # ============================================
         if self._is_simple_query(request.task):
             return await self._handle_simple_query(request, task_id)
 
+        # ============================================
+        # Layer 1: Fast Answer Layer（高級 LLM 直接回答）
+        # ============================================
+        direct_answer_result = await self._try_direct_answer(request, task_id)
+        if direct_answer_result:
+            logger.info(f"Layer 1: Direct answer returned for query: {request.task[:100]}...")
+            return direct_answer_result  # 直接返回，不進入 Layer 2/3
+
+        # ============================================
+        # Layer 2: Semantic Intent Analysis（語義意圖分析）
+        # ============================================
         # 步驟2: Router 前置 Recall（可選，提供 Context Bias）
         similar_decisions = []
         try:
@@ -80,34 +93,67 @@ class TaskAnalyzer:
         except Exception as e:
             logger.warning(f"Failed to recall similar decisions: {e}")
 
-        # 步驟3: Router LLM（新架構）
+        # 步驟3: Router LLM（意圖分類）
         router_input = RouterInput(
             user_query=request.task,
             session_context=request.context or {},
             system_constraints=self.rule_override.get_system_constraints(request.task),
         )
 
+        logger.info(f"Layer 2: Calling Router LLM for query: {request.task[:100]}...")
         router_output = await self.router_llm.route(router_input, similar_decisions)
+        logger.info(
+            f"Layer 2: Router LLM output - intent_type={router_output.intent_type}, "
+            f"needs_tools={router_output.needs_tools}, needs_agent={router_output.needs_agent}, "
+            f"complexity={router_output.complexity}, confidence={router_output.confidence}"
+        )
 
         # 步驟4: Rule Override（硬性規則覆蓋）
         router_output = self.rule_override.apply(router_output, request.task)
+        logger.debug(
+            f"Layer 2: After Rule Override - needs_tools={router_output.needs_tools}, needs_agent={router_output.needs_agent}"
+        )
 
-        # 步驟5: Capability Matching
+        # ============================================
+        # Layer 3: Decision Engine（完整決策引擎）
+        # ============================================
+        # 步驟5: Capability Matching（能力匹配）
         agent_candidates = await self.capability_matcher.match_agents(
             router_output, request.context
         )
-        tool_candidates = await self.capability_matcher.match_tools(router_output, request.context)
+        # 將查詢文本添加到 context 中，供 Capability Matcher 使用
+        enhanced_context = (request.context or {}).copy()
+        enhanced_context["task"] = request.task
+        enhanced_context["query"] = request.task
+        tool_candidates = await self.capability_matcher.match_tools(router_output, enhanced_context)
+        logger.info(
+            f"Layer 3: Capability Matcher found {len(tool_candidates)} tool candidates: "
+            f"{[c.candidate_id for c in tool_candidates[:5]]}"
+        )
         model_candidates = await self.capability_matcher.match_models(
             router_output, request.context
         )
+        logger.info(
+            f"Layer 3: Capability Matcher found {len(model_candidates)} model candidates: "
+            f"{[c.candidate_id for c in model_candidates[:5]]}"
+        )
 
         # 步驟6: Decision Engine（綜合決策）
+        logger.info(
+            f"Layer 3: Calling Decision Engine with {len(agent_candidates)} agent candidates, "
+            f"{len(tool_candidates)} tool candidates, {len(model_candidates)} model candidates"
+        )
         decision_result = self.decision_engine.decide(
             router_output,
             agent_candidates,
             tool_candidates,
             model_candidates,
             request.context,
+        )
+        logger.info(
+            f"Layer 3: Decision Engine result - chosen_tools={decision_result.chosen_tools}, "
+            f"chosen_agent={decision_result.chosen_agent}, chosen_model={decision_result.chosen_model}, "
+            f"score={decision_result.score}, fallback_used={decision_result.fallback_used}"
         )
 
         # 步驟7: 傳統流程（向後兼容）
@@ -169,16 +215,16 @@ class TaskAnalyzer:
                 "reasoning": llm_routing.reasoning,
                 "fallback_providers": [p.value for p in llm_routing.fallback_providers],
             },
-            "router_decision": router_output.model_dump()
-            if hasattr(router_output, "model_dump")
-            else router_output.dict()
-            if hasattr(router_output, "dict")
-            else router_output,
-            "decision_result": decision_result.model_dump()
-            if hasattr(decision_result, "model_dump")
-            else decision_result.dict()
-            if hasattr(decision_result, "dict")
-            else decision_result,
+            "router_decision": (
+                router_output.model_dump()
+                if hasattr(router_output, "model_dump")
+                else router_output.dict() if hasattr(router_output, "dict") else router_output
+            ),
+            "decision_result": (
+                decision_result.model_dump()
+                if hasattr(decision_result, "model_dump")
+                else decision_result.dict() if hasattr(decision_result, "dict") else decision_result
+            ),
         }
 
         # 如果是混合模式，添加 strategy 信息
@@ -210,9 +256,7 @@ class TaskAnalyzer:
             analysis_details["intent"] = (
                 intent.model_dump()
                 if hasattr(intent, "model_dump")
-                else intent.dict()
-                if hasattr(intent, "dict")
-                else intent
+                else intent.dict() if hasattr(intent, "dict") else intent
             )
 
             # 如果是 ConfigIntent，提取澄清信息並添加到分析詳情中
@@ -256,7 +300,7 @@ class TaskAnalyzer:
 
     def _is_simple_query(self, task: str) -> bool:
         """
-        判斷是否為簡單查詢（可以跳過 Router LLM）
+        Layer 0: 判斷是否為簡單查詢（極簡單的情況，直接處理）
 
         Args:
             task: 任務描述
@@ -267,7 +311,299 @@ class TaskAnalyzer:
         # 簡單查詢的關鍵詞
         simple_keywords = ["你好", "hello", "hi", "謝謝", "thanks"]
         task_lower = task.lower().strip()
-        return task_lower in simple_keywords or len(task_lower) < 10
+
+        # 檢查是否是簡單關鍵詞（完全匹配）
+        if task_lower in simple_keywords:
+            return True
+
+        # 檢查長度（但必須排除需要工具的查詢）
+        if len(task_lower) < 10:
+            # 即使長度很短，如果包含工具指示詞，也不視為簡單查詢
+            tool_indicators = [
+                "股價",
+                "股票",
+                "天氣",
+                "匯率",
+                "時間",
+                "時刻",
+                "位置",
+                "stock price",
+                "weather",
+                "exchange rate",
+                "location",
+                "time",
+            ]
+            if any(keyword in task_lower for keyword in tool_indicators):
+                return False  # 需要工具，不是簡單查詢
+            return True
+
+        return False
+
+    def _is_direct_answer_candidate(self, task: str) -> bool:
+        """
+        Layer 0: 判斷是否為 Direct Answer Candidate（可以用 LLM 直接回答的候選）
+
+        Args:
+            task: 任務描述
+
+        Returns:
+            是否為 Direct Answer Candidate
+        """
+        task_lower = task.lower().strip()
+
+        # 定義工具指示詞（需要在多個地方使用）
+        tool_indicators = [
+            "股價",
+            "股票",
+            "天氣",
+            "匯率",
+            "時間",
+            "時刻",
+            "位置",
+            "stock price",
+            "weather",
+            "exchange rate",
+            "location",
+            "time",
+        ]
+
+        # 定義動作關鍵詞
+        action_keywords = ["幫我", "幫", "執行", "運行", "查詢", "獲取", "幫我查", "幫我找"]
+
+        # 1. 檢查是否有副作用關鍵詞（需要系統行動）
+        if any(keyword in task_lower for keyword in action_keywords):
+            return False  # 需要系統行動
+
+        # 2. 檢查是否涉及內部狀態/工具（需要工具）
+        if any(keyword in task_lower for keyword in tool_indicators):
+            return False  # 需要工具
+
+        # 3. 長度檢查（必須在工具檢查之後）
+        if len(task_lower) < 10:
+            return True
+
+        # 4. Factoid / Definition 模式
+        factoid_patterns = [
+            r"什麼是\s*\w+",  # "什麼是 DevSecOps?"
+            r"什麼叫\s*\w+",
+            r"^[\w\s]+是哪家公司",  # "HCI 是哪家公司？"
+            r"^[\w\s]+是什麼",
+            r"^what is\s+\w+",
+            r"^what are\s+\w+",
+            r"^who is\s+\w+",
+            r"^where is\s+\w+",
+        ]
+        if any(re.match(pattern, task_lower) for pattern in factoid_patterns):
+            return True
+
+        return True  # 默認：嘗試直接回答
+
+    async def _try_direct_answer(
+        self, request: TaskAnalysisRequest, task_id: str
+    ) -> Optional[TaskAnalysisResult]:
+        """
+        Layer 1: Internal Knowledge / Embeddings / Retrieval（内部知识检索）
+
+        优化策略（ChatGPT 优化流程）：
+        1. 优先使用内部知识库检索（向量检索 + 知识图谱）
+        2. 如果内部知识库可以回答 → 直接返回结果
+        3. 如果内部知识库无法回答 → Fallback 到高级 LLM
+        4. 如果 LLM 判断需要系统行动 → 进入 Layer 2/3
+
+        Args:
+            request: 任務分析請求
+            task_id: 任務 ID
+
+        Returns:
+            如果能直接回答，返回結果；否則返回 None（進入 Layer 2/3）
+        """
+        # 先檢查是否為 Direct Answer Candidate
+        is_direct_answer = self._is_direct_answer_candidate(request.task)
+        logger.info(
+            f"Layer 1: _is_direct_answer_candidate check - task='{request.task[:100]}...', result={is_direct_answer}"
+        )
+        if not is_direct_answer:
+            logger.info(
+                f"Layer 1: Not a direct answer candidate, entering Layer 2/3: {request.task[:100]}..."
+            )
+            return None  # 進入 Layer 2/3
+
+        # ===== 步骤 1: 优先使用内部知识库检索 =====
+        memory_result = None
+        retrieval_context = None
+        try:
+            from services.api.services.chat_memory_service import get_chat_memory_service
+
+            memory_service = get_chat_memory_service()
+            user_id = request.context.get("user_id", "system") if request.context else "system"
+            session_id = request.context.get("session_id", task_id) if request.context else task_id
+
+            # 检索内部知识库（向量检索 + 知识图谱）
+            memory_result = await memory_service.retrieve_for_prompt(
+                user_id=user_id,
+                session_id=session_id,
+                task_id=task_id,
+                request_id=task_id,
+                query=request.task,
+                attachments=None,  # Layer 1 不处理附件
+            )
+
+            # 判断内部知识库是否足够回答
+            # 如果检索到相关内容（memory_hit_count > 0 且相似度足够高），尝试直接回答
+            if memory_result and memory_result.memory_hit_count > 0:
+                logger.info(
+                    f"Layer 1: Found {memory_result.memory_hit_count} relevant memories, "
+                    f"attempting direct answer from internal knowledge"
+                )
+
+                # 使用检索到的内容构建回答
+                # 这里可以进一步优化：使用小模型基于检索内容生成答案
+                # 目前先 fallback 到 LLM，但将检索内容作为上下文
+                retrieval_context = "\n".join(
+                    [msg.get("content", "") for msg in memory_result.injection_messages]
+                )
+
+                # 如果检索内容足够丰富，可以尝试直接返回（简化版）
+                # 这里我们仍然使用 LLM 来整合检索内容，但成本更低（因为有了上下文）
+                # 未来可以进一步优化：使用小模型或规则引擎直接生成答案
+
+        except Exception as e:
+            logger.warning(
+                f"Layer 1: Internal knowledge retrieval failed: {e}, falling back to LLM"
+            )
+            retrieval_context = None
+
+        # ===== 步骤 2: Fallback 到高级 LLM（如果内部知识库无法回答） =====
+        try:
+            from llm.clients.factory import LLMClientFactory
+            from services.api.models.llm_model import LLMProvider
+
+            # 使用高級 LLM（優先 OpenAI，備選 Gemini）
+            try:
+                client = LLMClientFactory.create_client(LLMProvider.OPENAI, use_cache=True)
+                model_name = "gpt-4o"
+            except Exception:
+                try:
+                    client = LLMClientFactory.create_client(LLMProvider.GOOGLE, use_cache=True)
+                    model_name = "gemini-1.5-pro"
+                except Exception:
+                    logger.warning("Failed to initialize high-end LLM, falling back to Layer 2/3")
+                    return None
+
+            # 構建 System Prompt（關鍵！）
+            system_prompt = """You are a helpful AI assistant.
+
+Before answering, determine:
+1. Does this question require real-time data or external tools?
+2. Does this question require accessing internal system state?
+3. Does this question require performing actions or operations?
+
+If YES to any → Respond with ONLY: {"needs_system_action": true}
+If NO → Answer the question directly and completely.
+
+Examples:
+- "什麼是 DevSecOps?" → Answer directly (provide definition and explanation)
+- "台積電今天的股價" → {"needs_system_action": true}
+- "幫我執行資料整合" → {"needs_system_action": true}
+- "HCI 是哪家公司？" → Answer directly (provide company information)
+
+Important: If you can answer the question using only your knowledge, answer it.
+Only return {"needs_system_action": true} if you truly need external tools or system actions."""
+
+            # 如果有检索上下文，添加到消息中
+            messages = [{"role": "system", "content": system_prompt}]
+            if retrieval_context:
+                messages.append(
+                    {
+                        "role": "system",
+                        "content": f"以下是从内部知识库检索到的相关内容：\n{retrieval_context}\n\n请基于这些内容回答用户的问题。",
+                    }
+                )
+            messages.append({"role": "user", "content": request.task})
+
+            response = await client.chat(messages=messages, model=model_name)
+            content = response.get("content", "")
+
+            # 檢查是否需要系統行動
+            if content.strip().startswith("{") and "needs_system_action" in content:
+                try:
+                    result_dict = json.loads(content.strip())
+                    if result_dict.get("needs_system_action") is True:
+                        logger.info("Layer 1: Needs system action, entering Layer 2/3")
+                        return None  # 需要進入 Layer 2/3
+                except (json.JSONDecodeError, KeyError):
+                    pass
+
+            # 直接回答成功
+            from agents.task_analyzer.models import DecisionResult
+            from agents.task_analyzer.models import LLMProvider as TaskLLMProvider
+            from agents.task_analyzer.models import RouterDecision, TaskType, WorkflowType
+
+            router_decision = RouterDecision(
+                intent_type="conversation",
+                complexity="low",
+                needs_agent=False,
+                needs_tools=False,
+                determinism_required=False,
+                risk_level="low",
+                confidence=0.9,
+            )
+
+            decision_result = DecisionResult(
+                router_result=router_decision,
+                chosen_agent=None,
+                chosen_tools=[],
+                chosen_model=model_name,
+                score=0.9,
+                fallback_used=False,
+                reasoning="Layer 1: Direct answer from internal knowledge + high-end LLM",
+            )
+
+            return TaskAnalysisResult(
+                task_id=task_id,
+                task_type=TaskType.QUERY,
+                workflow_type=WorkflowType.LANGCHAIN,
+                llm_provider=(
+                    TaskLLMProvider.CHATGPT if "gpt" in model_name else TaskLLMProvider.GEMINI
+                ),
+                confidence=0.9,
+                requires_agent=False,
+                analysis_details={
+                    "direct_answer": True,
+                    "response": content,
+                    "internal_knowledge_used": (
+                        memory_result.memory_hit_count > 0 if memory_result is not None else False
+                    ),
+                    "layer": "layer_1_fast_answer",
+                    "model": model_name,
+                    "router_decision": (
+                        router_decision.model_dump()
+                        if hasattr(router_decision, "model_dump")
+                        else (
+                            router_decision.dict()
+                            if hasattr(router_decision, "dict")
+                            else router_decision
+                        )
+                    ),
+                    "decision_result": (
+                        decision_result.model_dump()
+                        if hasattr(decision_result, "model_dump")
+                        else (
+                            decision_result.dict()
+                            if hasattr(decision_result, "dict")
+                            else decision_result
+                        )
+                    ),
+                },
+                suggested_agents=[],
+                router_decision=router_decision,
+                decision_result=decision_result,
+                suggested_tools=[],
+            )
+
+        except Exception as e:
+            logger.warning(f"Layer 1 failed, falling back to Layer 2/3: {e}")
+            return None  # 失敗時進入 Layer 2/3
 
     async def _handle_simple_query(
         self, request: TaskAnalysisRequest, task_id: str
@@ -313,16 +649,24 @@ class TaskAnalyzer:
             confidence=1.0,
             requires_agent=False,
             analysis_details={
-                "router_decision": router_decision.model_dump()
-                if hasattr(router_decision, "model_dump")
-                else router_decision.dict()
-                if hasattr(router_decision, "dict")
-                else router_decision,
-                "decision_result": decision_result.model_dump()
-                if hasattr(decision_result, "model_dump")
-                else decision_result.dict()
-                if hasattr(decision_result, "dict")
-                else decision_result,
+                "router_decision": (
+                    router_decision.model_dump()
+                    if hasattr(router_decision, "model_dump")
+                    else (
+                        router_decision.dict()
+                        if hasattr(router_decision, "dict")
+                        else router_decision
+                    )
+                ),
+                "decision_result": (
+                    decision_result.model_dump()
+                    if hasattr(decision_result, "model_dump")
+                    else (
+                        decision_result.dict()
+                        if hasattr(decision_result, "dict")
+                        else decision_result
+                    )
+                ),
             },
             suggested_agents=[],
             router_decision=router_decision,
@@ -563,8 +907,18 @@ class TaskAnalyzer:
 
             # 獲取 LLM 客戶端
             from llm.clients.factory import LLMClientFactory
+            from services.api.models.llm_model import LLMProvider as APILLMProvider
 
-            client = LLMClientFactory.create_client(llm_routing.provider, use_cache=True)
+            # 將 llm_routing.provider (agents.task_analyzer.models.LLMProvider)
+            # 轉換為 services.api.models.llm_model.LLMProvider
+            provider_value = llm_routing.provider.value
+            try:
+                provider_enum = APILLMProvider(provider_value)
+            except ValueError:
+                # 如果轉換失敗，使用默認值
+                provider_enum = APILLMProvider.OPENAI
+
+            client = LLMClientFactory.create_client(provider_enum, use_cache=True)
 
             # 構建 System Prompt（詳細版本，參考 Orchestrator 規格書 3.1.4 節）
             system_prompt = """Role: 你是 AI-Box 的 Task Analyzer。

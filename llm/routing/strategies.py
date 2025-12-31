@@ -104,7 +104,10 @@ class TaskTypeBasedStrategy(BaseRoutingStrategy):
             # 選擇得分最高的提供商
             provider = max(rules.items(), key=lambda x: x[1])[0]
             confidence = rules[provider]
-            reasoning = f"根據任務類型 {task_type.value}，選擇 {provider.value} 提供商，" f"置信度 {confidence:.2f}"
+            reasoning = (
+                f"根據任務類型 {task_type.value}，選擇 {provider.value} 提供商，"
+                f"置信度 {confidence:.2f}"
+            )
 
         return RoutingResult(
             provider=provider,
@@ -311,7 +314,9 @@ class CostBasedStrategy(BaseRoutingStrategy):
             # 選擇成本最低的提供商
             provider = min(self.cost_scores.items(), key=lambda x: x[1])[0]
             confidence = 0.8
-            reasoning = f"成本敏感任務，選擇 {provider.value}（成本評分：{self.cost_scores[provider]:.2f}）"
+            reasoning = (
+                f"成本敏感任務，選擇 {provider.value}（成本評分：{self.cost_scores[provider]:.2f}）"
+            )
         else:
             # 平衡成本和質量，選擇中等成本的提供商
             sorted_providers = sorted(self.cost_scores.items(), key=lambda x: x[1])

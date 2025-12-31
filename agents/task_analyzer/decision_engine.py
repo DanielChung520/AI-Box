@@ -81,7 +81,9 @@ class DecisionEngine:
             mode = "hybrid"
             primary = WorkflowType.AUTOGEN
             fallback = [WorkflowType.LANGCHAIN]
-            reasoning_parts.append(f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式")
+            reasoning_parts.append(
+                f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式"
+            )
 
         # 規則 3: 需要可觀測性 → LangGraph 作為主要模式
         elif requires_observability:
@@ -249,27 +251,54 @@ class DecisionEngine:
                 reasoning_parts.append(
                     f"選擇 Agent: {chosen_agent} (評分: {best_agent.total_score:.2f})"
                 )
+                logger.info(
+                    f"Decision Engine: Selected agent: {chosen_agent} (score: {best_agent.total_score:.2f})"
+                )
             else:
-                reasoning_parts.append(f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent")
+                logger.info(
+                    f"Decision Engine: No agent selected (best score {best_agent.total_score:.2f} < 0.5)"
+                )
+                reasoning_parts.append(
+                    f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent"
+                )
+        else:
+            logger.debug(
+                f"Decision Engine: No agent selection - needs_agent={router_decision.needs_agent}, candidates_count={len(agent_candidates)}"
+            )
 
         # 3. 選擇 Tool
         chosen_tools = []
         if router_decision.needs_tools and tool_candidates:
+            logger.info(f"Decision Engine: Selecting tools from {len(tool_candidates)} candidates")
             # 選擇評分最高的工具（可以選擇多個）
             sorted_tools = sorted(tool_candidates, key=lambda x: x.total_score, reverse=True)
+            logger.debug(
+                f"Decision Engine: Top tool candidates: {[(t.candidate_id, t.total_score) for t in sorted_tools[:5]]}"
+            )
             for tool in sorted_tools[:3]:  # 最多選擇 3 個工具
                 if tool.total_score >= 0.5:  # 最低可接受評分
                     chosen_tools.append(tool.candidate_id)
                     reasoning_parts.append(
                         f"選擇 Tool: {tool.candidate_id} (評分: {tool.total_score:.2f})"
                     )
+                    logger.info(
+                        f"Decision Engine: Selected tool: {tool.candidate_id} (score: {tool.total_score:.2f})"
+                    )
+            if not chosen_tools:
+                logger.info("Decision Engine: No tools selected (all scores < 0.5)")
+        else:
+            logger.debug(
+                f"Decision Engine: No tool selection - needs_tools={router_decision.needs_tools}, candidates_count={len(tool_candidates)}"
+            )
 
         # 4. 選擇 Model
         chosen_model = None
         if model_candidates:
             best_model = max(model_candidates, key=lambda x: x.total_score)
             chosen_model = best_model.candidate_id
-            reasoning_parts.append(f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})")
+            reasoning_parts.append(
+                f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})"
+            )
 
         # 5. 計算總評分
         scores = []

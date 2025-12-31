@@ -14,7 +14,9 @@ class Entity(BaseModel):
     """實體模型"""
 
     text: str = Field(..., description="實體文本")
-    label: str = Field(..., description="實體類型（PERSON, ORG, LOC, DATE, MONEY, PRODUCT, EVENT 等）")
+    label: str = Field(
+        ..., description="實體類型（PERSON, ORG, LOC, DATE, MONEY, PRODUCT, EVENT 等）"
+    )
     start: int = Field(..., description="實體在文本中的起始位置")
     end: int = Field(..., description="實體在文本中的結束位置")
     confidence: float = Field(..., ge=0.0, le=1.0, description="置信度（0-1）")
@@ -24,14 +26,18 @@ class NERRequest(BaseModel):
     """NER 請求模型"""
 
     text: str = Field(..., description="待識別的文本")
-    model_type: Optional[str] = Field(None, description="指定使用的模型類型（spacy/ollama），不指定則使用配置默認值")
+    model_type: Optional[str] = Field(
+        None, description="指定使用的模型類型（spacy/ollama），不指定則使用配置默認值"
+    )
 
 
 class NERBatchRequest(BaseModel):
     """NER 批量請求模型"""
 
     texts: List[str] = Field(..., description="待識別的文本列表")
-    model_type: Optional[str] = Field(None, description="指定使用的模型類型（spacy/ollama），不指定則使用配置默認值")
+    model_type: Optional[str] = Field(
+        None, description="指定使用的模型類型（spacy/ollama），不指定則使用配置默認值"
+    )
 
 
 class NERResponse(BaseModel):

@@ -124,7 +124,7 @@ class TestDefinitionLoader:
             json.dump(sample_definition, f)
 
         loader = DefinitionLoader(definitions_dir=temp_dir)
-        definitions1 = loader.load_all()
+        loader.load_all()
 
         # 修改定義文件
         sample_definition["version"] = "2.0.0"
@@ -157,7 +157,7 @@ class TestDefinitionLoader:
 
     def test_get_definition_loader_singleton(self):
         """測試單例模式"""
-        with patch("services.api.core.config.definition_loader.DefinitionLoader") as mock_loader:
+        with patch("services.api.core.config.definition_loader.DefinitionLoader"):
             loader1 = get_definition_loader()
             loader2 = get_definition_loader()
             # 在單例模式下，應該返回同一個實例

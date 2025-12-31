@@ -60,9 +60,9 @@ def _load_from_arangodb() -> Optional[Dict[str, Any]]:
 
         return {
             "version": "1.0.0",
-            "last_updated": tools[0].updated_at.isoformat()
-            if tools and tools[0].updated_at
-            else None,
+            "last_updated": (
+                tools[0].updated_at.isoformat() if tools and tools[0].updated_at else None
+            ),
             "description": "AI-Box 工具註冊清單，從 ArangoDB 載入",
             "tools": tools_list,
         }

@@ -34,7 +34,7 @@ async def get_models(
     search: Optional[str] = None,
     include_discovered: bool = True,
     include_favorite_status: bool = True,
-    limit: int = 100,
+    limit: int = 1000,  # 增加默認限制，確保返回所有模型
     offset: int = 0,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:

@@ -18,17 +18,20 @@
 4. **[知识图谱系统](./知识图谱系统.md)** - ArangoDB图存储与NER/RE/RT提取
 5. **[Ontology系统](./Ontology系统.md)** - 3-tier架构（base/domain/major）
 6. **[MoE系统](./MoE系统.md)** - Multi-model专家模型架构
-7. **[生成式AI链式处理系统](./生成式AI链式处理系统.md)** - System prompt与文件处理流程
-8. **[部署架构](./部署架构.md)** - 混合部署、k8s、Redis Worker
-9. **[存储架构](./存储架构.md)** - SeaweedFS双服务架构与S3存储实现
+7. **[MCP工具系统](./MCP工具/)** - Model Context Protocol 工具系统
+   - [MCP工具系统规格](./MCP工具/MCP工具.md) - 工具系统详细规格
+   - [Cloudflare MCP Gateway 设置指南](./MCP工具/Cloudflare-MCP-Gateway-设置指南.md) - Gateway 设置指南
+8. **[生成式AI链式处理系统](./生成式AI链式处理系统.md)** - System prompt与文件处理流程
+9. **[部署架构](./部署架构.md)** - 混合部署、k8s、Redis Worker
+10. **[存储架构](./存储架构.md)** - SeaweedFS双服务架构与S3存储实现
 
 ### 前端组件
 
-9. **[IEE前端系统](./IEE前端系统.md)** - Intelligent Editor Environment
+11. **[IEE前端系统](./IEE前端系统.md)** - Intelligent Editor Environment
 
 ### 规划中组件
 
-10. **[Personal Data / RoLA](./Personal-Data-RoLA.md)** - 个人化学习系统（规划中）
+12. **[Personal Data / RoLA](./Personal-Data-RoLA.md)** - 个人化学习系统（规划中）
 
 ---
 
@@ -40,4 +43,4 @@
 
 ---
 
-**最后更新日期**: 2025-12-25
+**最后更新日期**: 2025-12-31

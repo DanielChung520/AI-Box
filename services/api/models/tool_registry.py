@@ -34,7 +34,9 @@ class ToolInfo(BaseModel):
     description: str = Field(description="工具簡短描述")
     purpose: str = Field(description="工具用途說明（詳細說明工具的用途）")
     use_cases: List[str] = Field(description="使用場景列表（工具適用的場景）")
-    input_parameters: Dict[str, ToolParameterInfo] = Field(description="輸入參數說明（參數名稱、類型、必填、描述）")
+    input_parameters: Dict[str, ToolParameterInfo] = Field(
+        description="輸入參數說明（參數名稱、類型、必填、描述）"
+    )
     output_fields: Dict[str, str] = Field(description="輸出字段說明（字段名稱和描述）")
     example_scenarios: List[str] = Field(description="示例場景（具體的使用示例）")
 

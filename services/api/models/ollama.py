@@ -36,7 +36,9 @@ class OllamaGenerateRequest(BaseModel):
     format: Optional[str] = Field(None, description="輸出格式（例如 'json'）")
     keep_alive: Optional[str] = Field(None, description="模型保活時間")
     options: Optional[OllamaOptions] = None
-    idempotency_key: Optional[str] = Field(None, description="對應 Ollama 的 Idempotency-Key header")
+    idempotency_key: Optional[str] = Field(
+        None, description="對應 Ollama 的 Idempotency-Key header"
+    )
 
 
 class ChatMessage(BaseModel):

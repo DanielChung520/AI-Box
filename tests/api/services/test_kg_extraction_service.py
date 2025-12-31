@@ -15,11 +15,10 @@ from services.api.services.kg_extraction_service import KGExtractionService
 @pytest.fixture
 def kg_extraction_service():
     """創建知識圖譜提取服務實例"""
-    with patch(
-        "services.api.services.kg_extraction_service.TripleExtractionService"
-    ) as mock_triple, patch(
-        "services.api.services.kg_extraction_service.KGBuilderService"
-    ) as mock_kg_builder:
+    with (
+        patch("services.api.services.kg_extraction_service.TripleExtractionService") as mock_triple,
+        patch("services.api.services.kg_extraction_service.KGBuilderService") as mock_kg_builder,
+    ):
         service = KGExtractionService()
         service.triple_extraction_service = mock_triple.return_value
         service.kg_builder_service = mock_kg_builder.return_value

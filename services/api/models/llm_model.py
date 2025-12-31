@@ -64,7 +64,9 @@ class LLMModelBase(BaseModel):
     name: str = Field(..., description="模型顯示名稱（例如：GPT-4 Turbo）")
     provider: LLMProvider = Field(..., description="提供商")
     description: Optional[str] = Field(None, description="模型描述")
-    capabilities: List[ModelCapability] = Field(default_factory=list, description="模型支持的能力列表")
+    capabilities: List[ModelCapability] = Field(
+        default_factory=list, description="模型支持的能力列表"
+    )
     status: ModelStatus = Field(ModelStatus.ACTIVE, description="模型狀態")
     context_window: Optional[int] = Field(None, description="上下文窗口大小（tokens）")
     max_output_tokens: Optional[int] = Field(None, description="最大輸出 tokens")
@@ -80,10 +82,14 @@ class LLMModelBase(BaseModel):
     source: Optional[str] = Field(
         "database", description="模型來源: database(數據庫)/ollama_discovered(動態發現)"
     )
-    ollama_endpoint: Optional[str] = Field(None, description="Ollama 服務器端點（如果是動態發現的模型）")
+    ollama_endpoint: Optional[str] = Field(
+        None, description="Ollama 服務器端點（如果是動態發現的模型）"
+    )
     ollama_node: Optional[str] = Field(None, description="Ollama 節點名稱（例如: localhost:11434）")
     is_favorite: Optional[bool] = Field(None, description="用戶是否收藏（僅在用戶查詢時填充）")
-    is_active: Optional[bool] = Field(None, description="模型是否可用（根據 Provider API Key 配置和模型狀態判斷）")
+    is_active: Optional[bool] = Field(
+        None, description="模型是否可用（根據 Provider API Key 配置和模型狀態判斷）"
+    )
 
 
 class LLMModelCreate(LLMModelBase):
