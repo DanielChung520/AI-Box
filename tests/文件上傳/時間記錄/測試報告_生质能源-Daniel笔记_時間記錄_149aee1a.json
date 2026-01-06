@@ -1,0 +1,113 @@
+{
+  "file_id": "149aee1a-89da-4b07-a83c-634fb29246e2",
+  "測試時間": "2026-01-04 00:05:53",
+  "時間記錄": [
+    {
+      "event": "開始登錄",
+      "timestamp": 1767455751.356413,
+      "datetime": "2026-01-03 23:55:51.356",
+      "details": {}
+    },
+    {
+      "event": "登錄成功",
+      "timestamp": 1767455751.362155,
+      "datetime": "2026-01-03 23:55:51.362",
+      "details": {
+        "耗時": "0.006秒",
+        "HTTP狀態": 200
+      }
+    },
+    {
+      "event": "開始上傳文件",
+      "timestamp": 1767455751.362196,
+      "datetime": "2026-01-03 23:55:51.362",
+      "details": {
+        "文件名": "生质能源-Daniel笔记.pdf",
+        "文件大小": "39.97 MB"
+      }
+    },
+    {
+      "event": "文件上傳成功",
+      "timestamp": 1767455751.446849,
+      "datetime": "2026-01-03 23:55:51.446",
+      "details": {
+        "耗時": "0.085秒",
+        "File ID": "149aee1a-89da-4b07-a83c-634fb29246e2",
+        "文件名": "生质能源-Daniel笔记.pdf",
+        "文件類型": "application/pdf",
+        "文件大小": "39.97 MB"
+      }
+    },
+    {
+      "event": "開始監控處理進度",
+      "timestamp": 1767455751.447194,
+      "datetime": "2026-01-03 23:55:51.447",
+      "details": {
+        "最多等待": "600秒"
+      }
+    },
+    {
+      "event": "圖譜提取階段開始",
+      "timestamp": 1767455801.583504,
+      "datetime": "2026-01-03 23:56:41.583",
+      "details": {
+        "已用時": "50.13秒"
+      }
+    },
+    {
+      "event": "監控超時",
+      "timestamp": 1767456353.3714461,
+      "datetime": "2026-01-04 00:05:53.371",
+      "details": {
+        "已等待": "600秒"
+      }
+    },
+    {
+      "event": "處理完成（實際完成時間）",
+      "timestamp": 1767456377.797552,
+      "datetime": "2026-01-04 00:06:17.797",
+      "details": {
+        "分塊數": 4,
+        "向量數": 4,
+        "實體數 (NER)": 0,
+        "關係數 (RE)": 0,
+        "三元組數 (RT)": 0
+      }
+    }
+  ],
+  "階段耗時統計": {
+    "登錄": 0.005742073059082031,
+    "文件上傳": 0.08465313911437988,
+    "圖譜提取": 576.2140481472015,
+    "總處理時間": 626.3503580093384
+  },
+  "最終狀態": {
+    "overall_status": "completed",
+    "overall_progress": 100,
+    "chunking": {
+      "status": "completed",
+      "chunk_count": 4
+    },
+    "vectorization": {
+      "status": "completed",
+      "vector_count": 4
+    },
+    "storage": {
+      "status": "completed",
+      "vector_count": 4
+    },
+    "kg_extraction": {
+      "status": "completed",
+      "entities_count": 0,
+      "relations_count": 0,
+      "triples_count": 0
+    },
+    "kg_stats": {
+      "file_id": "149aee1a-89da-4b07-a83c-634fb29246e2",
+      "triples_count": 0,
+      "entities_count": 0,
+      "relations_count": 0,
+      "mode": "all_chunks"
+    }
+  }
+}

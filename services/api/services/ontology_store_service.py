@@ -1,7 +1,7 @@
 # 代碼功能說明: Ontology 存儲服務 - 提供 Ontology 的 CRUD 操作和多租戶支援
 # 創建日期: 2025-12-18 19:39:14 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-29
+# 最後修改日期: 2026-01-01
 
 """Ontology Store Service
 
@@ -440,7 +440,8 @@ class OntologyStoreService:
                     aql += " FILTER doc.type == @type"
                     bind_vars["type"] = type
 
-                aql += " LIMIT @limit OFFSET @skip RETURN doc"
+                # AQL LIMIT syntax: LIMIT offset, count
+                aql += " LIMIT @skip, @limit RETURN doc"
                 bind_vars["limit"] = limit or 100
                 bind_vars["skip"] = skip or 0
 
@@ -628,6 +629,166 @@ class OntologyStoreService:
             )
             raise
 
+    def _load_ontology_name_mapping(self) -> Dict[str, Dict[str, str]]:
+        """
+        從 ontology_list.json 載入文件名到 ontology_name 的映射
+
+        Returns:
+            包含 'domain' 和 'major' 兩個鍵的字典，每個鍵對應一個文件名到ontology_name的映射
+        """
+        mapping: Dict[str, Dict[str, str]] = {"domain": {}, "major": {}}
+
+        try:
+            from pathlib import Path
+            import json
+
+            # 嘗試找到 ontology_list.json（相對於項目根目錄）
+            # 先嘗試從當前文件所在位置推斷
+            current_file = Path(__file__).resolve()
+            # 從 services/api/services/ontology_store_service.py 向上找到項目根目錄
+            project_root = current_file.parent.parent.parent.parent
+            ontology_list_path = project_root / "kag" / "ontology" / "ontology_list.json"
+
+            if not ontology_list_path.exists():
+                # 如果找不到，嘗試其他可能的路徑
+                self._logger.warning(
+                    "ontology_list_file_not_found",
+                    path=str(ontology_list_path),
+                    message="無法找到 ontology_list.json，將使用fallback匹配策略",
+                )
+                return mapping
+
+            with open(ontology_list_path, "r", encoding="utf-8") as f:
+                ontology_list = json.load(f)
+
+            # 建立 domain 映射
+            for domain in ontology_list.get("domain_ontologies", []):
+                file_name = domain.get("file_name", "")
+                ontology_name = domain.get("ontology_name", "")
+                if file_name and ontology_name:
+                    mapping["domain"][file_name] = ontology_name
+
+            # 建立 major 映射
+            for major in ontology_list.get("major_ontologies", []):
+                file_name = major.get("file_name", "")
+                ontology_name = major.get("ontology_name", "")
+                if file_name and ontology_name:
+                    mapping["major"][file_name] = ontology_name
+
+            self._logger.debug(
+                "ontology_mapping_loaded",
+                domain_count=len(mapping["domain"]),
+                major_count=len(mapping["major"]),
+            )
+
+        except Exception as exc:
+            self._logger.warning(
+                "failed_to_load_ontology_mapping",
+                error=str(exc),
+                message="載入 ontology_list.json 失敗，將使用fallback匹配策略",
+            )
+
+        return mapping
+
+    def _find_ontology_by_file_or_name(
+        self,
+        file_name: str,
+        ontology_type: str,
+        tenant_id: Optional[str],
+        mapping: Dict[str, Dict[str, str]],
+    ) -> Optional["OntologyModel"]:
+        """
+        根據文件名或映射的ontology_name查找Ontology
+
+        Args:
+            file_name: Ontology文件名（如 "domain-enterprise.json"）
+            ontology_type: Ontology類型（"domain" 或 "major"）
+            tenant_id: 租戶ID
+            mapping: 文件名到ontology_name的映射
+
+        Returns:
+            找到的OntologyModel，如果未找到則返回None
+        """
+        # 策略1: 通過映射的ontology_name查找
+        type_mapping = mapping.get(ontology_type, {})
+        ontology_name_from_mapping = type_mapping.get(file_name)
+
+        if ontology_name_from_mapping:
+            # 從ontology_name提取name（例如 "Enterprise_Domain_Ontology" -> "Enterprise"）
+            # 但實際上，我們需要使用ontology_name來查找
+            # 讓我們先嘗試通過ontology_name查找
+            all_ontologies = self.list_ontologies(
+                tenant_id=tenant_id, type=ontology_type, is_active=True
+            )
+
+            for ontology in all_ontologies:
+                if ontology.ontology_name == ontology_name_from_mapping:
+                    return ontology
+
+            # 如果通過ontology_name找不到，嘗試通過name查找
+            # 從ontology_name推斷name（例如 "Enterprise_Domain_Ontology" -> "Enterprise"）
+            name_candidates = [
+                ontology_name_from_mapping.replace("_Domain_Ontology", ""),
+                ontology_name_from_mapping.replace("_Major_Ontology", ""),
+                ontology_name_from_mapping,
+            ]
+
+            for name_candidate in name_candidates:
+                ontology = self.get_ontology_with_priority(
+                    name_candidate, ontology_type, tenant_id
+                )
+                if ontology:
+                    return ontology
+
+        # 策略2: Fallback - 如果只有一個同類型的Ontology，直接使用它
+        all_ontologies = self.list_ontologies(
+            tenant_id=tenant_id, type=ontology_type, is_active=True
+        )
+
+        if len(all_ontologies) == 1:
+            self._logger.debug(
+                "using_fallback_ontology",
+                file_name=file_name,
+                ontology_type=ontology_type,
+                ontology_name=all_ontologies[0].ontology_name,
+                message="使用fallback策略：只有一個同類型的Ontology，直接使用",
+            )
+            return all_ontologies[0]
+
+        # 策略3: 嘗試在文件名和Ontology name之間進行模糊匹配
+        # 例如: "domain-ai-box.json" -> "AI_Box"
+        file_name_lower = file_name.lower().replace(".json", "")
+        for ontology in all_ontologies:
+            # 提取文件名中的關鍵部分（去掉prefix）
+            key_part = file_name_lower
+            if file_name_lower.startswith("domain-"):
+                key_part = file_name_lower.replace("domain-", "")
+            elif file_name_lower.startswith("major-"):
+                key_part = file_name_lower.replace("major-", "")
+
+            # 將key_part轉換為可能的name格式（例如 "ai-box" -> "ai_box" 或 "AI_Box"）
+            name_variations = [
+                key_part.replace("-", "_"),
+                key_part.replace("-", "_").title().replace("_", ""),
+                key_part.replace("-", "_").upper(),
+            ]
+
+            ontology_name_lower = ontology.name.lower()
+            ontology_name_clean = ontology_name_lower.replace("_", "").replace("-", "")
+
+            for variation in name_variations:
+                variation_clean = variation.lower().replace("_", "").replace("-", "")
+                if variation_clean == ontology_name_clean:
+                    self._logger.debug(
+                        "fuzzy_match_found",
+                        file_name=file_name,
+                        ontology_name=ontology.name,
+                        variation=variation,
+                    )
+                    return ontology
+
+        return None
+
     def merge_ontologies(
         self,
         domain_files: List[str],
@@ -687,89 +848,96 @@ class OntologyStoreService:
 
                 merged_rules["entity_classes"] = list(all_entities)
 
+            # 載入文件名到ontology_name的映射
+            file_name_mapping = self._load_ontology_name_mapping()
+
             # 2. 載入 domain ontologies
             for domain_file in domain_files:
-                # 從文件名提取 ontology_name（需要從實際數據中獲取）
-                # 這裡簡化處理，使用文件名推斷
-                domain_ontologies = self.list_ontologies(
-                    tenant_id=tenant_id, type="domain", is_active=True
+                # 使用新的查找方法
+                domain_ontology = self._find_ontology_by_file_or_name(
+                    domain_file, "domain", tenant_id, file_name_mapping
                 )
-                # 查找匹配的 domain ontology（根據文件名或名稱）
-                for domain_ontology in domain_ontologies:
-                    if any(
-                        domain_file in f
-                        for f in [domain_ontology.name, domain_ontology.ontology_name]
-                    ):
-                        # 合併實體和關係
-                        for ec in domain_ontology.entity_classes:
-                            ec_dict = (
-                                ec
-                                if isinstance(ec, dict)
-                                else ec.model_dump() if hasattr(ec, "model_dump") else {}
-                            )
-                            entity_name = ec_dict.get("name", "")
-                            if entity_name:
-                                merged_rules["entity_classes"].append(entity_name)
 
-                        for op in domain_ontology.object_properties:
-                            op_dict = (
-                                op
-                                if isinstance(op, dict)
-                                else op.model_dump() if hasattr(op, "model_dump") else {}
-                            )
-                            rel_name = op_dict.get("name", "")
-                            if rel_name and rel_name not in merged_rules["relationship_types"]:
-                                merged_rules["relationship_types"].append(rel_name)
+                if domain_ontology:
+                    # 合併實體和關係
+                    for ec in domain_ontology.entity_classes:
+                        ec_dict = (
+                            ec
+                            if isinstance(ec, dict)
+                            else ec.model_dump() if hasattr(ec, "model_dump") else {}
+                        )
+                        entity_name = ec_dict.get("name", "")
+                        if entity_name:
+                            merged_rules["entity_classes"].append(entity_name)
 
-                            if rel_name not in merged_rules["owl_domain_range"]:
-                                merged_rules["owl_domain_range"][rel_name] = []
+                    for op in domain_ontology.object_properties:
+                        op_dict = (
+                            op
+                            if isinstance(op, dict)
+                            else op.model_dump() if hasattr(op, "model_dump") else {}
+                        )
+                        rel_name = op_dict.get("name", "")
+                        if rel_name and rel_name not in merged_rules["relationship_types"]:
+                            merged_rules["relationship_types"].append(rel_name)
 
-                            for domain_type in op_dict.get("domain", []):
-                                for range_type in op_dict.get("range", []):
-                                    merged_rules["owl_domain_range"][rel_name].append(
-                                        (domain_type, range_type)
-                                    )
-                        break
+                        if rel_name not in merged_rules["owl_domain_range"]:
+                            merged_rules["owl_domain_range"][rel_name] = []
+
+                        for domain_type in op_dict.get("domain", []):
+                            for range_type in op_dict.get("range", []):
+                                merged_rules["owl_domain_range"][rel_name].append(
+                                    (domain_type, range_type)
+                                )
+                else:
+                    self._logger.warning(
+                        "domain_ontology_not_found",
+                        file_name=domain_file,
+                        message=f"未找到匹配的domain ontology: {domain_file}",
+                    )
 
             # 3. 載入 major ontology（如果提供）
             if major_file:
-                major_ontologies = self.list_ontologies(
-                    tenant_id=tenant_id, type="major", is_active=True
+                # 使用新的查找方法
+                major_ontology = self._find_ontology_by_file_or_name(
+                    major_file, "major", tenant_id, file_name_mapping
                 )
-                for major_ontology in major_ontologies:
-                    if any(
-                        major_file in f for f in [major_ontology.name, major_ontology.ontology_name]
-                    ):
-                        # 合併實體和關係
-                        for ec in major_ontology.entity_classes:
-                            ec_dict = (
-                                ec
-                                if isinstance(ec, dict)
-                                else ec.model_dump() if hasattr(ec, "model_dump") else {}
-                            )
-                            entity_name = ec_dict.get("name", "")
-                            if entity_name:
-                                merged_rules["entity_classes"].append(entity_name)
 
-                        for op in major_ontology.object_properties:
-                            op_dict = (
-                                op
-                                if isinstance(op, dict)
-                                else op.model_dump() if hasattr(op, "model_dump") else {}
-                            )
-                            rel_name = op_dict.get("name", "")
-                            if rel_name and rel_name not in merged_rules["relationship_types"]:
-                                merged_rules["relationship_types"].append(rel_name)
+                if major_ontology:
+                    # 合併實體和關係
+                    for ec in major_ontology.entity_classes:
+                        ec_dict = (
+                            ec
+                            if isinstance(ec, dict)
+                            else ec.model_dump() if hasattr(ec, "model_dump") else {}
+                        )
+                        entity_name = ec_dict.get("name", "")
+                        if entity_name:
+                            merged_rules["entity_classes"].append(entity_name)
 
-                            if rel_name not in merged_rules["owl_domain_range"]:
-                                merged_rules["owl_domain_range"][rel_name] = []
+                    for op in major_ontology.object_properties:
+                        op_dict = (
+                            op
+                            if isinstance(op, dict)
+                            else op.model_dump() if hasattr(op, "model_dump") else {}
+                        )
+                        rel_name = op_dict.get("name", "")
+                        if rel_name and rel_name not in merged_rules["relationship_types"]:
+                            merged_rules["relationship_types"].append(rel_name)
 
-                            for domain_type in op_dict.get("domain", []):
-                                for range_type in op_dict.get("range", []):
-                                    merged_rules["owl_domain_range"][rel_name].append(
-                                        (domain_type, range_type)
-                                    )
-                        break
+                        if rel_name not in merged_rules["owl_domain_range"]:
+                            merged_rules["owl_domain_range"][rel_name] = []
+
+                        for domain_type in op_dict.get("domain", []):
+                            for range_type in op_dict.get("range", []):
+                                merged_rules["owl_domain_range"][rel_name].append(
+                                    (domain_type, range_type)
+                                )
+                else:
+                    self._logger.warning(
+                        "major_ontology_not_found",
+                        file_name=major_file,
+                        message=f"未找到匹配的major ontology: {major_file}",
+                    )
 
             # 去重
             merged_rules["entity_classes"] = list(set(merged_rules["entity_classes"]))

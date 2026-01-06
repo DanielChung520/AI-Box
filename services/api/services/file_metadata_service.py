@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件元數據服務
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-29
+# 最後修改日期: 2026-01-02 18:50:00 (UTC+8)
 
 """文件元數據服務 - 實現 ArangoDB CRUD 和全文搜索"""
 
@@ -11,6 +11,8 @@ from typing import List, Optional
 import structlog
 
 from database.arangodb import ArangoDBClient
+from services.api.models.data_classification import DataClassification
+from services.api.models.file_access_control import FileAccessControl, FileAccessLevel
 from services.api.models.file_metadata import FileMetadata, FileMetadataCreate, FileMetadataUpdate
 
 logger = structlog.get_logger(__name__)
@@ -36,10 +38,10 @@ class FileMetadataService:
         """確保集合存在"""
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
+        collection = self.client.db.collection(COLLECTION_NAME)
         if not self.client.db.has_collection(COLLECTION_NAME):
             self.client.db.create_collection(COLLECTION_NAME)
             # 創建索引
-            collection = self.client.db.collection(COLLECTION_NAME)
             collection.add_index({"type": "persistent", "fields": ["file_id"]})
             collection.add_index({"type": "persistent", "fields": ["filename"]})
             collection.add_index({"type": "persistent", "fields": ["file_type"]})
@@ -48,11 +50,90 @@ class FileMetadataService:
             collection.add_index({"type": "persistent", "fields": ["task_id"]})
             collection.add_index({"type": "persistent", "fields": ["folder_id"]})
             collection.add_index({"type": "persistent", "fields": ["status"]})
+            # 訪問控制相關索引
+            collection.add_index({"type": "persistent", "fields": ["access_control.access_level"]})
+            collection.add_index({"type": "persistent", "fields": ["access_control.owner_id"]})
+            collection.add_index({"type": "persistent", "fields": ["data_classification"]})
+            # 複合索引（用於權限查詢優化）
+            collection.add_index(
+                {
+                    "type": "persistent",
+                    "fields": [
+                        "access_control.access_level",
+                        "access_control.owner_id",
+                        "data_classification",
+                    ],
+                }
+            )
+
+    @staticmethod
+    def get_default_access_control(
+        user_id: str,
+        tenant_id: Optional[str] = None,
+        is_system_file: bool = False,
+    ) -> FileAccessControl:
+        """獲取默認的文件訪問控制配置
+
+        AI治理原則：默認私有，最小權限
+        系統文件：自動設置 SystemSecurity 安全組授權
+
+        Args:
+            user_id: 文件所有者用戶ID
+            tenant_id: 文件所有者租戶ID（可選）
+            is_system_file: 是否為系統文件（默認 False）
+
+        Returns:
+            默認的 FileAccessControl 配置
+        """
+        if is_system_file:
+            # 系統文件：使用 SECURITY_GROUP 級別，授權 SystemSecurity 安全組
+            return FileAccessControl(
+                access_level=FileAccessLevel.SECURITY_GROUP.value,
+                owner_id=user_id,
+                owner_tenant_id=tenant_id,
+                data_classification=DataClassification.INTERNAL.value,
+                sensitivity_labels=[],
+                authorized_security_groups=["SystemSecurity"],  # 系統安全組
+            )
+        else:
+            # 普通文件：默認私有
+            return FileAccessControl(
+                access_level=FileAccessLevel.PRIVATE.value,  # 默認私有
+                owner_id=user_id,
+                owner_tenant_id=tenant_id,
+                data_classification=DataClassification.INTERNAL.value,  # 默認內部
+                sensitivity_labels=[],
+                authorized_users=[user_id],  # 默認只有所有者
+            )
 
     def create(self, metadata: FileMetadataCreate) -> FileMetadata:
         """創建文件元數據"""
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
+
+        # 如果未提供 access_control，自動生成默認配置（向後兼容）
+        access_control = metadata.access_control
+        if access_control is None:
+            # 判斷是否為系統文件（路徑包含 "docs/系统设计文档" 或 "docs/系統設計文檔"）
+            is_system_file = False
+            if metadata.storage_path:
+                storage_path_lower = metadata.storage_path.lower()
+                is_system_file = (
+                    "docs/系统设计文档" in storage_path_lower
+                    or "docs/系統設計文檔" in storage_path_lower
+                    or "system_design" in storage_path_lower
+                )
+
+            access_control = self.get_default_access_control(
+                user_id=metadata.user_id or "unknown",
+                tenant_id=None,  # 可以從上下文獲取，暫時設為 None
+                is_system_file=is_system_file,
+            )
+
+        # 同步 data_classification 和 sensitivity_labels
+        data_classification = metadata.data_classification or access_control.data_classification
+        sensitivity_labels = metadata.sensitivity_labels or access_control.sensitivity_labels
+
         doc = {
             "_key": metadata.file_id,
             "file_id": metadata.file_id,
@@ -71,12 +152,54 @@ class FileMetadataService:
             "chunk_count": metadata.chunk_count,
             "vector_count": metadata.vector_count,
             "kg_status": metadata.kg_status,
+            "access_control": access_control.model_dump(),
+            "data_classification": data_classification,
+            "sensitivity_labels": sensitivity_labels,
             "upload_time": datetime.utcnow().isoformat(),
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
         }
 
         collection = self.client.db.collection(COLLECTION_NAME)
+        # 修改時間：2026-01-05 - 檢查文件是否已存在，避免重複創建
+        try:
+            existing = collection.get(metadata.file_id)
+            if existing:
+                # 文件已存在，記錄警告並返回現有記錄
+                self.logger.warning(
+                    "File metadata already exists, skipping creation",
+                    file_id=metadata.file_id,
+                    filename=metadata.filename,
+                )
+                # 返回現有的文件元數據
+                return FileMetadata(
+                    file_id=existing.get("file_id") or existing.get("_key", ""),  # type: ignore[arg-type]
+                    filename=existing.get("filename", ""),  # type: ignore[arg-type]
+                    file_type=existing.get("file_type", ""),  # type: ignore[arg-type]
+                    file_size=existing.get("file_size", 0),  # type: ignore[arg-type]
+                    user_id=existing.get("user_id"),  # type: ignore[arg-type]
+                    task_id=existing.get("task_id", ""),  # type: ignore[arg-type]
+                    folder_id=existing.get("folder_id"),  # type: ignore[arg-type]
+                    storage_path=existing.get("storage_path"),  # type: ignore[arg-type]
+                    tags=existing.get("tags", []),  # type: ignore[arg-type]
+                    description=existing.get("description"),  # type: ignore[arg-type]
+                    custom_metadata=existing.get("custom_metadata", {}),  # type: ignore[arg-type]
+                    status=existing.get("status", "uploaded"),  # type: ignore[arg-type]
+                    processing_status=existing.get("processing_status"),  # type: ignore[arg-type]
+                    chunk_count=existing.get("chunk_count"),  # type: ignore[arg-type]
+                    vector_count=existing.get("vector_count"),  # type: ignore[arg-type]
+                    kg_status=existing.get("kg_status"),  # type: ignore[arg-type]
+                    access_control=FileAccessControl(**existing["access_control"]) if existing.get("access_control") else None,  # type: ignore[arg-type]
+                    data_classification=existing.get("data_classification"),  # type: ignore[arg-type]
+                    sensitivity_labels=existing.get("sensitivity_labels", []),  # type: ignore[arg-type]
+                    upload_time=datetime.fromisoformat(existing.get("upload_time", datetime.utcnow().isoformat())),  # type: ignore[arg-type]
+                    created_at=datetime.fromisoformat(existing["created_at"]) if existing.get("created_at") else None,  # type: ignore[arg-type]
+                    updated_at=datetime.fromisoformat(existing["updated_at"]) if existing.get("updated_at") else None,  # type: ignore[arg-type]
+                )
+        except Exception:
+            # 文件不存在，繼續創建
+            pass
+        
         collection.insert(doc)
 
         # 確保所有必需字段都存在且類型正確
@@ -97,6 +220,9 @@ class FileMetadataService:
             chunk_count=doc.get("chunk_count"),  # type: ignore[arg-type]  # Optional
             vector_count=doc.get("vector_count"),  # type: ignore[arg-type]  # Optional
             kg_status=doc.get("kg_status"),  # type: ignore[arg-type]  # Optional
+            access_control=FileAccessControl(**doc["access_control"]) if doc.get("access_control") else None,  # type: ignore[arg-type]  # Optional
+            data_classification=doc.get("data_classification"),  # type: ignore[arg-type]  # Optional
+            sensitivity_labels=doc.get("sensitivity_labels", []),  # type: ignore[arg-type]  # 有默認值
             upload_time=datetime.fromisoformat(doc.get("upload_time", datetime.utcnow().isoformat())),  # type: ignore[arg-type]  # 已確保存在
             created_at=datetime.fromisoformat(doc["created_at"]) if doc.get("created_at") else None,  # type: ignore[arg-type]  # Optional
             updated_at=datetime.fromisoformat(doc["updated_at"]) if doc.get("updated_at") else None,  # type: ignore[arg-type]  # Optional
@@ -156,6 +282,15 @@ class FileMetadataService:
         if update.kg_status is not None:
             update_data["kg_status"] = update.kg_status
 
+        # 更新訪問控制配置
+        if update.access_control is not None:
+            update_data["access_control"] = update.access_control.model_dump()
+            # 同步更新 data_classification 和 sensitivity_labels
+            if update.access_control.data_classification:
+                update_data["data_classification"] = update.access_control.data_classification
+            if update.access_control.sensitivity_labels:
+                update_data["sensitivity_labels"] = update.access_control.sensitivity_labels
+
         # ArangoDB collection.update() 需要 {'_key': ...} 或 {'_id': ...} 作為第一個參數
         # 將 file_id 作為 _key 傳遞
         doc_to_update = {"_key": file_id}
@@ -199,14 +334,9 @@ class FileMetadataService:
         if self.client.db.aql is None:
             raise RuntimeError("ArangoDB AQL is not available")
 
-        # 修改時間：2025-01-27 - task_id 必須提供
-        if task_id is None:
-            # 如果未提供 task_id，返回空列表（不再查詢所有文件）
-            self.logger.warning(
-                "文件查詢未提供 task_id，返回空列表",
-                user_id=user_id,
-            )
-            return []
+        # 修改時間：2026-01-06 - 允許 task_id 為 None，查詢用戶的所有文件（不限任務）
+        # 如果 task_id 為 None，只按 user_id 查詢
+        # 如果 task_id 不為 None，按 user_id 和 task_id 查詢
 
         # 構建 AQL 查詢
         filter_conditions = []
@@ -220,9 +350,10 @@ class FileMetadataService:
             filter_conditions.append("doc.user_id == @user_id")
             bind_vars["user_id"] = user_id
 
-        # task_id 必須提供（已在上方檢查）
-        filter_conditions.append("doc.task_id == @task_id")
-        bind_vars["task_id"] = task_id
+        # 修改時間：2026-01-06 - 允許 task_id 為 None，查詢用戶的所有文件（不限任務）
+        if task_id is not None:
+            filter_conditions.append("doc.task_id == @task_id")
+            bind_vars["task_id"] = task_id
 
         if tags:
             filter_conditions.append("LENGTH(INTERSECTION(doc.tags, @tags)) > 0")

@@ -1,0 +1,2237 @@
+{
+  "verification_time": "1767433915.7096822",
+  "statistics": {
+    "total": 74,
+    "has_metadata": 0,
+    "has_access_control": 0,
+    "is_system_security": 0,
+    "has_vectors": 0,
+    "has_entities": 0,
+    "has_relations": 0,
+    "completed": 0,
+    "partial_completed": 0,
+    "failed": 74
+  },
+  "results": [
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/API文档/治理API文档.md",
+      "file_id": "d86a1798-458c-424c-a878-3b2c91588817",
+      "metadata": {
+        "file_id": "d86a1798-458c-424c-a878-3b2c91588817",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "d86a1798-458c-424c-a878-3b2c91588817",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "d86a1798-458c-424c-a878-3b2c91588817",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/README.md",
+      "file_id": "f606ee62-5434-4461-b168-220a8b1080ff",
+      "metadata": {
+        "file_id": "f606ee62-5434-4461-b168-220a8b1080ff",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "f606ee62-5434-4461-b168-220a8b1080ff",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "f606ee62-5434-4461-b168-220a8b1080ff",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/SeaweedFS双服务架构说明.md",
+      "file_id": "c2540621-ba78-4405-9b57-d71a50a9461a",
+      "metadata": {
+        "file_id": "c2540621-ba78-4405-9b57-d71a50a9461a",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "c2540621-ba78-4405-9b57-d71a50a9461a",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "c2540621-ba78-4405-9b57-d71a50a9461a",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/SeaweedFS启动服务说明.md",
+      "file_id": "137e243f-694c-4e8f-b3ff-f3d387525a43",
+      "metadata": {
+        "file_id": "137e243f-694c-4e8f-b3ff-f3d387525a43",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "137e243f-694c-4e8f-b3ff-f3d387525a43",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "137e243f-694c-4e8f-b3ff-f3d387525a43",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/datasets/arangodb-data-structure.md",
+      "file_id": "31bf4593-0429-4d52-9db8-e1cd77e5b54c",
+      "metadata": {
+        "file_id": "31bf4593-0429-4d52-9db8-e1cd77e5b54c",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "31bf4593-0429-4d52-9db8-e1cd77e5b54c",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "31bf4593-0429-4d52-9db8-e1cd77e5b54c",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/datasets/arangodb-kg-schema.md",
+      "file_id": "a4c24a47-2f37-4e2b-8b21-870244f77605",
+      "metadata": {
+        "file_id": "a4c24a47-2f37-4e2b-8b21-870244f77605",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "a4c24a47-2f37-4e2b-8b21-870244f77605",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "a4c24a47-2f37-4e2b-8b21-870244f77605",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/ArangoDB-Web-UI-访问指南.md",
+      "file_id": "a55094d8-b42b-47cc-baf8-bd9d17901251",
+      "metadata": {
+        "file_id": "a55094d8-b42b-47cc-baf8-bd9d17901251",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "a55094d8-b42b-47cc-baf8-bd9d17901251",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "a55094d8-b42b-47cc-baf8-bd9d17901251",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/System-Config-存储位置说明.md",
+      "file_id": "c7ae4f83-b822-4a7d-bf54-9d44206ce889",
+      "metadata": {
+        "file_id": "c7ae4f83-b822-4a7d-bf54-9d44206ce889",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "c7ae4f83-b822-4a7d-bf54-9d44206ce889",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "c7ae4f83-b822-4a7d-bf54-9d44206ce889",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/Web搜索工具ArangoDB注册说明.md",
+      "file_id": "cbd1c971-d911-4b4e-be03-5d5b4f1d2a1b",
+      "metadata": {
+        "file_id": "cbd1c971-d911-4b4e-be03-5d5b4f1d2a1b",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "cbd1c971-d911-4b4e-be03-5d5b4f1d2a1b",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "cbd1c971-d911-4b4e-be03-5d5b4f1d2a1b",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/Web搜索工具实现说明.md",
+      "file_id": "c2d27cdd-3e86-442c-8248-b52a6500d4ff",
+      "metadata": {
+        "file_id": "c2d27cdd-3e86-442c-8248-b52a6500d4ff",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "c2d27cdd-3e86-442c-8248-b52a6500d4ff",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "c2d27cdd-3e86-442c-8248-b52a6500d4ff",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/Web搜索工具环境变量配置说明.md",
+      "file_id": "5e8b489b-9374-48eb-81ca-d9ea78470754",
+      "metadata": {
+        "file_id": "5e8b489b-9374-48eb-81ca-d9ea78470754",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "5e8b489b-9374-48eb-81ca-d9ea78470754",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "5e8b489b-9374-48eb-81ca-d9ea78470754",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/工具API文档.md",
+      "file_id": "9ec945f8-d856-4c4c-b2fb-394354b51a7f",
+      "metadata": {
+        "file_id": "9ec945f8-d856-4c4c-b2fb-394354b51a7f",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "9ec945f8-d856-4c4c-b2fb-394354b51a7f",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "9ec945f8-d856-4c4c-b2fb-394354b51a7f",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/工具使用指南.md",
+      "file_id": "f7fab73f-e3ec-44ce-a1bb-fdbb49b0e58a",
+      "metadata": {
+        "file_id": "f7fab73f-e3ec-44ce-a1bb-fdbb49b0e58a",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "f7fab73f-e3ec-44ce-a1bb-fdbb49b0e58a",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "f7fab73f-e3ec-44ce-a1bb-fdbb49b0e58a",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/工具組開發規格.md",
+      "file_id": "3deb667f-6ae3-4c31-a628-ec6c0656f272",
+      "metadata": {
+        "file_id": "3deb667f-6ae3-4c31-a628-ec6c0656f272",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "3deb667f-6ae3-4c31-a628-ec6c0656f272",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "3deb667f-6ae3-4c31-a628-ec6c0656f272",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/工具組需求分析.md",
+      "file_id": "fd4a6f9e-f02e-4987-bba2-f3f2b32f2fdf",
+      "metadata": {
+        "file_id": "fd4a6f9e-f02e-4987-bba2-f3f2b32f2fdf",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "fd4a6f9e-f02e-4987-bba2-f3f2b32f2fdf",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "fd4a6f9e-f02e-4987-bba2-f3f2b32f2fdf",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/tools/工具註冊清單說明.md",
+      "file_id": "d304d956-a67e-43a1-b514-13a001b3fdf3",
+      "metadata": {
+        "file_id": "d304d956-a67e-43a1-b514-13a001b3fdf3",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "d304d956-a67e-43a1-b514-13a001b3fdf3",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "d304d956-a67e-43a1-b514-13a001b3fdf3",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/代碼管制表.md",
+      "file_id": "9220d8b5-6e84-4843-827f-e7b0a9cdbb60",
+      "metadata": {
+        "file_id": "9220d8b5-6e84-4843-827f-e7b0a9cdbb60",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "9220d8b5-6e84-4843-827f-e7b0a9cdbb60",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "9220d8b5-6e84-4843-827f-e7b0a9cdbb60",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/仪表板使用指南.md",
+      "file_id": "c0db6a7d-8040-4130-a2cc-a70dc09eb50c",
+      "metadata": {
+        "file_id": "c0db6a7d-8040-4130-a2cc-a70dc09eb50c",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "c0db6a7d-8040-4130-a2cc-a70dc09eb50c",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "c0db6a7d-8040-4130-a2cc-a70dc09eb50c",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/任务队列系统指南.md",
+      "file_id": "e5a37e4c-b723-43c7-b7c0-4e8ae40955d2",
+      "metadata": {
+        "file_id": "e5a37e4c-b723-43c7-b7c0-4e8ae40955d2",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "e5a37e4c-b723-43c7-b7c0-4e8ae40955d2",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "e5a37e4c-b723-43c7-b7c0-4e8ae40955d2",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/參考文件/AAM-(AI-Augmented-Memory).md",
+      "file_id": "ce18c387-c7f7-4efe-8f17-cab86e0490e1",
+      "metadata": {
+        "file_id": "ce18c387-c7f7-4efe-8f17-cab86e0490e1",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "ce18c387-c7f7-4efe-8f17-cab86e0490e1",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "ce18c387-c7f7-4efe-8f17-cab86e0490e1",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/參考文件/AI-Box系统资产鉴价报告.md",
+      "file_id": "e5e1d618-e96a-4f74-a9eb-03911d2e638c",
+      "metadata": {
+        "file_id": "e5e1d618-e96a-4f74-a9eb-03911d2e638c",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "e5e1d618-e96a-4f74-a9eb-03911d2e638c",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "e5e1d618-e96a-4f74-a9eb-03911d2e638c",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/安全架构说明.md",
+      "file_id": "3e1292da-56ff-4d7a-bc8f-3414aea5f84b",
+      "metadata": {
+        "file_id": "3e1292da-56ff-4d7a-bc8f-3414aea5f84b",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "3e1292da-56ff-4d7a-bc8f-3414aea5f84b",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "3e1292da-56ff-4d7a-bc8f-3414aea5f84b",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/开发环境设置指南.md",
+      "file_id": "153c3946-59c2-4889-9bd9-749f2c5c5260",
+      "metadata": {
+        "file_id": "153c3946-59c2-4889-9bd9-749f2c5c5260",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "153c3946-59c2-4889-9bd9-749f2c5c5260",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "153c3946-59c2-4889-9bd9-749f2c5c5260",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/架构风险评估报告.md",
+      "file_id": "1104e5bf-008c-43ed-85a8-6c3aef05f457",
+      "metadata": {
+        "file_id": "1104e5bf-008c-43ed-85a8-6c3aef05f457",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "1104e5bf-008c-43ed-85a8-6c3aef05f457",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "1104e5bf-008c-43ed-85a8-6c3aef05f457",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/AAM系统.md",
+      "file_id": "cbcaf362-3010-488e-9d65-59470d375538",
+      "metadata": {
+        "file_id": "cbcaf362-3010-488e-9d65-59470d375538",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "cbcaf362-3010-488e-9d65-59470d375538",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "cbcaf362-3010-488e-9d65-59470d375538",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/AGENT_LIFECYCLE.md",
+      "file_id": "d40f7ee2-9cc2-4376-a568-7e1a111c2a90",
+      "metadata": {
+        "file_id": "d40f7ee2-9cc2-4376-a568-7e1a111c2a90",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "d40f7ee2-9cc2-4376-a568-7e1a111c2a90",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "d40f7ee2-9cc2-4376-a568-7e1a111c2a90",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/AI-Box-Agent-架構規格書-v2.md",
+      "file_id": "d85c167d-026d-406f-b88c-e99f59ffaec7",
+      "metadata": {
+        "file_id": "d85c167d-026d-406f-b88c-e99f59ffaec7",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "d85c167d-026d-406f-b88c-e99f59ffaec7",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "d85c167d-026d-406f-b88c-e99f59ffaec7",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/ARCHITECTURE_AGENT_SEPARATION.md",
+      "file_id": "93b73c89-3ffd-4d8c-8f6a-42e1199fca4b",
+      "metadata": {
+        "file_id": "93b73c89-3ffd-4d8c-8f6a-42e1199fca4b",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "93b73c89-3ffd-4d8c-8f6a-42e1199fca4b",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "93b73c89-3ffd-4d8c-8f6a-42e1199fca4b",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/ARCHITECTURE_DIAGRAM_EXPLANATION.md",
+      "file_id": "be411200-8a2c-48b1-acfb-443ef9e9729e",
+      "metadata": {
+        "file_id": "be411200-8a2c-48b1-acfb-443ef9e9729e",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "be411200-8a2c-48b1-acfb-443ef9e9729e",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "be411200-8a2c-48b1-acfb-443ef9e9729e",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/Agent-Platform.md",
+      "file_id": "1c1ebaac-a1cc-4750-9df8-d92b0a7665a6",
+      "metadata": {
+        "file_id": "1c1ebaac-a1cc-4750-9df8-d92b0a7665a6",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "1c1ebaac-a1cc-4750-9df8-d92b0a7665a6",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "1c1ebaac-a1cc-4750-9df8-d92b0a7665a6",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/Agent-註冊-規格書.md",
+      "file_id": "6676f5a0-5c80-489b-ae26-257d6a0282e4",
+      "metadata": {
+        "file_id": "6676f5a0-5c80-489b-ae26-257d6a0282e4",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "6676f5a0-5c80-489b-ae26-257d6a0282e4",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "6676f5a0-5c80-489b-ae26-257d6a0282e4",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/Agent-開發規範.md",
+      "file_id": "e7148327-0e6b-4d5b-83b3-7eec2978d0b5",
+      "metadata": {
+        "file_id": "e7148327-0e6b-4d5b-83b3-7eec2978d0b5",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "e7148327-0e6b-4d5b-83b3-7eec2978d0b5",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "e7148327-0e6b-4d5b-83b3-7eec2978d0b5",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/Orchestrator-協調層規格書.md",
+      "file_id": "df3738a7-268c-4a00-9aeb-df3ca63d8ce1",
+      "metadata": {
+        "file_id": "df3738a7-268c-4a00-9aeb-df3ca63d8ce1",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "df3738a7-268c-4a00-9aeb-df3ca63d8ce1",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "df3738a7-268c-4a00-9aeb-df3ca63d8ce1",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/Security-Agent-規格書.md",
+      "file_id": "9f0bb605-c72d-4396-9bbf-0dfa654db276",
+      "metadata": {
+        "file_id": "9f0bb605-c72d-4396-9bbf-0dfa654db276",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "9f0bb605-c72d-4396-9bbf-0dfa654db276",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "9f0bb605-c72d-4396-9bbf-0dfa654db276",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/System-Config-Agent-規格書.md",
+      "file_id": "0e7ce498-6fbe-4d2b-be3b-6fa375ab77dc",
+      "metadata": {
+        "file_id": "0e7ce498-6fbe-4d2b-be3b-6fa375ab77dc",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "0e7ce498-6fbe-4d2b-be3b-6fa375ab77dc",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "0e7ce498-6fbe-4d2b-be3b-6fa375ab77dc",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/IEE前端系统.md",
+      "file_id": "2d2dd9a4-b17d-4bd3-b6ef-b983b3fdae63",
+      "metadata": {
+        "file_id": "2d2dd9a4-b17d-4bd3-b6ef-b983b3fdae63",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "2d2dd9a4-b17d-4bd3-b6ef-b983b3fdae63",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "2d2dd9a4-b17d-4bd3-b6ef-b983b3fdae63",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/IEE對話式開發文件編輯/AI-Box-IEE-式-Markdown-文件編輯器開發規格書.md",
+      "file_id": "d3d0fae5-56e6-42de-86fa-a4cde19bee81",
+      "metadata": {
+        "file_id": "d3d0fae5-56e6-42de-86fa-a4cde19bee81",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "d3d0fae5-56e6-42de-86fa-a4cde19bee81",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "d3d0fae5-56e6-42de-86fa-a4cde19bee81",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/IEE對話式開發文件編輯/GenAI 任務式聊天/genai-pipeline-overview.md",
+      "file_id": "bcbae021-2a0a-43aa-9f02-f8a5dc3beb00",
+      "metadata": {
+        "file_id": "bcbae021-2a0a-43aa-9f02-f8a5dc3beb00",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "bcbae021-2a0a-43aa-9f02-f8a5dc3beb00",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "bcbae021-2a0a-43aa-9f02-f8a5dc3beb00",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/IEE對話式開發文件編輯/GenAI 任務式聊天/文件編輯操作.md",
+      "file_id": "a288f026-324e-438d-942d-8e902a04607e",
+      "metadata": {
+        "file_id": "a288f026-324e-438d-942d-8e902a04607e",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "a288f026-324e-438d-942d-8e902a04607e",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "a288f026-324e-438d-942d-8e902a04607e",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/IEE對話式開發文件編輯/IEE編輯器操作說明.md",
+      "file_id": "47a7839d-9d5d-48af-8b67-d9a8d3149c96",
+      "metadata": {
+        "file_id": "47a7839d-9d5d-48af-8b67-d9a8d3149c96",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "47a7839d-9d5d-48af-8b67-d9a8d3149c96",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "47a7839d-9d5d-48af-8b67-d9a8d3149c96",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/LLM模型列表.md",
+      "file_id": "65301279-6d8f-4372-b636-cf286d54c292",
+      "metadata": {
+        "file_id": "65301279-6d8f-4372-b636-cf286d54c292",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "65301279-6d8f-4372-b636-cf286d54c292",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "65301279-6d8f-4372-b636-cf286d54c292",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/MCP工具/Cloudflare-MCP-Gateway-设置指南.md",
+      "file_id": "2aed2122-c6a9-46a5-8108-000888ec1564",
+      "metadata": {
+        "file_id": "2aed2122-c6a9-46a5-8108-000888ec1564",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "2aed2122-c6a9-46a5-8108-000888ec1564",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "2aed2122-c6a9-46a5-8108-000888ec1564",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/MCP工具/MCP工具.md",
+      "file_id": "f867fb36-a008-414d-a1c3-be15c7cb5e4f",
+      "metadata": {
+        "file_id": "f867fb36-a008-414d-a1c3-be15c7cb5e4f",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "f867fb36-a008-414d-a1c3-be15c7cb5e4f",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "f867fb36-a008-414d-a1c3-be15c7cb5e4f",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/MCP工具/README.md",
+      "file_id": "d1ef36e5-e39f-4abc-b90d-fa3f1a219453",
+      "metadata": {
+        "file_id": "d1ef36e5-e39f-4abc-b90d-fa3f1a219453",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "d1ef36e5-e39f-4abc-b90d-fa3f1a219453",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "d1ef36e5-e39f-4abc-b90d-fa3f1a219453",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/MCP工具/第三方MCP服务配置指南.md",
+      "file_id": "a12c9382-e294-4c53-8e82-4f8ade32f181",
+      "metadata": {
+        "file_id": "a12c9382-e294-4c53-8e82-4f8ade32f181",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "a12c9382-e294-4c53-8e82-4f8ade32f181",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "a12c9382-e294-4c53-8e82-4f8ade32f181",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/MCP工具/開發環境部署狀態報告.md",
+      "file_id": "6509e35f-d3eb-4185-b9e8-c219d3c4dc22",
+      "metadata": {
+        "file_id": "6509e35f-d3eb-4185-b9e8-c219d3c4dc22",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "6509e35f-d3eb-4185-b9e8-c219d3c4dc22",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "6509e35f-d3eb-4185-b9e8-c219d3c4dc22",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/MoE系统.md",
+      "file_id": "633f442b-9976-4789-9495-5e7985b785b1",
+      "metadata": {
+        "file_id": "633f442b-9976-4789-9495-5e7985b785b1",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "633f442b-9976-4789-9495-5e7985b785b1",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "633f442b-9976-4789-9495-5e7985b785b1",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Personal-Data-RoLA.md",
+      "file_id": "62b70e5b-d50a-494f-bf5a-8585b8a74241",
+      "metadata": {
+        "file_id": "62b70e5b-d50a-494f-bf5a-8585b8a74241",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "62b70e5b-d50a-494f-bf5a-8585b8a74241",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "62b70e5b-d50a-494f-bf5a-8585b8a74241",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/README.md",
+      "file_id": "5e2b11f7-5c78-4312-bf27-bdb14e04f9ef",
+      "metadata": {
+        "file_id": "5e2b11f7-5c78-4312-bf27-bdb14e04f9ef",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "5e2b11f7-5c78-4312-bf27-bdb14e04f9ef",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "5e2b11f7-5c78-4312-bf27-bdb14e04f9ef",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Task-Analyzer-细化开发规格.md",
+      "file_id": "d63522e8-8722-4eaa-8c99-54f39003e469",
+      "metadata": {
+        "file_id": "d63522e8-8722-4eaa-8c99-54f39003e469",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "d63522e8-8722-4eaa-8c99-54f39003e469",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "d63522e8-8722-4eaa-8c99-54f39003e469",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/存储架构.md",
+      "file_id": "90436e24-a97d-4ecb-a258-6924551e4814",
+      "metadata": {
+        "file_id": "90436e24-a97d-4ecb-a258-6924551e4814",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "90436e24-a97d-4ecb-a258-6924551e4814",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "90436e24-a97d-4ecb-a258-6924551e4814",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/文件上傳向量圖譜/Ontology系统.md",
+      "file_id": "bbab8d54-4988-4144-b075-065954c21ae6",
+      "metadata": {
+        "file_id": "bbab8d54-4988-4144-b075-065954c21ae6",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "bbab8d54-4988-4144-b075-065954c21ae6",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "bbab8d54-4988-4144-b075-065954c21ae6",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/文件上傳向量圖譜/Ontology选择策略-优先级降级fallback实现说明.md",
+      "file_id": "70d9595a-e56a-47fb-b2fe-95070dcc250f",
+      "metadata": {
+        "file_id": "70d9595a-e56a-47fb-b2fe-95070dcc250f",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "70d9595a-e56a-47fb-b2fe-95070dcc250f",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "70d9595a-e56a-47fb-b2fe-95070dcc250f",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/文件上傳向量圖譜/上傳的功能架構說明-v3.0.md",
+      "file_id": "efb3cc13-fa5f-4b6e-a4f4-c022f00ab29d",
+      "metadata": {
+        "file_id": "efb3cc13-fa5f-4b6e-a4f4-c022f00ab29d",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "efb3cc13-fa5f-4b6e-a4f4-c022f00ab29d",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "efb3cc13-fa5f-4b6e-a4f4-c022f00ab29d",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/文件上傳向量圖譜/向量化與圖譜提取獨立執行優化報告.md",
+      "file_id": "f641594f-15d0-453f-b008-3ebb0ecc2322",
+      "metadata": {
+        "file_id": "f641594f-15d0-453f-b008-3ebb0ecc2322",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "f641594f-15d0-453f-b008-3ebb0ecc2322",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "f641594f-15d0-453f-b008-3ebb0ecc2322",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/文件上傳向量圖譜/强化RAG系统.md",
+      "file_id": "f2446133-83a6-4383-9708-acb65ff832aa",
+      "metadata": {
+        "file_id": "f2446133-83a6-4383-9708-acb65ff832aa",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "f2446133-83a6-4383-9708-acb65ff832aa",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "f2446133-83a6-4383-9708-acb65ff832aa",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/文件上傳向量圖譜/批量文件上傳流程優化方案.md",
+      "file_id": "99861c53-3fcf-4c92-8fb9-350811c7e2f1",
+      "metadata": {
+        "file_id": "99861c53-3fcf-4c92-8fb9-350811c7e2f1",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "99861c53-3fcf-4c92-8fb9-350811c7e2f1",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "99861c53-3fcf-4c92-8fb9-350811c7e2f1",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/文件上傳向量圖譜/文件上傳向量圖譜化測試計劃.md",
+      "file_id": "411a08df-6f7c-46d9-9f2a-bed8b8d03ae3",
+      "metadata": {
+        "file_id": "411a08df-6f7c-46d9-9f2a-bed8b8d03ae3",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "411a08df-6f7c-46d9-9f2a-bed8b8d03ae3",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "411a08df-6f7c-46d9-9f2a-bed8b8d03ae3",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/文件上傳向量圖譜/文件授權管理方案.md",
+      "file_id": "4d965b20-09b9-4bb5-bfaa-c58b27f79a02",
+      "metadata": {
+        "file_id": "4d965b20-09b9-4bb5-bfaa-c58b27f79a02",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "4d965b20-09b9-4bb5-bfaa-c58b27f79a02",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "4d965b20-09b9-4bb5-bfaa-c58b27f79a02",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/文件上傳向量圖譜/知识图谱系统.md",
+      "file_id": "e029c7d7-770f-4f97-9b5b-965681f3d725",
+      "metadata": {
+        "file_id": "e029c7d7-770f-4f97-9b5b-965681f3d725",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "e029c7d7-770f-4f97-9b5b-965681f3d725",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "e029c7d7-770f-4f97-9b5b-965681f3d725",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/日志存储格式说明.md",
+      "file_id": "46934102-c854-4221-a5e6-67c3faa8a614",
+      "metadata": {
+        "file_id": "46934102-c854-4221-a5e6-67c3faa8a614",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "46934102-c854-4221-a5e6-67c3faa8a614",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "46934102-c854-4221-a5e6-67c3faa8a614",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/生成式AI链式处理系统.md",
+      "file_id": "296a82ae-2bf1-40be-b402-d6d81f7a15f6",
+      "metadata": {
+        "file_id": "296a82ae-2bf1-40be-b402-d6d81f7a15f6",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "296a82ae-2bf1-40be-b402-d6d81f7a15f6",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "296a82ae-2bf1-40be-b402-d6d81f7a15f6",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/系統管理/ConfigMetadata-配置元數據機制規格書.md",
+      "file_id": "a48d6328-109b-4e9e-bf16-de55193e8cc7",
+      "metadata": {
+        "file_id": "a48d6328-109b-4e9e-bf16-de55193e8cc7",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "a48d6328-109b-4e9e-bf16-de55193e8cc7",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "a48d6328-109b-4e9e-bf16-de55193e8cc7",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/系統管理/README.md",
+      "file_id": "bdc17ee3-95ca-4409-8207-2c71112f80b0",
+      "metadata": {
+        "file_id": "bdc17ee3-95ca-4409-8207-2c71112f80b0",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "bdc17ee3-95ca-4409-8207-2c71112f80b0",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "bdc17ee3-95ca-4409-8207-2c71112f80b0",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/系統管理/SeaweedFS使用指南.md",
+      "file_id": "b7490598-1890-4c5e-96dc-587759c173b5",
+      "metadata": {
+        "file_id": "b7490598-1890-4c5e-96dc-587759c173b5",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "b7490598-1890-4c5e-96dc-587759c173b5",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "b7490598-1890-4c5e-96dc-587759c173b5",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/系統管理/负载均衡器API文档.md",
+      "file_id": "e0850b6c-ca79-43e8-af2e-fb4eaea97ecf",
+      "metadata": {
+        "file_id": "e0850b6c-ca79-43e8-af2e-fb4eaea97ecf",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "e0850b6c-ca79-43e8-af2e-fb4eaea97ecf",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "e0850b6c-ca79-43e8-af2e-fb4eaea97ecf",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/系統管理/部署架构-参数策略符合性检核.md",
+      "file_id": "6a52cb5e-32de-44da-b722-e45c9675e1a0",
+      "metadata": {
+        "file_id": "6a52cb5e-32de-44da-b722-e45c9675e1a0",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "6a52cb5e-32de-44da-b722-e45c9675e1a0",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "6a52cb5e-32de-44da-b722-e45c9675e1a0",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/系統管理/部署架构.md",
+      "file_id": "68d9edcb-345c-40c5-8e20-3858292ab7e1",
+      "metadata": {
+        "file_id": "68d9edcb-345c-40c5-8e20-3858292ab7e1",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "68d9edcb-345c-40c5-8e20-3858292ab7e1",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "68d9edcb-345c-40c5-8e20-3858292ab7e1",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/系統管理/配置初始化测试指南.md",
+      "file_id": "90ab43c6-d097-4f40-bee9-aca5dfc29b87",
+      "metadata": {
+        "file_id": "90ab43c6-d097-4f40-bee9-aca5dfc29b87",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "90ab43c6-d097-4f40-bee9-aca5dfc29b87",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "90ab43c6-d097-4f40-bee9-aca5dfc29b87",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/目录结构说明.md",
+      "file_id": "1306e02e-238b-4465-aae6-9b6c71dd09a3",
+      "metadata": {
+        "file_id": "1306e02e-238b-4465-aae6-9b6c71dd09a3",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "1306e02e-238b-4465-aae6-9b6c71dd09a3",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "1306e02e-238b-4465-aae6-9b6c71dd09a3",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/系统价值与独特性.md",
+      "file_id": "4a061f10-91b9-4622-b887-71182f99d9fe",
+      "metadata": {
+        "file_id": "4a061f10-91b9-4622-b887-71182f99d9fe",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "4a061f10-91b9-4622-b887-71182f99d9fe",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "4a061f10-91b9-4622-b887-71182f99d9fe",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/统一服务指南.md",
+      "file_id": "0dc130db-d60d-4a54-9ce2-d4a8f9f18fd5",
+      "metadata": {
+        "file_id": "0dc130db-d60d-4a54-9ce2-d4a8f9f18fd5",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "0dc130db-d60d-4a54-9ce2-d4a8f9f18fd5",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "0dc130db-d60d-4a54-9ce2-d4a8f9f18fd5",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/資料存儲架構重構/資料存儲架構重構分析與計劃.md",
+      "file_id": "8983d29d-3582-4de6-aaf9-4f1f34c222f1",
+      "metadata": {
+        "file_id": "8983d29d-3582-4de6-aaf9-4f1f34c222f1",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "8983d29d-3582-4de6-aaf9-4f1f34c222f1",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "8983d29d-3582-4de6-aaf9-4f1f34c222f1",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    },
+    {
+      "file_path": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/项目结构说明.md",
+      "file_id": "e3667577-eb7d-48bf-80d8-6656c0f7679c",
+      "metadata": {
+        "file_id": "e3667577-eb7d-48bf-80d8-6656c0f7679c",
+        "exists": false,
+        "has_metadata": false,
+        "has_access_control": false,
+        "is_system_security": false,
+        "access_level": null,
+        "authorized_groups": [],
+        "data_classification": null,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "vectorization": {
+        "file_id": "e3667577-eb7d-48bf-80d8-6656c0f7679c",
+        "has_vectors": false,
+        "vector_count": 0,
+        "collection_name": null
+      },
+      "knowledge_graph": {
+        "file_id": "e3667577-eb7d-48bf-80d8-6656c0f7679c",
+        "has_entities": false,
+        "has_relations": false,
+        "entity_count": 0,
+        "relation_count": 0,
+        "error": "[HTTP 401][ERR 11] not authorized to execute this request"
+      },
+      "overall_status": "failed"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # 代碼功能說明: RT 關係類型分類服務
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27 23:30 (UTC+8)
+# 最後修改日期: 2026-01-04
 
 """RT 關係類型分類服務 - 支持 Ollama 和 transformers 模型"""
 
@@ -60,6 +60,10 @@ class BaseRTModel(ABC):
         relation_text: str,
         subject_text: Optional[str] = None,
         object_text: Optional[str] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[RelationType]:
         """分類關係類型"""
         pass
@@ -67,6 +71,10 @@ class BaseRTModel(ABC):
     async def classify_relation_types_batch(
         self,
         requests: List[Dict[str, Any]],
+        ontology_rules: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[List[RelationType]]:
         """批量分類關係類型（可選覆寫；預設為逐條調用）。"""
         results: List[List[RelationType]] = []
@@ -75,6 +83,10 @@ class BaseRTModel(ABC):
                 req.get("relation_text", ""),
                 req.get("subject_text"),
                 req.get("object_text"),
+                ontology_rules=ontology_rules,
+                user_id=user_id,
+                file_id=file_id,
+                task_id=task_id,
             )
             results.append(relation_types)
         return results
@@ -120,6 +132,7 @@ class OllamaRTModel(BaseRTModel):
         relation_text: str,
         subject_text: Optional[str] = None,
         object_text: Optional[str] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
         user_id: Optional[str] = None,
         file_id: Optional[str] = None,
         task_id: Optional[str] = None,
@@ -133,8 +146,15 @@ class OllamaRTModel(BaseRTModel):
         if subject_text and object_text:
             context_section = f"主體：{subject_text}\n客體：{object_text}\n"
 
-        # 構建關係類型列表
-        relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+        # 構建關係類型列表（優先使用 Ontology，否則使用標準類型）
+        if ontology_rules:
+            relationship_types = ontology_rules.get("relationship_types", [])
+            if relationship_types:
+                relation_types_list = "\n".join([f"- {rt}" for rt in sorted(relationship_types)])
+            else:
+                relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+        else:
+            relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
 
         prompt = self._prompt_template.format(
             relation_text=relation_text,
@@ -151,6 +171,7 @@ class OllamaRTModel(BaseRTModel):
                 file_id=file_id,
                 task_id=task_id,
                 purpose="rt",
+                options={"num_ctx": 32768},  # 設置 context window 為 32k
             )
 
             if response is None:
@@ -169,9 +190,52 @@ class OllamaRTModel(BaseRTModel):
 
                 types_data = json.loads(result_text)
 
+                # 如果返回的是字典，嘗試轉換為列表（類似 RE service 的處理邏輯）
                 if not isinstance(types_data, list):
-                    logger.error("ollama_rt_invalid_format", model=self.model_name)
-                    return []
+                    logger.error(
+                        "ollama_rt_invalid_format",
+                        model=self.model_name,
+                        response_type=type(types_data).__name__,
+                        response_preview=str(types_data)[:500],
+                    )
+                    # 嘗試從字典中提取列表
+                    if isinstance(types_data, dict):
+                        # 檢查是否有常見的鍵（如 "types", "results", "data", "items"）
+                        for key in [
+                            "types",
+                            "results",
+                            "data",
+                            "result",
+                            "items",
+                            "relation_types",
+                        ]:
+                            if key in types_data and isinstance(types_data[key], list):
+                                types_data = types_data[key]
+                                logger.info(
+                                    "ollama_rt_format_converted",
+                                    converted_key=key,
+                                    types_count=len(types_data),
+                                )
+                                break
+                        else:
+                            # 如果沒有找到列表鍵，檢查是否是單個類型對象
+                            if "type" in types_data or ("types" in types_data and not isinstance(types_data["types"], list)):
+                                # 將單個類型對象轉換為列表
+                                types_data = [types_data]
+                                logger.info(
+                                    "ollama_rt_format_converted",
+                                    converted_key="single_type_object",
+                                    types_count=1,
+                                )
+                            else:
+                                logger.warning(
+                                    "ollama_rt_format_unknown",
+                                    response_preview=str(types_data)[:500],
+                                    message="無法識別的 RT 返回格式",
+                                )
+                                return []
+                    else:
+                        return []
 
                 relation_types = []
                 for item in types_data:
@@ -198,6 +262,7 @@ class OllamaRTModel(BaseRTModel):
     async def classify_relation_types_batch(
         self,
         requests: List[Dict[str, Any]],
+        ontology_rules: Optional[Dict[str, Any]] = None,
         user_id: Optional[str] = None,
         file_id: Optional[str] = None,
         task_id: Optional[str] = None,
@@ -209,7 +274,15 @@ class OllamaRTModel(BaseRTModel):
         if not requests:
             return []
 
-        relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+        # 構建關係類型列表（優先使用 Ontology，否則使用標準類型）
+        if ontology_rules:
+            relationship_types = ontology_rules.get("relationship_types", [])
+            if relationship_types:
+                relation_types_list = "\n".join([f"- {rt}" for rt in sorted(relationship_types)])
+            else:
+                relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+        else:
+            relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
 
         # 組裝批次請求（避免 LLM 失去對應順序）
         batch_items = []
@@ -251,6 +324,7 @@ class OllamaRTModel(BaseRTModel):
             file_id=file_id,
             task_id=task_id,
             purpose="rt_batch",
+            options={"num_ctx": 32768},  # 設置 context window 為 32k
         )
 
         if response is None:
@@ -269,9 +343,55 @@ class OllamaRTModel(BaseRTModel):
             if isinstance(parsed, dict) and isinstance(parsed.get("results"), list):
                 parsed = parsed["results"]
 
+            # 如果返回的是字典，嘗試轉換為列表（類似 RE service 的處理邏輯）
             if not isinstance(parsed, list):
                 logger.error(
                     "ollama_rt_invalid_format",
+                    model=self.model_name,
+                    response_type=type(parsed).__name__,
+                    response_preview=str(parsed)[:500],
+                )
+                # 嘗試從字典中提取列表
+                if isinstance(parsed, dict):
+                    # 檢查是否有常見的鍵（如 "types", "results", "data", "items"）
+                    for key in [
+                        "types",
+                        "results",
+                        "data",
+                        "result",
+                        "items",
+                        "relation_types",
+                    ]:
+                        if key in parsed and isinstance(parsed[key], list):
+                            parsed = parsed[key]
+                            logger.info(
+                                "ollama_rt_format_converted",
+                                converted_key=key,
+                                types_count=len(parsed),
+                            )
+                            break
+                    else:
+                        # 如果沒有找到列表鍵，檢查是否是單個類型對象（帶有 "index" 和 "types"）
+                        if "index" in parsed and "types" in parsed:
+                            parsed = [parsed]
+                            logger.info(
+                                "ollama_rt_format_converted",
+                                converted_key="single_type_object",
+                                types_count=1,
+                            )
+                        else:
+                            logger.warning(
+                                "ollama_rt_format_unknown",
+                                response_preview=str(parsed)[:500],
+                                message="無法識別的 RT 返回格式",
+                            )
+                            return [[] for _ in requests]
+                else:
+                    return [[] for _ in requests]
+
+            if not isinstance(parsed, list):
+                logger.error(
+                    "ollama_rt_invalid_format_after_conversion",
                     model=self.model_name,
                     response_type=type(parsed).__name__,
                 )
@@ -355,6 +475,10 @@ class GeminiRTModel(BaseRTModel):
         relation_text: str,
         subject_text: Optional[str] = None,
         object_text: Optional[str] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[RelationType]:
         """使用 Gemini 分類關係類型"""
         if self.client is None or not self.client.is_available():
@@ -365,8 +489,15 @@ class GeminiRTModel(BaseRTModel):
         if subject_text and object_text:
             context_section = f"主體：{subject_text}\n客體：{object_text}\n"
 
-        # 構建關係類型列表
-        relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+        # 構建關係類型列表（優先使用 Ontology，否則使用標準類型）
+        if ontology_rules:
+            relationship_types = ontology_rules.get("relationship_types", [])
+            if relationship_types:
+                relation_types_list = "\n".join([f"- {rt}" for rt in sorted(relationship_types)])
+            else:
+                relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+        else:
+            relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
 
         prompt = self._prompt_template.format(
             relation_text=relation_text,
@@ -463,8 +594,12 @@ class TransformersRTModel(BaseRTModel):
         relation_text: str,
         subject_text: Optional[str] = None,
         object_text: Optional[str] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[RelationType]:
-        """使用 transformers 分類關係類型（簡化實現）"""
+        """使用 transformers 分類關係類型（簡化實現）（注：transformers 模型不支持 ontology_rules，但為了接口一致性保留此參數）"""
         if self._model is None or self._tokenizer is None:
             raise RuntimeError(f"Transformers RT model {self.model_name} is not available")
 
@@ -498,15 +633,88 @@ class RTService:
     def __init__(self):
         self.config = get_config_section("text_analysis", "rt", default={}) or {}
         # 優先使用本地模型（Ollama），只有在無法達成時才使用外部 provider
-        self.model_type = self.config.get("model_type", "ollama")
-        # 优先从环境变量读取，然后从配置读取，最后使用默认值
         import os
 
-        self.model_name = (
-            os.getenv("OLLAMA_NER_MODEL")
-            or os.getenv("OLLAMA_RT_MODEL")
-            or self.config.get("model_name", "llama3.1:8b")
-        )
+        # 優先級1: 從 ArangoDB system_configs 讀取 model_type 和 model_name
+        model_type = None
+        model_name = None
+        try:
+            from services.api.services.config_store_service import ConfigStoreService
+
+            config_service = ConfigStoreService()
+            kg_config = config_service.get_config("kg_extraction", tenant_id=None)
+            if kg_config and kg_config.config_data:
+                model_type = kg_config.config_data.get("rt_model_type")
+                model_name = kg_config.config_data.get("rt_model")
+                if model_type:
+                    logger.debug(
+                        "rt_model_type_from_system_configs",
+                        model_type=model_type,
+                        message="從 ArangoDB system_configs 讀取 RT model_type 配置",
+                    )
+                if model_name:
+                    logger.debug(
+                        "rt_model_from_system_configs",
+                        model=model_name,
+                        message="從 ArangoDB system_configs 讀取 RT 模型配置",
+                    )
+        except Exception as e:
+            logger.debug(
+                "failed_to_load_rt_model_from_system_configs",
+                error=str(e),
+                message="從 ArangoDB 讀取 RT 模型配置失敗，使用向後兼容方式",
+            )
+
+        # 優先級2: 從環境變量讀取 model_type（允許覆蓋 ArangoDB 配置）
+        env_model_type = os.getenv("RT_MODEL_TYPE")
+        if env_model_type:
+            model_type = env_model_type
+        
+        # 優先級3: 從 config.json 讀取 model_type（向後兼容）
+        if not model_type:
+            model_type = self.config.get("model_type", "ollama")
+        self.model_type = model_type or "ollama"
+
+        # 優先級4: 從環境變量讀取（只在 model_type 匹配時覆蓋）
+        # 注意：OLLAMA_RT_MODEL 只在 model_type=ollama 時使用
+        # 對於其他 model_type（如 gemini），應該使用對應的環境變量或 ArangoDB 配置
+        if self.model_type == "ollama":
+            env_model_name = os.getenv("OLLAMA_RT_MODEL") or os.getenv("OLLAMA_NER_MODEL")
+            if env_model_name:
+                model_name = env_model_name
+                logger.debug(
+                    "rt_model_from_env",
+                    model=model_name,
+                    message="從環境變量讀取 RT 模型配置（覆蓋）",
+                )
+        # 對於 gemini，可以從 GEMINI_RT_MODEL 環境變量讀取（如果設置）
+        elif self.model_type == "gemini":
+            env_model_name = os.getenv("GEMINI_RT_MODEL")
+            if env_model_name:
+                model_name = env_model_name
+                logger.debug(
+                    "rt_model_from_env",
+                    model=model_name,
+                    message="從環境變量讀取 RT 模型配置（覆蓋）",
+                )
+
+        # 優先級5: 從 config.json 讀取（向後兼容）
+        if not model_name:
+            model_name = self.config.get("model_name")
+            if model_name:
+                logger.debug(
+                    "rt_model_from_config_json",
+                    model=model_name,
+                    message="從 config.json 讀取 RT 模型配置",
+                )
+
+        # 優先級6: 使用硬編碼默認值
+        if not model_name:
+            model_name = "qwen3-coder:30b"  # 默認使用 Ollama 模型
+        
+        # 設置 model_name 屬性
+        self.model_name = model_name
+
         self.classification_threshold = self.config.get("classification_threshold", 0.7)
         self.enable_gpu = self.config.get("enable_gpu", False)
 
@@ -614,7 +822,11 @@ class RTService:
         relation_text: str,
         subject_text: Optional[str] = None,
         object_text: Optional[str] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
         model_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[RelationType]:
         """分類關係類型"""
         model = self._get_model(model_type)
@@ -622,7 +834,7 @@ class RTService:
             raise RuntimeError("No available RT model")
 
         relation_types = await model.classify_relation_type(
-            relation_text, subject_text, object_text
+            relation_text, subject_text, object_text, ontology_rules=ontology_rules, user_id=user_id, file_id=file_id, task_id=task_id
         )
         relation_types = self._validate_relation_types(relation_types)
         relation_types = self._apply_type_hierarchy(relation_types)
@@ -630,7 +842,13 @@ class RTService:
         return relation_types
 
     async def classify_relation_types_batch(
-        self, requests: List[dict], model_type: Optional[str] = None
+        self,
+        requests: List[dict],
+        ontology_rules: Optional[Dict[str, Any]] = None,
+        model_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[List[RelationType]]:
         """批量分類關係類型（優先使用模型原生 batch；否則逐條）。"""
         model = self._get_model(model_type)
@@ -639,7 +857,9 @@ class RTService:
 
         try:
             # 模型原生 batch（單次 LLM 呼叫）
-            batch_results = await model.classify_relation_types_batch(requests)
+            batch_results = await model.classify_relation_types_batch(
+                requests, ontology_rules=ontology_rules, user_id=user_id, file_id=file_id, task_id=task_id
+            )
             results: List[List[RelationType]] = []
             for relation_types in batch_results:
                 relation_types = self._validate_relation_types(relation_types)
@@ -656,7 +876,11 @@ class RTService:
                         req.get("relation_text", ""),
                         req.get("subject_text"),
                         req.get("object_text"),
-                        model_type,
+                        ontology_rules=ontology_rules,
+                        model_type=model_type,
+                        user_id=user_id,
+                        file_id=file_id,
+                        task_id=task_id,
                     )
                     fallback_results.append(relation_types)
                 except Exception:

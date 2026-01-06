@@ -1,0 +1,234 @@
+{
+    "ontology_name": "Prepared_Food_Major_Ontology",
+    "version": "1.0",
+    "inherits_from": ["5W1H_Base_Ontology_OWL", "Food_Domain_Ontology"],
+    "compatible_domains": ["domain-food.json"],
+    "description": "預製菜專業本體論，專注於預先製作、包裝和保存的食品相關技術、流程和品質控制。適用於預製菜生產、中央廚房管理、冷鏈物流、食品安全控制等專業場景。",
+    "last_modified": "2026-01-04",
+    "author": "Daniel Chung",
+
+    "entity_classes": [
+        {
+            "name": "Prepared_Food",
+            "base_class": "Food_Product",
+            "description": "預製菜產品，經過預先製作、包裝並可在後續簡單加熱後食用的食品。"
+        },
+        {
+            "name": "Central_Kitchen",
+            "base_class": "Food_Processing_Facility",
+            "description": "中央廚房，用於批量生產預製菜的專業加工設施。"
+        },
+        {
+            "name": "Preparation_Process",
+            "base_class": "Food_Processing_Process",
+            "description": "預製菜製作過程，包括清洗、切割、調味、烹飪、冷卻、包裝等步驟。"
+        },
+        {
+            "name": "Blanching",
+            "base_class": "Preparation_Process",
+            "description": "焯水處理，將食材在沸水中短時間加熱以去除異味、保持色澤的預處理過程。"
+        },
+        {
+            "name": "Shock_Cooling",
+            "base_class": "Preparation_Process",
+            "description": "急速冷卻，將烹飪後的食品快速降溫至冷藏溫度的過程，以保持食品品質。"
+        },
+        {
+            "name": "Vacuum_Packaging",
+            "base_class": "Food_Packaging",
+            "description": "真空包裝，去除包裝內空氣以延長保存期限的包裝方式。"
+        },
+        {
+            "name": "Modified_Atmosphere_Packaging",
+            "base_class": "Food_Packaging",
+            "description": "氣調包裝，調整包裝內氣體組成以延長保存期限的包裝方式。"
+        },
+        {
+            "name": "Cold_Chain_Logistics",
+            "base_class": "Food_Supply_Chain",
+            "description": "冷鏈物流，在低溫環境下運輸和儲存預製菜的供應鏈流程。"
+        },
+        {
+            "name": "Freezing_Storage",
+            "base_class": "Storage_Condition",
+            "description": "冷凍儲存，在零度以下儲存預製菜的儲存條件。"
+        },
+        {
+            "name": "Refrigerated_Storage",
+            "base_class": "Storage_Condition",
+            "description": "冷藏儲存，在 0-4°C 條件下儲存預製菜的儲存條件。"
+        },
+        {
+            "name": "Reheating_Method",
+            "base_class": "Process",
+            "description": "復熱方法，預製菜在消費端的加熱方式，如微波、蒸煮、烤箱等。"
+        },
+        {
+            "name": "Prepared_Food_Category",
+            "base_class": "Food_Category",
+            "description": "預製菜類別，如主菜、配菜、湯品、點心、調味醬料等。"
+        },
+        {
+            "name": "Batch_Production",
+            "base_class": "Process",
+            "description": "批量生產，中央廚房一次生產大量預製菜的生產方式。"
+        },
+        {
+            "name": "Quality_Control_Checkpoint",
+            "base_class": "Concept",
+            "description": "品質控制檢查點，在預製菜生產過程中的關鍵品質檢查環節。"
+        },
+        {
+            "name": "Microbial_Test",
+            "base_class": "Concept",
+            "description": "微生物檢測，檢測預製菜中的細菌、病毒等微生物指標的檢測項目。"
+        },
+        {
+            "name": "Texture_Retention",
+            "base_class": "Food_Quality_Metric",
+            "description": "質地保持，預製菜在儲存和復熱後保持原有質地的能力。"
+        },
+        {
+            "name": "Flavor_Preservation",
+            "base_class": "Food_Quality_Metric",
+            "description": "風味保持，預製菜在儲存和復熱後保持原有風味的能力。"
+        },
+        {
+            "name": "Nutrition_Retention",
+            "base_class": "Food_Quality_Metric",
+            "description": "營養保留，預製菜在加工和儲存過程中營養成分的保留程度。"
+        },
+        {
+            "name": "Production_Batch_Number",
+            "base_class": "Concept",
+            "description": "生產批次號，用於追溯預製菜生產批次和品質控制的標識。"
+        },
+        {
+            "name": "Expiration_Tracking",
+            "base_class": "Process",
+            "description": "期限追蹤，追蹤和管理預製菜保存期限的過程。"
+        },
+        {
+            "name": "Recipe_Standardization",
+            "base_class": "Concept",
+            "description": "配方標準化，確保預製菜批次間一致性的配方和製作標準。"
+        },
+        {
+            "name": "HACCP_Plan",
+            "base_class": "Food_Safety_Standard",
+            "description": "HACCP 計劃，危害分析和關鍵控制點計劃，用於預製菜生產的食品安全管理系統。"
+        }
+    ],
+
+    "object_properties": [
+        {
+            "name": "produced_at",
+            "description": "表示預製菜在特定的中央廚房生產。",
+            "domain": ["Prepared_Food"],
+            "range": ["Central_Kitchen"]
+        },
+        {
+            "name": "prepared_through",
+            "description": "表示預製菜通過特定的製作過程完成。",
+            "domain": ["Prepared_Food"],
+            "range": ["Preparation_Process", "Blanching", "Shock_Cooling"]
+        },
+        {
+            "name": "packaged_using",
+            "description": "表示預製菜使用特定的包裝方式。",
+            "domain": ["Prepared_Food"],
+            "range": ["Vacuum_Packaging", "Modified_Atmosphere_Packaging"]
+        },
+        {
+            "name": "stored_under",
+            "description": "表示預製菜需要在特定的儲存條件下保存。",
+            "domain": ["Prepared_Food"],
+            "range": ["Freezing_Storage", "Refrigerated_Storage"]
+        },
+        {
+            "name": "distributed_via",
+            "description": "表示預製菜通過冷鏈物流運輸和分銷。",
+            "domain": ["Prepared_Food"],
+            "range": ["Cold_Chain_Logistics"]
+        },
+        {
+            "name": "reheated_by",
+            "description": "表示預製菜使用特定的復熱方法加熱。",
+            "domain": ["Prepared_Food"],
+            "range": ["Reheating_Method"]
+        },
+        {
+            "name": "belongs_to_category",
+            "description": "表示預製菜屬於特定的預製菜類別。",
+            "domain": ["Prepared_Food"],
+            "range": ["Prepared_Food_Category"]
+        },
+        {
+            "name": "produced_in_batch",
+            "description": "表示預製菜通過批量生產方式生產。",
+            "domain": ["Prepared_Food"],
+            "range": ["Batch_Production"]
+        },
+        {
+            "name": "checked_at",
+            "description": "表示預製菜在特定的品質控制檢查點進行檢查。",
+            "domain": ["Prepared_Food", "Preparation_Process"],
+            "range": ["Quality_Control_Checkpoint"]
+        },
+        {
+            "name": "tested_for",
+            "description": "表示預製菜進行特定的微生物檢測。",
+            "domain": ["Prepared_Food"],
+            "range": ["Microbial_Test"]
+        },
+        {
+            "name": "has_texture_retention",
+            "description": "表示預製菜具有特定的質地保持能力。",
+            "domain": ["Prepared_Food"],
+            "range": ["Texture_Retention"]
+        },
+        {
+            "name": "has_flavor_preservation",
+            "description": "表示預製菜具有特定的風味保持能力。",
+            "domain": ["Prepared_Food"],
+            "range": ["Flavor_Preservation"]
+        },
+        {
+            "name": "has_nutrition_retention",
+            "description": "表示預製菜具有特定的營養保留程度。",
+            "domain": ["Prepared_Food"],
+            "range": ["Nutrition_Retention"]
+        },
+        {
+            "name": "has_batch_number",
+            "description": "表示預製菜具有特定的生產批次號。",
+            "domain": ["Prepared_Food"],
+            "range": ["Production_Batch_Number"]
+        },
+        {
+            "name": "tracked_for_expiration",
+            "description": "表示預製菜進行期限追蹤管理。",
+            "domain": ["Prepared_Food"],
+            "range": ["Expiration_Tracking"]
+        },
+        {
+            "name": "follows_standard",
+            "description": "表示預製菜生產遵循特定的配方標準化規範。",
+            "domain": ["Prepared_Food", "Central_Kitchen"],
+            "range": ["Recipe_Standardization"]
+        },
+        {
+            "name": "complies_with_haccp",
+            "description": "表示預製菜生產符合 HACCP 計劃要求。",
+            "domain": ["Prepared_Food", "Central_Kitchen", "Preparation_Process"],
+            "range": ["HACCP_Plan"]
+        },
+        {
+            "name": "precedes",
+            "description": "表示製作過程中的順序關係，如焯水在烹飪之前。",
+            "domain": ["Preparation_Process", "Blanching", "Shock_Cooling"],
+            "range": ["Preparation_Process", "Blanching", "Shock_Cooling"]
+        }
+    ]
+}
+

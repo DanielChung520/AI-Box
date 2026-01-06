@@ -1,0 +1,89 @@
+// ArangoDB 知识图谱查询示例
+// 使用方法：在 ArangoDB Web UI 的 AQL Editor 中执行这些查询
+
+// ============================================
+// 1. 查看所有实体（限制100个）
+// ============================================
+FOR entity IN entities
+    RETURN entity
+LIMIT 100
+
+// ============================================
+// 2. 查看所有关系（限制100个）
+// ============================================
+FOR relation IN relations
+    RETURN relation
+LIMIT 100
+
+// ============================================
+// 3. 按文件ID查询实体
+// ============================================
+// 替换 YOUR_FILE_ID 为实际的文件ID
+FOR entity IN entities
+    FILTER entity.file_id == "YOUR_FILE_ID"
+    RETURN entity
+
+// ============================================
+// 4. 按文件ID查询关系
+// ============================================
+FOR relation IN relations
+    FILTER relation.file_id == "YOUR_FILE_ID"
+    RETURN relation
+
+// ============================================
+// 5. 统计每个文件的实体数量（降序）
+// ============================================
+FOR entity IN entities
+    COLLECT file_id = entity.file_id WITH COUNT INTO count
+    SORT count DESC
+    RETURN {file_id: file_id, entity_count: count}
+
+// ============================================
+// 6. 统计每个文件的关系数量（降序）
+// ============================================
+FOR relation IN relations
+    COLLECT file_id = relation.file_id WITH COUNT INTO count
+    SORT count DESC
+    RETURN {file_id: file_id, relation_count: count}
+
+// ============================================
+// 7. 实体类型统计
+// ============================================
+FOR entity IN entities
+    COLLECT entity_type = entity.type WITH COUNT INTO count
+    SORT count DESC
+    RETURN {entity_type: entity_type, count: count}
+
+// ============================================
+// 8. 关系类型统计
+// ============================================
+FOR relation IN relations
+    COLLECT relation_type = relation.type WITH COUNT INTO count
+    SORT count DESC
+    RETURN {relation_type: relation_type, count: count}
+
+// ============================================
+// 9. 查看特定实体的所有关系
+// ============================================
+// 查找与特定实体相关的所有关系
+FOR relation IN relations
+    FILTER relation._from == "entities/YOUR_ENTITY_ID" 
+       OR relation._to == "entities/YOUR_ENTITY_ID"
+    RETURN relation
+
+// ============================================
+// 10. 查看完整的知识图谱（实体+关系）
+// ============================================
+// 获取某个文件的所有实体和关系
+FOR entity IN entities
+    FILTER entity.file_id == "YOUR_FILE_ID"
+    LET relations = (
+        FOR relation IN relations
+            FILTER relation._from == entity._id 
+               OR relation._to == entity._id
+            RETURN relation
+    )
+    RETURN {
+        entity: entity,
+        relations: relations
+    }

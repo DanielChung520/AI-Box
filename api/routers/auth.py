@@ -5,6 +5,7 @@
 
 """認證路由 - 提供登錄、Token刷新、登出等功能。"""
 
+import os
 from typing import Optional
 
 import structlog
@@ -72,6 +73,17 @@ def _authenticate_user(username: str, password: str) -> Optional[User]:
     # TODO: 實現真實的用戶認證邏輯
     # 這裡暫時實現一個簡單的驗證（僅用於演示）
     # 在生產環境中，應該從數據庫查詢用戶並驗證密碼
+    
+    # 修改時間：2026-01-06 - 添加系統管理員用戶支持
+    if username == "systemAdmin":
+        # 系統管理員用戶，需要特殊密碼（在生產環境中應該使用更安全的驗證方式）
+        # 這裡暫時使用固定密碼，生產環境應該從環境變數或配置中讀取
+        if password == os.getenv("SYSTEM_ADMIN_PASSWORD", "systemAdmin@2026"):
+            return User.create_system_admin()
+        else:
+            logger.warning("System admin login attempt with incorrect password")
+            return None
+    
     if username and password:
         # 使用 email 作為 user_id（如果 username 是 email）
         # 否則使用 username 作為 user_id

@@ -1,16 +1,29 @@
 # 代碼功能說明: RQ Worker 任務處理函數
 # 創建日期: 2025-12-10
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-10
+# 最後修改日期: 2025-12-31
 
 """RQ Worker 任務處理函數 - 定義所有需要在 Worker 中執行的任務"""
 
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import Optional
 
 import structlog
+
+# 加載環境變數（在導入其他模組之前）
+# 修改時間：2025-12-31 - 確保 .env 文件在 Worker 任務執行時被加載
+try:
+    from dotenv import load_dotenv
+
+    project_root = Path(__file__).parent.parent
+    env_file = project_root / ".env"
+    if env_file.exists():
+        load_dotenv(env_file, override=True)
+except ImportError:
+    pass  # python-dotenv 未安裝時忽略
 
 logger = structlog.get_logger(__name__)
 

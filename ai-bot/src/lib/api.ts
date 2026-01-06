@@ -124,8 +124,15 @@ export async function apiRequest<T = any>(
     // 添加超时控制
     const controller = new AbortController();
     // 對於 chat 請求，使用更長的超時時間（120 秒），因為 LLM 生成可能需要較長時間
+    // 對於文件列表查詢和用戶任務查詢，也使用較長的超時時間（60 秒），因為可能需要查詢大量數據
     const isChatRequest = url.includes('/chat');
-    const timeoutDuration = isChatRequest ? 120000 : 30000; // chat: 120秒，其他: 30秒
+    const isFileListRequest = url.includes('/files') && !url.includes('/chat');
+    const isUserTaskRequest = url.includes('/user-tasks');
+    const timeoutDuration = isChatRequest 
+      ? 120000 
+      : (isFileListRequest || isUserTaskRequest) 
+        ? 60000 
+        : 30000; // chat: 120秒，文件列表/用戶任務: 60秒，其他: 30秒
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
     const response = await fetch(url, {
@@ -236,7 +243,13 @@ export async function apiRequest<T = any>(
     if (error.name === 'AbortError') {
       console.error(`[apiRequest] Request timeout for ${url}`);
       const isChatRequest = url.includes('/chat');
-      const timeoutDuration = isChatRequest ? 120 : 30;
+      const isFileListRequest = url.includes('/files') && !url.includes('/chat');
+      const isUserTaskRequest = url.includes('/user-tasks');
+      const timeoutDuration = isChatRequest 
+        ? 120 
+        : (isFileListRequest || isUserTaskRequest) 
+          ? 60 
+          : 30;
       throw new Error(`API request timeout after ${timeoutDuration} seconds`);
     }
     // 網絡錯誤處理（如 CORS、連接失敗等）
@@ -710,6 +723,54 @@ export async function getUploadProgress(
 }
 
 /**
+ * 文件訪問級別枚舉
+ */
+export enum FileAccessLevel {
+  PUBLIC = 'public',
+  ORGANIZATION = 'organization',
+  SECURITY_GROUP = 'security_group',
+  PRIVATE = 'private',
+}
+
+/**
+ * 數據分類級別枚舉
+ */
+export enum DataClassification {
+  PUBLIC = 'public',
+  INTERNAL = 'internal',
+  CONFIDENTIAL = 'confidential',
+  RESTRICTED = 'restricted',
+}
+
+/**
+ * 敏感性標籤枚舉
+ */
+export enum SensitivityLabel {
+  PII = 'pii',
+  PHI = 'phi',
+  FINANCIAL = 'financial',
+  IP = 'ip',
+  CUSTOMER = 'customer',
+  PROPRIETARY = 'proprietary',
+}
+
+/**
+ * 文件訪問控制接口
+ */
+export interface FileAccessControl {
+  access_level: FileAccessLevel;
+  authorized_organizations?: string[];
+  authorized_security_groups?: string[];
+  authorized_users?: string[];
+  data_classification?: DataClassification;
+  sensitivity_labels?: SensitivityLabel[];
+  owner_id: string;
+  owner_tenant_id?: string;
+  access_log_enabled?: boolean;
+  access_expires_at?: string; // ISO 8601 format
+}
+
+/**
  * 文件元數據接口
  */
 export interface FileMetadata {
@@ -729,6 +790,9 @@ export interface FileMetadata {
   upload_time: string;
   created_at?: string;
   updated_at?: string;
+  access_control?: FileAccessControl;
+  data_classification?: DataClassification;
+  sensitivity_labels?: SensitivityLabel[];
 }
 
 /**
@@ -789,6 +853,7 @@ export async function getFileList(params?: {
   offset?: number;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
+  view_all_files?: boolean; // 修改時間：2026-01-06 - 添加 view_all_files 參數，允許管理員查看所有文件
 }): Promise<FileListResponse> {
   const queryParams = new URLSearchParams();
   if (params?.user_id) queryParams.append('user_id', params.user_id);
@@ -798,10 +863,22 @@ export async function getFileList(params?: {
   if (params?.offset) queryParams.append('offset', params.offset.toString());
   if (params?.sort_by) queryParams.append('sort_by', params.sort_by);
   if (params?.sort_order) queryParams.append('sort_order', params.sort_order);
+  if (params?.view_all_files) queryParams.append('view_all_files', 'true');
 
   const query = queryParams.toString();
-  return apiGet<FileListResponse>(`/files${query ? `?${query}` : ''}`);
+  const url = `/files${query ? `?${query}` : ''}`;
+  console.log('[API] getFileList 請求:', url, '參數:', params);
+  const response = await apiGet<FileListResponse>(url);
+  console.log('[API] getFileList 響應:', {
+    success: response.success,
+    hasData: !!response.data,
+    filesCount: response.data?.files?.length || 0,
+    total: response.data?.total || 0,
+    message: response.message,
+  });
+  return response;
 }
+
 
 /**
  * 搜索文件
@@ -1350,6 +1427,115 @@ export async function getFileGraph(
 }
 
 /**
+ * 更新文件元數據
+ * 修改時間：2026-01-06 - 添加通用文件元數據更新函數
+ */
+export async function updateFileMetadata(
+  fileId: string,
+  update: {
+    description?: string;
+    custom_metadata?: Record<string, any>;
+    tags?: string[];
+    task_id?: string;
+    folder_id?: string;
+  }
+): Promise<{ success: boolean; data?: FileMetadata; message?: string }> {
+  return apiPut(`/files/${fileId}/metadata`, update);
+}
+
+/**
+ * 更新文件訪問控制配置 (WBS-4.5.4)
+ */
+export async function updateFileAccessControl(
+  fileId: string,
+  accessControl: FileAccessControl
+): Promise<{ success: boolean; data?: FileMetadata; message?: string }> {
+  return apiPut(`/files/${fileId}/metadata`, {
+    access_control: accessControl,
+    data_classification: accessControl.data_classification,
+    sensitivity_labels: accessControl.sensitivity_labels,
+  });
+}
+
+/**
+ * 獲取文件訪問控制配置 (WBS-4.5.4)
+ */
+export async function getFileAccessControl(
+  fileId: string
+): Promise<{ success: boolean; data?: FileAccessControl; message?: string }> {
+  try {
+    const response = await apiGet<{ success: boolean; data?: FileMetadata }>(`/files/${fileId}`);
+    if (response.success && response.data?.access_control) {
+      return {
+        success: true,
+        data: response.data.access_control,
+      };
+    }
+    return { success: false, message: 'File access control not found' };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Failed to get file access control' };
+  }
+}
+
+/**
+ * 獲取文件訪問日誌 (WBS-4.5.4)
+ */
+export interface FileAccessLogQueryParams {
+  file_id?: string;
+  user_id?: string;
+  granted?: boolean;
+  start_date?: string; // ISO 8601 format
+  end_date?: string; // ISO 8601 format
+  limit?: number;
+  offset?: number;
+}
+
+export interface FileAccessLog {
+  user_id: string;
+  action: string;
+  resource_type: string;
+  resource_id: string;
+  timestamp: string;
+  ip_address: string;
+  user_agent: string;
+  details: {
+    reason: string;
+    granted: boolean;
+    access_level?: string;
+    data_classification?: string;
+    sensitivity_labels?: string[];
+    owner_id?: string;
+    required_permission?: string;
+  };
+}
+
+export interface FileAccessLogsResponse {
+  success: boolean;
+  data?: {
+    logs: FileAccessLog[];
+    total: number;
+    limit: number;
+    offset: number;
+  };
+  message?: string;
+}
+
+export async function getFileAccessLogs(
+  params: FileAccessLogQueryParams
+): Promise<FileAccessLogsResponse> {
+  const queryParams = new URLSearchParams();
+  if (params.file_id) queryParams.append('file_id', params.file_id);
+  if (params.user_id) queryParams.append('user_id', params.user_id);
+  if (params.granted !== undefined) queryParams.append('granted', String(params.granted));
+  if (params.start_date) queryParams.append('start_date', params.start_date);
+  if (params.end_date) queryParams.append('end_date', params.end_date);
+  if (params.limit) queryParams.append('limit', String(params.limit));
+  if (params.offset) queryParams.append('offset', String(params.offset));
+
+  return apiGet<FileAccessLogsResponse>(`/files/audit/logs?${queryParams.toString()}`);
+}
+
+/**
  * 重新生成文件的向量或圖譜數據
  * @param fileId 文件ID
  * @param type 重新生成的類型：'vector' 或 'graph'
@@ -1777,6 +1963,9 @@ export const api = {
   batchMoveFiles,
   batchDeleteFiles,
   batchDownloadFiles,
+  updateFileAccessControl,
+  getFileAccessControl,
+  getFileAccessLogs,
 };
 
 /**
@@ -1993,9 +2182,20 @@ export interface SyncTasksResponse {
  * 列出用戶的所有任務
  * @param includeArchived 是否包含歸檔的任務（默認 false，只顯示激活的任務）
  */
-export async function listUserTasks(includeArchived: boolean = false): Promise<ListUserTasksResponse> {
-  const params = includeArchived ? '?include_archived=true' : '';
-  return apiGet<ListUserTasksResponse>(`/user-tasks${params}`);
+export async function listUserTasks(includeArchived: boolean = false, limit: number = 100, offset: number = 0): Promise<ListUserTasksResponse> {
+  const params = new URLSearchParams();
+  if (includeArchived) {
+    params.append('include_archived', 'true');
+  }
+  if (limit !== 100) {
+    params.append('limit', limit.toString());
+  }
+  if (offset !== 0) {
+    params.append('offset', offset.toString());
+  }
+  const queryString = params.toString();
+  const url = `/user-tasks${queryString ? `?${queryString}` : ''}`;
+  return apiGet<ListUserTasksResponse>(url);
 }
 
 /**

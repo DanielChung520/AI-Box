@@ -1,0 +1,34 @@
+{
+  "test_file": "docs/东方伊厨-预制菜发展策略报告20250902.pdf",
+  "file_size_mb": 29,
+  "total_chunks": 9,
+  "test_date": "2026-01-04 22:39:20",
+  "models": {
+    "mistral-nemo:12b": {
+      "entities_count": 30,
+      "relations_count": 16,
+      "triples_count": 16,
+      "processing_time_seconds": 50.0,
+      "status": "completed"
+    },
+    "qwen3-next:latest": {
+      "entities_count": 25,
+      "relations_count": 16,
+      "triples_count": 16,
+      "processing_time_seconds": 80.42,
+      "status": "completed"
+    },
+    "gpt-oss:120b-cloud": {
+      "entities_count": 18,
+      "relations_count": 9,
+      "triples_count": 9,
+      "processing_time_seconds": 354.82,
+      "status": "completed"
+    }
+  },
+  "summary": {
+    "best_performance": "mistral-nemo:12b",
+    "most_entities": "mistral-nemo:12b",
+    "most_relations": "mistral-nemo:12b"
+  }
+}

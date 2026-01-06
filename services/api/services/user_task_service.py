@@ -156,10 +156,11 @@ class UserTaskService:
 
         return UserTask(**doc)  # type: ignore[arg-type]  # doc 已檢查為 dict
 
-    def list(self, user_id: str, limit: int = 100, offset: int = 0) -> List[UserTask]:
+    def list(self, user_id: str, limit: int = 100, offset: int = 0, build_file_tree: bool = False) -> List[UserTask]:
         """列出用戶的所有任務
 
         修改時間：2025-01-27 - 從 file_metadata 和 folder_metadata 動態構建 fileTree
+        修改時間：2026-01-06 - 添加 build_file_tree 參數，默認不構建 fileTree 以提升性能
         """
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
@@ -183,19 +184,20 @@ class UserTaskService:
 
         tasks = []
         for doc in cursor:
-            # 修改時間：2025-01-27 - 動態構建 fileTree
-            task_id = doc.get("task_id")
-            if task_id:
-                try:
-                    fileTree = self._build_file_tree_for_task(user_id, task_id)
-                    if fileTree:
-                        doc["fileTree"] = fileTree
-                except Exception as e:
-                    self.logger.warning(
-                        "Failed to build fileTree for task",
-                        task_id=task_id,
-                        error=str(e),
-                    )
+            # 修改時間：2026-01-06 - 只有在明確要求時才構建 fileTree（列表查詢通常不需要）
+            if build_file_tree:
+                task_id = doc.get("task_id")
+                if task_id:
+                    try:
+                        fileTree = self._build_file_tree_for_task(user_id, task_id)
+                        if fileTree:
+                            doc["fileTree"] = fileTree
+                    except Exception as e:
+                        self.logger.warning(
+                            "Failed to build fileTree for task",
+                            task_id=task_id,
+                            error=str(e),
+                        )
 
             tasks.append(UserTask(**doc))
 
@@ -364,6 +366,8 @@ class UserTaskService:
         """
         同步任務列表（批量創建或更新）
 
+        修改時間：2026-01-06 - 優化性能，避免構建 fileTree
+
         Args:
             user_id: 用戶 ID
             tasks: 任務列表（包含 task_id 和完整任務數據）
@@ -378,6 +382,8 @@ class UserTaskService:
         updated = 0
         errors = 0
 
+        collection = self.client.db.collection(COLLECTION_NAME)
+
         for task_data in tasks:
             try:
                 task_id = str(task_data.get("id") or task_data.get("task_id"))
@@ -385,22 +391,56 @@ class UserTaskService:
                     errors += 1
                     continue
 
-                # 檢查任務是否存在
-                existing = self.get(user_id, task_id)
-                if existing:
-                    # 更新現有任務
-                    update = UserTaskUpdate(
-                        **{
-                            "title": task_data.get("title"),
-                            "status": task_data.get("status"),
-                            "dueDate": task_data.get("dueDate"),
-                            "messages": task_data.get("messages"),
-                            "executionConfig": task_data.get("executionConfig"),
-                            "fileTree": task_data.get("fileTree"),
-                        }
-                    )
-                    self.update(user_id, task_id, update)
-                    updated += 1
+                # 修改時間：2026-01-06 - 直接檢查任務是否存在，避免構建 fileTree
+                doc_key = f"{user_id}_{task_id}"
+                existing_doc = collection.get(doc_key)
+                
+                # 處理 executionConfig：如果存在且為字典，轉換為 ExecutionConfig 對象
+                execution_config = task_data.get("executionConfig")
+                if execution_config is not None:
+                    if isinstance(execution_config, dict):
+                        try:
+                            execution_config = ExecutionConfig(**execution_config)
+                        except Exception as e:
+                            self.logger.warning(
+                                "Invalid executionConfig format, using default",
+                                error=str(e),
+                                execution_config=execution_config,
+                            )
+                            execution_config = ExecutionConfig(mode="free")
+                    elif not isinstance(execution_config, ExecutionConfig):
+                        execution_config = ExecutionConfig(mode="free")
+                else:
+                    execution_config = ExecutionConfig(mode="free")
+                
+                if existing_doc:
+                    # 更新現有任務（直接更新文檔，避免構建 fileTree）
+                    update_dict = {"updated_at": datetime.utcnow().isoformat()}
+                    if "title" in task_data:
+                        update_dict["title"] = task_data.get("title")
+                    if "status" in task_data:
+                        update_dict["status"] = task_data.get("status")
+                    if "task_status" in task_data:
+                        update_dict["task_status"] = task_data.get("task_status")
+                    if "label_color" in task_data:
+                        update_dict["label_color"] = task_data.get("label_color")
+                    if "dueDate" in task_data:
+                        update_dict["dueDate"] = task_data.get("dueDate")
+                    if "messages" in task_data:
+                        update_dict["messages"] = task_data.get("messages")
+                    if "executionConfig" in task_data:
+                        update_dict["executionConfig"] = (
+                            execution_config.model_dump()
+                            if hasattr(execution_config, "model_dump")
+                            else execution_config
+                        )
+                    if "fileTree" in task_data:
+                        update_dict["fileTree"] = task_data.get("fileTree")
+                    
+                    if len(update_dict) > 1:  # 除了 updated_at 之外還有其他更新
+                        existing_doc.update(update_dict)
+                        collection.update(existing_doc)
+                        updated += 1
                 else:
                     # 創建新任務
                     create = UserTaskCreate(
@@ -411,7 +451,7 @@ class UserTaskService:
                         status=task_data.get("status", "pending"),
                         dueDate=task_data.get("dueDate"),
                         messages=task_data.get("messages"),
-                        executionConfig=task_data.get("executionConfig") or ExecutionConfig(mode="free"),  # type: ignore[arg-type]  # executionConfig 是必需的，提供默認值
+                        executionConfig=execution_config,  # 使用處理後的 executionConfig
                         fileTree=task_data.get("fileTree"),
                     )
                     self.create(create)

@@ -25,6 +25,8 @@ import FileMoveModal from './FileMoveModal';
 import FileDataPreview from './FileDataPreview';
 // 修改時間：2025-12-14 12:58:00 (UTC+8) - 新建檔案（只輸入檔名，建立空白 .md）
 import NewFileOrUploadModal from './NewFileOrUploadModal';
+// 修改時間：2026-01-02 - 文件訪問控制設置模態框 (WBS-4.5.4)
+import FileAccessControlModal from './FileAccessControlModal';
 
 // 導出 FileNode 類型供其他組件使用
 export type { FileNode };
@@ -291,6 +293,9 @@ export default function FileTree({
   const [showDataPreview, setShowDataPreview] = useState(false); // 顯示數據預覽對話框
   const [previewFile, setPreviewFile] = useState<FileMetadata | null>(null); // 預覽的文件
   const [previewMode, setPreviewMode] = useState<'text' | 'vector' | 'graph'>('text'); // 預覽模式
+  // 修改時間：2026-01-02 - 文件訪問控制設置模態框狀態 (WBS-4.5.4)
+  const [showAccessControlModal, setShowAccessControlModal] = useState(false); // 顯示訪問控制設置對話框
+  const [accessControlFile, setAccessControlFile] = useState<{ fileId: string; fileName: string; ownerId: string } | null>(null); // 訪問控制設置的文件
   // 修改時間：2025-12-14 12:58:00 (UTC+8) - 新建檔案 Modal（只輸入檔名）
   const [showNewFileModal, setShowNewFileModal] = useState(false);
   const [newFileTarget, setNewFileTarget] = useState<{
@@ -301,6 +306,8 @@ export default function FileTree({
   } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const folderContextMenuRef = useRef<HTMLDivElement>(null);
+  // 修改時間：2026-01-05 - 添加防抖邏輯，避免重複調用 loadTree
+  const loadTreeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileTreeRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   // 修改時間：2025-01-27 - 使用 useRef 存儲最新的 fileTree prop，確保事件監聽器始終使用最新值
@@ -1900,12 +1907,32 @@ export default function FileTree({
         setFileInfo({ fileId: contextMenu.fileId, fileName: contextMenu.fileName });
         setShowFileInfoModal(true);
         break;
+      case 'setPermissions':
+        // 修改時間：2026-01-02 - 設置文件權限 (WBS-4.5.4)
+        // 查找文件的所有者ID
+        let ownerIdForPermission = userId || '';
+        if (!isDraft && treeData?.data?.tree) {
+          for (const [, files] of Object.entries(treeData.data.tree)) {
+            const file = files.find((f: any) => f.file_id === contextMenu.fileId);
+            if (file) {
+              ownerIdForPermission = file.user_id || userId || '';
+              break;
+            }
+          }
+        }
+        setAccessControlFile({
+          fileId: contextMenu.fileId,
+          fileName: contextMenu.fileName,
+          ownerId: ownerIdForPermission,
+        });
+        setShowAccessControlModal(true);
+        break;
       default:
         break;
     }
 
     closeContextMenu();
-  }, [contextMenu, closeContextMenu, treeData, fileTree, taskId]);
+  }, [contextMenu, closeContextMenu, treeData, fileTree, taskId, userId]);
 
   // 處理資料夾菜單項點擊
   const handleFolderMenuAction = useCallback((action: string) => {
@@ -2295,17 +2322,28 @@ export default function FileTree({
       return;
     }
 
+    // 修改時間：2026-01-05 - 添加防抖邏輯，避免重複調用 loadTree
+    const debouncedLoadTree = () => {
+      // 清除之前的定時器
+      if (loadTreeTimeoutRef.current) {
+        clearTimeout(loadTreeTimeoutRef.current);
+      }
+      // 設置新的定時器，延遲 1000ms 確保後端數據已保存
+      loadTreeTimeoutRef.current = setTimeout(() => {
+        loadTree();
+        loadTreeTimeoutRef.current = null;
+      }, 1000);
+    };
+
     const handleFileUploaded = (event: CustomEvent) => {
       const detail = event.detail;
       const uploadedTaskId = detail?.taskId as string | undefined;
       // 修改時間：2025-12-12 - fileUploaded 現在也會帶 taskId，若符合當前任務或當前未選任務，則刷新並可自動切換
+      // 修改時間：2026-01-05 - 使用防抖邏輯，避免重複調用
       if (uploadedTaskId) {
         if (!taskId || uploadedTaskId === taskId) {
           console.log('[FileTree] File uploaded event received, reloading tree', { taskId: uploadedTaskId, fileIds: detail.fileIds });
-        // 延遲一小段時間，確保後端數據已保存
-          setTimeout(() => {
-            loadTree();
-          }, 500);
+          debouncedLoadTree();
         }
         // 若目前沒有選中任務，嘗試自動切換到剛上傳的任務
         if (!taskId && onTaskSelect) {
@@ -2314,28 +2352,23 @@ export default function FileTree({
       } else if (taskId) {
         // 向後兼容：舊事件只有 fileIds（無 taskId），如果當前有 taskId 就刷新
         console.log('[FileTree] File uploaded (legacy) event received, reloading tree', { taskId, fileIds: detail.fileIds });
-        setTimeout(() => {
-          loadTree();
-        }, 500);
+        debouncedLoadTree();
       }
     };
 
     const handleFilesUploaded = (event: CustomEvent) => {
       const detail = event.detail;
       // filesUploaded 事件包含 taskId，這是主要的刷新觸發點
+      // 修改時間：2026-01-05 - 使用防抖邏輯，避免重複調用
       if (detail.taskId) {
         // 如果指定了 taskId，檢查是否匹配當前任務
         if (taskId && detail.taskId === taskId) {
           console.log('[FileTree] Files uploaded to current task, reloading tree', { taskId: detail.taskId, fileCount: detail.files?.length });
-          setTimeout(() => {
-            loadTree();
-          }, 500);
+          debouncedLoadTree();
         } else if (!taskId) {
           // 如果當前沒有 taskId，但有上傳事件（可能是新任務創建），也刷新
           console.log('[FileTree] Files uploaded (new task), reloading tree', { uploadedTaskId: detail.taskId });
-          setTimeout(() => {
-            loadTree();
-          }, 500);
+          debouncedLoadTree();
         }
       }
     };
@@ -2347,6 +2380,11 @@ export default function FileTree({
     return () => {
       window.removeEventListener('fileUploaded', handleFileUploaded as EventListener);
       window.removeEventListener('filesUploaded', handleFilesUploaded as EventListener);
+      // 修改時間：2026-01-05 - 清除防抖定時器
+      if (loadTreeTimeoutRef.current) {
+        clearTimeout(loadTreeTimeoutRef.current);
+        loadTreeTimeoutRef.current = null;
+      }
     };
   }, [taskId, loadTree]); // 移除 fileTree 依賴，使用 fileTreeRef_current.current 獲取最新值
 
@@ -2807,6 +2845,13 @@ export default function FileTree({
               <i className="fa-solid fa-info-circle w-4"></i>
               <span>查看文件信息</span>
             </button>
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+            onClick={() => handleMenuAction('setPermissions')}
+          >
+            <i className="fa-solid fa-lock w-4"></i>
+            <span>設置權限</span>
+          </button>
             <div className="border-t border-primary my-1"></div>
             <button
               className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/20 hover:text-red-300 theme-transition flex items-center gap-2 transition-colors duration-200"
@@ -2906,6 +2951,26 @@ export default function FileTree({
             onClose={() => {
               setShowDataPreview(false);
               setPreviewFile(null);
+            }}
+          />
+        )}
+
+        {/* 修改時間：2026-01-02 - 文件訪問控制設置模態框 (WBS-4.5.4) */}
+        {showAccessControlModal && accessControlFile && (
+          <FileAccessControlModal
+            isOpen={showAccessControlModal}
+            onClose={() => {
+              setShowAccessControlModal(false);
+              setAccessControlFile(null);
+            }}
+            fileId={accessControlFile.fileId}
+            fileName={accessControlFile.fileName}
+            ownerId={accessControlFile.ownerId}
+            onSuccess={() => {
+              // 權限設置成功後，觸發文件樹更新
+              window.dispatchEvent(new CustomEvent('fileTreeUpdated'));
+              setNotification({ message: '文件權限設置成功', type: 'success' });
+              setTimeout(() => setNotification(null), 3000);
             }}
           />
         )}
@@ -3862,6 +3927,13 @@ export default function FileTree({
           >
             <i className="fa-solid fa-info-circle w-4"></i>
             <span>查看文件信息</span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+            onClick={() => handleMenuAction('setPermissions')}
+          >
+            <i className="fa-solid fa-lock w-4"></i>
+            <span>設置權限</span>
           </button>
           <div className="border-t border-primary my-1"></div>
           <button

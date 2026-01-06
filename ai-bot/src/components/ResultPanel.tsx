@@ -3,6 +3,7 @@ import { useLanguage } from '../contexts/languageContext';
 import { cn } from '../lib/utils';
 import FileTree, { FileNode } from './FileTree';
 import FileViewer from './FileViewer';
+import FilePreview from './FilePreview';
 import FileSearchModal from './FileSearchModal';
 import FileUploadModal, { FileWithMetadata } from './FileUploadModal';
 import FileLibraryModal from './FileLibraryModal';
@@ -32,6 +33,8 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
   }, [taskId, userId, activeTab, fileTree]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFileMetadata, setSelectedFileMetadata] = useState<any | null>(null);
+  const [showFilePreview, setShowFilePreview] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [fileTreeData, setFileTreeData] = useState<FileTreeResponse | null>(null);
   const [fileContent, setFileContent] = useState<string | undefined>(undefined);
@@ -283,6 +286,42 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
     setSelectedFile(fileId);
     // 保存 fileName，用於文件預覽時顯示正確的文件名
     setSelectedFileName(fileName || null);
+    
+    // 嘗試從 fileTreeData 中獲取完整的文件元數據
+    let fileMetadata: any = null;
+    if (fileTreeData?.data?.tree) {
+      for (const taskFiles of Object.values(fileTreeData.data.tree)) {
+        const file = taskFiles.find((f: any) => f.file_id === fileId);
+        if (file) {
+          fileMetadata = file;
+          break;
+        }
+      }
+    }
+    
+    // 如果沒有找到，嘗試從 fileTree prop 中構建基本元數據
+    if (!fileMetadata && fileTree) {
+      const fileNode = fileTree.find((node) => node.id === fileId);
+      if (fileNode) {
+        fileMetadata = {
+          file_id: fileId,
+          filename: fileNode.name || fileName || fileId,
+          file_type: fileNode.name?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'unknown',
+        };
+      }
+    }
+    
+    // 如果還是沒有，使用基本信息構建元數據
+    if (!fileMetadata) {
+      fileMetadata = {
+        file_id: fileId,
+        filename: fileName || fileId,
+        file_type: fileName?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'unknown',
+      };
+    }
+    
+    setSelectedFileMetadata(fileMetadata);
+    setShowFilePreview(true);
     setActiveTab('preview');
     if (onViewChange) {
       onViewChange(true);
@@ -846,6 +885,23 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
             );
           }
 
+          // 如果有完整的文件元數據，使用 FilePreview（支持向量和图谱查看）
+          // 否則使用 FileViewer（僅顯示文件內容）
+          if (selectedFileMetadata) {
+            return (
+              <FilePreview
+                file={selectedFileMetadata}
+                isOpen={showFilePreview}
+                onClose={() => {
+                  setShowFilePreview(false);
+                  setSelectedFileMetadata(null);
+                }}
+                inline={true} // 内嵌显示模式
+              />
+            );
+          }
+          
+          // 向後兼容：如果沒有元數據，使用 FileViewer
           return (
           <FileViewer
             fileUrl={getFileUrl(selectedFile)}

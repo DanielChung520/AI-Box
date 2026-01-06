@@ -1,0 +1,41 @@
+{
+  "报告标题": "ERR 1579错误修复与数据重新生成完整执行报告（最终版）",
+  "生成时间": "2026-01-03 09:44:23",
+  "执行状态": "权限和task key已修正，脚本重新执行",
+  "修正内容": {
+    "1_文件权限": {
+      "问题": "文件user_id为unauthenticated",
+      "解决方案": "将所有unauthenticated文件的user_id更新为daniel@test.com",
+      "状态": "✅ 已完成"
+    },
+    "2_task权限": {
+      "问题": "task user_id为unauthenticated",
+      "解决方案": "将所有unauthenticated task的user_id更新为daniel@test.com",
+      "状态": "✅ 已完成"
+    },
+    "3_task_key": {
+      "问题": "task的_key格式为unauthenticated_xxx，权限检查使用user_id_xxx格式",
+      "解决方案": "更新所有task的_key从unauthenticated_xxx改为daniel@test.com_xxx",
+      "状态": "✅ 已完成"
+    }
+  },
+  "执行结果": {
+    "向量重新生成": {
+      "总数": 8,
+      "成功": 0,
+      "失败": 8,
+      "状态": "执行中或失败"
+    },
+    "图谱重新生成": {
+      "总数": 74,
+      "成功": 0,
+      "失败": 74,
+      "状态": "执行中或失败"
+    }
+  },
+  "RQ队列状态": {
+    "kg_extraction": 0,
+    "vectorization": 0,
+    "file_processing": 0
+  }
+}

@@ -1,0 +1,947 @@
+{
+  "total": 114,
+  "success": 74,
+  "failed": 40,
+  "results": [
+    {
+      "success": true,
+      "file_id": "0dc130db-d60d-4a54-9ce2-d4a8f9f18fd5",
+      "data": {
+        "file_id": "0dc130db-d60d-4a54-9ce2-d4a8f9f18fd5",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "d9639833-7e93-41f8-8662-067eadedaab3"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "0e7ce498-6fbe-4d2b-be3b-6fa375ab77dc",
+      "data": {
+        "file_id": "0e7ce498-6fbe-4d2b-be3b-6fa375ab77dc",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "2f39439b-30b1-4536-99d3-226584b6e52a"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "101d01fb-8814-4219-a733-cf5074da5282",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/101d01fb-8814-4219-a733-cf5074da5282/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "1104e5bf-008c-43ed-85a8-6c3aef05f457",
+      "data": {
+        "file_id": "1104e5bf-008c-43ed-85a8-6c3aef05f457",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "39e82849-1d46-4fd0-a434-413029a37c9f"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "129b63aa-2a03-4f74-9de5-3f684edd855f",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/129b63aa-2a03-4f74-9de5-3f684edd855f/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "1306e02e-238b-4465-aae6-9b6c71dd09a3",
+      "data": {
+        "file_id": "1306e02e-238b-4465-aae6-9b6c71dd09a3",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "d50705b5-f141-4936-b922-1b72ff8d9d1b"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "133e0d5c-19a9-4582-932e-08a86f85ca2c",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/133e0d5c-19a9-4582-932e-08a86f85ca2c/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "137e243f-694c-4e8f-b3ff-f3d387525a43",
+      "data": {
+        "file_id": "137e243f-694c-4e8f-b3ff-f3d387525a43",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "ad6f4b48-211a-4385-bb1a-337180091fa0"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "153c3946-59c2-4889-9bd9-749f2c5c5260",
+      "data": {
+        "file_id": "153c3946-59c2-4889-9bd9-749f2c5c5260",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "34c7e860-846a-473c-96e5-735e1c90ee9b"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "1c1ebaac-a1cc-4750-9df8-d92b0a7665a6",
+      "data": {
+        "file_id": "1c1ebaac-a1cc-4750-9df8-d92b0a7665a6",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "d5903674-82f3-4a6d-9434-b672e91b849b"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "23cb9716-a4da-404e-be0b-00be326810d9",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/23cb9716-a4da-404e-be0b-00be326810d9/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "2667937c-868a-4275-bf02-2f9a1de50cca",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/2667937c-868a-4275-bf02-2f9a1de50cca/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "26e9e23b-0c48-4206-96a8-5b23462ba767",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/26e9e23b-0c48-4206-96a8-5b23462ba767/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "296a82ae-2bf1-40be-b402-d6d81f7a15f6",
+      "data": {
+        "file_id": "296a82ae-2bf1-40be-b402-d6d81f7a15f6",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "844072f7-8cba-4e00-8f02-82e6cc006c75"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "2aed2122-c6a9-46a5-8108-000888ec1564",
+      "data": {
+        "file_id": "2aed2122-c6a9-46a5-8108-000888ec1564",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "0f4dabb8-efe4-4d6a-9001-ee2e30c581e6"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "2d2dd9a4-b17d-4bd3-b6ef-b983b3fdae63",
+      "data": {
+        "file_id": "2d2dd9a4-b17d-4bd3-b6ef-b983b3fdae63",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "71315931-043f-4860-9bda-52c4cfb9a607"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "31bf4593-0429-4d52-9db8-e1cd77e5b54c",
+      "data": {
+        "file_id": "31bf4593-0429-4d52-9db8-e1cd77e5b54c",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "8dd55ece-77d5-47c9-a840-1226877e3348"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "3deb667f-6ae3-4c31-a628-ec6c0656f272",
+      "data": {
+        "file_id": "3deb667f-6ae3-4c31-a628-ec6c0656f272",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "db14d04a-26d5-4b17-890a-c2381aab72d0"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "3e1292da-56ff-4d7a-bc8f-3414aea5f84b",
+      "data": {
+        "file_id": "3e1292da-56ff-4d7a-bc8f-3414aea5f84b",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "3a93bbf9-11dd-4bb8-adfb-3deb79dfeab0"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "3e830c9f-f537-4621-8a06-ee1b712b4b62",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/3e830c9f-f537-4621-8a06-ee1b712b4b62/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "40adb424-537f-4577-b01f-5d7bb23b94ec",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/40adb424-537f-4577-b01f-5d7bb23b94ec/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "411a08df-6f7c-46d9-9f2a-bed8b8d03ae3",
+      "data": {
+        "file_id": "411a08df-6f7c-46d9-9f2a-bed8b8d03ae3",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "f72fe553-3ecf-4841-9b09-3c2de97a04d2"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "45a3dbff-eafa-4dc7-9769-172d5a12cd7f",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/45a3dbff-eafa-4dc7-9769-172d5a12cd7f/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "46934102-c854-4221-a5e6-67c3faa8a614",
+      "data": {
+        "file_id": "46934102-c854-4221-a5e6-67c3faa8a614",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "78cd8e81-09dd-406d-9a32-32575277e654"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "47a7839d-9d5d-48af-8b67-d9a8d3149c96",
+      "data": {
+        "file_id": "47a7839d-9d5d-48af-8b67-d9a8d3149c96",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "6dc9f576-7e17-4a1f-9028-73413aaf9c62"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "4a061f10-91b9-4622-b887-71182f99d9fe",
+      "data": {
+        "file_id": "4a061f10-91b9-4622-b887-71182f99d9fe",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "c1a03829-46b4-402c-81e7-a70a34ff6835"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "4d965b20-09b9-4bb5-bfaa-c58b27f79a02",
+      "data": {
+        "file_id": "4d965b20-09b9-4bb5-bfaa-c58b27f79a02",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "8d79e1e0-df75-4b14-81cc-c34be7c0c439"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "524deb70-5136-4ddb-a26a-427d5b301c87",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/524deb70-5136-4ddb-a26a-427d5b301c87/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "56746bfa-8424-43ef-914e-466cc3ecc122",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/56746bfa-8424-43ef-914e-466cc3ecc122/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "5d3cf127-4492-4757-b672-1b1f43ccc279",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/5d3cf127-4492-4757-b672-1b1f43ccc279/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "5e2b11f7-5c78-4312-bf27-bdb14e04f9ef",
+      "data": {
+        "file_id": "5e2b11f7-5c78-4312-bf27-bdb14e04f9ef",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "baea2b47-da04-48dd-ad04-e3178e6f75c3"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "5e8b489b-9374-48eb-81ca-d9ea78470754",
+      "data": {
+        "file_id": "5e8b489b-9374-48eb-81ca-d9ea78470754",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "236dc582-a4fc-42d6-ae89-0c2499f28ba1"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "62b70e5b-d50a-494f-bf5a-8585b8a74241",
+      "data": {
+        "file_id": "62b70e5b-d50a-494f-bf5a-8585b8a74241",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "5d3c45fa-d6e8-4ac6-ab60-d750b8a59815"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "633f442b-9976-4789-9495-5e7985b785b1",
+      "data": {
+        "file_id": "633f442b-9976-4789-9495-5e7985b785b1",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "e434b65a-5351-4cdd-9527-def796c802e1"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "644c238c-3d49-4b51-be77-ed6dfad799ca",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/644c238c-3d49-4b51-be77-ed6dfad799ca/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "64b5bbd3-29c1-4a70-9cc9-0186a404a554",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/64b5bbd3-29c1-4a70-9cc9-0186a404a554/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "6509e35f-d3eb-4185-b9e8-c219d3c4dc22",
+      "data": {
+        "file_id": "6509e35f-d3eb-4185-b9e8-c219d3c4dc22",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "621c070e-2a03-488d-a4b6-bba35b6fb9dc"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "65301279-6d8f-4372-b636-cf286d54c292",
+      "data": {
+        "file_id": "65301279-6d8f-4372-b636-cf286d54c292",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "2d1fec06-c5c7-48b2-a1d4-1d9a2fb5d0fb"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "6676f5a0-5c80-489b-ae26-257d6a0282e4",
+      "data": {
+        "file_id": "6676f5a0-5c80-489b-ae26-257d6a0282e4",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "1cd1517c-667a-4655-a9e0-b440b46b2c09"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "68d9edcb-345c-40c5-8e20-3858292ab7e1",
+      "data": {
+        "file_id": "68d9edcb-345c-40c5-8e20-3858292ab7e1",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "2d3cc1b0-82e9-4bea-b0f1-eb26defc33b5"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "6a52cb5e-32de-44da-b722-e45c9675e1a0",
+      "data": {
+        "file_id": "6a52cb5e-32de-44da-b722-e45c9675e1a0",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "6cbd2df9-6446-4bf9-aba3-ceac59139ad9"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "6b3e54f2-b7c6-4a54-be6b-1dd93c462174",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/6b3e54f2-b7c6-4a54-be6b-1dd93c462174/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "6fc9721a-3d95-4ef8-8ca8-85c03c2693f9",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/6fc9721a-3d95-4ef8-8ca8-85c03c2693f9/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "70d9595a-e56a-47fb-b2fe-95070dcc250f",
+      "data": {
+        "file_id": "70d9595a-e56a-47fb-b2fe-95070dcc250f",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "0f863b0d-1a4b-4cea-a2ea-7663b2453201"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "7337654d-38bc-456a-be63-8f359063cf9c",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/7337654d-38bc-456a-be63-8f359063cf9c/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "7a0ccf06-69d2-420b-9760-28ffce133ac4",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/7a0ccf06-69d2-420b-9760-28ffce133ac4/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "7f1924a9-b078-4bfb-8369-59038a454145",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/7f1924a9-b078-4bfb-8369-59038a454145/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "8483c5e0-4968-4aaf-8de6-2a252f1dfdc6",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/8483c5e0-4968-4aaf-8de6-2a252f1dfdc6/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "85ac19f5-a170-4d9e-a9ee-8061bb56c1d6",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/85ac19f5-a170-4d9e-a9ee-8061bb56c1d6/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "8983d29d-3582-4de6-aaf9-4f1f34c222f1",
+      "data": {
+        "file_id": "8983d29d-3582-4de6-aaf9-4f1f34c222f1",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "72eb7e95-4437-41ed-b8b6-9af818d8152c"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "90436e24-a97d-4ecb-a258-6924551e4814",
+      "data": {
+        "file_id": "90436e24-a97d-4ecb-a258-6924551e4814",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "2bcd04ec-3871-4654-b639-379b1f4464c7"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "90ab43c6-d097-4f40-bee9-aca5dfc29b87",
+      "data": {
+        "file_id": "90ab43c6-d097-4f40-bee9-aca5dfc29b87",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "4f6b3856-cc9e-454f-8393-992b2824cdf9"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "915ef451-ee17-4ed5-a26e-ee7be23a5e5f",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/915ef451-ee17-4ed5-a26e-ee7be23a5e5f/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "9220d8b5-6e84-4843-827f-e7b0a9cdbb60",
+      "data": {
+        "file_id": "9220d8b5-6e84-4843-827f-e7b0a9cdbb60",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "5e49aba2-4388-4cfb-bbeb-34d3b7e1c618"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "93b73c89-3ffd-4d8c-8f6a-42e1199fca4b",
+      "data": {
+        "file_id": "93b73c89-3ffd-4d8c-8f6a-42e1199fca4b",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "0be5ce2d-98bd-48cf-baa9-64aa37498264"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "9945cb89-bfc7-4c33-80bb-37e1fd94db0f",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/9945cb89-bfc7-4c33-80bb-37e1fd94db0f/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "99861c53-3fcf-4c92-8fb9-350811c7e2f1",
+      "data": {
+        "file_id": "99861c53-3fcf-4c92-8fb9-350811c7e2f1",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "4b852e12-6975-4b11-bc74-e52ca9bfba6e"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "9ec945f8-d856-4c4c-b2fb-394354b51a7f",
+      "data": {
+        "file_id": "9ec945f8-d856-4c4c-b2fb-394354b51a7f",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "b2374784-5cea-4b0b-b399-9b09f2098015"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "9f0bb605-c72d-4396-9bbf-0dfa654db276",
+      "data": {
+        "file_id": "9f0bb605-c72d-4396-9bbf-0dfa654db276",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "83705868-a9e5-4d74-a0ff-1a03aeb9a0ab"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "a0a48a9e-c0b5-413c-aa6b-10d81d09c192",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/a0a48a9e-c0b5-413c-aa6b-10d81d09c192/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "a12c9382-e294-4c53-8e82-4f8ade32f181",
+      "data": {
+        "file_id": "a12c9382-e294-4c53-8e82-4f8ade32f181",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "3acebf97-460b-4b38-a7e3-bb6d9df8843d"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "a288f026-324e-438d-942d-8e902a04607e",
+      "data": {
+        "file_id": "a288f026-324e-438d-942d-8e902a04607e",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "128ca700-5e82-41b8-bfe7-97607553f26e"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "a48d6328-109b-4e9e-bf16-de55193e8cc7",
+      "data": {
+        "file_id": "a48d6328-109b-4e9e-bf16-de55193e8cc7",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "c85f49d1-7322-4dd9-bfdc-9c837d6f994a"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "a4c24a47-2f37-4e2b-8b21-870244f77605",
+      "data": {
+        "file_id": "a4c24a47-2f37-4e2b-8b21-870244f77605",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "b1268bb5-152a-4f75-8805-41534fcf62fb"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "a55094d8-b42b-47cc-baf8-bd9d17901251",
+      "data": {
+        "file_id": "a55094d8-b42b-47cc-baf8-bd9d17901251",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "ad610f73-583e-4258-b797-4119d3eabc18"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "aa17ff8d-73fd-41ae-a572-59fcd1ef85eb",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/aa17ff8d-73fd-41ae-a572-59fcd1ef85eb/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "ad09d73b-95b6-41f9-9fad-94941a5af8c0",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/ad09d73b-95b6-41f9-9fad-94941a5af8c0/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "aec9dfb8-50ec-4ef5-85cf-4bf25f2312ee",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/aec9dfb8-50ec-4ef5-85cf-4bf25f2312ee/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "b0629035-7023-4d34-9a7f-80d5199f73dd",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/b0629035-7023-4d34-9a7f-80d5199f73dd/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "b22266b6-8afd-4d49-9356-abfe8e595d77",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/b22266b6-8afd-4d49-9356-abfe8e595d77/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": false,
+      "file_id": "b38b9f93-e7a1-485c-8d07-68f45bc3ec43",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/b38b9f93-e7a1-485c-8d07-68f45bc3ec43/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "b7490598-1890-4c5e-96dc-587759c173b5",
+      "data": {
+        "file_id": "b7490598-1890-4c5e-96dc-587759c173b5",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "a948b0e7-9e9f-4e9f-bf2b-845d09c0e59e"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "bbab8d54-4988-4144-b075-065954c21ae6",
+      "data": {
+        "file_id": "bbab8d54-4988-4144-b075-065954c21ae6",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "951d6116-7eee-4c96-a3e8-aa95569e2eb2"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "bbf3c781-c6c0-4d9b-ad31-f0d218a17b05",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/bbf3c781-c6c0-4d9b-ad31-f0d218a17b05/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "bcbae021-2a0a-43aa-9f02-f8a5dc3beb00",
+      "data": {
+        "file_id": "bcbae021-2a0a-43aa-9f02-f8a5dc3beb00",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "4e9a43ec-4055-4633-ba4c-0264c2834d4b"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "bd7ae912-52d8-47ea-a091-4c25ec77d12c",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/bd7ae912-52d8-47ea-a091-4c25ec77d12c/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "bdc17ee3-95ca-4409-8207-2c71112f80b0",
+      "data": {
+        "file_id": "bdc17ee3-95ca-4409-8207-2c71112f80b0",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "423a4e92-5109-4f6e-8bd4-e396541fa39b"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "be411200-8a2c-48b1-acfb-443ef9e9729e",
+      "data": {
+        "file_id": "be411200-8a2c-48b1-acfb-443ef9e9729e",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "744ac7e9-b34a-494e-8adf-d1fe142b15ff"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "bf2bec11-21e1-4ae3-9577-3450c3668075",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/bf2bec11-21e1-4ae3-9577-3450c3668075/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "c0db6a7d-8040-4130-a2cc-a70dc09eb50c",
+      "data": {
+        "file_id": "c0db6a7d-8040-4130-a2cc-a70dc09eb50c",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "5b533457-6389-4dfb-975f-3796e5a2b42d"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "c2540621-ba78-4405-9b57-d71a50a9461a",
+      "data": {
+        "file_id": "c2540621-ba78-4405-9b57-d71a50a9461a",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "45c20690-99fa-4010-bc09-48be70804b28"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "c2d27cdd-3e86-442c-8248-b52a6500d4ff",
+      "data": {
+        "file_id": "c2d27cdd-3e86-442c-8248-b52a6500d4ff",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "27c00f9f-05d4-4175-ac64-a017db7b6dbb"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "c606dd7e-3cf4-430c-aea0-1cf437238408",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/c606dd7e-3cf4-430c-aea0-1cf437238408/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "c7ae4f83-b822-4a7d-bf54-9d44206ce889",
+      "data": {
+        "file_id": "c7ae4f83-b822-4a7d-bf54-9d44206ce889",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "d600a133-0ae9-4943-a844-f104a3252054"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "c88f10c4-fd8d-4659-ad02-9d68d53b5281",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/c88f10c4-fd8d-4659-ad02-9d68d53b5281/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "cbcaf362-3010-488e-9d65-59470d375538",
+      "data": {
+        "file_id": "cbcaf362-3010-488e-9d65-59470d375538",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "bcfd6b41-4e48-4cfd-a430-9308b2940161"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "cbd1c971-d911-4b4e-be03-5d5b4f1d2a1b",
+      "data": {
+        "file_id": "cbd1c971-d911-4b4e-be03-5d5b4f1d2a1b",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "bcb7031d-cec9-4a7e-a9f1-7b008fb53200"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "ce18c387-c7f7-4efe-8f17-cab86e0490e1",
+      "data": {
+        "file_id": "ce18c387-c7f7-4efe-8f17-cab86e0490e1",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "eb208f98-6e6c-4dd9-a166-c88f3765f6c9"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "ce810c0d-5116-4e87-9214-5ae00fde6a3f",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/ce810c0d-5116-4e87-9214-5ae00fde6a3f/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "d1ef36e5-e39f-4abc-b90d-fa3f1a219453",
+      "data": {
+        "file_id": "d1ef36e5-e39f-4abc-b90d-fa3f1a219453",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "ee4996a7-88f3-4782-a211-30531acb5f66"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "d304d956-a67e-43a1-b514-13a001b3fdf3",
+      "data": {
+        "file_id": "d304d956-a67e-43a1-b514-13a001b3fdf3",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "ad93ab21-df30-4776-9db8-1abda18d815f"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "d3d0fae5-56e6-42de-86fa-a4cde19bee81",
+      "data": {
+        "file_id": "d3d0fae5-56e6-42de-86fa-a4cde19bee81",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "def55729-c85b-4634-9b4f-219fb8c15847"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "d40f7ee2-9cc2-4376-a568-7e1a111c2a90",
+      "data": {
+        "file_id": "d40f7ee2-9cc2-4376-a568-7e1a111c2a90",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "ed949ebf-d0b0-4109-8ad9-e27d32e6522c"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "d63522e8-8722-4eaa-8c99-54f39003e469",
+      "data": {
+        "file_id": "d63522e8-8722-4eaa-8c99-54f39003e469",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "32d6f6f5-0b6e-46c5-80ab-96589beaef0c"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "d696de13-c65d-466d-b33e-c1cc45af0c28",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/d696de13-c65d-466d-b33e-c1cc45af0c28/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "d85c167d-026d-406f-b88c-e99f59ffaec7",
+      "data": {
+        "file_id": "d85c167d-026d-406f-b88c-e99f59ffaec7",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "dcaf7814-65d5-4ff0-8fc4-74d3fd3222cc"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "d86a1798-458c-424c-a878-3b2c91588817",
+      "data": {
+        "file_id": "d86a1798-458c-424c-a878-3b2c91588817",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "7807e256-8886-4627-b64d-97a2e166779b"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "d8b525ba-8d31-45ac-ac0f-65e1fc768422",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/d8b525ba-8d31-45ac-ac0f-65e1fc768422/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "df3738a7-268c-4a00-9aeb-df3ca63d8ce1",
+      "data": {
+        "file_id": "df3738a7-268c-4a00-9aeb-df3ca63d8ce1",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "85381a79-e606-4be0-b8e1-1a90e3b2e447"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "e029c7d7-770f-4f97-9b5b-965681f3d725",
+      "data": {
+        "file_id": "e029c7d7-770f-4f97-9b5b-965681f3d725",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "d933878f-15a6-4cba-87b5-637f96d2df6b"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "e0850b6c-ca79-43e8-af2e-fb4eaea97ecf",
+      "data": {
+        "file_id": "e0850b6c-ca79-43e8-af2e-fb4eaea97ecf",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "22fe2cfc-8327-4493-b6ae-33aac4e6f565"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "e3667577-eb7d-48bf-80d8-6656c0f7679c",
+      "data": {
+        "file_id": "e3667577-eb7d-48bf-80d8-6656c0f7679c",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "8821117c-c651-4d4f-9ae9-880e72619c26"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "e5a37e4c-b723-43c7-b7c0-4e8ae40955d2",
+      "data": {
+        "file_id": "e5a37e4c-b723-43c7-b7c0-4e8ae40955d2",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "74eee27c-78c2-49fe-862d-2c1062c7fffe"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "e5e1d618-e96a-4f74-a9eb-03911d2e638c",
+      "data": {
+        "file_id": "e5e1d618-e96a-4f74-a9eb-03911d2e638c",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "431017da-f77c-4c85-a962-879f58c7a751"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "e7148327-0e6b-4d5b-83b3-7eec2978d0b5",
+      "data": {
+        "file_id": "e7148327-0e6b-4d5b-83b3-7eec2978d0b5",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "85441269-5dd1-4f5a-9c7b-c075437f2aef"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "efb3cc13-fa5f-4b6e-a4f4-c022f00ab29d",
+      "data": {
+        "file_id": "efb3cc13-fa5f-4b6e-a4f4-c022f00ab29d",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "22dc043e-da36-45b9-a51d-713ad1d185ec"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "f2446133-83a6-4383-9708-acb65ff832aa",
+      "data": {
+        "file_id": "f2446133-83a6-4383-9708-acb65ff832aa",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "73e3129a-d90a-4205-a2e4-23ffc06eedc1"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "f500c91a-7748-456b-acb2-e54bafe773b7",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/f500c91a-7748-456b-acb2-e54bafe773b7/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "success": true,
+      "file_id": "f606ee62-5434-4461-b168-220a8b1080ff",
+      "data": {
+        "file_id": "f606ee62-5434-4461-b168-220a8b1080ff",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "c1b1f445-6e7d-46d3-afc6-6f04b7cabdd6"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "f641594f-15d0-453f-b008-3ebb0ecc2322",
+      "data": {
+        "file_id": "f641594f-15d0-453f-b008-3ebb0ecc2322",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "aac4d02f-9f72-4002-b2a1-61e00e7858a8"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "f7fab73f-e3ec-44ce-a1bb-fdbb49b0e58a",
+      "data": {
+        "file_id": "f7fab73f-e3ec-44ce-a1bb-fdbb49b0e58a",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "7e3e63c9-1706-46b4-83e0-959b23641bbf"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "f867fb36-a008-414d-a1c3-be15c7cb5e4f",
+      "data": {
+        "file_id": "f867fb36-a008-414d-a1c3-be15c7cb5e4f",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "f73a9ea9-f1cd-4e40-ad3b-3fbff209a953"
+      }
+    },
+    {
+      "success": true,
+      "file_id": "fd4a6f9e-f02e-4987-bba2-f3f2b32f2fdf",
+      "data": {
+        "file_id": "fd4a6f9e-f02e-4987-bba2-f3f2b32f2fdf",
+        "type": "graph",
+        "status": "queued",
+        "job_id": "850c3816-65ec-4b39-a627-4430b78ebf95"
+      }
+    },
+    {
+      "success": false,
+      "file_id": "fe27093e-3843-4720-8537-b6aa24deb9e3",
+      "error": "Server error '500 Internal Server Error' for url 'http://localhost:8000/api/v1/files/fe27093e-3843-4720-8537-b6aa24deb9e3/regenerate'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    }
+  ]
+}

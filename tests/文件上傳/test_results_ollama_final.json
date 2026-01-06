@@ -1,0 +1,94 @@
+{
+  "test_info": {
+    "file_path": "docs/系统设计文档/统一服务指南.md",
+    "file_size": 3059,
+    "model": "ollama",
+    "user_id": "test-user",
+    "test_time": "2026-01-01 22:12:57"
+  },
+  "upload": {
+    "status": "success",
+    "file_id": "b461bb21-918a-47d4-ae36-f2bd7240f489",
+    "upload_time": 4.97
+  },
+  "processing": {
+    "status": "completed",
+    "progress": 100,
+    "processing_time": 234.22,
+    "chunking": {
+      "status": "completed",
+      "progress": 100,
+      "message": "分塊處理完成",
+      "chunk_count": 15
+    },
+    "vectorization": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量化完成",
+      "vector_count": 15
+    },
+    "storage": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量存儲完成",
+      "collection_name": "file_b461bb21-918a-47d4-ae36-f2bd7240f489",
+      "vector_count": 15
+    },
+    "kg_extraction": {
+      "status": "processing",
+      "progress": 33,
+      "message": "續跑已排程（剩餘 10 個分塊）",
+      "mode": "all_chunks",
+      "job_id": "fc2a621a-79ef-487e-a0a4-c7b3a4b3ff99",
+      "total_chunks": 15,
+      "completed_chunks": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "ontology_loaded": true,
+      "failed_chunks": [],
+      "failed_permanent_chunks": [],
+      "remaining_chunks": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "last_completed_chunk": 5,
+      "triples_count": 0,
+      "entities_count": 0,
+      "relations_count": 0,
+      "next_job_id": "6bd78e8a-dbb7-4c4f-9ad5-2148bc080b83"
+    }
+  },
+  "knowledge_graph": {
+    "stats": {
+      "file_id": "b461bb21-918a-47d4-ae36-f2bd7240f489",
+      "triples_count": 0,
+      "entities_count": 0,
+      "relations_count": 0,
+      "status": "not_processed"
+    },
+    "triples_count": 0,
+    "triples": []
+  },
+  "summary": {
+    "total_time": 239.27,
+    "upload_time": 4.97,
+    "processing_time": 234.22,
+    "chunks_count": 15,
+    "entities_count": 0,
+    "relations_count": 0,
+    "entity_types": [],
+    "relation_types": []
+  }
+}

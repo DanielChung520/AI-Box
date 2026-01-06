@@ -1,0 +1,125 @@
+{
+    "ontology_name": "Renewable_Energy_Domain_Ontology",
+    "version": "1.0",
+    "inherits_from": "5W1H_Base_Ontology_OWL",
+    "description": "再生能源領域本體論，定義太陽能、風能、水力、生質能等再生能源相關的核心概念。",
+    "last_modified": "2026-01-03",
+    "author": "Daniel Chung",
+
+    "entity_classes": [
+        {
+            "name": "Renewable_Energy_Source",
+            "base_class": "Concept",
+            "description": "再生能源來源，如太陽能、風能、水力、地熱、生質能等。"
+        },
+        {
+            "name": "Energy_Generation_Facility",
+            "base_class": "Location",
+            "description": "能源發電設施，如太陽能發電廠、風力發電場、水力發電廠等。"
+        },
+        {
+            "name": "Energy_Storage_System",
+            "base_class": "Asset",
+            "description": "能源儲存系統，如電池、儲能站、抽蓄水庫等。"
+        },
+        {
+            "name": "Energy_Conversion_Process",
+            "base_class": "Process",
+            "description": "能源轉換過程，如光電轉換、風能轉電能、生質能轉化等。"
+        },
+        {
+            "name": "Energy_Output",
+            "base_class": "ProductOrService",
+            "description": "能源輸出，如電力、熱能、燃料等。"
+        },
+        {
+            "name": "Energy_Efficiency_Metric",
+            "base_class": "Concept",
+            "description": "能源效率指標，如轉換效率、發電量、容量因數等。"
+        },
+        {
+            "name": "Environmental_Impact",
+            "base_class": "Concept",
+            "description": "環境影響，如碳排放、廢棄物產生、生態影響等。"
+        },
+        {
+            "name": "Energy_Policy",
+            "base_class": "Document",
+            "description": "能源政策、法規或標準文件。"
+        },
+        {
+            "name": "Research_Project",
+            "base_class": "Event",
+            "description": "再生能源相關的研究專案或實驗。"
+        },
+        {
+            "name": "Technology_Innovation",
+            "base_class": "Concept",
+            "description": "技術創新，如新材料的應用、效率提升技術等。"
+        }
+    ],
+
+    "object_properties": [
+        {
+            "name": "generates",
+            "description": "表示能源來源或設施產生能源輸出。",
+            "domain": ["Renewable_Energy_Source", "Energy_Generation_Facility"],
+            "range": ["Energy_Output"]
+        },
+        {
+            "name": "converts_to",
+            "description": "表示能源轉換過程將某種能源轉換為另一種形式。",
+            "domain": ["Energy_Conversion_Process"],
+            "range": ["Energy_Output", "Renewable_Energy_Source"]
+        },
+        {
+            "name": "stores",
+            "description": "表示儲能系統儲存能源。",
+            "domain": ["Energy_Storage_System"],
+            "range": ["Energy_Output"]
+        },
+        {
+            "name": "has_efficiency",
+            "description": "表示設施或過程具有特定的能源效率指標。",
+            "domain": ["Energy_Generation_Facility", "Energy_Conversion_Process"],
+            "range": ["Energy_Efficiency_Metric"]
+        },
+        {
+            "name": "causes_impact",
+            "description": "表示能源設施或過程對環境造成的影響。",
+            "domain": ["Energy_Generation_Facility", "Energy_Conversion_Process"],
+            "range": ["Environmental_Impact"]
+        },
+        {
+            "name": "regulated_by",
+            "description": "表示能源設施或專案受特定政策規範。",
+            "domain": ["Energy_Generation_Facility", "Research_Project"],
+            "range": ["Energy_Policy"]
+        },
+        {
+            "name": "uses_technology",
+            "description": "表示設施或專案使用特定的技術創新。",
+            "domain": ["Energy_Generation_Facility", "Research_Project"],
+            "range": ["Technology_Innovation"]
+        },
+        {
+            "name": "located_at",
+            "description": "表示能源設施位於特定地點。",
+            "domain": ["Energy_Generation_Facility"],
+            "range": ["Location"]
+        },
+        {
+            "name": "operated_by",
+            "description": "表示能源設施由特定組織運營。",
+            "domain": ["Energy_Generation_Facility"],
+            "range": ["Organization"]
+        },
+        {
+            "name": "researches",
+            "description": "表示研究專案研究特定的能源來源或技術。",
+            "domain": ["Research_Project"],
+            "range": ["Renewable_Energy_Source", "Technology_Innovation"]
+        }
+    ]
+}
+

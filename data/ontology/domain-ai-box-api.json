@@ -1,0 +1,251 @@
+{
+  "type": "domain",
+  "name": "AI_Box",
+  "version": "1.0",
+  "default_version": true,
+  "ontology_name": "AI_Box_Domain_Ontology",
+  "description": "AI-Box 系統平台領域本體論，定義 AI 系統、服務、數據處理管道與知識管理平台的核心概念。適用於 AI 系統設計文檔、平台架構文檔、服務文檔等場景。",
+  "author": "Daniel Chung",
+  "last_modified": "2025-12-31",
+  "inherits_from": [
+    "5W1H_Base_Ontology_OWL"
+  ],
+  "compatible_domains": [],
+  "tags": [],
+  "use_cases": [],
+  "entity_classes": [
+    {
+      "name": "AI_System",
+      "base_class": "Concept",
+      "description": "AI 系統或平台，如 AI-Box、智能助手系統、知識管理平台等。"
+    },
+    {
+      "name": "AI_Service",
+      "base_class": "Concept",
+      "description": "AI 服務，如向量化服務、知識圖譜提取服務、LLM 服務等。"
+    },
+    {
+      "name": "Data_Pipeline",
+      "base_class": "Process",
+      "description": "數據處理管道，如文件上傳處理流程、向量化流程、知識圖譜提取流程等。"
+    },
+    {
+      "name": "Model_Endpoint",
+      "base_class": "Concept",
+      "description": "模型端點或接口，如 LLM API、Embedding API、視覺模型 API 等。"
+    },
+    {
+      "name": "Intelligent_Agent",
+      "base_class": "Agent",
+      "description": "智能代理，如任務分析代理、文件處理代理、對話代理等。"
+    },
+    {
+      "name": "Knowledge_Base",
+      "base_class": "Concept",
+      "description": "知識庫，如向量知識庫、圖譜知識庫、文檔庫等。"
+    },
+    {
+      "name": "Vector_Store",
+      "base_class": "Concept",
+      "description": "向量存儲系統，如 ChromaDB、向量數據庫等用於存儲和檢索嵌入向量的系統。"
+    },
+    {
+      "name": "Graph_Database",
+      "base_class": "Concept",
+      "description": "圖數據庫系統，如 ArangoDB 等用於存儲和查詢圖結構數據的系統。"
+    },
+    {
+      "name": "File_Storage",
+      "base_class": "Concept",
+      "description": "文件存儲系統，如 SeaweedFS、S3 等用於存儲文件的系統。"
+    },
+    {
+      "name": "API_Endpoint",
+      "base_class": "Concept",
+      "description": "API 端點，如 REST API、GraphQL API、RPC 接口等。"
+    },
+    {
+      "name": "Configuration",
+      "base_class": "Document",
+      "description": "配置文檔，如系統配置、服務配置、模型配置等。"
+    },
+    {
+      "name": "System_Event",
+      "base_class": "Event",
+      "description": "系統事件，如文件上傳事件、處理完成事件、錯誤事件等。"
+    },
+    {
+      "name": "Processing_Task",
+      "base_class": "Event",
+      "description": "處理任務，如文件處理任務、向量化任務、知識圖譜提取任務等。"
+    }
+  ],
+  "object_properties": [
+    {
+      "name": "uses_model",
+      "description": "表示系統或服務使用的 AI 模型。",
+      "domain": [
+        "AI_System",
+        "AI_Service",
+        "Model_Endpoint"
+      ],
+      "range": [
+        "Concept",
+        "Resource"
+      ]
+    },
+    {
+      "name": "processes_data",
+      "description": "表示系統、服務或管道處理的數據。",
+      "domain": [
+        "AI_System",
+        "AI_Service",
+        "Data_Pipeline"
+      ],
+      "range": [
+        "Document",
+        "Concept",
+        "Resource"
+      ]
+    },
+    {
+      "name": "stores_knowledge",
+      "description": "表示系統或服務存儲的知識。",
+      "domain": [
+        "Knowledge_Base",
+        "Vector_Store",
+        "Graph_Database"
+      ],
+      "range": [
+        "Document",
+        "Concept",
+        "Resource"
+      ]
+    },
+    {
+      "name": "provides_service",
+      "description": "表示系統提供的服務。",
+      "domain": [
+        "AI_System"
+      ],
+      "range": [
+        "AI_Service"
+      ]
+    },
+    {
+      "name": "connects_to",
+      "description": "表示系統、服務或組件連接到其他系統、服務或數據庫。",
+      "domain": [
+        "AI_System",
+        "AI_Service",
+        "Model_Endpoint"
+      ],
+      "range": [
+        "AI_System",
+        "AI_Service",
+        "Vector_Store",
+        "Graph_Database",
+        "File_Storage",
+        "API_Endpoint"
+      ]
+    },
+    {
+      "name": "uses_database",
+      "description": "表示系統或服務使用的數據庫。",
+      "domain": [
+        "AI_System",
+        "AI_Service"
+      ],
+      "range": [
+        "Vector_Store",
+        "Graph_Database",
+        "File_Storage"
+      ]
+    },
+    {
+      "name": "executes_pipeline",
+      "description": "表示系統或服務執行的數據處理管道。",
+      "domain": [
+        "AI_System",
+        "AI_Service"
+      ],
+      "range": [
+        "Data_Pipeline"
+      ]
+    },
+    {
+      "name": "has_configuration",
+      "description": "表示系統、服務或組件擁有的配置。",
+      "domain": [
+        "AI_System",
+        "AI_Service",
+        "Model_Endpoint"
+      ],
+      "range": [
+        "Configuration"
+      ]
+    },
+    {
+      "name": "triggers_event",
+      "description": "表示系統或服務觸發的事件。",
+      "domain": [
+        "AI_System",
+        "AI_Service",
+        "Data_Pipeline"
+      ],
+      "range": [
+        "System_Event"
+      ]
+    },
+    {
+      "name": "processes_task",
+      "description": "表示系統或服務處理的任務。",
+      "domain": [
+        "AI_System",
+        "AI_Service",
+        "Data_Pipeline"
+      ],
+      "range": [
+        "Processing_Task"
+      ]
+    },
+    {
+      "name": "deploys_agent",
+      "description": "表示系統部署的智能代理。",
+      "domain": [
+        "AI_System"
+      ],
+      "range": [
+        "Intelligent_Agent"
+      ]
+    },
+    {
+      "name": "exposes_api",
+      "description": "表示系統或服務暴露的 API 端點。",
+      "domain": [
+        "AI_System",
+        "AI_Service"
+      ],
+      "range": [
+        "API_Endpoint"
+      ]
+    },
+    {
+      "name": "depends_on",
+      "description": "表示系統、服務或組件依賴於其他系統、服務或組件。",
+      "domain": [
+        "AI_System",
+        "AI_Service"
+      ],
+      "range": [
+        "AI_System",
+        "AI_Service",
+        "Concept",
+        "Resource"
+      ]
+    }
+  ],
+  "metadata": {},
+  "tenant_id": null,
+  "data_classification": "INTERNAL"
+}

@@ -1,7 +1,7 @@
 # 代碼功能說明: RQ Worker Service 管理模組
 # 創建日期: 2025-12-12
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-12
+# 最後修改日期: 2025-12-31
 
 """RQ Worker Service 管理模組 - 提供 Worker 的啟動、監控、重啟等功能"""
 
@@ -17,6 +17,21 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import structlog
+
+# 加載環境變數（在導入其他模組之前）
+# 修改時間：2025-12-31 - 確保 .env 文件在 Worker 啟動時被加載
+try:
+    from dotenv import load_dotenv
+
+    project_root = Path(__file__).parent.parent
+    env_file = project_root / ".env"
+    if env_file.exists():
+        load_dotenv(env_file, override=True)
+        logger = structlog.get_logger(__name__)
+        logger.info("已加載 .env 文件", env_file=str(env_file))
+except ImportError:
+    logger = structlog.get_logger(__name__)
+    logger.warning("python-dotenv 未安裝，無法自動加載 .env 文件")
 
 logger = structlog.get_logger(__name__)
 
@@ -187,9 +202,28 @@ class WorkerService:
             # 打開日誌文件
             log_file_handle = open(self.log_file, "a")
 
+            # 修改時間：2025-12-31 - 確保 Worker 進程能夠訪問環境變數
+            # 重新加載 .env 文件以確保環境變數可用（因為 Worker 是子進程）
+            worker_env = {**os.environ, "PYTHONPATH": str(PROJECT_ROOT)}
+            
+            # 確保 .env 文件中的環境變數被包含在 worker_env 中
+            try:
+                from dotenv import dotenv_values
+                env_file = PROJECT_ROOT / ".env"
+                if env_file.exists():
+                    env_vars = dotenv_values(env_file)
+                    # 將 .env 文件中的變數添加到 worker_env（不覆蓋已存在的環境變數）
+                    for key, value in env_vars.items():
+                        if value is not None and key not in worker_env:
+                            worker_env[key] = value
+                    logger.info("已將 .env 文件中的環境變數添加到 Worker 環境", env_file=str(env_file))
+            except ImportError:
+                logger.warning("python-dotenv 未安裝，無法從 .env 文件加載環境變數到 Worker")
+            except Exception as e:
+                logger.warning("加載 .env 文件到 Worker 環境時發生錯誤", error=str(e))
+
             # 修改時間：2025-12-12 - 修復 macOS fork 安全問題
             # 設置環境變量以解決 macOS 上 fork() 時 Objective-C 初始化衝突問題
-            worker_env = {**os.environ, "PYTHONPATH": str(PROJECT_ROOT)}
             if sys.platform == "darwin":  # macOS
                 worker_env["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
                 logger.info("已設置 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES 以解決 macOS fork 問題")

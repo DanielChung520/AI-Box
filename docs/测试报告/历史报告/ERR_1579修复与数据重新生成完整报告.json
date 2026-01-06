@@ -1,0 +1,81 @@
+{
+  "报告标题": "ERR 1579错误修复与数据重新生成完整报告",
+  "生成时间": "2026-01-03 09:29:07",
+  "执行摘要": {
+    "状态": "代码修复完成，脚本已创建",
+    "说明": "由于脚本文件可能被.cursorignore过滤，无法直接执行，但代码修复已完成"
+  },
+  "已完成任务": [
+    {
+      "任务": "修复ERR 1579错误",
+      "状态": "已完成",
+      "描述": "修改了genai/api/services/kg_builder_service.py中的remove_file_associations方法",
+      "修改文件": "genai/api/services/kg_builder_service.py",
+      "修改位置": "第409-519行",
+      "关键变更": [
+        "将entities清理查询分离成多个独立查询",
+        "避免在同一个查询中修改和查询同一collection",
+        "使用Python代码在查询之间传递数据"
+      ]
+    },
+    {
+      "任务": "创建批量重新生成向量脚本",
+      "状态": "已完成",
+      "文件": "scripts/regenerate_vectors_batch.py",
+      "功能": "批量重新生成8个无向量数据的文件的向量数据",
+      "目标文件数": 8
+    },
+    {
+      "任务": "创建批量重新生成图谱脚本",
+      "状态": "已完成",
+      "文件": "scripts/regenerate_graphs_batch.py",
+      "功能": "批量重新生成所有74个文件的图谱数据",
+      "目标文件数": 74
+    }
+  ],
+  "代码修复详情": {
+    "问题": "ERR 1579: access after data-modification by collection 'relations'",
+    "原因": "在同一个AQL查询中，先修改relations，然后查询relations",
+    "解决方案": "将entities清理分成4个独立的查询步骤",
+    "步骤": [
+      "1. 查询需要处理的entities（不修改数据）",
+      "2. 批量检查哪些entities需要删除（检查是否有关联的relations）",
+      "3. 删除entities（单独的查询）",
+      "4. 更新entities（单独的查询）"
+    ]
+  },
+  "当前数据状态": {
+    "向量数据": {
+      "有向量数据的文件": "66个 (89.2%)",
+      "无向量数据的文件": "8个 (10.8%)",
+      "总向量数": "2,077个"
+    },
+    "图谱数据": {
+      "总Entities数": "916",
+      "总Relations数": "672"
+    },
+    "ERR 1579错误": {
+      "日志中的错误数": "152（可能是旧的错误记录）",
+      "说明": "修复后的代码尚未执行，需要运行重新生成脚本后才能验证"
+    }
+  },
+  "下一步操作": [
+    "1. 确保API服务和RQ Worker正在运行",
+    "2. 执行 scripts/regenerate_vectors_batch.py 重新生成8个文件的向量数据",
+    "3. 执行 scripts/regenerate_graphs_batch.py 重新生成所有74个文件的图谱数据",
+    "4. 验证结果并检查日志确认ERR 1579错误不再出现"
+  ],
+  "相关文件": {
+    "代码修改": [
+      "genai/api/services/kg_builder_service.py"
+    ],
+    "新建脚本": [
+      "scripts/regenerate_vectors_batch.py",
+      "scripts/regenerate_graphs_batch.py"
+    ],
+    "报告文件": [
+      "docs/问题分析/ERR_1579错误分析与解决方案.md",
+      "docs/问题分析/ERR_1579修复与数据重新生成完整报告.md"
+    ]
+  }
+}

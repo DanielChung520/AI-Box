@@ -55,6 +55,44 @@
                 "申請文件"
             ],
             "file_path": "kag/ontology/domain-administration.json"
+        },
+        {
+            "file_name": "domain-renewable-energy.json",
+            "ontology_name": "Renewable_Energy_Domain_Ontology",
+            "version": "1.0",
+            "type": "domain",
+            "description": "再生能源領域本體論，定義太陽能、風能、水力、生質能等再生能源相關的核心概念。適用於再生能源技術文檔、發電設施、能源政策、研究專案等場景。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL"],
+            "tags": ["再生能源", "新能源", "太陽能", "風能", "水力", "生質能", "地熱", "能源", "發電", "環保"],
+            "use_cases": [
+                "再生能源技術文檔",
+                "發電設施文檔",
+                "能源政策文件",
+                "能源研究專案",
+                "能源轉換技術",
+                "能源儲存系統",
+                "環境影響評估"
+            ],
+            "file_path": "kag/ontology/domain-renewable-energy.json"
+        },
+        {
+            "file_name": "domain-food.json",
+            "ontology_name": "Food_Domain_Ontology",
+            "version": "1.0",
+            "type": "domain",
+            "description": "食品領域本體論，定義食品生產、加工、流通、消費等相關的核心概念。適用於食品產業、食品安全、食品營養、食品加工、餐飲管理等場景。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL"],
+            "tags": ["食品", "食物", "餐飲", "加工", "食品安全", "營養", "食材", "包裝", "儲存", "流通"],
+            "use_cases": [
+                "食品產業文檔",
+                "食品安全標準",
+                "食品營養分析",
+                "食品加工流程",
+                "餐飲管理文檔",
+                "食品供應鏈",
+                "食品法規文件"
+            ],
+            "file_path": "kag/ontology/domain-food.json"
         }
     ],
     "major_ontologies": [
@@ -96,6 +134,69 @@
                 "模板分析"
             ],
             "file_path": "kag/ontology/major-notioneditor.json"
+        },
+        {
+            "file_name": "major-waste-pyrolysis.json",
+            "ontology_name": "Waste_Pyrolysis_Major_Ontology",
+            "version": "1.0",
+            "type": "major",
+            "description": "城市廢棄物熱裂解專業本體論，專注於廢棄物熱裂解技術、產物和處理流程。適用於廢棄物處理技術文檔、熱裂解製程、產物應用、環境影響評估等專業場景。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL", "Renewable_Energy_Domain_Ontology"],
+            "compatible_domains": ["domain-renewable-energy.json"],
+            "tags": ["廢棄物", "熱裂解", "城市廢棄物", "生物炭", "生物油", "合成氣", "廢棄物處理", "循環經濟", "碳封存"],
+            "use_cases": [
+                "廢棄物處理技術文檔",
+                "熱裂解製程文檔",
+                "產物應用研究",
+                "環境影響評估",
+                "製程參數優化",
+                "廢棄物轉能源",
+                "循環經濟專案"
+            ],
+            "file_path": "kag/ontology/major-waste-pyrolysis.json"
+        },
+        {
+            "file_name": "major-biomass-gasification-pyrolysis.json",
+            "ontology_name": "Biomass_Gasification_Pyrolysis_Major_Ontology",
+            "version": "1.0",
+            "type": "major",
+            "description": "生質能源氣化熱解專業本體論，專注於生質材料氣化和熱解技術、產物和處理流程。適用於生質能源技術文檔、氣化熱解製程、產物應用、碳封存研究等專業場景。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL", "Renewable_Energy_Domain_Ontology"],
+            "compatible_domains": ["domain-renewable-energy.json"],
+            "tags": ["生質能源", "生質能", "氣化", "熱解", "生質材料", "能源作物", "合成氣", "生物油", "生物炭", "碳封存", "再生能源"],
+            "use_cases": [
+                "生質能源技術文檔",
+                "氣化製程文檔",
+                "熱解製程文檔",
+                "生質材料處理",
+                "產物應用研究",
+                "碳封存研究",
+                "能源作物分析",
+                "農業殘餘物利用",
+                "木質生質材料處理",
+                "藻類生質材料應用"
+            ],
+            "file_path": "kag/ontology/major-biomass-gasification-pyrolysis.json"
+        },
+        {
+            "file_name": "major-prepared-food.json",
+            "ontology_name": "Prepared_Food_Major_Ontology",
+            "version": "1.0",
+            "type": "major",
+            "description": "預製菜專業本體論，專注於預先製作、包裝和保存的食品相關技術、流程和品質控制。適用於預製菜生產、中央廚房管理、冷鏈物流、食品安全控制等專業場景。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL", "Food_Domain_Ontology"],
+            "compatible_domains": ["domain-food.json"],
+            "tags": ["預製菜", "即食", "中央廚房", "冷鏈", "真空包裝", "氣調包裝", "復熱", "保存期限", "HACCP"],
+            "use_cases": [
+                "預製菜生產文檔",
+                "中央廚房管理",
+                "冷鏈物流規劃",
+                "食品安全控制",
+                "品質管理系統",
+                "生產批次追蹤",
+                "配方標準化"
+            ],
+            "file_path": "kag/ontology/major-prepared-food.json"
         }
     ],
     "selection_guide": {
@@ -124,6 +225,18 @@
             "major-notioneditor.json": {
                 "recommended_domain": "domain-administration.json",
                 "reason": "Notion 編輯器用於知識管理和行政協作"
+            },
+            "major-waste-pyrolysis.json": {
+                "recommended_domain": "domain-renewable-energy.json",
+                "reason": "城市廢棄物熱裂解屬於再生能源領域，可將廢棄物轉換為能源"
+            },
+            "major-biomass-gasification-pyrolysis.json": {
+                "recommended_domain": "domain-renewable-energy.json",
+                "reason": "生質能源氣化熱解屬於再生能源領域，將生質材料轉換為能源"
+            },
+            "major-prepared-food.json": {
+                "recommended_domain": "domain-food.json",
+                "reason": "預製菜屬於食品領域，專注於食品預先製作和保存技術"
             }
         }
     },
@@ -145,7 +258,45 @@
             "Notion": ["major-notioneditor.json"],
             "知識管理": ["major-notioneditor.json"],
             "協作": ["major-notioneditor.json"],
-            "資料庫": ["major-notioneditor.json"]
+            "資料庫": ["major-notioneditor.json"],
+            "再生能源": ["domain-renewable-energy.json"],
+            "新能源": ["domain-renewable-energy.json"],
+            "太陽能": ["domain-renewable-energy.json"],
+            "風能": ["domain-renewable-energy.json"],
+            "生質能": ["domain-renewable-energy.json"],
+            "生質能源": ["domain-renewable-energy.json", "major-biomass-gasification-pyrolysis.json"],
+            "氣化": ["major-biomass-gasification-pyrolysis.json"],
+            "熱解": ["major-biomass-gasification-pyrolysis.json", "major-waste-pyrolysis.json"],
+            "能源": ["domain-renewable-energy.json"],
+            "廢棄物": ["major-waste-pyrolysis.json"],
+            "熱裂解": ["major-waste-pyrolysis.json"],
+            "能源作物": ["major-biomass-gasification-pyrolysis.json"],
+            "生物炭": ["major-biomass-gasification-pyrolysis.json", "major-waste-pyrolysis.json"],
+            "生物油": ["major-biomass-gasification-pyrolysis.json", "major-waste-pyrolysis.json"],
+            "合成氣": ["major-biomass-gasification-pyrolysis.json", "major-waste-pyrolysis.json"],
+            "城市廢棄物": ["major-waste-pyrolysis.json"],
+            "食品": ["domain-food.json"],
+            "食物": ["domain-food.json"],
+            "餐飲": ["domain-food.json"],
+            "食材": ["domain-food.json"],
+            "食品安全": ["domain-food.json"],
+            "食品加工": ["domain-food.json", "major-prepared-food.json"],
+            "營養": ["domain-food.json"],
+            "包裝": ["domain-food.json", "major-prepared-food.json"],
+            "儲存": ["domain-food.json", "major-prepared-food.json"],
+            "預製菜": ["major-prepared-food.json"],
+            "预制菜": ["major-prepared-food.json"],
+            "即食": ["major-prepared-food.json"],
+            "中央廚房": ["major-prepared-food.json"],
+            "冷鏈": ["major-prepared-food.json"],
+            "真空包裝": ["major-prepared-food.json"],
+            "氣調包裝": ["major-prepared-food.json"],
+            "復熱": ["major-prepared-food.json"],
+            "保存期限": ["domain-food.json", "major-prepared-food.json"],
+            "HACCP": ["major-prepared-food.json"],
+            "批量生產": ["major-prepared-food.json"],
+            "急速冷卻": ["major-prepared-food.json"],
+            "焯水": ["major-prepared-food.json"]
         },
         "by_document_type": {
             "財務報表": {
@@ -171,6 +322,42 @@
             "Notion 文檔": {
                 "domain": ["domain-administration.json"],
                 "major": ["major-notioneditor.json"]
+            },
+            "再生能源文檔": {
+                "domain": ["domain-renewable-energy.json"],
+                "major": []
+            },
+            "廢棄物處理文檔": {
+                "domain": ["domain-renewable-energy.json"],
+                "major": ["major-waste-pyrolysis.json"]
+            },
+            "熱裂解技術文檔": {
+                "domain": ["domain-renewable-energy.json"],
+                "major": ["major-waste-pyrolysis.json"]
+            },
+            "食品產業文檔": {
+                "domain": ["domain-food.json"],
+                "major": []
+            },
+            "食品安全文檔": {
+                "domain": ["domain-food.json"],
+                "major": []
+            },
+            "食品加工文檔": {
+                "domain": ["domain-food.json"],
+                "major": ["major-prepared-food.json"]
+            },
+            "預製菜生產文檔": {
+                "domain": ["domain-food.json"],
+                "major": ["major-prepared-food.json"]
+            },
+            "中央廚房管理文檔": {
+                "domain": ["domain-food.json"],
+                "major": ["major-prepared-food.json"]
+            },
+            "冷鏈物流文檔": {
+                "domain": ["domain-food.json"],
+                "major": ["major-prepared-food.json"]
             }
         }
     }

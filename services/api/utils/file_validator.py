@@ -405,12 +405,34 @@ def create_validator_from_config(config: dict) -> FileValidator:
     從配置創建文件驗證器
 
     Args:
-        config: 配置文件中的 file_upload 區塊
+        config: 配置文件中的 file_upload 或 file_processing 區塊
+               支持兩種格式：
+               - 舊格式：{"allowed_extensions": [...], "max_file_size": ...}
+               - 新格式：{"supported_file_types": [...], "max_file_size": ...}
 
     Returns:
         FileValidator 實例
     """
-    allowed_extensions = config.get("allowed_extensions", ALLOWED_EXTENSIONS)
-    max_file_size = config.get("max_file_size", 52428800)  # 默認 50MB
+    # 支持新舊兩種配置格式
+    if "allowed_extensions" in config:
+        # 舊格式：直接使用 allowed_extensions
+        allowed_extensions = config.get("allowed_extensions", ALLOWED_EXTENSIONS)
+    elif "supported_file_types" in config:
+        # 新格式：從 supported_file_types 轉換為 allowed_extensions
+        supported_types = config.get("supported_file_types", [])
+        # 將 MIME 類型轉換為擴展名列表
+        allowed_extensions = []
+        for mime_type in supported_types:
+            if mime_type in ALLOWED_MIME_TYPES:
+                allowed_extensions.extend(ALLOWED_MIME_TYPES[mime_type])
+        # 去重並排序
+        allowed_extensions = sorted(list(set(allowed_extensions)))
+        if not allowed_extensions:
+            allowed_extensions = ALLOWED_EXTENSIONS  # 如果轉換失敗，使用默認值
+    else:
+        # 如果都沒有，使用默認值
+        allowed_extensions = ALLOWED_EXTENSIONS
+    
+    max_file_size = config.get("max_file_size", 104857600)  # 默認 100MB（與文檔一致）
 
     return FileValidator(allowed_extensions=allowed_extensions, max_file_size=max_file_size)

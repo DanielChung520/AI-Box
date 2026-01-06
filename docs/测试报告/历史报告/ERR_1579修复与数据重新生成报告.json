@@ -1,0 +1,12 @@
+{
+  "报告标题": "ERR 1579错误修复与数据重新生成完整报告",
+  "生成时间": "2026-01-03 09:28:32",
+  "向量重新生成": {
+    "状态": "未执行",
+    "错误": "[Errno 2] No such file or directory: 'regenerate_vectors_results.json'"
+  },
+  "图谱重新生成": {
+    "状态": "未执行",
+    "错误": "[Errno 2] No such file or directory: 'regenerate_graphs_results.json'"
+  }
+}

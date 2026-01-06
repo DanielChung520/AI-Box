@@ -101,6 +101,25 @@ kill_port() {
     return 0
 }
 
+# 函數：根據進程名稱殺死進程
+kill_process_by_name() {
+    local name=$1
+    local pids=$(ps aux | grep "$name" | grep -v grep | awk '{print $2}')
+    
+    if [ -n "$pids" ]; then
+        echo -e "${YELLOW}發現 $name 進程，正在關閉...${NC}"
+        for pid in $pids; do
+            echo -e "${YELLOW}  關閉進程 $pid ($name)${NC}"
+            kill $pid 2>/dev/null || true
+            sleep 1
+            if kill -0 $pid 2>/dev/null; then
+                kill -9 $pid 2>/dev/null || true
+            fi
+        done
+        echo -e "${GREEN}  $name 進程已清理${NC}"
+    fi
+}
+
 # 函數：啟動 ArangoDB
 start_arangodb() {
     echo -e "${BLUE}=== 啟動 ArangoDB ===${NC}"
@@ -430,6 +449,8 @@ start_fastapi() {
     echo -e "${BLUE}=== 啟動 FastAPI ===${NC}"
 
     kill_port $FASTAPI_PORT "FastAPI"
+    kill_process_by_name "api.main"
+    kill_process_by_name "uvicorn"
 
     # 確定 Python 和 uvicorn 路徑
     local PYTHON_CMD="python3"
@@ -1003,20 +1024,65 @@ check_status() {
     else
         echo -e "${RED}❌ RQ Dashboard${NC} - 未運行 (端口 $dashboard_port)"
     fi
-    # 檢查 SeaweedFS 狀態
+    # 檢查 SeaweedFS 狀態（改進版 - 分別檢查 Master、Volume、Filer）
     echo -e "${BLUE}SeaweedFS 狀態:${NC}"
+    
+    # 檢查 AI-Box SeaweedFS
+    echo -e "${BLUE}  AI-Box SeaweedFS:${NC}"
+    # 檢查 Master
+    if check_port $AI_BOX_SEAWEEDFS_MASTER_PORT; then
+        echo -e "${GREEN}    ✅ Master${NC} - 運行中 (端口 $AI_BOX_SEAWEEDFS_MASTER_PORT)"
+    else
+        echo -e "${RED}    ❌ Master${NC} - 未運行 (端口 $AI_BOX_SEAWEEDFS_MASTER_PORT)"
+    fi
+    # 檢查 Volume（通過 Docker 容器狀態）
+    if docker ps --format "{{.Names}}" --filter "name=seaweedfs-ai-box-volume" 2>/dev/null | grep -q "seaweedfs-ai-box-volume"; then
+        local volume_status=$(docker ps --format "{{.Status}}" --filter "name=seaweedfs-ai-box-volume" 2>/dev/null | head -1)
+        echo -e "${GREEN}    ✅ Volume${NC} - 運行中 ($volume_status)"
+    else
+        echo -e "${RED}    ❌ Volume${NC} - 未運行"
+    fi
+    # 檢查 Filer API
+    if check_port $AI_BOX_SEAWEEDFS_FILER_PORT; then
+        echo -e "${GREEN}    ✅ Filer API${NC} - 運行中 (端口 $AI_BOX_SEAWEEDFS_FILER_PORT)"
+    else
+        echo -e "${RED}    ❌ Filer API${NC} - 未運行 (端口 $AI_BOX_SEAWEEDFS_FILER_PORT)"
+    fi
+    # 檢查 S3 API
     if check_port $AI_BOX_SEAWEEDFS_S3_PORT; then
-        local pid=$(lsof -ti :$AI_BOX_SEAWEEDFS_S3_PORT | head -1)
-        echo -e "${GREEN}✅ AI-Box SeaweedFS${NC} - 運行中 (S3 API: $AI_BOX_SEAWEEDFS_S3_PORT, Filer: $AI_BOX_SEAWEEDFS_FILER_PORT)"
+        echo -e "${GREEN}    ✅ S3 API${NC} - 運行中 (端口 $AI_BOX_SEAWEEDFS_S3_PORT)"
     else
-        echo -e "${RED}❌ AI-Box SeaweedFS${NC} - 未運行 (S3 API: $AI_BOX_SEAWEEDFS_S3_PORT)"
+        echo -e "${RED}    ❌ S3 API${NC} - 未運行 (端口 $AI_BOX_SEAWEEDFS_S3_PORT)"
     fi
+    
+    # 檢查 DataLake SeaweedFS
+    echo -e "${BLUE}  DataLake SeaweedFS:${NC}"
+    # 檢查 Master
+    if check_port $DATALAKE_SEAWEEDFS_MASTER_PORT; then
+        echo -e "${GREEN}    ✅ Master${NC} - 運行中 (端口 $DATALAKE_SEAWEEDFS_MASTER_PORT)"
+    else
+        echo -e "${RED}    ❌ Master${NC} - 未運行 (端口 $DATALAKE_SEAWEEDFS_MASTER_PORT)"
+    fi
+    # 檢查 Volume（通過 Docker 容器狀態）
+    if docker ps --format "{{.Names}}" --filter "name=seaweedfs-datalake-volume" 2>/dev/null | grep -q "seaweedfs-datalake-volume"; then
+        local volume_status=$(docker ps --format "{{.Status}}" --filter "name=seaweedfs-datalake-volume" 2>/dev/null | head -1)
+        echo -e "${GREEN}    ✅ Volume${NC} - 運行中 ($volume_status)"
+    else
+        echo -e "${RED}    ❌ Volume${NC} - 未運行"
+    fi
+    # 檢查 Filer API
+    if check_port $DATALAKE_SEAWEEDFS_FILER_PORT; then
+        echo -e "${GREEN}    ✅ Filer API${NC} - 運行中 (端口 $DATALAKE_SEAWEEDFS_FILER_PORT)"
+    else
+        echo -e "${RED}    ❌ Filer API${NC} - 未運行 (端口 $DATALAKE_SEAWEEDFS_FILER_PORT)"
+    fi
+    # 檢查 S3 API
     if check_port $DATALAKE_SEAWEEDFS_S3_PORT; then
-        local pid=$(lsof -ti :$DATALAKE_SEAWEEDFS_S3_PORT | head -1)
-        echo -e "${GREEN}✅ DataLake SeaweedFS${NC} - 運行中 (S3 API: $DATALAKE_SEAWEEDFS_S3_PORT, Filer: $DATALAKE_SEAWEEDFS_FILER_PORT)"
+        echo -e "${GREEN}    ✅ S3 API${NC} - 運行中 (端口 $DATALAKE_SEAWEEDFS_S3_PORT)"
     else
-        echo -e "${RED}❌ DataLake SeaweedFS${NC} - 未運行 (S3 API: $DATALAKE_SEAWEEDFS_S3_PORT)"
+        echo -e "${RED}    ❌ S3 API${NC} - 未運行 (端口 $DATALAKE_SEAWEEDFS_S3_PORT)"
     fi
+
 
     for service_info in "${services[@]}"; do
         IFS=':' read -r name port <<< "$service_info"

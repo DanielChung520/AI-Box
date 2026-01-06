@@ -7,7 +7,10 @@
 
 import os
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.api.services.config_store_service import ConfigStoreService
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
@@ -27,6 +30,23 @@ from system.infra.config.config import get_config_section
 
 logger = structlog.get_logger(__name__)
 
+# 向後兼容：如果 ConfigStoreService 不可用，使用舊的配置方式
+try:
+    from services.api.services.config_store_service import ConfigStoreService
+    _config_service: Optional[ConfigStoreService] = None
+
+    def get_config_store_service() -> ConfigStoreService:
+        """獲取配置存儲服務實例（單例模式）"""
+        global _config_service
+        if _config_service is None:
+            _config_service = ConfigStoreService()
+        return _config_service
+
+    CONFIG_STORE_AVAILABLE = True
+except ImportError:
+    CONFIG_STORE_AVAILABLE = False
+    logger.warning("ConfigStoreService 不可用，將使用舊的配置方式")
+
 router = APIRouter(prefix="/files", tags=["Chunk Processing"])
 
 # 處理狀態存儲（內存，生產環境應使用 Redis）
@@ -45,13 +65,48 @@ class ProcessingStatus(Enum):
 def get_storage() -> FileStorage:
     """獲取文件存儲實例"""
     config = get_config_section("file_upload", default={}) or {}
+    
+    # 临时修复：如果配置读取失败（空字典），或者 storage_backend 未设置，强制使用本地存储
+    # 这样可以避免因为配置系统问题导致无法使用本地存储
+    if not config or not config.get("storage_backend"):
+        from storage.file_storage import LocalFileStorage
+        storage_path = config.get("storage_path", "./data/datasets/files")
+        logger.warning(
+            "配置读取失败或未设置 storage_backend，临时使用本地存储",
+            storage_path=storage_path,
+        )
+        return LocalFileStorage(storage_path=storage_path, enable_encryption=False)
+    
     return create_storage_from_config(config)
 
 
 def get_chunk_processor() -> ChunkProcessor:
-    """獲取分塊處理器實例"""
-    config = get_config_section("chunk_processing", default={}) or {}
-    return create_chunk_processor_from_config(config)
+    """獲取分塊處理器實例（優先從 ArangoDB system_configs 讀取）"""
+    config_data: Dict[str, Any] = {}
+    
+    # 優先從 ArangoDB system_configs 讀取
+    if CONFIG_STORE_AVAILABLE:
+        try:
+            config_service = get_config_store_service()
+            config = config_service.get_config("chunk_processing", tenant_id=None)
+            if config and config.config_data:
+                config_data = config.config_data
+                logger.debug("使用 ArangoDB system_configs 中的 chunk_processing 配置")
+        except Exception as e:
+            logger.warning(
+                "failed_to_load_config_from_arangodb",
+                scope="chunk_processing",
+                error=str(e),
+                message="從 ArangoDB 讀取配置失敗，回退到 config.json"
+            )
+    
+    # 如果 ArangoDB 中沒有配置，回退到 config.json（向後兼容）
+    if not config_data:
+        config = get_config_section("chunk_processing", default={}) or {}
+        config_data = config
+        logger.debug("使用 config.json 中的 chunk_processing 配置（向後兼容）")
+    
+    return create_chunk_processor_from_config(config_data)
 
 
 def get_parser(file_type: str):

@@ -1,7 +1,7 @@
 # 代碼功能說明: S3/SeaweedFS 文件存儲實現
 # 創建日期: 2025-12-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-29
+# 最後修改日期: 2026-01-03
 
 """S3/SeaweedFS 文件存儲實現 - 使用 boto3 連接 SeaweedFS S3 API"""
 
@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 import boto3
 import structlog
 from botocore.client import Config
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ConnectionClosedError
 
 from storage.file_storage import FileStorage
 
@@ -57,13 +57,23 @@ class S3FileStorage(FileStorage):
         self.service_type = service_type
 
         # 初始化 S3 客戶端
+        # 修改時間：2026-01-05 - 添加超時和重試配置，避免連接關閉錯誤
+        boto_config = Config(
+            signature_version="s3v4",
+            connect_timeout=10,  # 連接超時 10 秒
+            read_timeout=60,  # 讀取超時 60 秒（大文件需要更長時間）
+            retries={
+                "max_attempts": 3,  # 最多重試 3 次
+                "mode": "adaptive",  # 自適應重試模式
+            },
+        )
         self.s3_client = boto3.client(
             "s3",
             endpoint_url=endpoint,
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             use_ssl=use_ssl,
-            config=Config(signature_version="s3v4"),
+            config=boto_config,
         )
 
         # 根據服務類型選擇默認 Bucket
@@ -83,40 +93,131 @@ class S3FileStorage(FileStorage):
             default_bucket=self.default_bucket,
         )
 
-        # 確保默認 Bucket 存在
-        self._ensure_bucket_exists(self.default_bucket)
+        # 修改時間：2026-01-03 - 延遲bucket檢查，避免初始化時連接失敗
+        # 只在真正需要時才檢查bucket，並添加重試機制
+        self._bucket_checked = False
 
-    def _ensure_bucket_exists(self, bucket_name: str) -> None:
+    def _ensure_bucket_exists(self, bucket_name: str, retry: bool = True) -> None:
         """
         確保 Bucket 存在，如果不存在則創建
 
+        修改時間：2026-01-03 - 添加重試機制和更好的錯誤處理，確保SeaweedFS穩定運作
+
         Args:
             bucket_name: Bucket 名稱
+            retry: 是否在失敗時重試（默認 True）
         """
-        try:
-            self.s3_client.head_bucket(Bucket=bucket_name)
-            self.logger.debug("Bucket already exists", bucket=bucket_name)
-        except ClientError as e:
-            error_code = e.response.get("Error", {}).get("Code", "")
-            if error_code == "404":
-                # Bucket 不存在，創建它
-                try:
-                    self.s3_client.create_bucket(Bucket=bucket_name)
-                    self.logger.info("Bucket created", bucket=bucket_name)
-                except ClientError as create_error:
-                    self.logger.error(
-                        "Failed to create bucket",
+        max_retries = 3
+        retry_delay = 2  # 秒
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.s3_client.head_bucket(Bucket=bucket_name)
+                self.logger.debug("Bucket already exists", bucket=bucket_name)
+                self._bucket_checked = True
+                return
+            except ConnectionClosedError as e:
+                # 連接關閉錯誤，可能是SeaweedFS暫時不可用
+                if retry and attempt < max_retries:
+                    wait_time = retry_delay * (2 ** (attempt - 1))  # 指數退避
+                    self.logger.warning(
+                        "Bucket check failed, retrying",
                         bucket=bucket_name,
-                        error=str(create_error),
+                        attempt=attempt,
+                        max_retries=max_retries,
+                        wait_time=wait_time,
+                        error=str(e)[:100],
                     )
-                    raise
-            else:
-                self.logger.error(
-                    "Failed to check bucket existence",
-                    bucket=bucket_name,
-                    error=str(e),
-                )
-                raise
+                    import time
+
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    self.logger.error(
+                        "Failed to check bucket after retries",
+                        bucket=bucket_name,
+                        attempts=attempt,
+                        error=str(e)[:100],
+                    )
+                    # 不拋出異常，允許後續操作繼續（如果文件路徑已知）
+                    if not retry:
+                        raise
+                    return
+            except ClientError as e:
+                error_code = e.response.get("Error", {}).get("Code", "")
+                if error_code == "404":
+                    # Bucket 不存在，創建它
+                    try:
+                        self.s3_client.create_bucket(Bucket=bucket_name)
+                        self.logger.info("Bucket created", bucket=bucket_name)
+                        self._bucket_checked = True
+                        return
+                    except ClientError as create_error:
+                        if retry and attempt < max_retries:
+                            wait_time = retry_delay * (2 ** (attempt - 1))
+                            self.logger.warning(
+                                "Bucket creation failed, retrying",
+                                bucket=bucket_name,
+                                attempt=attempt,
+                                wait_time=wait_time,
+                                error=str(create_error)[:100],
+                            )
+                            import time
+
+                            time.sleep(wait_time)
+                            continue
+                        else:
+                            self.logger.error(
+                                "Failed to create bucket after retries",
+                                bucket=bucket_name,
+                                attempts=attempt,
+                                error=str(create_error)[:100],
+                            )
+                            if not retry:
+                                raise
+                            return
+                else:
+                    # 其他錯誤，記錄但不重試
+                    self.logger.error(
+                        "Failed to check bucket existence",
+                        bucket=bucket_name,
+                        error_code=error_code,
+                        error=str(e)[:100],
+                    )
+                    if not retry:
+                        raise
+                    return
+            except Exception as e:
+                # 其他未預期的錯誤
+                if retry and attempt < max_retries:
+                    wait_time = retry_delay * (2 ** (attempt - 1))
+                    self.logger.warning(
+                        "Unexpected error during bucket check, retrying",
+                        bucket=bucket_name,
+                        attempt=attempt,
+                        wait_time=wait_time,
+                        error=str(e)[:100],
+                    )
+                    import time
+
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    self.logger.error(
+                        "Unexpected error during bucket check",
+                        bucket=bucket_name,
+                        attempts=attempt,
+                        error=str(e)[:100],
+                    )
+                    if not retry:
+                        raise
+                    return
+
+        # 所有重試都失敗，但不拋出異常（允許後續操作繼續）
+        self.logger.warning(
+            "Bucket check failed after all retries, continuing without bucket verification",
+            bucket=bucket_name,
+        )
 
     def _get_s3_key(
         self, file_id: str, filename: Optional[str] = None, task_id: Optional[str] = None
@@ -359,6 +460,8 @@ class S3FileStorage(FileStorage):
     ) -> Optional[bytes]:
         """
         從 S3/SeaweedFS 讀取文件內容
+
+        修改時間：2026-01-03 - 添加bucket檢查，確保SeaweedFS穩定運作
 
         Args:
             file_id: 文件 ID

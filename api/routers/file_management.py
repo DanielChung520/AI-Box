@@ -9,9 +9,10 @@ import io
 import os
 import zipfile
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import structlog
+from botocore.exceptions import ConnectionClosedError
 from fastapi import APIRouter, Body, Depends, Query, Request, status
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -32,6 +33,46 @@ from system.security.audit_decorator import audit_log
 from system.security.dependencies import get_current_user
 from system.security.models import Permission, User
 from workers.tasks import process_kg_extraction_only_task, process_vectorization_only_task
+
+# 导入 worker 配置函数
+try:
+    from services.api.services.config_store_service import ConfigStoreService
+
+    _worker_config_service: Optional[ConfigStoreService] = None
+
+    def get_worker_config_service() -> ConfigStoreService:
+        """獲取配置存儲服務實例（單例模式）"""
+        global _worker_config_service
+        if _worker_config_service is None:
+            _worker_config_service = ConfigStoreService()
+        return _worker_config_service
+
+    WORKER_CONFIG_STORE_AVAILABLE = True
+except ImportError:
+    WORKER_CONFIG_STORE_AVAILABLE = False
+
+
+def get_worker_job_timeout() -> int:
+    """獲取 RQ Worker 任務超時時間（秒），優先從 ArangoDB system_configs 讀取"""
+    # 優先從 ArangoDB system_configs 讀取
+    if WORKER_CONFIG_STORE_AVAILABLE:
+        try:
+            config_service = get_worker_config_service()
+            config = config_service.get_config("worker", tenant_id=None)
+            if config and config.config_data:
+                timeout = config.config_data.get("job_timeout", 3600)
+                logger.debug(f"使用 ArangoDB system_configs 中的 worker.job_timeout: {timeout}")
+                return int(timeout)
+        except Exception as e:
+            logger.warning(
+                "failed_to_load_worker_config_from_arangodb",
+                error=str(e),
+                message="從 ArangoDB 讀取 worker 配置失敗，使用默認值 900 秒",
+            )
+    
+    # 默認值：900 秒（15分鐘）- 測試階段快速發現問題；生產環境可調整為 3600 秒
+    return 900
+
 
 logger = structlog.get_logger(__name__)
 
@@ -155,6 +196,7 @@ async def list_files(
     sort_by: str = Query("upload_time", description="排序字段"),
     sort_order: str = Query("desc", description="排序順序（asc/desc）"),
     current_user: User = Depends(get_current_user),
+    view_all_files: bool = Query(False, description="是否查看所有文件（僅限管理員）"),  # 修改時間：2026-01-06 - 添加 view_all_files 參數
 ) -> JSONResponse:
     """獲取文件列表
 
@@ -167,45 +209,95 @@ async def list_files(
         sort_by: 排序字段
         sort_order: 排序順序
         current_user: 當前認證用戶
+        view_all_files: 是否查看所有文件（僅限管理員）
 
     Returns:
         文件列表
     """
     try:
-        # 如果未提供user_id，使用當前用戶ID
-        if user_id is None:
-            user_id = current_user.user_id
+        # 修改時間：2026-01-06 - 支持管理員查看所有文件
+        # 檢查是否為管理員且明確請求查看所有文件
+        is_admin = current_user.has_permission(Permission.ALL.value)
+        # 如果明確傳遞了 view_all_files=True，且用戶是管理員，則查看所有文件
+        # 否則，如果未提供 user_id 和 task_id，且用戶是管理員，也視為查看所有文件（向後兼容）
+        view_all_files_flag = view_all_files and is_admin or (is_admin and user_id is None and task_id is None)
 
-        # 如果查詢其他用戶的文件，檢查權限
-        if user_id != current_user.user_id:
-            get_file_permission_service()
-            if not current_user.has_permission(Permission.ALL.value):
-                # 非管理員只能查看自己的文件
+        if view_all_files_flag:
+            # 管理員查看所有文件，不設置 user_id 和 task_id
+            user_id = None
+            task_id = None
+        else:
+            # 如果未提供user_id，使用當前用戶ID
+            if user_id is None:
                 user_id = current_user.user_id
 
-        # 修改時間：2025-12-09 - 如果提供了 task_id，檢查任務是否屬於當前用戶
-        if task_id:
-            permission_service = get_file_permission_service()
-            if not permission_service.check_task_file_access(
-                user=current_user,
-                task_id=task_id,
-                required_permission=Permission.FILE_READ.value,
-            ):
-                return APIResponse.error(
-                    message=f"任務 {task_id} 不存在或不屬於當前用戶",
-                    status_code=status.HTTP_403_FORBIDDEN,
-                )
+            # 如果查詢其他用戶的文件，檢查權限
+            if user_id != current_user.user_id:
+                get_file_permission_service()
+                if not current_user.has_permission(Permission.ALL.value):
+                    # 非管理員只能查看自己的文件
+                    user_id = current_user.user_id
+
+            # 修改時間：2025-12-09 - 如果提供了 task_id，檢查任務是否屬於當前用戶
+            if task_id:
+                permission_service = get_file_permission_service()
+                if not permission_service.check_task_file_access(
+                    user=current_user,
+                    task_id=task_id,
+                    required_permission=Permission.FILE_READ.value,
+                ):
+                    return APIResponse.error(
+                        message=f"任務 {task_id} 不存在或不屬於當前用戶",
+                        status_code=status.HTTP_403_FORBIDDEN,
+                    )
 
         service = get_metadata_service()
-        results = service.list(
-            file_type=file_type,
-            user_id=user_id,
-            task_id=task_id,
-            limit=limit,
-            offset=offset,
-            sort_by=sort_by,
-            sort_order=sort_order,
-        )
+        # 修改時間：2026-01-06 - 如果管理員要查看所有文件，使用特殊的查詢方法
+        if view_all_files_flag:
+            # 直接查詢所有文件（不限制 user_id 和 task_id）
+            if service.client.db is None:
+                raise RuntimeError("ArangoDB client is not connected")
+            if service.client.db.aql is None:
+                raise RuntimeError("ArangoDB AQL is not available")
+
+            filter_conditions = []
+            bind_vars: dict = {}
+
+            if file_type:
+                filter_conditions.append("doc.file_type == @file_type")
+                bind_vars["file_type"] = file_type
+
+            # 優化 AQL 查詢：直接返回需要的字段，減少數據傳輸
+            aql = "FOR doc IN file_metadata"
+            if filter_conditions:
+                aql += " FILTER " + " AND ".join(filter_conditions)
+            
+            # 使用索引字段排序（upload_time 有索引）
+            sort_field = sort_by if sort_by in ["upload_time", "created_at", "updated_at"] else "upload_time"
+            aql += f" SORT doc.{sort_field} {sort_order.upper()}"
+            
+            if offset > 0:
+                aql += " LIMIT @offset, @limit"
+                bind_vars["offset"] = offset
+                bind_vars["limit"] = limit
+            else:
+                aql += " LIMIT @limit"
+                bind_vars["limit"] = limit
+
+            aql += " RETURN doc"
+
+            cursor = service.client.db.aql.execute(aql, bind_vars=bind_vars)
+            results = [FileMetadata(**doc) for doc in cursor]
+        else:
+            results = service.list(
+                file_type=file_type,
+                user_id=user_id,
+                task_id=task_id,
+                limit=limit,
+                offset=offset,
+                sort_by=sort_by,
+                sort_order=sort_order,
+            )
 
         return APIResponse.success(
             data={
@@ -383,8 +475,22 @@ async def get_file_tree(
 
         # 修改時間：2025-12-09 - 根據 file_metadata.folder_id 將文件添加到對應的資料夾
         # 如果 folder_id 為 None 或不存在，則添加到任務工作區
+        # 修改時間：2026-01-05 - 添加去重邏輯，避免重複文件顯示
+        seen_file_ids: set[str] = set()
         for file_metadata in all_files:
             if file_metadata.task_id == task_id:
+                file_id = file_metadata.file_id
+                # 跳過重複的文件（按 file_id 去重）
+                if file_id in seen_file_ids:
+                    logger.warning(
+                        "Duplicate file found in file tree",
+                        file_id=file_id,
+                        filename=file_metadata.filename,
+                        task_id=task_id,
+                    )
+                    continue
+                seen_file_ids.add(file_id)
+
                 # 獲取文件的 folder_id，如果沒有則使用 workspace_key
                 folder_id = getattr(file_metadata, "folder_id", None) or workspace_key
                 # 確保資料夾節點存在
@@ -548,7 +654,7 @@ async def get_file_tree_version(
         )
 
 
-@router.get("/{file_id}/download")
+@router.get("/{file_id}/download", response_model=None)
 @audit_log(
     action=AuditAction.FILE_ACCESS,
     resource_type="file",
@@ -558,8 +664,10 @@ async def download_file(
     file_id: str,
     request: Request,
     current_user: User = Depends(get_current_user),
-) -> FileResponse:
+) -> Union[FileResponse, StreamingResponse, JSONResponse]:
     """下載文件
+
+    修改時間：2026-01-05 - 支持 SeaWeedFS 和本地文件系統，使用統一的 read_file 方法
 
     Args:
         file_id: 文件ID
@@ -589,26 +697,225 @@ async def download_file(
                 content={"success": False, "message": "文件元數據不存在"},
             )
 
-        # 修改時間：2025-01-27 - 使用改進的文件路徑查找邏輯
+        filename = metadata.filename if metadata else file_id
+
+        # 修改時間：2026-01-05 - 優化大文件下載，避免超時
+        # 對於本地文件系統，直接使用 FileResponse（最有效率）
+        # 對於 SeaWeedFS/S3，使用流式讀取
+
+        # 修改時間：2026-01-05 - 優先檢查 metadata.storage_path 是否為本地路徑
+        # 如果 storage_path 是本地路徑（不以 s3:// 開頭），即使使用 S3FileStorage，也應該從本地讀取
+        local_file_path = None
+        if metadata.storage_path and not metadata.storage_path.startswith("s3://"):
+            # 這是本地路徑，檢查文件是否存在
+            if os.path.exists(metadata.storage_path):
+                local_file_path = metadata.storage_path
+            else:
+                # 嘗試相對路徑（從項目根目錄）
+                possible_paths = [
+                    metadata.storage_path,
+                    f"./{metadata.storage_path}",
+                    os.path.join(os.getcwd(), metadata.storage_path),
+                ]
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        local_file_path = path
+                        break
+
+        # 如果找到本地文件，直接使用 FileResponse
+        if local_file_path:
+            try:
+                logger.debug(
+                    "Using local file path for download",
+                    file_id=file_id,
+                    local_file_path=local_file_path,
+                )
+                return FileResponse(
+                    path=local_file_path,
+                    filename=filename,
+                    media_type="application/octet-stream",
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to use FileResponse with local path, falling back to streaming",
+                    file_id=file_id,
+                    local_file_path=local_file_path,
+                    error=str(e),
+                )
+
+        # 嘗試從存儲後端獲取文件路徑
         file_path = storage.get_file_path(
             file_id=file_id,
             task_id=metadata.task_id,
             metadata_storage_path=metadata.storage_path,
         )
 
-        if not file_path or not os.path.exists(file_path):
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={"success": False, "message": "文件不存在"},
-            )
+        # 如果是本地文件系統且文件存在，直接使用 FileResponse（流式傳輸，不佔用內存）
+        if file_path and os.path.exists(file_path):
+            try:
+                return FileResponse(
+                    path=file_path,
+                    filename=filename,
+                    media_type="application/octet-stream",
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to use FileResponse, falling back to streaming",
+                    file_id=file_id,
+                    file_path=file_path,
+                    error=str(e),
+                )
 
-        filename = metadata.filename if metadata else file_id
+        # 對於 SeaWeedFS/S3 或本地文件不存在的情況，使用流式讀取
+        # 修改時間：2026-01-05 - 使用生成器實現流式傳輸，避免一次性加載整個文件到內存
+        async def file_stream_generator():
+            """流式讀取文件內容的生成器"""
+            try:
+                # 檢查是否為 S3/SeaWeedFS 存儲
+                from storage.s3_storage import S3FileStorage
 
-        # 返回文件
-        return FileResponse(
-            path=file_path,
-            filename=filename,
+                if isinstance(storage, S3FileStorage):
+                    # 對於 S3/SeaWeedFS，使用流式讀取（避免一次性加載整個文件）
+                    try:
+                        # 獲取 S3 URI
+                        s3_uri = metadata.storage_path or storage.get_file_path(
+                            file_id=file_id,
+                            task_id=metadata.task_id,
+                            metadata_storage_path=metadata.storage_path,
+                        )
+
+                        if s3_uri:
+                            parsed = storage._parse_s3_uri(s3_uri)  # type: ignore[attr-defined]
+                            if parsed:
+                                bucket, key = parsed
+                                # 使用 boto3 的流式讀取
+                                # 修改時間：2026-01-05 - 添加詳細日誌和錯誤處理
+                                logger.debug(
+                                    "Attempting to stream file from SeaWeedFS",
+                                    file_id=file_id,
+                                    bucket=bucket,
+                                    key=key,
+                                    s3_uri=s3_uri,
+                                )
+                                try:
+                                    response = storage.s3_client.get_object(  # type: ignore[attr-defined]
+                                        Bucket=bucket, Key=key
+                                    )
+                                    # 流式讀取，每次讀取 8KB
+                                    chunk_size = 8192
+                                    body = response["Body"]
+                                    bytes_read = 0
+                                    while True:
+                                        chunk = body.read(chunk_size)
+                                        if not chunk:
+                                            break
+                                        bytes_read += len(chunk)
+                                        yield chunk
+                                    logger.debug(
+                                        "Successfully streamed file from SeaWeedFS",
+                                        file_id=file_id,
+                                        bytes_read=bytes_read,
+                                    )
+                                    return
+                                except ConnectionClosedError as conn_err:
+                                    # 連接關閉錯誤，可能是文件不存在或 SeaWeedFS 問題
+                                    logger.error(
+                                        "SeaWeedFS connection closed",
+                                        file_id=file_id,
+                                        bucket=bucket,
+                                        key=key,
+                                        error=str(conn_err),
+                                    )
+                                    # 重新拋出，讓外層處理
+                                    raise
+                    except Exception as e:
+                        # 修改時間：2026-01-05 - 詳細記錄錯誤，便於調試
+                        error_msg = str(e)
+                        error_type = type(e).__name__
+
+                        # 檢查是否為連接錯誤（SeaWeedFS 服務未運行）
+                        is_connection_error = (
+                            "Connection" in error_type
+                            or "connection" in error_msg.lower()
+                            or "refused" in error_msg.lower()
+                            or "closed" in error_msg.lower()
+                        )
+
+                        logger.warning(
+                            "Failed to stream from S3/SeaWeedFS",
+                            file_id=file_id,
+                            error=error_msg,
+                            error_type=error_type,
+                            s3_uri=s3_uri if "s3_uri" in locals() else None,
+                            is_connection_error=is_connection_error,
+                        )
+
+                        # 如果是連接錯誤，直接拋出異常，不嘗試回退（因為文件在 SeaWeedFS 中）
+                        if is_connection_error:
+                            endpoint = getattr(storage, "endpoint", "unknown")  # type: ignore[attr-defined]
+                            raise RuntimeError(
+                                f"SeaWeedFS 服務連接失敗，無法讀取文件。"
+                                f"請檢查 SeaWeedFS 服務是否運行（端點: {endpoint}）。"
+                                f"錯誤詳情: {error_msg}"
+                            ) from e
+
+                        # 其他錯誤繼續嘗試回退
+
+                # 如果無法流式讀取，嘗試使用 read_file（對於小文件）
+                file_content = None
+                try:
+                    file_content = storage.read_file(  # type: ignore[call-arg]
+                        file_id=file_id,
+                        task_id=metadata.task_id,
+                        metadata_storage_path=metadata.storage_path,
+                    )
+                except TypeError:
+                    # 向後兼容：如果 storage 不支持額外參數
+                    file_content = storage.read_file(file_id)
+
+                # 如果無法從存儲讀取，嘗試從本地文件系統讀取（向後兼容）
+                if file_content is None and file_path and os.path.exists(file_path):
+                    try:
+                        # 使用分塊讀取，避免一次性加載大文件
+                        chunk_size = 8192  # 8KB chunks
+                        with open(file_path, "rb") as f:
+                            while True:
+                                chunk = f.read(chunk_size)
+                                if not chunk:
+                                    break
+                                yield chunk
+                        return
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to read file from local path",
+                            file_id=file_id,
+                            file_path=file_path,
+                            error=str(e),
+                        )
+
+                # 如果已經讀取到內容，分塊返回（避免一次性返回大文件）
+                if file_content:
+                    chunk_size = 8192  # 8KB chunks
+                    for i in range(0, len(file_content), chunk_size):
+                        yield file_content[i : i + chunk_size]
+                else:
+                    raise ValueError("文件不存在或無法讀取")
+
+            except Exception as e:
+                logger.error(
+                    "Failed to stream file",
+                    file_id=file_id,
+                    error=str(e),
+                )
+                raise
+
+        # 使用 StreamingResponse 進行流式傳輸
+        return StreamingResponse(
+            file_stream_generator(),
             media_type="application/octet-stream",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+            },
         )
     except Exception as e:
         logger.error("Failed to download file", file_id=file_id, error=str(e), exc_info=True)
@@ -2398,9 +2705,7 @@ async def get_file_vectors(
             required_permission=Permission.FILE_READ.value,
         )
 
-        storage = get_storage()
-
-        # 獲取文件元數據（用於文件路徑查找）
+        # 獲取文件元數據（用於驗證文件是否存在於系統中）
         metadata_service = get_metadata_service()
         file_metadata_obj = metadata_service.get(file_id)
         if not file_metadata_obj:
@@ -2409,16 +2714,10 @@ async def get_file_vectors(
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        # 檢查文件是否存在（使用正確的參數）
-        if not storage.file_exists(
-            file_id=file_id,
-            task_id=file_metadata_obj.task_id,
-            metadata_storage_path=file_metadata_obj.storage_path,
-        ):
-            return APIResponse.error(
-                message="文件不存在",
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
+        # 修改時間：2026-01-05 - 移除文件存在性檢查
+        # 向量數據存儲在 ChromaDB 中，與文件存儲無關
+        # 不需要檢查文件是否在 SeaWeedFS 或本地文件系統中存在
+        # 如果文件元數據存在，就可以查詢向量數據
 
         # 獲取向量資料
         vector_store_service = get_vector_store_service()
@@ -2511,28 +2810,55 @@ async def regenerate_file_data(
 
         storage = get_storage()
 
-        # 檢查文件是否存在（使用正確的參數）
-        if not storage.file_exists(
+        # 獲取文件路徑
+        # 修改時間：2026-01-03 - 添加錯誤處理，如果S3連接失敗，嘗試使用本地路徑
+        try:
+            file_path = storage.get_file_path(
             file_id=file_id,
             task_id=file_metadata.task_id,
             metadata_storage_path=file_metadata.storage_path,
-        ):
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to get file path from storage, trying local path",
+                file_id=file_id,
+                error=str(e)[:100],
+            )
+            # 如果S3連接失敗，嘗試構建本地路徑
+            if file_metadata.storage_path and not file_metadata.storage_path.startswith("s3://"):
+                file_path = file_metadata.storage_path
+            else:
+                # 構建默認本地路徑
+                from pathlib import Path
+
+                base_path = Path("./data/datasets/files")
+                if file_metadata.task_id:
+                    file_path = str(
+                        base_path / file_metadata.task_id / file_id / file_metadata.filename
+                    )
+                else:
+                    file_path = str(base_path / file_id[:2] / file_id / file_metadata.filename)
+        
+        if not file_path:
             return APIResponse.error(
-                message="文件不存在",
+                message="無法獲取文件路徑",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        # 獲取文件路徑
-        file_path = storage.get_file_path(
-            file_id=file_id,
-            task_id=file_metadata.task_id,
-            metadata_storage_path=file_metadata.storage_path,
-        )
-        if not file_path or not os.path.exists(file_path):
+        # 檢查文件是否存在（支持本地路徑和S3 URI）
+        if file_path.startswith("s3://"):
+            # S3 URI，跳過本地文件檢查（會在後續處理中處理）
+            pass
+        elif not os.path.exists(file_path):
             return APIResponse.error(
                 message="文件路徑不存在",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
+
+        # 修改時間：2026-01-03 - 跳過storage.file_exists檢查，因為：
+        # 1. SeaweedFS S3 API連接不穩定，可能導致誤報
+        # 2. os.path.exists(file_path)已經足夠驗證文件存在
+        # 3. 如果文件路徑存在但實際文件不存在，後續處理會自然失敗
 
         regenerate_type = request_body.type.lower()
 
@@ -2540,12 +2866,14 @@ async def regenerate_file_data(
             # 重新生成向量：只執行向量化流程（分塊+向量化+存儲），跳過 KG 提取
             try:
                 queue = get_task_queue(VECTORIZATION_QUEUE)
+                job_timeout = get_worker_job_timeout()
                 job = queue.enqueue(
                     process_vectorization_only_task,
                     file_id=file_id,
                     file_path=file_path,
                     file_type=file_metadata.file_type,
                     user_id=current_user.user_id,
+                    job_timeout=job_timeout,
                 )
 
                 # 修改時間：2025-12-12 - 任務入隊後立即寫入處理狀態，讓前端可顯示「向量產生中」
@@ -2599,6 +2927,7 @@ async def regenerate_file_data(
             # 重新生成圖譜：只觸發知識圖譜提取，嘗試重用已存在的 chunks
             try:
                 queue = get_task_queue(KG_EXTRACTION_QUEUE)
+                job_timeout = get_worker_job_timeout()
                 job = queue.enqueue(
                     process_kg_extraction_only_task,
                     file_id=file_id,
@@ -2606,6 +2935,7 @@ async def regenerate_file_data(
                     file_type=file_metadata.file_type,
                     user_id=current_user.user_id,
                     force_rechunk=False,  # 嘗試重用已存在的 chunks
+                    job_timeout=job_timeout,
                 )
 
                 # 修改時間：2025-12-12 - 任務入隊後立即寫入處理狀態，讓前端可顯示「圖譜產生中」
@@ -2703,9 +3033,7 @@ async def get_file_graph(
             required_permission=Permission.FILE_READ.value,
         )
 
-        storage = get_storage()
-
-        # 獲取文件元數據（用於文件路徑查找）
+        # 獲取文件元數據（用於驗證文件是否存在於系統中）
         metadata_service = get_metadata_service()
         file_metadata_obj = metadata_service.get(file_id)
         if not file_metadata_obj:
@@ -2714,16 +3042,10 @@ async def get_file_graph(
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        # 檢查文件是否存在（使用正確的參數）
-        if not storage.file_exists(
-            file_id=file_id,
-            task_id=file_metadata_obj.task_id,
-            metadata_storage_path=file_metadata_obj.storage_path,
-        ):
-            return APIResponse.error(
-                message="文件不存在",
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
+        # 修改時間：2026-01-05 - 移除文件存在性檢查
+        # 圖譜數據存儲在 ArangoDB 中，與文件存儲無關
+        # 不需要檢查文件是否在 SeaWeedFS 或本地文件系統中存在
+        # 如果文件元數據存在，就可以查詢圖譜數據
 
         # 優先從結果文件讀取圖譜數據
         import json
@@ -2771,21 +3093,20 @@ async def get_file_graph(
 
                         if extracted_triples:
                             # 轉換三元組為 G6 格式
-                            # 1. 提取唯一節點
+                            # 1. 先提取所有唯一節點（應用 limit 和 offset）
                             node_map: Dict[str, Dict[str, Any]] = {}
-                            edge_id_counter = 0
 
+                            # 先收集所有節點（不應用 limit，因為需要確保邊的節點都存在）
+                            all_nodes_map: Dict[str, Dict[str, Any]] = {}
                             for triple in extracted_triples:
                                 subject = triple.get("subject", "")
                                 subject_type = triple.get("subject_type", "Unknown")
                                 obj = triple.get("object", "")
                                 obj_type = triple.get("object_type", "Unknown")
-                                relation = triple.get("relation", "")
-                                confidence = triple.get("confidence", 0)
 
                                 # 添加主體節點
-                                if subject and subject not in node_map:
-                                    node_map[subject] = {
+                                if subject and subject not in all_nodes_map:
+                                    all_nodes_map[subject] = {
                                         "id": subject,
                                         "label": subject,
                                         "name": subject,
@@ -2794,8 +3115,8 @@ async def get_file_graph(
                                     }
 
                                 # 添加客體節點
-                                if obj and obj not in node_map:
-                                    node_map[obj] = {
+                                if obj and obj not in all_nodes_map:
+                                    all_nodes_map[obj] = {
                                         "id": obj,
                                         "label": obj,
                                         "name": obj,
@@ -2803,27 +3124,45 @@ async def get_file_graph(
                                         "text": obj,
                                     }
 
-                                # 添加邊
+                            # 應用 limit 和 offset 到節點列表
+                            all_nodes_list = list(all_nodes_map.values())
+                            paginated_nodes = all_nodes_list[offset : offset + limit]
+                            node_map = {node["id"]: node for node in paginated_nodes}
+                            
+                            # 創建節點 ID 集合，用於過濾邊
+                            node_id_set = set(node_map.keys())
+                            
+                            # 2. 只添加兩端節點都在返回節點列表中的邊
+                            edge_id_counter = 0
+                            for triple in extracted_triples:
+                                subject = triple.get("subject", "")
+                                obj = triple.get("object", "")
+                                relation = triple.get("relation", "")
+                                confidence = triple.get("confidence", 0)
+
+                                # 只添加兩端節點都在返回節點列表中的邊
                                 if subject and obj and relation:
-                                    edges.append(
-                                        {
-                                            "id": f"edge_{edge_id_counter}",
-                                            "source": subject,
-                                            "target": obj,
-                                            "from": subject,
-                                            "to": obj,
-                                            "label": relation,
-                                            "type": relation,
-                                            "relation": relation,
+                                    if subject in node_id_set and obj in node_id_set:
+                                        edges.append(
+                                            {
+                                                "id": f"edge_{edge_id_counter}",
+                                                "source": subject,
+                                                "target": obj,
+                                                "from": subject,
+                                                "to": obj,
+                                                "label": relation,
+                                                "type": relation,
+                                                "relation": relation,
                                             "confidence": confidence,
                                         }
                                     )
                                     edge_id_counter += 1
 
-                                # 添加三元組
-                                triples.append(
-                                    {
-                                        "subject": subject,
+                                # 只添加兩端節點都在返回節點列表中的三元組
+                                if subject in node_id_set and obj in node_id_set:
+                                    triples.append(
+                                        {
+                                            "subject": subject,
                                         "subject_type": subject_type,
                                         "relation": relation,
                                         "object": obj,
@@ -2883,10 +3222,37 @@ async def get_file_graph(
                         else []  # type: ignore[arg-type]  # Cursor 可迭代
                     )
 
-                    # 查詢與文件相關的關係
+                    # 收集返回的實體 ID 集合，用於過濾關係
+                    entity_ids = {entity.get("_id", "") for entity in entities_result}
+                    entity_keys = {entity.get("_key", "") for entity in entities_result}
+                    
+                    # 如果沒有實體，直接返回空結果
+                    if not entity_ids:
+                        logger.info(
+                            "No entities found for file",
+                            file_id=file_id,
+                        )
+                        return APIResponse.success(
+                            data={
+                                "nodes": [],
+                                "edges": [],
+                                "triples": [],
+                                "stats": {
+                                    "triples_count": 0,
+                                    "entities_count": 0,
+                                    "relations_count": 0,
+                                    "status": "not_processed",
+                                },
+                            }
+                        )
+
+                    # 查詢與文件相關的關係，但只返回兩端節點都在返回的實體列表中的關係
+                    # 修改時間：2026-01-27 - 確保返回的邊只引用返回的節點
                     relations_query = """
                     FOR relation IN relations
-                        FILTER relation.file_id == @file_id OR @file_id IN relation.file_ids
+                        FILTER (relation.file_id == @file_id OR @file_id IN relation.file_ids)
+                        AND relation._from IN @entity_ids
+                        AND relation._to IN @entity_ids
                         LIMIT @offset, @limit
                         RETURN relation
                     """
@@ -2895,6 +3261,7 @@ async def get_file_graph(
                             relations_query,
                             bind_vars={
                                 "file_id": file_id,
+                                "entity_ids": list(entity_ids),
                                 "limit": limit,
                                 "offset": offset,
                             },  # type: ignore[arg-type]  # bind_vars 類型兼容

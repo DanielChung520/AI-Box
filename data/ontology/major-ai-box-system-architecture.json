@@ -1,0 +1,229 @@
+{
+    "ontology_name": "AI_Box_System_Architecture_Major_Ontology",
+    "version": "1.0",
+    "inherits_from": ["5W1H_Base_Ontology_OWL", "AI_Box_Domain_Ontology"],
+    "description": "AI-Box 系統架構專業本體論，定義 AI-Box 核心組件的詳細實體與關係。適用於 AI-Box 系統設計文檔、架構文檔、組件文檔等場景。",
+    "last_modified": "2025-12-31",
+    "author": "Daniel Chung",
+
+    "entity_classes": [
+        {
+            "name": "Agent_Platform",
+            "base_class": "Concept",
+            "description": "Agent 平台組件，提供三層架構的智能代理運行環境。"
+        },
+        {
+            "name": "AAM_System",
+            "base_class": "Concept",
+            "description": "AAM 系統（長短記憶上下文架構），管理長期和短期記憶的系統。"
+        },
+        {
+            "name": "RAG_System",
+            "base_class": "Concept",
+            "description": "強化 RAG 系統，基於 ChromaDB 的向量化與語義切片檢索增強生成系統。"
+        },
+        {
+            "name": "Knowledge_Graph_System",
+            "base_class": "Concept",
+            "description": "知識圖譜系統，基於 ArangoDB 的圖存儲與 NER/RE/RT 提取系統。"
+        },
+        {
+            "name": "Ontology_System",
+            "base_class": "Concept",
+            "description": "Ontology 系統，3-tier 架構（base/domain/major）的本體定義與管理系統。"
+        },
+        {
+            "name": "MoE_System",
+            "base_class": "Concept",
+            "description": "MoE 系統（Multi-model Expert），多模型專家模型架構系統。"
+        },
+        {
+            "name": "MCP_Tool_System",
+            "base_class": "Concept",
+            "description": "MCP 工具系統（Model Context Protocol），提供工具調用與上下文管理。"
+        },
+        {
+            "name": "ChromaDB_Service",
+            "base_class": "Vector_Store",
+            "description": "ChromaDB 向量存儲服務，用於存儲和檢索文檔嵌入向量。"
+        },
+        {
+            "name": "ArangoDB_Service",
+            "base_class": "Graph_Database",
+            "description": "ArangoDB 圖數據庫服務，用於存儲知識圖譜實體和關係。"
+        },
+        {
+            "name": "SeaweedFS_Service",
+            "base_class": "File_Storage",
+            "description": "SeaweedFS 文件存儲服務，用於存儲上傳的文件和文檔。"
+        },
+        {
+            "name": "IEE_System",
+            "base_class": "Concept",
+            "description": "IEE 系統（Intelligent Editor Environment），智能編輯環境前端系統。"
+        },
+        {
+            "name": "Task_Analyzer",
+            "base_class": "Concept",
+            "description": "任務分析器，分析用戶意圖和任務類型的組件。"
+        },
+        {
+            "name": "LLM_Router",
+            "base_class": "Concept",
+            "description": "LLM 路由系統，根據任務類型選擇合適的 LLM 模型。"
+        },
+        {
+            "name": "File_Upload_Service",
+            "base_class": "AI_Service",
+            "description": "文件上傳服務，處理文件上傳、解析、向量化和知識圖譜提取。"
+        },
+        {
+            "name": "Embedding_Service",
+            "base_class": "AI_Service",
+            "description": "嵌入服務，生成文檔和文本的向量嵌入。"
+        },
+        {
+            "name": "KG_Extraction_Service",
+            "base_class": "AI_Service",
+            "description": "知識圖譜提取服務，從文本中提取實體、關係和三元組。"
+        },
+        {
+            "name": "Chunk_Processor",
+            "base_class": "Concept",
+            "description": "分塊處理器，將文檔分割成語義塊以便向量化。"
+        },
+        {
+            "name": "Orchestrator",
+            "base_class": "Concept",
+            "description": "協調器，協調多個 Agent 和服務的工作流程。"
+        },
+        {
+            "name": "Deployment_Architecture",
+            "base_class": "Concept",
+            "description": "部署架構，定義系統的混合部署、K8s 部署、Redis Worker 等。"
+        },
+        {
+            "name": "Storage_Architecture",
+            "base_class": "Concept",
+            "description": "存儲架構，定義 SeaweedFS 雙服務架構與 S3 存儲實現。"
+        }
+    ],
+
+    "object_properties": [
+        {
+            "name": "has_component",
+            "description": "表示系統包含的核心組件。",
+            "domain": ["AI_System"],
+            "range": ["Agent_Platform", "AAM_System", "RAG_System", "Knowledge_Graph_System", "Ontology_System", "MoE_System", "MCP_Tool_System", "IEE_System", "Task_Analyzer", "LLM_Router"]
+        },
+        {
+            "name": "uses_vector_store",
+            "description": "表示系統或服務使用的向量存儲服務。",
+            "domain": ["RAG_System", "File_Upload_Service", "Embedding_Service"],
+            "range": ["ChromaDB_Service"]
+        },
+        {
+            "name": "uses_graph_database",
+            "description": "表示系統或服務使用的圖數據庫服務。",
+            "domain": ["Knowledge_Graph_System", "KG_Extraction_Service", "Ontology_System"],
+            "range": ["ArangoDB_Service"]
+        },
+        {
+            "name": "uses_file_storage",
+            "description": "表示系統或服務使用的文件存儲服務。",
+            "domain": ["File_Upload_Service", "Storage_Architecture"],
+            "range": ["SeaweedFS_Service"]
+        },
+        {
+            "name": "provides_embedding",
+            "description": "表示服務提供嵌入向量生成功能。",
+            "domain": ["Embedding_Service"],
+            "range": ["Concept", "Document"]
+        },
+        {
+            "name": "extracts_knowledge",
+            "description": "表示服務從文檔中提取知識圖譜。",
+            "domain": ["KG_Extraction_Service"],
+            "range": ["Document", "Concept"]
+        },
+        {
+            "name": "processes_file",
+            "description": "表示服務處理的文件類型。",
+            "domain": ["File_Upload_Service", "Chunk_Processor"],
+            "range": ["Document"]
+        },
+        {
+            "name": "chunks_document",
+            "description": "表示處理器將文檔分割成塊。",
+            "domain": ["Chunk_Processor"],
+            "range": ["Document"]
+        },
+        {
+            "name": "routes_to_model",
+            "description": "表示路由系統將任務路由到特定模型。",
+            "domain": ["LLM_Router"],
+            "range": ["Concept", "Resource"]
+        },
+        {
+            "name": "analyzes_task",
+            "description": "表示分析器分析任務類型和意圖。",
+            "domain": ["Task_Analyzer"],
+            "range": ["Processing_Task", "Event"]
+        },
+        {
+            "name": "manages_agents",
+            "description": "表示平台管理智能代理。",
+            "domain": ["Agent_Platform", "Orchestrator"],
+            "range": ["Intelligent_Agent"]
+        },
+        {
+            "name": "coordinates_services",
+            "description": "表示協調器協調多個服務的工作。",
+            "domain": ["Orchestrator"],
+            "range": ["AI_Service", "Intelligent_Agent"]
+        },
+        {
+            "name": "stores_embeddings",
+            "description": "表示向量存儲服務存儲嵌入向量。",
+            "domain": ["ChromaDB_Service"],
+            "range": ["Concept", "Resource"]
+        },
+        {
+            "name": "stores_entities",
+            "description": "表示圖數據庫服務存儲知識圖譜實體。",
+            "domain": ["ArangoDB_Service"],
+            "range": ["Concept"]
+        },
+        {
+            "name": "stores_relations",
+            "description": "表示圖數據庫服務存儲知識圖譜關係。",
+            "domain": ["ArangoDB_Service"],
+            "range": ["Concept"]
+        },
+        {
+            "name": "deploys_on",
+            "description": "表示系統或組件的部署方式。",
+            "domain": ["AI_System", "AI_Service"],
+            "range": ["Deployment_Architecture"]
+        },
+        {
+            "name": "manages_ontology",
+            "description": "表示系統管理 Ontology 定義。",
+            "domain": ["Ontology_System"],
+            "range": ["Concept", "Document"]
+        },
+        {
+            "name": "selects_ontology",
+            "description": "表示系統自動選擇合適的 Ontology。",
+            "domain": ["KG_Extraction_Service", "Ontology_System"],
+            "range": ["Concept", "Document"]
+        },
+        {
+            "name": "integrates_with",
+            "description": "表示組件與其他組件或系統的集成。",
+            "domain": ["Agent_Platform", "RAG_System", "Knowledge_Graph_System", "MoE_System", "MCP_Tool_System"],
+            "range": ["Concept", "AI_Service"]
+        }
+    ]
+}
+

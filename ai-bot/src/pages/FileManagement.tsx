@@ -6,20 +6,38 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileText, Search, Grid, List } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { FileText, Search, Grid, List, FileCheck } from 'lucide-react';
 import FileList from '../components/FileList';
 import FileSearch from '../components/FileSearch';
 import FileTree from '../components/FileTree';
+import FileRecordList from '../components/FileRecordList';
 import type { FileMetadata } from '../lib/api';
 
 export default function FileManagement() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [showSearch, setShowSearch] = useState(false);
   const [, setSelectedFile] = useState<FileMetadata | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null); // 修改時間：2025-12-09 - 移除 temp-workspace 默認值，避免 403 錯誤
+  
+  // 修改時間：2026-01-06 - 添加視圖模式：任務文件視圖或所有文件記錄視圖
+  const [contentView, setContentView] = useState<'task' | 'records'>(() => {
+    // 從 URL 參數判斷是否顯示文件記錄視圖
+    return searchParams.get('view') === 'records' ? 'records' : 'task';
+  });
+
+  // 修改時間：2026-01-06 - 監聽 URL 參數變化，更新視圖模式
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'records') {
+      setContentView('records');
+    } else {
+      setContentView('task');
+    }
+  }, [searchParams]);
 
   // 從 localStorage 獲取當前用戶ID（實際應用中應該從認證上下文獲取）
   const userId = localStorage.getItem('user_id') || undefined;
@@ -71,6 +89,37 @@ export default function FileManagement() {
             <h1 className="text-2xl font-semibold">文件管理</h1>
           </div>
           <div className="flex items-center gap-2">
+            {/* 修改時間：2026-01-06 - 添加視圖切換按鈕 */}
+            <div className="flex border rounded-lg">
+              <button
+                onClick={() => {
+                  setContentView('task');
+                  navigate('/files');
+                }}
+                className={`px-4 py-2 flex items-center gap-2 ${
+                  contentView === 'task' ? 'bg-blue-50 border-blue-500' : ''
+                }`}
+                title="任務文件視圖"
+              >
+                <FileText className="w-4 h-4" />
+                <span>任務文件</span>
+              </button>
+              <button
+                onClick={() => {
+                  setContentView('records');
+                  navigate('/files?view=records');
+                }}
+                className={`px-4 py-2 flex items-center gap-2 ${
+                  contentView === 'records' ? 'bg-blue-50 border-blue-500' : ''
+                }`}
+                title="所有文件記錄"
+              >
+                <FileCheck className="w-4 h-4" />
+                <span>文件記錄</span>
+              </button>
+            </div>
+            {contentView === 'task' && (
+              <>
             <button
               onClick={() => navigate('/docs')}
               className="px-4 py-2 border rounded-lg hover:bg-gray-50"
@@ -103,6 +152,8 @@ export default function FileManagement() {
                 <Grid className="w-4 h-4" />
               </button>
             </div>
+              </>
+            )}
             <button
               onClick={() => navigate('/')}
               className="px-4 py-2 border rounded-lg hover:bg-gray-50"
@@ -128,6 +179,9 @@ export default function FileManagement() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto flex">
+        {/* 修改時間：2026-01-06 - 根據視圖模式顯示不同內容 */}
+        {contentView === 'task' ? (
+          <>
         {/* 文件樹側邊欄 */}
         <div className="w-64 border-r border-gray-200 bg-white flex-shrink-0">
           <FileTree
@@ -154,6 +208,17 @@ export default function FileManagement() {
             autoRefresh={true}
           />
         </div>
+          </>
+        ) : (
+          /* 所有文件記錄視圖 */
+          <div className="flex-1 overflow-auto">
+            <FileRecordList
+              onFileSelect={(file) => {
+                setSelectedFile(file);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

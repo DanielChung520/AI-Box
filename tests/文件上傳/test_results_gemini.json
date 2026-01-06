@@ -1,0 +1,279 @@
+{
+  "test_info": {
+    "file_path": "docs/系统设计文档/统一服务指南.md",
+    "file_size": 3059,
+    "model": "gemini",
+    "user_id": "test-user",
+    "test_time": "2026-01-01 21:40:36"
+  },
+  "upload": {
+    "status": "success",
+    "file_id": "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+    "upload_time": 2.71
+  },
+  "processing": {
+    "status": "completed",
+    "progress": 100,
+    "processing_time": 72.46,
+    "chunking": {
+      "status": "completed",
+      "progress": 100,
+      "message": "分塊處理完成",
+      "chunk_count": 15
+    },
+    "vectorization": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量化完成",
+      "vector_count": 15
+    },
+    "storage": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量存儲完成",
+      "collection_name": "file_71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+      "vector_count": 15
+    },
+    "kg_extraction": {
+      "status": "completed",
+      "progress": 100,
+      "message": "知識圖譜構建完成",
+      "mode": "all_chunks",
+      "job_id": "52375867-19c7-4de7-a6b5-36887ae8863f",
+      "total_chunks": 15,
+      "completed_chunks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "ontology_loaded": true,
+      "failed_chunks": [],
+      "failed_permanent_chunks": [],
+      "remaining_chunks": [],
+      "last_completed_chunk": 15,
+      "triples_count": 4,
+      "entities_count": 8,
+      "relations_count": 4
+    }
+  },
+  "knowledge_graph": {
+    "stats": {
+      "file_id": "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+      "triples_count": 4,
+      "entities_count": 8,
+      "relations_count": 4,
+      "mode": "all_chunks"
+    },
+    "triples_count": 4,
+    "triples": [
+      {
+        "edge": {
+          "_from": "entities/product_a883278e8356f420",
+          "_id": "relations/07f7306f0ec1aee4",
+          "_key": "07f7306f0ec1aee4",
+          "_to": "entities/org_88114bdce704e858",
+          "confidence": 0.93,
+          "context": "當使用 `./scripts/start_services.sh worker` 時，會：自動檢查 Redis [Chunk 13/15]",
+          "created_at": "2026-01-01T11:39:05.702411",
+          "file_id": "174985c0-4ad0-425c-b9c4-aca846c6015b",
+          "file_ids": [
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "type": "RELATED_TO",
+          "updated_at": "2026-01-01T13:40:34.284579"
+        },
+        "subject": {
+          "_id": "entities/product_a883278e8356f420",
+          "_key": "product_a883278e8356f420",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "name": "Worker",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/org_88114bdce704e858",
+          "_key": "org_88114bdce704e858",
+          "file_id": "174985c0-4ad0-425c-b9c4-aca846c6015b",
+          "file_ids": [
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "name": "Redis",
+          "type": "ORG"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/7d9901de8b4bd5ad",
+          "_key": "7d9901de8b4bd5ad",
+          "_to": "entities/event_7499d395ca4536ea",
+          "confidence": 0.935,
+          "context": "./scripts/start_services.sh all [Chunk 10/15]",
+          "created_at": "2026-01-01T10:58:28.150806",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "type": "RELATED_TO",
+          "updated_at": "2026-01-01T13:40:11.923779"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/event_7499d395ca4536ea",
+          "_key": "event_7499d395ca4536ea",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "name": "all",
+          "type": "EVENT"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/4d59db2f9ccc780a",
+          "_key": "4d59db2f9ccc780a",
+          "_to": "entities/event_1ac3ccd0fa9b866b",
+          "confidence": 0.935,
+          "context": "# 或只啟動 Worker\nnohup ./scripts/start_services.sh worker > logs/worker.log 2>&1 &\n [Chunk 12/15]",
+          "created_at": "2026-01-01T11:09:37.086115",
+          "file_id": "accbbe45-5598-45df-a11b-8b2d1692d72c",
+          "file_ids": [
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "type": "RELATED_TO",
+          "updated_at": "2026-01-01T13:39:53.622377"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/event_1ac3ccd0fa9b866b",
+          "_key": "event_1ac3ccd0fa9b866b",
+          "file_id": "accbbe45-5598-45df-a11b-8b2d1692d72c",
+          "file_ids": [
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "name": "worker",
+          "type": "EVENT"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_95389c811b606167",
+          "_id": "relations/68d3b1251e83b289",
+          "_key": "68d3b1251e83b289",
+          "_to": "entities/person_85cb8e4838ec525d",
+          "confidence": 0.915,
+          "context": "所有服務（包括 Worker）現在都統一由 `scripts/start_services.sh` 管理，無需使用多個分散的腳本。 [Chunk 1/15]",
+          "created_at": "2026-01-01T13:39:53.599293",
+          "file_id": "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+          "file_ids": [
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "type": "RELATED_TO",
+          "updated_at": "2026-01-01T13:39:53.599312"
+        },
+        "subject": {
+          "_id": "entities/product_95389c811b606167",
+          "_key": "product_95389c811b606167",
+          "file_id": "ffd5befc-5701-4230-b98f-1f69b21873a6",
+          "file_ids": [
+            "ffd5befc-5701-4230-b98f-1f69b21873a6",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "name": "統一服務管理指南",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/person_85cb8e4838ec525d",
+          "_key": "person_85cb8e4838ec525d",
+          "file_id": "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+          "file_ids": [
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52"
+          ],
+          "name": "Daniel Chung",
+          "type": "PERSON"
+        }
+      }
+    ]
+  },
+  "summary": {
+    "total_time": 75.22,
+    "upload_time": 2.71,
+    "processing_time": 72.46,
+    "chunks_count": 15,
+    "entities_count": 8,
+    "relations_count": 4,
+    "entity_types": [],
+    "relation_types": []
+  }
+}

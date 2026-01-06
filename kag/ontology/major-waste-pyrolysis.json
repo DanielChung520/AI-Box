@@ -1,0 +1,169 @@
+{
+    "ontology_name": "Waste_Pyrolysis_Major_Ontology",
+    "version": "1.0",
+    "inherits_from": ["5W1H_Base_Ontology_OWL", "Renewable_Energy_Domain_Ontology"],
+    "compatible_domains": ["domain-renewable-energy.json"],
+    "description": "城市廢棄物熱裂解專業本體論，專注於廢棄物熱裂解技術、產物和處理流程。",
+    "last_modified": "2026-01-03",
+    "author": "Daniel Chung",
+
+    "entity_classes": [
+        {
+            "name": "Waste_Material",
+            "base_class": "Material",
+            "description": "城市廢棄物材料，如塑膠、有機廢棄物、廢輪胎、廢木材等。"
+        },
+        {
+            "name": "Pyrolysis_Reactor",
+            "base_class": "Machine_Asset",
+            "description": "熱裂解反應器，用於進行廢棄物熱裂解的設備。"
+        },
+        {
+            "name": "Pyrolysis_Process",
+            "base_class": "Energy_Conversion_Process",
+            "description": "熱裂解過程，在無氧或低氧環境下將廢棄物加熱分解。"
+        },
+        {
+            "name": "Pyrolysis_Product",
+            "base_class": "Energy_Output",
+            "description": "熱裂解產物，如生物油、合成氣、生物炭等。"
+        },
+        {
+            "name": "Biochar",
+            "base_class": "Pyrolysis_Product",
+            "description": "生物炭，熱裂解過程產生的固體殘留物，可用於土壤改良或碳封存。"
+        },
+        {
+            "name": "Bio_Oil",
+            "base_class": "Pyrolysis_Product",
+            "description": "生物油，熱裂解過程產生的液體產物，可用作燃料或化學原料。"
+        },
+        {
+            "name": "Syngas",
+            "base_class": "Pyrolysis_Product",
+            "description": "合成氣，熱裂解過程產生的氣體產物，主要成分為氫氣、一氧化碳等。"
+        },
+        {
+            "name": "Pyrolysis_Temperature",
+            "base_class": "Concept",
+            "description": "熱裂解溫度，影響產物組成和產率的關鍵參數。"
+        },
+        {
+            "name": "Residence_Time",
+            "base_class": "Duration",
+            "description": "停留時間，廢棄物在反應器中的停留時間，影響轉化效率。"
+        },
+        {
+            "name": "Feedstock_Composition",
+            "base_class": "Concept",
+            "description": "原料組成，廢棄物的成分分析，影響熱裂解產物特性。"
+        },
+        {
+            "name": "Waste_Collection_Facility",
+            "base_class": "Location",
+            "description": "廢棄物收集設施，如垃圾轉運站、分類中心等。"
+        },
+        {
+            "name": "Pyrolysis_Plant",
+            "base_class": "Energy_Generation_Facility",
+            "description": "熱裂解廠，完整的廢棄物熱裂解處理設施。"
+        },
+        {
+            "name": "Emission_Control_System",
+            "base_class": "Asset",
+            "description": "排放控制系統，用於處理熱裂解過程產生的廢氣和污染物。"
+        },
+        {
+            "name": "Product_Application",
+            "base_class": "Concept",
+            "description": "產物應用，如生物炭用於農業、生物油用於發電等。"
+        },
+        {
+            "name": "Process_Parameter",
+            "base_class": "Concept",
+            "description": "製程參數，如加熱速率、壓力、載氣流量等。"
+        }
+    ],
+
+    "object_properties": [
+        {
+            "name": "processes",
+            "description": "表示熱裂解反應器或過程處理特定廢棄物材料。",
+            "domain": ["Pyrolysis_Reactor", "Pyrolysis_Process"],
+            "range": ["Waste_Material"]
+        },
+        {
+            "name": "produces",
+            "description": "表示熱裂解過程產生特定產物。",
+            "domain": ["Pyrolysis_Process", "Pyrolysis_Reactor"],
+            "range": ["Pyrolysis_Product", "Biochar", "Bio_Oil", "Syngas"]
+        },
+        {
+            "name": "operates_at",
+            "description": "表示熱裂解過程在特定溫度下進行。",
+            "domain": ["Pyrolysis_Process"],
+            "range": ["Pyrolysis_Temperature"]
+        },
+        {
+            "name": "requires_time",
+            "description": "表示熱裂解過程需要特定的停留時間。",
+            "domain": ["Pyrolysis_Process"],
+            "range": ["Residence_Time"]
+        },
+        {
+            "name": "has_composition",
+            "description": "表示廢棄物材料具有特定的組成。",
+            "domain": ["Waste_Material"],
+            "range": ["Feedstock_Composition"]
+        },
+        {
+            "name": "collected_from",
+            "description": "表示廢棄物從特定收集設施取得。",
+            "domain": ["Waste_Material"],
+            "range": ["Waste_Collection_Facility"]
+        },
+        {
+            "name": "contains",
+            "description": "表示熱裂解廠包含特定的反應器或設備。",
+            "domain": ["Pyrolysis_Plant"],
+            "range": ["Pyrolysis_Reactor", "Emission_Control_System"]
+        },
+        {
+            "name": "controls_emission",
+            "description": "表示排放控制系統處理特定污染物。",
+            "domain": ["Emission_Control_System"],
+            "range": ["Environmental_Impact"]
+        },
+        {
+            "name": "used_for",
+            "description": "表示熱裂解產物用於特定應用。",
+            "domain": ["Pyrolysis_Product", "Biochar", "Bio_Oil", "Syngas"],
+            "range": ["Product_Application"]
+        },
+        {
+            "name": "has_parameter",
+            "description": "表示熱裂解過程具有特定的製程參數。",
+            "domain": ["Pyrolysis_Process"],
+            "range": ["Process_Parameter"]
+        },
+        {
+            "name": "affects_yield",
+            "description": "表示製程參數影響產物產率。",
+            "domain": ["Process_Parameter", "Pyrolysis_Temperature", "Residence_Time"],
+            "range": ["Energy_Efficiency_Metric"]
+        },
+        {
+            "name": "converts_to_energy",
+            "description": "表示熱裂解產物轉換為能源。",
+            "domain": ["Bio_Oil", "Syngas"],
+            "range": ["Energy_Output"]
+        },
+        {
+            "name": "sequesters_carbon",
+            "description": "表示生物炭具有碳封存功能。",
+            "domain": ["Biochar"],
+            "range": ["Environmental_Impact"]
+        }
+    ]
+}
+

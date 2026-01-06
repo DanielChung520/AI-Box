@@ -1,7 +1,7 @@
 # 代碼功能說明: 安全相關數據模型
 # 創建日期: 2025-11-26 01:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-26 01:30 (UTC+8)
+# 最後修改日期: 2026-01-02
 
 """安全相關數據模型定義。"""
 
@@ -53,6 +53,19 @@ class Permission(str, Enum):
     FILE_DOWNLOAD = "file:download"
     FILE_DOWNLOAD_OWN = "file:download:own"
 
+    # 數據訪問權限（AI治理要求）
+    DATA_ACCESS_INTERNAL = "data:access:internal"  # 內部數據訪問
+    DATA_ACCESS_CONFIDENTIAL = "data:access:confidential"  # 機密數據訪問
+    DATA_ACCESS_RESTRICTED = "data:access:restricted"  # 限制數據訪問
+
+    # 敏感性標籤訪問權限
+    DATA_LABEL_PII = "data:label:pii"  # PII 標籤訪問
+    DATA_LABEL_PHI = "data:label:phi"  # PHI 標籤訪問
+    DATA_LABEL_FINANCIAL = "data:label:financial"  # 財務標籤訪問
+    DATA_LABEL_IP = "data:label:ip"  # IP 標籤訪問
+    DATA_LABEL_CUSTOMER = "data:label:customer"  # 客戶標籤訪問
+    DATA_LABEL_PROPRIETARY = "data:label:proprietary"  # 專有標籤訪問
+
 
 class Role(str, Enum):
     """角色枚舉 - 預定義常用角色"""
@@ -61,6 +74,7 @@ class Role(str, Enum):
     USER = "user"
     GUEST = "guest"
     DEVELOPER = "developer"
+    SYSTEM_ADMIN = "system_admin"  # 修改時間：2026-01-06 - 添加系統管理員角色
 
 
 @dataclass
@@ -126,4 +140,24 @@ class User:
             permissions=[Permission.ALL.value],
             is_active=True,
             metadata={"mode": "development", "bypass_auth": True},
+        )
+
+    @classmethod
+    def create_system_admin(cls) -> "User":
+        """創建系統管理員用戶（修改時間：2026-01-06）
+        
+        系統內部用戶，安全等級最高，外部任務看不到
+        """
+        return cls(
+            user_id="systemAdmin",
+            username="systemAdmin",
+            email="system@ai-box.internal",
+            roles=[Role.SYSTEM_ADMIN.value],
+            permissions=[Permission.ALL.value],
+            is_active=True,
+            metadata={
+                "is_system_user": True,
+                "security_level": "highest",
+                "hidden_from_external": True,
+            },
         )

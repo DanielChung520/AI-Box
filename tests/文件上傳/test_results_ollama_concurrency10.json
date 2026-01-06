@@ -1,0 +1,143 @@
+{
+  "test_info": {
+    "file_path": "docs/系统设计文档/统一服务指南.md",
+    "file_size": 3059,
+    "model": "ollama",
+    "user_id": "test-user",
+    "test_time": "2026-01-01 21:51:04"
+  },
+  "upload": {
+    "status": "success",
+    "file_id": "2bf759bc-b115-4b02-bbfc-f80317b7692b",
+    "upload_time": 7.79
+  },
+  "processing": {
+    "status": "completed",
+    "progress": 100,
+    "processing_time": 92.61,
+    "chunking": {
+      "status": "completed",
+      "progress": 100,
+      "message": "分塊處理完成",
+      "chunk_count": 15
+    },
+    "vectorization": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量化完成",
+      "vector_count": 15
+    },
+    "storage": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量存儲完成",
+      "collection_name": "file_2bf759bc-b115-4b02-bbfc-f80317b7692b",
+      "vector_count": 15
+    },
+    "kg_extraction": {
+      "status": "completed",
+      "progress": 100,
+      "message": "知識圖譜構建完成",
+      "mode": "all_chunks",
+      "job_id": "75418a38-76f3-4b42-8f58-0ce2e8166d9c",
+      "total_chunks": 15,
+      "completed_chunks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "ontology_loaded": true,
+      "failed_chunks": [],
+      "failed_permanent_chunks": [],
+      "remaining_chunks": [],
+      "last_completed_chunk": 15,
+      "triples_count": 1,
+      "entities_count": 2,
+      "relations_count": 1
+    }
+  },
+  "knowledge_graph": {
+    "stats": {
+      "file_id": "2bf759bc-b115-4b02-bbfc-f80317b7692b",
+      "triples_count": 1,
+      "entities_count": 2,
+      "relations_count": 1,
+      "mode": "all_chunks"
+    },
+    "triples_count": 1,
+    "triples": [
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/3ea6c0626ee25d51",
+          "_key": "3ea6c0626ee25d51",
+          "_to": "entities/event_1ac3ccd0fa9b866b",
+          "confidence": 0.9649999999999999,
+          "context": "# 單獨啟動 Worker\n./scripts/start_services.sh worker [Chunk 2/15]",
+          "created_at": "2026-01-01T13:34:33.771930",
+          "file_id": "1b83188d-c5f9-432c-b405-55f89181bf2c",
+          "file_ids": [
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "2bf759bc-b115-4b02-bbfc-f80317b7692b"
+          ],
+          "type": "PART_OF",
+          "updated_at": "2026-01-01T13:50:47.438648"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "2bf759bc-b115-4b02-bbfc-f80317b7692b"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/event_1ac3ccd0fa9b866b",
+          "_key": "event_1ac3ccd0fa9b866b",
+          "file_id": "accbbe45-5598-45df-a11b-8b2d1692d72c",
+          "file_ids": [
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "2bf759bc-b115-4b02-bbfc-f80317b7692b"
+          ],
+          "name": "worker",
+          "type": "EVENT"
+        }
+      }
+    ]
+  },
+  "summary": {
+    "total_time": 100.47,
+    "upload_time": 7.79,
+    "processing_time": 92.61,
+    "chunks_count": 15,
+    "entities_count": 2,
+    "relations_count": 1,
+    "entity_types": [],
+    "relation_types": []
+  }
+}

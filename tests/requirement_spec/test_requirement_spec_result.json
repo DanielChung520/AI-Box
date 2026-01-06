@@ -1,0 +1,61 @@
+{
+  "test_info": {
+    "file_path": "docs/系统设计文档/核心组件/文件上傳向量圖譜/歸檔/migration/需求規格說明書.md",
+    "file_size": 9592,
+    "model": "ollama",
+    "user_id": "test-user",
+    "test_time": "2026-01-02 13:25:08"
+  },
+  "upload": {
+    "status": "success",
+    "file_id": "551fc236-c413-4d54-a5bb-b9852794c779",
+    "upload_time": 0.07
+  },
+  "processing": {
+    "status": "failed",
+    "progress": 0,
+    "processing_time": 600.97,
+    "chunking": {
+      "status": "completed",
+      "progress": 100,
+      "message": "分塊處理完成",
+      "chunk_count": 0
+    },
+    "vectorization": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量化完成",
+      "vector_count": 0
+    },
+    "storage": {
+      "status": "processing",
+      "progress": 0,
+      "message": "開始存儲向量"
+    },
+    "kg_extraction": {
+      "status": "pending",
+      "progress": 0
+    }
+  },
+  "knowledge_graph": {
+    "stats": {
+      "file_id": "551fc236-c413-4d54-a5bb-b9852794c779",
+      "triples_count": 0,
+      "entities_count": 0,
+      "relations_count": 0,
+      "status": "not_processed"
+    },
+    "triples_count": 0,
+    "triples": []
+  },
+  "summary": {
+    "total_time": 601.09,
+    "upload_time": 0.07,
+    "processing_time": 600.97,
+    "chunks_count": 0,
+    "entities_count": 0,
+    "relations_count": 0,
+    "entity_types": [],
+    "relation_types": []
+  }
+}

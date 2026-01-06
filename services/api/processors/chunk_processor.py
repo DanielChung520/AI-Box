@@ -1,11 +1,12 @@
 # 代碼功能說明: 文件分塊處理器
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-31
+# 最後修改日期: 2026-01-04
 
 """文件分塊處理器 - 實現多種分塊策略"""
 
 import re
+import unicodedata
 import uuid
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -20,6 +21,49 @@ try:
     TIKTOKEN_AVAILABLE = True
 except ImportError:
     TIKTOKEN_AVAILABLE = False
+
+
+def normalize_text(text: str) -> str:
+    """规范化文本编码
+
+    功能：
+    1. NFKC 规范化（处理全角ASCII和部分兼容字符）
+    2. 手动替换常见的兼容字符（如果NFKC未处理）
+    3. 移除控制字符（保留换行符和制表符）
+
+    Args:
+        text: 原始文本
+
+    Returns:
+        规范化后的文本
+    """
+    # 1. NFKC 规范化（处理全角ASCII和部分兼容字符）
+    text = unicodedata.normalize("NFKC", text)
+
+    # 2. 手动替换常见的兼容字符（如果NFKC未完全处理）
+    # 兼容字符映射表（Unicode兼容字符 -> 标准字符）
+    compatibility_map = {
+        # 中日韓兼容字符
+        "⻛": "风",  # U+2EEB -> U+98CE (风)
+        "⽣": "生",  # U+2F63 -> U+751F (生)
+        "⼈": "人",  # U+2F0A -> U+4EBA (人)
+        "⼤": "大",  # U+2F2A -> U+5927 (大)
+        "⾃": "自",  # U+2F89 -> U+81EA (自)
+        "〜": "~",  # U+301C -> U+007E (波浪号)
+        # PDF 解析常見的編碼錯誤字符
+        "Ā": "A",  # U+0100 -> U+0041 (A with macron -> A)
+        "à": "a",  # U+00E0 -> U+0061 (a with grave -> a)
+        "ÿ": "y",  # U+00FF -> U+0079 (y with diaeresis -> y)
+        "⺠": "民",  # U+2EA0 -> U+6C11 (民)
+        # 添加更多常见的兼容字符映射（根据需要扩展）
+    }
+    for compat_char, standard_char in compatibility_map.items():
+        text = text.replace(compat_char, standard_char)
+
+    # 3. 移除控制字符（保留换行符和制表符）
+    text = "".join(c for c in text if unicodedata.category(c)[0] != "C" or c in ["\n", "\t", "\r"])
+
+    return text
 
 
 class ChunkStrategy(Enum):
@@ -128,6 +172,9 @@ class ChunkProcessor:
         Returns:
             分塊列表，每個分塊包含 chunk_id、file_id、chunk_index、text、metadata
         """
+        # 规范化文本编码（解决全角/半角字符问题）
+        text = normalize_text(text)
+
         if self.strategy == ChunkStrategy.FIXED_SIZE:
             return self._fixed_size_chunk(text, file_id, metadata)
         elif self.strategy == ChunkStrategy.SLIDING_WINDOW:
@@ -1151,18 +1198,55 @@ def create_chunk_processor_from_config(config: dict) -> ChunkProcessor:
     從配置創建分塊處理器
 
     Args:
-        config: 配置文件中的 chunk_processing 區塊
+        config: 配置文件中的 chunk_processing 區塊（支持從 ArangoDB system_configs 或 config.json 讀取）
 
     Returns:
         ChunkProcessor 實例
     """
-    chunk_size = config.get("chunk_size", 512)
+    # 提取基本參數
+    chunk_size = config.get("chunk_size", 768)  # 默認值改為 768（與文檔一致）
     overlap = config.get("overlap", 0.2)
-    strategy_str = config.get("strategy", "semantic")
+    strategy_str = config.get(
+        "chunk_strategy", config.get("strategy", "semantic")
+    )  # 支持 chunk_strategy 和 strategy
 
     try:
         strategy = ChunkStrategy(strategy_str)
     except ValueError:
         strategy = ChunkStrategy.SEMANTIC
 
-    return ChunkProcessor(chunk_size=chunk_size, overlap=overlap, strategy=strategy)
+    # 創建 ChunkConfig（如果提供了完整配置）
+    chunk_config = None
+    if any(
+        key in config
+        for key in [
+            "min_chunk_size",
+            "max_chunk_size",
+            "max_code_block_size",
+            "table_context_lines",
+            "combine_text_paragraphs",
+            "separate_code_blocks",
+            "separate_tables",
+            "enable_quality_check",
+            "enable_adaptive_size",
+        ]
+    ):
+        chunk_config = ChunkConfig(
+            chunk_size=chunk_size,
+            min_chunk_size=config.get("min_chunk_size", 50),
+            max_chunk_size=config.get("max_chunk_size", 2000),
+            max_code_block_size=config.get("max_code_block_size", 2000),
+            table_context_lines=config.get("table_context_lines", 3),
+            combine_text_paragraphs=config.get("combine_text_paragraphs", True),
+            separate_code_blocks=config.get("separate_code_blocks", True),
+            separate_tables=config.get("separate_tables", True),
+            enable_quality_check=config.get("enable_quality_check", True),
+            enable_adaptive_size=config.get("enable_adaptive_size", True),
+        )
+
+    return ChunkProcessor(
+        chunk_size=chunk_size,
+        overlap=overlap,
+        strategy=strategy,
+        config=chunk_config,  # 如果提供了完整配置，使用 ChunkConfig
+    )

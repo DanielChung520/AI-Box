@@ -157,6 +157,53 @@ export default function Home() {
     }));
   }, [favoriteAgents]);
 
+  // 修改時間：2026-01-06 - 監聽收藏更新事件，從 localStorage 重新加載收藏狀態
+  useEffect(() => {
+    const handleFavoriteAssistantsUpdated = () => {
+      const saved = localStorage.getItem('favoriteAssistants');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          setFavoriteAssistants(new Map(Object.entries(data)));
+          console.log('[Home] Reloaded favorite assistants from localStorage');
+        } catch (error) {
+          console.error('[Home] Failed to reload favorite assistants:', error);
+        }
+      }
+    };
+
+    const handleFavoriteAgentsUpdated = () => {
+      const saved = localStorage.getItem('favoriteAgents');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          setFavoriteAgents(new Map(Object.entries(data)));
+          console.log('[Home] Reloaded favorite agents from localStorage');
+        } catch (error) {
+          console.error('[Home] Failed to reload favorite agents:', error);
+        }
+      }
+    };
+
+    // 監聽自定義事件
+    window.addEventListener('favoriteAssistantsUpdated', handleFavoriteAssistantsUpdated);
+    window.addEventListener('favoriteAgentsUpdated', handleFavoriteAgentsUpdated);
+    
+    // 監聽 localStorage 變化（跨標籤頁同步）
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'favoriteAssistants') {
+        handleFavoriteAssistantsUpdated();
+      } else if (e.key === 'favoriteAgents') {
+        handleFavoriteAgentsUpdated();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('favoriteAssistantsUpdated', handleFavoriteAssistantsUpdated);
+      window.removeEventListener('favoriteAgentsUpdated', handleFavoriteAgentsUpdated);
+    };
+  }, []);
+
   // 设置页面标题 - 使用language和updateCounter确保语言变更时更新
   useEffect(() => {
     document.title = t('app.title');

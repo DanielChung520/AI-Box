@@ -1,0 +1,458 @@
+{
+  "test_info": {
+    "file_path": "docs/系统设计文档/统一服务指南.md",
+    "file_size": 3059,
+    "model": "ollama",
+    "user_id": "test-user",
+    "test_time": "2026-01-01 22:26:32"
+  },
+  "upload": {
+    "status": "success",
+    "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+    "upload_time": 8.8
+  },
+  "processing": {
+    "status": "completed",
+    "progress": 100,
+    "processing_time": 126.77,
+    "chunking": {
+      "status": "completed",
+      "progress": 100,
+      "message": "分塊處理完成",
+      "chunk_count": 15
+    },
+    "vectorization": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量化完成",
+      "vector_count": 15
+    },
+    "storage": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量存儲完成",
+      "collection_name": "file_8848c6ce-6d55-4466-9976-bc1aa9a53004",
+      "vector_count": 15
+    },
+    "kg_extraction": {
+      "status": "completed",
+      "progress": 100,
+      "message": "知識圖譜構建完成",
+      "mode": "all_chunks",
+      "job_id": "b920415a-a93b-4fe4-a275-f1e9c8f76e72",
+      "total_chunks": 15,
+      "completed_chunks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "ontology_loaded": true,
+      "failed_chunks": [],
+      "failed_permanent_chunks": [],
+      "remaining_chunks": [],
+      "last_completed_chunk": 15,
+      "triples_count": 8,
+      "entities_count": 16,
+      "relations_count": 8
+    }
+  },
+  "knowledge_graph": {
+    "stats": {
+      "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+      "triples_count": 8,
+      "entities_count": 16,
+      "relations_count": 8,
+      "mode": "all_chunks"
+    },
+    "triples_count": 8,
+    "triples": [
+      {
+        "edge": {
+          "_from": "entities/product_a883278e8356f420",
+          "_id": "relations/8128a37cf7bd2a68",
+          "_key": "8128a37cf7bd2a68",
+          "_to": "entities/org_88114bdce704e858",
+          "confidence": 0.9850000000000001,
+          "context": "啟動 Worker 前會自動檢查並啟動 Redis [Chunk 15/15]",
+          "created_at": "2026-01-01T11:39:05.729989",
+          "file_id": "174985c0-4ad0-425c-b9c4-aca846c6015b",
+          "file_ids": [
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "type": "DEPENDS_ON",
+          "updated_at": "2026-01-01T14:26:31.967947"
+        },
+        "subject": {
+          "_id": "entities/product_a883278e8356f420",
+          "_key": "product_a883278e8356f420",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "Worker",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/org_88114bdce704e858",
+          "_key": "org_88114bdce704e858",
+          "file_id": "174985c0-4ad0-425c-b9c4-aca846c6015b",
+          "file_ids": [
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "Redis",
+          "type": "ORG"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/c5922e1a398b53a4",
+          "_key": "c5922e1a398b53a4",
+          "_to": "entities/worker_8eb29d1f605edc71",
+          "confidence": 0.93,
+          "context": "./scripts/start_services.sh worker [Chunk 10/15]",
+          "created_at": "2026-01-01T14:25:55.533858",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "type": "STARTED_WITH",
+          "updated_at": "2026-01-01T14:25:55.533867"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "2bf759bc-b115-4b02-bbfc-f80317b7692b",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/worker_8eb29d1f605edc71",
+          "_key": "worker_8eb29d1f605edc71",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "worker",
+          "type": "WORKER"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/e1c48988e0849a20",
+          "_key": "e1c48988e0849a20",
+          "_to": "entities/event_7499d395ca4536ea",
+          "confidence": 0.9649999999999999,
+          "context": "./scripts/start_services.sh all [Chunk 10/15]",
+          "created_at": "2026-01-01T14:25:55.514679",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "type": "STARTED_WITH",
+          "updated_at": "2026-01-01T14:25:55.514703"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "2bf759bc-b115-4b02-bbfc-f80317b7692b",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/event_7499d395ca4536ea",
+          "_key": "event_7499d395ca4536ea",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "all",
+          "type": "EVENT"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/event_554b4be79a6164a8",
+          "_id": "relations/ae8c3427356939bd",
+          "_key": "ae8c3427356939bd",
+          "_to": "entities/product_935538b994cf0705",
+          "confidence": 1,
+          "context": "已識別的實體：- 停止 (EVENT) - 所有服務 (PRODUCT) [Chunk 5/15]",
+          "created_at": "2026-01-01T14:25:12.433314",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "type": "PART_OF",
+          "updated_at": "2026-01-01T14:25:12.433328"
+        },
+        "subject": {
+          "_id": "entities/event_554b4be79a6164a8",
+          "_key": "event_554b4be79a6164a8",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "停止",
+          "type": "EVENT"
+        },
+        "object": {
+          "_id": "entities/product_935538b994cf0705",
+          "_key": "product_935538b994cf0705",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "所有服務",
+          "type": "PRODUCT"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/ab0eec276bb248b4",
+          "_key": "ab0eec276bb248b4",
+          "_to": "entities/event_823e12557722af39",
+          "confidence": 0.9550000000000001,
+          "context": "查看所有服務狀態（包括 Worker）./scripts/start_services.sh status [Chunk 4/15]",
+          "created_at": "2026-01-01T14:25:12.417677",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "type": "RELATED_TO",
+          "updated_at": "2026-01-01T14:25:12.417691"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "2bf759bc-b115-4b02-bbfc-f80317b7692b",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/event_823e12557722af39",
+          "_key": "event_823e12557722af39",
+          "file_id": "e824f913-66fb-493c-afce-8cb6dcca49eb",
+          "file_ids": [
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "status",
+          "type": "EVENT"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/257159ca781e20ed",
+          "_key": "257159ca781e20ed",
+          "_to": "entities/event_7499d395ca4536ea",
+          "confidence": 0.9649999999999999,
+          "context": "# 啟動所有服務（包括 Worker） [Chunk 2/15]",
+          "created_at": "2026-01-01T14:25:12.397708",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "type": "CONTAINS",
+          "updated_at": "2026-01-01T14:25:12.397717"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "2bf759bc-b115-4b02-bbfc-f80317b7692b",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/event_7499d395ca4536ea",
+          "_key": "event_7499d395ca4536ea",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "all",
+          "type": "EVENT"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/76526a5944d0ba23",
+          "_key": "76526a5944d0ba23",
+          "_to": "entities/event_1ac3ccd0fa9b866b",
+          "confidence": 0.9649999999999999,
+          "context": "# 單獨啟動 Worker [Chunk 2/15]",
+          "created_at": "2026-01-01T14:25:12.385302",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "type": "CONTAINS",
+          "updated_at": "2026-01-01T14:25:12.385318"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "2bf759bc-b115-4b02-bbfc-f80317b7692b",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/event_1ac3ccd0fa9b866b",
+          "_key": "event_1ac3ccd0fa9b866b",
+          "file_id": "accbbe45-5598-45df-a11b-8b2d1692d72c",
+          "file_ids": [
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c",
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "2bf759bc-b115-4b02-bbfc-f80317b7692b",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "worker",
+          "type": "EVENT"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/event_2db5f2f5bdc0ffa8",
+          "_id": "relations/19906a6bb6532268",
+          "_key": "19906a6bb6532268",
+          "_to": "entities/person_85cb8e4838ec525d",
+          "confidence": 0.9850000000000001,
+          "context": "**創建人**: Daniel Chung [Chunk 1/15]",
+          "created_at": "2026-01-01T14:25:12.365836",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "type": "RELATED_TO",
+          "updated_at": "2026-01-01T14:25:12.365852"
+        },
+        "subject": {
+          "_id": "entities/event_2db5f2f5bdc0ffa8",
+          "_key": "event_2db5f2f5bdc0ffa8",
+          "file_id": "8848c6ce-6d55-4466-9976-bc1aa9a53004",
+          "file_ids": [
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "統一服務管理指南",
+          "type": "EVENT"
+        },
+        "object": {
+          "_id": "entities/person_85cb8e4838ec525d",
+          "_key": "person_85cb8e4838ec525d",
+          "file_id": "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+          "file_ids": [
+            "71b644c9-563f-4dfc-b9b2-08530f6dfe52",
+            "8848c6ce-6d55-4466-9976-bc1aa9a53004"
+          ],
+          "name": "Daniel Chung",
+          "type": "PERSON"
+        }
+      }
+    ]
+  },
+  "summary": {
+    "total_time": 135.64,
+    "upload_time": 8.8,
+    "processing_time": 126.77,
+    "chunks_count": 15,
+    "entities_count": 16,
+    "relations_count": 8,
+    "entity_types": [],
+    "relation_types": []
+  }
+}

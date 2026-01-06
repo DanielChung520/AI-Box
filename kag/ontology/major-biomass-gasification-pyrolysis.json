@@ -1,0 +1,216 @@
+{
+    "ontology_name": "Biomass_Gasification_Pyrolysis_Major_Ontology",
+    "version": "1.0",
+    "inherits_from": ["5W1H_Base_Ontology_OWL", "Renewable_Energy_Domain_Ontology"],
+    "compatible_domains": ["domain-renewable-energy.json"],
+    "description": "生質能源氣化熱解專業本體論，專注於生質材料氣化和熱解技術、產物和處理流程。",
+    "last_modified": "2026-01-03",
+    "author": "Daniel Chung",
+
+    "entity_classes": [
+        {
+            "name": "Biomass_Feedstock",
+            "base_class": "Material",
+            "description": "生質材料，如木材、農作物殘餘、能源作物、有機廢棄物、藻類等。"
+        },
+        {
+            "name": "Gasification_Reactor",
+            "base_class": "Machine_Asset",
+            "description": "氣化反應器，用於將生質材料在高溫下轉化為合成氣的設備。"
+        },
+        {
+            "name": "Pyrolysis_Reactor",
+            "base_class": "Machine_Asset",
+            "description": "熱解反應器，用於在無氧或低氧環境下將生質材料加熱分解的設備。"
+        },
+        {
+            "name": "Gasification_Process",
+            "base_class": "Energy_Conversion_Process",
+            "description": "氣化過程，在控制氧氣條件下將生質材料轉化為合成氣（主要為氫氣和一氧化碳）。"
+        },
+        {
+            "name": "Pyrolysis_Process",
+            "base_class": "Energy_Conversion_Process",
+            "description": "熱解過程，在無氧或低氧環境下將生質材料加熱分解為生物油、合成氣和生物炭。"
+        },
+        {
+            "name": "Syngas",
+            "base_class": "Energy_Output",
+            "description": "合成氣，氣化或熱解過程產生的氣體產物，主要成分為氫氣、一氧化碳、甲烷等。"
+        },
+        {
+            "name": "Bio_Oil",
+            "base_class": "Energy_Output",
+            "description": "生物油，熱解過程產生的液體產物，可用作燃料或化學原料。"
+        },
+        {
+            "name": "Biochar",
+            "base_class": "Energy_Output",
+            "description": "生物炭，熱解過程產生的固體殘留物，可用於土壤改良、碳封存或作為燃料。"
+        },
+        {
+            "name": "Gasification_Temperature",
+            "base_class": "Concept",
+            "description": "氣化溫度，影響合成氣組成和產率的關鍵參數，通常在 700-1200°C。"
+        },
+        {
+            "name": "Pyrolysis_Temperature",
+            "base_class": "Concept",
+            "description": "熱解溫度，影響產物組成和產率的關鍵參數，通常在 400-800°C。"
+        },
+        {
+            "name": "Gasification_Agent",
+            "base_class": "Material",
+            "description": "氣化劑，如空氣、氧氣、水蒸氣或二氧化碳，用於控制氣化過程。"
+        },
+        {
+            "name": "Residence_Time",
+            "base_class": "Duration",
+            "description": "停留時間，生質材料在反應器中的停留時間，影響轉化效率和產物組成。"
+        },
+        {
+            "name": "Feedstock_Preparation",
+            "base_class": "Process",
+            "description": "原料預處理，如乾燥、粉碎、造粒等，影響後續轉化效率。"
+        },
+        {
+            "name": "Gas_Cleaning_System",
+            "base_class": "Asset",
+            "description": "氣體淨化系統，用於去除合成氣中的焦油、灰分、硫化物等雜質。"
+        },
+        {
+            "name": "Biomass_Plant",
+            "base_class": "Energy_Generation_Facility",
+            "description": "生質能源廠，完整的生質材料氣化或熱解處理設施。"
+        },
+        {
+            "name": "Energy_Crop",
+            "base_class": "Biomass_Feedstock",
+            "description": "能源作物，專門種植用於能源生產的作物，如柳枝稷、芒草、麻瘋樹等。"
+        },
+        {
+            "name": "Agricultural_Residue",
+            "base_class": "Biomass_Feedstock",
+            "description": "農業殘餘物，如稻草、玉米稈、甘蔗渣等農作物收穫後的殘餘物。"
+        },
+        {
+            "name": "Wood_Biomass",
+            "base_class": "Biomass_Feedstock",
+            "description": "木質生質材料，如木材、木屑、樹皮、林業廢棄物等。"
+        },
+        {
+            "name": "Algae_Biomass",
+            "base_class": "Biomass_Feedstock",
+            "description": "藻類生質材料，用於氣化或熱解的微藻或大型藻類。"
+        },
+        {
+            "name": "Process_Parameter",
+            "base_class": "Concept",
+            "description": "製程參數，如加熱速率、壓力、載氣流量、當量比等。"
+        },
+        {
+            "name": "Product_Application",
+            "base_class": "Concept",
+            "description": "產物應用，如合成氣用於發電、生物油用於交通燃料、生物炭用於農業等。"
+        },
+        {
+            "name": "Carbon_Sequestration",
+            "base_class": "Concept",
+            "description": "碳封存，生物炭在土壤中的長期儲存，實現負碳排放。"
+        }
+    ],
+
+    "object_properties": [
+        {
+            "name": "processes",
+            "description": "表示氣化或熱解反應器或過程處理特定生質材料。",
+            "domain": ["Gasification_Reactor", "Pyrolysis_Reactor", "Gasification_Process", "Pyrolysis_Process"],
+            "range": ["Biomass_Feedstock", "Energy_Crop", "Agricultural_Residue", "Wood_Biomass", "Algae_Biomass"]
+        },
+        {
+            "name": "produces",
+            "description": "表示氣化或熱解過程產生特定產物。",
+            "domain": ["Gasification_Process", "Pyrolysis_Process", "Gasification_Reactor", "Pyrolysis_Reactor"],
+            "range": ["Syngas", "Bio_Oil", "Biochar", "Energy_Output"]
+        },
+        {
+            "name": "operates_at",
+            "description": "表示氣化或熱解過程在特定溫度下進行。",
+            "domain": ["Gasification_Process", "Pyrolysis_Process"],
+            "range": ["Gasification_Temperature", "Pyrolysis_Temperature"]
+        },
+        {
+            "name": "uses_agent",
+            "description": "表示氣化過程使用特定的氣化劑。",
+            "domain": ["Gasification_Process"],
+            "range": ["Gasification_Agent"]
+        },
+        {
+            "name": "requires_time",
+            "description": "表示氣化或熱解過程需要特定的停留時間。",
+            "domain": ["Gasification_Process", "Pyrolysis_Process"],
+            "range": ["Residence_Time"]
+        },
+        {
+            "name": "requires_preparation",
+            "description": "表示生質材料需要特定的預處理。",
+            "domain": ["Biomass_Feedstock", "Energy_Crop", "Agricultural_Residue", "Wood_Biomass", "Algae_Biomass"],
+            "range": ["Feedstock_Preparation"]
+        },
+        {
+            "name": "cleans",
+            "description": "表示氣體淨化系統處理特定氣體產物。",
+            "domain": ["Gas_Cleaning_System"],
+            "range": ["Syngas"]
+        },
+        {
+            "name": "contains",
+            "description": "表示生質能源廠包含特定的反應器或設備。",
+            "domain": ["Biomass_Plant"],
+            "range": ["Gasification_Reactor", "Pyrolysis_Reactor", "Gas_Cleaning_System"]
+        },
+        {
+            "name": "used_for",
+            "description": "表示氣化或熱解產物用於特定應用。",
+            "domain": ["Syngas", "Bio_Oil", "Biochar"],
+            "range": ["Product_Application"]
+        },
+        {
+            "name": "has_parameter",
+            "description": "表示氣化或熱解過程具有特定的製程參數。",
+            "domain": ["Gasification_Process", "Pyrolysis_Process"],
+            "range": ["Process_Parameter"]
+        },
+        {
+            "name": "affects_yield",
+            "description": "表示製程參數、溫度或停留時間影響產物產率。",
+            "domain": ["Process_Parameter", "Gasification_Temperature", "Pyrolysis_Temperature", "Residence_Time"],
+            "range": ["Energy_Efficiency_Metric"]
+        },
+        {
+            "name": "converts_to_energy",
+            "description": "表示合成氣或生物油轉換為能源。",
+            "domain": ["Syngas", "Bio_Oil"],
+            "range": ["Energy_Output"]
+        },
+        {
+            "name": "sequesters_carbon",
+            "description": "表示生物炭具有碳封存功能。",
+            "domain": ["Biochar"],
+            "range": ["Carbon_Sequestration", "Environmental_Impact"]
+        },
+        {
+            "name": "located_at",
+            "description": "表示生質能源廠位於特定地點。",
+            "domain": ["Biomass_Plant"],
+            "range": ["Location"]
+        },
+        {
+            "name": "operated_by",
+            "description": "表示生質能源廠由特定組織運營。",
+            "domain": ["Biomass_Plant"],
+            "range": ["Organization"]
+        }
+    ]
+}
+

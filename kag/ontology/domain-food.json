@@ -1,0 +1,174 @@
+{
+    "ontology_name": "Food_Domain_Ontology",
+    "version": "1.0",
+    "inherits_from": "5W1H_Base_Ontology_OWL",
+    "description": "食品領域本體論，定義食品生產、加工、流通、消費等相關的核心概念。適用於食品產業、食品安全、食品營養、食品加工、餐飲管理等場景。",
+    "last_modified": "2026-01-04",
+    "author": "Daniel Chung",
+
+    "entity_classes": [
+        {
+            "name": "Food_Product",
+            "base_class": "ProductOrService",
+            "description": "食品產品，包括原材料、半成品、成品等各種形式的食品。"
+        },
+        {
+            "name": "Food_Ingredient",
+            "base_class": "Material",
+            "description": "食品原料或配料，如麵粉、糖、鹽、調味料、添加劑等。"
+        },
+        {
+            "name": "Food_Processing_Facility",
+            "base_class": "Location",
+            "description": "食品加工設施，如食品工廠、中央廚房、冷鏈倉儲等。"
+        },
+        {
+            "name": "Food_Processing_Process",
+            "base_class": "Process",
+            "description": "食品加工過程，如清洗、切割、烹飪、包裝、滅菌等。"
+        },
+        {
+            "name": "Food_Safety_Standard",
+            "base_class": "Document",
+            "description": "食品安全標準、法規或規範文件。"
+        },
+        {
+            "name": "Nutrition_Information",
+            "base_class": "Concept",
+            "description": "營養信息，如熱量、蛋白質、脂肪、碳水化合物、維生素等營養成分。"
+        },
+        {
+            "name": "Food_Category",
+            "base_class": "Concept",
+            "description": "食品類別，如主食、副食、飲料、點心、調味品等。"
+        },
+        {
+            "name": "Food_Packaging",
+            "base_class": "Material",
+            "description": "食品包裝材料，如塑膠袋、紙盒、鋁箔、真空包裝等。"
+        },
+        {
+            "name": "Storage_Condition",
+            "base_class": "Concept",
+            "description": "儲存條件，如溫度、濕度、光照、通風等儲存要求。"
+        },
+        {
+            "name": "Shelf_Life",
+            "base_class": "Duration",
+            "description": "保存期限或保質期，食品的可用時間期限。"
+        },
+        {
+            "name": "Food_Quality_Metric",
+            "base_class": "Concept",
+            "description": "食品品質指標，如新鮮度、口感、外觀、風味等評估標準。"
+        },
+        {
+            "name": "Food_Supply_Chain",
+            "base_class": "Process",
+            "description": "食品供應鏈，從原料採購到最終消費的完整流程。"
+        },
+        {
+            "name": "Distribution_Channel",
+            "base_class": "Location",
+            "description": "流通渠道，如超市、便利商店、餐廳、電商平台等銷售場所。"
+        },
+        {
+            "name": "Food_Regulation",
+            "base_class": "Document",
+            "description": "食品法規，政府制定的食品管理相關法律法規。"
+        },
+        {
+            "name": "Food_Allergen",
+            "base_class": "Concept",
+            "description": "食品過敏原，如花生、牛奶、雞蛋、海鮮等可能引起過敏的成分。"
+        }
+    ],
+
+    "object_properties": [
+        {
+            "name": "contains_ingredient",
+            "description": "表示食品產品包含特定原料或配料。",
+            "domain": ["Food_Product"],
+            "range": ["Food_Ingredient"]
+        },
+        {
+            "name": "processed_at",
+            "description": "表示食品在特定加工設施中處理。",
+            "domain": ["Food_Product"],
+            "range": ["Food_Processing_Facility"]
+        },
+        {
+            "name": "undergoes_process",
+            "description": "表示食品產品經過特定的加工過程。",
+            "domain": ["Food_Product"],
+            "range": ["Food_Processing_Process"]
+        },
+        {
+            "name": "complies_with",
+            "description": "表示食品產品或加工過程符合特定的食品安全標準。",
+            "domain": ["Food_Product", "Food_Processing_Process"],
+            "range": ["Food_Safety_Standard"]
+        },
+        {
+            "name": "has_nutrition",
+            "description": "表示食品產品具有特定的營養信息。",
+            "domain": ["Food_Product"],
+            "range": ["Nutrition_Information"]
+        },
+        {
+            "name": "belongs_to_category",
+            "description": "表示食品產品屬於特定的食品類別。",
+            "domain": ["Food_Product"],
+            "range": ["Food_Category"]
+        },
+        {
+            "name": "packaged_in",
+            "description": "表示食品使用特定的包裝材料。",
+            "domain": ["Food_Product"],
+            "range": ["Food_Packaging"]
+        },
+        {
+            "name": "requires_storage",
+            "description": "表示食品需要特定的儲存條件。",
+            "domain": ["Food_Product"],
+            "range": ["Storage_Condition"]
+        },
+        {
+            "name": "has_shelf_life",
+            "description": "表示食品具有特定的保存期限。",
+            "domain": ["Food_Product"],
+            "range": ["Shelf_Life"]
+        },
+        {
+            "name": "has_quality",
+            "description": "表示食品產品具有特定的品質指標。",
+            "domain": ["Food_Product"],
+            "range": ["Food_Quality_Metric"]
+        },
+        {
+            "name": "distributed_via",
+            "description": "表示食品通過特定的流通渠道銷售。",
+            "domain": ["Food_Product"],
+            "range": ["Distribution_Channel"]
+        },
+        {
+            "name": "regulated_by",
+            "description": "表示食品產品或加工過程受特定法規規範。",
+            "domain": ["Food_Product", "Food_Processing_Facility"],
+            "range": ["Food_Regulation"]
+        },
+        {
+            "name": "contains_allergen",
+            "description": "表示食品產品含有特定的過敏原。",
+            "domain": ["Food_Product"],
+            "range": ["Food_Allergen"]
+        },
+        {
+            "name": "transported_through",
+            "description": "表示食品通過供應鏈流程運輸和分銷。",
+            "domain": ["Food_Product"],
+            "range": ["Food_Supply_Chain"]
+        }
+    ]
+}
+

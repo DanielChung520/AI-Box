@@ -1,0 +1,289 @@
+{
+    "ontology_name": "5W1H_Base_Ontology_OWL",
+    "version": "3.0",
+    "description": "知識圖譜基礎本體論，基於 OWL 標準定義的類別與物件屬性。遵循 5W1H 框架（Who, What, When, Where, Why, How）構建完整的知識表示體系。",
+    "last_modified": "2026-01-01",
+    "author": "Daniel Chung",
+    "entity_classes": [
+        {
+            "name": "Person",
+            "5w1h_role": "Who",
+            "description": "涉及事件的人員、員工或個人實體。"
+        },
+        {
+            "name": "Agent",
+            "5w1h_role": "Who",
+            "description": "非人類的參與者，如系統、機器人、自動化工具或智能代理。"
+        },
+        {
+            "name": "Event",
+            "5w1h_role": "What",
+            "description": "發生的核心事件、行動、活動或一次性發生的事情。"
+        },
+        {
+            "name": "Process",
+            "5w1h_role": "What",
+            "description": "持續進行的過程、工作流程或系統性活動，通常具有多個階段。"
+        },
+        {
+            "name": "Concept",
+            "5w1h_role": "What",
+            "description": "抽象的概念、主題、想法或非事件性的事物，如理論、原則、類別等。"
+        },
+        {
+            "name": "TimePoint",
+            "5w1h_role": "When",
+            "description": "具體的日期、時間點或時間戳記。"
+        },
+        {
+            "name": "Duration",
+            "5w1h_role": "When",
+            "description": "時間持續期間、時間段或時間間隔。"
+        },
+        {
+            "name": "TimeInterval",
+            "5w1h_role": "When",
+            "description": "有開始和結束的時間區間。"
+        },
+        {
+            "name": "Location",
+            "5w1h_role": "Where",
+            "description": "事件發生的地點、區域、位置或地理空間。"
+        },
+        {
+            "name": "Cause",
+            "5w1h_role": "Why",
+            "description": "導致事件發生或變化的原因、動機或觸發因素。"
+        },
+        {
+            "name": "Method",
+            "5w1h_role": "How",
+            "description": "執行某項任務的技術、手段、方法或工具。"
+        },
+        {
+            "name": "Document",
+            "5w1h_role": "N/A",
+            "description": "知識來源文件、文檔、記錄或資料來源。"
+        },
+        {
+            "name": "Organization",
+            "5w1h_role": "Who",
+            "description": "組織、機構、公司、部門或任何形式的組織實體。"
+        },
+        {
+            "name": "ProductOrService",
+            "5w1h_role": "What",
+            "description": "產品、服務、商品或任何可交付的成果。"
+        },
+        {
+            "name": "Asset",
+            "5w1h_role": "What",
+            "description": "資產、資源、財產或任何有價值的實體。"
+        },
+        {
+            "name": "Resource",
+            "5w1h_role": "What",
+            "description": "資源、材料、工具或任何可用的實體。"
+        },
+        {
+            "name": "Quantity",
+            "5w1h_role": "What",
+            "description": "數量、度量、數值或計量單位。"
+        },
+        {
+            "name": "Status",
+            "5w1h_role": "What",
+            "description": "狀態、條件、階段或當前情況。"
+        }
+    ],
+    "object_properties": [
+        {
+            "name": "has_participant",
+            "description": "事件或過程涉及的人員或代理人。",
+            "domain": ["Event", "Process"],
+            "range": ["Person", "Agent", "Organization"]
+        },
+        {
+            "name": "occurs_at_time",
+            "description": "事件發生的時間點。",
+            "domain": ["Event"],
+            "range": ["TimePoint"]
+        },
+        {
+            "name": "occurs_during",
+            "description": "事件或過程發生的持續時間或時間區間。",
+            "domain": ["Event", "Process"],
+            "range": ["Duration", "TimeInterval"]
+        },
+        {
+            "name": "starts_at",
+            "description": "事件或過程開始的時間點。",
+            "domain": ["Event", "Process"],
+            "range": ["TimePoint"]
+        },
+        {
+            "name": "ends_at",
+            "description": "事件或過程結束的時間點。",
+            "domain": ["Event", "Process"],
+            "range": ["TimePoint"]
+        },
+        {
+            "name": "happens_before",
+            "description": "時間順序關係：前一個事件發生在後一個事件之前。",
+            "domain": ["Event", "Process"],
+            "range": ["Event", "Process"]
+        },
+        {
+            "name": "happens_after",
+            "description": "時間順序關係：後一個事件發生在前一個事件之後。",
+            "domain": ["Event", "Process"],
+            "range": ["Event", "Process"]
+        },
+        {
+            "name": "has_location",
+            "description": "事件、實體或過程的地理位置。",
+            "domain": ["Event", "Person", "Organization", "Process", "Asset"],
+            "range": ["Location"]
+        },
+        {
+            "name": "located_in",
+            "description": "實體位於某個地點或區域內。",
+            "domain": ["Person", "Organization", "Asset", "Event"],
+            "range": ["Location"]
+        },
+        {
+            "name": "near",
+            "description": "實體接近或鄰近某個地點。",
+            "domain": ["Location", "Person", "Organization", "Asset"],
+            "range": ["Location"]
+        },
+        {
+            "name": "contains",
+            "description": "地點或容器包含其他實體。",
+            "domain": ["Location", "Organization"],
+            "range": ["Location", "Person", "Organization", "Asset", "Event"]
+        },
+        {
+            "name": "is_caused_by",
+            "description": "表示事件發生的主要原因、概念或觸發因素。",
+            "domain": ["Event"],
+            "range": ["Cause", "Concept", "Event"]
+        },
+        {
+            "name": "causes",
+            "description": "事件或原因導致另一個事件或結果。",
+            "domain": ["Event", "Cause"],
+            "range": ["Event", "Concept"]
+        },
+        {
+            "name": "results_in",
+            "description": "事件或過程產生的結果或後果。",
+            "domain": ["Event", "Process"],
+            "range": ["Event", "Concept", "ProductOrService"]
+        },
+        {
+            "name": "uses_method",
+            "description": "事件、過程或參與者採用的方法、技術或手段。",
+            "domain": ["Event", "Agent", "Process", "Person"],
+            "range": ["Method"]
+        },
+        {
+            "name": "describes",
+            "description": "文檔內容是關於哪個事件、概念或實體。",
+            "domain": ["Document"],
+            "range": ["Event", "Concept", "Person", "Organization", "Process"]
+        },
+        {
+            "name": "mentions",
+            "description": "文檔中提及或提到某個實體。",
+            "domain": ["Document"],
+            "range": ["Person", "Organization", "Event", "Concept", "Location", "ProductOrService"]
+        },
+        {
+            "name": "references",
+            "description": "文檔或實體引用、參考或指向另一個實體。",
+            "domain": ["Document", "Concept"],
+            "range": ["Document", "Concept", "Event", "Person", "Organization"]
+        },
+        {
+            "name": "created_by",
+            "description": "實體由某個人、組織或代理創建。",
+            "domain": ["Document", "ProductOrService", "Concept"],
+            "range": ["Person", "Organization", "Agent"]
+        },
+        {
+            "name": "owns",
+            "description": "個人或組織擁有某個資產、資源或實體。",
+            "domain": ["Person", "Organization"],
+            "range": ["Asset", "Resource", "ProductOrService", "Document"]
+        },
+        {
+            "name": "belongs_to",
+            "description": "實體屬於或隸屬於某個組織、個人或群體。",
+            "domain": ["Person", "Asset", "Resource", "Document"],
+            "range": ["Organization", "Person"]
+        },
+        {
+            "name": "is_part_of",
+            "description": "實體是另一個實體的一部分或組成部分。",
+            "domain": ["Organization", "Concept", "Asset", "Resource"],
+            "range": ["Organization", "Concept", "ProductOrService"]
+        },
+        {
+            "name": "has_part",
+            "description": "實體包含或擁有某個部分或組成部分。",
+            "domain": ["Organization", "Concept", "ProductOrService"],
+            "range": ["Organization", "Concept", "Asset", "Resource"]
+        },
+        {
+            "name": "related_to",
+            "description": "兩個實體之間的一般關聯關係。",
+            "domain": ["Concept", "Event", "Person", "Organization"],
+            "range": ["Concept", "Event", "Person", "Organization", "ProductOrService"]
+        },
+        {
+            "name": "uses",
+            "description": "實體使用某個資源、工具或方法。",
+            "domain": ["Person", "Agent", "Process", "Event"],
+            "range": ["Resource", "Method", "Asset", "ProductOrService"]
+        },
+        {
+            "name": "produces",
+            "description": "實體、過程或事件產生某個產品、服務或結果。",
+            "domain": ["Process", "Event", "Person", "Agent"],
+            "range": ["ProductOrService", "Concept", "Resource"]
+        },
+        {
+            "name": "requires",
+            "description": "實體、過程或事件需要某個資源、條件或前提。",
+            "domain": ["Process", "Event", "ProductOrService"],
+            "range": ["Resource", "Concept", "Method", "Asset"]
+        },
+        {
+            "name": "has_status",
+            "description": "實體具有某個狀態或條件。",
+            "domain": ["Event", "Process", "ProductOrService", "Asset"],
+            "range": ["Status"]
+        },
+        {
+            "name": "has_quantity",
+            "description": "實體具有某個數量或度量值。",
+            "domain": ["Resource", "ProductOrService", "Asset"],
+            "range": ["Quantity"]
+        },
+        {
+            "name": "involved_in",
+            "description": "實體參與某個事件、過程或活動。",
+            "domain": ["Person", "Organization", "Agent"],
+            "range": ["Event", "Process"]
+        },
+        {
+            "name": "manages",
+            "description": "個人或組織管理某個實體、過程或資源。",
+            "domain": ["Person", "Organization"],
+            "range": ["Process", "Event", "Asset", "Resource", "Person", "Organization"]
+        }
+    ],
+    "triple_format_schema_guidance": "模型輸出必須是符合此 OWL 約束的三元組 JSON 陣列。每個三元組必須嚴格遵守 Domain-Range 約束，確保關係類型與實體類型的組合是有效的。"
+}
+

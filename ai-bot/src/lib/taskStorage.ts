@@ -28,7 +28,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
     const taskList = getTaskList();
     if (!taskList.includes(task.id)) {
       taskList.push(task.id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(taskList));
+      saveTaskList(taskList);
     }
 
     // 同步到後台（如果啟用且用戶已登錄）
@@ -179,7 +179,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
 /**
  * 獲取任務數據
  */
-export function getTask(taskId: number): Task | null {
+export function getTask(taskId: string | number): Task | null {
   try {
     const taskKey = `${STORAGE_KEY_PREFIX}${taskId}`;
     const taskData = localStorage.getItem(taskKey);
@@ -195,16 +195,27 @@ export function getTask(taskId: number): Task | null {
 /**
  * 獲取所有任務 ID 列表
  */
-export function getTaskList(): number[] {
+export function getTaskList(): (string | number)[] {
   try {
     const taskListData = localStorage.getItem(STORAGE_KEY);
     if (taskListData) {
-      return JSON.parse(taskListData) as number[];
+      return JSON.parse(taskListData) as (string | number)[];
     }
   } catch (error) {
     console.error('Failed to get task list:', error);
   }
   return [];
+}
+
+/**
+ * 保存任務 ID 列表
+ */
+export function saveTaskList(taskList: (string | number)[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(taskList));
+  } catch (error) {
+    console.error('Failed to save task list:', error);
+  }
 }
 
 /**
@@ -227,15 +238,15 @@ export function getAllTasks(): Task[] {
 /**
  * 刪除任務數據
  */
-export function deleteTask(taskId: number): void {
+export function deleteTask(taskId: string | number): void {
   try {
     const taskKey = `${STORAGE_KEY_PREFIX}${taskId}`;
     localStorage.removeItem(taskKey);
 
     // 從任務列表中移除
     const taskList = getTaskList();
-    const updatedList = taskList.filter(id => id !== taskId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+    const updatedList = taskList.filter(id => String(id) !== String(taskId));
+    saveTaskList(updatedList);
   } catch (error) {
     console.error('Failed to delete task:', error);
   }
@@ -251,7 +262,7 @@ export function updateTask(task: Task): void {
 /**
  * 檢查任務是否存在
  */
-export function taskExists(taskId: number): boolean {
+export function taskExists(taskId: string | number): boolean {
   return getTask(taskId) !== null;
 }
 
@@ -267,21 +278,49 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
   }
 
   try {
-    // 修改時間：2025-01-27 - 從後台獲取所有任務（包括歸檔的），確保同步最新狀態
-    const response = await listUserTasks(true); // include_archived=true
-    if (!response.success || !response.data) {
-      console.error('[TaskStorage] Failed to fetch tasks from backend:', response.message);
-      return { synced: 0, errors: 1 };
+    // 修改時間：2026-01-27 - 分頁獲取所有任務（包括歸檔的），確保同步所有任務
+    let allTasks: any[] = [];
+    let offset = 0;
+    // 修改時間：2026-01-06 - 減少 limit 以提升性能，避免超時
+    const limit = 500; // 每次獲取最多 500 個任務（減少以提升性能）
+    let hasMore = true;
+
+    // 循環獲取所有任務，直到沒有更多任務
+    while (hasMore) {
+      const response = await listUserTasks(true, limit, offset); // include_archived=true, limit, offset
+      if (!response.success || !response.data) {
+        console.error('[TaskStorage] Failed to fetch tasks from backend:', response.message);
+        break;
+      }
+
+      const tasks = response.data.tasks || [];
+      allTasks = allTasks.concat(tasks);
+
+      // 如果返回的任務數量小於 limit，說明已經獲取完所有任務
+      if (tasks.length < limit) {
+        hasMore = false;
+      } else {
+        offset += limit;
+      }
+    }
+
+    console.log(`[TaskStorage] Fetched ${allTasks.length} tasks from backend (in ${Math.ceil(allTasks.length / limit)} pages)`);
+    if (allTasks.length > 0) {
+      console.log('[TaskStorage] First 5 tasks:', allTasks.slice(0, 5).map(t => ({ id: t.task_id, title: t.title, status: t.task_status })));
     }
 
     let synced = 0;
     let errors = 0;
+    const currentTaskList = getTaskList();
+    const updatedTaskList = [...currentTaskList];
 
     // 將後台任務轉換為前端格式並保存到 localStorage
-    for (const backendTask of response.data.tasks) {
+    for (const backendTask of allTasks) {
       try {
+        const taskId = backendTask.task_id;
+        
         // 修改時間：2025-12-09 - 從 localStorage 讀取現有任務，保留本地的 label_color
-        const existingTask = getTask(Number(backendTask.task_id));
+        const existingTask = getTask(taskId);
 
         // 修改時間：2025-01-27 - 優先使用後端的 task_status，確保同步最新狀態
         // 強制使用後端的 task_status（如果後端有設置），否則使用本地的，最後默認為 activate
@@ -289,13 +328,8 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
           ? backendTask.task_status
           : (existingTask?.task_status || 'activate');
 
-        // 調試日誌：記錄同步狀態
-        if (existingTask && existingTask.task_status !== finalTaskStatus) {
-          console.log(`[TaskStorage] Task ${backendTask.task_id} status changed: ${existingTask.task_status} -> ${finalTaskStatus}`);
-        }
-
         const frontendTask: Task = {
-          id: Number(backendTask.task_id),
+          id: taskId, // 修改時間：2026-01-06 - 支持字符串 ID，不再強制轉換為數字
           title: backendTask.title,
           status: backendTask.status as 'pending' | 'in-progress' | 'completed',
           task_status: finalTaskStatus,
@@ -312,13 +346,10 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
         // 保存到 localStorage（不觸發後台同步，避免循環）
         const taskKey = `${STORAGE_KEY_PREFIX}${frontendTask.id}`;
         localStorage.setItem(taskKey, JSON.stringify(frontendTask));
-        console.log(`[TaskStorage] Saved task ${frontendTask.id} to localStorage with task_status: ${frontendTask.task_status}`);
 
         // 更新任務列表
-        const taskList = getTaskList();
-        if (!taskList.includes(frontendTask.id)) {
-          taskList.push(frontendTask.id);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(taskList));
+        if (!updatedTaskList.includes(frontendTask.id)) {
+          updatedTaskList.push(frontendTask.id);
         }
 
         synced++;
@@ -326,6 +357,11 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
         console.error('[TaskStorage] Failed to sync task:', backendTask.task_id, error);
         errors++;
       }
+    }
+
+    // 批量更新任務列表，提高效能
+    if (synced > 0) {
+      saveTaskList(updatedTaskList);
     }
 
     console.log(`[TaskStorage] Synced ${synced} tasks from backend, ${errors} errors`);
@@ -480,6 +516,82 @@ export function removeTaskFromFavorites(taskId: number): void {
     saveFavorites(filtered);
   } catch (error) {
     console.error('[TaskStorage] Failed to remove task from favorites:', error);
+  }
+}
+
+/**
+ * 從收藏夾移除收藏項（通用函數，支持任務、助理、代理）
+ * 修改時間：2026-01-06 - 添加通用移除收藏功能
+ */
+export function removeFavorite(favoriteId: string, itemId: string | number, type: 'task' | 'assistant' | 'agent'): void {
+  try {
+    console.log('[TaskStorage] Removing favorite:', { favoriteId, itemId, type });
+    
+    if (type === 'task') {
+      // 任務收藏存儲在 'ai-box-favorites' 中
+      const favorites = getFavorites();
+      const filtered = favorites.filter(
+        fav => {
+          const matchById = fav.id === favoriteId;
+          const matchByTypeAndItemId = fav.type === type && String(fav.itemId) === String(itemId);
+          const shouldKeep = !(matchById || matchByTypeAndItemId);
+          
+          if (!shouldKeep) {
+            console.log('[TaskStorage] Removing task favorite:', { id: fav.id, type: fav.type, itemId: fav.itemId });
+          }
+          
+          return shouldKeep;
+        }
+      );
+      
+      console.log('[TaskStorage] Task favorites after removal:', { before: favorites.length, after: filtered.length });
+      saveFavorites(filtered);
+    } else if (type === 'assistant') {
+      // 助理收藏存儲在 'favoriteAssistants' 中
+      const saved = localStorage.getItem('favoriteAssistants');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          const favoriteMap = new Map(Object.entries(data));
+          favoriteMap.delete(String(itemId));
+          
+          const updatedData = Object.fromEntries(favoriteMap);
+          localStorage.setItem('favoriteAssistants', JSON.stringify(updatedData));
+          console.log('[TaskStorage] Removed assistant favorite:', { itemId, before: data, after: updatedData });
+          
+          // 觸發事件通知 Home.tsx 更新
+          window.dispatchEvent(new CustomEvent('favoriteAssistantsUpdated', {
+            detail: { type: 'favoriteAssistants' }
+          }));
+        } catch (error) {
+          console.error('[TaskStorage] Failed to remove assistant favorite:', error);
+        }
+      }
+    } else if (type === 'agent') {
+      // 代理收藏存儲在 'favoriteAgents' 中
+      const saved = localStorage.getItem('favoriteAgents');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          const favoriteMap = new Map(Object.entries(data));
+          favoriteMap.delete(String(itemId));
+          
+          const updatedData = Object.fromEntries(favoriteMap);
+          localStorage.setItem('favoriteAgents', JSON.stringify(updatedData));
+          console.log('[TaskStorage] Removed agent favorite:', { itemId, before: data, after: updatedData });
+          
+          // 觸發事件通知 Home.tsx 更新
+          window.dispatchEvent(new CustomEvent('favoriteAgentsUpdated', {
+            detail: { type: 'favoriteAgents' }
+          }));
+        } catch (error) {
+          console.error('[TaskStorage] Failed to remove agent favorite:', error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[TaskStorage] Failed to remove favorite:', error);
+    throw error;
   }
 }
 

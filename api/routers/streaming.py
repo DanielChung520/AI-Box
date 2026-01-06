@@ -22,6 +22,49 @@ from system.security.models import User
 
 logger = structlog.get_logger(__name__)
 
+# 向後兼容：如果 ConfigStoreService 不可用，使用舊的配置方式
+try:
+    from services.api.services.config_store_service import ConfigStoreService
+    _streaming_config_service: Optional[ConfigStoreService] = None
+
+    def get_streaming_config_service() -> ConfigStoreService:
+        """獲取配置存儲服務實例（單例模式）"""
+        global _streaming_config_service
+        if _streaming_config_service is None:
+            _streaming_config_service = ConfigStoreService()
+        return _streaming_config_service
+
+    STREAMING_CONFIG_STORE_AVAILABLE = True
+except ImportError:
+    STREAMING_CONFIG_STORE_AVAILABLE = False
+    logger.warning("ConfigStoreService 不可用，流式輸出將使用默認 chunk_size=50")
+
+
+def get_streaming_chunk_size() -> int:
+    """
+    獲取流式輸出分塊大小（從 ArangoDB system_configs 讀取）
+
+    Returns:
+        流式輸出分塊大小（字符數），默認 50
+    """
+    # 優先從 ArangoDB system_configs 讀取
+    if STREAMING_CONFIG_STORE_AVAILABLE:
+        try:
+            config_service = get_streaming_config_service()
+            config = config_service.get_config("streaming", tenant_id=None)
+            if config and config.config_data:
+                chunk_size = config.config_data.get("chunk_size", 50)
+                return int(chunk_size)
+        except Exception as e:
+            logger.warning(
+                "failed_to_load_streaming_config_from_arangodb",
+                error=str(e),
+                message="從 ArangoDB 讀取流式輸出配置失敗，使用默認值 50"
+            )
+    
+    # 默認值
+    return 50
+
 router = APIRouter(prefix="/streaming", tags=["Streaming"])
 
 
@@ -101,8 +144,8 @@ async def _generate_streaming_patches(
             if patches_data:
                 # 將 patches 轉換為 JSON 字符串並流式發送
                 patches_json = json.dumps({"patches": patches_data})
-                # 分塊發送
-                chunk_size = 50
+                # 分塊發送（從配置讀取 chunk_size）
+                chunk_size = get_streaming_chunk_size()
                 for i in range(0, len(patches_json), chunk_size):
                     chunk = patches_json[i : i + chunk_size]
                     yield f"data: {json.dumps({'type': 'patch_chunk', 'data': {'chunk': chunk}})}\n\n"

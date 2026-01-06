@@ -55,6 +55,7 @@ from api.routers import (
     data_quality,
     docs_editing,
     execution,
+    file_audit,
     file_lookup,
     file_management,
     file_metadata,
@@ -401,6 +402,7 @@ else:
 app.include_router(file_management.router, prefix=API_PREFIX, tags=["File Management"])
 app.include_router(user_tasks.router, prefix=API_PREFIX, tags=["User Tasks"])
 app.include_router(file_upload.router, prefix=API_PREFIX, tags=["File Upload"])
+app.include_router(file_audit.router, prefix=API_PREFIX, tags=["File Audit"])
 app.include_router(rq_monitor.router, prefix=API_PREFIX, tags=["RQ Monitor"])
 app.include_router(chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Processing"])
 app.include_router(file_metadata.router, prefix=API_PREFIX, tags=["File Metadata"])
@@ -504,6 +506,19 @@ async def startup_event():
         logger.info("Agent health monitor started")
     except Exception as e:
         logger.warning(f"Failed to start agent health monitor: {e}")
+
+    # 初始化系統配置（從默認配置加載到 ArangoDB）
+    try:
+        from services.api.services.config_initializer import initialize_system_configs
+
+        init_results = initialize_system_configs(force=False)
+        initialized_count = sum(1 for success in init_results.values() if success)
+        skipped_count = len(init_results) - initialized_count
+        logger.info(
+            f"系統配置初始化完成: {initialized_count} 個已初始化，{skipped_count} 個已存在（跳過）"
+        )
+    except Exception as e:
+        logger.warning(f"系統配置初始化失敗（不影響啟動）: {e}")
 
     # 初始化時間服務（單例模式，無需後台任務）
     try:

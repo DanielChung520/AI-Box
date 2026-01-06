@@ -1,7 +1,7 @@
 # 代碼功能說明: 數據分類與標記模型定義（WBS-4.2.1: 數據分類與標記）
 # 創建日期: 2025-12-18
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-18
+# 最後修改日期: 2026-01-01
 
 """數據分類與標記模型定義
 
@@ -59,10 +59,10 @@ def validate_classification(classification: Optional[str]) -> Optional[str]:
     """驗證分類級別是否有效
 
     Args:
-        classification: 分類級別字符串
+        classification: 分類級別字符串（大小寫不敏感，會自動轉換為小寫）
 
     Returns:
-        有效的分類級別字符串，如果無效則返回 None
+        有效的分類級別字符串（小寫），如果無效則返回 None
 
     Raises:
         ValueError: 如果分類級別無效且不為 None
@@ -70,38 +70,44 @@ def validate_classification(classification: Optional[str]) -> Optional[str]:
     if classification is None:
         return None
 
+    # 轉換為小寫以便不區分大小寫的驗證
+    classification_lower = classification.lower() if isinstance(classification, str) else classification
+
     valid_values = DataClassification.get_all_values()
-    if classification not in valid_values:
+    if classification_lower not in valid_values:
         raise ValueError(
             f"Invalid classification: {classification}. "
             f"Must be one of: {', '.join(valid_values)}"
         )
 
-    return classification
+    # 返回標準化的小寫值
+    return classification_lower
 
 
 def validate_sensitivity_labels(labels: Optional[List[str]]) -> Optional[List[str]]:
     """驗證敏感性標籤列表是否有效
 
+    修改時間：2026-01-06 - 允許自定義標籤（如 'low', 'high'），過濾掉無效標籤而不是拋出異常
+
     Args:
         labels: 敏感性標籤列表
 
     Returns:
-        有效的敏感性標籤列表，如果無效則返回 None
+        有效的敏感性標籤列表（包含預定義標籤和自定義標籤），如果為空則返回 None
 
-    Raises:
-        ValueError: 如果標籤列表包含無效值
+    Note:
+        為了向後兼容，允許自定義標籤（如 'low', 'high'），只驗證預定義標籤的格式
+        如果標籤不在預定義列表中，仍然保留（允許自定義標籤）
     """
     if labels is None or len(labels) == 0:
         return None
 
-    valid_values = SensitivityLabel.get_all_values()
-    invalid_labels = [label for label in labels if label not in valid_values]
-
-    if invalid_labels:
-        raise ValueError(
-            f"Invalid sensitivity labels: {invalid_labels}. "
-            f"Must be one of: {', '.join(valid_values)}"
-        )
-
-    return labels
+    # 修改時間：2026-01-06 - 允許自定義標籤，不進行嚴格驗證
+    # 只確保標籤是字符串列表，允許自定義值（如 'low', 'high'）
+    valid_labels = [str(label) for label in labels if label is not None]
+    
+    # 如果所有標籤都無效，返回 None
+    if len(valid_labels) == 0:
+        return None
+    
+    return valid_labels

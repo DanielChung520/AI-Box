@@ -1,0 +1,180 @@
+{
+  "file_id": "149aee1a-89da-4b07-a83c-634fb29246e2",
+  "test_time": "2026-01-04 15:56:43",
+  "model_name": "mistral-nemo:12b",
+  "time_records": [
+    {
+      "event": "開始登錄",
+      "timestamp": 1767513403.2488132,
+      "datetime": "2026-01-04 15:56:43.248",
+      "details": {}
+    },
+    {
+      "event": "登錄成功",
+      "timestamp": 1767513411.261976,
+      "datetime": "2026-01-04 15:56:51.261",
+      "details": {
+        "耗時": "8.013秒"
+      }
+    },
+    {
+      "event": "開始驗證模型配置",
+      "timestamp": 1767513411.262114,
+      "datetime": "2026-01-04 15:56:51.262",
+      "details": {
+        "預期模型": "mistral-nemo:12b"
+      }
+    },
+    {
+      "event": "配置驗證成功",
+      "timestamp": 1767513411.38289,
+      "datetime": "2026-01-04 15:56:51.382",
+      "details": {
+        "ArangoDB 配置": {
+          "ner_model_type": "ollama",
+          "ner_model": "mistral-nemo:12b",
+          "re_model_type": "ollama",
+          "re_model": "mistral-nemo:12b",
+          "rt_model_type": "ollama",
+          "rt_model": "mistral-nemo:12b"
+        },
+        "驗證結果": "一致"
+      }
+    },
+    {
+      "event": "開始觸發圖譜重新生成",
+      "timestamp": 1767513411.3829389,
+      "datetime": "2026-01-04 15:56:51.382",
+      "details": {
+        "File ID": "149aee1a-89da-4b07-a83c-634fb29246e2",
+        "模型": "mistral-nemo:12b"
+      }
+    },
+    {
+      "event": "圖譜重新生成請求成功",
+      "timestamp": 1767513420.1150038,
+      "datetime": "2026-01-04 15:57:00.115",
+      "details": {
+        "耗時": "8.732秒"
+      }
+    },
+    {
+      "event": "開始監控處理進度",
+      "timestamp": 1767513420.1150799,
+      "datetime": "2026-01-04 15:57:00.115",
+      "details": {
+        "最大等待時間": "300秒"
+      }
+    },
+    {
+      "event": "處理狀態更新",
+      "timestamp": 1767513420.12335,
+      "datetime": "2026-01-04 15:57:00.123",
+      "details": {
+        "狀態": "processing",
+        "進度": "0%",
+        "已用時": "0.0秒"
+      }
+    },
+    {
+      "event": "處理狀態更新",
+      "timestamp": 1767513425.139833,
+      "datetime": "2026-01-04 15:57:05.139",
+      "details": {
+        "狀態": "completed",
+        "進度": "100%",
+        "已用時": "5.0秒"
+      }
+    },
+    {
+      "event": "處理完成",
+      "timestamp": 1767513425.139919,
+      "datetime": "2026-01-04 15:57:05.139",
+      "details": {
+        "總耗時": "5.02秒",
+        "實體數 (NER)": 0,
+        "關係數 (RE)": 0,
+        "三元組數 (RT)": 0
+      }
+    },
+    {
+      "event": "獲取圖譜統計成功",
+      "timestamp": 1767513425.152852,
+      "datetime": "2026-01-04 15:57:05.152",
+      "details": {
+        "file_id": "149aee1a-89da-4b07-a83c-634fb29246e2",
+        "triples_count": 0,
+        "entities_count": 0,
+        "relations_count": 0,
+        "mode": "all_chunks"
+      }
+    }
+  ],
+  "config_info": {
+    "expected_model": "mistral-nemo:12b",
+    "verified": true,
+    "arango_config": {
+      "ner_model_type": "ollama",
+      "ner_model": "mistral-nemo:12b",
+      "re_model_type": "ollama",
+      "re_model": "mistral-nemo:12b",
+      "rt_model_type": "ollama",
+      "rt_model": "mistral-nemo:12b"
+    },
+    "note": "✅ ArangoDB 配置與預期模型一致"
+  },
+  "kg_stats": {
+    "file_id": "149aee1a-89da-4b07-a83c-634fb29246e2",
+    "triples_count": 0,
+    "entities_count": 0,
+    "relations_count": 0,
+    "mode": "all_chunks"
+  },
+  "processing_status": {
+    "file_id": "149aee1a-89da-4b07-a83c-634fb29246e2",
+    "status": "completed",
+    "progress": 100,
+    "chunking": {
+      "status": "pending",
+      "progress": 0
+    },
+    "vectorization": {
+      "status": "pending",
+      "progress": 0
+    },
+    "storage": {
+      "status": "pending",
+      "progress": 0
+    },
+    "kg_extraction": {
+      "status": "completed",
+      "progress": 100,
+      "message": "知識圖譜構建完成",
+      "job_id": "a6e7b6d3-97c4-4618-9ce2-61ee08c13149",
+      "mode": "all_chunks",
+      "total_chunks": 4,
+      "completed_chunks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "ontology_loaded": true,
+      "failed_chunks": [],
+      "failed_permanent_chunks": [],
+      "remaining_chunks": [],
+      "last_completed_chunk": 4,
+      "triples_count": 0,
+      "entities_count": 0,
+      "relations_count": 0
+    },
+    "message": "圖譜提取處理完成"
+  },
+  "summary": {
+    "total_time": 5.024820804595947,
+    "entities_count": 0,
+    "relations_count": 0,
+    "triples_count": 0,
+    "status": "completed"
+  }
+}

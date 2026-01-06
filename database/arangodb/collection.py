@@ -196,7 +196,7 @@ class ArangoCollection:
             filters: 過濾條件字典
             skip: 跳過數量
             limit: 返回數量限制
-            sort: 排序字段列表
+            sort: 排序字段列表。支持 "-field" 格式表示降序，如 ["-created_at"] 表示按 created_at 降序
 
         Returns:
             文檔列表
@@ -204,9 +204,21 @@ class ArangoCollection:
         try:
             # 轉換 sort 參數類型：list[str] -> list[dict[str, Any]]
             # ArangoDB Python 客戶端期望的格式：{"sort_by": field, "sort_order": "asc"|"desc"}
+            # 支持 "-field" 格式表示降序排序
             sort_converted: list[dict[str, Any]] | None = None
             if sort:
-                sort_converted = [{"sort_by": s, "sort_order": "asc"} for s in sort]  # type: ignore[arg-type]
+                sort_converted = []
+                for s in sort:  # type: ignore[arg-type]
+                    if isinstance(s, str):
+                        if s.startswith("-"):
+                            # "-field" 格式表示降序
+                            sort_converted.append({"sort_by": s[1:], "sort_order": "DESC"})
+                        else:
+                            # "field" 格式表示升序
+                            sort_converted.append({"sort_by": s, "sort_order": "ASC"})
+                    else:
+                        # 如果已经是dict格式，直接使用
+                        sort_converted.append(s)
             result = self.collection.find(  # type: ignore[arg-type]
                 filters=filters or {}, skip=skip, limit=limit, sort=sort_converted
             )

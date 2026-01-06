@@ -1,12 +1,13 @@
 # 代碼功能說明: 文件上傳路由
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-29
+# 最後修改日期: 2026-01-04 23:36 (UTC+8)
 
 """文件上傳路由 - 提供文件上傳、驗證和存儲功能"""
 
 import json
 import os
+import time
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -22,7 +23,7 @@ from database.rq.queue import FILE_PROCESSING_QUEUE, get_task_queue
 from genai.api.services.kg_builder_service import KGBuilderService
 from services.api.models.audit_log import AuditAction
 from services.api.models.data_consent import ConsentType
-from services.api.models.file_metadata import FileMetadataCreate
+from services.api.models.file_metadata import FileMetadataCreate, FileMetadataUpdate
 from services.api.models.user_task import UserTaskCreate
 from services.api.services.embedding_service import get_embedding_service
 from services.api.services.file_metadata_service import FileMetadataService
@@ -34,6 +35,24 @@ from services.api.services.vector_store_service import get_vector_store_service
 from services.api.utils.file_validator import FileValidator, create_validator_from_config
 from storage.file_storage import FileStorage, create_storage_from_config
 from system.infra.config.config import get_config_section
+
+# 向後兼容：如果 ConfigStoreService 不可用，使用舊的配置方式
+try:
+    from services.api.services.config_store_service import ConfigStoreService
+
+    _file_config_service: Optional[ConfigStoreService] = None
+
+    def get_file_config_service() -> ConfigStoreService:
+        """獲取配置存儲服務實例（單例模式）"""
+        global _file_config_service
+        if _file_config_service is None:
+            _file_config_service = ConfigStoreService()
+        return _file_config_service
+
+    FILE_CONFIG_STORE_AVAILABLE = True
+except ImportError:
+    FILE_CONFIG_STORE_AVAILABLE = False
+    # logger 尚未定義，使用 print 或跳過日誌
 from system.security.audit_decorator import audit_log
 from system.security.consent_middleware import require_consent
 from system.security.dependencies import get_current_user
@@ -60,12 +79,57 @@ class BlankMarkdownCreateRequest(BaseModel):
     filename: str = Field(..., description="檔名（會自動補 .md）")
 
 
+def get_worker_job_timeout() -> int:
+    """獲取 RQ Worker 任務超時時間（秒），優先從 ArangoDB system_configs 讀取"""
+    # 優先從 ArangoDB system_configs 讀取
+    if FILE_CONFIG_STORE_AVAILABLE:
+        try:
+            config_service = get_file_config_service()
+            config = config_service.get_config("worker", tenant_id=None)
+            if config and config.config_data:
+                timeout = config.config_data.get("job_timeout", 3600)
+                logger.debug(f"使用 ArangoDB system_configs 中的 worker.job_timeout: {timeout}")
+                return int(timeout)
+        except Exception as e:
+            logger.warning(
+                "failed_to_load_worker_config_from_arangodb",
+                error=str(e),
+                message="從 ArangoDB 讀取 worker 配置失敗，使用默認值 3600 秒",
+            )
+
+    # 默認值：900 秒（15分鐘）- 測試階段快速發現問題；生產環境可調整為 3600 秒
+    return 900
+
+
 def get_validator() -> FileValidator:
-    """獲取文件驗證器實例（單例模式）"""
+    """獲取文件驗證器實例（單例模式，優先從 ArangoDB system_configs 讀取）"""
     global _validator
     if _validator is None:
-        config = get_config_section("file_upload", default={}) or {}
-        _validator = create_validator_from_config(config)
+        config_data: Dict[str, Any] = {}
+
+        # 優先從 ArangoDB system_configs 讀取
+        if FILE_CONFIG_STORE_AVAILABLE:
+            try:
+                config_service = get_file_config_service()
+                config = config_service.get_config("file_processing", tenant_id=None)
+                if config and config.config_data:
+                    config_data = config.config_data
+                    logger.debug("使用 ArangoDB system_configs 中的 file_processing 配置")
+            except Exception as e:
+                logger.warning(
+                    "failed_to_load_config_from_arangodb",
+                    scope="file_processing",
+                    error=str(e),
+                    message="從 ArangoDB 讀取配置失敗，回退到 config.json",
+                )
+
+        # 如果 ArangoDB 中沒有配置，回退到 config.json（向後兼容）
+        if not config_data:
+            config = get_config_section("file_upload", default={}) or {}
+            config_data = config
+            logger.debug("使用 config.json 中的 file_upload 配置（向後兼容）")
+
+        _validator = create_validator_from_config(config_data)
     return _validator
 
 
@@ -74,7 +138,17 @@ def get_storage() -> FileStorage:
     global _storage
     if _storage is None:
         config = get_config_section("file_upload", default={}) or {}
-        _storage = create_storage_from_config(config)
+
+        # 临时修复：如果配置读取失败（空字典），或者 storage_backend 未设置，强制使用本地存储
+        # 这样可以避免因为配置系统问题导致无法使用本地存储
+        if not config or not config.get("storage_backend"):
+            from storage.file_storage import LocalFileStorage
+
+            storage_path = config.get("storage_path", "./data/datasets/files")
+            print(f"⚠️  配置读取失败或未设置 storage_backend，临时使用本地存储: {storage_path}")
+            _storage = LocalFileStorage(storage_path=storage_path, enable_encryption=False)
+        else:
+            _storage = create_storage_from_config(config)
     return _storage
 
 
@@ -385,6 +459,107 @@ def _update_processing_status(
         )
 
 
+async def _generate_file_summary_for_metadata(
+    file_id: str,
+    file_name: str,
+    full_text: str,
+    user_id: str,
+) -> Optional[str]:
+    """
+    為文件生成摘要，用於後續 Ontology 選擇和知識圖譜提取
+
+    Args:
+        file_id: 文件 ID
+        file_name: 文件名
+        full_text: 完整文件文本
+        user_id: 用戶 ID
+
+    Returns:
+        文件摘要 JSON 字符串，格式：
+        {
+            "domain": "領域名稱",
+            "summary": "核心主題摘要",
+            "key_concepts": ["概念1", "概念2", ...],
+            "application_scenarios": ["場景1", "場景2", ...]
+        }
+        如果生成失敗，返回 None
+    """
+    try:
+        from llm.moe.moe_manager import LLMMoEManager
+
+        # 限制文本長度（避免超過 LLM context window）
+        # 使用較大的長度限制以獲得更準確的摘要
+        max_text_length = 50000  # 根據 LLM 能力調整
+        text_for_summary = full_text[:max_text_length]
+        if len(full_text) > max_text_length:
+            text_for_summary += f"\n\n[文檔被截斷，總長度: {len(full_text)} 字符]"
+
+        prompt = f"""請分析以下文件的領域和主題，生成簡潔的摘要和理解。
+
+文件名：{file_name}
+
+文件內容（前 {len(text_for_summary)} 字符）：
+{text_for_summary}
+
+請提供：
+1. 文件的主要領域（例如：食品產業、製造業、能源、企業管理、行政等）
+2. 文件的核心主題和內容（100字以內）
+3. 文件涉及的專業術語和關鍵概念（10-15個）
+4. 文件的應用場景（例如：生產報告、技術文檔、政策文件等）
+
+請以 JSON 格式返回：
+{{
+    "domain": "領域名稱",
+    "summary": "核心主題摘要",
+    "key_concepts": ["概念1", "概念2", ...],
+    "application_scenarios": ["場景1", "場景2", ...]
+}}"""
+
+        moe = LLMMoEManager()
+        result = await moe.generate(
+            prompt,
+            temperature=0.3,  # 降低隨機性，提高穩定性
+            max_tokens=800,
+            user_id=user_id,
+            file_id=file_id,
+            purpose="file_summary",
+        )
+
+        summary_text = result.get("text") or result.get("content", "")
+
+        # 嘗試解析 JSON
+        import re
+
+        try:
+            json_match = re.search(r"\{[\s\S]*\}", summary_text)
+            if json_match:
+                summary_text = json_match.group(0)
+            # 驗證 JSON 格式
+            json.loads(summary_text)
+            logger.info(
+                "文件摘要生成成功",
+                file_id=file_id,
+                summary_length=len(summary_text),
+            )
+            return summary_text
+        except json.JSONDecodeError:
+            logger.warning(
+                "文件摘要 JSON 解析失敗，使用原始文本",
+                file_id=file_id,
+                summary_preview=summary_text[:200],
+            )
+            return summary_text
+
+    except Exception as e:
+        logger.error(
+            "生成文件摘要失敗",
+            file_id=file_id,
+            error=str(e),
+            exc_info=True,
+        )
+        return None
+
+
 async def process_file_chunking_and_vectorization(
     file_id: str,
     file_path: str,
@@ -400,6 +575,26 @@ async def process_file_chunking_and_vectorization(
         file_type: 文件類型（MIME類型）
         user_id: 用戶ID
     """
+    # 時間記錄字典
+    timing_records: Dict[str, Any] = {
+        "total": {"start": time.time(), "end": None, "duration_seconds": None},
+        "pdf_parsing": {"start": None, "end": None, "duration_seconds": None},
+        "chunking": {
+            "start": None,
+            "end": None,
+            "duration_seconds": None,
+            "chunk_count": None,
+        },
+        "vectorization": {
+            "start": None,
+            "end": None,
+            "duration_seconds": None,
+            "vector_count": None,
+            "avg_per_vector_seconds": None,
+        },
+        "storage": {"start": None, "end": None, "duration_seconds": None},
+    }
+
     try:
         # 初始化狀態
         _update_processing_status(
@@ -419,6 +614,9 @@ async def process_file_chunking_and_vectorization(
             chunking={"status": "processing", "progress": 0, "message": "開始解析文件"},
             overall_progress=10,
         )
+
+        # 記錄 PDF 解析開始時間
+        timing_records["pdf_parsing"]["start"] = time.time()
 
         # 獲取解析器
         if file_type is None:
@@ -496,6 +694,68 @@ async def process_file_chunking_and_vectorization(
             overall_progress=25,
         )
 
+        # ========== 生成文件摘要（用於後續 Ontology 選擇） ==========
+        full_text = parse_result.get("text", "")
+        if full_text and len(full_text) > 500:  # 只對足夠長的文件生成摘要
+            try:
+                # 獲取文件名
+                metadata_service = get_metadata_service()
+                file_metadata_obj = metadata_service.get(file_id)
+                file_name = file_metadata_obj.filename if file_metadata_obj else "unknown"
+
+                # 為摘要生成添加超時保護（最多30秒）
+                import asyncio
+
+                try:
+                    file_summary = await asyncio.wait_for(
+                        _generate_file_summary_for_metadata(
+                            file_id=file_id,
+                            file_name=file_name,
+                            full_text=full_text,
+                            user_id=user_id,
+                        ),
+                        timeout=30.0,  # 30秒超時
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "文件摘要生成超時（30秒），跳過摘要生成",
+                        file_id=file_id,
+                    )
+                    file_summary = None
+
+                # 將摘要存儲到 custom_metadata
+                if file_summary:
+                    # 獲取現有的 custom_metadata（如果存在）
+                    existing_metadata = file_metadata_obj.custom_metadata if file_metadata_obj else {}
+                    existing_metadata = existing_metadata.copy() if existing_metadata else {}
+
+                    # 更新 custom_metadata
+                    existing_metadata.update(
+                        {
+                            "file_summary": file_summary,
+                            "summary_generated_at": datetime.utcnow().isoformat(),
+                        }
+                    )
+
+                    metadata_service.update(
+                        file_id,
+                        FileMetadataUpdate(
+                            custom_metadata=existing_metadata,
+                        ),
+                    )
+                    logger.info(
+                        "文件摘要已生成並保存",
+                        file_id=file_id,
+                        summary_length=len(file_summary),
+                    )
+            except Exception as e:
+                logger.warning(
+                    "生成文件摘要失敗，繼續處理",
+                    file_id=file_id,
+                    error=str(e),
+                )
+        # ========== 摘要生成結束 ==========
+
         # 獲取分塊處理器
         chunk_processor = get_chunk_processor()
 
@@ -543,115 +803,162 @@ async def process_file_chunking_and_vectorization(
             chunk_count=len(chunks),
         )
 
-        # ========== 階段2: 向量化 (50-90%) ==========
-        _update_processing_status(
-            file_id=file_id,
-            vectorization={
-                "status": "processing",
-                "progress": 0,
-                "message": "開始向量化",
-            },
-            overall_progress=50,
-        )
+        # ========== 階段2: 向量化（獨立錯誤處理）(50-90%) ==========
+        vectorization_success = False
+        stats = None
+        try:
+            # 記錄向量化開始時間
+            timing_records["vectorization"]["start"] = time.time()
 
-        embedding_service = get_embedding_service()
-
-        # 批量生成向量（帶進度回調）
-        chunk_texts = [chunk.get("text", "") for chunk in chunks]
-
-        # 定義進度回調函數
-        def update_vectorization_progress(processed: int, total: int) -> None:
-            """更新向量化進度"""
-            progress = int((processed / total) * 100) if total > 0 else 0
             _update_processing_status(
                 file_id=file_id,
                 vectorization={
                     "status": "processing",
-                    "progress": progress,
-                    "message": f"向量化進行中: {processed}/{total}",
+                    "progress": 0,
+                    "message": "開始向量化",
                 },
-                overall_progress=50 + int((processed / total) * 40),  # 50-90%
+                overall_progress=50,
             )
 
-        embeddings = await embedding_service.generate_embeddings_batch(
-            chunk_texts, progress_callback=update_vectorization_progress
-        )
+            embedding_service = get_embedding_service()
 
-        _update_processing_status(
-            file_id=file_id,
-            vectorization={
-                "status": "completed",
-                "progress": 100,
-                "message": "向量化完成",
-                "vector_count": len(embeddings),
-            },
-            overall_progress=90,
-        )
+            # 批量生成向量（帶進度回調）
+            chunk_texts = [chunk.get("text", "") for chunk in chunks]
 
-        logger.info(
-            "文件向量化完成",
-            file_id=file_id,
-            vector_count=len(embeddings),
-        )
+            # 定義進度回調函數
+            def update_vectorization_progress(processed: int, total: int) -> None:
+                """更新向量化進度"""
+                progress = int((processed / total) * 100) if total > 0 else 0
+                _update_processing_status(
+                    file_id=file_id,
+                    vectorization={
+                        "status": "processing",
+                        "progress": progress,
+                        "message": f"向量化進行中: {processed}/{total}",
+                    },
+                    overall_progress=50 + int((processed / total) * 40),  # 50-90%
+                )
 
-        # ========== 階段3: 存儲到 ChromaDB (90-100%) ==========
-        _update_processing_status(
-            file_id=file_id,
-            storage={"status": "processing", "progress": 0, "message": "開始存儲向量"},
-            overall_progress=90,
-        )
+            embeddings = await embedding_service.generate_embeddings_batch(
+                chunk_texts, progress_callback=update_vectorization_progress
+            )
 
-        vector_store_service = get_vector_store_service()
+            # 記錄向量化結束時間
+            timing_records["vectorization"]["end"] = time.time()
+            timing_records["vectorization"]["duration_seconds"] = (
+                timing_records["vectorization"]["end"] - timing_records["vectorization"]["start"]
+            )
+            timing_records["vectorization"]["vector_count"] = len(embeddings)
+            if len(embeddings) > 0:
+                timing_records["vectorization"]["avg_per_vector_seconds"] = timing_records[
+                    "vectorization"
+                ]["duration_seconds"] / len(embeddings)
 
-        # 為圖片文件添加圖片路徑到元數據
-        if is_image_file and chunks:
-            # 確保圖片路徑在元數據中
-            if "image_path" not in chunks[0]:
-                chunks[0]["image_path"] = file_path
+            _update_processing_status(
+                file_id=file_id,
+                vectorization={
+                    "status": "completed",
+                    "progress": 100,
+                    "message": "向量化完成",
+                    "vector_count": len(embeddings),
+                },
+                overall_progress=90,
+            )
 
-        # 從文件元數據獲取 task_id（如果存在）
-        metadata_service = get_metadata_service()
-        file_metadata = metadata_service.get(file_id)
-        task_id = file_metadata.task_id if file_metadata else None
+            logger.info(
+                "文件向量化完成",
+                file_id=file_id,
+                vector_count=len(embeddings),
+                timing=timing_records["vectorization"],
+            )
 
-        # 將 task_id 添加到每個 chunk 的元數據中
-        if task_id:
-            for chunk in chunks:
-                if "metadata" not in chunk:
-                    chunk["metadata"] = {}
-                chunk["metadata"]["task_id"] = task_id
+            # ========== 階段3: 存儲到 ChromaDB (90-100%) ==========
+            # 記錄存儲開始時間
+            timing_records["storage"]["start"] = time.time()
 
-        vector_store_service.store_vectors(
-            file_id=file_id,
-            chunks=chunks,
-            embeddings=embeddings,
-            user_id=user_id,
-        )
+            _update_processing_status(
+                file_id=file_id,
+                storage={"status": "processing", "progress": 0, "message": "開始存儲向量"},
+                overall_progress=90,
+            )
 
-        # 獲取存儲統計信息
-        stats = vector_store_service.get_collection_stats(file_id, user_id)
+            vector_store_service = get_vector_store_service()
 
-        _update_processing_status(
-            file_id=file_id,
-            storage={
-                "status": "completed",
-                "progress": 100,
-                "message": "向量存儲完成",
-                "collection_name": stats["collection_name"],
-                "vector_count": stats["vector_count"],
-            },
-            overall_progress=90,
-        )
+            # 為圖片文件添加圖片路徑到元數據
+            if is_image_file and chunks:
+                # 確保圖片路徑在元數據中
+                if "image_path" not in chunks[0]:
+                    chunks[0]["image_path"] = file_path
 
-        logger.info(
-            "向量存儲完成",
-            file_id=file_id,
-            chunk_count=len(chunks),
-            vector_count=len(embeddings),
-            collection_name=stats["collection_name"],
-        )
+            # 從文件元數據獲取 task_id（如果存在）
+            metadata_service = get_metadata_service()
+            file_metadata = metadata_service.get(file_id)
+            task_id = file_metadata.task_id if file_metadata else None
 
-        # ========== 階段4: 知識圖譜提取 (90-100%) ==========
+            # 將 task_id 添加到每個 chunk 的元數據中
+            if task_id:
+                for chunk in chunks:
+                    if "metadata" not in chunk:
+                        chunk["metadata"] = {}
+                    chunk["metadata"]["task_id"] = task_id
+
+            vector_store_service.store_vectors(
+                file_id=file_id,
+                chunks=chunks,
+                embeddings=embeddings,
+                user_id=user_id,
+            )
+
+            # 獲取存儲統計信息
+            stats = vector_store_service.get_collection_stats(file_id, user_id)
+
+            # 記錄存儲結束時間
+            timing_records["storage"]["end"] = time.time()
+            timing_records["storage"]["duration_seconds"] = (
+                timing_records["storage"]["end"] - timing_records["storage"]["start"]
+            )
+
+            _update_processing_status(
+                file_id=file_id,
+                storage={
+                    "status": "completed",
+                    "progress": 100,
+                    "message": "向量存儲完成",
+                    "collection_name": stats["collection_name"],
+                    "vector_count": stats["vector_count"],
+                },
+                overall_progress=90,
+            )
+
+            logger.info(
+                "向量存儲完成",
+                file_id=file_id,
+                chunk_count=len(chunks),
+                vector_count=len(embeddings),
+                collection_name=stats["collection_name"],
+                timing=timing_records["storage"],
+            )
+            vectorization_success = True
+        except Exception as e:
+            logger.error(
+                "向量化失敗（不影響知識圖譜提取）",
+                file_id=file_id,
+                error=str(e),
+                exc_info=True,
+            )
+            _update_processing_status(
+                file_id=file_id,
+                vectorization={
+                    "status": "failed",
+                    "progress": 0,
+                    "message": f"向量化失敗: {str(e)}",
+                    "error": str(e),
+                },
+            )
+            # ⚠️ 不拋出異常，繼續執行知識圖譜提取
+
+        # ========== 階段4: 知識圖譜提取（獨立錯誤處理）(90-100%) ==========
+        kg_extraction_success = False
         # 圖片文件跳過知識圖譜提取（圖片描述不適合提取實體和關係）
         if not is_image_file:
             # 讀取KG提取配置（從 services.kg_extraction 讀取）
@@ -671,6 +978,7 @@ async def process_file_chunking_and_vectorization(
             if kg_enabled:
                 try:
                     # 獲取文件元數據用於 Ontology 選擇
+                    metadata_service = get_metadata_service()
                     file_metadata_obj = metadata_service.get(file_id)
                     file_metadata_dict = None
                     if file_metadata_obj:
@@ -693,7 +1001,7 @@ async def process_file_chunking_and_vectorization(
 
                     await process_kg_extraction(
                         file_id=file_id,
-                        chunks=chunks,
+                        chunks=chunks,  # ✅ 使用分塊結果，不依賴向量化
                         user_id=user_id,
                         options=kg_config_with_metadata,
                     )
@@ -717,6 +1025,7 @@ async def process_file_chunking_and_vectorization(
                             got_lock = bool(redis_client.set(lock_key, "1", nx=True, ex=120))
                             next_job_id: Optional[str] = None
                             if got_lock:
+                                job_timeout = get_worker_job_timeout()
                                 next_job = queue.enqueue(
                                     process_kg_extraction_only_task,
                                     file_id=file_id,
@@ -724,6 +1033,7 @@ async def process_file_chunking_and_vectorization(
                                     file_type=file_type,
                                     user_id=user_id,
                                     force_rechunk=False,
+                                    job_timeout=job_timeout,
                                 )
                                 next_job_id = next_job.id
 
@@ -748,11 +1058,13 @@ async def process_file_chunking_and_vectorization(
                             file_id=file_id,
                             error=str(e),
                         )
+                    kg_extraction_success = True
                 except Exception as e:
                     logger.error(
-                        "知識圖譜提取失敗（不影響其他處理）",
+                        "知識圖譜提取失敗（不影響向量化）",
                         file_id=file_id,
                         error=str(e),
+                        exc_info=True,
                     )
                     # KG提取失敗不影響整體處理狀態，但記錄錯誤
                     _update_processing_status(
@@ -764,32 +1076,64 @@ async def process_file_chunking_and_vectorization(
                             "error": str(e),
                         },
                     )
+                    # ⚠️ 不拋出異常，繼續執行
         else:
             # 圖片文件：跳過知識圖譜提取
             logger.info(
                 "圖片文件跳過知識圖譜提取",
                 file_id=file_id,
             )
+            kg_extraction_success = True  # 圖片文件跳過視為成功
 
-        # 如果KG提取未啟用或已完成，更新最終狀態
-        # 更新最終狀態
-        final_message = "文件處理完成"
+        # ========== 記錄總時間 ==========
+        timing_records["total"]["end"] = time.time()
+        timing_records["total"]["duration_seconds"] = (
+            timing_records["total"]["end"] - timing_records["total"]["start"]
+        )
+
+        # 轉換時間戳為可讀格式（用於日誌和報告）
+        for key in timing_records:
+            if timing_records[key].get("start"):
+                timing_records[key]["start_datetime"] = datetime.fromtimestamp(
+                    timing_records[key]["start"]
+                ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            if timing_records[key].get("end"):
+                timing_records[key]["end_datetime"] = datetime.fromtimestamp(
+                    timing_records[key]["end"]
+                ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+        # ========== 更新最終狀態 ==========
+        if vectorization_success and kg_extraction_success:
+            overall_status = "completed"
+            final_message = "文件處理完成"
+        elif vectorization_success:
+            overall_status = "partial_completed"
+            final_message = "向量化完成，知識圖譜提取失敗"
+        elif kg_extraction_success:
+            overall_status = "partial_completed"
+            final_message = "知識圖譜提取完成，向量化失敗"
+        else:
+            overall_status = "failed"
+            final_message = "文件處理失敗（向量化和知識圖譜提取都失敗）"
+
         if is_image_file:
             final_message = "圖片文件處理完成（描述已生成並向量化）"
 
         _update_processing_status(
             file_id=file_id,
-            overall_status="completed",
+            overall_status=overall_status,
             overall_progress=100,
             message=final_message,
         )
 
         logger.info(
-            "文件處理完成（分塊+向量化+存儲+KG提取）",
+            "文件處理完成",
             file_id=file_id,
             chunk_count=len(chunks),
-            vector_count=len(embeddings),
-            collection_name=stats["collection_name"],
+            vectorization_success=vectorization_success,
+            kg_extraction_success=kg_extraction_success,
+            overall_status=overall_status,
+            collection_name=stats["collection_name"] if stats else None,
         )
 
     except Exception as e:
@@ -943,7 +1287,31 @@ async def process_vectorization_only(
             chunk_count=len(chunks),
         )
 
-        # ========== 階段2: 向量化 (50-90%) ==========
+        # ========== 階段2: 清理舊向量（重新生成時）==========
+        vector_store_service = get_vector_store_service()
+        try:
+            # 檢查是否存在舊向量
+            existing_stats = vector_store_service.get_collection_stats(file_id, user_id)
+            if existing_stats.get("vector_count", 0) > 0:
+                logger.info(
+                    "清理舊向量以重新生成",
+                    file_id=file_id,
+                    existing_vector_count=existing_stats.get("vector_count", 0),
+                )
+                vector_store_service.delete_vectors_by_file_id(file_id, user_id)
+                logger.info(
+                    "舊向量清理完成",
+                    file_id=file_id,
+                )
+        except Exception as e:
+            logger.warning(
+                "清理舊向量時發生錯誤（繼續執行）",
+                file_id=file_id,
+                error=str(e),
+            )
+            # 不阻止重新生成流程
+
+        # ========== 階段3: 向量化 (50-90%) ==========
         _update_processing_status(
             file_id=file_id,
             vectorization={
@@ -994,14 +1362,12 @@ async def process_vectorization_only(
             vector_count=len(embeddings),
         )
 
-        # ========== 階段3: 存儲到 ChromaDB (90-100%) ==========
+        # ========== 階段4: 存儲到 ChromaDB (90-100%) ==========
         _update_processing_status(
             file_id=file_id,
             storage={"status": "processing", "progress": 0, "message": "開始存儲向量"},
             overall_progress=90,
         )
-
-        vector_store_service = get_vector_store_service()
 
         # 為圖片文件添加圖片路徑到元數據
         if is_image_file and chunks:
@@ -1203,12 +1569,14 @@ async def process_kg_extraction(
         kg_service = get_kg_extraction_service()
 
         # 修改時間：2025-12-13 (UTC+8) - 以「分塊可續跑」方式提取並逐塊寫入 KG（不靠拉高 timeout）
+        # 修改時間：2026-01-01 - 短期優化：增加並發數從3到5，提升KG提取性能
+        # 修改時間：2026-01-01 - 性能測試後確認：並發數5為最優值
         result = await kg_service.extract_and_build_incremental(
             file_id=file_id,
             chunks=chunks,
             user_id=user_id,
             options=options,
-            concurrency=3,
+            concurrency=5,
             time_budget_seconds=150,
         )
 
@@ -1241,6 +1609,59 @@ async def process_kg_extraction(
                 overall_progress=95,
             )
         else:
+            # KG 構建完成後，從 ArangoDB 查詢實際數據並更新 Redis 緩存
+            try:
+                from api.routers.file_management import get_arangodb_client
+
+                arangodb_client = get_arangodb_client()
+                if arangodb_client.db and arangodb_client.db.aql:
+                    # 查詢實際實體數量
+                    entities_query = """
+                    FOR entity IN entities
+                        FILTER entity.file_id == @file_id OR @file_id IN entity.file_ids
+                        COLLECT WITH COUNT INTO count
+                        RETURN count
+                    """
+                    entities_result = list(
+                        arangodb_client.db.aql.execute(
+                            entities_query, bind_vars={"file_id": file_id}
+                        )
+                    )
+                    db_entities_count = entities_result[0] if entities_result else 0
+
+                    # 查詢實際關係數量
+                    relations_query = """
+                    FOR relation IN relations
+                        FILTER relation.file_id == @file_id OR @file_id IN relation.file_ids
+                        COLLECT WITH COUNT INTO count
+                        RETURN count
+                    """
+                    relations_result = list(
+                        arangodb_client.db.aql.execute(
+                            relations_query, bind_vars={"file_id": file_id}
+                        )
+                    )
+                    db_relations_count = relations_result[0] if relations_result else 0
+
+                    # 使用 ArangoDB 的實際數據（如果查詢成功）
+                    if db_entities_count > 0 or db_relations_count > 0:
+                        entities_count = db_entities_count
+                        relations_count = db_relations_count
+                        triples_count = db_relations_count  # 三元組數量 = 關係數量
+                        logger.info(
+                            "Updated KG stats from ArangoDB",
+                            file_id=file_id,
+                            entities_count=entities_count,
+                            relations_count=relations_count,
+                            triples_count=triples_count,
+                        )
+            except Exception as e:
+                logger.warning(
+                    "Failed to query ArangoDB for KG stats after completion",
+                    file_id=file_id,
+                    error=str(e),
+                )
+
             _update_processing_status(
                 file_id=file_id,
                 kg_extraction={
@@ -1255,7 +1676,9 @@ async def process_kg_extraction(
                     "mode": options.get("mode", "all_chunks"),
                     "job_id": current_job_id,
                 },
+                overall_status="completed",
                 overall_progress=100,
+                message="文件處理完成（分塊+向量化+存儲+KG提取）",
             )
 
         logger.info(
@@ -1331,6 +1754,37 @@ async def process_kg_extraction_only(
             overall_progress=0,
             message="開始圖譜提取處理",
         )
+
+        # ========== 清理舊圖譜數據（重新生成時）==========
+        try:
+            kg_builder_service = KGBuilderService()
+            cleanup_result = kg_builder_service.remove_file_associations(file_id)
+            if (
+                cleanup_result.get("relations_deleted", 0) > 0
+                or cleanup_result.get("entities_deleted", 0) > 0
+            ):
+                logger.info(
+                    "清理舊圖譜數據以重新生成",
+                    file_id=file_id,
+                    relations_deleted=cleanup_result.get("relations_deleted", 0),
+                    entities_deleted=cleanup_result.get("entities_deleted", 0),
+                )
+            # 清理 chunk 狀態（重置續跑狀態）
+            # 清理 Redis 中的 chunk 狀態
+            redis_client = get_redis_client()
+            chunk_state_key = f"kg:chunk_state:{file_id}"
+            redis_client.delete(chunk_state_key)
+            logger.info(
+                "舊圖譜數據和狀態清理完成",
+                file_id=file_id,
+            )
+        except Exception as e:
+            logger.warning(
+                "清理舊圖譜數據時發生錯誤（繼續執行）",
+                file_id=file_id,
+                error=str(e),
+            )
+            # 不阻止重新生成流程
 
         chunks = None
 
@@ -1521,6 +1975,7 @@ async def process_kg_extraction_only(
                 # 120 秒內只允許 enqueue 一次續跑，避免 worker/重試造成連環排程
                 got_lock = bool(redis_client.set(lock_key, "1", nx=True, ex=120))
                 if got_lock:
+                    job_timeout = get_worker_job_timeout()
                     next_job = queue.enqueue(
                         process_kg_extraction_only_task,
                         file_id=file_id,
@@ -1528,6 +1983,7 @@ async def process_kg_extraction_only(
                         file_type=file_type,
                         user_id=user_id,
                         force_rechunk=False,
+                        job_timeout=job_timeout,
                     )
                     next_job_id = next_job.id
                 else:
@@ -1555,6 +2011,14 @@ async def process_kg_extraction_only(
                     file_id=file_id,
                     error=str(e),
                 )
+
+        # 更新最終狀態為 completed（如果所有階段都完成）
+        _update_processing_status(
+            file_id=file_id,
+            overall_status="completed",
+            overall_progress=100,
+            message="圖譜提取處理完成",
+        )
 
         logger.info(
             "圖譜提取處理完成",
@@ -1948,12 +2412,14 @@ async def upload_files(
             # 注意：task_id 會從文件元數據中獲取，不需要額外傳遞
             try:
                 queue = get_task_queue(FILE_PROCESSING_QUEUE)
+                job_timeout = get_worker_job_timeout()
                 job = queue.enqueue(
                     process_file_chunking_and_vectorization_task,
                     file_id=file_id,
                     file_path=file_path,
                     file_type=file_type,
                     user_id=current_user.user_id,
+                    job_timeout=job_timeout,
                 )
                 logger.info(
                     "文件處理任務已提交到 RQ 隊列",
@@ -2039,12 +2505,37 @@ async def get_file_info(
     """
     獲取文件信息
 
+    修改時間：2026-01-02 - 添加基於 ACL 的權限檢查
+
     Args:
         file_id: 文件 ID
 
     Returns:
         文件信息
     """
+    # 獲取文件元數據
+    metadata_service = get_metadata_service()
+    file_metadata = metadata_service.get(file_id)
+
+    if file_metadata is None:
+        return APIResponse.error(
+            message="文件不存在",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    # 使用 ACL 權限檢查
+    permission_service = get_file_permission_service()
+    if not permission_service.check_file_access_with_acl(
+        user=current_user,
+        file_metadata=file_metadata,
+        required_permission=Permission.FILE_READ.value,
+        request=request,
+    ):
+        return APIResponse.error(
+            message="無權訪問此文件",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
     storage = get_storage()
 
     if not storage.file_exists(file_id):
@@ -2170,6 +2661,67 @@ async def get_processing_status(
                 message="處理狀態查詢成功",
             )
         else:
+            # Redis 中沒有狀態，嘗試從 ArangoDB 讀取持久化狀態
+            try:
+                from services.api.services.upload_status_service import (
+                    get_upload_status_service,
+                )
+
+                status_service = get_upload_status_service()
+                processing_status = status_service.get_processing_status(file_id)
+
+                if processing_status:
+                    # 將 ArangoDB 的狀態轉換為 API 響應格式
+                    status_data = {
+                        "file_id": file_id,
+                        "status": processing_status.overall_status or "pending",
+                        "progress": processing_status.overall_progress or 0,
+                        "message": getattr(processing_status, "message", None),
+                        "chunking": (
+                            processing_status.chunking.model_dump()
+                            if processing_status.chunking
+                            else {"status": "pending", "progress": 0}
+                        ),
+                        "vectorization": (
+                            processing_status.vectorization.model_dump()
+                            if processing_status.vectorization
+                            else {"status": "pending", "progress": 0}
+                        ),
+                        "storage": (
+                            processing_status.storage.model_dump()
+                            if processing_status.storage
+                            else {"status": "pending", "progress": 0}
+                        ),
+                        "kg_extraction": (
+                            processing_status.kg_extraction.model_dump()
+                            if processing_status.kg_extraction
+                            else {"status": "pending", "progress": 0}
+                        ),
+                    }
+
+                    # 將狀態同步回 Redis（如果已完成，設置較長的 TTL；如果進行中，設置較短的 TTL）
+                    ttl = (
+                        86400
+                        if (processing_status.overall_status == "completed")
+                        else 7200
+                    )  # 已完成：24小時，進行中：2小時
+                    redis_client.setex(
+                        status_key,
+                        ttl,
+                        json.dumps(status_data, default=str),
+                    )
+
+                    return APIResponse.success(
+                        data=status_data,
+                        message="處理狀態查詢成功（從 ArangoDB 恢復）",
+                    )
+            except Exception as e:
+                logger.warning(
+                    "從 ArangoDB 讀取處理狀態失敗",
+                    file_id=file_id,
+                    error=str(e),
+                )
+
             # 如果沒有處理狀態記錄，檢查是否已上傳
             # 可能文件剛上傳，處理還未開始
             upload_progress_key = f"upload:progress:{file_id}"
@@ -2325,19 +2877,147 @@ async def get_kg_stats(
             kg_extraction = status_data.get("kg_extraction", {})
 
             if kg_extraction.get("status") == "completed":
+                # 從 Redis 獲取的統計數據
+                redis_entities_count = kg_extraction.get("entities_count", 0)
+                redis_relations_count = kg_extraction.get("relations_count", 0)
+                redis_triples_count = kg_extraction.get("triples_count", 0)
+
+                # 驗證數據是否為 0，如果是則從 ArangoDB 查詢實際數據
+                if redis_entities_count == 0 and redis_relations_count == 0:
+                    # 從 ArangoDB 查詢實際數據
+                    try:
+                        from api.routers.file_management import get_arangodb_client
+
+                        arangodb_client = get_arangodb_client()
+                        if arangodb_client.db and arangodb_client.db.aql:
+                            # 查詢實體數量
+                            entities_query = """
+                            FOR entity IN entities
+                                FILTER entity.file_id == @file_id OR @file_id IN entity.file_ids
+                                COLLECT WITH COUNT INTO count
+                                RETURN count
+                            """
+                            entities_result = list(
+                                arangodb_client.db.aql.execute(
+                                    entities_query, bind_vars={"file_id": file_id}
+                                )
+                            )
+                            db_entities_count = entities_result[0] if entities_result else 0
+
+                            # 查詢關係數量
+                            relations_query = """
+                            FOR relation IN relations
+                                FILTER relation.file_id == @file_id OR @file_id IN relation.file_ids
+                                COLLECT WITH COUNT INTO count
+                                RETURN count
+                            """
+                            relations_result = list(
+                                arangodb_client.db.aql.execute(
+                                    relations_query, bind_vars={"file_id": file_id}
+                                )
+                            )
+                            db_relations_count = relations_result[0] if relations_result else 0
+
+                            # 三元組數量 = 關係數量（每個關係對應一個三元組）
+                            db_triples_count = db_relations_count
+
+                            # 如果 ArangoDB 中有數據，使用 ArangoDB 的數據並更新 Redis
+                            if db_entities_count > 0 or db_relations_count > 0:
+                                kg_extraction["entities_count"] = db_entities_count
+                                kg_extraction["relations_count"] = db_relations_count
+                                kg_extraction["triples_count"] = db_triples_count
+                                status_data["kg_extraction"] = kg_extraction
+                                redis_client.setex(
+                                    status_key,
+                                    86400,  # 24小時
+                                    json.dumps(status_data),
+                                )
+                                return APIResponse.success(
+                                    data={
+                                        "file_id": file_id,
+                                        "triples_count": db_triples_count,
+                                        "entities_count": db_entities_count,
+                                        "relations_count": db_relations_count,
+                                        "mode": kg_extraction.get("mode", "all_chunks"),
+                                        "source": "arangodb",  # 標記數據來源
+                                    },
+                                    message="KG統計信息查詢成功（從ArangoDB）",
+                                )
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to query ArangoDB for KG stats",
+                            file_id=file_id,
+                            error=str(e),
+                        )
+
                 return APIResponse.success(
                     data={
                         "file_id": file_id,
-                        "triples_count": kg_extraction.get("triples_count", 0),
-                        "entities_count": kg_extraction.get("entities_count", 0),
-                        "relations_count": kg_extraction.get("relations_count", 0),
+                        "triples_count": redis_triples_count,
+                        "entities_count": redis_entities_count,
+                        "relations_count": redis_relations_count,
                         "mode": kg_extraction.get("mode", "all_chunks"),
+                        "source": "redis",  # 標記數據來源
                     },
                     message="KG統計信息查詢成功",
                 )
 
-        # 如果沒有處理狀態，嘗試從ArangoDB查詢（需要實現文件ID關聯）
-        # 暫時返回未處理狀態
+        # 如果沒有處理狀態，嘗試從ArangoDB查詢實際數據
+        try:
+            from api.routers.file_management import get_arangodb_client
+
+            arangodb_client = get_arangodb_client()
+            if arangodb_client.db and arangodb_client.db.aql:
+                # 查詢實體數量
+                entities_query = """
+                FOR entity IN entities
+                    FILTER entity.file_id == @file_id OR @file_id IN entity.file_ids
+                    COLLECT WITH COUNT INTO count
+                    RETURN count
+                """
+                entities_result = list(
+                    arangodb_client.db.aql.execute(
+                        entities_query, bind_vars={"file_id": file_id}
+                    )
+                )
+                db_entities_count = entities_result[0] if entities_result else 0
+
+                # 查詢關係數量
+                relations_query = """
+                FOR relation IN relations
+                    FILTER relation.file_id == @file_id OR @file_id IN relation.file_ids
+                    COLLECT WITH COUNT INTO count
+                    RETURN count
+                """
+                relations_result = list(
+                    arangodb_client.db.aql.execute(
+                        relations_query, bind_vars={"file_id": file_id}
+                    )
+                )
+                db_relations_count = relations_result[0] if relations_result else 0
+
+                # 三元組數量 = 關係數量（每個關係對應一個三元組）
+                db_triples_count = db_relations_count
+
+                return APIResponse.success(
+                    data={
+                        "file_id": file_id,
+                        "triples_count": db_triples_count,
+                        "entities_count": db_entities_count,
+                        "relations_count": db_relations_count,
+                        "status": "processed" if db_entities_count > 0 else "not_processed",
+                        "source": "arangodb",  # 標記數據來源
+                    },
+                    message="KG統計信息查詢成功（從ArangoDB）",
+                )
+        except Exception as e:
+            logger.warning(
+                "Failed to query ArangoDB for KG stats",
+                file_id=file_id,
+                error=str(e),
+            )
+
+        # 如果都失敗，返回未處理狀態
         return APIResponse.success(
             data={
                 "file_id": file_id,
@@ -2411,8 +3091,11 @@ async def get_kg_triples(
             )
 
         # 從 ArangoDB 依 file_id 查詢 triples（relations edge + subject/object）
+        # 修改時間：2026-01-02 - 使用帶 ACL 權限檢查的方法
         kg_builder = KGBuilderService()
-        result = kg_builder.list_triples_by_file_id(file_id=file_id, limit=limit, offset=offset)
+        result = kg_builder.list_triples_by_file_id_with_acl(
+            file_id=file_id, user=current_user, limit=limit, offset=offset
+        )
 
         return APIResponse.success(
             data={

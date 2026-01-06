@@ -62,6 +62,51 @@ from system.security.models import Permission, User
 
 logger = structlog.get_logger(__name__)
 
+# 向後兼容：如果 ConfigStoreService 不可用，使用舊的配置方式
+try:
+    from services.api.services.config_store_service import ConfigStoreService
+
+    _streaming_config_service: Optional[ConfigStoreService] = None
+
+    def get_streaming_config_service() -> ConfigStoreService:
+        """獲取配置存儲服務實例（單例模式）"""
+        global _streaming_config_service
+        if _streaming_config_service is None:
+            _streaming_config_service = ConfigStoreService()
+        return _streaming_config_service
+
+    STREAMING_CONFIG_STORE_AVAILABLE = True
+except ImportError:
+    STREAMING_CONFIG_STORE_AVAILABLE = False
+    logger.warning("ConfigStoreService 不可用，流式輸出將使用默認 chunk_size=50")
+
+
+def get_streaming_chunk_size() -> int:
+    """
+    獲取流式輸出分塊大小（從 ArangoDB system_configs 讀取）
+
+    Returns:
+        流式輸出分塊大小（字符數），默認 50
+    """
+    # 優先從 ArangoDB system_configs 讀取
+    if STREAMING_CONFIG_STORE_AVAILABLE:
+        try:
+            config_service = get_streaming_config_service()
+            config = config_service.get_config("streaming", tenant_id=None)
+            if config and config.config_data:
+                chunk_size = config.config_data.get("chunk_size", 50)
+                return int(chunk_size)
+        except Exception as e:
+            logger.warning(
+                "failed_to_load_streaming_config_from_arangodb",
+                error=str(e),
+                message="從 ArangoDB 讀取流式輸出配置失敗，使用默認值 50",
+            )
+
+    # 默認值
+    return 50
+
+
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
 _moe_manager: Optional[LLMMoEManager] = None
@@ -857,6 +902,7 @@ async def _process_chat_request(
             request_id=request_id,
             query=last_user_text,
             attachments=request_body.attachments,
+            user=current_user,  # 修改時間：2026-01-02 - 傳遞 user 對象用於權限檢查
         )
         observability.memory_hit_count = memory_result.memory_hit_count
         observability.memory_sources = memory_result.memory_sources
@@ -1282,8 +1328,8 @@ async def chat_product_stream(
                         # 返回 SSE 格式的流式响应
                         yield f"data: {json.dumps({'type': 'start', 'data': {'request_id': request_id, 'session_id': session_id}})}\n\n"
 
-                        # 模拟流式输出（将内容分成多个块）
-                        chunk_size = 50
+                        # 流式输出（从 ArangoDB system_configs 读取配置）
+                        chunk_size = get_streaming_chunk_size()
                         for i in range(0, len(response_content), chunk_size):
                             chunk = response_content[i : i + chunk_size]
                             yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': chunk}})}\n\n"
@@ -1688,6 +1734,7 @@ async def chat_product_stream(
                     request_id=request_id,
                     query=last_user_text,
                     attachments=request_body.attachments,
+                    user=current_user,  # 修改時間：2026-01-02 - 傳遞 user 對象用於權限檢查
                 )
             else:
                 from services.api.services.chat_memory_service import MemoryRetrievalResult
@@ -2042,6 +2089,7 @@ async def chat_product(
                 request_id=request_id,
                 query=last_user_text,
                 attachments=request_body.attachments,
+                user=current_user,  # 修改時間：2026-01-02 - 傳遞 user 對象用於權限檢查
             )
             observability.memory_hit_count = memory_result.memory_hit_count
             observability.memory_sources = memory_result.memory_sources

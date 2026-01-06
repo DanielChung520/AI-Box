@@ -1,0 +1,92 @@
+{
+  "test_info": {
+    "file_path": "docs/系统设计文档/统一服务指南.md",
+    "file_size": 3059,
+    "model": "ollama",
+    "user_id": "test-user",
+    "test_time": "2026-01-01 22:21:31"
+  },
+  "upload": {
+    "status": "success",
+    "file_id": "78dfbb0b-eecf-4ad6-ba3e-0bbbabf950e1",
+    "upload_time": 0.14
+  },
+  "processing": {
+    "status": "completed",
+    "progress": 100,
+    "processing_time": 147.17,
+    "chunking": {
+      "status": "completed",
+      "progress": 100,
+      "message": "分塊處理完成",
+      "chunk_count": 15
+    },
+    "vectorization": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量化完成",
+      "vector_count": 15
+    },
+    "storage": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量存儲完成",
+      "collection_name": "file_78dfbb0b-eecf-4ad6-ba3e-0bbbabf950e1",
+      "vector_count": 15
+    },
+    "kg_extraction": {
+      "status": "completed",
+      "progress": 100,
+      "message": "知識圖譜構建完成",
+      "mode": "all_chunks",
+      "job_id": "358ac163-2706-4cba-9628-11cbf15e200f",
+      "total_chunks": 15,
+      "completed_chunks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "ontology_loaded": true,
+      "failed_chunks": [],
+      "failed_permanent_chunks": [],
+      "remaining_chunks": [],
+      "last_completed_chunk": 15,
+      "triples_count": 0,
+      "entities_count": 0,
+      "relations_count": 0
+    }
+  },
+  "knowledge_graph": {
+    "stats": {
+      "file_id": "78dfbb0b-eecf-4ad6-ba3e-0bbbabf950e1",
+      "triples_count": 0,
+      "entities_count": 0,
+      "relations_count": 0,
+      "mode": "all_chunks"
+    },
+    "triples_count": 0,
+    "triples": []
+  },
+  "summary": {
+    "total_time": 147.39,
+    "upload_time": 0.14,
+    "processing_time": 147.17,
+    "chunks_count": 15,
+    "entities_count": 0,
+    "relations_count": 0,
+    "entity_types": [],
+    "relation_types": []
+  }
+}

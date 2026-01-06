@@ -20,11 +20,12 @@ interface FilePreviewProps {
   file: FileMetadata;
   isOpen: boolean;
   onClose: () => void;
+  inline?: boolean; // 是否内嵌显示（非模态框）
 }
 
 type PreviewMode = 'text' | 'vector' | 'graph';
 
-export default function FilePreview({ file, isOpen, onClose }: FilePreviewProps) {
+export default function FilePreview({ file, isOpen, onClose, inline = false }: FilePreviewProps) {
   const navigate = useNavigate();
   const [mode, setMode] = useState<PreviewMode>('text'); // 默認為文件模式
   const [content, setContent] = useState<string>('');
@@ -744,11 +745,11 @@ export default function FilePreview({ file, isOpen, onClose }: FilePreviewProps)
         const triples = graphData?.triples || [];
 
         return (
-          <div className="flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
+          <div className="flex flex-col h-full">
             {/* 統計信息 */}
-            <div className="p-4 border-b bg-gray-50 flex-shrink-0">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex-shrink-0">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold">圖譜數據統計</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">圖譜數據統計</h3>
                 <button
                   onClick={async () => {
                     setLoading(true);
@@ -760,7 +761,7 @@ export default function FilePreview({ file, isOpen, onClose }: FilePreviewProps)
                     }
                   }}
                   disabled={loading}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-200"
                   title="刷新圖譜數據"
                 >
                   <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -768,102 +769,29 @@ export default function FilePreview({ file, isOpen, onClose }: FilePreviewProps)
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white p-3 rounded shadow-sm">
-                  <div className="text-sm text-gray-600">實體數量</div>
-                  <div className="text-2xl font-bold">{entitiesCount}</div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">實體數量</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{entitiesCount}</div>
                 </div>
-                <div className="bg-white p-3 rounded shadow-sm">
-                  <div className="text-sm text-gray-600">關係數量</div>
-                  <div className="text-2xl font-bold">{relationsCount}</div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">關係數量</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{relationsCount}</div>
                 </div>
-                <div className="bg-white p-3 rounded shadow-sm">
-                  <div className="text-sm text-gray-600">三元組數量</div>
-                  <div className="text-2xl font-bold">{triplesCount}</div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">三元組數量</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{triplesCount}</div>
                 </div>
               </div>
             </div>
 
-            {/* 圖形視圖（上半部分） */}
-            <div className="flex-shrink-0 border-b" style={{ height: '480px' }}>
+            {/* 圖形視圖（包含節點列表和三元組列表） */}
+            <div className="flex-1 min-h-0 overflow-hidden bg-white dark:bg-gray-950">
               <KnowledgeGraphViewer
                 triples={triples}
                 nodes={graphData?.nodes}
                 edges={graphData?.edges}
-                height={480}
+                height={600}
               />
-            </div>
-
-            {/* 三元組列表（下半部分） */}
-            <div className="flex-1 min-h-0 overflow-auto p-4">
-              <h3 className="text-lg font-semibold mb-3">三元組列表</h3>
-              {triples.length > 0 ? (
-                <div className="space-y-2">
-                  {triples.map((triple: any, index: number) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded border border-gray-200 hover:bg-gray-100 transition-colors">
-                      <div className="text-sm">
-                        <span className="font-semibold text-blue-600">
-                          {triple.subject || triple.subject_type || 'Unknown'}
-                        </span>
-                        {triple.subject_type && (
-                          <span className="text-xs text-gray-500 ml-1">({triple.subject_type})</span>
-                        )}
-                        {' → '}
-                        <span className="text-green-600 font-medium">{triple.relation}</span>
-                        {' → '}
-                        <span className="font-semibold text-purple-600">
-                          {triple.object || triple.object_type || 'Unknown'}
-                        </span>
-                        {triple.object_type && (
-                          <span className="text-xs text-gray-500 ml-1">({triple.object_type})</span>
-                        )}
-                      </div>
-                      {triple.confidence !== undefined && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          置信度: {typeof triple.confidence === 'number' ? triple.confidence.toFixed(2) : triple.confidence}
-                        </div>
-                      )}
-                      {triple.context && (
-                        <div className="text-xs text-gray-400 mt-1 italic truncate">
-                          上下文: {triple.context}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : graphData?.edges && graphData.edges.length > 0 ? (
-                // 如果沒有 triples，從 edges 構建顯示
-                <div className="space-y-2">
-                  {graphData.edges.map((edge: any, index: number) => {
-                    const from = edge._from || edge.from || edge.source || '';
-                    const to = edge._to || edge.to || edge.target || '';
-                    const type = edge.type || edge.label || edge.relation || '';
-                    return (
-                      <div key={index} className="bg-gray-50 p-3 rounded border border-gray-200 hover:bg-gray-100 transition-colors">
-                        <div className="text-sm">
-                          <span className="font-semibold text-blue-600">
-                            {from.split('/').pop() || from}
-                          </span>
-                          {' → '}
-                          <span className="text-green-600 font-medium">{type}</span>
-                          {' → '}
-                          <span className="font-semibold text-purple-600">
-                            {to.split('/').pop() || to}
-                          </span>
-                        </div>
-                        {edge.confidence !== undefined && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            置信度: {typeof edge.confidence === 'number' ? edge.confidence.toFixed(2) : edge.confidence}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>暫無三元組數據</p>
-              </div>
-            )}
             </div>
           </div>
         );
@@ -873,6 +801,116 @@ export default function FilePreview({ file, isOpen, onClose }: FilePreviewProps)
     }
   };
 
+  // 如果是内嵌模式，使用不同的布局
+  if (inline) {
+    return (
+      <div className="h-full w-full flex flex-col bg-white dark:bg-gray-900 theme-transition">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-primary flex-shrink-0">
+          <h2 className="text-lg font-semibold truncate flex-shrink min-w-0 max-w-[40%] text-primary">{file.filename}</h2>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {/* 模式切換按鈕組（文件、向量、圖譜） */}
+            <div className="flex gap-0.5 border border-primary rounded-lg p-0.5 bg-tertiary shadow-sm">
+              <button
+                onClick={() => handleModeChange('text')}
+                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all ${
+                  mode === 'text'
+                    ? 'bg-primary text-secondary shadow-md font-medium'
+                    : 'bg-secondary text-primary hover:bg-tertiary'
+                }`}
+                title="文件模式"
+              >
+                <FileText className="w-4 h-4" />
+                <span>文件</span>
+                {!textAvailable && mode === 'text' && <span className="text-xs opacity-75">(未生成)</span>}
+              </button>
+              <button
+                onClick={() => handleModeChange('vector')}
+                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all ${
+                  mode === 'vector'
+                    ? 'bg-primary text-secondary shadow-md font-medium'
+                    : 'bg-secondary text-primary hover:bg-tertiary'
+                }`}
+                title="向量模式"
+              >
+                <Database className="w-4 h-4" />
+                <span>向量</span>
+                {!vectorAvailable && mode === 'vector' && <span className="text-xs opacity-75">(未生成)</span>}
+              </button>
+              <button
+                onClick={() => handleModeChange('graph')}
+                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all ${
+                  mode === 'graph'
+                    ? 'bg-primary text-secondary shadow-md font-medium'
+                    : 'bg-secondary text-primary hover:bg-tertiary'
+                }`}
+                title="圖譜模式"
+              >
+                <Network className="w-4 h-4" />
+                <span>圖譜</span>
+                {!graphAvailable && mode === 'graph' && <span className="text-xs opacity-75">(未生成)</span>}
+              </button>
+                      </div>
+            {/* IEE 編輯器按鈕（僅 Markdown 文件顯示） */}
+            {(file.filename.toLowerCase().endsWith('.md') || file.filename.toLowerCase().endsWith('.markdown')) && (
+              <button
+                onClick={handleOpenInIEE}
+                className="p-2 hover:bg-tertiary rounded transition-colors text-primary"
+                title="使用 IEE 編輯器打開"
+              >
+                <Edit className="w-5 h-5" />
+              </button>
+            )}
+            {/* 下載按鈕 */}
+            <button
+              onClick={async () => {
+                try {
+                  const blob = await downloadFile(file.file_id);
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = file.filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                } catch (err: any) {
+                  alert(`下載失敗: ${err.message}`);
+                }
+              }}
+              className="p-2 hover:bg-tertiary rounded transition-colors text-primary"
+              title="下載文件"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+            {/* 關閉按鈕 */}
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-tertiary rounded transition-colors text-primary"
+              title="關閉"
+            >
+              <X className="w-5 h-5" />
+            </button>
+                        </div>
+                    </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto min-h-0">
+          {renderContent()}
+                </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-primary text-sm text-tertiary flex-shrink-0">
+          <div className="flex justify-between">
+            <span>文件大小: {file.file_size} bytes</span>
+            <span>類型: {file.file_type}</span>
+                        </div>
+                          </div>
+                      </div>
+                    );
+  }
+
+  // 模态框模式（原有实现）
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">

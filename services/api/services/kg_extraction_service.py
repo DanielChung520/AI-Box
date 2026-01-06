@@ -1,7 +1,7 @@
 # 代碼功能說明: 知識圖譜提取服務
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-10
+# 最後修改日期: 2026-01-04
 
 """知識圖譜提取服務 - 封裝三元組提取和圖譜構建流程"""
 
@@ -161,7 +161,13 @@ class KGExtractionService:
         manual_ontology: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         """
-        為提取任務載入合適的 Ontology
+        為提取任務載入合適的 Ontology（帶優先級降級fallback策略）
+
+        優先級策略：
+        1. Tier 1: Major Ontology（優先嘗試）
+        2. Tier 2: Domain Ontology（如果major無法匹配）
+        3. Tier 3: Base Ontology（如果domain找不到）
+        4. Tier 4: None（如果都找不到，允許LLM自由發揮）
 
         Args:
             file_name: 文件名
@@ -172,14 +178,16 @@ class KGExtractionService:
                 - major: Optional[str] major 文件名
 
         Returns:
-            合併後的 Ontology 規則，如果載入失敗則返回 None
+            合併後的 Ontology 規則，如果所有層級都找不到則返回 None（允許LLM自由發揮）
         """
         if not ONTOLOGY_SUPPORT or not self.ontology_manager:
-            logger.debug("Ontology support not available, skipping ontology loading")
+            logger.debug(
+                "Ontology support not available, allowing LLM free extraction",
+            )
             return None
 
         try:
-            # 如果手動指定了 Ontology，使用手動配置
+            # 如果手動指定了 Ontology，使用手動配置（不進行降級）
             if manual_ontology:
                 domain_files = manual_ontology.get("domain", [])
                 major_file = manual_ontology.get("major")
@@ -188,51 +196,127 @@ class KGExtractionService:
                     domain=domain_files,
                     major=major_file,
                 )
-            else:
-                # 自動選擇 Ontology
-                if not self.ontology_selector:
-                    logger.warning("Ontology selector not available, using base only")
-                    domain_files = []
-                    major_file = None
-                else:
-                    selection = self.ontology_selector.select_auto(
-                        file_name=file_name,
-                        file_content=file_content,
-                        file_metadata=file_metadata,
-                    )
-                    domain_files = selection.get("domain", [])
-                    major_file = (
-                        selection.get("major", [None])[0] if selection.get("major") else None
-                    )
+                # 載入並合併 Ontology
+                rules = self.ontology_manager.merge_ontologies(
+                    domain_files=domain_files, task_file=major_file
+                )
+                self._current_ontology_rules = rules
+                logger.info(
+                    "Ontology loaded successfully (manual)",
+                    entity_count=len(rules.get("entity_classes", [])),
+                    relationship_count=len(rules.get("relationship_types", [])),
+                )
+                return rules
 
+            # 自動選擇 Ontology（帶優先級降級fallback）
+            if not self.ontology_selector:
+                logger.warning("Ontology selector not available, trying base ontology only")
+                # 降級到Base Ontology
+                return self._try_load_base_ontology()
+
+            # 獲取所有可能的候選
+            selection = self.ontology_selector.select_auto(
+                file_name=file_name,
+                file_content=file_content,
+                file_metadata=file_metadata,
+            )
+            major_candidates = selection.get("major", [])
+            domain_candidates = selection.get("domain", [])
+
+            # Tier 1: 嘗試 Major Ontology（優先）
+            if major_candidates:
+                major_file = major_candidates[0]
+                logger.info(
+                    "Trying Tier 1: Major Ontology",
+                    major=major_file,
+                    selection_method=selection.get("selection_method"),
+                )
+                try:
+                    rules = self.ontology_manager.merge_ontologies(
+                        domain_files=[], task_file=major_file
+                    )
+                    self._current_ontology_rules = rules
                     logger.info(
-                        "Auto-selected ontology",
-                        method=selection.get("selection_method"),
-                        domain=domain_files,
+                        "Ontology loaded successfully (Tier 1: Major)",
                         major=major_file,
+                        entity_count=len(rules.get("entity_classes", [])),
+                        relationship_count=len(rules.get("relationship_types", [])),
+                    )
+                    return rules
+                except Exception as e:
+                    logger.warning(
+                        "Tier 1 (Major) failed, falling back to Tier 2 (Domain)",
+                        major=major_file,
+                        error=str(e),
                     )
 
-            # 載入並合併 Ontology
-            rules = self.ontology_manager.merge_ontologies(
-                domain_files=domain_files, task_file=major_file
-            )
+            # Tier 2: 嘗試 Domain Ontology
+            if domain_candidates:
+                for domain_file in domain_candidates:
+                    logger.info(
+                        "Trying Tier 2: Domain Ontology",
+                        domain=domain_file,
+                        selection_method=selection.get("selection_method"),
+                    )
+                    try:
+                        rules = self.ontology_manager.merge_ontologies(
+                            domain_files=[domain_file], task_file=None
+                        )
+                        self._current_ontology_rules = rules
+                        logger.info(
+                            "Ontology loaded successfully (Tier 2: Domain)",
+                            domain=domain_file,
+                            entity_count=len(rules.get("entity_classes", [])),
+                            relationship_count=len(rules.get("relationship_types", [])),
+                        )
+                        return rules
+                    except Exception as e:
+                        logger.warning(
+                            "Domain ontology failed, trying next",
+                            domain=domain_file,
+                            error=str(e),
+                        )
+                        continue
 
-            self._current_ontology_rules = rules
+            # Tier 3: 嘗試 Base Ontology
+            logger.info("Trying Tier 3: Base Ontology")
+            base_rules = self._try_load_base_ontology()
+            if base_rules:
+                return base_rules
 
+            # Tier 4: 所有Ontology都找不到，允許LLM自由發揮
             logger.info(
-                "Ontology loaded successfully",
-                entity_count=len(rules.get("entity_classes", [])),
-                relationship_count=len(rules.get("relationship_types", [])),
+                "Tier 4: No ontology matched, allowing LLM free extraction",
+                reason="All ontology tiers (Major, Domain, Base) failed or not found",
             )
-
-            return rules
+            return None
 
         except Exception as e:
             logger.warning(
-                "Failed to load ontology, continuing without ontology constraints",
+                "Failed to load ontology, allowing LLM free extraction",
                 error=str(e),
                 exc_info=True,
             )
+            return None
+
+    def _try_load_base_ontology(self) -> Optional[Dict[str, Any]]:
+        """
+        嘗試載入Base Ontology
+
+        Returns:
+            Base Ontology規則，如果載入失敗則返回None
+        """
+        try:
+            rules = self.ontology_manager.merge_ontologies(domain_files=[], task_file=None)
+            self._current_ontology_rules = rules
+            logger.info(
+                "Base Ontology loaded successfully",
+                entity_count=len(rules.get("entity_classes", [])),
+                relationship_count=len(rules.get("relationship_types", [])),
+            )
+            return rules
+        except Exception as e:
+            logger.warning("Failed to load Base Ontology", error=str(e))
             return None
 
     async def extract_triples_from_chunks(
@@ -297,7 +381,7 @@ class KGExtractionService:
                 return []
 
             triples = await self.triple_service.extract_triples(
-                text=full_text, entities=None, enable_ner=True
+                text=full_text, entities=None, enable_ner=True, ontology_rules=ontology_rules
             )
         elif mode == "selected_chunks":
             # 過濾分塊
@@ -366,9 +450,9 @@ class KGExtractionService:
 
                 # 如果使用 Ontology，可以為每個 chunk 生成專用的 prompt
                 # 這裡暫時保持原有邏輯，prompt 可以在 triple_service 層面使用
-                # 提取三元組
+                # 提取三元組（傳遞ontology_rules，如果為None則允許LLM自由提取）
                 triples = await self.triple_service.extract_triples(
-                    text=chunk_text, entities=None, enable_ner=True
+                    text=chunk_text, entities=None, enable_ner=True, ontology_rules=ontology_rules
                 )
 
                 # 如果載入了 Ontology，可以進行驗證（使用 Pydantic）
@@ -538,7 +622,7 @@ class KGExtractionService:
                     if not chunk_text.strip():
                         return (chunk_index, [])
                     triples = await self.triple_service.extract_triples(
-                        text=chunk_text, entities=None, enable_ner=True
+                        text=chunk_text, entities=None, enable_ner=True, ontology_rules=ontology_rules
                     )
                     # chunk 上下文標記
                     for t in triples:
@@ -592,15 +676,24 @@ class KGExtractionService:
             # 逐塊寫入 KG + 更新狀態（可續跑）
             for chunk_index, chunk_triples in extracted:
                 try:
-                    build_result = await self.build_kg_from_file(file_id, chunk_triples, user_id)
+                    # 安全處理 chunk_triples 可能為 None 的情況
+                    if chunk_triples is None:
+                        chunk_triples = []
+                    
+                    build_result = await self.build_kg_from_file(
+                        file_id, chunk_triples, user_id, options=options
+                    )
                     triples_total += len(chunk_triples)
+                    # 統計包含 created 和 updated 的總數（實際存儲的實體/關係數量）
+                    entities_count = int(build_result.get("entities_created", 0) or 0) + int(build_result.get("entities_updated", 0) or 0)
+                    relations_count = int(build_result.get("relations_created", 0) or 0) + int(build_result.get("relations_updated", 0) or 0)
                     entities_created_total += int(build_result.get("entities_created", 0) or 0)
                     relations_created_total += int(build_result.get("relations_created", 0) or 0)
 
                     completed_chunks.add(chunk_index)
                     failed_chunks.discard(chunk_index)
                     state.setdefault("chunks", {})[str(chunk_index)] = {
-                        "triples": len(chunk_triples),
+                        "triples": len(chunk_triples or []),
                         "ts": int(time.time()),
                         "status": "completed",
                     }
@@ -610,8 +703,10 @@ class KGExtractionService:
                     attempts[key] = int(attempts.get(key, 0) or 0) + 1
                     errors[key] = {"error": str(e), "ts": int(time.time())}
                     failed_chunks.add(chunk_index)
+                    # 安全處理 chunk_triples 可能為 None 的情況
+                    triples_count = len(chunk_triples) if chunk_triples is not None else 0
                     state.setdefault("chunks", {})[key] = {
-                        "triples": len(chunk_triples),
+                        "triples": triples_count,
                         "ts": int(time.time()),
                         "status": "failed",
                         "attempts": attempts[key],
@@ -720,6 +815,7 @@ class KGExtractionService:
         triples: List[Triple],
         user_id: str,
         metadata: Optional[Dict[str, Any]] = None,
+        options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         從三元組構建知識圖譜並存儲到 ArangoDB
@@ -729,6 +825,10 @@ class KGExtractionService:
             triples: 三元組列表
             user_id: 用戶ID
             metadata: 額外元數據
+            options: 構建選項
+                - min_confidence: 最小置信度閾值（默認 0.5）
+                - core_node_threshold: 核心節點閾值（默認 0.9）
+                - enable_judgment: 是否啟用裁決層（默認 True）
 
         Returns:
             構建結果統計
@@ -743,12 +843,21 @@ class KGExtractionService:
                 "total_triples": 0,
             }
 
-        # 為三元組添加文件ID和用戶ID元數據
-        # 注意：這裡我們需要修改三元組的上下文來包含文件信息
-        # 但 Triple 模型可能不支持直接修改，所以我們在構建時處理
+        # GraphRAG 裁決層配置（從 options 讀取）
+        if options is None:
+            options = {}
+        min_confidence = options.get("min_confidence", 0.5)
+        core_node_threshold = options.get("core_node_threshold", 0.9)
+        enable_judgment = options.get("enable_judgment", True)
 
-        # 構建知識圖譜（傳遞file_id和user_id）
-        result = await self.kg_builder.build_from_triples(triples, file_id=file_id, user_id=user_id)
+        result = await self.kg_builder.build_from_triples(
+            triples,
+            file_id=file_id,
+            user_id=user_id,
+            min_confidence=min_confidence,
+            core_node_threshold=core_node_threshold,
+            enable_judgment=enable_judgment,
+        )
 
         # 在實體和關係中添加文件ID和用戶ID關聯
         # 這需要在 KGBuilderService 中實現，或者通過額外的元數據集合實現

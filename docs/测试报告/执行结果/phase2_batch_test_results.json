@@ -1,0 +1,45 @@
+{
+  "summary": {
+    "total_files": 2,
+    "success_count": 1,
+    "failed_count": 0,
+    "timeout_count": 1,
+    "total_processing_time": 1994.5750851631165,
+    "avg_processing_time": 997.2875425815582,
+    "total_entities": 4,
+    "total_relations": 2,
+    "test_timestamp": "2026-01-03T19:40:37.423947"
+  },
+  "results": [
+    {
+      "file_path": "docs/系统设计文档/API文档/治理API文档.md",
+      "file_name": "治理API文档.md",
+      "file_size": 10553,
+      "file_index": 1,
+      "upload_time": 8.06675410270691,
+      "processing_time": 1800.885985136032,
+      "status": "timeout",
+      "file_id": "fe27093e-3843-4720-8537-b6aa24deb9e3",
+      "error": null,
+      "kg_stats": null
+    },
+    {
+      "file_path": "docs/系统设计文档/核心组件/Agent平台/Security-Agent-規格書.md",
+      "file_name": "Security-Agent-規格書.md",
+      "file_size": 29021,
+      "file_index": 2,
+      "upload_time": 0.04720807075500488,
+      "processing_time": 193.68910002708435,
+      "status": "completed",
+      "file_id": "b38b9f93-e7a1-485c-8d07-68f45bc3ec43",
+      "error": null,
+      "kg_stats": {
+        "file_id": "b38b9f93-e7a1-485c-8d07-68f45bc3ec43",
+        "triples_count": 9,
+        "entities_count": 4,
+        "relations_count": 2,
+        "mode": "all_chunks"
+      }
+    }
+  ]
+}

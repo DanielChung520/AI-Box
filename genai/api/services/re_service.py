@@ -1,13 +1,13 @@
 # 代碼功能說明: RE 關係抽取服務
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27 23:30 (UTC+8)
+# 最後修改日期: 2026-01-04
 
 """RE 關係抽取服務 - 支持 transformers 和 Ollama 模型"""
 
 import json
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import structlog
 
@@ -43,6 +43,7 @@ class BaseREModel(ABC):
         self,
         text: str,
         entities: Optional[List[Entity]] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
         user_id: Optional[str] = None,
         file_id: Optional[str] = None,
         task_id: Optional[str] = None,
@@ -95,11 +96,12 @@ class TransformersREModel(BaseREModel):
         self,
         text: str,
         entities: Optional[List[Entity]] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
         user_id: Optional[str] = None,
         file_id: Optional[str] = None,
         task_id: Optional[str] = None,
     ) -> List[Relation]:
-        """使用 transformers 提取關係（簡化實現）"""
+        """使用 transformers 提取關係（簡化實現）（注：transformers 模型不支持 ontology_rules，但為了接口一致性保留此參數）"""
         if self._model is None or self._tokenizer is None:
             raise RuntimeError(f"Transformers RE model {self.model_name} is not available")
 
@@ -137,27 +139,32 @@ class OllamaREModel(BaseREModel):
     def __init__(self, model_name: str = "qwen3-coder:30b", client: Optional[OllamaClient] = None):
         self.model_name = model_name
         self.client = client or get_ollama_client()
-        self._prompt_template = """請從以下文本中抽取實體之間的關係，並以 JSON 格式返回結果。
+        self._prompt_template = """你是一個專業的知識圖譜構建助手。請從以下文本中抽取實體之間的關係。
 
-文本：{text}
+重要規則：
+1. 僅返回一個 JSON 數組。
+2. 不要解釋你的答案。
+3. 識別 API 文檔中的邏輯關係，例如：
+   - API 端點 BELONGS_TO 模塊
+   - 參數 PART_OF API
+   - 錯誤碼 RETURNED_BY API
+   - 實體 HAS_PROPERTY 屬性
+4. 忽略純 JSON 示例數據，專注於描述性文本中的關係。
+5. 嚴格遵守以下 JSON 格式。
+
+文本內容：
+{text}
 
 {entities_section}
 
-請返回 JSON 格式，包含以下字段：
-- subject: 主體實體（包含 text 和 label）
-- relation: 關係類型（LOCATED_IN, WORKS_FOR, PART_OF, RELATED_TO, OCCURS_AT 等）
-- object: 客體實體（包含 text 和 label）
-- confidence: 置信度（0-1之間的浮點數）
-- context: 關係出現的上下文
-
-返回格式示例：
+預期的 JSON 格式示例：
 [
   {{
-    "subject": {{"text": "張三", "label": "PERSON"}},
-    "relation": "WORKS_FOR",
-    "object": {{"text": "微軟", "label": "ORG"}},
-    "confidence": 0.88,
-    "context": "張三在微軟公司工作"
+    "subject": {{"text": "GET /api/v1/users", "label": "API_ENDPOINT"}},
+    "relation": "RETURNED_BY",
+    "object": {{"text": "404 Not Found", "label": "STATUS_CODE"}},
+    "confidence": 0.95,
+    "context": "如果用戶不存在，接口將返回 404"
   }}
 ]"""
 
@@ -169,6 +176,7 @@ class OllamaREModel(BaseREModel):
         self,
         text: str,
         entities: Optional[List[Entity]] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
         user_id: Optional[str] = None,
         file_id: Optional[str] = None,
         task_id: Optional[str] = None,
@@ -185,6 +193,21 @@ class OllamaREModel(BaseREModel):
 
         prompt = self._prompt_template.format(text=text, entities_section=entities_section)
 
+        # 如果提供了 ontology_rules，使用 Ontology 中的關係類型列表
+        if ontology_rules:
+            relationship_types = ontology_rules.get("relationship_types", [])
+            if relationship_types:
+                # 構建關係類型列表說明
+                rel_types_list = "\n".join([f"- {rt}" for rt in sorted(relationship_types)])
+                # 在 prompt 末尾添加 Ontology 關係類型約束
+                ontology_section = f"""
+
+**重要：請使用以下 Ontology 定義的關係類型（而非其他類型）：**
+{rel_types_list}
+
+請確保抽取的關係類型必須屬於上述 Ontology 定義的類型之一。"""
+                prompt = f"{prompt}{ontology_section}"
+
         try:
             response = await self.client.generate(
                 prompt,
@@ -194,6 +217,7 @@ class OllamaREModel(BaseREModel):
                 file_id=file_id,
                 task_id=task_id,
                 purpose="re",
+                options={"num_ctx": 32768},  # 設置 context window 為 32k
             )
 
             if response is None:
@@ -225,10 +249,13 @@ class OllamaREModel(BaseREModel):
                         # 檢查是否有常見的鍵（如 "relations", "data", "result", "extracted_triples"）
                         for key in [
                             "relations",
+                            "results",
                             "data",
                             "result",
                             "items",
                             "extracted_triples",
+                            "entities",
+                            "status_codes",
                         ]:
                             if key in relations_data and isinstance(relations_data[key], list):
                                 relations_data = relations_data[key]
@@ -298,7 +325,7 @@ class OllamaREModel(BaseREModel):
                                 text=object_text,
                                 label=object_label,
                             ),
-                            confidence=float(item.get("confidence", 0.5)),
+                            confidence=float(item.get("confidence") or 0.8),
                             context=item.get("context", text),
                         )
                     )
@@ -356,6 +383,7 @@ class GeminiREModel(BaseREModel):
         self,
         text: str,
         entities: Optional[List[Entity]] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
         user_id: Optional[str] = None,
         file_id: Optional[str] = None,
         task_id: Optional[str] = None,
@@ -371,6 +399,21 @@ class GeminiREModel(BaseREModel):
             entities_section = f"已識別的實體：\n{entities_text}\n"
 
         prompt = self._prompt_template.format(text=text, entities_section=entities_section)
+
+        # 如果提供了 ontology_rules，使用 Ontology 中的關係類型列表
+        if ontology_rules:
+            relationship_types = ontology_rules.get("relationship_types", [])
+            if relationship_types:
+                # 構建關係類型列表說明
+                rel_types_list = "\n".join([f"- {rt}" for rt in sorted(relationship_types)])
+                # 在 prompt 末尾添加 Ontology 關係類型約束
+                ontology_section = f"""
+
+**重要：請使用以下 Ontology 定義的關係類型（而非其他類型）：**
+{rel_types_list}
+
+請確保抽取的關係類型必須屬於上述 Ontology 定義的類型之一。"""
+                prompt = f"{prompt}{ontology_section}"
 
         try:
             response = await self.client.generate(
@@ -440,15 +483,88 @@ class REService:
     def __init__(self, ner_service: Optional[NERService] = None):
         self.config = get_config_section("text_analysis", "re", default={}) or {}
         # 優先使用本地模型（Ollama），只有在無法達成時才使用外部 provider
-        self.model_type = self.config.get("model_type", "ollama")
-        # 优先从环境变量读取，然后从配置读取，最后使用默认值
         import os
 
-        self.model_name = (
-            os.getenv("OLLAMA_NER_MODEL")
-            or os.getenv("OLLAMA_RE_MODEL")
-            or self.config.get("model_name", "llama3.1:8b")
-        )
+        # 優先級1: 從 ArangoDB system_configs 讀取 model_type 和 model_name
+        model_type = None
+        model_name = None
+        try:
+            from services.api.services.config_store_service import ConfigStoreService
+
+            config_service = ConfigStoreService()
+            kg_config = config_service.get_config("kg_extraction", tenant_id=None)
+            if kg_config and kg_config.config_data:
+                model_type = kg_config.config_data.get("re_model_type")
+                model_name = kg_config.config_data.get("re_model")
+                if model_type:
+                    logger.debug(
+                        "re_model_type_from_system_configs",
+                        model_type=model_type,
+                        message="從 ArangoDB system_configs 讀取 RE model_type 配置",
+                    )
+                if model_name:
+                    logger.debug(
+                        "re_model_from_system_configs",
+                        model=model_name,
+                        message="從 ArangoDB system_configs 讀取 RE 模型配置",
+                    )
+        except Exception as e:
+            logger.debug(
+                "failed_to_load_re_model_from_system_configs",
+                error=str(e),
+                message="從 ArangoDB 讀取 RE 模型配置失敗，使用向後兼容方式",
+            )
+
+        # 優先級2: 從環境變量讀取 model_type（允許覆蓋 ArangoDB 配置）
+        env_model_type = os.getenv("RE_MODEL_TYPE")
+        if env_model_type:
+            model_type = env_model_type
+        
+        # 優先級3: 從 config.json 讀取 model_type（向後兼容）
+        if not model_type:
+            model_type = self.config.get("model_type", "ollama")
+        self.model_type = model_type or "ollama"
+
+        # 優先級4: 從環境變量讀取（只在 model_type 匹配時覆蓋）
+        # 注意：OLLAMA_RE_MODEL 只在 model_type=ollama 時使用
+        # 對於其他 model_type（如 gemini），應該使用對應的環境變量或 ArangoDB 配置
+        if self.model_type == "ollama":
+            env_model_name = os.getenv("OLLAMA_RE_MODEL") or os.getenv("OLLAMA_NER_MODEL")
+            if env_model_name:
+                model_name = env_model_name
+                logger.debug(
+                    "re_model_from_env",
+                    model=model_name,
+                    message="從環境變量讀取 RE 模型配置（覆蓋）",
+                )
+        # 對於 gemini，可以從 GEMINI_RE_MODEL 環境變量讀取（如果設置）
+        elif self.model_type == "gemini":
+            env_model_name = os.getenv("GEMINI_RE_MODEL")
+            if env_model_name:
+                model_name = env_model_name
+                logger.debug(
+                    "re_model_from_env",
+                    model=model_name,
+                    message="從環境變量讀取 RE 模型配置（覆蓋）",
+                )
+
+        # 優先級5: 從 config.json 讀取（向後兼容）
+        if not model_name:
+            model_name = self.config.get("model_name")
+            if model_name:
+                logger.debug(
+                    "re_model_from_config_json",
+                    model=model_name,
+                    message="從 config.json 讀取 RE 模型配置",
+                )
+
+        # 優先級6: 使用硬編碼默認值
+        if not model_name:
+            model_name = "qwen3-coder:30b"  # 默認使用 Ollama 模型
+        
+        # 設置 model_name 屬性
+        self.model_name = model_name
+
         # Fallback 順序：本地模型優先，外部 provider 作為最後備選
         self.fallback_model = self.config.get("fallback_model", "gemini:gemini-pro")
         self.max_relation_length = self.config.get("max_relation_length", 128)
@@ -535,7 +651,11 @@ class REService:
         self,
         text: str,
         entities: Optional[List[Entity]] = None,
+        ontology_rules: Optional[Dict[str, Any]] = None,
         model_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        file_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> List[Relation]:
         """提取關係"""
         model = self._get_model(model_type)
@@ -546,9 +666,13 @@ class REService:
         if entities is None:
             if self.ner_service is None:
                 raise RuntimeError("NER service is not available for automatic entity extraction")
-            entities = await self.ner_service.extract_entities(text)
+            entities = await self.ner_service.extract_entities(
+                text, ontology_rules=ontology_rules, user_id=user_id, file_id=file_id, task_id=task_id
+            )
 
-        return await model.extract_relations(text, entities)
+        return await model.extract_relations(
+            text, entities, ontology_rules=ontology_rules, user_id=user_id, file_id=file_id, task_id=task_id
+        )
 
     async def extract_relations_batch(
         self, texts: List[str], model_type: Optional[str] = None

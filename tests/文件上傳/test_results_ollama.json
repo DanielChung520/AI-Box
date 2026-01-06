@@ -1,0 +1,229 @@
+{
+  "test_info": {
+    "file_path": "docs/系统设计文档/统一服务指南.md",
+    "file_size": 3059,
+    "model": "ollama",
+    "user_id": "test-user",
+    "test_time": "2026-01-01 21:35:33"
+  },
+  "upload": {
+    "status": "success",
+    "file_id": "1b83188d-c5f9-432c-b405-55f89181bf2c",
+    "upload_time": 6.75
+  },
+  "processing": {
+    "status": "completed",
+    "progress": 100,
+    "processing_time": 78.5,
+    "chunking": {
+      "status": "completed",
+      "progress": 100,
+      "message": "分塊處理完成",
+      "chunk_count": 15
+    },
+    "vectorization": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量化完成",
+      "vector_count": 15
+    },
+    "storage": {
+      "status": "completed",
+      "progress": 100,
+      "message": "向量存儲完成",
+      "collection_name": "file_1b83188d-c5f9-432c-b405-55f89181bf2c",
+      "vector_count": 15
+    },
+    "kg_extraction": {
+      "status": "completed",
+      "progress": 100,
+      "message": "知識圖譜構建完成",
+      "mode": "all_chunks",
+      "job_id": "9e1988f1-95d8-45cc-a1d0-bcc240d4cfc8",
+      "total_chunks": 15,
+      "completed_chunks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "ontology_loaded": true,
+      "failed_chunks": [],
+      "failed_permanent_chunks": [],
+      "remaining_chunks": [],
+      "last_completed_chunk": 15,
+      "triples_count": 3,
+      "entities_count": 6,
+      "relations_count": 3
+    }
+  },
+  "knowledge_graph": {
+    "stats": {
+      "file_id": "1b83188d-c5f9-432c-b405-55f89181bf2c",
+      "triples_count": 3,
+      "entities_count": 6,
+      "relations_count": 3,
+      "mode": "all_chunks"
+    },
+    "triples_count": 3,
+    "triples": [
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/7d9901de8b4bd5ad",
+          "_key": "7d9901de8b4bd5ad",
+          "_to": "entities/event_7499d395ca4536ea",
+          "confidence": 0.935,
+          "context": "./scripts/start_services.sh all [Chunk 10/15]",
+          "created_at": "2026-01-01T10:58:28.150806",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c"
+          ],
+          "type": "RELATED_TO",
+          "updated_at": "2026-01-01T13:35:33.152472"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/event_7499d395ca4536ea",
+          "_key": "event_7499d395ca4536ea",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c"
+          ],
+          "name": "all",
+          "type": "EVENT"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_2dbb0cf275b59c88",
+          "_id": "relations/d91d4543d72ae415",
+          "_key": "d91d4543d72ae415",
+          "_to": "entities/org_2c0f66c8fd53ccf4",
+          "confidence": 0.78,
+          "context": "all（啟動所有服務）包含ArangoDB [Chunk 8/15]",
+          "created_at": "2026-01-01T13:35:10.611526",
+          "file_id": "1b83188d-c5f9-432c-b405-55f89181bf2c",
+          "file_ids": [
+            "1b83188d-c5f9-432c-b405-55f89181bf2c"
+          ],
+          "type": "PART_OF",
+          "updated_at": "2026-01-01T13:35:10.611548"
+        },
+        "subject": {
+          "_id": "entities/product_2dbb0cf275b59c88",
+          "_key": "product_2dbb0cf275b59c88",
+          "file_id": "accbbe45-5598-45df-a11b-8b2d1692d72c",
+          "file_ids": [
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c"
+          ],
+          "name": "all",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/org_2c0f66c8fd53ccf4",
+          "_key": "org_2c0f66c8fd53ccf4",
+          "file_id": "1b83188d-c5f9-432c-b405-55f89181bf2c",
+          "file_ids": [
+            "1b83188d-c5f9-432c-b405-55f89181bf2c"
+          ],
+          "name": "ArangoDB",
+          "type": "ORG"
+        }
+      },
+      {
+        "edge": {
+          "_from": "entities/product_869b3ce9c9f91435",
+          "_id": "relations/3ea6c0626ee25d51",
+          "_key": "3ea6c0626ee25d51",
+          "_to": "entities/event_1ac3ccd0fa9b866b",
+          "confidence": 0.9649999999999999,
+          "context": "# 單獨啟動 Worker\n./scripts/start_services.sh worker [Chunk 2/15]",
+          "created_at": "2026-01-01T13:34:33.771930",
+          "file_id": "1b83188d-c5f9-432c-b405-55f89181bf2c",
+          "file_ids": [
+            "1b83188d-c5f9-432c-b405-55f89181bf2c"
+          ],
+          "type": "PART_OF",
+          "updated_at": "2026-01-01T13:34:33.771948"
+        },
+        "subject": {
+          "_id": "entities/product_869b3ce9c9f91435",
+          "_key": "product_869b3ce9c9f91435",
+          "file_id": "ed258ee9-a84a-45eb-9803-70c51b83d259",
+          "file_ids": [
+            "ed258ee9-a84a-45eb-9803-70c51b83d259",
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "84102112-4842-41de-ab02-426d98be3e77",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c"
+          ],
+          "name": "./scripts/start_services.sh",
+          "type": "PRODUCT"
+        },
+        "object": {
+          "_id": "entities/event_1ac3ccd0fa9b866b",
+          "_key": "event_1ac3ccd0fa9b866b",
+          "file_id": "accbbe45-5598-45df-a11b-8b2d1692d72c",
+          "file_ids": [
+            "accbbe45-5598-45df-a11b-8b2d1692d72c",
+            "174985c0-4ad0-425c-b9c4-aca846c6015b",
+            "e824f913-66fb-493c-afce-8cb6dcca49eb",
+            "1b83188d-c5f9-432c-b405-55f89181bf2c"
+          ],
+          "name": "worker",
+          "type": "EVENT"
+        }
+      }
+    ]
+  },
+  "summary": {
+    "total_time": 85.31,
+    "upload_time": 6.75,
+    "processing_time": 78.5,
+    "chunks_count": 15,
+    "entities_count": 6,
+    "relations_count": 3,
+    "entity_types": [],
+    "relation_types": []
+  }
+}

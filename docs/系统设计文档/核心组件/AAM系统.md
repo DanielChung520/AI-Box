@@ -386,9 +386,9 @@ Gen AI Records（对话日志）
 
 ### 相关组件文档
 
-- [强化RAG系统](./强化RAG系统.md)
-- [知识图谱系统](./知识图谱系统.md)
-- [Ontology系统](./Ontology系统.md)
+- [强化RAG系统](./文件上傳向量圖譜/强化RAG系统.md)
+- [知识图谱系统](./文件上傳向量圖譜/知识图谱系统.md)
+- [Ontology系统](./文件上傳向量圖譜/Ontology系统.md)
 - [MoE系统](./MoE系统.md)
 
 ---
