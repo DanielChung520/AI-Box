@@ -81,9 +81,7 @@ class DecisionEngine:
             mode = "hybrid"
             primary = WorkflowType.AUTOGEN
             fallback = [WorkflowType.LANGCHAIN]
-            reasoning_parts.append(
-                f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式"
-            )
+            reasoning_parts.append(f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式")
 
         # 規則 3: 需要可觀測性 → LangGraph 作為主要模式
         elif requires_observability:
@@ -258,9 +256,7 @@ class DecisionEngine:
                 logger.info(
                     f"Decision Engine: No agent selected (best score {best_agent.total_score:.2f} < 0.5)"
                 )
-                reasoning_parts.append(
-                    f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent"
-                )
+                reasoning_parts.append(f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent")
         else:
             logger.debug(
                 f"Decision Engine: No agent selection - needs_agent={router_decision.needs_agent}, candidates_count={len(agent_candidates)}"
@@ -272,6 +268,35 @@ class DecisionEngine:
             logger.info(f"Decision Engine: Selecting tools from {len(tool_candidates)} candidates")
             # 選擇評分最高的工具（可以選擇多個）
             sorted_tools = sorted(tool_candidates, key=lambda x: x.total_score, reverse=True)
+
+            # 修改時間：2026-01-06 - 添加詳細日誌追蹤 document_editing 工具的選擇過程
+            document_editing_candidate = next(
+                (t for t in sorted_tools if t.candidate_id in ["document_editing", "file_editing"]),
+                None,
+            )
+            if document_editing_candidate:
+                logger.info(
+                    "decision_engine_document_editing_candidate_found",
+                    extra={
+                        "tool_name": document_editing_candidate.candidate_id,
+                        "total_score": document_editing_candidate.total_score,
+                        "rank": sorted_tools.index(document_editing_candidate) + 1,
+                        "total_candidates": len(sorted_tools),
+                        "top_5_tools": [(t.candidate_id, t.total_score) for t in sorted_tools[:5]],
+                        "note": f"document_editing tool candidate found with score {document_editing_candidate.total_score:.2f}, rank {sorted_tools.index(document_editing_candidate) + 1}/{len(sorted_tools)}",
+                    },
+                )
+            else:
+                logger.info(
+                    "decision_engine_document_editing_candidate_not_found",
+                    extra={
+                        "top_5_tools": [(t.candidate_id, t.total_score) for t in sorted_tools[:5]],
+                        "router_needs_tools": router_decision.needs_tools,
+                        "router_intent_type": router_decision.intent_type,
+                        "note": "document_editing tool not in candidates - check Capability Matcher logs",
+                    },
+                )
+
             logger.debug(
                 f"Decision Engine: Top tool candidates: {[(t.candidate_id, t.total_score) for t in sorted_tools[:5]]}"
             )
@@ -284,21 +309,61 @@ class DecisionEngine:
                     logger.info(
                         f"Decision Engine: Selected tool: {tool.candidate_id} (score: {tool.total_score:.2f})"
                     )
+
+                    # 修改時間：2026-01-06 - 特別標記 document_editing 工具的選擇
+                    if tool.candidate_id in ["document_editing", "file_editing"]:
+                        logger.info(
+                            "decision_engine_document_editing_tool_selected",
+                            extra={
+                                "tool_name": tool.candidate_id,
+                                "total_score": tool.total_score,
+                                "note": "✅ document_editing tool SELECTED by Decision Engine - file creation should be triggered",
+                            },
+                        )
+
             if not chosen_tools:
                 logger.info("Decision Engine: No tools selected (all scores < 0.5)")
+                # 修改時間：2026-01-06 - 如果沒有選擇工具，檢查 document_editing 是否因為評分太低
+                if document_editing_candidate:
+                    logger.warning(
+                        "decision_engine_document_editing_not_selected_score_too_low",
+                        extra={
+                            "tool_name": document_editing_candidate.candidate_id,
+                            "total_score": document_editing_candidate.total_score,
+                            "threshold": 0.5,
+                            "note": f"❌ document_editing tool NOT selected - score {document_editing_candidate.total_score:.2f} < threshold 0.5",
+                        },
+                    )
         else:
             logger.debug(
                 f"Decision Engine: No tool selection - needs_tools={router_decision.needs_tools}, candidates_count={len(tool_candidates)}"
             )
+            # 修改時間：2026-01-06 - 如果沒有工具候選，記錄詳細信息
+            if not router_decision.needs_tools:
+                logger.info(
+                    "decision_engine_no_tool_selection_router_needs_tools_false",
+                    extra={
+                        "router_needs_tools": router_decision.needs_tools,
+                        "router_intent_type": router_decision.intent_type,
+                        "note": "❌ No tool selection - Router LLM set needs_tools=false, check Router LLM logs",
+                    },
+                )
+            elif not tool_candidates:
+                logger.info(
+                    "decision_engine_no_tool_selection_no_candidates",
+                    extra={
+                        "router_needs_tools": router_decision.needs_tools,
+                        "router_intent_type": router_decision.intent_type,
+                        "note": "❌ No tool selection - No tool candidates from Capability Matcher, check Capability Matcher logs",
+                    },
+                )
 
         # 4. 選擇 Model
         chosen_model = None
         if model_candidates:
             best_model = max(model_candidates, key=lambda x: x.total_score)
             chosen_model = best_model.candidate_id
-            reasoning_parts.append(
-                f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})"
-            )
+            reasoning_parts.append(f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})")
 
         # 5. 計算總評分
         scores = []

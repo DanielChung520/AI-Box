@@ -205,6 +205,9 @@ def _looks_like_create_file_intent(text: str) -> bool:
         "建立檔案",
         "產生檔案",
         "生成檔案",
+        "生成文件",  # 修改時間：2026-01-06 - 添加「生成文件」關鍵詞
+        "幫我生成文件",  # 修改時間：2026-01-06 - 添加「幫我生成文件」關鍵詞
+        "幫我生成檔案",  # 修改時間：2026-01-06 - 添加「幫我生成檔案」關鍵詞
         "輸出成檔案",
         "輸出成文件",
         "寫成檔案",
@@ -212,6 +215,15 @@ def _looks_like_create_file_intent(text: str) -> bool:
         "保存成",
         "存成",
         "另存",
+        "做成一份文件",
+        "做成一份檔案",
+        "做成文件",
+        "做成檔案",
+        "做成一份",
+        "製作成文件",
+        "製作成檔案",
+        "製作文件",
+        "製作檔案",
     ]
     if any(k in t for k in keywords):
         return True
@@ -264,9 +276,45 @@ def _parse_target_path(text: str) -> tuple[Optional[str], Optional[str]]:
 
 
 def _default_filename_for_intent(text: str) -> str:
+    """
+    根據用戶意圖生成默認文件名
+
+    修改時間：2026-01-06 - 增強文件名生成邏輯，支持更多意圖識別
+    """
     t = (text or "").strip()
+
+    # 檢查是否包含特定主題（如 "Data Agent"）
+    import re
+
+    # 優先匹配 "主題：XXX" 或 "主題: XXX" 模式
+    topic_pattern = r"主題[：:]\s*([A-Za-z0-9_\-\u4e00-\u9fff\s]+?)(?:\s|，|,|$)"
+    topic_match = re.search(topic_pattern, t, re.IGNORECASE)
+    if topic_match:
+        topic = topic_match.group(1).strip()
+        # 清理主題名稱，移除特殊字符，保留字母、數字、中文、連字符和下劃線
+        topic_clean = re.sub(r"[^\w\-\u4e00-\u9fff]", "_", topic)
+        # 限制長度
+        if len(topic_clean) > 50:
+            topic_clean = topic_clean[:50]
+        if topic_clean:
+            return f"{topic_clean}.md"
+
+    # 匹配 "產生XXX文件"、"生成XXX文件"、"創建XXX文件" 等模式
+    pattern = r"(?:產生|生成|創建|建立|製作|做成|寫成|輸出成|整理成)\s*([A-Za-z0-9_\-\u4e00-\u9fff\s]+?)\s*(?:文件|檔案|文檔|document)"
+    match = re.search(pattern, t, re.IGNORECASE)
+    if match:
+        topic = match.group(1).strip()
+        # 清理主題名稱，移除特殊字符，保留字母、數字、中文、連字符和下劃線
+        topic_clean = re.sub(r"[^\w\-\u4e00-\u9fff]", "_", topic)
+        # 限制長度
+        if len(topic_clean) > 50:
+            topic_clean = topic_clean[:50]
+        return f"{topic_clean}.md"
+
+    # 原有邏輯
     if "整理" in t and "對話" in t:
         return "conversation-summary.md"
+
     return "ai-output.md"
 
 
@@ -567,72 +615,199 @@ def _try_create_file_from_chat_output(
     assistant_text: str,
     task_id: Optional[str],
     current_user: User,
+    force_create: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """
     若 user_text 呈現建檔意圖，將 assistant_text 寫入 task workspace（預設根目錄）。
     若指定目錄（如 docs/a.md），則建立對應邏輯資料夾（folder_metadata）並將 file_metadata.folder_id 指向該資料夾。
+
+    Args:
+        user_text: 用戶輸入文本
+        assistant_text: AI 生成的文本內容
+        task_id: 任務 ID
+        current_user: 當前用戶
+        force_create: 如果為 True，強制創建文件（不依賴關鍵詞匹配），用於 Task Analyzer 識別出的文檔創建意圖
     """
+    # 修改時間：2026-01-06 - 添加詳細日誌追蹤文件創建流程
+    logger.info(
+        "try_create_file_start",
+        task_id=task_id,
+        user_id=current_user.user_id if current_user else None,
+        user_text=user_text[:200],
+        assistant_text_length=len(assistant_text),
+        force_create=force_create,
+    )
+
     if not task_id:
-        return None
-    if not _looks_like_create_file_intent(user_text):
+        logger.warning(
+            "try_create_file_no_task_id",
+            user_text=user_text[:200],
+            note="task_id is None, cannot create file",
+        )
         return None
 
+    # 如果 force_create=True，跳過關鍵詞匹配（用於 Task Analyzer 語義分析識別的意圖）
+    if not force_create:
+        if not _looks_like_create_file_intent(user_text):
+            logger.info(
+                "try_create_file_no_intent_match",
+                task_id=task_id,
+                user_text=user_text[:200],
+                note="does not look like create file intent",
+            )
+            return None
+
     folder_path, filename = _parse_target_path(user_text)
+    logger.info(
+        "try_create_file_parsed_path",
+        task_id=task_id,
+        folder_path=folder_path,
+        filename=filename,
+        user_text=user_text[:200],
+    )
+
     if not filename:
         filename = _default_filename_for_intent(user_text)
+        logger.info(
+            "try_create_file_using_default_filename",
+            task_id=task_id,
+            default_filename=filename,
+            user_text=user_text[:200],
+        )
 
     # 只允許 md/txt/json
     ext = Path(filename).suffix.lower()
+    logger.info(
+        "try_create_file_checking_extension",
+        task_id=task_id,
+        filename=filename,
+        extension=ext,
+    )
+
     if ext not in (".md", ".txt", ".json"):
+        logger.warning(
+            "try_create_file_invalid_extension",
+            task_id=task_id,
+            filename=filename,
+            extension=ext,
+            note="only .md, .txt, .json are allowed",
+        )
         return None
 
     # 權限：需要能在 task 下新增/更新檔案
-    perm = get_file_permission_service()
-    perm.check_task_file_access(
-        user=current_user,
-        task_id=task_id,
-        required_permission=Permission.FILE_UPDATE.value,
-    )
-    perm.check_upload_permission(user=current_user)
+    try:
+        perm = get_file_permission_service()
+        perm.check_task_file_access(
+            user=current_user,
+            task_id=task_id,
+            required_permission=Permission.FILE_UPDATE.value,
+        )
+        perm.check_upload_permission(user=current_user)
+        logger.info(
+            "try_create_file_permission_check_passed",
+            task_id=task_id,
+            filename=filename,
+        )
+    except Exception as perm_error:
+        logger.error(
+            "try_create_file_permission_check_failed",
+            task_id=task_id,
+            filename=filename,
+            error=str(perm_error),
+            exc_info=True,
+        )
+        return None
 
     folder_id = None
     if folder_path:
-        folder_id = _ensure_folder_path(
-            task_id=task_id,
-            user_id=current_user.user_id,
-            folder_path=folder_path,
-        )
+        try:
+            folder_id = _ensure_folder_path(
+                task_id=task_id,
+                user_id=current_user.user_id,
+                folder_path=folder_path,
+            )
+            logger.info(
+                "try_create_file_folder_ensured",
+                task_id=task_id,
+                folder_path=folder_path,
+                folder_id=folder_id,
+            )
+        except Exception as folder_error:
+            logger.error(
+                "try_create_file_folder_creation_failed",
+                task_id=task_id,
+                folder_path=folder_path,
+                error=str(folder_error),
+                exc_info=True,
+            )
+            return None
 
-    content_bytes = (assistant_text or "").rstrip("\n").encode("utf-8") + b"\n"
-    storage = get_storage()
-    file_id, storage_path = storage.save_file(
-        file_content=content_bytes,
-        filename=filename,
-        task_id=task_id,
-    )
-
-    metadata_service = get_metadata_service()
-    metadata_service.create(
-        FileMetadataCreate(
-            file_id=file_id,
+    try:
+        content_bytes = (assistant_text or "").rstrip("\n").encode("utf-8") + b"\n"
+        storage = get_storage()
+        file_id, storage_path = storage.save_file(
+            file_content=content_bytes,
             filename=filename,
-            file_type=_file_type_for_filename(filename),
-            file_size=len(content_bytes),
-            processing_status=None,  # type: ignore[call-arg]  # 所有參數都是 Optional
-            chunk_count=None,  # type: ignore[call-arg]
-            vector_count=None,  # type: ignore[call-arg]
-            kg_status=None,  # type: ignore[call-arg]
-            user_id=current_user.user_id,
             task_id=task_id,
-            folder_id=folder_id,
-            storage_path=storage_path,
-            tags=["genai", "chat"],
-            description="Created from chat intent",
-            status="generated",
         )
-    )
+        logger.info(
+            "try_create_file_storage_saved",
+            task_id=task_id,
+            filename=filename,
+            file_id=file_id,
+            storage_path=storage_path,
+            content_size=len(content_bytes),
+        )
+    except Exception as storage_error:
+        logger.error(
+            "try_create_file_storage_save_failed",
+            task_id=task_id,
+            filename=filename,
+            error=str(storage_error),
+            exc_info=True,
+        )
+        return None
 
-    return {
+    try:
+        metadata_service = get_metadata_service()
+        metadata_service.create(
+            FileMetadataCreate(
+                file_id=file_id,
+                filename=filename,
+                file_type=_file_type_for_filename(filename),
+                file_size=len(content_bytes),
+                processing_status=None,  # type: ignore[call-arg]  # 所有參數都是 Optional
+                chunk_count=None,  # type: ignore[call-arg]
+                vector_count=None,  # type: ignore[call-arg]
+                kg_status=None,  # type: ignore[call-arg]
+                user_id=current_user.user_id,
+                task_id=task_id,
+                folder_id=folder_id,
+                storage_path=storage_path,
+                tags=["genai", "chat"],
+                description="Created from chat intent",
+                status="generated",
+            )
+        )
+        logger.info(
+            "try_create_file_metadata_created",
+            task_id=task_id,
+            filename=filename,
+            file_id=file_id,
+        )
+    except Exception as metadata_error:
+        logger.error(
+            "try_create_file_metadata_creation_failed",
+            task_id=task_id,
+            filename=filename,
+            file_id=file_id,
+            error=str(metadata_error),
+            exc_info=True,
+        )
+        # 即使 metadata 創建失敗，也返回文件創建結果（因為文件已經保存）
+        # 但記錄錯誤以便後續修復
+
+    result = {
         "type": "file_created",
         "file_id": file_id,
         "filename": filename,
@@ -640,6 +815,16 @@ def _try_create_file_from_chat_output(
         "folder_id": folder_id,
         "folder_path": folder_path,
     }
+
+    logger.info(
+        "try_create_file_success",
+        task_id=task_id,
+        filename=filename,
+        file_id=file_id,
+        result=result,
+    )
+
+    return result
 
 
 def _record_if_changed(
@@ -804,8 +989,20 @@ async def _process_chat_request(
     # ============================================
     # 集成 Task Analyzer（4 层渐进式路由架构）
     # ============================================
+    task_analyzer_result = None
     try:
+        # 修改時間：2026-01-06 - 添加調試日誌確認代碼執行路徑
+        import sys
+
+        sys.stderr.write(
+            f"\n[task_analyzer] 🔍 開始調用 Task Analyzer (非流式)，用戶查詢: {last_user_text[:100]}...\n"
+        )
+        sys.stderr.flush()
+
         task_analyzer = get_task_analyzer()
+        # 修改時間：2026-01-06 - 將 allowed_tools 傳遞給 Task Analyzer，讓 Capability Matcher 優先考慮啟用的工具
+        # 注意：allowed_tools 需要從 request_body 中獲取
+        allowed_tools_for_analyzer = request_body.allowed_tools or []
         analysis_result = await task_analyzer.analyze(
             TaskAnalysisRequest(
                 task=last_user_text,
@@ -814,11 +1011,105 @@ async def _process_chat_request(
                     "session_id": session_id,
                     "task_id": task_id,
                     "request_id": request_id,
+                    "allowed_tools": allowed_tools_for_analyzer,  # ✅ 傳遞 allowed_tools
                 },
                 user_id=current_user.user_id,
                 session_id=session_id,
             )
         )
+        task_analyzer_result = analysis_result
+
+        # 修改時間：2026-01-06 - 添加詳細的 Console Log 輸出 Task Analyzer 分析結果
+        # 使用 sys.stderr 確保輸出到控制台（不被重定向）
+        import sys
+
+        log_lines = []
+        log_lines.append("\n" + "=" * 80)
+        log_lines.append("[task_analyzer] Task Analyzer 分析結果")
+        log_lines.append("=" * 80)
+        log_lines.append(f"[task_analyzer] 用戶查詢: {last_user_text}")
+        log_lines.append(f"[task_analyzer] Request ID: {request_id}")
+        log_lines.append(f"[task_analyzer] Task ID: {task_id}")
+        log_lines.append(f"[task_analyzer] Session ID: {session_id}")
+        log_lines.append(f"[task_analyzer] Allowed Tools: {allowed_tools_for_analyzer}")
+
+        if task_analyzer_result:
+            # Router Decision 信息
+            router_decision = (
+                task_analyzer_result.router_decision
+                if hasattr(task_analyzer_result, "router_decision")
+                else None
+            )
+            if router_decision:
+                log_lines.append("\n[task_analyzer] Router Decision:")
+                log_lines.append(f"  - Intent Type: {router_decision.intent_type}")
+                log_lines.append(f"  - Complexity: {router_decision.complexity}")
+                log_lines.append(f"  - Needs Agent: {router_decision.needs_agent}")
+                log_lines.append(f"  - Needs Tools: {router_decision.needs_tools}")
+                log_lines.append(
+                    f"  - Determinism Required: {router_decision.determinism_required}"
+                )
+                log_lines.append(f"  - Risk Level: {router_decision.risk_level}")
+                log_lines.append(f"  - Confidence: {router_decision.confidence}")
+
+            # Decision Result 信息
+            decision_result = (
+                task_analyzer_result.decision_result
+                if hasattr(task_analyzer_result, "decision_result")
+                else None
+            )
+            if decision_result:
+                log_lines.append("\n[task_analyzer] Decision Result:")
+                log_lines.append(f"  - Chosen Agent: {decision_result.chosen_agent}")
+                log_lines.append(f"  - Chosen Tools: {decision_result.chosen_tools}")
+                log_lines.append(f"  - Chosen Model: {decision_result.chosen_model}")
+                log_lines.append(f"  - Score: {decision_result.score}")
+                log_lines.append(f"  - Reasoning: {decision_result.reasoning}")
+                log_lines.append(f"  - Fallback Used: {decision_result.fallback_used}")
+
+            # Analysis Details
+            analysis_details = (
+                task_analyzer_result.analysis_details
+                if hasattr(task_analyzer_result, "analysis_details")
+                else {}
+            )
+            if analysis_details:
+                log_lines.append("\n[task_analyzer] Analysis Details:")
+                log_lines.append(f"  - Layer: {analysis_details.get('layer', 'N/A')}")
+                log_lines.append(
+                    f"  - Direct Answer: {analysis_details.get('direct_answer', False)}"
+                )
+                if analysis_details.get("direct_answer"):
+                    log_lines.append(
+                        f"  - Response: {str(analysis_details.get('response', ''))[:200]}..."
+                    )
+
+            # 特別標註文件創建相關的判斷
+            decision_result = (
+                task_analyzer_result.decision_result
+                if hasattr(task_analyzer_result, "decision_result")
+                else None
+            )
+            if decision_result and decision_result.chosen_tools:
+                has_doc_editing = (
+                    "document_editing" in decision_result.chosen_tools
+                    or "file_editing" in decision_result.chosen_tools
+                )
+                log_lines.append("\n[task_analyzer] 📁 文件創建判斷:")
+                log_lines.append(f"  - Document Editing Tool Selected: {has_doc_editing}")
+                if has_doc_editing:
+                    log_lines.append("  - ✅ 系統將嘗試創建文件")
+                else:
+                    log_lines.append("  - ⚠️  未選擇 document_editing 工具，將使用關鍵詞匹配作為 fallback")
+        else:
+            log_lines.append("\n[task_analyzer] ⚠️  Task Analyzer 結果為 None")
+
+        log_lines.append("=" * 80 + "\n")
+
+        # 輸出到 stderr（確保顯示在控制台）
+        for line in log_lines:
+            sys.stderr.write(line + "\n")
+            sys.stderr.flush()
 
         # 检查是否是 Layer 1 直接答案
         if analysis_result.analysis_details.get("direct_answer"):
@@ -855,6 +1146,10 @@ async def _process_chat_request(
                 return response
     except Exception as analyzer_error:
         # Task Analyzer 失败不影响主流程，记录日志后继续
+        import sys
+
+        sys.stderr.write(f"\n[task_analyzer] ❌ Task Analyzer 執行失敗 (非流式): {str(analyzer_error)}\n")
+        sys.stderr.flush()
         logger.warning(
             "task_analyzer_failed",
             request_id=request_id,
@@ -1084,11 +1379,32 @@ async def _process_chat_request(
             actions = [edit_action]
         else:
             # 如果沒有編輯意圖，嘗試創建檔案
+            # 修改時間：2026-01-06 - 如果 Task Analyzer 選擇了 document_editing 工具，強制創建文件
+            force_create = False
+            if task_analyzer_result:
+                decision_result = task_analyzer_result.decision_result
+                if (
+                    decision_result
+                    and decision_result.chosen_tools
+                    and (
+                        "document_editing" in decision_result.chosen_tools
+                        or "file_editing" in decision_result.chosen_tools
+                    )
+                ):
+                    force_create = True
+                    logger.info(
+                        "force_create_file_based_on_task_analyzer",
+                        request_id=request_id,
+                        chosen_tools=decision_result.chosen_tools,
+                        note="Task Analyzer identified document creation intent via semantic analysis",
+                    )
+
             create_action = _try_create_file_from_chat_output(
                 user_text=last_user_text,
                 assistant_text=content,
                 task_id=task_id,
                 current_user=current_user,
+                force_create=force_create,
             )
             if create_action:
                 actions = [create_action]
@@ -1168,6 +1484,10 @@ async def chat_product_stream(
     - Auto：TaskClassifier → task_classification → 選擇 provider → 調用客戶端 stream
     - Manual/Favorite：以 model_id 推導 provider，並做 provider/model override
     """
+    import time
+
+    stream_start_time = time.time()
+
     moe = get_moe_manager()
     classifier = get_task_classifier()
     context_manager = get_context_manager()
@@ -1181,9 +1501,30 @@ async def chat_product_stream(
 
     messages = [m.model_dump() for m in request_body.messages]
     model_selector = request_body.model_selector
+    last_user_text = messages[-1].get("content", "") if messages else ""
+
+    # 修改時間：2026-01-06 - 在入口處添加詳細日誌，使用標準 logging 確保日誌被記錄
+    import logging
+
+    std_logger = logging.getLogger("api.routers.chat")
+    std_logger.info(
+        f"[{request_id}] chat_product_stream START - task_id={task_id}, user_id={current_user.user_id}, "
+        f"user_text={last_user_text[:100]}, session_id={session_id}"
+    )
 
     # 記錄工具信息
     allowed_tools = request_body.allowed_tools or []
+
+    # 修改時間：2026-01-06 - 文件編輯時自動添加 datetime 工具
+    # 如果 Assistant 支持文件編輯（document_editing），自動添加 datetime 工具用於記錄時間戳
+    if "document_editing" in allowed_tools or "file_editing" in allowed_tools:
+        if "datetime" not in allowed_tools:
+            allowed_tools.append("datetime")
+            logger.info(
+                "auto_added_datetime_tool_for_file_editing",
+                request_id=request_id,
+                allowed_tools=allowed_tools,
+            )
 
     # 添加详细的工具日志
     logger.info(
@@ -1280,7 +1621,16 @@ async def chat_product_stream(
             # ============================================
             task_analyzer_result = None
             try:
+                # 修改時間：2026-01-06 - 添加調試日誌確認代碼執行路徑
+                import sys
+
+                sys.stderr.write(
+                    f"\n[task_analyzer] 🔍 開始調用 Task Analyzer，用戶查詢: {last_user_text[:100]}...\n"
+                )
+                sys.stderr.flush()
+
                 task_analyzer = get_task_analyzer()
+                # 修改時間：2026-01-06 - 將 allowed_tools 傳遞給 Task Analyzer，讓 Capability Matcher 優先考慮啟用的工具
                 analysis_result = await task_analyzer.analyze(
                     TaskAnalysisRequest(
                         task=last_user_text,
@@ -1289,6 +1639,7 @@ async def chat_product_stream(
                             "session_id": session_id,
                             "task_id": task_id,
                             "request_id": request_id,
+                            "allowed_tools": allowed_tools,  # ✅ 傳遞 allowed_tools
                         },
                         user_id=current_user.user_id,
                         session_id=session_id,
@@ -1296,6 +1647,93 @@ async def chat_product_stream(
                 )
                 task_analyzer_result = analysis_result
 
+                # 修改時間：2026-01-06 - 添加詳細的 Console Log 輸出 Task Analyzer 分析結果
+                # 使用 sys.stderr 確保輸出到控制台（不被重定向）
+
+                log_lines = []
+                log_lines.append("\n" + "=" * 80)
+                log_lines.append("[task_analyzer] Task Analyzer 分析結果 (流式)")
+                log_lines.append("=" * 80)
+                log_lines.append(f"[task_analyzer] 用戶查詢: {last_user_text}")
+                log_lines.append(f"[task_analyzer] Request ID: {request_id}")
+                log_lines.append(f"[task_analyzer] Task ID: {task_id}")
+                log_lines.append(f"[task_analyzer] Session ID: {session_id}")
+                log_lines.append(f"[task_analyzer] Allowed Tools: {allowed_tools}")
+
+                if task_analyzer_result:
+                    # Router Decision 信息
+                    router_decision = (
+                        task_analyzer_result.router_decision
+                        if hasattr(task_analyzer_result, "router_decision")
+                        else None
+                    )
+                    if router_decision:
+                        log_lines.append("\n[task_analyzer] Router Decision:")
+                        log_lines.append(f"  - Intent Type: {router_decision.intent_type}")
+                        log_lines.append(f"  - Complexity: {router_decision.complexity}")
+                        log_lines.append(f"  - Needs Agent: {router_decision.needs_agent}")
+                        log_lines.append(f"  - Needs Tools: {router_decision.needs_tools}")
+                        log_lines.append(
+                            f"  - Determinism Required: {router_decision.determinism_required}"
+                        )
+                        log_lines.append(f"  - Risk Level: {router_decision.risk_level}")
+                        log_lines.append(f"  - Confidence: {router_decision.confidence}")
+
+                    # Decision Result 信息
+                    decision_result = (
+                        task_analyzer_result.decision_result
+                        if hasattr(task_analyzer_result, "decision_result")
+                        else None
+                    )
+                    if decision_result:
+                        log_lines.append("\n[task_analyzer] Decision Result:")
+                        log_lines.append(f"  - Chosen Agent: {decision_result.chosen_agent}")
+                        log_lines.append(f"  - Chosen Tools: {decision_result.chosen_tools}")
+                        log_lines.append(f"  - Chosen Model: {decision_result.chosen_model}")
+                        log_lines.append(f"  - Score: {decision_result.score}")
+                        log_lines.append(f"  - Reasoning: {decision_result.reasoning}")
+                        log_lines.append(f"  - Fallback Used: {decision_result.fallback_used}")
+
+                    # Analysis Details
+                    analysis_details = (
+                        task_analyzer_result.analysis_details
+                        if hasattr(task_analyzer_result, "analysis_details")
+                        else {}
+                    )
+                    if analysis_details:
+                        log_lines.append("\n[task_analyzer] Analysis Details:")
+                        log_lines.append(f"  - Layer: {analysis_details.get('layer', 'N/A')}")
+                        log_lines.append(
+                            f"  - Direct Answer: {analysis_details.get('direct_answer', False)}"
+                        )
+                        if analysis_details.get("direct_answer"):
+                            log_lines.append(
+                                f"  - Response: {str(analysis_details.get('response', ''))[:200]}..."
+                            )
+
+                    # 特別標註文件創建相關的判斷
+                    if decision_result and decision_result.chosen_tools:
+                        has_doc_editing = (
+                            "document_editing" in decision_result.chosen_tools
+                            or "file_editing" in decision_result.chosen_tools
+                        )
+                        log_lines.append("\n[task_analyzer] 📁 文件創建判斷:")
+                        log_lines.append(f"  - Document Editing Tool Selected: {has_doc_editing}")
+                        if has_doc_editing:
+                            log_lines.append("  - ✅ 系統將嘗試創建文件")
+                        else:
+                            log_lines.append("  - ⚠️  未選擇 document_editing 工具，將使用關鍵詞匹配作為 fallback")
+                else:
+                    log_lines.append("\n[task_analyzer] ⚠️  Task Analyzer 結果為 None")
+
+                log_lines.append("=" * 80 + "\n")
+
+                # 輸出到 stderr（確保顯示在控制台）
+                for line in log_lines:
+                    sys.stderr.write(line + "\n")
+                    sys.stderr.flush()
+
+                # 修改時間：2026-01-06 - 添加詳細日誌追蹤 Task Analyzer 結果
                 logger.info(
                     "task_analyzer_result_assigned",
                     request_id=request_id,
@@ -1310,6 +1748,23 @@ async def chat_product_stream(
                         if task_analyzer_result and task_analyzer_result.decision_result
                         else None
                     ),
+                    router_needs_tools=(
+                        task_analyzer_result.router_decision.needs_tools
+                        if task_analyzer_result and task_analyzer_result.router_decision
+                        else None
+                    ),
+                    router_intent_type=(
+                        task_analyzer_result.router_decision.intent_type
+                        if task_analyzer_result and task_analyzer_result.router_decision
+                        else None
+                    ),
+                    router_confidence=(
+                        task_analyzer_result.router_decision.confidence
+                        if task_analyzer_result and task_analyzer_result.router_decision
+                        else None
+                    ),
+                    user_text=last_user_text[:200],
+                    note="Task Analyzer result - check if document_editing tool was selected",
                 )
 
                 # 检查是否是 Layer 1 直接答案
@@ -1341,6 +1796,10 @@ async def chat_product_stream(
                         return
             except Exception as analyzer_error:
                 # Task Analyzer 失败不影响主流程，记录日志后继续
+                import sys
+
+                sys.stderr.write(f"\n[task_analyzer] ❌ Task Analyzer 執行失敗: {str(analyzer_error)}\n")
+                sys.stderr.flush()
                 logger.warning(
                     "task_analyzer_failed",
                     request_id=request_id,
@@ -1454,6 +1913,17 @@ async def chat_product_stream(
                             elif tool_name == "web_search":
                                 # WebSearchTool 会在后面的代码中处理
                                 should_trigger_web_search = True
+                            elif tool_name in ["document_editing", "file_editing"]:
+                                # document_editing 工具：Task Analyzer 通過語義分析識別出需要文檔編輯工具
+                                # 注意：這裡不依賴關鍵詞匹配，而是依賴 Task Analyzer 的語義分析結果
+                                logger.info(
+                                    "document_editing_tool_selected_by_task_analyzer",
+                                    request_id=request_id,
+                                    user_text=last_user_text[:200],
+                                    note="Task Analyzer identified document editing intent via semantic analysis",
+                                )
+                                # document_editing 工具的執行會在 AI 回復生成後，通過 _try_create_file_from_chat_output 處理
+                                # 這裡只記錄日志，實際的文檔生成會在 System Prompt 增強後由 AI 完成
                             else:
                                 # 其他工具：尝试通用执行方式
                                 logger.warning(
@@ -1654,7 +2124,9 @@ async def chat_product_stream(
                                         result_repr=str(result)[:200],
                                     )
                                     # 如果格式化失败，至少添加基本信息
-                                    search_summary += f"{i}. 搜索結果 {i} (格式化失敗: {str(format_error)[:50]})\n\n"
+                                    search_summary += (
+                                        f"{i}. 搜索結果 {i} (格式化失敗: {str(format_error)[:50]})\n\n"
+                                    )
 
                             logger.info(
                                 "web_search_summary_created",
@@ -1673,8 +2145,7 @@ async def chat_product_stream(
                             # 在搜索結果前添加明确的提示，让AI知道这是真实搜索结果
                             search_summary_with_note = (
                                 "\n\n【重要提示：以下是真實的網絡搜索結果，請基於這些結果回答問題。"
-                                "如果搜索結果中沒有相關信息，請明確說明，不要編造內容。】\n"
-                                + search_summary
+                                "如果搜索結果中沒有相關信息，請明確說明，不要編造內容。】\n" + search_summary
                             )
 
                             if windowed_history:
@@ -1747,6 +2218,63 @@ async def chat_product_stream(
                 )
 
             base_system = system_messages[:1] if system_messages else []
+
+            # 修改時間：2026-01-06 - 如果 Task Analyzer 選擇了 document_editing 工具，增強 System Prompt 指示 AI 生成文檔內容
+            # 注意：這裡不依賴關鍵詞匹配，而是依賴 Task Analyzer 的語義分析結果
+            if task_analyzer_result:
+                decision_result = task_analyzer_result.decision_result
+                if (
+                    decision_result
+                    and decision_result.chosen_tools
+                    and (
+                        "document_editing" in decision_result.chosen_tools
+                        or "file_editing" in decision_result.chosen_tools
+                    )
+                ):
+                    # Task Analyzer 通過語義分析識別出需要 document_editing 工具
+                    # 解析目標文件名（如果用戶指定了）
+                    folder_path, filename = _parse_target_path(last_user_text)
+                    if not filename:
+                        filename = _default_filename_for_intent(last_user_text)
+
+                    # 構建文檔生成指示
+                    doc_format = Path(filename).suffix.lower().lstrip(".")
+                    if doc_format not in ["md", "txt", "json"]:
+                        doc_format = "md"
+
+                    # 添加 System Prompt 指示
+                    document_generation_instruction = (
+                        f"\n\n【重要：用戶要求生成文檔】\n"
+                        f"用戶指令：{last_user_text}\n"
+                        f"目標文件名：{filename}\n"
+                        f"文檔格式：{doc_format}\n\n"
+                        f"請根據用戶指令生成完整的文檔內容（Markdown 格式）。\n"
+                        f"- 不要輸出解釋文字，只輸出文檔內容\n"
+                        f"- 文檔應該包含完整的結構和內容\n"
+                        f"- 如果用戶要求生成特定主題的文檔（如「Data Agent 的說明」），請生成該主題的完整文檔\n"
+                        f"- 文檔應該包含標題、章節、詳細說明等完整內容\n"
+                    )
+
+                    # 將指示添加到 System Message
+                    if base_system and len(base_system) > 0:
+                        base_system[0]["content"] = (
+                            base_system[0].get("content", "") + document_generation_instruction
+                        )
+                    else:
+                        base_system = [
+                            {"role": "system", "content": document_generation_instruction}
+                        ]
+
+                    logger.info(
+                        "document_generation_intent_detected_via_task_analyzer",
+                        request_id=request_id,
+                        user_text=last_user_text[:200],
+                        filename=filename,
+                        doc_format=doc_format,
+                        chosen_tools=decision_result.chosen_tools,
+                        note="Task Analyzer identified document creation intent, added instruction to system prompt",
+                    )
+
             messages_for_llm = base_system + memory_result.injection_messages + windowed_history
 
             # 準備 MoE context
@@ -1940,9 +2468,206 @@ async def chat_product_stream(
                 },
             )
 
+            # 修改時間：2026-01-06 - 如果 Task Analyzer 選擇了 document_editing 工具，嘗試創建文件
+            # 注意：這裡不依賴關鍵詞匹配，而是依賴 Task Analyzer 的語義分析結果
+            try:
+                # 添加詳細日誌追蹤
+                logger.info(
+                    "checking_file_creation_intent",
+                    request_id=request_id,
+                    has_task_analyzer_result=task_analyzer_result is not None,
+                    task_id=task_id,
+                    user_text=last_user_text[:200],
+                    content_length=len(full_content),
+                )
+
+                if task_analyzer_result:
+                    decision_result = task_analyzer_result.decision_result
+                    logger.info(
+                        "task_analyzer_decision_result_check",
+                        request_id=request_id,
+                        has_decision_result=decision_result is not None,
+                        chosen_tools=decision_result.chosen_tools if decision_result else None,
+                        needs_tools=decision_result.needs_tools if decision_result else None,
+                        intent_type=decision_result.intent_type if decision_result else None,
+                    )
+
+                    if (
+                        decision_result
+                        and decision_result.chosen_tools
+                        and (
+                            "document_editing" in decision_result.chosen_tools
+                            or "file_editing" in decision_result.chosen_tools
+                        )
+                    ):
+                        # Task Analyzer 通過語義分析識別出需要 document_editing 工具
+                        logger.info(
+                            "document_editing_tool_detected_for_file_creation",
+                            request_id=request_id,
+                            chosen_tools=decision_result.chosen_tools,
+                            task_id=task_id,
+                            note="Attempting to create file",
+                        )
+
+                        # 嘗試創建文件（不依賴關鍵詞匹配）
+                        create_action = _try_create_file_from_chat_output(
+                            user_text=last_user_text,
+                            assistant_text=full_content,
+                            task_id=task_id,
+                            current_user=current_user,
+                            force_create=True,  # 強制創建，不依賴關鍵詞匹配
+                        )
+                        if create_action:
+                            logger.info(
+                                "file_created_from_stream",
+                                request_id=request_id,
+                                file_id=create_action.get("file_id"),
+                                filename=create_action.get("filename"),
+                                note="File created based on Task Analyzer semantic analysis",
+                            )
+                            # 發送文件創建事件
+                            yield f"data: {json.dumps({'type': 'file_created', 'data': create_action})}\n\n"
+                        else:
+                            logger.warning(
+                                "file_creation_returned_none",
+                                request_id=request_id,
+                                task_id=task_id,
+                                user_text=last_user_text[:200],
+                                note="File creation function returned None, check logs for details",
+                            )
+                    else:
+                        # 修改時間：2026-01-06 - 添加詳細日誌追蹤為什麼沒有選擇 document_editing 工具
+                        router_decision = (
+                            task_analyzer_result.router_decision
+                            if task_analyzer_result
+                            and hasattr(task_analyzer_result, "router_decision")
+                            else None
+                        )
+                        logger.info(
+                            "document_editing_tool_not_detected",
+                            request_id=request_id,
+                            has_decision_result=decision_result is not None,
+                            chosen_tools=decision_result.chosen_tools if decision_result else None,
+                            router_needs_tools=router_decision.needs_tools
+                            if router_decision
+                            else None,
+                            router_intent_type=router_decision.intent_type
+                            if router_decision
+                            else None,
+                            router_confidence=router_decision.confidence
+                            if router_decision
+                            else None,
+                            user_text=last_user_text[:200],
+                            note="❌ Task Analyzer did not select document_editing tool - check Router LLM, Capability Matcher, and Decision Engine logs",
+                        )
+
+                        # 修改時間：2026-01-06 - Fallback：如果 Task Analyzer 沒有選擇 document_editing 工具，但用戶文本包含文件創建關鍵詞，也嘗試創建文件
+                        if _looks_like_create_file_intent(last_user_text):
+                            logger.info(
+                                "fallback_to_keyword_matching_for_file_creation",
+                                request_id=request_id,
+                                task_id=task_id,
+                                user_text=last_user_text[:200],
+                                note="Task Analyzer did not select document_editing tool, but user text contains file creation keywords - attempting file creation via keyword matching",
+                            )
+
+                            # 嘗試創建文件（使用關鍵詞匹配）
+                            create_action = _try_create_file_from_chat_output(
+                                user_text=last_user_text,
+                                assistant_text=full_content,
+                                task_id=task_id,
+                                current_user=current_user,
+                                force_create=False,  # 使用關鍵詞匹配
+                            )
+                            if create_action:
+                                logger.info(
+                                    "file_created_from_stream_via_keyword_fallback",
+                                    request_id=request_id,
+                                    file_id=create_action.get("file_id"),
+                                    filename=create_action.get("filename"),
+                                    note="File created via keyword matching fallback",
+                                )
+                                # 發送文件創建事件
+                                yield f"data: {json.dumps({'type': 'file_created', 'data': create_action})}\n\n"
+                            else:
+                                logger.warning(
+                                    "file_creation_fallback_returned_none",
+                                    request_id=request_id,
+                                    task_id=task_id,
+                                    user_text=last_user_text[:200],
+                                    note="File creation via keyword matching returned None, check logs for details",
+                                )
+                else:
+                    logger.info(
+                        "no_task_analyzer_result",
+                        request_id=request_id,
+                        note="Task Analyzer result is None, cannot check for document creation intent",
+                    )
+
+                    # 修改時間：2026-01-06 - Fallback：如果 Task Analyzer 結果為 None，但用戶文本包含文件創建關鍵詞，也嘗試創建文件
+                    if _looks_like_create_file_intent(last_user_text):
+                        logger.info(
+                            "fallback_to_keyword_matching_no_task_analyzer",
+                            request_id=request_id,
+                            task_id=task_id,
+                            user_text=last_user_text[:200],
+                            note="Task Analyzer result is None, but user text contains file creation keywords - attempting file creation via keyword matching",
+                        )
+
+                        # 嘗試創建文件（使用關鍵詞匹配）
+                        create_action = _try_create_file_from_chat_output(
+                            user_text=last_user_text,
+                            assistant_text=full_content,
+                            task_id=task_id,
+                            current_user=current_user,
+                            force_create=False,  # 使用關鍵詞匹配
+                        )
+                        if create_action:
+                            logger.info(
+                                "file_created_from_stream_via_keyword_fallback_no_analyzer",
+                                request_id=request_id,
+                                file_id=create_action.get("file_id"),
+                                filename=create_action.get("filename"),
+                                note="File created via keyword matching fallback (no Task Analyzer result)",
+                            )
+                            # 發送文件創建事件
+                            yield f"data: {json.dumps({'type': 'file_created', 'data': create_action})}\n\n"
+                        else:
+                            logger.warning(
+                                "file_creation_fallback_no_analyzer_returned_none",
+                                request_id=request_id,
+                                task_id=task_id,
+                                user_text=last_user_text[:200],
+                                note="File creation via keyword matching returned None (no Task Analyzer result), check logs for details",
+                            )
+            except Exception as file_create_exc:
+                stream_elapsed_time = time.time() - stream_start_time
+                std_logger.error(
+                    f"[{request_id}] file_creation_failed_in_stream after {stream_elapsed_time:.2f}s - {file_create_exc}",
+                    exc_info=True,
+                )
+                logger.error(
+                    "file_creation_failed_in_stream",
+                    request_id=request_id,
+                    error=str(file_create_exc),
+                    exc_info=True,
+                )
+
         except Exception as exc:
+            stream_elapsed_time = time.time() - stream_start_time
+            std_logger.error(
+                f"[{request_id}] chat_product_stream ERROR after {stream_elapsed_time:.2f}s - {exc}",
+                exc_info=True,
+            )
             logger.error(f"Streaming chat error: {exc}", exc_info=True)
             yield f"data: {json.dumps({'type': 'error', 'data': {'error': str(exc)}})}\n\n"
+
+        # 修改時間：2026-01-06 - 在流式響應結束時記錄完成日誌
+        stream_elapsed_time = time.time() - stream_start_time
+        std_logger.info(
+            f"[{request_id}] chat_product_stream COMPLETE - elapsed_time={stream_elapsed_time:.2f}s, "
+            f"task_id={task_id}, user_id={current_user.user_id}"
+        )
 
     return StreamingResponse(
         generate_stream(),
@@ -2758,7 +3483,17 @@ async def set_favorite_models(
     tenant_id: str = Depends(get_current_tenant_id),
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
+    import logging
+
+    std_logger = logging.getLogger("api.routers.chat")
+
     user_id = current_user.user_id
+    normalized: list[str] = []  # 修改時間：2026-01-06 - 確保 normalized 變量始終被定義
+
+    std_logger.info(
+        f"set_favorite_models START - user_id={user_id}, model_ids_count={len(request_body.model_ids)}"
+    )
+
     try:
         # G6：收藏模型寫入前先做 allowlist 過濾（去除不允許者）
         config_resolver = get_genai_config_resolver_service()
@@ -2772,7 +3507,15 @@ async def set_favorite_models(
 
         service = get_user_preference_service()
         normalized = service.set_favorite_models(user_id=user_id, model_ids=filtered)
+
+        std_logger.info(
+            f"set_favorite_models SUCCESS - user_id={user_id}, normalized_count={len(normalized)}"
+        )
     except Exception as exc:  # noqa: BLE001
+        std_logger.error(
+            f"set_favorite_models ERROR - user_id={user_id}, error={exc}",
+            exc_info=True,
+        )
         logger.warning("favorite_models_service_failed", user_id=user_id, error=str(exc))
         # 去重且保序（fallback）
         seen: set[str] = set()
@@ -2784,6 +3527,11 @@ async def set_favorite_models(
             seen.add(mid)
             normalized.append(mid)
         _favorite_models_by_user[user_id] = normalized
+
+        std_logger.info(
+            f"set_favorite_models FALLBACK - user_id={user_id}, normalized_count={len(normalized)}"
+        )
+
     return APIResponse.success(
         data={"model_ids": normalized},
         message="Favorite models updated",

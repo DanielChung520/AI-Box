@@ -312,11 +312,32 @@ class CapabilityMatcher:
             # 提取所需能力
             required_capabilities = self._extract_required_capabilities(router_decision)
 
-            # 從 context 中獲取用戶查詢（用於基於查詢文本的匹配）
+            # 從 context 中獲取用戶查詢和 allowed_tools（用於基於查詢文本的匹配）
             user_query = ""
             if context:
                 user_query = context.get("task", "") or context.get("query", "") or ""
             user_query_lower = user_query.lower() if user_query else ""
+
+            # 修改時間：2026-01-06 - 從 context 中獲取 allowed_tools，優先考慮啟用的工具
+            allowed_tools = context.get("allowed_tools", []) or [] if context else []
+            has_file_editing_enabled = (
+                "document_editing" in allowed_tools or "file_editing" in allowed_tools
+            )
+
+            # 修改時間：2026-01-06 - 添加詳細日誌追蹤文件編輯工具匹配
+            # 修改時間：2026-01-06 - 修復：標準 logging 不支持關鍵字參數，使用 extra 字典
+            logger.info(
+                "capability_matcher_tool_matching_start",
+                extra={
+                    "router_needs_tools": router_decision.needs_tools,
+                    "router_intent_type": router_decision.intent_type,
+                    "allowed_tools": allowed_tools,
+                    "has_file_editing_enabled": has_file_editing_enabled,
+                    "user_query": user_query[:200],
+                    "tools_count": len(tools),
+                    "note": "Starting tool matching - checking if document_editing tool will be matched",
+                },
+            )
 
             matches = []
             for tool in tools:
@@ -327,7 +348,116 @@ class CapabilityMatcher:
 
                 # 基於工具名稱和類別的匹配（優先級最高）
                 name_category_match = 0.0
-                if tool_name == "datetime" and any(
+
+                # 修改時間：2026-01-06 - 如果 Assistant 啟用了文件編輯功能，優先考慮 document_editing 工具
+                if tool_name in ["document_editing", "file_editing"] and has_file_editing_enabled:
+                    # 如果 Assistant 啟用了文件編輯功能，且 Router LLM 判斷需要工具，優先匹配
+                    if router_decision.needs_tools:
+                        # Router LLM 通過語義分析識別出需要工具（包括文件創建/編輯）
+                        # 優先級：如果啟用了文件編輯功能，優先考慮 document_editing 工具
+                        if router_decision.intent_type == "execution":
+                            # 執行操作（文件創建/編輯）= 完美匹配
+                            name_category_match = 1.0
+                            logger.info(
+                                "document_editing_tool_perfect_match",
+                                extra={
+                                    "tool_name": tool_name,
+                                    "intent_type": router_decision.intent_type,
+                                    "name_category_match": name_category_match,
+                                    "user_query": user_query[:200],
+                                    "note": "Perfect match: execution intent + file editing enabled",
+                                },
+                            )
+                        elif router_decision.intent_type in ["retrieval", "analysis"]:
+                            # 檢索或分析操作，也可能需要文件編輯（如生成報告）
+                            name_category_match = 0.95
+                            logger.info(
+                                "document_editing_tool_high_match",
+                                extra={
+                                    "tool_name": tool_name,
+                                    "intent_type": router_decision.intent_type,
+                                    "name_category_match": name_category_match,
+                                    "user_query": user_query[:200],
+                                    "note": "High match: retrieval/analysis intent + file editing enabled",
+                                },
+                            )
+                        else:
+                            # 其他操作，也可能需要文件編輯
+                            name_category_match = 0.9
+                            logger.info(
+                                "document_editing_tool_good_match",
+                                extra={
+                                    "tool_name": tool_name,
+                                    "intent_type": router_decision.intent_type,
+                                    "name_category_match": name_category_match,
+                                    "user_query": user_query[:200],
+                                    "note": "Good match: other intent + file editing enabled",
+                                },
+                            )
+                    else:
+                        logger.info(
+                            "document_editing_tool_not_matched_router_needs_tools_false",
+                            extra={
+                                "tool_name": tool_name,
+                                "router_needs_tools": router_decision.needs_tools,
+                                "user_query": user_query[:200],
+                                "note": "Router LLM did not set needs_tools=true, skipping document_editing tool",
+                            },
+                        )
+                elif (
+                    tool_name in ["document_editing", "file_editing"]
+                    and not has_file_editing_enabled
+                ):
+                    logger.info(
+                        "document_editing_tool_not_enabled",
+                        extra={
+                            "tool_name": tool_name,
+                            "allowed_tools": allowed_tools,
+                            "user_query": user_query[:200],
+                            "note": "document_editing tool not in allowed_tools, Assistant may not have file editing enabled",
+                        },
+                    )
+                    # 修改時間：2026-01-06 - 即使文件編輯工具未啟用，如果查詢中包含文件相關關鍵詞，仍然應該匹配（fallback）
+                    if any(
+                        keyword in user_query_lower
+                        for keyword in [
+                            "做成一份文件",
+                            "做成一份檔案",
+                            "做成文件",
+                            "做成檔案",
+                            "做成一份",
+                            "製作成文件",
+                            "製作成檔案",
+                            "製作文件",
+                            "製作檔案",
+                            "生成文件",
+                            "生成檔案",
+                            "產生文件",
+                            "產生檔案",
+                            "創建文件",
+                            "創建檔案",
+                            "建立文件",
+                            "建立檔案",
+                            "新增文件",
+                            "新增檔案",
+                            "寫成文件",
+                            "寫成檔案",
+                            "輸出成文件",
+                            "輸出成檔案",
+                            "整理成文件",
+                            "整理成檔案",
+                            "編輯文件",
+                            "編輯檔案",
+                            "修改文件",
+                            "修改檔案",
+                            "更新文件",
+                            "更新檔案",
+                        ]
+                    ):
+                        # 關鍵詞匹配（fallback，用於向後兼容）
+                        name_category_match = 0.9
+
+                elif tool_name == "datetime" and any(
                     keyword in user_query_lower
                     for keyword in [
                         "時間",
@@ -360,6 +490,28 @@ class CapabilityMatcher:
                 ):
                     # 天氣類別工具 + 天氣查詢 = 高匹配度
                     name_category_match = 0.9
+                elif tool_category in ["文件編輯", "文檔編輯", "文件處理"] and any(
+                    keyword in user_query_lower
+                    for keyword in [
+                        "做成",
+                        "製作",
+                        "生成",
+                        "產生",
+                        "創建",
+                        "建立",
+                        "新增",
+                        "寫成",
+                        "輸出成",
+                        "整理成",
+                        "編輯",
+                        "修改",
+                        "更新",
+                        "文件",
+                        "檔案",
+                    ]
+                ):
+                    # 文件編輯類別工具 + 文件相關查詢 = 高匹配度
+                    name_category_match = 0.9
 
                 # 簡單的匹配邏輯：檢查工具用途和使用場景
                 tool_capabilities = []
@@ -371,11 +523,7 @@ class CapabilityMatcher:
                 if "查詢" in tool_purpose or "query" in tool_purpose.lower():
                     tool_capabilities.append("query")
                     tool_capabilities.append("retrieval")
-                if (
-                    "時間" in tool_purpose
-                    or "時間" in tool_purpose
-                    or "time" in tool_purpose.lower()
-                ):
+                if "時間" in tool_purpose or "時間" in tool_purpose or "time" in tool_purpose.lower():
                     tool_capabilities.append("time")
                     tool_capabilities.append("retrieval")
                 if "天氣" in tool_purpose or "weather" in tool_purpose.lower():
@@ -421,26 +569,80 @@ class CapabilityMatcher:
                     + 0.10 * stability
                 )
 
-                matches.append(
-                    CapabilityMatch(
-                        candidate_id=tool_name,
-                        candidate_type="tool",
-                        capability_match=capability_match,
-                        cost_score=cost_score,
-                        latency_score=latency_score,
-                        success_history=success_history,
-                        stability=stability,
-                        total_score=total_score,
-                        metadata={
-                            "category": tool.get("category"),
-                            "purpose": tool_purpose,
-                            "use_cases": tool_use_cases,
+                match_obj = CapabilityMatch(
+                    candidate_id=tool_name,
+                    candidate_type="tool",
+                    capability_match=capability_match,
+                    cost_score=cost_score,
+                    latency_score=latency_score,
+                    success_history=success_history,
+                    stability=stability,
+                    total_score=total_score,
+                    metadata={
+                        "category": tool.get("category"),
+                        "purpose": tool_purpose,
+                        "use_cases": tool_use_cases,
+                    },
+                )
+                matches.append(match_obj)
+
+                # 修改時間：2026-01-06 - 添加詳細日誌追蹤 document_editing 工具的匹配結果
+                if tool_name in ["document_editing", "file_editing"]:
+                    logger.info(
+                        "document_editing_tool_match_result",
+                        extra={
+                            "tool_name": tool_name,
+                            "total_score": total_score,
+                            "capability_match": capability_match,
+                            "name_category_match": name_category_match,
+                            "cost_score": cost_score,
+                            "latency_score": latency_score,
+                            "success_history": success_history,
+                            "stability": stability,
+                            "router_needs_tools": router_decision.needs_tools,
+                            "router_intent_type": router_decision.intent_type,
+                            "has_file_editing_enabled": has_file_editing_enabled,
+                            "user_query": user_query[:200],
+                            "note": f"document_editing tool match result - score: {total_score:.2f}, will be selected if >= 0.5",
                         },
                     )
-                )
 
             # 按總評分排序
             matches.sort(key=lambda x: x.total_score, reverse=True)
+
+            # 修改時間：2026-01-06 - 添加詳細日誌追蹤工具匹配結果
+            document_editing_match = next(
+                (m for m in matches if m.candidate_id in ["document_editing", "file_editing"]),
+                None,
+            )
+            if document_editing_match:
+                logger.info(
+                    "document_editing_tool_matched_in_results",
+                    extra={
+                        "tool_name": document_editing_match.candidate_id,
+                        "total_score": document_editing_match.total_score,
+                        "rank": matches.index(document_editing_match) + 1,
+                        "total_matches": len(matches),
+                        "top_3_tools": [(m.candidate_id, m.total_score) for m in matches[:3]],
+                        "user_query": user_query[:200],
+                        "note": f"document_editing tool matched with score {document_editing_match.total_score:.2f}, rank {matches.index(document_editing_match) + 1}/{len(matches)}",
+                    },
+                )
+            else:
+                logger.info(
+                    "document_editing_tool_not_matched",
+                    extra={
+                        "top_3_tools": [(m.candidate_id, m.total_score) for m in matches[:3]]
+                        if matches
+                        else [],
+                        "router_needs_tools": router_decision.needs_tools,
+                        "router_intent_type": router_decision.intent_type,
+                        "has_file_editing_enabled": has_file_editing_enabled,
+                        "allowed_tools": allowed_tools,
+                        "user_query": user_query[:200],
+                        "note": "document_editing tool not matched - check if Assistant enabled file editing or Router LLM set needs_tools=true",
+                    },
+                )
 
             logger.info(f"Matched {len(matches)} tools for router decision")
             return matches

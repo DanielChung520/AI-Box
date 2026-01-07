@@ -102,6 +102,24 @@ class TaskAnalyzer:
 
         logger.info(f"Layer 2: Calling Router LLM for query: {request.task[:100]}...")
         router_output = await self.router_llm.route(router_input, similar_decisions)
+
+        # 修改時間：2026-01-06 - 添加詳細日誌追蹤 Router LLM 的語義分析結果
+        # 修改時間：2026-01-06 - 修復：標準 logging 不支持關鍵字參數，使用 extra 字典
+        logger.info(
+            "router_llm_semantic_analysis_result",
+            extra={
+                "intent_type": router_output.intent_type,
+                "needs_tools": router_output.needs_tools,
+                "needs_agent": router_output.needs_agent,
+                "complexity": router_output.complexity,
+                "confidence": router_output.confidence,
+                "determinism_required": router_output.determinism_required,
+                "risk_level": router_output.risk_level,
+                "user_query": request.task[:200],
+                "note": "Router LLM semantic analysis - check if file generation intent detected (needs_tools=true, intent_type=execution)",
+            },
+        )
+
         logger.info(
             f"Layer 2: Router LLM output - intent_type={router_output.intent_type}, "
             f"needs_tools={router_output.needs_tools}, needs_agent={router_output.needs_agent}, "
@@ -218,12 +236,16 @@ class TaskAnalyzer:
             "router_decision": (
                 router_output.model_dump()
                 if hasattr(router_output, "model_dump")
-                else router_output.dict() if hasattr(router_output, "dict") else router_output
+                else router_output.dict()
+                if hasattr(router_output, "dict")
+                else router_output
             ),
             "decision_result": (
                 decision_result.model_dump()
                 if hasattr(decision_result, "model_dump")
-                else decision_result.dict() if hasattr(decision_result, "dict") else decision_result
+                else decision_result.dict()
+                if hasattr(decision_result, "dict")
+                else decision_result
             ),
         }
 
@@ -256,7 +278,9 @@ class TaskAnalyzer:
             analysis_details["intent"] = (
                 intent.model_dump()
                 if hasattr(intent, "model_dump")
-                else intent.dict() if hasattr(intent, "dict") else intent
+                else intent.dict()
+                if hasattr(intent, "dict")
+                else intent
             )
 
             # 如果是 ConfigIntent，提取澄清信息並添加到分析詳情中
@@ -367,16 +391,19 @@ class TaskAnalyzer:
             "time",
         ]
 
-        # 定義動作關鍵詞
+        # 定義動作關鍵詞（僅用於快速過濾明顯的系統行動，不應過度使用）
+        # 修改時間：2026-01-06 - 移除文件生成關鍵詞檢查，改由 Router LLM 進行語義判斷
         action_keywords = ["幫我", "幫", "執行", "運行", "查詢", "獲取", "幫我查", "幫我找"]
 
-        # 1. 檢查是否有副作用關鍵詞（需要系統行動）
+        # 1. 檢查是否有明顯的副作用關鍵詞（需要系統行動）
+        # 注意：這裡只檢查非常明顯的動作關鍵詞，文件生成等複雜意圖應由 Router LLM 語義分析判斷
         if any(keyword in task_lower for keyword in action_keywords):
-            return False  # 需要系統行動
+            return False  # 需要系統行動，進入 Layer 2/3 進行語義分析
 
         # 2. 檢查是否涉及內部狀態/工具（需要工具）
+        # 注意：這裡只檢查明確的工具需求（如時間、天氣），文件生成等應由 Router LLM 判斷
         if any(keyword in task_lower for keyword in tool_indicators):
-            return False  # 需要工具
+            return False  # 需要工具，進入 Layer 2/3 進行語義分析
 
         # 3. 長度檢查（必須在工具檢查之後）
         if len(task_lower) < 10:
@@ -491,24 +518,40 @@ class TaskAnalyzer:
                     return None
 
             # 構建 System Prompt（關鍵！）
+            # 修改時間：2026-01-06 - 增強 System Prompt，明確說明文件生成需要系統行動
             system_prompt = """You are a helpful AI assistant.
 
 Before answering, determine:
 1. Does this question require real-time data or external tools?
 2. Does this question require accessing internal system state?
 3. Does this question require performing actions or operations?
+4. Does this question require creating, generating, or editing files/documents?
 
 If YES to any → Respond with ONLY: {"needs_system_action": true}
 If NO → Answer the question directly and completely.
 
 Examples:
 - "什麼是 DevSecOps?" → Answer directly (provide definition and explanation)
-- "台積電今天的股價" → {"needs_system_action": true}
-- "幫我執行資料整合" → {"needs_system_action": true}
+- "台積電今天的股價" → {"needs_system_action": true} (requires real-time data)
+- "幫我執行資料整合" → {"needs_system_action": true} (requires system operations)
+- "幫我產生Data Agent文件" → {"needs_system_action": true} (requires file creation)
+- "生成文件" → {"needs_system_action": true} (requires file creation)
+- "幫我將說明做成文件" → {"needs_system_action": true} (requires file creation)
 - "HCI 是哪家公司？" → Answer directly (provide company information)
 
-Important: If you can answer the question using only your knowledge, answer it.
-Only return {"needs_system_action": true} if you truly need external tools or system actions."""
+Important:
+- If you can answer the question using only your knowledge, answer it.
+- If the user wants to CREATE, GENERATE, or EDIT files/documents, return {"needs_system_action": true}
+- Only return {"needs_system_action": true} if you truly need external tools or system actions.
+
+**Mermaid 圖表渲染要求**（如果回答中包含 Mermaid 圖表）：
+- **版本要求**：使用 Mermaid 10.0 版本語法規範。
+- **符號衝突處理**：節點標籤中包含特殊字符（如 `/`、`(`、`)`、`[`、`]`、`{`、`}`、`|`、`&`、`<`、`>` 等）時，必須使用雙引號包裹整個標籤文本。示例：`A["API/接口"]` 而不是 `A[API/接口]`。
+- **段落換行**：節點標籤中的多行文本必須使用 `<br>` 標籤進行換行，不能使用 `\\n` 或直接換行。示例：`A["第一行<br>第二行"]`。
+- **節點 ID 規範**：節點 ID 不能包含空格、特殊字符（如 `/`、`(`、`)` 等），建議使用下劃線或連字符：`api_gateway` 或 `api-gateway`。
+- **引號轉義**：如果節點標籤中包含雙引號，需要使用轉義：`A["用戶說：\\"你好\\""]`。
+- **避免保留字衝突**：避免使用 Mermaid 保留字（如 `style`、`classDef`、`click`、`link`、`class` 等）作為節點 ID 或類名。
+- **語法檢查**：確保所有箭頭方向正確（`-->`、`<--`、`<-->`），確保子圖語法正確：`subgraph id["標籤"]`。"""
 
             # 如果有检索上下文，添加到消息中
             messages = [{"role": "system", "content": system_prompt}]
