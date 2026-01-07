@@ -8,8 +8,12 @@ import { Task } from './Sidebar';
 import ChatMessage from './ChatMessage';
 import AgentRegistrationModal from './AgentRegistrationModal';
 import AssistantMaintenanceModal from './AssistantMaintenanceModal';
+import ChatSearchModal from './ChatSearchModal';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage, languageNames, languageIcons } from '../contexts/languageContext';
+import { useFileEditing } from '../contexts/fileEditingContext';
+import { useStreamingEdit } from '../hooks/useStreamingEdit';
+import { startEditingSession, submitEditingCommand } from '../lib/api';
 
   // 定义Agent分类和卡片数据
   interface AgentCategory {
@@ -78,10 +82,113 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     const [maintainingAssistantId, setMaintainingAssistantId] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deletingAssistantId, setDeletingAssistantId] = useState<string | null>(null);
+    const [showSearchModal, setShowSearchModal] = useState(false);
+
+    // 修改時間：2026-01-06 - 文件編輯相關狀態
+    const { editingFileId, setEditingFile, setPatches, clearEditing, setCurrentRequestId } = useFileEditing();
+    const { connect, disconnect, patches: streamingPatches, isStreaming, error: streamingError } = useStreamingEdit();
+    const editingSessionIdRef = useRef<string | null>(null);
+
+    // 修改時間：2026-01-06 - 監聽文件選擇事件
+    useEffect(() => {
+      const handleFileSelected = (event: CustomEvent) => {
+        const { fileId } = event.detail;
+        if (fileId) {
+          setEditingFile(fileId);
+          // 啟動編輯 Session
+          startEditingSession({ doc_id: fileId })
+            .then((response) => {
+              if (response.success && response.data?.session_id) {
+                editingSessionIdRef.current = response.data.session_id;
+                console.log('[ChatArea] Editing session started:', response.data.session_id);
+              }
+            })
+            .catch((error) => {
+              console.error('[ChatArea] Failed to start editing session:', error);
+            });
+        } else {
+          clearEditing();
+          editingSessionIdRef.current = null;
+        }
+      };
+
+      window.addEventListener('fileSelectedForEditing', handleFileSelected as EventListener);
+      return () => {
+        window.removeEventListener('fileSelectedForEditing', handleFileSelected as EventListener);
+      };
+    }, [setEditingFile, clearEditing]);
+
+    // 修改時間：2026-01-06 - 監聽消息發送事件，檢測文件編輯消息
+    useEffect(() => {
+      if (!editingFileId || !editingSessionIdRef.current) {
+        return;
+      }
+
+      const handleMessageSent = async (event: CustomEvent) => {
+        const { message, fileId } = event.detail;
+        if (fileId === editingFileId && message) {
+          // 提交編輯指令
+          try {
+            const response = await submitEditingCommand({
+              session_id: editingSessionIdRef.current!,
+              command: message,
+            });
+
+            if (response.success && response.data?.request_id) {
+              // 存儲 request_id 到 Context
+              setCurrentRequestId(response.data.request_id);
+              // 連接流式編輯端點
+              connect(editingSessionIdRef.current, response.data.request_id);
+            }
+          } catch (error) {
+            console.error('[ChatArea] Failed to submit editing command:', error);
+          }
+        }
+      };
+
+      window.addEventListener('messageSentForFileEditing', handleMessageSent as EventListener);
+      return () => {
+        window.removeEventListener('messageSentForFileEditing', handleMessageSent as EventListener);
+      };
+    }, [editingFileId, connect, setCurrentRequestId]);
+
+    // 修改時間：2026-01-06 - 將流式 patches 更新到 Context
+    useEffect(() => {
+      if (streamingPatches && streamingPatches.length > 0) {
+        setPatches(streamingPatches);
+        // patches 更新後會自動觸發 applyPatches（在 Context 中）
+      }
+    }, [streamingPatches, setPatches]);
+
+    // 修改時間：2026-01-06 - 組件卸載時斷開連接
+    useEffect(() => {
+      return () => {
+        disconnect();
+      };
+    }, [disconnect]);
 
     // 用於自動滾動到底部的 ref
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
+    // 用於消息定位的 ref map
+    const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+    // 定位到指定消息
+    const scrollToMessage = (messageId: string) => {
+      const messageElement = document.getElementById(`message-${messageId}`);
+      if (messageElement && messagesContainerRef.current) {
+        // 滚动到消息位置
+        messageElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+        // 高亮显示（可选）
+        messageElement.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+        setTimeout(() => {
+          messageElement.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+        }, 2000);
+      }
+    };
 
     // 當消息更新時，自動滾動到底部
     useEffect(() => {
@@ -458,11 +565,16 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
     <div className="flex-1 flex flex-col h-full bg-primary theme-transition">
        {/* 聊天区域头部 */}
       <div className="p-4 border-b border-primary flex items-center justify-between">
-        <h2 className="text-xl font-bold text-primary">
+        <h2 className="text-base font-bold text-primary">
           {selectedTask ? `${t('chat.task')}${selectedTask.title}` : t('chat.title')}
         </h2>
          <div className="flex items-center space-x-2">
-          <button className="p-2 rounded-full hover:bg-tertiary transition-colors">
+          <button
+            onClick={() => setShowSearchModal(true)}
+            className="p-2 rounded-full hover:bg-tertiary transition-colors"
+            title={t('chat.search.title', '搜索聊天記錄')}
+            aria-label={t('chat.search.title', '搜索聊天記錄')}
+          >
             <i className="fa-solid fa-search text-tertiary"></i>
           </button>
           <button
@@ -487,11 +599,11 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
             {/* 语言选择下拉菜单 */}
             {showLanguageSelector && (
               <div className="absolute right-0 top-full mt-1 w-40 bg-secondary border border-primary rounded-lg shadow-lg z-20 theme-transition transform transition-all duration-200 origin-top-right">
-                <div className="p-1 border-b border-primary text-sm font-medium text-primary">{t('language.select')}</div>
+                <div className="p-1 border-b border-primary text-[11.2px] font-medium text-primary">{t('language.select')}</div>
                 {['zh_TW', 'zh_CN', 'en'].map(lang => (
                   <button
                     key={lang}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-tertiary transition-colors flex items-center ${
+                    className={`w-full text-left px-4 py-2 text-[11.2px] hover:bg-tertiary transition-colors flex items-center ${
                       language === lang ? 'text-blue-400 bg-blue-900/20' : 'text-secondary'
                     }`}
                   onClick={() => {
@@ -538,7 +650,17 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
           // 显示任务相关的对话
           <div className="space-y-6">
             {selectedTask.messages.map(message => (
-              <ChatMessage key={message.id} message={message} />
+              <ChatMessage
+                key={message.id}
+                message={message}
+                ref={(el) => {
+                  if (el) {
+                    messageRefs.current.set(message.id, el);
+                  } else {
+                    messageRefs.current.delete(message.id);
+                  }
+                }}
+              />
             ))}
             {/* 用於滾動到底部的錨點 */}
             <div ref={messagesEndRef} />
@@ -547,8 +669,8 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
           // 显示任务但还没有消息
           <div className="space-y-6">
             <div className="text-center text-tertiary py-8">
-              <i className="fa-solid fa-comments text-4xl mb-4"></i>
-              <p>{t('chat.noMessages', '還沒有消息，開始對話吧！')}</p>
+              <i className="fa-solid fa-comments text-[28.8px] mb-4"></i>
+              <p className="text-[12.8px]">{t('chat.noMessages', '還沒有消息，開始對話吧！')}</p>
             </div>
           </div>
         ) : browseMode === 'assistants' ? (
@@ -561,8 +683,8 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
                   <i className="fa-solid fa-robot"></i>
                 </div>
                 <div>
-                  <div className="font-medium text-primary">{t('sidebar.browseAssistants')}</div>
-                  <div className="text-sm text-tertiary">选择助理来创建任务</div>
+                  <div className="font-medium text-primary text-[12.8px]">{t('sidebar.browseAssistants')}</div>
+                  <div className="text-[11.2px] text-tertiary">选择助理来创建任务</div>
                 </div>
               </div>
             </div>
@@ -590,7 +712,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
                 }}
               >
                 <i className="fa-solid fa-cog mr-2"></i>
-                <span className="text-sm font-medium">{t('chat.manage')}</span>
+                <span className="text-[11.2px] font-medium">{t('chat.manage')}</span>
               </button>
             </div>
 
@@ -639,12 +761,12 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
                   <i className="fa-solid fa-robot"></i>
                 </div>
                 <div>
-                  <div className="font-medium text-primary">{t('chat.aiAssistant')}</div>
-                  <div className="text-sm text-tertiary">今天 16:39</div>
+                  <div className="font-medium text-primary text-[12.8px]">{t('chat.aiAssistant')}</div>
+                  <div className="text-[11.2px] text-tertiary">今天 16:39</div>
                 </div>
               </div>
               <div className="bg-secondary p-4 rounded-lg ml-11">
-                  <p className="text-secondary">{t('welcome.message')}</p>
+                  <p className="text-secondary text-[12.8px]">{t('welcome.message')}</p>
               </div>
             </div>
 
@@ -668,7 +790,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
                 onClick={() => setShowAgentRegistrationModal(true)}
               >
                 <i className="fa-solid fa-cog mr-2"></i>
-                <span className="text-sm font-medium">{t('chat.manage')}</span>
+                <span className="text-[11.2px] font-medium">{t('chat.manage')}</span>
               </button>
             </div>
 
@@ -829,6 +951,16 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
         }}
       />
 
+      {/* 搜索 Modal */}
+      {selectedTask && selectedTask.messages && (
+        <ChatSearchModal
+          isOpen={showSearchModal}
+          onClose={() => setShowSearchModal(false)}
+          messages={selectedTask.messages}
+          onSelectMessage={scrollToMessage}
+        />
+      )}
+
       {/* 刪除確認對話框 */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
@@ -836,11 +968,11 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
             className="bg-secondary border border-primary rounded-lg p-6 max-w-md w-full mx-4 shadow-xl theme-transition"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-primary mb-4">{t('assistant.delete.title')}</h3>
-            <p className="text-sm text-tertiary mb-6">{t('assistant.delete.confirm')}</p>
+            <h3 className="text-sm font-semibold text-primary mb-4">{t('assistant.delete.title')}</h3>
+            <p className="text-[11.2px] text-tertiary mb-6">{t('assistant.delete.confirm')}</p>
             <div className="flex justify-end gap-3">
               <button
-                className="px-4 py-2 text-sm rounded-lg bg-tertiary hover:bg-hover text-primary transition-colors"
+                className="px-4 py-2 text-[11.2px] rounded-lg bg-tertiary hover:bg-hover text-primary transition-colors"
                 onClick={() => {
                   setShowDeleteConfirm(false);
                   setDeletingAssistantId(null);
@@ -849,7 +981,7 @@ import { useLanguage, languageNames, languageIcons } from '../contexts/languageC
                 {t('assistant.delete.cancelButton')}
               </button>
               <button
-                className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
+                className="px-4 py-2 text-[11.2px] rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
                 onClick={() => {
                   if (deletingAssistantId) {
                     // TODO: 調用 API 刪除助理

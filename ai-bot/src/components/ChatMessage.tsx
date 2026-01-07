@@ -1,9 +1,9 @@
 // 代碼功能說明：聊天消息組件，整合 Markdown 渲染、代碼高亮、Mermaid 圖表等功能
 // 創建日期：2025-01-27
 // 創建人：Daniel Chung
-// 最後修改日期：2025-12-21
+// 最後修改日期：2026-01-06
 
-import React from 'react';
+import React, { forwardRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -17,7 +17,8 @@ interface ChatMessageProps {
   message: Message;
 }
 
-export default function ChatMessage({ message }: ChatMessageProps) {
+const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
+  ({ message }, ref) => {
   const { t } = useLanguage();
 
   // 自定義代碼塊渲染器
@@ -27,7 +28,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       // 如果是行內代碼
       if (inline) {
         return (
-          <code className="bg-tertiary px-1.5 py-0.5 rounded text-sm font-mono text-primary" {...props}>
+          <code className="bg-tertiary px-1.5 py-0.5 rounded text-[11.2px] font-mono text-primary" {...props}>
             {children}
           </code>
         );
@@ -85,22 +86,22 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     },
     // 自定義標題樣式
     h1: ({ node, ...props }: any) => (
-      <h1 className="text-3xl font-bold mt-8 mb-4 text-primary" {...props} />
+      <h1 className="text-2xl font-bold mt-[5.2px] mb-[3.6px] text-primary" {...props} />
     ),
     h2: ({ node, ...props }: any) => (
-      <h2 className="text-2xl font-bold mt-7 mb-3 text-primary" {...props} />
+      <h2 className="text-[19.2px] font-bold mt-[4.8px] mb-[2.2px] text-primary" {...props} />
     ),
     h3: ({ node, ...props }: any) => (
-      <h3 className="text-xl font-bold mt-6 mb-3 text-primary" {...props} />
+      <h3 className="text-base font-bold mt-[3.4px] mb-[2.2px] text-primary" {...props} />
     ),
     h4: ({ node, ...props }: any) => (
-      <h4 className="text-xl font-bold mt-5 mb-2 text-primary" {...props} />
+      <h4 className="text-base font-bold mt-[3px] mb-[2.8px] text-primary" {...props} />
     ),
     h5: ({ node, ...props }: any) => (
-      <h5 className="text-lg font-bold mt-4 mb-2 text-primary" {...props} />
+      <h5 className="text-sm font-bold mt-[2.6px] mb-[2.7px] text-primary" {...props} />
     ),
     h6: ({ node, ...props }: any) => (
-      <h6 className="text-lg font-bold mt-4 mb-2 text-primary" {...props} />
+      <h6 className="text-sm font-bold mt-[2.6px] mb-[2.5px] text-primary" {...props} />
     ),
     // 段落 - 保留換行和縮排
     // 如果包含代碼塊（pre 標籤或 code 標籤），使用 div 而不是 p
@@ -137,11 +138,11 @@ export default function ChatMessage({ message }: ChatMessageProps) {
 
       // 如果包含代碼塊或塊級組件，使用 div 而不是 p
       if (hasCodeBlock || hasBlockComponent) {
-        return <div className="mb-4 text-primary leading-relaxed whitespace-pre-wrap" {...props}>{children}</div>;
+        return <div className="mb-2 text-primary leading-[0.81] whitespace-pre-wrap" {...props}>{children}</div>;
       }
 
       // 否則使用正常的 p 標籤
-      return <p className="mb-4 text-primary leading-relaxed whitespace-pre-wrap" {...props}>{children}</p>;
+      return <p className="mb-2 text-primary leading-[0.81] whitespace-pre-wrap" {...props}>{children}</p>;
     },
     // 列表 - 支持嵌套縮排
     ul: ({ node, children, ...props }: any) => {
@@ -157,10 +158,10 @@ export default function ChatMessage({ message }: ChatMessageProps) {
 
       return (
         <ul
-          className="list-disc mb-4 space-y-1 text-primary"
+          className="list-disc mb-2 space-y-[0.12px] text-primary"
           style={{
             marginLeft: `${depth * 1.5}rem`,
-            paddingLeft: depth > 0 ? '0.5rem' : '1.5rem',
+            paddingLeft: depth > 0 ? '0.35rem' : '1.05rem',
             listStylePosition: 'outside'
           }}
           {...props}
@@ -182,10 +183,10 @@ export default function ChatMessage({ message }: ChatMessageProps) {
 
       return (
         <ol
-          className="list-decimal mb-4 space-y-1 text-primary"
+          className="list-decimal mb-2 space-y-[0.15px] text-primary"
           style={{
             marginLeft: `${depth * 1.5}rem`,
-            paddingLeft: depth > 0 ? '0.5rem' : '1.5rem',
+            paddingLeft: depth > 0 ? '0.35rem' : '1.05rem',
             listStylePosition: 'outside'
           }}
           {...props}
@@ -195,12 +196,12 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       );
     },
     li: ({ node, ...props }: any) => (
-      <li className="mb-1 text-primary leading-relaxed whitespace-normal" {...props} />
+      <li className="mb-[0.12px] text-primary leading-[1.4] whitespace-normal" {...props} />
     ),
     // 引用
     blockquote: ({ node, ...props }: any) => (
       <blockquote
-        className="border-l-4 border-blue-500 pl-4 my-4 italic text-tertiary"
+        className="border-l-4 border-blue-500 pl-[11.2px] my-2 italic text-tertiary"
         {...props}
       />
     ),
@@ -215,11 +216,11 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     ),
     // 水平線
     hr: ({ node, ...props }: any) => (
-      <hr className="my-6 border-primary" {...props} />
+      <hr className="my-3 border-primary" {...props} />
     ),
     // 表格
     table: ({ node, ...props }: any) => (
-      <div className="overflow-x-auto my-4">
+      <div className="overflow-x-auto my-2">
         <table className="min-w-full border-collapse border border-primary" {...props} />
       </div>
     ),
@@ -233,10 +234,10 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       <tr className="border-b border-primary" {...props} />
     ),
     th: ({ node, ...props }: any) => (
-      <th className="border border-primary px-4 py-2 text-left font-bold text-primary" {...props} />
+      <th className="border border-primary px-[11.2px] py-2 text-left font-bold text-primary" {...props} />
     ),
     td: ({ node, ...props }: any) => (
-      <td className="border border-primary px-4 py-2 text-primary" {...props} />
+      <td className="border border-primary px-[11.2px] py-1 text-primary" {...props} />
     ),
     // 強調
     strong: ({ node, ...props }: any) => (
@@ -247,9 +248,9 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     ),
   };
 
-  return (
-    <div className="mb-6">
-      <div className="flex items-start mb-2">
+    return (
+      <div ref={ref} className="mb-6" id={`message-${message.id}`}>
+        <div className="flex items-start mb-2">
         <div
           className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
             message.sender === 'ai' ? 'bg-blue-600' : 'bg-tertiary'
@@ -265,16 +266,16 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           <div className="font-medium text-primary">
             {message.sender === 'ai' ? t('chat.aiAssistant') : t('chat.user')}
           </div>
-          <div className="text-sm text-tertiary">{message.timestamp}</div>
+          <div className="text-[11.2px] text-tertiary">{message.timestamp}</div>
         </div>
       </div>
       <div
-        className={`p-4 rounded-lg ml-11 ${
+        className={`p-[11.2px] rounded-lg ml-11 ${
           message.sender === 'ai' ? 'bg-secondary' : 'bg-blue-900/30'
         }`}
       >
         <div
-          className="prose prose-invert max-w-none [&_pre]:!bg-transparent [&_pre]:!my-0"
+          className="prose prose-invert max-w-none [&_pre]:!bg-transparent [&_pre]:!my-0 text-[12.8px]"
           style={{
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word'
@@ -289,9 +290,18 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         </div>
         {/* AI 消息下方顯示操作按鈕 */}
         {message.sender === 'ai' && (
-          <MessageActions messageId={message.id} messageContent={message.content} />
+          <>
+            <MessageActions messageId={message.id} messageContent={message.content} />
+            {/* AI 回复下方的细线 */}
+            <div className="mt-3 pt-3 border-t border-primary/20"></div>
+          </>
         )}
       </div>
-    </div>
-  );
-}
+      </div>
+    );
+  }
+);
+
+ChatMessage.displayName = 'ChatMessage';
+
+export default ChatMessage;

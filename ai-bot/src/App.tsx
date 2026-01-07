@@ -8,6 +8,7 @@ import LoginPage from "@/pages/LoginPage";
 import { useState, useEffect } from "react";
 import { AuthContext } from '@/contexts/authContext';
 import { LanguageProvider, useLanguage } from '@/contexts/languageContext';
+import { FileEditingProvider } from '@/contexts/fileEditingContext';
 import { performanceMonitor } from '@/lib/performance';
 
 // IEE Editor Wrapper 組件，用於從 URL 參數獲取 fileId
@@ -59,7 +60,8 @@ function AppContent() {
     <AuthContext.Provider
       value={{ isAuthenticated, setIsAuthenticated, logout }}
     >
-      <Routes>
+      <FileEditingProvider>
+        <Routes>
         {/* 歡迎頁面 - 首次進入 */}
         <Route path="/" element={<WelcomePage />} />
 
@@ -112,7 +114,8 @@ function AppContent() {
 
         {/* 默認重定向 */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </FileEditingProvider>
     </AuthContext.Provider>
   );
 }

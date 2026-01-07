@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/languageContext';
 import { saveTask, getAllTasks, deleteTask, getFavorites, addTaskToFavorites, removeTaskFromFavorites, isTaskFavorite, clearHardcodedFavorites, removeFavorite } from '../lib/taskStorage';
@@ -32,6 +31,8 @@ export interface Task {
   task_status?: 'activate' | 'archive'; // 修改時間：2025-12-09 - 添加任務顯示狀態（activate/archive）
   label_color?: string; // 修改時間：2025-12-09 - 添加任務顏色標籤（類似 Apple Mac 的顏色標籤）
   dueDate: string;
+  created_at?: string; // 修改時間：2026-01-06 - 添加創建時間（ISO 8601 格式字符串）
+  updated_at?: string; // 修改時間：2026-01-06 - 添加更新時間（ISO 8601 格式字符串）
   messages?: Message[];
   executionConfig?: {
     mode: 'free' | 'assistant' | 'agent';
@@ -69,7 +70,6 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   const [activeSection, setActiveSection] = useState<'favorites' | 'tasks'>('tasks');
   const [activeItemId, setActiveItemId] = useState<string | number | null>(null); // 跟踪当前选中的具体 item ID
   const { t, updateCounter, language } = useLanguage();
-  const navigate = useNavigate();
 
   // 可收合区域的状态管理
   const [expandedSections, setExpandedSections] = useState({
@@ -140,20 +140,20 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     const handleFavoritesUpdated = () => {
       loadFavorites();
     };
-    
+
     // 修改時間：2026-01-06 - 監聽助理和代理收藏更新事件
     const handleFavoriteAssistantsUpdated = () => {
       loadFavorites();
     };
-    
+
     const handleFavoriteAgentsUpdated = () => {
       loadFavorites();
     };
-    
+
     window.addEventListener('favoritesUpdated', handleFavoritesUpdated);
     window.addEventListener('favoriteAssistantsUpdated', handleFavoriteAssistantsUpdated);
     window.addEventListener('favoriteAgentsUpdated', handleFavoriteAgentsUpdated);
-    
+
     return () => {
       window.removeEventListener('favoritesUpdated', handleFavoritesUpdated);
       window.removeEventListener('favoriteAssistantsUpdated', handleFavoriteAssistantsUpdated);
@@ -186,26 +186,26 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   const [showColorMenu, setShowColorMenu] = useState(false);
   const [colorMenuPosition, setColorMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const colorMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // 修改時間：2026-01-06 - 添加響應式顯示限制相關狀態
   const contentAreaRef = useRef<HTMLDivElement>(null);
   const [maxFavoritesDisplay, setMaxFavoritesDisplay] = useState(10); // 默認最大10筆收藏
   const [maxTasksDisplay, setMaxTasksDisplay] = useState<number | null>(null); // 根據高度動態計算
   const [showMoreFavorites, setShowMoreFavorites] = useState(false);
   const [showMoreTasks, setShowMoreTasks] = useState(false);
-  
+
   // 修改時間：2026-01-06 - 添加更多列表 Modal 狀態
   const [showMoreModal, setShowMoreModal] = useState(false);
   const [moreModalType, setMoreModalType] = useState<'favorites' | 'tasks'>('tasks');
-  
+
   // 修改時間：2026-01-06 - Modal 篩選和搜尋狀態
   const [modalSearchText, setModalSearchText] = useState('');
   const [modalColorFilter, setModalColorFilter] = useState<string | null>(null);
   const [modalShowArchived, setModalShowArchived] = useState(false);
-  
+
   // 修改時間：2026-01-06 - 文件記錄 Modal 狀態
   const [showFileRecordModal, setShowFileRecordModal] = useState(false);
-  
+
   // 修改時間：2026-01-06 - 添加任務篩選狀態
   const [selectedColorFilter, setSelectedColorFilter] = useState<string | null>(null); // null 表示不過濾顏色
   const [showArchivedFilter, setShowArchivedFilter] = useState(false); // false 表示只顯示激活的任務，true 表示顯示歸檔的任務
@@ -228,6 +228,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       try {
         const loadedTasks = getAllTasks();
         // 修改時間：2026-01-06 - 去除重複的任務（根據 task.id）
+        // 注意：taskStorage.ts 已經在 getTaskList() 中去重，這裡的檢查主要是為了防禦性編程
         const uniqueTasks = loadedTasks.reduce((acc: Task[], task: Task) => {
           const existingTask = acc.find(t => String(t.id) === String(task.id));
           if (!existingTask) {
@@ -235,11 +236,12 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
           } else {
             // 如果找到重複的任務，保留更新時間更晚的（如果有 updated_at 字段）
             // 或者保留第一個（因為通常後面的可能是重複的）
-            console.warn('[Sidebar] Found duplicate task:', task.id, 'Keeping first occurrence');
+            // 修改時間：2026-01-06 - 將警告改為 debug 級別，減少控制台噪音
+            console.debug('[Sidebar] Found duplicate task:', task.id, 'Keeping first occurrence');
           }
           return acc;
         }, []);
-        
+
         // 修改時間：2025-01-27 - 不再過濾任務，所有從 localStorage 加載的任務都是真實任務
         // 所有任務都應該顯示（沒有硬編碼的示範任務了）
         console.log('[Sidebar] Loaded tasks from localStorage:', {
@@ -259,7 +261,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     const initializeTasks = async () => {
       // 先立即加載本地任務，讓用戶看到內容
       loadSavedTasks();
-      
+
       // 然後在後台同步任務（不阻塞 UI）
       const userId = localStorage.getItem('user_id');
       const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -340,7 +342,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       }
       return acc;
     }, []);
-    
+
     const filtered = uniqueSavedTasks.filter(task => {
       // 根據歸檔篩選器過濾任務狀態
       if (showArchivedFilter) {
@@ -354,7 +356,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
           return false;
         }
       }
-      
+
       // 根據顏色篩選器過濾任務
       if (selectedColorFilter !== null) {
         // 如果選擇了顏色篩選，只顯示匹配顏色的任務
@@ -370,17 +372,51 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       }
         }
       }
-      
+
       return true;
     });
+    // 修改時間：2026-01-06 - 按最近日期排序（創建時間或更新時間，取較新的）
+    const sorted = filtered.sort((a, b) => {
+      // 獲取任務的最近時間（優先使用 updated_at，如果沒有則使用 created_at）
+      const getLatestTime = (task: Task): number => {
+        // 優先使用 updated_at
+        if (task.updated_at) {
+          return new Date(task.updated_at).getTime();
+        }
+        // 其次使用 created_at
+        if (task.created_at) {
+          return new Date(task.created_at).getTime();
+        }
+        // 如果都沒有，使用 dueDate（向後兼容）
+        if (task.dueDate) {
+          return new Date(task.dueDate).getTime();
+        }
+        // 最後回退到 0（最舊）
+        return 0;
+      };
+
+      const timeA = getLatestTime(a);
+      const timeB = getLatestTime(b);
+
+      // 降序排序（最新的在前）
+      return timeB - timeA;
+    });
+
     console.log('[Sidebar] Tasks memo updated:', {
       savedTasksCount: savedTasks.length,
       filteredCount: filtered.length,
+      sortedCount: sorted.length,
       colorFilter: selectedColorFilter,
       showArchived: showArchivedFilter,
-      firstFiveTasks: filtered.slice(0, 5).map(t => ({ id: t.id, title: t.title }))
+      firstFiveTasks: sorted.slice(0, 5).map(t => ({
+        id: t.id,
+        title: t.title,
+        created_at: t.created_at,
+        updated_at: t.updated_at,
+        latestTime: t.updated_at || t.created_at || t.dueDate
+      }))
     });
-    return filtered;
+    return sorted;
   }, [language, updateCounter, savedTasks, selectedColorFilter, showArchivedFilter]);
 
   // 使用 useMemo 缓存所有直接使用的翻译文本，确保语言变更时正确更新
@@ -416,7 +452,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
 
       const contentArea = contentAreaRef.current;
       const availableHeight = contentArea.clientHeight;
-      
+
       // 估算每個項目的高度
       // 收藏項：約 40px (p-2 rounded-lg + mb-1)
       // 任務項：約 60px (包含標題和日期兩行)
@@ -430,17 +466,17 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       const addTaskButtonHeight = expandedSections.tasks ? 40 : 0;
       const browseSectionHeight = favorites.length > 0 ? 120 : 0;
       const padding = 16; // p-2 = 8px * 2
-      
+
       // 計算已使用的固定高度
       const fixedHeight = favoritesHeaderHeight + tasksHeaderHeight + addTaskButtonHeight + browseSectionHeight + padding;
-      
+
       // 可用於顯示項目的高度
       const availableItemHeight = availableHeight - fixedHeight;
-      
+
       // 限制收藏最多10筆
       const maxFavorites = Math.min(10, favorites.length);
       const favoritesHeight = maxFavorites * favoriteItemHeight;
-      
+
       // 計算剩餘可用高度用於任務（僅當任務區域展開時）
       let maxTasks: number | null = null;
       if (expandedSections.tasks) {
@@ -451,7 +487,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
         // 如果任務區域收合，不限制任務顯示
         maxTasks = tasks.length;
       }
-      
+
       // 設置顯示限制
       setMaxFavoritesDisplay(maxFavorites);
       setMaxTasksDisplay(maxTasks !== null && maxTasks > 0 ? maxTasks : null);
@@ -468,7 +504,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     };
 
     window.addEventListener('resize', handleResize);
-    
+
     // 使用 ResizeObserver 監聽內容區域大小變化
     const resizeObserver = new ResizeObserver(() => {
       calculateDisplayLimits();
@@ -488,6 +524,9 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
 
   // 添加新任务 - 直接创建任务，不需要输入标题
   const handleAddTask = () => {
+    // 修改時間：2026-01-06 - 記錄創建時間和更新時間（ISO 8601 格式）
+    const now = new Date().toISOString();
+
     // 直接创建新任务，使用默认标题（后续聊天时会自动生成）
     // 代理和助理初始化为 undefined（显示"選擇代理"和"選擇助理"）
     // 模型初始化为"自動"
@@ -497,6 +536,8 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       status: 'in-progress',
       task_status: 'activate', // 修改時間：2025-12-09 - 默認設置為 activate
       dueDate: new Date().toISOString().split('T')[0],
+      created_at: now, // 修改時間：2026-01-06 - 記錄創建時間
+      updated_at: now, // 修改時間：2026-01-06 - 記錄更新時間（初始與創建時間相同）
       messages: [],
       executionConfig: {
         mode: 'free', // 默认自由模式
@@ -586,7 +627,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     try {
       const favorite = favoriteContextMenu.favorite;
       console.log('[Sidebar] Removing favorite:', { id: favorite.id, type: favorite.type, itemId: favorite.itemId });
-      
+
       // 使用通用函數移除收藏（支持所有類型：任務、助理、代理）
       removeFavorite(favorite.id, favorite.itemId, favorite.type);
 
@@ -710,9 +751,13 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       }
 
       // 更新本地任務
+      // 修改時間：2026-01-06 - 更新時記錄 updated_at 時間
+      const now = new Date().toISOString();
       const updatedTask: Task = {
         ...contextMenu.task,
         task_status: 'archive', // 設置任務顯示狀態為 archive
+        created_at: contextMenu.task.created_at || now, // 保持原有創建時間，如果沒有則使用當前時間
+        updated_at: now, // 更新時間設為當前時間
       };
       saveTask(updatedTask, false); // 不觸發後端同步（已經手動更新了）
 
@@ -783,9 +828,13 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       }
 
       // 更新本地任務
+      // 修改時間：2026-01-06 - 更新時記錄 updated_at 時間
+      const now = new Date().toISOString();
       const updatedTask: Task = {
         ...contextMenu.task,
         label_color: colorValue || undefined, // 設置任務顏色標籤
+        created_at: contextMenu.task.created_at || now, // 保持原有創建時間，如果沒有則使用當前時間
+        updated_at: now, // 更新時間設為當前時間
       };
       saveTask(updatedTask, false); // 不觸發後端同步（已經手動更新了）
 
@@ -844,9 +893,13 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       }
 
       // 更新本地任務
+      // 修改時間：2026-01-06 - 更新時記錄 updated_at 時間
+      const now = new Date().toISOString();
       const updatedTask: Task = {
         ...renameTaskTarget,
         title: newTitle,
+        created_at: renameTaskTarget.created_at || now, // 保持原有創建時間，如果沒有則使用當前時間
+        updated_at: now, // 更新時間設為當前時間
       };
       saveTask(updatedTask, false); // 不觸發後端同步（已經手動更新了）
 
@@ -908,18 +961,43 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       const taskId = String(deleteTaskTarget.id);
 
       // 修改時間：2025-12-08 14:15:00 UTC+8 - 調用後台刪除 API（會清除所有相關數據）
+      // 修改時間：2026-01-06 - 改進錯誤處理：如果後端任務不存在（404），仍然允許刪除本地任務
       try {
         const result = await deleteUserTask(taskId);
         if (!result.success) {
-          throw new Error(result.message || '刪除任務失敗');
+          // 如果不是 404 錯誤（任務不存在），才拋出錯誤
+          // 404 錯誤表示任務在後端不存在，可能是本地任務或已被刪除，允許繼續刪除本地任務
+          if (!result.message?.includes('not found') && !result.message?.includes('404')) {
+            throw new Error(result.message || '刪除任務失敗');
+          } else {
+            console.warn('[Sidebar] Task not found in backend, deleting locally only', { taskId });
+          }
         }
       } catch (error: any) {
-        console.error('Failed to delete task from backend:', error);
-        alert(`刪除任務失敗: ${error.message || '未知錯誤'}`);
-        return;
+        // 檢查是否為 404 錯誤（任務不存在）
+        const isNotFoundError =
+          error?.status === 404 ||
+          error?.message?.includes('404') ||
+          error?.message?.includes('not found') ||
+          error?.message?.includes('Task not found');
+
+        if (isNotFoundError) {
+          // 任務在後端不存在，可能是本地任務或已被刪除，允許繼續刪除本地任務
+          console.warn('[Sidebar] Task not found in backend (404), deleting locally only', {
+            taskId,
+            error: error.message
+          });
+        } else {
+          // 其他錯誤（如網絡錯誤、權限錯誤等），顯示錯誤但不阻止刪除本地任務
+          console.error('[Sidebar] Failed to delete task from backend, deleting locally only', {
+            taskId,
+            error: error.message
+          });
+          // 不 return，繼續執行本地刪除
+        }
       }
 
-      // 從本地刪除
+      // 從本地刪除（無論後端刪除是否成功）
       deleteTask(deleteTaskTarget.id);
 
       // 如果刪除的是當前選中的任務，清除選中狀態
@@ -1247,7 +1325,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                   </button>
                 );
               })}
-              
+
               {/* 修改時間：2026-01-06 - 顯示"更多任務..."提示（可點擊） */}
               {!collapsed && showMoreTasks && (
                 <button
@@ -1257,12 +1335,12 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                   更多任務...
                 </button>
               )}
-              
+
               {/* 修改時間：2026-01-06 - 任務篩選器（顏色和歸檔） */}
               {!collapsed && (
                 <div className="mt-3 pt-3 border-t border-primary/30">
                   <div className="text-xs text-tertiary mb-2 px-2">篩選</div>
-                  
+
                   {/* 顏色和歸檔篩選器（同一排） */}
                   <div className="mb-3">
                     <div className="flex flex-nowrap gap-1.5 px-1 overflow-x-auto min-w-0 items-center" style={{ width: '100%' }}>
@@ -1286,7 +1364,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                           <i className="fa-solid fa-check text-orange-500 text-[6px]"></i>
                         )}
                       </button>
-                      
+
                       {/* 無顏色標籤 */}
                       <button
                         className={`w-[13.8px] h-[13.8px] rounded-full border flex-shrink-0 transition-all duration-200 flex items-center justify-center ${
@@ -1307,7 +1385,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                           <i className="fa-solid fa-check text-orange-500 text-[6px]"></i>
                         )}
                       </button>
-                      
+
                       {/* 各種顏色 */}
                       {labelColors.filter(c => c.value !== null).map((colorOption) => (
                         <button
@@ -1331,7 +1409,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                           )}
                         </button>
                       ))}
-                      
+
                       {/* 歸檔按鈕（與顏色同一排，默認不顯示激活） */}
                       <button
                         className={`ml-2 text-xs py-1 px-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1 flex-shrink-0 ${
@@ -1722,7 +1800,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       {/* 修改時間：2026-01-06 - 更多列表 Modal */}
       {showMoreModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 theme-transition" onClick={handleCloseMoreModal}>
-          <div 
+          <div
             className="bg-secondary border border-primary rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] flex flex-col theme-transition"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1754,7 +1832,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                   />
                   <i className="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-tertiary"></i>
                 </div>
-                
+
                 {/* 篩選器（顏色和歸檔） */}
                 <div className="flex flex-wrap items-center gap-2">
                   {/* 顏色篩選 */}
@@ -1779,7 +1857,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                         <i className="fa-solid fa-check text-orange-500 text-[6px]"></i>
                       )}
                     </button>
-                    
+
                     {/* 無顏色 */}
                     <button
                       className={`w-[13.8px] h-[13.8px] rounded-full border flex-shrink-0 transition-all duration-200 flex items-center justify-center ${
@@ -1800,7 +1878,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                         <i className="fa-solid fa-check text-orange-500 text-[6px]"></i>
                       )}
                     </button>
-                    
+
                     {/* 各種顏色 */}
                     {labelColors.filter(c => c.value !== null).map((colorOption) => (
                       <button
@@ -1825,7 +1903,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                       </button>
                     ))}
                   </div>
-                  
+
                   {/* 歸檔按鈕 */}
                   <button
                     className={`text-xs py-1 px-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1 flex-shrink-0 ${
@@ -1906,7 +1984,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                           return false;
                         }
                       }
-                      
+
                       // 歸檔狀態過濾
                       if (modalShowArchived) {
                         if (task.task_status !== 'archive') {
@@ -1917,7 +1995,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                           return false;
                         }
                       }
-                      
+
                       // 顏色過濾
                       if (modalColorFilter !== null) {
                         if (modalColorFilter === 'none') {
@@ -1930,7 +2008,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                           }
                         }
                       }
-                      
+
                       return true;
                     })
                     .map(task => {
@@ -1965,7 +2043,26 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm truncate">{task.title}</div>
-                          <div className="text-xs text-tertiary">{task.dueDate}</div>
+                          {/* 修改時間：2026-01-06 - 顯示最近日期（優先顯示更新時間，其次創建時間，最後 dueDate） */}
+                          <div className="text-xs text-tertiary">
+                            {task.updated_at
+                              ? new Date(task.updated_at).toLocaleString('zh-TW', {
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : task.created_at
+                              ? new Date(task.created_at).toLocaleString('zh-TW', {
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : task.dueDate}
+                          </div>
                         </div>
                         <i className="fa-solid fa-chevron-right text-tertiary text-xs ml-2"></i>
                       </button>

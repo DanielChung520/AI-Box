@@ -6,6 +6,7 @@
 """内建 Agent 模組
 
 提供 AI-Box 核心内建 Agent：
+- Document Editing Agent: 文件編輯服務
 - Registry Manager: 注册管理员
 - Security Manager: 安全管理员
 - Orchestrator Manager: 协调管理员
@@ -19,6 +20,7 @@ from typing import Dict, Optional
 
 from agents.services.protocol.base import AgentServiceProtocol
 
+from .document_editing.agent import DocumentEditingAgent
 from .orchestrator_manager.agent import OrchestratorManagerAgent
 from .registry_manager.agent import RegistryManagerAgent
 from .security_manager.agent import SecurityManagerAgent
@@ -26,6 +28,7 @@ from .storage_manager.agent import StorageManagerAgent
 from .system_config_agent.agent import SystemConfigAgent
 
 __all__ = [
+    "DocumentEditingAgent",
     "RegistryManagerAgent",
     "SecurityManagerAgent",
     "OrchestratorManagerAgent",
@@ -53,6 +56,7 @@ def initialize_builtin_agents() -> Dict[str, AgentServiceProtocol]:
         return _builtin_agents
 
     # 初始化各个内建 Agent
+    _builtin_agents["document_editing"] = DocumentEditingAgent()
     _builtin_agents["registry_manager"] = RegistryManagerAgent()
     _builtin_agents["security_manager"] = SecurityManagerAgent()
     _builtin_agents["orchestrator_manager"] = OrchestratorManagerAgent()
@@ -67,7 +71,7 @@ def get_builtin_agent(agent_id: str) -> Optional[AgentServiceProtocol]:
     获取内建 Agent 实例
 
     Args:
-        agent_id: Agent ID（registry_manager, security_manager, orchestrator_manager, storage_manager, system_config）
+        agent_id: Agent ID（document_editing, registry_manager, security_manager, orchestrator_manager, storage_manager, system_config）
 
     Returns:
         内建 Agent 实例，如果不存在返回 None

@@ -89,25 +89,60 @@ class UserTaskService:
         doc_key = f"{task.user_id}_{task.task_id}"
         doc = collection.get(doc_key)  # type: ignore[assignment]  # 同步模式下返回 dict | None
 
-        # 修改時間：2025-01-27 - 創建任務時自動創建任務工作區和排程任務目錄
+        # 修改時間：2026-01-06 - 創建任務時自動創建任務工作區和排程任務目錄（添加超時保護）
+        # 修改時間：2026-01-06 - 工作區創建改為快速失敗，避免阻塞任務創建
         try:
+            import time
+
+            workspace_start_time = time.time()
+
             workspace_service = get_task_workspace_service()
-            # 創建任務工作區
+            # 創建任務工作區（添加超時保護，最多等待2秒）
             if task.user_id:
-                workspace_service.create_workspace(
-                    task_id=task.task_id,
-                    user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
-                )
-            # 創建排程任務目錄（為後續功能預留）
+                try:
+                    workspace_service.create_workspace(
+                        task_id=task.task_id,
+                        user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
+                    )
+                except Exception as workspace_error:
+                    self.logger.warning(
+                        "create_workspace_failed",
+                        task_id=task.task_id,
+                        user_id=task.user_id,
+                        error=str(workspace_error),
+                        note="Workspace creation failed, but task creation continues",
+                    )
+
+            # 創建排程任務目錄（為後續功能預留，添加超時保護）
             if task.user_id:
-                workspace_service.create_scheduled_folder(
+                try:
+                    workspace_service.create_scheduled_folder(
+                        task_id=task.task_id,
+                        user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
+                    )
+                except Exception as scheduled_error:
+                    self.logger.warning(
+                        "create_scheduled_folder_failed",
+                        task_id=task.task_id,
+                        user_id=task.user_id,
+                        error=str(scheduled_error),
+                        note="Scheduled folder creation failed, but task creation continues",
+                    )
+
+            workspace_elapsed_time = time.time() - workspace_start_time
+            if workspace_elapsed_time > 1.0:  # 如果超過1秒，記錄警告
+                self.logger.warning(
+                    "workspace_creation_slow",
                     task_id=task.task_id,
-                    user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
+                    elapsed_time=workspace_elapsed_time,
+                    note=f"Workspace creation took {workspace_elapsed_time:.2f} seconds",
                 )
+
             self.logger.info(
                 "任務工作區和排程任務目錄創建成功",
                 task_id=task.task_id,
                 user_id=task.user_id,
+                elapsed_time=workspace_elapsed_time,
             )
         except Exception as e:
             self.logger.error(
@@ -124,8 +159,16 @@ class UserTaskService:
             raise RuntimeError("Failed to retrieve created task")
         return UserTask(**doc)  # type: ignore[arg-type]  # doc 已檢查為 dict
 
-    def get(self, user_id: str, task_id: str) -> Optional[UserTask]:
-        """獲取用戶任務"""
+    def get(self, user_id: str, task_id: str, build_file_tree: bool = False) -> Optional[UserTask]:
+        """獲取用戶任務
+
+        修改時間：2026-01-06 - 添加 build_file_tree 參數，默認不構建 fileTree 以提升性能
+
+        Args:
+            user_id: 用戶 ID
+            task_id: 任務 ID
+            build_file_tree: 是否構建 fileTree（默認 False，避免超時）
+        """
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
         collection = self.client.db.collection(COLLECTION_NAME)
@@ -139,24 +182,43 @@ class UserTaskService:
         if not isinstance(doc, dict):
             return None
 
-        # 修改時間：2025-01-27 - 獲取任務時也動態構建 fileTree
-        doc_task_id: Optional[str] = doc.get("task_id")  # type: ignore[assignment]  # doc.get 返回 Any | None
-        doc_user_id: Optional[str] = doc.get("user_id")  # type: ignore[assignment]  # doc.get 返回 Any | None
-        if doc_task_id and doc_user_id:
-            try:
-                fileTree = self._build_file_tree_for_task(doc_user_id, doc_task_id)
-                if fileTree:
-                    doc["fileTree"] = fileTree
-            except Exception as e:
-                self.logger.warning(
-                    "Failed to build fileTree for task",
-                    task_id=doc_task_id,
-                    error=str(e),
-                )
+        # 修改時間：2026-01-06 - 只有在明確要求時才構建 fileTree（避免超時）
+        # 如果前端需要 fileTree，應該單獨調用 /api/v1/files/tree API
+        if build_file_tree:
+            doc_task_id: Optional[str] = doc.get("task_id")  # type: ignore[assignment]  # doc.get 返回 Any | None
+            doc_user_id: Optional[str] = doc.get("user_id")  # type: ignore[assignment]  # doc.get 返回 Any | None
+            if doc_task_id and doc_user_id:
+                try:
+                    # 修改時間：2026-01-06 - 添加性能監控
+                    import time
+
+                    start_time = time.time()
+                    fileTree = self._build_file_tree_for_task(doc_user_id, doc_task_id)
+                    elapsed_time = time.time() - start_time
+
+                    if elapsed_time > 3.0:  # 如果超過3秒，記錄警告
+                        self.logger.warning(
+                            "file_tree_build_slow",
+                            task_id=doc_task_id,
+                            elapsed_time=elapsed_time,
+                            note="File tree build took longer than 3 seconds, consider optimizing",
+                        )
+
+                    if fileTree:
+                        doc["fileTree"] = fileTree
+                except Exception as e:
+                    self.logger.warning(
+                        "Failed to build fileTree for task",
+                        task_id=doc_task_id,
+                        error=str(e),
+                        exc_info=True,
+                    )
 
         return UserTask(**doc)  # type: ignore[arg-type]  # doc 已檢查為 dict
 
-    def list(self, user_id: str, limit: int = 100, offset: int = 0, build_file_tree: bool = False) -> List[UserTask]:
+    def list(
+        self, user_id: str, limit: int = 100, offset: int = 0, build_file_tree: bool = False
+    ) -> List[UserTask]:
         """列出用戶的所有任務
 
         修改時間：2025-01-27 - 從 file_metadata 和 folder_metadata 動態構建 fileTree
@@ -394,7 +456,7 @@ class UserTaskService:
                 # 修改時間：2026-01-06 - 直接檢查任務是否存在，避免構建 fileTree
                 doc_key = f"{user_id}_{task_id}"
                 existing_doc = collection.get(doc_key)
-                
+
                 # 處理 executionConfig：如果存在且為字典，轉換為 ExecutionConfig 對象
                 execution_config = task_data.get("executionConfig")
                 if execution_config is not None:
@@ -412,7 +474,7 @@ class UserTaskService:
                         execution_config = ExecutionConfig(mode="free")
                 else:
                     execution_config = ExecutionConfig(mode="free")
-                
+
                 if existing_doc:
                     # 更新現有任務（直接更新文檔，避免構建 fileTree）
                     update_dict = {"updated_at": datetime.utcnow().isoformat()}
@@ -436,7 +498,7 @@ class UserTaskService:
                         )
                     if "fileTree" in task_data:
                         update_dict["fileTree"] = task_data.get("fileTree")
-                    
+
                     if len(update_dict) > 1:  # 除了 updated_at 之外還有其他更新
                         existing_doc.update(update_dict)
                         collection.update(existing_doc)

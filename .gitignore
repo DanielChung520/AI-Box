@@ -94,6 +94,11 @@ temp/
 *.bak
 *.swp
 
+# Excel files (large files)
+*.xlsx
+*.xls
+!docs/weekly reports/**/*.xlsx
+
 # Test results and datasets
 data/datasets/files/
 tests/integration/*/junit*.xml

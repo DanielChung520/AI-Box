@@ -1,21 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
+/**
+ * 代碼功能說明: Markdown 文件預覽組件 - 支持流式編輯實時預覽
+ * 創建日期: 2025-12-06
+ * 創建人: Daniel Chung
+ * 最後修改日期: 2026-01-06
+ */
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Markdown from 'markdown-to-jsx';
 import MermaidRenderer from './MermaidRenderer';
 import { useLanguage } from '../contexts/languageContext';
-import { FileText, Database, Network, Download, RefreshCw } from 'lucide-react';
+import { FileText, Database, Network, Download, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getFileVectors, getFileGraph, getProcessingStatus, getKgChunkStatus, downloadFile, regenerateFileData } from '../lib/api';
 import KnowledgeGraphViewer from './KnowledgeGraphViewer';
+import { SearchReplacePatch } from '../hooks/useStreamingEdit';
 
 interface MarkdownViewerProps {
   content: string;
   fileName: string;
   fileId?: string; // 文件 ID，用於獲取向量和圖譜數據
+  patches?: SearchReplacePatch[]; // 流式編輯 patches（可選）
 }
 
 type PreviewMode = 'text' | 'vector' | 'graph';
 
-export default function MarkdownViewer({ content, fileName, fileId }: MarkdownViewerProps) {
+export default function MarkdownViewer({ content, fileName, fileId, patches = [] }: MarkdownViewerProps) {
   const { t } = useLanguage();
   const [mode, setMode] = useState<PreviewMode>('text'); // 默認為文件模式
   const [markdownParts, setMarkdownParts] = useState<Array<{type: 'text' | 'mermaid', content: string}>>([]);
@@ -31,7 +40,116 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [regenerationJobId, setRegenerationJobId] = useState<string | null>(null);
   const [regenerationStartTime, setRegenerationStartTime] = useState<number | null>(null);
+  const [isApplyingPatches, setIsApplyingPatches] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * 應用 Search-and-Replace patches 到內容
+   * 修改時間：2026-01-06 - 添加流式編輯支持和性能優化
+   */
+  const applyPatches = useMemo(() => {
+    if (!patches || patches.length === 0) {
+      setIsApplyingPatches(false);
+      return content;
+    }
+
+    // 性能優化：大文件處理警告
+    const fileSizeMB = new Blob([content]).size / (1024 * 1024);
+    if (fileSizeMB > 5) {
+      setIsApplyingPatches(true);
+      // 使用 setTimeout 確保 UI 更新
+      setTimeout(() => setIsApplyingPatches(false), 100);
+    }
+
+    let modifiedContent = content;
+    const appliedRanges: Array<{ start: number; end: number; type: 'added' | 'removed' }> = [];
+
+    // 從後往前應用 patches，避免位置偏移問題
+    const sortedPatches = [...patches].sort((a, b) => {
+      const aIndex = modifiedContent.indexOf(a.search_block);
+      const bIndex = modifiedContent.indexOf(b.search_block);
+      return bIndex - aIndex; // 降序排列
+    });
+
+    for (const patch of sortedPatches) {
+      const searchIndex = modifiedContent.indexOf(patch.search_block);
+      if (searchIndex !== -1) {
+        // 記錄刪除範圍
+        appliedRanges.push({
+          start: searchIndex,
+          end: searchIndex + patch.search_block.length,
+          type: 'removed',
+        });
+
+        // 應用替換
+        modifiedContent =
+          modifiedContent.slice(0, searchIndex) +
+          patch.replace_block +
+          modifiedContent.slice(searchIndex + patch.search_block.length);
+
+        // 記錄新增範圍
+        appliedRanges.push({
+          start: searchIndex,
+          end: searchIndex + patch.replace_block.length,
+          type: 'added',
+        });
+      }
+    }
+
+    return modifiedContent;
+  }, [content, patches]);
+
+  /**
+   * 計算 diff 高亮範圍
+   * 修改時間：2026-01-06 - 添加 diff 高亮支持
+   */
+  const diffRanges = useMemo(() => {
+    if (!patches || patches.length === 0) {
+      return [];
+    }
+
+    const ranges: Array<{ start: number; end: number; type: 'added' | 'removed'; text: string }> = [];
+    let currentContent = content;
+
+    // 從後往前處理 patches
+    const sortedPatches = [...patches].sort((a, b) => {
+      const aIndex = currentContent.indexOf(a.search_block);
+      const bIndex = currentContent.indexOf(b.search_block);
+      return bIndex - aIndex;
+    });
+
+    for (const patch of sortedPatches) {
+      const searchIndex = currentContent.indexOf(patch.search_block);
+      if (searchIndex !== -1) {
+        // 記錄刪除的文本
+        ranges.push({
+          start: searchIndex,
+          end: searchIndex + patch.search_block.length,
+          type: 'removed',
+          text: patch.search_block,
+        });
+
+        // 記錄新增的文本（在應用後的內容中）
+        const beforeReplace = currentContent.slice(0, searchIndex);
+        const afterReplace = currentContent.slice(searchIndex + patch.search_block.length);
+        const newStart = beforeReplace.length;
+        ranges.push({
+          start: newStart,
+          end: newStart + patch.replace_block.length,
+          type: 'added',
+          text: patch.replace_block,
+        });
+
+        // 更新內容以便計算下一個 patch 的位置
+        currentContent =
+          currentContent.slice(0, searchIndex) +
+          patch.replace_block +
+          currentContent.slice(searchIndex + patch.search_block.length);
+      }
+    }
+
+    return ranges;
+  }, [content, patches]);
 
   // 修改時間：2025-12-14 14:20:04 (UTC+8) - 判斷是否為草稿檔（尚未提交後端）
   const isDraftFile = (id?: string): boolean => {
@@ -109,6 +227,53 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
       clearInterval(interval);
     };
   }, [fileId, mode, vectorAvailable, graphAvailable]);
+
+  // 修改時間：2026-01-06 - 使用應用了 patches 的內容解析 Markdown
+  useEffect(() => {
+    const contentToParse = applyPatches;
+    try {
+      const parts: Array<{type: 'text' | 'mermaid', content: string}> = [];
+      const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
+      let lastIndex = 0;
+      let match;
+
+      while ((match = mermaidRegex.exec(contentToParse)) !== null) {
+        // 添加 mermaid 代碼塊之前的文本
+        if (match.index > lastIndex) {
+          parts.push({
+            type: 'text',
+            content: contentToParse.substring(lastIndex, match.index)
+          });
+        }
+
+        // 添加mermaid代码块（保留原始格式以便後續處理）
+        parts.push({
+          type: 'mermaid',
+          content: match[1] // 只提取 mermaid 代碼內容
+        });
+
+        lastIndex = match.index + match[0].length;
+      }
+
+      // 添加最后一段普通文本
+      if (lastIndex < contentToParse.length) {
+        parts.push({
+          type: 'text',
+          content: contentToParse.substring(lastIndex)
+        });
+      }
+
+      // 如果沒有找到任何 mermaid 代碼塊，整個內容都是文本
+      if (parts.length === 0) {
+        parts.push({ type: 'text', content: contentToParse });
+      }
+
+      setMarkdownParts(parts);
+    } catch (error) {
+      console.error("解析Markdown内容时出错:", error);
+      setMarkdownParts([{ type: 'text', content: contentToParse }]);
+    }
+  }, [applyPatches]);
 
   const renderChunkBars = () => {
     const totalChunks: number | undefined =
@@ -286,20 +451,24 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
   };
 
   // 解析Markdown内容，识别普通文本和mermaid代码块
+  // 修改時間：2026-01-06 - 使用應用了 patches 的內容
   useEffect(() => {
     try {
+      // 使用應用了 patches 的內容
+      const contentToParse = applyPatches;
+
       // 分割文本和mermaid代码块
       const parts: Array<{ type: 'text' | 'mermaid'; content: string }> = [];
       const mermaidRegex = /```mermaid\s([\s\S]*?)```/g;
       let lastIndex = 0;
       let match;
 
-      while ((match = mermaidRegex.exec(content)) !== null) {
+      while ((match = mermaidRegex.exec(contentToParse)) !== null) {
         // 添加mermaid代码块前的普通文本
         if (match.index > lastIndex) {
           parts.push({
             type: 'text',
-            content: content.substring(lastIndex, match.index)
+            content: contentToParse.substring(lastIndex, match.index)
           });
         }
 
@@ -313,24 +482,24 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
       }
 
       // 添加最后一段普通文本
-      if (lastIndex < content.length) {
+      if (lastIndex < contentToParse.length) {
         parts.push({
           type: 'text',
-          content: content.substring(lastIndex)
+          content: contentToParse.substring(lastIndex)
         });
       }
 
       // 如果沒有找到任何 mermaid 代碼塊，整個內容都是文本
       if (parts.length === 0) {
-        parts.push({ type: 'text', content });
+        parts.push({ type: 'text', content: contentToParse });
       }
 
       setMarkdownParts(parts);
     } catch (error) {
       console.error("解析Markdown内容时出错:", error);
-      setMarkdownParts([{ type: 'text', content }]);
+      setMarkdownParts([{ type: 'text', content: applyPatches }]);
     }
-  }, [content]);
+  }, [applyPatches]);
 
   // 修改時間：2025-01-27 15:00:00 (UTC+8) - 使用 markdown-to-jsx 替代 react-markdown，更好的縮排控制
   // 自定義 Markdown 組件樣式（markdown-to-jsx 格式）
@@ -594,25 +763,48 @@ export default function MarkdownViewer({ content, fileName, fileId }: MarkdownVi
                     <p className="text-sm mt-2 text-tertiary theme-transition">文本內容尚未生成或無法加載</p>
                   </div>
                 ) : (
-                  markdownParts.map((part, index) => (
-                    <div key={index}>
-                      {part.type === 'text' ? (
-                        <div
-                          className="markdown-content prose prose-invert max-w-none"
-                          style={{
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word'
-                          }}
-                        >
-                          <Markdown options={markdownOptions}>
-                            {part.content}
-                          </Markdown>
+                  <>
+                    {/* 修改時間：2026-01-06 - 顯示流式編輯提示和加載狀態 */}
+                    {patches && patches.length > 0 && (
+                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                          {isApplyingPatches ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>正在應用編輯修改...</span>
+                            </>
+                          ) : (
+                            <>
+                              <i className="fa-solid fa-info-circle"></i>
+                              <span>
+                                正在顯示 {patches.length} 個編輯修改的預覽
+                                {applyPatches !== content && '（內容已更新）'}
+                              </span>
+                            </>
+                          )}
                         </div>
-                      ) : (
-                        <MermaidRenderer code={part.content.trim()} className="bg-secondary p-4 rounded-lg border border-primary" />
-                      )}
-                    </div>
-                  ))
+                      </div>
+                    )}
+                    {markdownParts.map((part, index) => (
+                      <div key={index}>
+                        {part.type === 'text' ? (
+                          <div
+                            className="markdown-content prose prose-invert max-w-none"
+                            style={{
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word'
+                            }}
+                          >
+                            <Markdown options={markdownOptions}>
+                              {part.content}
+                            </Markdown>
+                          </div>
+                        ) : (
+                          <MermaidRenderer code={part.content.trim()} className="bg-secondary p-4 rounded-lg border border-primary" />
+                        )}
+                      </div>
+                    ))}
+                  </>
                 )}
               </>
             )}

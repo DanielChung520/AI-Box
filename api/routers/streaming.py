@@ -2,7 +2,7 @@
 代碼功能說明: 流式傳輸 API - 支持 WebSocket/SSE 流式傳輸
 創建日期: 2025-12-20 12:30:07 (UTC+8)
 創建人: Daniel Chung
-最後修改日期: 2025-12-20 12:30:07 (UTC+8)
+最後修改日期: 2026-01-06
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ logger = structlog.get_logger(__name__)
 # 向後兼容：如果 ConfigStoreService 不可用，使用舊的配置方式
 try:
     from services.api.services.config_store_service import ConfigStoreService
+
     _streaming_config_service: Optional[ConfigStoreService] = None
 
     def get_streaming_config_service() -> ConfigStoreService:
@@ -59,11 +60,12 @@ def get_streaming_chunk_size() -> int:
             logger.warning(
                 "failed_to_load_streaming_config_from_arangodb",
                 error=str(e),
-                message="從 ArangoDB 讀取流式輸出配置失敗，使用默認值 50"
+                message="從 ArangoDB 讀取流式輸出配置失敗，使用默認值 50",
             )
-    
+
     # 默認值
     return 50
+
 
 router = APIRouter(prefix="/streaming", tags=["Streaming"])
 
@@ -137,23 +139,79 @@ async def _generate_streaming_patches(
 
         # 如果從 Agent 獲取了結果，使用它；否則使用模擬數據
         if agent_result and isinstance(agent_result, dict):
-            # 嘗試從 Agent 結果中提取 Search-and-Replace 格式的數據
-            patches_data = agent_result.get("patches") or agent_result.get("result", {}).get(
-                "patches"
-            )
-            if patches_data:
-                # 將 patches 轉換為 JSON 字符串並流式發送
-                patches_json = json.dumps({"patches": patches_data})
-                # 分塊發送（從配置讀取 chunk_size）
-                chunk_size = get_streaming_chunk_size()
-                for i in range(0, len(patches_json), chunk_size):
-                    chunk = patches_json[i : i + chunk_size]
-                    yield f"data: {json.dumps({'type': 'patch_chunk', 'data': {'chunk': chunk}})}\n\n"
-                    await asyncio.sleep(0.05)  # 較短的延遲
+            # 修改時間：2026-01-06 - 優化從 Agent 結果中提取 Search-and-Replace 格式的數據
+            # Agent 結果格式：{"patch_kind": "search_replace", "patch_payload": {...}, "summary": "...", ...}
+            patch_kind = agent_result.get("patch_kind", "")
+            patch_payload = agent_result.get("patch_payload", {})
 
-                # 發送結束消息
-                yield f"data: {json.dumps({'type': 'patch_end', 'data': {'request_id': request_id}})}\n\n"
-                return
+            # 提取 patches 數據
+            patches_data = None
+            if patch_kind == "search_replace" and isinstance(patch_payload, dict):
+                # Search-and-Replace 格式：patch_payload 包含 "patches" 鍵
+                patches_data = patch_payload.get("patches")
+            elif isinstance(agent_result.get("patches"), list):
+                # 兼容舊格式：直接從 result 中獲取 patches
+                patches_data = agent_result.get("patches")
+            elif isinstance(agent_result.get("result"), dict):
+                # 兼容格式：從 result.patches 獲取
+                patches_data = agent_result.get("result", {}).get("patches")
+
+            if patches_data and isinstance(patches_data, list) and len(patches_data) > 0:
+                # 驗證 patches 格式
+                valid_patches = []
+                for patch in patches_data:
+                    if (
+                        isinstance(patch, dict)
+                        and "search_block" in patch
+                        and "replace_block" in patch
+                    ):
+                        valid_patches.append(
+                            {
+                                "search_block": patch["search_block"],
+                                "replace_block": patch["replace_block"],
+                            }
+                        )
+
+                if valid_patches:
+                    # 將 patches 轉換為 JSON 字符串並流式發送
+                    patches_json = json.dumps({"patches": valid_patches})
+                    # 性能優化：根據數據大小動態調整 chunk_size 和延遲
+                    chunk_size = get_streaming_chunk_size()
+                    # 對於小數據（< 10KB），減少延遲以提高響應速度
+                    data_size_kb = len(patches_json.encode("utf-8")) / 1024
+                    delay = 0.01 if data_size_kb < 10 else 0.05
+
+                    for i in range(0, len(patches_json), chunk_size):
+                        chunk = patches_json[i : i + chunk_size]
+                        yield f"data: {json.dumps({'type': 'patch_chunk', 'data': {'chunk': chunk}})}\n\n"
+                        # 性能優化：減少不必要的延遲
+                        if i + chunk_size < len(patches_json):
+                            await asyncio.sleep(delay)
+
+                    # 發送結束消息
+                    yield f"data: {json.dumps({'type': 'patch_end', 'data': {'request_id': request_id}})}\n\n"
+                    logger.info(
+                        "streaming_patches_completed",
+                        session_id=session_id,
+                        request_id=request_id,
+                        patch_count=len(valid_patches),
+                    )
+                    return
+                else:
+                    logger.warning(
+                        "no_valid_patches_found",
+                        session_id=session_id,
+                        request_id=request_id,
+                        patches_data=patches_data,
+                    )
+            else:
+                logger.warning(
+                    "patches_data_not_found_or_invalid",
+                    session_id=session_id,
+                    request_id=request_id,
+                    patch_kind=patch_kind,
+                    has_patch_payload=bool(patch_payload),
+                )
 
         # 暫時使用模擬數據（待 Agent 系統支持流式響應後替換）
         # 實際應該：

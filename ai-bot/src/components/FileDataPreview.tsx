@@ -2,7 +2,7 @@
  * 代碼功能說明: 文件數據預覽組件（文本、向量、圖譜）
  * 創建日期: 2025-12-09
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
+ * 最後修改日期: 2026-01-06
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -182,8 +182,8 @@ export default function FileDataPreview({
         const collectionName = vectorData?.stats?.collection_name;
 
         return (
-          <div className="p-4">
-            <div className="mb-4">
+          <div className="h-full flex flex-col p-4">
+            <div className="mb-4 flex-shrink-0">
               <h3 className="text-lg font-semibold mb-2">向量數據統計</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-3 rounded">
@@ -199,9 +199,9 @@ export default function FileDataPreview({
               </div>
             </div>
             {vectorData?.vectors && vectorData.vectors.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">向量列表（顯示前 {vectorData.vectors.length} 個，共 {vectorData.total || vectorCount} 個）</h3>
-                <div className="space-y-2 max-h-[40vh] overflow-auto">
+              <div className="flex-1 flex flex-col min-h-0">
+                <h3 className="text-lg font-semibold mb-2 flex-shrink-0">向量列表（顯示前 {vectorData.vectors.length} 個，共 {vectorData.total || vectorCount} 個）</h3>
+                <div className="flex-1 space-y-2 overflow-auto min-h-0">
                   {vectorData.vectors.map((vector: any, index: number) => (
                     <div key={index} className="bg-gray-50 p-3 rounded">
                       <div className="text-sm font-mono text-gray-600 mb-1">

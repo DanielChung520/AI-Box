@@ -2,7 +2,7 @@
  * 代碼功能說明: 文件預覽組件
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-13
+ * 最後修改日期: 2026-01-06
  */
 
 import { useState, useEffect } from 'react';
@@ -15,6 +15,7 @@ import MarkdownViewer from './MarkdownViewer';
 import DOCXViewer from './DOCXViewer';
 import ExcelViewer from './ExcelViewer';
 import KnowledgeGraphViewer from './KnowledgeGraphViewer';
+import { useFileEditing } from '../contexts/fileEditingContext';
 
 interface FilePreviewProps {
   file: FileMetadata;
@@ -43,6 +44,12 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
   const [regenerationJobId, setRegenerationJobId] = useState<string | null>(null);
   const [regenerationStartTime, setRegenerationStartTime] = useState<number | null>(null);
 
+  // 修改時間：2026-01-06 - 從 Context 獲取流式編輯 patches
+  const { editingFileId, patches, modifiedContent, setOriginalContent, setEditingFile } = useFileEditing();
+  const shouldShowPatches = editingFileId === file.file_id && patches.length > 0;
+  // 如果有修改後的內容，使用修改後的內容；否則使用原始內容
+  const displayContent = (editingFileId === file.file_id && modifiedContent) ? modifiedContent : content;
+
   const handleOpenInIEE = () => {
     // 檢查文件類型是否為 Markdown
     const fileName = file.filename.toLowerCase();
@@ -65,6 +72,25 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
       // 重置任務狀態
       setRegenerationJobId(null);
       setRegenerationStartTime(null);
+
+      // 修改時間：2026-01-06 - 如果是 Markdown 文件且是當前編輯的文件，獲取原始內容
+      const isMarkdown = file.filename.toLowerCase().endsWith('.md') ||
+                        file.filename.toLowerCase().endsWith('.markdown') ||
+                        file.file_type === 'text/markdown';
+      if (isMarkdown && editingFileId === file.file_id) {
+        // 設置編輯文件（確保 Context 知道當前編輯的文件）
+        setEditingFile(file.file_id);
+        // 獲取原始內容並存儲到 Context
+        previewFile(file.file_id)
+          .then((response) => {
+            if (response.success && response.data?.content) {
+              setOriginalContent(response.data.content);
+            }
+          })
+          .catch((error) => {
+            console.error('[FilePreview] Failed to load original content:', error);
+          });
+      }
     }
 
     // 清理刷新定時器
@@ -74,7 +100,7 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
         setRefreshInterval(null);
       }
     };
-  }, [isOpen, file]);
+  }, [isOpen, file, editingFileId, setOriginalContent, setEditingFile]);
 
   const refreshProcessingStatus = async () => {
     try {
@@ -315,6 +341,14 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
       if (response.success && response.data) {
         setContent(response.data.content);
         setIsTruncated(response.data.is_truncated);
+
+        // 修改時間：2026-01-06 - 如果是 Markdown 文件且是當前編輯的文件，更新原始內容到 Context
+        const isMarkdown = file.filename.toLowerCase().endsWith('.md') ||
+                          file.filename.toLowerCase().endsWith('.markdown') ||
+                          file.file_type === 'text/markdown';
+        if (isMarkdown && editingFileId === file.file_id) {
+          setOriginalContent(response.data.content);
+        }
       } else {
         setError('預覽失敗');
       }
@@ -381,8 +415,16 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
         }
 
         // Markdown 文件使用 MarkdownViewer
+        // 修改時間：2026-01-06 - 傳遞流式編輯 patches 和修改後的內容
         if (file.file_type === 'text/markdown' || file.filename.endsWith('.md')) {
-          return <MarkdownViewer content={content} fileName={file.filename} fileId={file.file_id} />;
+          return (
+            <MarkdownViewer
+              content={displayContent}
+              fileName={file.filename}
+              fileId={file.file_id}
+              patches={shouldShowPatches ? patches : undefined}
+            />
+          );
         }
 
         // 其他文本文件直接显示
@@ -490,8 +532,8 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
         const vectorCount = vectorData?.stats?.vector_count || vectorData?.total || vectorData?.vectors?.length || 0;
         const collectionName = vectorData?.stats?.collection_name;
         return (
-          <div className="p-4">
-            <div className="mb-4">
+          <div className="h-full flex flex-col p-4">
+            <div className="mb-4 flex-shrink-0">
               <h3 className="text-lg font-semibold mb-2">向量數據統計</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-3 rounded">
@@ -507,9 +549,9 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
               </div>
             </div>
             {vectorData?.vectors && vectorData.vectors.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">向量列表（顯示前 {vectorData.vectors.length} 個，共 {vectorData.total || vectorCount} 個）</h3>
-                <div className="space-y-2 max-h-[40vh] overflow-auto">
+              <div className="flex-1 flex flex-col min-h-0">
+                <h3 className="text-lg font-semibold mb-2 flex-shrink-0">向量列表（顯示前 {vectorData.vectors.length} 個，共 {vectorData.total || vectorCount} 個）</h3>
+                <div className="flex-1 space-y-2 overflow-auto min-h-0">
                   {vectorData.vectors.map((vector: any, index: number) => (
                     <div key={index} className="bg-gray-50 p-3 rounded">
                       <div className="text-sm font-mono text-gray-600 mb-1">
@@ -806,8 +848,13 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
     return (
       <div className="h-full w-full flex flex-col bg-white dark:bg-gray-900 theme-transition">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-primary flex-shrink-0">
-          <h2 className="text-lg font-semibold truncate flex-shrink min-w-0 max-w-[40%] text-primary">{file.filename}</h2>
+        <div className="flex items-center justify-between p-4 border-b border-primary flex-shrink-0 gap-2">
+          <div className="flex items-center gap-2 flex-shrink min-w-0">
+            <h2 className="text-lg font-semibold truncate text-primary flex-shrink min-w-0">{file.filename}</h2>
+            <span className="text-xs text-tertiary whitespace-nowrap flex-shrink-0">
+              {file.file_size} bytes · {file.file_type}
+            </span>
+          </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             {/* 模式切換按鈕組（文件、向量、圖譜） */}
             <div className="flex gap-0.5 border border-primary rounded-lg p-0.5 bg-tertiary shadow-sm">
@@ -897,17 +944,9 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
         {/* Content */}
         <div className="flex-1 overflow-auto min-h-0">
           {renderContent()}
-                </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-primary text-sm text-tertiary flex-shrink-0">
-          <div className="flex justify-between">
-            <span>文件大小: {file.file_size} bytes</span>
-            <span>類型: {file.file_type}</span>
-                        </div>
-                          </div>
-                      </div>
-                    );
+        </div>
+      </div>
+    );
   }
 
   // 模态框模式（原有实现）
@@ -915,8 +954,13 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b gap-4">
-          <h2 className="text-lg font-semibold truncate flex-shrink min-w-0 max-w-[40%]">{file.filename}</h2>
+        <div className="flex items-center justify-between p-4 border-b gap-2">
+          <div className="flex items-center gap-2 flex-shrink min-w-0">
+            <h2 className="text-lg font-semibold truncate flex-shrink min-w-0">{file.filename}</h2>
+            <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">
+              {file.file_size} bytes · {file.file_type}
+            </span>
+          </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             {/* 模式切換按鈕組（文件、向量、圖譜） */}
             <div className="flex gap-0.5 border border-gray-300 rounded-lg p-0.5 bg-gray-100 shadow-sm">
@@ -1006,14 +1050,6 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
         {/* Content */}
         <div className="flex-1 overflow-auto">
           {renderContent()}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t text-sm text-gray-500">
-          <div className="flex justify-between">
-            <span>文件大小: {file.file_size} bytes</span>
-            <span>類型: {file.file_type}</span>
-          </div>
         </div>
       </div>
     </div>

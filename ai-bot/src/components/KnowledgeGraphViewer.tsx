@@ -2,7 +2,7 @@
  * 代碼功能說明: 知識圖譜可視化組件，使用 AntV G6 渲染知識圖譜
  * 創建日期: 2025-12-10
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
+ * 最後修改日期: 2026-01-06
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -122,9 +122,11 @@ export default function KnowledgeGraphViewer({
   const graphRef = useRef<any>(null);
   const isRenderingRef = useRef<boolean>(false);
   const hoveredNodeRef = useRef<any>(null); // 追蹤當前懸停的節點
-  const [layoutType, setLayoutType] = useState<LayoutType>('force');
+  const [layoutType, setLayoutType] = useState<LayoutType>('grid'); // 修改時間：2026-01-06 - 默認使用網格布局
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [hoveredListNodeId, setHoveredListNodeId] = useState<string | null>(null); // 追蹤列表中被懸停的節點
+  const [highlightedTripleIndex, setHighlightedTripleIndex] = useState<number | null>(null); // 修改時間：2026-01-06 - 追蹤需要聚焦顯示的三元組索引
+  const tripleListRef = useRef<HTMLDivElement>(null); // 修改時間：2026-01-06 - 三元組列表的引用，用於滾動到指定位置
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // 檢測深色模式
@@ -153,6 +155,25 @@ export default function KnowledgeGraphViewer({
       mediaQuery.removeEventListener('change', checkDarkMode);
     };
   }, []);
+
+  // 修改時間：2026-01-06 - 當聚焦的三元組索引變化時，滾動到對應位置
+  useEffect(() => {
+    if (highlightedTripleIndex !== null && tripleListRef.current) {
+      const tripleElements = tripleListRef.current.querySelectorAll('[data-triple-index]');
+      const targetElement = Array.from(tripleElements).find(
+        (el) => el.getAttribute('data-triple-index') === String(highlightedTripleIndex)
+      ) as HTMLElement;
+
+      if (targetElement) {
+        // 滾動到目標元素，並添加平滑滾動效果
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
+    }
+  }, [highlightedTripleIndex]);
+
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
@@ -202,11 +223,11 @@ export default function KnowledgeGraphViewer({
       // 同時支持完整格式（entities/xxx）和簡化格式（xxx）的 ID
       const nodeIdSet = new Set<string>();
       const nodeIdMap = new Map<string, string>(); // 簡化格式 -> 完整格式的映射
-      
+
       nodes.forEach(node => {
         const nodeId = node.id;
         nodeIdSet.add(nodeId);
-        
+
         // 如果節點 ID 是完整格式（entities/xxx），也添加簡化格式（xxx）到映射
         if (nodeId.includes('/')) {
           const simplifiedId = nodeId.split('/').pop() || nodeId;
@@ -215,14 +236,14 @@ export default function KnowledgeGraphViewer({
           nodeIdSet.add(simplifiedId);
         }
       });
-      
+
       // 過濾掉引用不存在節點的邊
       const edges = providedEdges
         .map((edge, index) => {
           // 標準化 source 和 target ID
           let sourceId = edge.source || edge.from || '';
           let targetId = edge.target || edge.to || '';
-          
+
           // 如果 source/target 是簡化格式，嘗試轉換為完整格式
           if (sourceId && !sourceId.includes('/') && nodeIdMap.has(sourceId)) {
             sourceId = nodeIdMap.get(sourceId) || sourceId;
@@ -230,7 +251,7 @@ export default function KnowledgeGraphViewer({
           if (targetId && !targetId.includes('/') && nodeIdMap.has(targetId)) {
             targetId = nodeIdMap.get(targetId) || targetId;
           }
-          
+
           return {
         id: edge.id || `edge_${index}`,
             source: sourceId,
@@ -250,16 +271,16 @@ export default function KnowledgeGraphViewer({
           // 只保留 source 和 target 都存在於節點列表中的邊
           const sourceExists = nodeIdSet.has(edge.source);
           const targetExists = nodeIdSet.has(edge.target);
-          
+
           // 只在開發模式下輸出警告（避免生產環境的日誌噪音）
           if (!sourceExists || !targetExists) {
             if (process.env.NODE_ENV === 'development') {
               console.debug(
                 '[KnowledgeGraphViewer] Filtering edge with missing node:',
-                { 
-                  source: edge.source, 
-                  target: edge.target, 
-                  sourceExists, 
+                {
+                  source: edge.source,
+                  target: edge.target,
+                  sourceExists,
                   targetExists,
                   totalNodes: nodes.length,
                   totalEdges: providedEdges.length
@@ -513,17 +534,18 @@ export default function KnowledgeGraphViewer({
               }
             });
 
-            // 畫布點擊事件 - 點擊空白區域時清除 tooltip
+            // 畫布點擊事件 - 點擊空白區域時清除 tooltip 和高亮
             graph.on('canvas:click', (e: any) => {
               try {
-                // 如果點擊的是畫布空白區域（不是節點或邊），清除 tooltip
+                // 如果點擊的是畫布空白區域（不是節點或邊），清除 tooltip 和高亮
                 const point = e.canvasPoint || e.point || e.canvas || { x: 0, y: 0 };
                 const items = (graph as any).getItemsByPoint?.(point.x, point.y) || [];
-                
-                // 如果沒有找到任何項目，清除 tooltip
+
+                // 如果沒有找到任何項目，清除 tooltip 和高亮
                 if (items.length === 0) {
                   setTooltip(null);
-                  console.log('[KnowledgeGraphViewer] Canvas clicked (blank area), cleared tooltip');
+                  setHighlightedTripleIndex(null); // 修改時間：2026-01-06 - 清除三元組高亮
+                  console.log('[KnowledgeGraphViewer] Canvas clicked (blank area), cleared tooltip and highlight');
                 }
               } catch (err) {
                 console.warn('[KnowledgeGraphViewer] Error handling canvas click:', err);
@@ -542,18 +564,18 @@ export default function KnowledgeGraphViewer({
                 const edgeLabel = edgeModel.label || edgeModel.type || edgeModel.relation || '關係';
                 const edgeSource = edgeModel.source || edgeModel.from || '';
                 const edgeTarget = edgeModel.target || edgeModel.to || '';
-                
+
                 console.log('[KnowledgeGraphViewer] Edge clicked:', {
                   edgeLabel,
                   edgeSource,
                   edgeTarget,
                   edgeModel,
                 });
-                
+
                 // 獲取源節點和目標節點的名稱
                 let sourceLabel = edgeSource;
                 let targetLabel = edgeTarget;
-                
+
                 // 嘗試從圖中獲取節點數據
                 if (edgeSource) {
                   try {
@@ -572,7 +594,7 @@ export default function KnowledgeGraphViewer({
                     console.warn('[KnowledgeGraphViewer] Failed to get source node data:', err);
                   }
                 }
-                
+
                 if (edgeTarget) {
                   try {
                     const targetNodeData = (graph as any).getNodeData?.(edgeTarget);
@@ -590,30 +612,30 @@ export default function KnowledgeGraphViewer({
                     console.warn('[KnowledgeGraphViewer] Failed to get target node data:', err);
                   }
                 }
-                
+
                 // 獲取鼠標位置
                 const containerRect = containerRef.current?.getBoundingClientRect();
                 let mouseX = 0;
                 let mouseY = 0;
-                
+
                 const originalEvent = e.originalEvent || e.event || e.nativeEvent;
                 if (originalEvent && (originalEvent.clientX !== undefined || originalEvent.pageX !== undefined)) {
                   mouseX = originalEvent.clientX !== undefined ? originalEvent.clientX : originalEvent.pageX;
                   mouseY = originalEvent.clientY !== undefined ? originalEvent.clientY : originalEvent.pageY;
                 }
-                
+
                 // 如果沒有鼠標位置，使用邊的中點位置
                 if ((mouseX === 0 && mouseY === 0) && containerRect && edgeModel.x !== undefined && edgeModel.y !== undefined) {
                   mouseX = edgeModel.x + containerRect.left;
                   mouseY = edgeModel.y + containerRect.top;
                 }
-                
+
                 // 如果仍然沒有位置，使用容器中心
                 if ((mouseX === 0 && mouseY === 0) && containerRect) {
                   mouseX = containerRect.left + containerRect.width / 2;
                   mouseY = containerRect.top + containerRect.height / 2;
                 }
-                
+
                 if (mouseX > 0 || mouseY > 0) {
                   setTooltip({
                     visible: true,
@@ -624,7 +646,36 @@ export default function KnowledgeGraphViewer({
                       entityType: '關係',
                     },
                   });
-                  
+
+                  // 修改時間：2026-01-06 - 找到對應的三元組索引並聚焦顯示
+                  const matchingTripleIndex = triples.findIndex((triple: any) => {
+                    // 匹配 subject、object 和 relation
+                    const subjectMatch = triple.subject === edgeSource ||
+                                       triple.subject === sourceLabel ||
+                                       triple.subject.split('/').pop() === edgeSource.split('/').pop() ||
+                                       triple.subject.split('/').pop() === sourceLabel.split('/').pop();
+                    const objectMatch = triple.object === edgeTarget ||
+                                      triple.object === targetLabel ||
+                                      triple.object.split('/').pop() === edgeTarget.split('/').pop() ||
+                                      triple.object.split('/').pop() === targetLabel.split('/').pop();
+                    const relationMatch = triple.relation === edgeLabel ||
+                                        triple.relation === edgeModel.type ||
+                                        triple.relation === edgeModel.relation;
+
+                    return subjectMatch && objectMatch && relationMatch;
+                  });
+
+                  if (matchingTripleIndex !== -1) {
+                    setHighlightedTripleIndex(matchingTripleIndex);
+                    console.log('[KnowledgeGraphViewer] Found matching triple at index:', matchingTripleIndex);
+                  } else {
+                    console.log('[KnowledgeGraphViewer] No matching triple found for edge:', {
+                      edgeSource,
+                      edgeTarget,
+                      edgeLabel,
+                    });
+                  }
+
                   console.log('[KnowledgeGraphViewer] Edge tooltip displayed:', {
                     sourceLabel,
                     edgeLabel,
@@ -646,12 +697,12 @@ export default function KnowledgeGraphViewer({
               try {
                 // 嘗試多種方式獲取節點 item
                 let nodeItem = e.item;
-                
+
                 // 如果沒有 item，嘗試從事件對象的其他屬性獲取
                 if (!nodeItem) {
                   // 方法1: 從 target 獲取
                   nodeItem = e.target?.item || e.target;
-                  
+
                   // 方法2: 從 data 獲取
                   if (!nodeItem && e.data) {
                     const nodeId = e.data.id || e.data.item?.id;
@@ -659,18 +710,18 @@ export default function KnowledgeGraphViewer({
                       nodeItem = (graph as any).findById?.(nodeId);
                     }
                   }
-                  
+
                   // 方法3: 從 id 獲取
                   if (!nodeItem && e.id) {
                     nodeItem = (graph as any).findById?.(e.id);
                   }
-                  
+
                   // 方法4: 從 node 屬性獲取
                   if (!nodeItem && e.node) {
                     nodeItem = e.node;
                   }
                 }
-                
+
                 // 只在有 item 時處理，沒有 item 是正常情況（例如在畫布上）
                 if (!nodeItem) {
                   return; // 靜默返回，不輸出警告
@@ -682,7 +733,7 @@ export default function KnowledgeGraphViewer({
                 // 安全地獲取節點模型（G6 v5 可能使用不同的 API）
                 let nodeModel: any = null;
                 let nodeId: string | null = null;
-                
+
                 try {
                   // 方法1: 使用 getModel() 方法
                   if (typeof e.item.getModel === 'function') {
@@ -704,19 +755,19 @@ export default function KnowledgeGraphViewer({
                     nodeModel = e.item.model;
                     nodeId = nodeModel?.id;
                   }
-                  
+
                   if (!nodeModel || !nodeId) {
                     return;
                   }
                 } catch (modelErr) {
                   return;
                 }
-                
+
                 // 方法1: 嘗試設置節點 hover 狀態（G6 v5 標準方式）
                 try {
                   // 確保 e.item 是有效的節點對象
                   let nodeInstance = e.item;
-                  
+
                   // 如果 e.item 是數據對象，需要通過 ID 查找節點實例
                   if (!nodeInstance.getModel && nodeId) {
                     nodeInstance = (graph as any).findById?.(nodeId);
@@ -724,13 +775,13 @@ export default function KnowledgeGraphViewer({
                       e.item = nodeInstance;
                     }
                   }
-                  
+
                   if (nodeInstance && (graph as any).setItemState) {
                     (graph as any).setItemState(nodeInstance, 'hover', true);
-                    
+
                     // 檢查狀態是否設置成功
                     const states = (graph as any).getItemState?.(nodeInstance) || [];
-                    
+
                     // 如果狀態設置成功，觸發重新渲染
                     if (states.includes('hover')) {
                       (graph as any).render?.();
@@ -743,16 +794,16 @@ export default function KnowledgeGraphViewer({
                 // 方法2: 直接更新節點數據和樣式（備用方案）
                 try {
                   const hoverSize = 26.4; // 放大 10%: 24 * 1.1 = 26.4
-                  
+
                   // 嘗試多種更新方法
                   let updated = false;
-                  
+
                   // 確保有節點實例（如果 e.item 不是實例，通過 ID 查找）
                   let nodeInstance = e.item;
                   if (!nodeInstance || (typeof nodeInstance.getModel !== 'function' && nodeId)) {
                     nodeInstance = (graph as any).findById?.(nodeId);
                   }
-                  
+
                   // 方法2a: 使用 updateItem
                   if (nodeInstance && (graph as any).updateItem) {
                     try {
@@ -770,7 +821,7 @@ export default function KnowledgeGraphViewer({
                       // 靜默處理錯誤
                     }
                   }
-                  
+
                   // 方法2b: 使用 updateData (G6 v5 需要更新完整的数据结构)
                   if (!updated && (graph as any).updateData) {
                     try {
@@ -788,14 +839,14 @@ export default function KnowledgeGraphViewer({
                           shadowColor: isDarkMode ? 'rgba(96, 165, 250, 0.5)' : 'rgba(24, 144, 255, 0.3)',
                         },
                       };
-                      
+
                       // G6 v5 的 updateData 可能需要传递数组
                       (graph as any).updateData('node', [updatedNodeData]);
 
                       // 强制重新渲染 - G6 v5 可能需要调用不同的方法
                       // 尝试多种方式触发重新渲染
                       let renderTriggered = false;
-                      
+
                       // 方法1: 尝试使用 updateLayout
                       if ((graph as any).updateLayout) {
                         try {
@@ -805,7 +856,7 @@ export default function KnowledgeGraphViewer({
                           // 靜默處理錯誤
                         }
                       }
-                      
+
                       // 方法2: 尝试使用 render（可能是异步的）
                       if ((graph as any).render) {
                         try {
@@ -822,7 +873,7 @@ export default function KnowledgeGraphViewer({
                           // 靜默處理錯誤
                         }
                       }
-                      
+
                       // 方法3: 尝试使用 draw（G6 v5 可能使用这个）
                       if ((graph as any).draw) {
                         try {
@@ -832,7 +883,7 @@ export default function KnowledgeGraphViewer({
                           // 靜默處理錯誤
                         }
                       }
-                      
+
                       // 方法4: 如果以上方法都不工作，尝试直接操作 DOM（最后手段）
                       if (!renderTriggered && nodeInstance) {
                         try {
@@ -840,15 +891,15 @@ export default function KnowledgeGraphViewer({
                           const nodeElement = (nodeInstance as any).getContainer?.() || (nodeInstance as any).container || (nodeInstance as any).getShape?.();
                           if (nodeElement) {
                             // 查找 circle 元素
-                            const shape = nodeElement.querySelector?.('circle') || 
+                            const shape = nodeElement.querySelector?.('circle') ||
                                          (nodeElement.tagName === 'circle' ? nodeElement : null) ||
                                          nodeElement;
-                            
+
                             if (shape && shape.setAttribute) {
                               shape.setAttribute('r', (hoverSize / 2).toString());
                               shape.setAttribute('stroke-width', '2');
                               shape.setAttribute('stroke', isDarkMode ? '#60a5fa' : '#1890ff');
-                              
+
                               // 添加阴影效果（通过 filter 或 style）
                               if (shape.style) {
                                 shape.style.filter = `drop-shadow(0 0 ${10}px ${isDarkMode ? 'rgba(96, 165, 250, 0.5)' : 'rgba(24, 144, 255, 0.3)'})`;
@@ -860,13 +911,13 @@ export default function KnowledgeGraphViewer({
                           // 靜默處理錯誤
                         }
                       }
-                      
+
                       updated = true;
                     } catch (err) {
                       // 靜默處理錯誤
                     }
                   }
-                  
+
                   // 方法2c: 使用 updateNodeData (G6 v5 可能使用這個)
                   if (!updated && (graph as any).updateNodeData) {
                     try {
@@ -884,7 +935,7 @@ export default function KnowledgeGraphViewer({
                       // 靜默處理錯誤
                     }
                   }
-                  
+
                   // 方法2d: 直接修改節點數據並重新設置
                   if (!updated) {
                     try {
@@ -905,7 +956,7 @@ export default function KnowledgeGraphViewer({
                       console.warn('[KnowledgeGraphViewer] setNodeData failed:', err);
                     }
                   }
-                  
+
                   if (updated) {
                     // 保存節點實例到 ref（優先使用找到的實例）
                     hoveredNodeRef.current = nodeInstance || e.item;
@@ -917,7 +968,7 @@ export default function KnowledgeGraphViewer({
                 // 獲取節點數據（G6 v5 的節點數據可能存儲在不同的位置）
                 // 方法1: 從 nodeModel.data 獲取（G6 v5 可能將數據存儲在這裡）
                 let nodeData = nodeModel.data || {};
-                
+
                 // 方法2: 如果 nodeModel.data 不可用，嘗試從 graph 獲取節點數據
                 if (!nodeData || Object.keys(nodeData).length === 0) {
                   try {
@@ -930,7 +981,7 @@ export default function KnowledgeGraphViewer({
                     console.warn('[KnowledgeGraphViewer] Failed to get node data from graph:', err);
                   }
                 }
-                
+
                 // 方法3: 如果仍然沒有數據，嘗試從原始節點列表查找
                 if ((!nodeData || Object.keys(nodeData).length === 0) && providedNodes.length > 0) {
                   const originalNode = providedNodes.find(n => n.id === nodeId);
@@ -939,11 +990,11 @@ export default function KnowledgeGraphViewer({
                     console.log('[KnowledgeGraphViewer] Retrieved node data from providedNodes:', nodeData);
                   }
                 }
-                
+
                 // 優先使用 originalLabel（節點的實際名稱），然後是 name，最後才是 id
                 const label = nodeData.originalLabel || nodeData.name || nodeData.text || nodeModel.name || nodeModel.text || nodeModel.label || nodeModel.id || '未知實體';
                 const entityType = nodeData.entityType || nodeData.type || nodeModel.type || 'Unknown';
-                
+
                 console.log('[KnowledgeGraphViewer] Tooltip data:', {
                   nodeId,
                   label,
@@ -1004,13 +1055,13 @@ export default function KnowledgeGraphViewer({
               graph.on('node:pointerenter', handleNodeHover);
               graph.on('node:mouseover', handleNodeHover);
               graph.on('node:pointerover', handleNodeHover);
-              
+
               // 嘗試使用 canvas 事件（G6 v5 可能需要在 canvas 上監聽）
               // 這是主要的 hover 檢測方式，因為節點事件可能不工作
               graph.on('canvas:mousemove', (e: any) => {
                 // 獲取當前鼠標位置下的節點
                 const point = e.canvasPoint || e.point || e.canvas || { x: 0, y: 0 };
-                
+
                 // 如果沒有坐標信息，嘗試從原始事件獲取
                 if ((point.x === 0 && point.y === 0) && e.originalEvent) {
                   const containerRect = containerRef.current?.getBoundingClientRect();
@@ -1019,17 +1070,17 @@ export default function KnowledgeGraphViewer({
                     point.y = e.originalEvent.clientY - containerRect.top;
                   }
                 }
-                
+
                 try {
                   // 嘗試多種方法獲取節點
                   let nodeItem = null;
-                  
+
                   // 方法1: 使用 getItemsByPoint（可以同時獲取節點和邊）
                   let edgeItem = null;
                   if ((graph as any).getItemsByPoint && point.x > 0 && point.y > 0) {
                     try {
                       const items = (graph as any).getItemsByPoint(point.x, point.y) || [];
-                      
+
                       // 優先查找節點
                       nodeItem = items.find((item: any) => {
                         const itemType = item.getType?.() || item.type;
@@ -1038,7 +1089,7 @@ export default function KnowledgeGraphViewer({
                       if (nodeItem) {
                         console.log('[KnowledgeGraphViewer] Node found via getItemsByPoint:', nodeItem.getModel()?.id);
                       }
-                      
+
                       // 如果沒有節點，查找邊
                       if (!nodeItem) {
                         edgeItem = items.find((item: any) => {
@@ -1053,7 +1104,7 @@ export default function KnowledgeGraphViewer({
                       console.warn('[KnowledgeGraphViewer] getItemsByPoint failed:', err);
                     }
                   }
-                  
+
                   // 方法2: 使用 getItemByPoint
                   if (!nodeItem && !edgeItem && (graph as any).getItemByPoint && point.x > 0 && point.y > 0) {
                     try {
@@ -1072,7 +1123,7 @@ export default function KnowledgeGraphViewer({
                       console.warn('[KnowledgeGraphViewer] getItemByPoint failed:', err);
                     }
                   }
-                  
+
                   // 方法3: 使用 findIdByPoint
                   if (!nodeItem && !edgeItem && (graph as any).findIdByPoint && point.x > 0 && point.y > 0) {
                     try {
@@ -1094,7 +1145,7 @@ export default function KnowledgeGraphViewer({
                       console.warn('[KnowledgeGraphViewer] findIdByPoint failed:', err);
                     }
                   }
-                  
+
                   // 如果找到節點，觸發 hover 效果
                   if (nodeItem) {
                     // 避免重複觸發同一個節點的 hover
@@ -1106,9 +1157,9 @@ export default function KnowledgeGraphViewer({
                         return;
                       }
                     }
-                    
+
                     handleNodeHover({ item: nodeItem, originalEvent: e.originalEvent, canvasPoint: point });
-                  } 
+                  }
                   // 如果找到邊，顯示邊的 tooltip
                   else if (edgeItem) {
                     try {
@@ -1116,11 +1167,11 @@ export default function KnowledgeGraphViewer({
                       const edgeLabel = edgeModel.label || edgeModel.type || edgeModel.relation || '關係';
                       const edgeSource = edgeModel.source || edgeModel.from || '';
                       const edgeTarget = edgeModel.target || edgeModel.to || '';
-                      
+
                       // 獲取源節點和目標節點的名稱
                       let sourceLabel = edgeSource;
                       let targetLabel = edgeTarget;
-                      
+
                       // 嘗試從圖中獲取節點數據
                       if (edgeSource) {
                         try {
@@ -1133,7 +1184,7 @@ export default function KnowledgeGraphViewer({
                           // 忽略錯誤，使用默認值
                         }
                       }
-                      
+
                       if (edgeTarget) {
                         try {
                           const targetNodeData = (graph as any).getNodeData?.(edgeTarget);
@@ -1145,23 +1196,23 @@ export default function KnowledgeGraphViewer({
                           // 忽略錯誤，使用默認值
                         }
                       }
-                      
+
                       // 獲取鼠標位置
                       const containerRect = containerRef.current?.getBoundingClientRect();
                       let mouseX = (window as any).mouseX || 0;
                       let mouseY = (window as any).mouseY || 0;
-                      
+
                       const originalEvent = e.originalEvent || e.event || e.nativeEvent;
                       if (originalEvent && (originalEvent.clientX !== undefined || originalEvent.pageX !== undefined)) {
                         mouseX = originalEvent.clientX !== undefined ? originalEvent.clientX : originalEvent.pageX;
                         mouseY = originalEvent.clientY !== undefined ? originalEvent.clientY : originalEvent.pageY;
                       }
-                      
+
                       if ((mouseX === 0 && mouseY === 0) && containerRect) {
                         mouseX = point.x + containerRect.left;
                         mouseY = point.y + containerRect.top;
                       }
-                      
+
                       if (mouseX > 0 || mouseY > 0) {
                         setTooltip({
                           visible: true,
@@ -1176,7 +1227,7 @@ export default function KnowledgeGraphViewer({
                     } catch (err) {
                       // 靜默處理錯誤
                     }
-                  } 
+                  }
                   // 如果既沒有節點也沒有邊，清除之前的 hover 狀態
                   else if (hoveredNodeRef.current) {
                     handleNodeLeave({ item: hoveredNodeRef.current });
@@ -1189,7 +1240,7 @@ export default function KnowledgeGraphViewer({
                   console.error('[KnowledgeGraphViewer] Error in canvas:mousemove handler:', err);
                 }
               });
-              
+
             } catch (err) {
               // 靜默處理錯誤
             }
@@ -1267,10 +1318,10 @@ export default function KnowledgeGraphViewer({
                     const nodeModelToRestore = e.item.getModel();
                     const originalSize = 24; // 恢復原始大小
                     const originalStyle = nodeModelToRestore.style || {};
-                    
+
                     // 使用 updateItem 或 updateData 恢復節點樣式
                     let restored = false;
-                    
+
                     if ((graph as any).updateItem) {
                       try {
                         (graph as any).updateItem(e.item, {
@@ -1288,7 +1339,7 @@ export default function KnowledgeGraphViewer({
                         console.warn('[KnowledgeGraphViewer] updateItem restore failed:', err);
                       }
                     }
-                    
+
                     if (!restored && (graph as any).updateData) {
                       try {
                         (graph as any).updateData('node', {
@@ -1307,7 +1358,7 @@ export default function KnowledgeGraphViewer({
                         console.warn('[KnowledgeGraphViewer] updateData restore failed:', err);
                       }
                     }
-                    
+
                     if (!restored && (graph as any).updateNodeData) {
                       try {
                         (graph as any).updateNodeData(nodeModelToRestore.id, {
@@ -1325,7 +1376,7 @@ export default function KnowledgeGraphViewer({
                         console.warn('[KnowledgeGraphViewer] updateNodeData restore failed:', err);
                       }
                     }
-                    
+
                     // 樣式已恢復
                   } catch (updateErr) {
                     // 靜默處理錯誤
@@ -1511,7 +1562,7 @@ export default function KnowledgeGraphViewer({
     try {
       const currentGraph = graphRef.current;
       const newBackground = isDarkMode ? '#111827' : '#ffffff';
-      
+
       // 方法1: 使用 setOptions 更新背景色（G6 v5 推荐方式）
       if (currentGraph.setOptions) {
         const currentOptions = currentGraph.getOptions?.() || {};
@@ -1535,7 +1586,7 @@ export default function KnowledgeGraphViewer({
           }
         });
       }
-      
+
       // 方法3: 直接操作 canvas 背景（備用方案）
       const canvas = containerRef.current?.querySelector('canvas');
       if (canvas) {
@@ -1644,9 +1695,7 @@ export default function KnowledgeGraphViewer({
         }}
       >
         {/* 使用提示 */}
-        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-blue-500/90 dark:bg-blue-600/90 text-white text-sm px-4 py-2 rounded-lg z-10 pointer-events-none shadow-lg">
-          💡 提示：點擊關係線條查看關係信息，使用下方節點列表查看節點信息
-        </div>
+
       </div>
 
       {/* 節點列表和三元組列表 - 左右分布，占满剩余 50% 高度 */}
@@ -1690,22 +1739,22 @@ export default function KnowledgeGraphViewer({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
-                      backgroundColor: isSelected 
+                      backgroundColor: isSelected
                         ? '#3b82f6'
-                        : (isHovered 
+                        : (isHovered
                           ? (isDarkMode ? '#1e40af' : '#dbeafe')
                           : (isDarkMode ? '#1f2937' : '#ffffff')),
-                      color: isSelected 
+                      color: isSelected
                         ? '#ffffff'
-                        : (isHovered 
+                        : (isHovered
                           ? (isDarkMode ? '#f3f4f6' : '#1f2937')
                           : (isDarkMode ? '#f3f4f6' : '#374151')),
-                      border: isSelected 
+                      border: isSelected
                         ? '2px solid #93c5fd'
-                        : (isHovered 
+                        : (isHovered
                           ? '2px solid #60a5fa'
                           : (isDarkMode ? '1px solid #4b5563' : '1px solid #d1d5db')),
-                      boxShadow: isHovered || isSelected 
+                      boxShadow: isHovered || isSelected
                         ? (isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)')
                         : 'none',
                       transform: isHovered ? 'scale(1.05)' : 'scale(1)',
@@ -1759,7 +1808,7 @@ export default function KnowledgeGraphViewer({
                       width: '20px',
                       height: '20px',
                       borderRadius: '50%',
-                      backgroundColor: isSelected || isHovered 
+                      backgroundColor: isSelected || isHovered
                         ? (isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.3)')
                         : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
                       fontSize: '11px',
@@ -1780,7 +1829,7 @@ export default function KnowledgeGraphViewer({
         </div>
 
         {/* 右側：三元組列表 */}
-        <div className="flex-1 p-3 overflow-y-auto bg-white dark:bg-gray-950">
+        <div className="flex-1 p-3 overflow-y-auto bg-white dark:bg-gray-950" ref={tripleListRef}>
           <div className="text-sm font-bold mb-3 text-gray-900 dark:text-gray-100">
             三元組列表 ({triples.length})
           </div>
@@ -1790,28 +1839,49 @@ export default function KnowledgeGraphViewer({
               {triples.map((triple: any, index: number) => {
                 const subjectIndex = nodeIndexMap.get(triple.subject);
                 const objectIndex = nodeIndexMap.get(triple.object);
+                const isHighlighted = highlightedTripleIndex === index; // 修改時間：2026-01-06 - 檢查是否為聚焦的三元組
 
                 return (
                   <div
                     key={`triple-${index}`}
+                    data-triple-index={index} // 修改時間：2026-01-06 - 添加數據屬性用於滾動定位
                     className="p-2 rounded border theme-transition transition-all duration-200 cursor-pointer text-xs"
                     style={{
-                      backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
-                      borderColor: isDarkMode ? '#4b5563' : '#e5e7eb',
+                      backgroundColor: isHighlighted
+                        ? (isDarkMode ? '#1e3a8a' : '#dbeafe')
+                        : (isDarkMode ? '#374151' : '#f3f4f6'),
+                      borderColor: isHighlighted
+                        ? '#3b82f6'
+                        : (isDarkMode ? '#4b5563' : '#e5e7eb'),
+                      borderWidth: isHighlighted ? '2px' : '1px',
+                      boxShadow: isHighlighted
+                        ? (isDarkMode ? '0 4px 8px rgba(59, 130, 246, 0.4)' : '0 4px 8px rgba(59, 130, 246, 0.3)')
+                        : 'none',
+                      transform: isHighlighted ? 'translateX(4px) scale(1.02)' : 'translateX(0) scale(1)',
+                    }}
+                    onClick={() => {
+                      // 修改時間：2026-01-06 - 點擊三元組項時，清除高亮（可選，或者保持高亮）
+                      // setHighlightedTripleIndex(null);
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = isDarkMode ? '#1e3a8a' : '#dbeafe';
-                      (e.currentTarget as HTMLElement).style.borderColor = '#60a5fa';
-                      (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
-                      (e.currentTarget as HTMLElement).style.boxShadow = isDarkMode 
-                        ? '0 2px 4px rgba(0, 0, 0, 0.3)' 
-                        : '0 2px 4px rgba(0, 0, 0, 0.1)';
+                      // 修改時間：2026-01-06 - 只有在不是高亮狀態時才應用 hover 樣式
+                      if (!isHighlighted) {
+                        (e.currentTarget as HTMLElement).style.backgroundColor = isDarkMode ? '#1e3a8a' : '#dbeafe';
+                        (e.currentTarget as HTMLElement).style.borderColor = '#60a5fa';
+                        (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
+                        (e.currentTarget as HTMLElement).style.boxShadow = isDarkMode
+                          ? '0 2px 4px rgba(0, 0, 0, 0.3)'
+                          : '0 2px 4px rgba(0, 0, 0, 0.1)';
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = isDarkMode ? '#374151' : '#f3f4f6';
-                      (e.currentTarget as HTMLElement).style.borderColor = isDarkMode ? '#4b5563' : '#e5e7eb';
-                      (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
-                      (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                      // 修改時間：2026-01-06 - 只有在不是高亮狀態時才恢復默認樣式
+                      if (!isHighlighted) {
+                        (e.currentTarget as HTMLElement).style.backgroundColor = isDarkMode ? '#374151' : '#f3f4f6';
+                        (e.currentTarget as HTMLElement).style.borderColor = isDarkMode ? '#4b5563' : '#e5e7eb';
+                        (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
+                        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                      }
                     }}
                   >
                     <div className="flex items-center gap-1 text-gray-700 dark:text-gray-200">

@@ -128,10 +128,10 @@ export async function apiRequest<T = any>(
     const isChatRequest = url.includes('/chat');
     const isFileListRequest = url.includes('/files') && !url.includes('/chat');
     const isUserTaskRequest = url.includes('/user-tasks');
-    const timeoutDuration = isChatRequest 
-      ? 120000 
-      : (isFileListRequest || isUserTaskRequest) 
-        ? 60000 
+    const timeoutDuration = isChatRequest
+      ? 120000
+      : (isFileListRequest || isUserTaskRequest)
+        ? 60000
         : 30000; // chat: 120秒，文件列表/用戶任務: 60秒，其他: 30秒
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
@@ -245,10 +245,10 @@ export async function apiRequest<T = any>(
       const isChatRequest = url.includes('/chat');
       const isFileListRequest = url.includes('/files') && !url.includes('/chat');
       const isUserTaskRequest = url.includes('/user-tasks');
-      const timeoutDuration = isChatRequest 
-        ? 120 
-        : (isFileListRequest || isUserTaskRequest) 
-          ? 60 
+      const timeoutDuration = isChatRequest
+        ? 120
+        : (isFileListRequest || isUserTaskRequest)
+          ? 60
           : 30;
       throw new Error(`API request timeout after ${timeoutDuration} seconds`);
     }
@@ -913,7 +913,17 @@ export async function getFileTree(params?: {
   }
 
   const query = queryParams.toString();
-  return apiGet<FileTreeResponse>(`/files/tree${query ? `?${query}` : ''}`);
+  try {
+    return await apiGet<FileTreeResponse>(`/files/tree${query ? `?${query}` : ''}`);
+  } catch (error: any) {
+    // 修改時間：2026-01-06 - 如果任務不存在（403），返回空文件樹，避免顯示錯誤
+    if (error?.status === 403 || error?.message?.includes('403') || error?.message?.includes('不存在') || error?.message?.includes('不屬於')) {
+      console.debug('[getFileTree] Task not found or access denied, returning empty tree', { task_id: params?.task_id });
+      return { success: true, data: {} };
+    }
+    // 其他錯誤繼續拋出
+    throw error;
+  }
 }
 
 /**
@@ -2121,6 +2131,8 @@ export interface UserTask {
   task_status?: 'activate' | 'archive';
   label_color?: string | null;
   dueDate?: string;
+  created_at?: string; // 修改時間：2026-01-06 - 添加創建時間（ISO 8601 格式字符串）
+  updated_at?: string; // 修改時間：2026-01-06 - 添加更新時間（ISO 8601 格式字符串）
   messages?: Array<{
     id: string;
     sender: 'user' | 'ai';
@@ -2224,6 +2236,8 @@ export async function createUserTask(task: {
   title: string;
   status?: 'pending' | 'in-progress' | 'completed';
   dueDate?: string;
+  created_at?: string; // 修改時間：2026-01-06 - 添加創建時間（ISO 8601 格式字符串）
+  updated_at?: string; // 修改時間：2026-01-06 - 添加更新時間（ISO 8601 格式字符串）
   messages?: Array<any>;
   executionConfig?: any;
   fileTree?: Array<any>;
@@ -2254,9 +2268,23 @@ export async function updateUserTask(
 
 /**
  * 刪除用戶任務
+ * 修改時間：2026-01-06 - 改進錯誤處理：如果任務不存在（404），返回 success: false 而不是拋出異常
  */
 export async function deleteUserTask(taskId: string): Promise<{ success: boolean; message?: string }> {
-  return apiDelete(`/user-tasks/${taskId}`);
+  try {
+    return await apiDelete<{ success: boolean; message?: string }>(`/user-tasks/${taskId}`);
+  } catch (error: any) {
+    // 如果是 404 錯誤（任務不存在），返回 success: false 而不是拋出異常
+    // 這樣前端可以根據情況決定是否繼續刪除本地任務
+    if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('not found')) {
+      return {
+        success: false,
+        message: 'Task not found',
+      };
+    }
+    // 其他錯誤繼續拋出
+    throw error;
+  }
 }
 
 /**
@@ -2569,4 +2597,57 @@ export async function getModels(params?: GetModelsParams): Promise<LLMModelsResp
     console.error('[getModels] Failed to fetch models:', error);
     throw error;
   }
+}
+
+/**
+ * 編輯 Session API
+ * 修改時間：2026-01-06 - 添加文件編輯 Session 支持
+ */
+
+export interface StartEditingSessionRequest {
+  doc_id: string;
+  ttl_seconds?: number;
+}
+
+export interface StartEditingSessionResponse {
+  success: boolean;
+  data?: {
+    session_id: string;
+    ws_url?: string;
+  };
+  message?: string;
+  error_code?: string;
+}
+
+export async function startEditingSession(
+  request: StartEditingSessionRequest
+): Promise<StartEditingSessionResponse> {
+  return apiPost<StartEditingSessionResponse>('/editing/session/start', request);
+}
+
+export interface SubmitEditingCommandRequest {
+  session_id: string;
+  command: string;
+  cursor_context?: {
+    file?: string;
+    line?: number;
+    column?: number;
+    selection?: string;
+  };
+}
+
+export interface SubmitEditingCommandResponse {
+  success: boolean;
+  data?: {
+    request_id: string;
+    status: string;
+  };
+  message?: string;
+  error_code?: string;
+}
+
+export async function submitEditingCommand(
+  request: SubmitEditingCommandRequest
+): Promise<SubmitEditingCommandResponse> {
+  return apiPost<SubmitEditingCommandResponse>('/editing/command', request);
 }

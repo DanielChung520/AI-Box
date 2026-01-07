@@ -1,7 +1,7 @@
 # 代碼功能說明: 日期時間工具實現
 # 創建日期: 2025-12-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-30
+# 最後修改日期: 2026-01-06
 
 """日期時間工具
 
@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 import pytz
@@ -28,9 +29,7 @@ class DateTimeInput(ToolInput):
     """日期時間工具輸入參數"""
 
     timezone: Optional[str] = None  # 時區（如 "Asia/Taipei"），None 表示使用配置中的默認時區
-    format: Optional[str] = (
-        None  # 輸出格式（如 "%Y-%m-%d %H:%M:%S"），None 表示使用配置中的默認格式
-    )
+    format: Optional[str] = None  # 輸出格式（如 "%Y-%m-%d %H:%M:%S"），None 表示使用配置中的默認格式
     tenant_id: Optional[str] = None  # 租戶 ID（用於讀取租戶級配置）
     user_id: Optional[str] = None  # 用戶 ID（用於讀取用戶級配置）
 
@@ -111,16 +110,67 @@ class DateTimeTool(BaseTool[DateTimeInput, DateTimeOutput]):
             # 配置讀取失敗時返回默認配置
             return self._get_default_config()
 
+    def _get_system_timezone(self) -> str:
+        """
+        獲取系統時區
+
+        嘗試從系統環境中獲取時區，如果無法獲取則返回 UTC。
+
+        Returns:
+            時區名稱（如 "Asia/Taipei" 或 "UTC"）
+        """
+        try:
+            # 獲取系統本地時區
+            local_tz = datetime.now().astimezone().tzinfo
+
+            # 嘗試從時區對象獲取名稱
+            if hasattr(local_tz, "zone"):
+                timezone_name = local_tz.zone  # type: ignore[attr-defined]
+                if timezone_name:
+                    logger.debug("system_timezone_detected", timezone=timezone_name)
+                    return timezone_name
+
+            # 如果無法獲取名稱，嘗試從偏移量推斷
+            offset = datetime.now().astimezone().utcoffset()
+            if offset:
+                offset_hours = offset.total_seconds() / 3600
+                # 根據偏移量推斷時區（常見時區）
+                if offset_hours == 8:
+                    return "Asia/Taipei"  # UTC+8
+                elif offset_hours == 9:
+                    return "Asia/Tokyo"  # UTC+9
+                elif offset_hours == 0:
+                    return "UTC"
+                elif offset_hours == -5:
+                    return "America/New_York"  # UTC-5
+                elif offset_hours == -8:
+                    return "America/Los_Angeles"  # UTC-8
+                else:
+                    logger.warning(
+                        "unable_to_infer_timezone_from_offset",
+                        offset_hours=offset_hours,
+                    )
+                    return "UTC"
+
+            logger.warning("unable_to_detect_system_timezone")
+            return "UTC"
+        except Exception as e:
+            logger.warning("system_timezone_detection_failed", error=str(e))
+            return "UTC"
+
     def _get_default_config(self) -> Dict[str, Any]:
         """
         獲取默認配置
 
+        使用系統時區作為默認時區，而不是 UTC。
+
         Returns:
             默認配置字典
         """
+        system_timezone = self._get_system_timezone()
         return {
             "default_format": "%Y-%m-%d %H:%M:%S",
-            "default_timezone": "UTC",
+            "default_timezone": system_timezone,  # 使用系統時區而不是 UTC
             "default_locale": "en_US",
             "iso_format": "%Y-%m-%dT%H:%M:%S%z",
             "date_only_format": "%Y-%m-%d",
@@ -149,8 +199,13 @@ class DateTimeTool(BaseTool[DateTimeInput, DateTimeOutput]):
             # 讀取配置
             config = self._get_config(input_data.tenant_id, input_data.user_id)
 
-            # 確定時區
-            timezone_str = input_data.timezone or config.get("default_timezone", "UTC")
+            # 確定時區（優先級：用戶指定 > 配置 > 系統時區 > UTC）
+            timezone_str = (
+                input_data.timezone
+                or config.get("default_timezone")
+                or self._get_system_timezone()
+                or "UTC"
+            )
             try:
                 tz = pytz.timezone(timezone_str)
             except Exception as e:

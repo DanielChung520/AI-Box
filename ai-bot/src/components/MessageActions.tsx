@@ -1,7 +1,7 @@
 // 代碼功能說明：消息操作按鈕組件，包含點讚、倒讚、複製等功能
 // 創建日期：2025-01-27
 // 創建人：Daniel Chung
-// 最後修改日期：2025-12-13 18:28:38 (UTC+8)
+// 最後修改日期：2026-01-06
 
 import { useState } from 'react';
 import { ThumbsUp, ThumbsDown, Copy } from 'lucide-react';
@@ -80,7 +80,7 @@ export default function MessageActions({
     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/30">
       <button
         onClick={handleLike}
-        className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+        className={`flex items-center gap-1 px-2 py-1 text-[9.6px] rounded transition-colors ${
           liked
             ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30'
             : 'text-tertiary hover:text-primary hover:bg-tertiary'
@@ -94,7 +94,7 @@ export default function MessageActions({
 
       <button
         onClick={handleDislike}
-        className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+        className={`flex items-center gap-1 px-2 py-1 text-[9.6px] rounded transition-colors ${
           disliked
             ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
             : 'text-tertiary hover:text-primary hover:bg-tertiary'
@@ -108,7 +108,7 @@ export default function MessageActions({
 
       <button
         onClick={handleCopy}
-        className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+        className={`flex items-center gap-1 px-2 py-1 text-[9.6px] rounded transition-colors ${
           copied
             ? 'bg-green-600/20 text-green-400'
             : 'text-tertiary hover:text-primary hover:bg-tertiary'

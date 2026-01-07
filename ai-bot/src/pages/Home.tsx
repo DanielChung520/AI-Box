@@ -188,7 +188,7 @@ export default function Home() {
     // 監聽自定義事件
     window.addEventListener('favoriteAssistantsUpdated', handleFavoriteAssistantsUpdated);
     window.addEventListener('favoriteAgentsUpdated', handleFavoriteAgentsUpdated);
-    
+
     // 監聽 localStorage 變化（跨標籤頁同步）
     window.addEventListener('storage', (e) => {
       if (e.key === 'favoriteAssistants') {
@@ -599,16 +599,37 @@ export default function Home() {
       };
       setSelectedTask(taskWithInitialAiMessage);
 
-      // 构建允许的工具列表
+      // 修改時間：2026-01-06 - 從消息中獲取 Assistant 的 allowedTools，而不僅僅是 web_search
+      // 構建允許的工具列表
       const allowedTools: string[] = [];
-      if (tools?.web_search) {
+
+      // 從消息中提取 allowedTools（如果存在）
+      let messageAllowedTools: string[] = [];
+      try {
+        const parsedMessage = JSON.parse(raw);
+        if (parsedMessage?.allowedTools && Array.isArray(parsedMessage.allowedTools)) {
+          messageAllowedTools = parsedMessage.allowedTools;
+        }
+      } catch (e) {
+        // 忽略解析錯誤
+      }
+
+      // 優先使用消息中的 allowedTools（來自 Assistant 配置）
+      if (messageAllowedTools.length > 0) {
+        allowedTools.push(...messageAllowedTools);
+      }
+
+      // 如果 web_search 被激活，確保包含在 allowedTools 中
+      if (tools?.web_search && !allowedTools.includes('web_search')) {
         allowedTools.push('web_search');
       }
 
       console.log('[Home] Calling chatProductStream with tools:', {
         allowedTools,
+        messageAllowedTools,
         isWebSearchActive: tools?.web_search,
         assistantId,
+        toolsFromMessage: messageAllowedTools,
       });
 
       // 添加详细的请求数据日志
@@ -651,20 +672,121 @@ export default function Home() {
 
       // 使用流式 API 接收內容
       let fullContent = '';
+      let fileCreated: any = null; // 追蹤文件創建事件
+      let lastUpdateTime = Date.now();
+      let pendingUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+      const UPDATE_THROTTLE_MS = 300; // 防抖間隔：300ms（增加間隔以減少更新頻率）
+
+      // 使用 ref 來存儲當前內容，避免閉包問題
+      const contentRef = { current: '' };
+
+      // 使用函數式更新來避免無限循環，並使用防抖優化性能
+      const updateTaskContent = (content: string, forceUpdate: boolean = false) => {
+        // 更新 ref
+        contentRef.current = content;
+
+        const now = Date.now();
+        const timeSinceLastUpdate = now - lastUpdateTime;
+
+        // 如果是強制更新，立即執行
+        if (forceUpdate) {
+          if (pendingUpdateTimer) {
+            clearTimeout(pendingUpdateTimer);
+            pendingUpdateTimer = null;
+          }
+          lastUpdateTime = now;
+          _performUpdate();
+          return;
+        }
+
+        // 防抖：如果距離上次更新時間太短，延遲更新
+        if (timeSinceLastUpdate < UPDATE_THROTTLE_MS) {
+          // 清除之前的定時器
+          if (pendingUpdateTimer) {
+            clearTimeout(pendingUpdateTimer);
+          }
+          // 設置新的定時器，確保最後一次更新能夠執行
+          pendingUpdateTimer = setTimeout(() => {
+            lastUpdateTime = Date.now();
+            _performUpdate();
+            pendingUpdateTimer = null;
+          }, UPDATE_THROTTLE_MS - timeSinceLastUpdate);
+          return;
+        }
+
+        // 時間間隔足夠，立即更新
+        lastUpdateTime = now;
+        _performUpdate();
+      };
+
+      // 實際執行更新的函數（使用 ref 獲取最新內容）
+      const _performUpdate = () => {
+        const content = contentRef.current;
+
+        setSelectedTask((currentTask) => {
+          if (!currentTask || currentTask.id !== taskWithUserMessage.id) {
+            return currentTask;
+          }
+
+          // 找到 AI 消息並檢查內容是否真的改變
+          const messages = currentTask.messages || [];
+          const aiMessageIndex = messages.findIndex(m => m.id === aiMessageId);
+
+          // 如果找到了 AI 消息，檢查內容是否改變
+          if (aiMessageIndex >= 0) {
+            const currentAiMessage = messages[aiMessageIndex];
+            // 如果內容相同，直接返回原對象，不創建新對象
+            if (currentAiMessage.content === content) {
+              return currentTask;
+            }
+
+            // 內容改變了，創建新的消息數組
+            const newMessages = [...messages];
+            newMessages[aiMessageIndex] = {
+              ...currentAiMessage,
+              content: content,
+            };
+
+            return {
+              ...currentTask,
+              messages: newMessages,
+            };
+          } else {
+            // 如果找不到，添加新的 AI 消息
+            return {
+              ...currentTask,
+              messages: [
+                ...messages,
+                {
+                  ...initialAiMessage,
+                  content: content,
+                },
+              ],
+            };
+          }
+        });
+      };
+
       try {
         for await (const event of chatProductStream(requestData as any)) { // 临时使用 any，因为接口定义可能还没有更新
           if (event.type === 'content' && event.data?.chunk) {
-            // 累積內容並更新消息
+            // 累積內容並更新消息（使用防抖）
             fullContent += event.data.chunk;
-            const updatedAiMessage = {
-              ...initialAiMessage,
-              content: fullContent,
-            };
-            const updatedTask: Task = {
-              ...taskWithUserMessage,
-              messages: [...(taskWithUserMessage.messages || []), updatedAiMessage],
-            };
-            setSelectedTask(updatedTask);
+            updateTaskContent(fullContent);
+          } else if (event.type === 'file_created' && event.data) {
+            // 修改時間：2026-01-06 - 處理文件創建事件
+            fileCreated = event.data;
+            console.log('[Home] 📁 File created event received:', fileCreated);
+
+            // 觸發文件上傳事件，通知 FileTree 更新
+            window.dispatchEvent(
+              new CustomEvent('fileUploaded', {
+                detail: {
+                  taskId: String(taskWithUserMessage.id),
+                  fileIds: [String(fileCreated.file_id)],
+                },
+              })
+            );
           } else if (event.type === 'error') {
             // 處理錯誤
             const errorMessage = {
@@ -673,31 +795,52 @@ export default function Home() {
               content: `Chat failed: ${event.data?.error || 'unknown error'}`,
               timestamp: new Date().toLocaleString(),
             };
-            const errorTask: Task = {
-              ...taskWithUserMessage,
-              messages: [...(taskWithUserMessage.messages || []), errorMessage],
-            };
-            setSelectedTask(errorTask);
+            setSelectedTask((currentTask) => {
+              if (!currentTask || currentTask.id !== taskWithUserMessage.id) {
+                return currentTask;
+              }
+              return {
+                ...currentTask,
+                messages: [...(currentTask.messages || []), errorMessage],
+              };
+            });
             setIsLoadingAI(false);
             return;
           } else if (event.type === 'done') {
-            // 流結束
+            // 流結束，清除待處理的定時器並強制更新最後一次
+            if (pendingUpdateTimer) {
+              clearTimeout(pendingUpdateTimer);
+              pendingUpdateTimer = null;
+            }
+            // 強制更新，確保最後的內容被應用
+            if (fullContent) {
+              updateTaskContent(fullContent, true);
+            }
             break;
           }
         }
       } catch (streamError: any) {
         console.error('[Home] Streaming error:', streamError);
+        // 清除待處理的定時器
+        if (pendingUpdateTimer) {
+          clearTimeout(pendingUpdateTimer);
+          pendingUpdateTimer = null;
+        }
         const errorMessage = {
           id: aiMessageId,
           sender: 'ai' as const,
           content: `Chat failed: ${streamError?.message || 'streaming error'}`,
           timestamp: new Date().toLocaleString(),
         };
-        const errorTask: Task = {
-          ...taskWithUserMessage,
-          messages: [...(taskWithUserMessage.messages || []), errorMessage],
-        };
-        setSelectedTask(errorTask);
+        setSelectedTask((currentTask) => {
+          if (!currentTask || currentTask.id !== taskWithUserMessage.id) {
+            return currentTask;
+          }
+          return {
+            ...currentTask,
+            messages: [...(currentTask.messages || []), errorMessage],
+          };
+        });
         setIsLoadingAI(false);
         return;
       }
@@ -753,33 +896,11 @@ export default function Home() {
         }));
       }
 
-        // 修改時間：2025-12-21 - 流式 API 暫時不返回 actions，暫時註釋
-        /*
-        // 若有新建檔案，通知 FileTree 重新載入
-        if (fileCreated?.file_id) {
-          window.dispatchEvent(
-            new CustomEvent('fileUploaded', {
-              detail: {
-                taskId: String(taskWithUserMessage.id),
-                fileIds: [String(fileCreated.file_id)],
-              },
-            })
-          );
-        }
-
-        // 若有編輯檔案（草稿檔），通知 FileTree 更新
-        if (fileEdited?.is_draft && fileEdited?.file_id) {
-          window.dispatchEvent(
-            new CustomEvent('draftFileContentUpdated', {
-              detail: {
-                draftId: fileEdited.file_id,
-                filename: fileEdited.filename,
-                taskId: fileEdited.task_id || String(taskWithUserMessage.id),
-              },
-            })
-          );
-        }
-        */
+        // 修改時間：2026-01-06 - 處理文件創建事件（已在流式循環中處理，這裡僅作為備份）
+      if (fileCreated?.file_id) {
+        console.log('[Home] 📁 File created confirmed:', fileCreated);
+        // 文件創建事件已在流式循環中處理，這裡不需要重複處理
+      }
     } catch (error: any) {
       console.error('[Home] chatProduct request failed:', error);
       const errorMessage = {

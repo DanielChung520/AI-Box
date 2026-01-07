@@ -84,9 +84,12 @@ async def list_user_tasks(
             )
             # 過濾掉 systemAdmin 的任務（雖然理論上不會出現，但為了安全還是過濾）
             tasks = [
-                task for task in all_tasks
+                task
+                for task in all_tasks
                 if not hasattr(task, "user_id") or task.user_id != "systemAdmin"
-            ][:limit]  # 限制返回數量
+            ][
+                :limit
+            ]  # 限制返回數量
 
         # 修改時間：2025-12-12 - 添加 include_archived 參數，允許查詢歸檔任務
         # 修改時間：2025-12-09 - 只返回 task_status 為 activate 的任務（或未設置 task_status 的任務，兼容舊數據）
@@ -126,12 +129,16 @@ async def list_user_tasks(
 )
 async def get_user_task(
     task_id: str,
+    build_file_tree: bool = Query(False, description="是否構建 fileTree（默認 False，避免超時）"),
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """獲取指定任務
 
+    修改時間：2026-01-06 - 添加 build_file_tree 參數，默認不構建 fileTree 以提升性能
+
     Args:
         task_id: 任務 ID
+        build_file_tree: 是否構建 fileTree（默認 False，避免超時）
         current_user: 當前認證用戶
 
     Returns:
@@ -139,13 +146,48 @@ async def get_user_task(
     """
     try:
         service = get_user_task_service()
-        task = service.get(user_id=current_user.user_id, task_id=task_id)
+
+        # 修改時間：2026-01-06 - 添加日誌追蹤和超時保護
+        logger.info(
+            "get_user_task_start",
+            task_id=task_id,
+            user_id=current_user.user_id,
+            build_file_tree=build_file_tree,
+            note="Getting user task - fileTree will be built only if build_file_tree=true",
+        )
+
+        import time
+
+        start_time = time.time()
+        task = service.get(
+            user_id=current_user.user_id,
+            task_id=task_id,
+            build_file_tree=build_file_tree,  # 傳遞參數
+        )
+        elapsed_time = time.time() - start_time
+
+        if elapsed_time > 2.0:  # 如果超過2秒，記錄警告
+            logger.warning(
+                "get_user_task_slow",
+                task_id=task_id,
+                elapsed_time=elapsed_time,
+                build_file_tree=build_file_tree,
+                note=f"get_user_task took {elapsed_time:.2f} seconds",
+            )
 
         if task is None:
             return APIResponse.error(
                 message="Task not found",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
+
+        logger.info(
+            "get_user_task_success",
+            task_id=task_id,
+            elapsed_time=elapsed_time,
+            build_file_tree=build_file_tree,
+            has_file_tree=bool(task.fileTree),
+        )
 
         return APIResponse.success(
             data=task.model_dump(mode="json"),
@@ -179,6 +221,18 @@ async def create_user_task(
     Returns:
         創建的任務
     """
+    import logging
+    import time
+
+    std_logger = logging.getLogger("api.routers.user_tasks")
+    create_start_time = time.time()
+
+    # 修改時間：2026-01-06 - 在入口處添加詳細日誌
+    std_logger.info(
+        f"create_user_task START - task_id={request_body.task_id}, user_id={current_user.user_id}, "
+        f"title={request_body.title[:50] if request_body.title else 'N/A'}"
+    )
+
     try:
         # 修改時間：2025-01-27 - 使用當前用戶的 user_id，而不是請求體中的 user_id（安全考慮）
         # 確保請求體中的 user_id 與當前用戶匹配（如果提供）
@@ -194,6 +248,27 @@ async def create_user_task(
 
         service = get_user_task_service()
         task = service.create(request_body)
+
+        create_elapsed_time = time.time() - create_start_time
+        if create_elapsed_time > 2.0:  # 如果超過2秒，記錄警告
+            std_logger.warning(
+                f"create_user_task SLOW - task_id={request_body.task_id}, elapsed_time={create_elapsed_time:.2f}s"
+            )
+            logger.warning(
+                "create_user_task_slow",
+                task_id=request_body.task_id,
+                elapsed_time=create_elapsed_time,
+                note=f"create_user_task took {create_elapsed_time:.2f} seconds",
+            )
+
+        std_logger.info(
+            f"create_user_task SUCCESS - task_id={request_body.task_id}, elapsed_time={create_elapsed_time:.2f}s"
+        )
+        logger.info(
+            "create_user_task_success",
+            task_id=request_body.task_id,
+            elapsed_time=create_elapsed_time,
+        )
 
         # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄任務創建操作日誌
         try:
@@ -230,6 +305,11 @@ async def create_user_task(
             message="Task created successfully",
         )
     except Exception as e:
+        create_elapsed_time = time.time() - create_start_time
+        std_logger.error(
+            f"create_user_task ERROR after {create_elapsed_time:.2f}s - task_id={request_body.task_id}, error={e}",
+            exc_info=True,
+        )
         logger.error("Failed to create user task", error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"Failed to create task: {str(e)}",
@@ -717,16 +797,16 @@ async def migrate_task(
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """遷移單個任務到新的 user_id（管理員功能）
-    
+
     將指定任務從 old_user_id 遷移到 new_user_id。
     注意：由於 _key 包含 user_id，需要重新創建任務文檔。
-    
+
     Args:
         old_user_id: 舊的 user_id
         new_user_id: 新的 user_id（必須與當前用戶匹配，除非是管理員）
         task_id: 任務 ID
         current_user: 當前認證用戶
-    
+
     Returns:
         遷移結果
     """
@@ -737,28 +817,28 @@ async def migrate_task(
                 message="只能遷移到當前用戶的 user_id，或需要系統管理員權限",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
-        
+
         service = get_user_task_service()
         arangodb_client = get_arangodb_client()
-        
+
         if arangodb_client.db is None:
             return APIResponse.error(
                 message="ArangoDB 未連接",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        
+
         # 獲取舊任務（直接從數據庫讀取，避免動態構建 fileTree）
         collection = arangodb_client.db.collection("user_tasks")
         old_key = f"{old_user_id}_{task_id}"
         new_key = f"{new_user_id}_{task_id}"
-        
+
         old_task_doc = collection.get(old_key)
         if not old_task_doc:
             return APIResponse.error(
                 message=f"任務不存在 (user_id: {old_user_id}, task_id: {task_id})",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        
+
         # 從文檔構建 UserTask 對象（用於獲取結構化數據）
         old_task = service.get(user_id=old_user_id, task_id=task_id)
         if not old_task:
@@ -766,10 +846,10 @@ async def migrate_task(
                 message=f"無法讀取任務數據 (user_id: {old_user_id}, task_id: {task_id})",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        
+
         # 使用原始文檔中的 fileTree（如果存在），否則使用動態構建的
         original_filetree = old_task_doc.get("fileTree", old_task.fileTree or [])
-        
+
         # 檢查新任務是否已存在
         existing = collection.get(new_key)
         if existing:
@@ -777,48 +857,50 @@ async def migrate_task(
             messages_data = []
             if old_task.messages:
                 for msg in old_task.messages:
-                    if hasattr(msg, 'model_dump'):
+                    if hasattr(msg, "model_dump"):
                         messages_data.append(msg.model_dump())
-                    elif hasattr(msg, 'dict'):
+                    elif hasattr(msg, "dict"):
                         messages_data.append(msg.dict())
                     elif isinstance(msg, dict):
                         messages_data.append(msg)
                     else:
                         messages_data.append(str(msg))
-            
+
             # 處理 executionConfig
             execution_config_data = {}
             if old_task.executionConfig:
-                if hasattr(old_task.executionConfig, 'model_dump'):
+                if hasattr(old_task.executionConfig, "model_dump"):
                     execution_config_data = old_task.executionConfig.model_dump()
-                elif hasattr(old_task.executionConfig, 'dict'):
+                elif hasattr(old_task.executionConfig, "dict"):
                     execution_config_data = old_task.executionConfig.dict()
                 elif isinstance(old_task.executionConfig, dict):
                     execution_config_data = old_task.executionConfig
-            
+
             # 處理 fileTree（優先使用原始文檔中的 fileTree）
             filetree_data = []
             filetree_source = original_filetree if original_filetree else (old_task.fileTree or [])
             if filetree_source:
                 for node in filetree_source:
-                    if hasattr(node, 'model_dump'):
+                    if hasattr(node, "model_dump"):
                         filetree_data.append(node.model_dump())
-                    elif hasattr(node, 'dict'):
+                    elif hasattr(node, "dict"):
                         filetree_data.append(node.dict())
                     elif isinstance(node, dict):
                         filetree_data.append(node)
-            
+
             # 更新現有任務
-            collection.update({
-                "_key": new_key,
-                "title": old_task.title,
-                "status": old_task.status,
-                "task_status": old_task.task_status or "activate",
-                "fileTree": filetree_data,
-                "messages": messages_data,
-                "executionConfig": execution_config_data,
-                "updated_at": datetime.utcnow().isoformat(),
-            })
+            collection.update(
+                {
+                    "_key": new_key,
+                    "title": old_task.title,
+                    "status": old_task.status,
+                    "task_status": old_task.task_status or "activate",
+                    "fileTree": filetree_data,
+                    "messages": messages_data,
+                    "executionConfig": execution_config_data,
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            )
             logger.info(
                 "任務已存在，已更新",
                 old_user_id=old_user_id,
@@ -831,46 +913,46 @@ async def migrate_task(
             messages_data = []
             if old_task.messages:
                 for msg in old_task.messages:
-                    if hasattr(msg, 'model_dump'):
+                    if hasattr(msg, "model_dump"):
                         messages_data.append(msg.model_dump())
-                    elif hasattr(msg, 'dict'):
+                    elif hasattr(msg, "dict"):
                         messages_data.append(msg.dict())
                     elif isinstance(msg, dict):
                         messages_data.append(msg)
                     else:
                         messages_data.append(str(msg))
-            
+
             # 處理 executionConfig
             execution_config_data = {}
             if old_task.executionConfig:
-                if hasattr(old_task.executionConfig, 'model_dump'):
+                if hasattr(old_task.executionConfig, "model_dump"):
                     execution_config_data = old_task.executionConfig.model_dump()
-                elif hasattr(old_task.executionConfig, 'dict'):
+                elif hasattr(old_task.executionConfig, "dict"):
                     execution_config_data = old_task.executionConfig.dict()
                 elif isinstance(old_task.executionConfig, dict):
                     execution_config_data = old_task.executionConfig
-            
+
             # 處理 fileTree
             filetree_data = []
             if old_task.fileTree:
                 for node in old_task.fileTree:
-                    if hasattr(node, 'model_dump'):
+                    if hasattr(node, "model_dump"):
                         filetree_data.append(node.model_dump())
-                    elif hasattr(node, 'dict'):
+                    elif hasattr(node, "dict"):
                         filetree_data.append(node.dict())
                     elif isinstance(node, dict):
                         filetree_data.append(node)
-            
+
             # 處理時間字段
             created_at_str = datetime.utcnow().isoformat()
-            if hasattr(old_task, 'created_at') and old_task.created_at:
+            if hasattr(old_task, "created_at") and old_task.created_at:
                 if isinstance(old_task.created_at, datetime):
                     created_at_str = old_task.created_at.isoformat()
                 elif isinstance(old_task.created_at, str):
                     created_at_str = old_task.created_at
                 else:
                     created_at_str = str(old_task.created_at)
-            
+
             new_task_doc = {
                 "_key": new_key,
                 "task_id": task_id,
@@ -878,8 +960,8 @@ async def migrate_task(
                 "title": old_task.title,
                 "status": old_task.status,
                 "task_status": old_task.task_status or "activate",
-                "label_color": old_task.label_color if hasattr(old_task, 'label_color') else None,
-                "dueDate": old_task.dueDate if hasattr(old_task, 'dueDate') else None,
+                "label_color": old_task.label_color if hasattr(old_task, "label_color") else None,
+                "dueDate": old_task.dueDate if hasattr(old_task, "dueDate") else None,
                 "messages": messages_data,
                 "executionConfig": execution_config_data,
                 "fileTree": filetree_data,
@@ -893,40 +975,44 @@ async def migrate_task(
                 new_user_id=new_user_id,
                 task_id=task_id,
             )
-        
+
         # 更新文件元數據
         file_collection = arangodb_client.db.collection("file_metadata")
-        
+
         # 提取所有文件 ID
         def extract_file_ids(node):
             file_ids = []
             if isinstance(node, dict):
-                if node.get('type') == 'file':
-                    file_id = node.get('id')
+                if node.get("type") == "file":
+                    file_id = node.get("id")
                     if file_id:
                         file_ids.append(file_id)
-                elif node.get('type') == 'folder':
-                    for child in node.get('children', []):
+                elif node.get("type") == "folder":
+                    for child in node.get("children", []):
                         file_ids.extend(extract_file_ids(child))
             elif isinstance(node, list):
                 for item in node:
                     file_ids.extend(extract_file_ids(item))
             return file_ids
-        
+
         # 使用原始 fileTree 提取文件 ID
-        file_ids = extract_file_ids(original_filetree if original_filetree else (old_task.fileTree or []))
+        file_ids = extract_file_ids(
+            original_filetree if original_filetree else (old_task.fileTree or [])
+        )
         updated_files = 0
-        
+
         for file_id in file_ids:
             try:
                 file_doc = file_collection.get(file_id)
                 if file_doc:
-                    file_collection.update({
-                        "_key": file_id,
-                        "user_id": new_user_id,
-                        "task_id": task_id,
-                        "updated_at": datetime.utcnow().isoformat(),
-                    })
+                    file_collection.update(
+                        {
+                            "_key": file_id,
+                            "user_id": new_user_id,
+                            "task_id": task_id,
+                            "updated_at": datetime.utcnow().isoformat(),
+                        }
+                    )
                     updated_files += 1
             except Exception as e:
                 logger.warning(
@@ -934,21 +1020,23 @@ async def migrate_task(
                     file_id=file_id,
                     error=str(e),
                 )
-        
+
         # 歸檔舊任務
         try:
-            collection.update({
-                "_key": old_key,
-                "task_status": "archive",
-                "updated_at": datetime.utcnow().isoformat(),
-            })
+            collection.update(
+                {
+                    "_key": old_key,
+                    "task_status": "archive",
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            )
         except Exception as e:
             logger.warning(
                 "歸檔舊任務失敗",
                 old_key=old_key,
                 error=str(e),
             )
-        
+
         return APIResponse.success(
             data={
                 "migrated": True,

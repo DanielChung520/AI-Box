@@ -3,10 +3,10 @@
  * 功能：提供助理維護界面，包含角色說明、技能、限制等配置
  * 創建日期：2025-01-27
  * 創建人：Daniel Chung
- * 最後修改日期：2025-12-30
+ * 最後修改日期：2026-01-06
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '../contexts/languageContext';
 import { cn } from '../lib/utils';
 import { apiGet } from '../lib/api';
@@ -146,13 +146,11 @@ export default function AssistantMaintenanceModal({
   // 資源配置
   const [knowledgeBases, setKnowledgeBases] = useState<string[]>([]); // 可接觸的知識庫
   const [knowledgeBaseInput, setKnowledgeBaseInput] = useState('');
-  const [allowedTools, setAllowedTools] = useState<string[]>([]); // 可使用的Tools（工具ID列表）
+  const [allowedCategories, setAllowedCategories] = useState<string[]>([]); // 可使用的工具類別（類別列表）
+  const [enableFileEditing, setEnableFileEditing] = useState(false); // 是否啟用文件編輯功能
 
   // 工具列表相关状态
-  const [tools, setTools] = useState<ToolInfo[]>([]); // 所有工具列表
-  const [filteredTools, setFilteredTools] = useState<ToolInfo[]>([]); // 过滤后的工具列表
-  const [searchQuery, setSearchQuery] = useState(''); // 搜索关键词
-  const [selectedCategory, setSelectedCategory] = useState<string>('all'); // 选中的分类
+  const [tools, setTools] = useState<ToolInfo[]>([]); // 所有工具列表（用於計算類別下的工具數量）
   const [categories, setCategories] = useState<string[]>([]); // 所有分类列表
   const [isLoadingTools, setIsLoadingTools] = useState(false); // 加载状态
   const [toolsError, setToolsError] = useState<string | null>(null); // 工具加载错误
@@ -165,6 +163,116 @@ export default function AssistantMaintenanceModal({
   // 可見性
   const [visibility, setVisibility] = useState<'private' | 'public'>('private');
 
+  // 保存初始數據，用於檢測是否有修改
+  const [initialData, setInitialData] = useState<{
+    name: string;
+    icon: string;
+    role: string;
+    skills: string[];
+    limitations: string[];
+    outputFormat: string;
+    knowledgeBases: string[];
+    allowedCategories: string[];
+    enableFileEditing: boolean;
+    temperature: number;
+    greeting: string;
+    presetResponses: string[];
+    visibility: 'private' | 'public';
+  } | null>(null);
+
+  // 當 modal 打開時，保存初始數據
+  useEffect(() => {
+    if (isOpen) {
+      // 使用 setTimeout 確保所有狀態都已初始化（特別是從 assistant prop 加載的數據）
+      const timer = setTimeout(() => {
+      const currentData = {
+        name: name.trim(),
+        icon: selectedIcon,
+        role: role.trim(),
+        skills: [...skills],
+        limitations: [...limitations],
+        outputFormat: outputFormat.trim(),
+        knowledgeBases: [...knowledgeBases],
+        allowedCategories: [...allowedCategories],
+        enableFileEditing,
+        temperature,
+        greeting: greeting.trim(),
+        presetResponses: presetResponses.filter(r => r.trim() !== ''),
+        visibility,
+      };
+      setInitialData(currentData);
+      }, 100); // 延遲 100ms 確保狀態已更新
+
+      return () => clearTimeout(timer);
+    } else {
+      // modal 關閉時重置
+      setInitialData(null);
+    }
+  }, [isOpen]); // 只在 modal 打開時執行一次，使用 setTimeout 確保狀態已初始化
+
+  // 檢測是否有修改
+  const hasChanges = useMemo(() => {
+    if (!initialData) return false; // 新建模式，沒有初始數據
+
+    const currentData = {
+      name: name.trim(),
+      icon: selectedIcon,
+      role: role.trim(),
+      skills: [...skills].sort(),
+      limitations: [...limitations].sort(),
+      outputFormat: outputFormat.trim(),
+      knowledgeBases: [...knowledgeBases].sort(),
+      allowedCategories: [...allowedCategories].sort(),
+      enableFileEditing,
+      temperature,
+      greeting: greeting.trim(),
+      presetResponses: presetResponses.filter(r => r.trim() !== '').sort(),
+      visibility,
+    };
+
+    const initialDataSorted = {
+      ...initialData,
+      skills: [...initialData.skills].sort(),
+      limitations: [...initialData.limitations].sort(),
+      knowledgeBases: [...initialData.knowledgeBases].sort(),
+      allowedCategories: [...initialData.allowedCategories].sort(),
+      enableFileEditing: initialData.enableFileEditing || false,
+      presetResponses: initialData.presetResponses.filter(r => r.trim() !== '').sort(),
+    };
+
+    // 比較所有字段
+    return (
+      currentData.name !== initialDataSorted.name ||
+      currentData.icon !== initialDataSorted.icon ||
+      currentData.role !== initialDataSorted.role ||
+      JSON.stringify(currentData.skills) !== JSON.stringify(initialDataSorted.skills) ||
+      JSON.stringify(currentData.limitations) !== JSON.stringify(initialDataSorted.limitations) ||
+      currentData.outputFormat !== initialDataSorted.outputFormat ||
+      JSON.stringify(currentData.knowledgeBases) !== JSON.stringify(initialDataSorted.knowledgeBases) ||
+      JSON.stringify(currentData.allowedCategories) !== JSON.stringify(initialDataSorted.allowedCategories) ||
+      currentData.enableFileEditing !== initialDataSorted.enableFileEditing ||
+      currentData.temperature !== initialDataSorted.temperature ||
+      currentData.greeting !== initialDataSorted.greeting ||
+      JSON.stringify(currentData.presetResponses) !== JSON.stringify(initialDataSorted.presetResponses) ||
+      currentData.visibility !== initialDataSorted.visibility
+    );
+  }, [
+    initialData,
+    name,
+    selectedIcon,
+    role,
+    skills,
+    limitations,
+    outputFormat,
+    knowledgeBases,
+    allowedCategories,
+    enableFileEditing,
+    temperature,
+    greeting,
+    presetResponses,
+    visibility,
+  ]);
+
   const handleClose = () => {
     if (!isSubmitting) {
       setError(null);
@@ -175,8 +283,8 @@ export default function AssistantMaintenanceModal({
   const handleSave = async () => {
     console.log('[AssistantMaintenanceModal] 🚀 handleSave called!', {
       assistantId,
-      allowedTools,
-      allowedToolsCount: allowedTools.length,
+      allowedCategories,
+      allowedCategoriesCount: allowedCategories.length,
       hasOnSave: !!onSave,
       isSubmitting,
     });
@@ -185,6 +293,34 @@ export default function AssistantMaintenanceModal({
     setIsSubmitting(true);
 
     try {
+      // 檢查：如果用戶選擇了類別但工具尚未加載，提示用戶
+      if (allowedCategories.length > 0 && tools.length === 0 && !isLoadingTools) {
+        setError('工具列表尚未加載完成，請稍候再試');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 如果正在加載工具，也提示用戶等待
+      if (allowedCategories.length > 0 && isLoadingTools) {
+        setError('工具列表正在加載中，請稍候再試');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 獲取完整的工具ID列表（包括類別工具和文件編輯工具）
+      const allowedTools = getAllowedTools();
+
+      // 如果選擇了類別但轉換後工具列表為空，且工具已加載，提示用戶
+      const categoryTools = getToolsByCategories(allowedCategories);
+      if (allowedCategories.length > 0 && categoryTools.length === 0 && tools.length > 0) {
+        console.warn('[AssistantMaintenanceModal] ⚠️ Selected categories but no tools found:', {
+          allowedCategories,
+          availableCategories: categories,
+          toolsCount: tools.length,
+        });
+        // 不阻止保存，但記錄警告（可能是類別名稱不匹配）
+      }
+
       const data: AssistantMaintenanceData = {
         id: assistantId, // 包含助理 ID，用于保存到 localStorage
         name: name.trim(),
@@ -194,7 +330,7 @@ export default function AssistantMaintenanceModal({
         limitations: limitations,
         outputFormat: outputFormat.trim(),
         knowledgeBases: knowledgeBases,
-        allowedTools: allowedTools,
+        allowedTools: allowedTools, // 從類別轉換為工具ID列表
         temperature: temperature,
         greeting: greeting.trim(),
         presetResponses: presetResponses.filter(r => r.trim() !== ''),
@@ -216,23 +352,32 @@ export default function AssistantMaintenanceModal({
       // 优先使用 assistantId prop，如果没有则尝试从 assistant 对象获取
       const idToSave = assistantId || assistant?.id;
 
+      // 獲取完整的工具ID列表（包括類別工具和文件編輯工具）
+      const toolsToSave = getAllowedTools();
+
       console.log('[AssistantMaintenanceModal] 🔑 ID resolution:', {
         assistantIdProp: assistantId,
         assistantIdFromObject: assistant?.id,
         idToSave,
-        hasAllowedTools: allowedTools.length > 0,
-        allowedToolsCount: allowedTools.length,
+        allowedCategories,
+        allowedCategoriesCount: allowedCategories.length,
+        toolsToSave,
+        toolsToSaveCount: toolsToSave.length,
       });
 
-      if (idToSave && allowedTools.length > 0) {
+      // 保存到 localStorage（即使 toolsToSave 為空也允許保存）
+      if (idToSave) {
         try {
           const storageKey = `assistant_${idToSave}_allowedTools`;
-          localStorage.setItem(storageKey, JSON.stringify(allowedTools));
+          localStorage.setItem(storageKey, JSON.stringify(toolsToSave));
           console.log('[AssistantMaintenanceModal] ✅ Pre-saved to localStorage:', {
             idToSave,
             storageKey,
-            allowedTools,
-            hasWebSearch: allowedTools.includes('web_search'),
+            allowedCategories,
+            allowedCategoriesCount: allowedCategories.length,
+            toolsToSave,
+            toolsToSaveCount: toolsToSave.length,
+            hasWebSearch: toolsToSave.includes('web_search'),
           });
 
           // 验证保存
@@ -246,27 +391,24 @@ export default function AssistantMaintenanceModal({
             hasWebSearch: Array.isArray(verifyParsed) && verifyParsed.includes('web_search'),
           });
 
-          // 触发自定义事件，通知其他组件更新
+          // 触发自定义事件，通知其他组件更新（即使工具列表為空也觸發）
           window.dispatchEvent(new CustomEvent('assistantToolsUpdated', {
             detail: {
               assistantId: idToSave,
-              allowedTools: allowedTools,
+              allowedTools: toolsToSave,
             }
           }));
           console.log('[AssistantMaintenanceModal] 📢 Dispatched assistantToolsUpdated event');
         } catch (e) {
           console.error('[AssistantMaintenanceModal] ❌ Failed to pre-save to localStorage:', e);
+          // 不阻止保存流程，只記錄錯誤
         }
       } else {
-        console.warn('[AssistantMaintenanceModal] ⚠️ Cannot pre-save:', {
+        console.warn('[AssistantMaintenanceModal] ⚠️ Cannot pre-save: No assistant ID', {
           hasAssistantIdProp: !!assistantId,
           assistantIdProp: assistantId,
           hasAssistantIdFromObject: !!assistant?.id,
           assistantIdFromObject: assistant?.id,
-          hasIdToSave: !!idToSave,
-          idToSave,
-          hasAllowedTools: allowedTools.length > 0,
-          allowedToolsCount: allowedTools.length,
         });
       }
 
@@ -326,13 +468,38 @@ export default function AssistantMaintenanceModal({
     setKnowledgeBases(knowledgeBases.filter(k => k !== kb));
   };
 
-  // 切換工具選擇（勾選/取消勾選）
-  const toggleTool = (toolId: string) => {
-    if (allowedTools.includes(toolId)) {
-      setAllowedTools(allowedTools.filter(t => t !== toolId));
+  // 切換類別選擇（勾選/取消勾選）
+  const toggleCategory = (category: string) => {
+    if (allowedCategories.includes(category)) {
+      setAllowedCategories(allowedCategories.filter(c => c !== category));
     } else {
-      setAllowedTools([...allowedTools, toolId]);
+      setAllowedCategories([...allowedCategories, category]);
     }
+  };
+
+  // 從類別獲取該類別下的所有工具ID
+  const getToolsByCategories = (categories: string[]): string[] => {
+    if (categories.length === 0) return [];
+    if (tools.length === 0) {
+      console.warn('[AssistantMaintenanceModal] ⚠️ Tools not loaded yet, returning empty array');
+      return [];
+    }
+    return tools
+      .filter(tool => categories.includes(tool.category))
+      .map(tool => tool.id);
+  };
+
+  // 獲取完整的工具ID列表（包括類別工具和文件編輯工具）
+  const getAllowedTools = (): string[] => {
+    const categoryTools = getToolsByCategories(allowedCategories);
+    const allTools = [...categoryTools];
+
+    // 如果啟用文件編輯，添加 document_editing 工具
+    if (enableFileEditing && !allTools.includes('document_editing')) {
+      allTools.push('document_editing');
+    }
+
+    return allTools;
   };
 
   // 从 API 获取工具列表
@@ -366,7 +533,6 @@ export default function AssistantMaintenanceModal({
             console.error('[AssistantMaintenanceModal] Invalid tools array:', response.data.tools);
             setToolsError('工具列表格式錯誤：tools 不是數組');
             setTools([]);
-            setFilteredTools([]);
             return;
           }
 
@@ -381,17 +547,65 @@ export default function AssistantMaintenanceModal({
           console.log('[AssistantMaintenanceModal] Processed tools:', toolsList.length, toolsList);
 
           setTools(toolsList);
-          setFilteredTools(toolsList);
 
           // 提取所有唯一分类
           const uniqueCategories = Array.from(new Set(toolsList.map((t) => t.category)));
           setCategories(uniqueCategories);
 
-          // 默认选中所有工具
+          // 如果已有選中的工具（從舊數據或編輯模式加載），從工具推斷類別
+          // 否則默認選中所有類別
           if (toolsList.length > 0) {
-            const allToolIds = toolsList.map((t) => t.id);
-            setAllowedTools(allToolIds);
-            console.log('[AssistantMaintenanceModal] 默认选中所有工具:', allToolIds.length);
+            // 嘗試從 localStorage 讀取舊的工具ID數據並轉換為類別
+            const idToLoad = assistantId || assistant?.id;
+            if (idToLoad) {
+              try {
+                const storageKey = `assistant_${idToLoad}_allowedTools`;
+                const stored = localStorage.getItem(storageKey);
+                if (stored) {
+                    const toolIds = JSON.parse(stored);
+                    if (Array.isArray(toolIds) && toolIds.length > 0) {
+                      // 檢查是否包含文件編輯工具
+                      const hasFileEditing = toolIds.includes('document_editing') ||
+                                            toolIds.includes('file_editing') ||
+                                            toolIds.includes('documentEditing') ||
+                                            toolIds.includes('fileEditing');
+                      if (hasFileEditing) {
+                        setEnableFileEditing(true);
+                      }
+
+                      // 從工具ID推斷類別（此時 toolsList 已設置）
+                      // 過濾掉文件編輯相關的工具ID，只處理類別工具
+                      const categoryToolIds = toolIds.filter(id =>
+                        !['document_editing', 'file_editing', 'documentEditing', 'fileEditing'].includes(id)
+                      );
+
+                      if (categoryToolIds.length > 0) {
+                        const inferredCategories = Array.from(new Set(
+                          toolsList
+                            .filter(tool => categoryToolIds.includes(tool.id))
+                            .map(tool => tool.category)
+                        ));
+                        if (inferredCategories.length > 0) {
+                          setAllowedCategories(inferredCategories);
+                          console.log('[AssistantMaintenanceModal] 從舊數據推斷類別:', inferredCategories);
+                        }
+                      }
+
+                      // 如果有工具數據，設置完成後返回
+                      setIsLoadingTools(false);
+                      return;
+                    }
+                }
+              } catch (e) {
+                console.warn('[AssistantMaintenanceModal] 讀取舊數據失敗:', e);
+              }
+            }
+
+            // 如果沒有舊數據，默認選中所有類別
+            if (allowedCategories.length === 0) {
+              setAllowedCategories(uniqueCategories);
+              console.log('[AssistantMaintenanceModal] 默认选中所有類別:', uniqueCategories.length);
+            }
           } else {
             console.warn('[AssistantMaintenanceModal] No tools found in response');
             setToolsError('未找到任何工具，請確認工具已註冊到 ArangoDB');
@@ -400,14 +614,12 @@ export default function AssistantMaintenanceModal({
           console.error('[AssistantMaintenanceModal] Invalid response format:', response);
           setToolsError('無法獲取工具列表：響應格式錯誤');
           setTools([]);
-          setFilteredTools([]);
         }
       } catch (error: any) {
         console.error('[AssistantMaintenanceModal] Failed to fetch tools:', error);
         const errorMessage = error?.message || error?.toString() || '未知錯誤';
         setToolsError(`載入工具列表失敗：${errorMessage}`);
         setTools([]);
-        setFilteredTools([]);
       } finally {
         setIsLoadingTools(false);
       }
@@ -418,40 +630,12 @@ export default function AssistantMaintenanceModal({
     }
   }, [isOpen, activeTab]);
 
-  // 过滤工具列表
+  // 當工具列表加載完成後，如果有舊的工具ID數據，轉換為類別
   useEffect(() => {
-    let filtered = tools;
-
-    // 按分类过滤
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter((t) => t.category === selectedCategory);
-    }
-
-    // 按搜索关键词过滤
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
-          t.name.toLowerCase().includes(query) ||
-          t.description.toLowerCase().includes(query) ||
-          t.category.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredTools(filtered);
-  }, [tools, selectedCategory, searchQuery]);
-
-  // 批量操作：全选当前
-  const selectAllFiltered = () => {
-    const filteredIds = filteredTools.map((t) => t.id);
-    setAllowedTools([...new Set([...allowedTools, ...filteredIds])]);
-  };
-
-  // 批量操作：取消当前
-  const deselectAllFiltered = () => {
-    const filteredIds = filteredTools.map((t) => t.id);
-    setAllowedTools(allowedTools.filter((id) => !filteredIds.includes(id)));
-  };
+    // 這個 effect 用於處理從 localStorage 加載的舊數據（工具ID格式）
+    // 如果 tools 已加載且 allowedCategories 為空，嘗試從其他地方獲取
+    // 注意：這裡假設舊數據可能通過其他方式傳入，需要根據實際情況調整
+  }, [tools]);
 
   if (!isOpen) return null;
 
@@ -738,81 +922,56 @@ export default function AssistantMaintenanceModal({
                 </div>
               </div>
 
-              {/* 可使用的Tools */}
+              {/* 文件編輯功能 */}
               <div>
                 <label className="block text-sm font-medium text-primary mb-3">
-                  {t('assistant.maintenance.allowedTools', '可使用的Tools')}
+                  {t('assistant.maintenance.fileEditing', '文件編輯功能')}
+                </label>
+                <div className="border border-primary rounded-lg p-4">
+                  <label className="flex items-start cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableFileEditing}
+                      onChange={(e) => setEnableFileEditing(e.target.checked)}
+                      className="mt-1 mr-3 w-5 h-5 text-purple-600 border-primary rounded focus:ring-purple-500 focus:ring-2"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <i className="fa-solid fa-file-edit text-purple-400"></i>
+                        <span className="font-medium text-primary">
+                          {t('assistant.maintenance.enableFileEditing', '啟用文件編輯功能')}
+                        </span>
+                      </div>
+                      <p className="text-sm text-tertiary mb-2">
+                        {t('assistant.maintenance.fileEditingDesc', '啟用後，該助理將具備文件編輯能力，可以在聊天時編輯 Markdown 文件')}
+                      </p>
+                      <div className="text-xs text-tertiary bg-tertiary/50 p-2 rounded">
+                        <p className="mb-1">
+                          <strong>{t('assistant.maintenance.fileEditingFeatures', '功能說明')}:</strong>
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 ml-2">
+                          <li>{t('assistant.maintenance.fileEditingFeature1', '聊天輸入框會顯示文件選擇器圖標')}</li>
+                          <li>{t('assistant.maintenance.fileEditingFeature2', '可以選擇 Markdown 文件進行編輯')}</li>
+                          <li>{t('assistant.maintenance.fileEditingFeature3', '聊天時會自動調用文件編輯 Agent')}</li>
+                          <li>{t('assistant.maintenance.fileEditingFeature4', '支持流式編輯預覽和編輯確認')}</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* 可使用的工具類別 */}
+              <div>
+                <label className="block text-sm font-medium text-primary mb-3">
+                  {t('assistant.maintenance.allowedTools', '可使用的工具類別')}
                   <span className="ml-2 text-xs text-tertiary font-normal">
-                    ({allowedTools.length} / {tools.length} {t('common.selected', '已選')})
+                    ({allowedCategories.length} / {categories.length} {t('common.selected', '已選')})
                   </span>
                 </label>
 
-                {/* 搜索和筛选栏 */}
-                <div className="mb-4 space-y-2">
-                  {/* 搜索框 */}
-                  <div className="relative">
-                    <i className="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-tertiary"></i>
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={t('assistant.maintenance.searchTools', '搜索工具...')}
-                      className="w-full pl-10 pr-4 py-2 bg-tertiary border border-primary rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  {/* 分类筛选 */}
-                  {categories.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setSelectedCategory('all')}
-                        className={cn(
-                          'px-3 py-1 text-sm rounded-full border transition-colors',
-                          selectedCategory === 'all'
-                            ? 'bg-purple-600 text-white border-purple-600'
-                            : 'bg-tertiary text-primary border-primary hover:bg-hover'
-                        )}
-                      >
-                        {t('common.all', '全部')}
-                      </button>
-                      {categories.map((category) => (
-                        <button
-                          key={category}
-                          onClick={() => setSelectedCategory(category)}
-                          className={cn(
-                            'px-3 py-1 text-sm rounded-full border transition-colors',
-                            selectedCategory === category
-                              ? 'bg-purple-600 text-white border-purple-600'
-                              : 'bg-tertiary text-primary border-primary hover:bg-hover'
-                          )}
-                        >
-                          {category}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* 批量操作按钮 */}
-                  {filteredTools.length > 0 && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={selectAllFiltered}
-                        className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
-                      >
-                        {t('common.selectAll', '全選當前')}
-                      </button>
-                      <button
-                        onClick={deselectAllFiltered}
-                        className="px-3 py-1 text-sm bg-tertiary hover:bg-hover text-primary border border-primary rounded transition-colors"
-                      >
-                        {t('common.deselectAll', '取消當前')}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* 工具列表容器 - 限制高度并添加滚动 */}
-                <div className="border border-primary rounded-lg max-h-[400px] overflow-y-auto">
+                {/* 類別選擇容器 */}
+                <div className="border border-primary rounded-lg p-4">
                   {isLoadingTools ? (
                     <div className="p-8 text-center text-tertiary">
                       <i className="fa-solid fa-spinner fa-spin text-4xl mb-2 opacity-50"></i>
@@ -826,20 +985,23 @@ export default function AssistantMaintenanceModal({
                         {t('assistant.maintenance.toolsNote', '提示：工具選項由開發團隊持續增加')}
                       </p>
                     </div>
-                  ) : filteredTools.length === 0 ? (
+                  ) : categories.length === 0 ? (
                     <div className="p-8 text-center text-tertiary">
-                      <i className="fa-solid fa-search text-4xl mb-2 opacity-50"></i>
-                      <p>{t('assistant.maintenance.noToolsFound', '未找到匹配的工具')}</p>
+                      <i className="fa-solid fa-folder-open text-4xl mb-2 opacity-50"></i>
+                      <p>{t('assistant.maintenance.noCategoriesFound', '未找到工具類別')}</p>
                     </div>
                   ) : (
-                    <div className="p-2 space-y-2">
-                      {filteredTools.map((tool) => {
-                        const isSelected = allowedTools.includes(tool.id);
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {categories.map((category) => {
+                        const isSelected = allowedCategories.includes(category);
+                        const categoryTools = tools.filter(t => t.category === category);
+                        const toolCount = categoryTools.length;
+
                         return (
                           <label
-                            key={tool.id}
+                            key={category}
                             className={cn(
-                              'flex items-start p-3 border-2 rounded-lg cursor-pointer transition-all',
+                              'flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all',
                               isSelected
                                 ? 'border-purple-500 bg-purple-500/10'
                                 : 'border-primary hover:border-purple-500/50 hover:bg-tertiary'
@@ -848,24 +1010,22 @@ export default function AssistantMaintenanceModal({
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => toggleTool(tool.id)}
-                              className="mt-1 mr-3 w-5 h-5 text-purple-600 border-primary rounded focus:ring-purple-500 focus:ring-2"
+                              onChange={() => toggleCategory(category)}
+                              className="mr-3 w-5 h-5 text-purple-600 border-primary rounded focus:ring-purple-500 focus:ring-2"
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <i
-                                  className={cn(
-                                    'fa-solid',
-                                    tool.icon || 'fa-tools',
-                                    'text-purple-400 flex-shrink-0'
-                                  )}
-                                ></i>
-                                <span className="font-medium text-primary truncate">{tool.name}</span>
-                                <span className="text-xs text-tertiary bg-tertiary px-2 py-0.5 rounded flex-shrink-0">
-                                  {tool.category}
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-medium text-primary">{category}</span>
+                                <span className="text-xs text-tertiary bg-tertiary px-2 py-0.5 rounded">
+                                  {toolCount} {t('assistant.maintenance.tools', '個工具')}
                                 </span>
                               </div>
-                              <p className="text-sm text-tertiary line-clamp-2">{tool.description}</p>
+                              {categoryTools.length > 0 && (
+                                <p className="text-xs text-tertiary line-clamp-1">
+                                  {categoryTools.slice(0, 3).map(t => t.name).join('、')}
+                                  {categoryTools.length > 3 && '...'}
+                                </p>
+                              )}
                             </div>
                           </label>
                         );
@@ -874,39 +1034,42 @@ export default function AssistantMaintenanceModal({
                   )}
                 </div>
 
-                {/* 已选工具快速查看 */}
-                {allowedTools.length > 0 && (
+                {/* 已選類別快速查看 */}
+                {allowedCategories.length > 0 && (
                   <div className="mt-3 p-3 bg-purple-500/10 border border-purple-500/50 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-primary">
-                        {t('assistant.maintenance.selectedTools', '已選工具')} ({allowedTools.length})
+                        {t('assistant.maintenance.selectedCategories', '已選類別')} ({allowedCategories.length})
                       </span>
                       <button
-                        onClick={() => setAllowedTools([])}
+                        onClick={() => setAllowedCategories([])}
                         className="text-xs text-purple-400 hover:text-purple-300"
                       >
                         {t('common.clearAll', '清除全部')}
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {allowedTools.map((toolId) => {
-                        const tool = tools.find((t) => t.id === toolId);
-                        if (!tool) return null;
+                      {allowedCategories.map((category) => {
+                        const categoryTools = tools.filter(t => t.category === category);
                         return (
                           <span
-                            key={toolId}
-                            className="px-2 py-1 bg-purple-600 text-white rounded text-xs flex items-center gap-1"
+                            key={category}
+                            className="px-3 py-1 bg-purple-600 text-white rounded-full text-xs flex items-center gap-2"
                           >
-                            {tool.name}
+                            {category}
+                            <span className="text-purple-200">({categoryTools.length})</span>
                             <button
-                              onClick={() => toggleTool(toolId)}
-                              className="hover:text-purple-200"
+                              onClick={() => toggleCategory(category)}
+                              className="hover:text-purple-100"
                             >
                               <i className="fa-solid fa-times"></i>
                             </button>
                           </span>
                         );
                       })}
+                    </div>
+                    <div className="mt-2 text-xs text-tertiary">
+                      {t('assistant.maintenance.categoryNote', '提示：選擇類別後，該類別下的所有工具都會被啟用')}
                     </div>
                   </div>
                 )}
@@ -1052,8 +1215,19 @@ export default function AssistantMaintenanceModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={isSubmitting || !name.trim() || !role.trim()}
+            disabled={Boolean(
+              isSubmitting ||
+              // 新建模式：名稱和角色必填
+              (!assistantId && (!name.trim() || !role.trim())) ||
+              // 編輯模式：如果有修改，允許保存（即使名稱或角色為空）；如果沒有修改，名稱和角色必填
+              (assistantId && !hasChanges && (!name.trim() || !role.trim()))
+            )}
             className="px-4 py-2 text-sm rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={
+              assistantId && hasChanges && (!name.trim() || !role.trim())
+                ? t('assistant.maintenance.saveWithChanges', '檢測到修改，可以保存（但建議填寫名稱和角色）')
+                : ''
+            }
           >
             {isSubmitting ? t('common.saving', '保存中...') : t('common.save', '保存')}
           </button>

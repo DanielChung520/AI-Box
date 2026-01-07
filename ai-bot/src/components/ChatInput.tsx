@@ -2,7 +2,7 @@
  * 代碼功能說明: AI 聊天輸入框組件, 包含代理, 助理, 模型選擇器
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-30
+ * 最後修改日期: 2026-01-06
  */
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
@@ -10,10 +10,17 @@ import { useLanguage } from '../contexts/languageContext';
 import { createPortal } from 'react-dom';
 import FileUploadModal, { FileWithMetadata } from './FileUploadModal';
 import UploadProgress from './UploadProgress';
-import { uploadFiles, getFavoriteModels, setFavoriteModels, getModels, type LLMModel } from '../lib/api';
+import { uploadFiles, getFavoriteModels, setFavoriteModels, getModels, type LLMModel, FileMetadata } from '../lib/api';
 import { Task } from './Sidebar';
 // 修改時間：2025-12-08 10:40:00 UTC+8 - 添加文件引用組件
 import FileReference, { FileReferenceData } from './FileReference';
+// 修改時間：2026-01-06 - 添加文件選擇器組件
+import FileSelector from './FileSelector';
+// 修改時間：2026-01-06 - 添加文件編輯狀態組件和 Context
+import FileEditStatus from './FileEditStatus';
+import { useFileEditing } from '../contexts/fileEditingContext';
+import { applyDocEdit } from '../lib/api';
+import { toast } from 'sonner';
 
 // 從 localStorage 讀取收藏數據的輔助函數
 const loadFavoritesFromStorage = (key: string): Map<string, string> => {
@@ -173,6 +180,31 @@ export default function ChatInput({
 
   // 修改時間：2025-12-08 10:40:00 UTC+8 - 文件引用相關狀態
   const [fileReferences, setFileReferences] = useState<FileReferenceData[]>([]);
+
+  // 修改時間：2026-01-06 - 文件編輯相關狀態
+  const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  // 修改時間：2026-01-06 - 從 Context 獲取文件編輯狀態
+  const {
+    hasUnsavedChanges,
+    currentRequestId,
+    acceptChanges,
+    rejectChanges,
+  } = useFileEditing();
+
+  // 修改時間：2026-01-06 - 當文件選擇變化時，觸發事件
+  useEffect(() => {
+    if (selectedFile) {
+      window.dispatchEvent(new CustomEvent('fileSelectedForEditing', {
+        detail: { fileId: selectedFile.file_id }
+      }));
+    } else {
+      window.dispatchEvent(new CustomEvent('fileSelectedForEditing', {
+        detail: { fileId: null }
+      }));
+    }
+  }, [selectedFile]);
 
   // 不再需要初始化默认值
 
@@ -380,6 +412,39 @@ export default function ChatInput({
     } catch (error) {
       console.error('[ChatInput] Error in useEffect for web search:', error);
     }
+  }, [selectedAssistantId, safeAssistants]);
+
+  // 修改時間：2026-01-06 - 檢測 Assistant 是否支持文件編輯
+  const canEditFiles = useMemo(() => {
+    if (!selectedAssistantId) return false;
+    const assistant = safeAssistants.find(a => a && a.id === selectedAssistantId);
+    if (!assistant) return false;
+
+    // 從助理數據中獲取工具列表
+    const baseTools = assistant.allowedTools || [];
+
+    // 從 localStorage 獲取工具列表
+    let localStorageTools: string[] = [];
+    try {
+      const storageKey = `assistant_${assistant.id}_allowedTools`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        localStorageTools = JSON.parse(stored);
+      }
+    } catch (e) {
+      // 忽略錯誤
+    }
+
+    // 合併所有工具
+    const allAllowedTools = Array.from(new Set([
+      ...(Array.isArray(baseTools) ? baseTools : []),
+      ...(Array.isArray(localStorageTools) ? localStorageTools : []),
+    ]));
+
+    // 檢查是否包含文件編輯相關工具
+    const toolNamesToCheck = ['document_editing', 'file_editing', 'documentEditing', 'fileEditing'];
+    return allAllowedTools.length > 0 &&
+      toolNamesToCheck.some(toolName => allAllowedTools.includes(toolName));
   }, [selectedAssistantId, safeAssistants]);
 
   // 修改時間：2025-12-13 17:28:02 (UTC+8) - modelId 直接跟隨 props（任務切換可正確恢復）
@@ -863,6 +928,51 @@ export default function ChatInput({
   };
 
   // 修改時間：2025-12-08 10:40:00 UTC+8 - 發送消息時包含文件引用信息
+  // 修改時間：2026-01-06 - 處理文件編輯操作
+
+  /**
+   * 處理接受修改
+   */
+  const handleAcceptEdit = useCallback(() => {
+    acceptChanges();
+    toast.success('修改已接受');
+  }, [acceptChanges]);
+
+  /**
+   * 處理拒絕修改
+   */
+  const handleRejectEdit = useCallback(() => {
+    rejectChanges();
+    toast.info('修改已拒絕，已恢復原始內容');
+  }, [rejectChanges]);
+
+  /**
+   * 處理提交修改
+   */
+  const handleSubmitEdit = useCallback(async () => {
+    if (!currentRequestId) {
+      toast.error('沒有可提交的編輯請求');
+      return;
+    }
+
+    setIsSubmittingEdit(true);
+    try {
+      const response = await applyDocEdit(currentRequestId);
+      if (response.success) {
+        toast.success('修改已成功提交到後端');
+        // 清除編輯狀態（Context 會處理）
+        rejectChanges(); // 使用 rejectChanges 來清除狀態
+      } else {
+        toast.error(response.message || '提交失敗');
+      }
+    } catch (error: any) {
+      console.error('[ChatInput] Failed to submit edit:', error);
+      toast.error(error.message || '提交失敗，請稍後再試');
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  }, [currentRequestId, rejectChanges]);
+
   const handleSend = async () => {
     if (message.trim() || fileReferences.length > 0) {
       const messageText = message.trim();
@@ -914,6 +1024,35 @@ export default function ChatInput({
         }
       }
 
+      // 修改時間：2026-01-06 - 獲取 Assistant 的 allowedTools 並添加到消息中
+      // 從 Assistant 配置中獲取 allowedTools（包括 document_editing）
+      let assistantAllowedTools: string[] = [];
+      if (selectedAssistantId) {
+        const assistant = safeAssistants.find(a => a && a.id === selectedAssistantId);
+        if (assistant) {
+          // 從助理數據中獲取工具列表
+          const baseTools = assistant.allowedTools || [];
+
+          // 從 localStorage 獲取工具列表
+          let localStorageTools: string[] = [];
+          try {
+            const storageKey = `assistant_${assistant.id}_allowedTools`;
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+              localStorageTools = JSON.parse(stored);
+            }
+          } catch (e) {
+            // 忽略錯誤
+          }
+
+          // 合併所有工具
+          assistantAllowedTools = Array.from(new Set([
+            ...(Array.isArray(baseTools) ? baseTools : []),
+            ...(Array.isArray(localStorageTools) ? localStorageTools : []),
+          ]));
+        }
+      }
+
       // 構建包含文件引用的消息對象
       const messageWithFiles = {
         text: messageText,
@@ -929,6 +1068,8 @@ export default function ChatInput({
         },
         // 添加选中的助理信息（用于后端确定可用的工具）
         assistantId: selectedAssistantId,
+        // 修改時間：2026-01-06 - 添加 Assistant 的 allowedTools 到消息中
+        allowedTools: assistantAllowedTools.length > 0 ? assistantAllowedTools : undefined,
       };
 
       console.log('[ChatInput] 📤 Sending message with tools:', {
@@ -948,6 +1089,16 @@ export default function ChatInput({
           isWebSearchActive,
           tools: messageWithFiles.tools,
         });
+      }
+
+      // 修改時間：2026-01-06 - 如果有選中的文件，觸發文件編輯消息事件
+      if (selectedFile && canEditFiles) {
+        window.dispatchEvent(new CustomEvent('messageSentForFileEditing', {
+          detail: {
+            message: messageText,
+            fileId: selectedFile.file_id,
+          }
+        }));
       }
 
       // 发送消息（傳遞包含文件引用和工具信息的對象）
@@ -1309,7 +1460,7 @@ export default function ChatInput({
   return (
     <div className="bg-secondary rounded-xl overflow-hidden theme-transition">
       {/* 工具欄 */}
-      <div className="flex items-center p-2 border-b border-primary">
+      <div className="flex items-center p-1.5 border-b border-primary">
         {/* 上网功能按钮 */}
         <button
           onClick={(e) => {
@@ -1444,7 +1595,7 @@ export default function ChatInput({
               alert(t('chatInput.webSearch.error', '發生錯誤，請稍後再試'));
             }
           }}
-          className={`p-2 rounded transition-colors ${
+          className={`p-1.5 rounded transition-colors ${
             isWebSearchActive
               ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
               : 'hover:bg-tertiary text-tertiary hover:text-primary'
@@ -1455,16 +1606,43 @@ export default function ChatInput({
           <i className="fa-solid fa-globe"></i>
         </button>
         <button
-          className="p-2 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
+          className="p-1.5 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
           aria-label="深度思考"
         >
           <i className="fa-solid fa-brain"></i>
+        </button>
+        {/* 編輯文件按鈕 */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            // 觸發文件編輯模式切換事件
+            if (canEditFiles) {
+              // 如果支持文件編輯，觸發編輯事件（允許 fileId 為 null，用於創建新文件）
+              window.dispatchEvent(new CustomEvent('toggleFileEditing', {
+                detail: { fileId: selectedFile?.file_id || null }
+              }));
+            } else {
+              // 如果不支持編輯，提示選擇支持文件編輯的助理
+              alert(t('chatInput.fileEdit.noAssistant', '請選擇支持文件編輯的助理'));
+            }
+          }}
+          className={`p-1.5 rounded transition-colors ${
+            canEditFiles
+              ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+              : 'hover:bg-tertiary text-tertiary hover:text-primary'
+          }`}
+          aria-label={t('chatInput.fileEdit.toggle', '切換文件編輯模式')}
+          title={canEditFiles
+            ? t('chatInput.fileEdit.active', '文件編輯模式已啟用')
+            : t('chatInput.fileEdit.inactive', '點擊啟用文件編輯模式')}
+        >
+          <i className="fa-solid fa-file-edit"></i>
         </button>
 
         {/* 助理選擇器 */}
         <div className="relative ml-2" ref={assistantSelectorRef}>
           <button
-            className="px-3 py-1 rounded bg-tertiary hover:bg-hover transition-colors text-sm flex items-center text-secondary"
+            className="px-2.5 py-0.5 rounded bg-tertiary hover:bg-hover transition-colors text-[12.6px] flex items-center text-secondary"
             onClick={(e) => {
               e.stopPropagation();
               const newState = !showAssistantSelector;
@@ -1548,7 +1726,7 @@ export default function ChatInput({
         {/* 代理選擇器 */}
         <div className="relative ml-2" ref={agentSelectorRef}>
           <button
-            className="px-3 py-1 rounded bg-tertiary hover:bg-hover transition-colors text-sm flex items-center text-secondary"
+            className="px-2.5 py-0.5 rounded bg-tertiary hover:bg-hover transition-colors text-[12.6px] flex items-center text-secondary"
             onClick={(e) => {
               e.stopPropagation();
               const newState = !showAgentSelector;
@@ -1670,10 +1848,32 @@ export default function ChatInput({
           )}
         </div>
 
+        {/* 文件選擇器（僅在支持文件編輯時顯示） */}
+        {canEditFiles && (
+          <div className="ml-2 flex items-center gap-2">
+            <FileSelector
+              file={selectedFile}
+              onFileChange={setSelectedFile}
+              taskId={currentTaskId}
+              userId={undefined}
+              fileTree={undefined}
+            />
+            {/* 文件編輯狀態按鈕（僅在有未保存修改時顯示） */}
+            {hasUnsavedChanges && (
+              <FileEditStatus
+                onAccept={handleAcceptEdit}
+                onReject={handleRejectEdit}
+                onSubmit={handleSubmitEdit}
+                isSubmitting={isSubmittingEdit}
+              />
+            )}
+          </div>
+        )}
+
         {/* 模型選擇器 */}
         <div className="relative ml-2" ref={modelSelectorRef}>
           <button
-            className="px-3 py-1 rounded bg-tertiary hover:bg-hover transition-colors text-sm flex items-center text-secondary"
+            className="px-2.5 py-0.5 rounded bg-tertiary hover:bg-hover transition-colors text-[12.6px] flex items-center text-secondary"
             onClick={(e) => {
               e.stopPropagation();
               const newState = !showModelSelector;
@@ -1833,11 +2033,11 @@ export default function ChatInput({
           {/* @ 提及按鈕 - 放在回纹针左侧 */}
           <button
             onClick={handleMentionClick}
-            className="p-2 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
+            className="p-1.5 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
             title={t('chatInput.mention.title', '提及 (@)')}
             aria-label={t('chatInput.mention.title', '提及 (@)')}
           >
-            <span className="text-lg font-semibold">@</span>
+            <span className="text-base font-semibold">@</span>
           </button>
 
           {/* 提及菜單 */}
@@ -1867,19 +2067,19 @@ export default function ChatInput({
 
           <button
             onClick={handlePaperclipClick}
-            className="p-2 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
+            className="p-1.5 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
             aria-label="上傳文件"
           >
             <i className="fa-solid fa-paperclip"></i>
           </button>
           <button
-            className="p-2 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
+            className="p-1.5 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
             aria-label="表情"
           >
             <i className="fa-solid fa-smile"></i>
           </button>
           <button
-            className="p-2 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
+            className="p-1.5 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
             aria-label="語音輸入"
           >
             <i className="fa-solid fa-microphone"></i>

@@ -69,7 +69,7 @@ def get_worker_job_timeout() -> int:
                 error=str(e),
                 message="從 ArangoDB 讀取 worker 配置失敗，使用默認值 900 秒",
             )
-    
+
     # 默認值：900 秒（15分鐘）- 測試階段快速發現問題；生產環境可調整為 3600 秒
     return 900
 
@@ -102,9 +102,7 @@ class FileMoveRequest(BaseModel):
     """文件移動請求模型"""
 
     target_task_id: str = Field(..., description="目標任務ID")
-    target_folder_id: Optional[str] = Field(
-        None, description="目標資料夾ID（可選，未提供時移動到任務工作區）"
-    )
+    target_folder_id: Optional[str] = Field(None, description="目標資料夾ID（可選，未提供時移動到任務工作區）")
 
 
 class FolderCreateRequest(BaseModel):
@@ -196,7 +194,9 @@ async def list_files(
     sort_by: str = Query("upload_time", description="排序字段"),
     sort_order: str = Query("desc", description="排序順序（asc/desc）"),
     current_user: User = Depends(get_current_user),
-    view_all_files: bool = Query(False, description="是否查看所有文件（僅限管理員）"),  # 修改時間：2026-01-06 - 添加 view_all_files 參數
+    view_all_files: bool = Query(
+        False, description="是否查看所有文件（僅限管理員）"
+    ),  # 修改時間：2026-01-06 - 添加 view_all_files 參數
 ) -> JSONResponse:
     """獲取文件列表
 
@@ -220,7 +220,9 @@ async def list_files(
         is_admin = current_user.has_permission(Permission.ALL.value)
         # 如果明確傳遞了 view_all_files=True，且用戶是管理員，則查看所有文件
         # 否則，如果未提供 user_id 和 task_id，且用戶是管理員，也視為查看所有文件（向後兼容）
-        view_all_files_flag = view_all_files and is_admin or (is_admin and user_id is None and task_id is None)
+        view_all_files_flag = (
+            view_all_files and is_admin or (is_admin and user_id is None and task_id is None)
+        )
 
         if view_all_files_flag:
             # 管理員查看所有文件，不設置 user_id 和 task_id
@@ -271,11 +273,13 @@ async def list_files(
             aql = "FOR doc IN file_metadata"
             if filter_conditions:
                 aql += " FILTER " + " AND ".join(filter_conditions)
-            
+
             # 使用索引字段排序（upload_time 有索引）
-            sort_field = sort_by if sort_by in ["upload_time", "created_at", "updated_at"] else "upload_time"
+            sort_field = (
+                sort_by if sort_by in ["upload_time", "created_at", "updated_at"] else "upload_time"
+            )
             aql += f" SORT doc.{sort_field} {sort_order.upper()}"
-            
+
             if offset > 0:
                 aql += " LIMIT @offset, @limit"
                 bind_vars["offset"] = offset
@@ -419,39 +423,75 @@ async def get_file_tree(
             )
 
         # 只查詢指定 task_id 的文件（該任務的任務工作區）
-        all_files = service.list(
-            user_id=effective_user_id,
-            task_id=task_id,
-            limit=1000,
-        )
+        try:
+            all_files = service.list(
+                user_id=effective_user_id,
+                task_id=task_id,
+                limit=1000,
+            )
+        except Exception as list_error:
+            logger.error(
+                "Failed to list files",
+                error=str(list_error),
+                task_id=task_id,
+                user_id=effective_user_id,
+                exc_info=True,
+            )
+            # 如果查詢文件失敗，返回空列表而不是拋出異常
+            all_files = []
 
         # 獲取所有資料夾（如果指定了task_id則過濾父資料夾）
         # 確保資料夾集合存在
-        _ensure_folder_collection()
+        try:
+            _ensure_folder_collection()
+        except Exception as folder_collection_error:
+            logger.error(
+                "Failed to ensure folder collection",
+                error=str(folder_collection_error),
+                task_id=task_id,
+                exc_info=True,
+            )
+            raise RuntimeError(
+                f"Failed to ensure folder collection: {folder_collection_error}"
+            ) from folder_collection_error
+
         arangodb_client = get_arangodb_client()
         if arangodb_client.db is None:
+            logger.error("ArangoDB client is not connected", task_id=task_id)
             raise RuntimeError("ArangoDB client is not connected")
 
-        arangodb_client.db.collection(FOLDER_COLLECTION_NAME)
+        if arangodb_client.db.aql is None:
+            logger.error("ArangoDB AQL is not available", task_id=task_id)
+            raise RuntimeError("ArangoDB AQL is not available")
 
         # 修改時間：2025-12-09 - 查詢資料夾（只查詢屬於當前任務的資料夾）
         # 注意：為了支持嵌套資料夾結構（子資料夾的子資料夾），需要遞歸查詢
         # 但首先只查詢屬於當前任務的資料夾（task_id 匹配）
-        aql_query = """
-        FOR folder IN folder_metadata
-            FILTER folder.user_id == @user_id
-            FILTER folder.task_id == @task_id
-            RETURN folder
-        """
-        cursor = arangodb_client.db.aql.execute(
-            aql_query,
-            bind_vars={
-                "user_id": effective_user_id,
-                "task_id": task_id,
-            },
-        )
-
-        all_folders = list(cursor) if cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
+        try:
+            aql_query = """
+            FOR folder IN folder_metadata
+                FILTER folder.user_id == @user_id
+                FILTER folder.task_id == @task_id
+                RETURN folder
+            """
+            cursor = arangodb_client.db.aql.execute(
+                aql_query,
+                bind_vars={
+                    "user_id": effective_user_id,
+                    "task_id": task_id,
+                },
+            )
+            all_folders = list(cursor) if cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
+        except Exception as aql_error:
+            logger.error(
+                "Failed to query folders",
+                error=str(aql_error),
+                task_id=task_id,
+                user_id=effective_user_id,
+                exc_info=True,
+            )
+            # 如果查詢失敗，返回空列表而不是拋出異常
+            all_folders = []
 
         # 按任務ID組織文件樹
         # 修改時間：2025-01-27 - 移除 temp-workspace，所有文件必須關聯到任務工作區
@@ -2814,9 +2854,9 @@ async def regenerate_file_data(
         # 修改時間：2026-01-03 - 添加錯誤處理，如果S3連接失敗，嘗試使用本地路徑
         try:
             file_path = storage.get_file_path(
-            file_id=file_id,
-            task_id=file_metadata.task_id,
-            metadata_storage_path=file_metadata.storage_path,
+                file_id=file_id,
+                task_id=file_metadata.task_id,
+                metadata_storage_path=file_metadata.storage_path,
             )
         except Exception as e:
             logger.warning(
@@ -2838,7 +2878,7 @@ async def regenerate_file_data(
                     )
                 else:
                     file_path = str(base_path / file_id[:2] / file_id / file_metadata.filename)
-        
+
         if not file_path:
             return APIResponse.error(
                 message="無法獲取文件路徑",
@@ -3128,10 +3168,10 @@ async def get_file_graph(
                             all_nodes_list = list(all_nodes_map.values())
                             paginated_nodes = all_nodes_list[offset : offset + limit]
                             node_map = {node["id"]: node for node in paginated_nodes}
-                            
+
                             # 創建節點 ID 集合，用於過濾邊
                             node_id_set = set(node_map.keys())
-                            
+
                             # 2. 只添加兩端節點都在返回節點列表中的邊
                             edge_id_counter = 0
                             for triple in extracted_triples:
@@ -3153,9 +3193,9 @@ async def get_file_graph(
                                                 "label": relation,
                                                 "type": relation,
                                                 "relation": relation,
-                                            "confidence": confidence,
-                                        }
-                                    )
+                                                "confidence": confidence,
+                                            }
+                                        )
                                     edge_id_counter += 1
 
                                 # 只添加兩端節點都在返回節點列表中的三元組
@@ -3163,13 +3203,13 @@ async def get_file_graph(
                                     triples.append(
                                         {
                                             "subject": subject,
-                                        "subject_type": subject_type,
-                                        "relation": relation,
-                                        "object": obj,
-                                        "object_type": obj_type,
-                                        "confidence": confidence,
-                                    }
-                                )
+                                            "subject_type": subject_type,
+                                            "relation": relation,
+                                            "object": obj,
+                                            "object_type": obj_type,
+                                            "confidence": confidence,
+                                        }
+                                    )
 
                             # 轉換節點映射為列表
                             nodes = list(node_map.values())
@@ -3224,8 +3264,7 @@ async def get_file_graph(
 
                     # 收集返回的實體 ID 集合，用於過濾關係
                     entity_ids = {entity.get("_id", "") for entity in entities_result}
-                    entity_keys = {entity.get("_key", "") for entity in entities_result}
-                    
+
                     # 如果沒有實體，直接返回空結果
                     if not entity_ids:
                         logger.info(

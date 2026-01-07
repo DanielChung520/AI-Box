@@ -2,12 +2,13 @@
  * 代碼功能說明: 任務數據存儲管理工具，用於模擬後台數據存儲
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-08 09:04:21 UTC+8
+ * 最後修改日期: 2026-01-06
  */
 
 // 修改時間：2025-12-08 09:04:21 UTC+8 - 添加後台同步功能
+// 修改時間：2026-01-06 - 添加 getUserTask 導入
 import { Task, FavoriteItem } from '../components/Sidebar';
-import { syncTasks, listUserTasks, createUserTask, updateUserTask } from './api';
+import { syncTasks, listUserTasks, createUserTask, updateUserTask, getUserTask } from './api';
 import { getCurrentUserId } from './jwtUtils';
 
 const STORAGE_KEY = 'ai-box-tasks';
@@ -45,6 +46,8 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
 
           // 修改時間：2025-01-27 - 不傳遞 user_id，後端會自動使用當前認證用戶的 user_id
           // 修改時間：2025-12-09 - 添加 task_status 字段，默認值為 activate
+          // 修改時間：2026-01-06 - 記錄創建時間和更新時間
+          const now = new Date().toISOString();
           const backendTask = {
             task_id: String(task.id),
             // 不傳遞 user_id，後端會自動使用當前認證用戶的 user_id（安全考慮）
@@ -53,104 +56,114 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
             task_status: task.task_status || 'activate', // 默認值為 activate
             label_color: task.label_color || null, // 修改時間：2025-12-09 - 包含 label_color
             dueDate: task.dueDate,
+            // 修改時間：2026-01-06 - 記錄時間戳
+            // 如果是新任務（沒有 created_at），設置創建時間和更新時間為當前時間
+            // 如果是更新任務（已有 created_at），保持創建時間不變，只更新 updated_at
+            created_at: task.created_at || now,
+            updated_at: now, // 每次更新都設置為當前時間
             messages: task.messages || [],
             executionConfig: executionConfig,
             fileTree: task.fileTree || [],
           };
 
-          // 修改時間：2025-12-09 - 修復任務更新時序問題和 409 錯誤處理
-          // 判斷是否為新任務：如果任務沒有 fileTree 或 fileTree 為空，且沒有 messages，可能是新任務
-          // 對於新任務，直接創建；對於現有任務，先更新，失敗則創建
-          const isNewTask = (!task.fileTree || task.fileTree.length === 0) &&
-                           (!task.messages || task.messages.length === 0);
-
+          // 修改時間：2026-01-06 - 改進任務保存邏輯：先檢查任務是否存在，再決定創建或更新
+          // 使用 getUserTask 檢查任務是否存在，避免 404/409 錯誤
           let syncResult: any = null;
           let lastError: any = null;
 
-          if (isNewTask) {
-            // 新任務：直接創建
-            console.log('[TaskStorage] New task detected, creating directly', { taskId: task.id });
+          try {
+            // 先嘗試獲取任務，檢查是否存在
+            const existingTask = await getUserTask(String(task.id));
+
+            if (existingTask.success && existingTask.data) {
+              // 任務存在，執行更新
+              console.debug('[TaskStorage] Task exists, updating', { taskId: task.id });
+              try {
+                // 修改時間：2026-01-06 - 更新時記錄 updated_at 時間
+                const now = new Date().toISOString();
+                syncResult = await updateUserTask(String(task.id), {
+                  title: task.title,
+                  status: task.status,
+                  task_status: task.task_status || 'activate',
+                  label_color: task.label_color || null,
+                  dueDate: task.dueDate,
+                  updated_at: now, // 修改時間：2026-01-06 - 更新時記錄更新時間
+                  messages: task.messages,
+                  executionConfig: executionConfig,
+                  fileTree: task.fileTree,
+                });
+                console.log('[TaskStorage] Task updated successfully', { taskId: task.id });
+              } catch (updateError: any) {
+                lastError = updateError;
+                console.warn('[TaskStorage] Failed to update task', { taskId: task.id, error: updateError });
+              }
+            } else {
+              // 任務不存在，執行創建
+              console.debug('[TaskStorage] Task not found, creating', { taskId: task.id });
+              try {
+                syncResult = await createUserTask(backendTask);
+                console.log('[TaskStorage] Task created successfully', { taskId: task.id });
+              } catch (createError: any) {
+                lastError = createError;
+                // 檢查是否為 409 錯誤（任務已存在，可能是並發創建）
+                if (createError?.status === 409 || createError?.message?.includes('409') || createError?.message?.includes('unique constraint')) {
+                  console.debug('[TaskStorage] Task already exists (409), retrying update', { taskId: task.id });
+                  // 任務已存在，再次嘗試更新
+                  try {
+                    // 修改時間：2026-01-06 - 更新時記錄 updated_at 時間
+                    const now = new Date().toISOString();
+                    syncResult = await updateUserTask(String(task.id), {
+                      title: task.title,
+                      status: task.status,
+                      task_status: task.task_status || 'activate',
+                      label_color: task.label_color || null,
+                      dueDate: task.dueDate,
+                      updated_at: now, // 修改時間：2026-01-06 - 更新時記錄更新時間
+                      messages: task.messages,
+                      executionConfig: executionConfig,
+                      fileTree: task.fileTree,
+                    });
+                    console.log('[TaskStorage] Task updated successfully after 409', { taskId: task.id });
+                  } catch (retryError: any) {
+                    lastError = retryError;
+                    console.warn('[TaskStorage] Failed to update task after 409', { taskId: task.id, error: retryError });
+                  }
+                } else {
+                  console.warn('[TaskStorage] Failed to create task', { taskId: task.id, error: createError });
+                }
+              }
+            }
+          } catch (checkError: any) {
+            // 如果檢查任務失敗（可能是網絡錯誤），回退到原來的邏輯
+            console.warn('[TaskStorage] Failed to check task existence, falling back to create-first strategy', { taskId: task.id, error: checkError });
             try {
               syncResult = await createUserTask(backendTask);
-              console.log('[TaskStorage] New task created successfully', { taskId: task.id });
+              console.log('[TaskStorage] Task created successfully (fallback)', { taskId: task.id });
             } catch (createError: any) {
               lastError = createError;
-              // 檢查是否為 409 錯誤（任務已存在，可能是並發創建）
+              // 如果是 409，嘗試更新
               if (createError?.status === 409 || createError?.message?.includes('409') || createError?.message?.includes('unique constraint')) {
-                console.log('[TaskStorage] Task already exists (409), trying to update instead', { taskId: task.id });
-                // 任務已存在，嘗試更新
                 try {
+                  // 修改時間：2026-01-06 - 更新時記錄 updated_at 時間
+                  const now = new Date().toISOString();
                   syncResult = await updateUserTask(String(task.id), {
                     title: task.title,
                     status: task.status,
-                    task_status: task.task_status || 'activate', // 修改時間：2025-12-09 - 包含 task_status
-                    label_color: task.label_color || null, // 修改時間：2025-12-09 - 包含 label_color
+                    task_status: task.task_status || 'activate',
+                    label_color: task.label_color || null,
                     dueDate: task.dueDate,
+                    updated_at: now, // 修改時間：2026-01-06 - 更新時記錄更新時間
                     messages: task.messages,
                     executionConfig: executionConfig,
                     fileTree: task.fileTree,
                   });
-                  console.log('[TaskStorage] Task updated successfully after 409', { taskId: task.id });
+                  console.log('[TaskStorage] Task updated successfully (fallback)', { taskId: task.id });
                 } catch (retryError: any) {
                   lastError = retryError;
-                  console.warn('[TaskStorage] Failed to update task after 409', { taskId: task.id, error: retryError });
+                  console.warn('[TaskStorage] Failed to update task (fallback)', { taskId: task.id, error: retryError });
                 }
               } else {
-                console.warn('[TaskStorage] Failed to create new task', { taskId: task.id, error: createError });
-              }
-            }
-          } else {
-            // 現有任務：先嘗試更新
-            console.log('[TaskStorage] Existing task detected, updating', { taskId: task.id });
-            try {
-              syncResult = await updateUserTask(String(task.id), {
-                title: task.title,
-                status: task.status,
-                task_status: task.task_status || 'activate', // 修改時間：2025-12-09 - 包含 task_status
-                label_color: task.label_color || null, // 修改時間：2025-12-09 - 包含 label_color
-                dueDate: task.dueDate,
-                messages: task.messages,
-                executionConfig: executionConfig,
-                fileTree: task.fileTree,
-              });
-              console.log('[TaskStorage] Task updated successfully', { taskId: task.id });
-            } catch (updateError: any) {
-              lastError = updateError;
-              // 如果更新失敗（任務不存在），嘗試創建
-              if (updateError?.status === 404 || updateError?.message?.includes('404') || updateError?.message?.includes('not found') || updateError?.isExpected) {
-                // 使用 console.debug 而不是 console.log，因為這是預期行為
-                console.debug('[TaskStorage] Task not found, trying to create', { taskId: task.id });
-                try {
-                  syncResult = await createUserTask(backendTask);
-                  console.log('[TaskStorage] Task created successfully', { taskId: task.id });
-                } catch (createError: any) {
-                  lastError = createError;
-                  // 檢查是否為 409 錯誤（任務已存在）
-                  if (createError?.status === 409 || createError?.message?.includes('409') || createError?.message?.includes('unique constraint') || createError?.isExpected) {
-                    // 使用 console.debug 而不是 console.log，因為這是預期行為（並發創建）
-                    console.debug('[TaskStorage] Task already exists (409), retrying update', { taskId: task.id });
-                    // 再次嘗試更新
-                    try {
-                      syncResult = await updateUserTask(String(task.id), {
-                        title: task.title,
-                        status: task.status,
-                        dueDate: task.dueDate,
-                        messages: task.messages,
-                        executionConfig: executionConfig,
-                        fileTree: task.fileTree,
-                      });
-                      console.log('[TaskStorage] Task updated successfully after 409 retry', { taskId: task.id });
-                    } catch (retryError: any) {
-                      lastError = retryError;
-                      console.warn('[TaskStorage] Failed to update task after 409 retry', { taskId: task.id, error: retryError });
-                    }
-                  } else {
-                    console.warn('[TaskStorage] Failed to create task', { taskId: task.id, error: createError });
-                  }
-                }
-              } else {
-                // 更新失敗但不是 404，記錄錯誤
-                console.warn('[TaskStorage] Failed to update task', { taskId: task.id, error: updateError });
+                console.warn('[TaskStorage] Failed to create task (fallback)', { taskId: task.id, error: createError });
               }
             }
           }
@@ -194,12 +207,33 @@ export function getTask(taskId: string | number): Task | null {
 
 /**
  * 獲取所有任務 ID 列表
+ * 修改時間：2026-01-06 - 添加去重邏輯，確保返回的列表沒有重複 ID
  */
 export function getTaskList(): (string | number)[] {
   try {
     const taskListData = localStorage.getItem(STORAGE_KEY);
     if (taskListData) {
-      return JSON.parse(taskListData) as (string | number)[];
+      const taskList = JSON.parse(taskListData) as (string | number)[];
+      // 去重：使用 Set 去除重複的 ID（統一轉換為字符串進行比較）
+      const uniqueTaskList = Array.from(
+        new Set(taskList.map(id => String(id)))
+      ).map(id => {
+        // 嘗試保持原始類型（數字或字符串）
+        const originalId = taskList.find(origId => String(origId) === id);
+        return originalId !== undefined ? originalId : id;
+      });
+
+      // 如果去重後列表長度不同，說明有重複，自動修復 localStorage
+      if (uniqueTaskList.length !== taskList.length) {
+        console.debug('[TaskStorage] Found duplicate task IDs, auto-fixing:', {
+          original: taskList.length,
+          unique: uniqueTaskList.length,
+          duplicates: taskList.length - uniqueTaskList.length
+        });
+        saveTaskList(uniqueTaskList);
+      }
+
+      return uniqueTaskList;
     }
   } catch (error) {
     console.error('Failed to get task list:', error);
@@ -209,10 +243,20 @@ export function getTaskList(): (string | number)[] {
 
 /**
  * 保存任務 ID 列表
+ * 修改時間：2026-01-06 - 添加去重邏輯，確保保存的列表沒有重複 ID
  */
 export function saveTaskList(taskList: (string | number)[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(taskList));
+    // 去重：使用 Set 去除重複的 ID（統一轉換為字符串進行比較）
+    const uniqueTaskList = Array.from(
+      new Set(taskList.map(id => String(id)))
+    ).map(id => {
+      // 嘗試保持原始類型（數字或字符串）
+      const originalId = taskList.find(origId => String(origId) === id);
+      return originalId !== undefined ? originalId : id;
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(uniqueTaskList));
   } catch (error) {
     console.error('Failed to save task list:', error);
   }
@@ -318,7 +362,7 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
     for (const backendTask of allTasks) {
       try {
         const taskId = backendTask.task_id;
-        
+
         // 修改時間：2025-12-09 - 從 localStorage 讀取現有任務，保留本地的 label_color
         const existingTask = getTask(taskId);
 
@@ -338,6 +382,22 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
             ? backendTask.label_color
             : existingTask?.label_color,
           dueDate: backendTask.dueDate || '',
+          // 修改時間：2026-01-06 - 從後端同步創建時間和更新時間
+          // 後端返回的可能是 datetime 對象或字符串，統一轉換為 ISO 8601 字符串
+          created_at: backendTask.created_at
+            ? (typeof backendTask.created_at === 'string'
+                ? backendTask.created_at
+                : (backendTask.created_at instanceof Date
+                    ? backendTask.created_at.toISOString()
+                    : String(backendTask.created_at)))
+            : existingTask?.created_at,
+          updated_at: backendTask.updated_at
+            ? (typeof backendTask.updated_at === 'string'
+                ? backendTask.updated_at
+                : (backendTask.updated_at instanceof Date
+                    ? backendTask.updated_at.toISOString()
+                    : String(backendTask.updated_at)))
+            : existingTask?.updated_at,
           messages: backendTask.messages,
           executionConfig: backendTask.executionConfig,
           fileTree: backendTask.fileTree,
@@ -526,7 +586,7 @@ export function removeTaskFromFavorites(taskId: number): void {
 export function removeFavorite(favoriteId: string, itemId: string | number, type: 'task' | 'assistant' | 'agent'): void {
   try {
     console.log('[TaskStorage] Removing favorite:', { favoriteId, itemId, type });
-    
+
     if (type === 'task') {
       // 任務收藏存儲在 'ai-box-favorites' 中
       const favorites = getFavorites();
@@ -535,15 +595,15 @@ export function removeFavorite(favoriteId: string, itemId: string | number, type
           const matchById = fav.id === favoriteId;
           const matchByTypeAndItemId = fav.type === type && String(fav.itemId) === String(itemId);
           const shouldKeep = !(matchById || matchByTypeAndItemId);
-          
+
           if (!shouldKeep) {
             console.log('[TaskStorage] Removing task favorite:', { id: fav.id, type: fav.type, itemId: fav.itemId });
           }
-          
+
           return shouldKeep;
         }
       );
-      
+
       console.log('[TaskStorage] Task favorites after removal:', { before: favorites.length, after: filtered.length });
       saveFavorites(filtered);
     } else if (type === 'assistant') {
@@ -554,11 +614,11 @@ export function removeFavorite(favoriteId: string, itemId: string | number, type
           const data = JSON.parse(saved);
           const favoriteMap = new Map(Object.entries(data));
           favoriteMap.delete(String(itemId));
-          
+
           const updatedData = Object.fromEntries(favoriteMap);
           localStorage.setItem('favoriteAssistants', JSON.stringify(updatedData));
           console.log('[TaskStorage] Removed assistant favorite:', { itemId, before: data, after: updatedData });
-          
+
           // 觸發事件通知 Home.tsx 更新
           window.dispatchEvent(new CustomEvent('favoriteAssistantsUpdated', {
             detail: { type: 'favoriteAssistants' }
@@ -575,11 +635,11 @@ export function removeFavorite(favoriteId: string, itemId: string | number, type
           const data = JSON.parse(saved);
           const favoriteMap = new Map(Object.entries(data));
           favoriteMap.delete(String(itemId));
-          
+
           const updatedData = Object.fromEntries(favoriteMap);
           localStorage.setItem('favoriteAgents', JSON.stringify(updatedData));
           console.log('[TaskStorage] Removed agent favorite:', { itemId, before: data, after: updatedData });
-          
+
           // 觸發事件通知 Home.tsx 更新
           window.dispatchEvent(new CustomEvent('favoriteAgentsUpdated', {
             detail: { type: 'favoriteAgents' }

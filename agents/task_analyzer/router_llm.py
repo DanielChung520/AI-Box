@@ -32,12 +32,19 @@ Set needs_tools=true if the query requires:
 2. External API calls (web search, location services, maps)
 3. System operations (file I/O, database queries, system info)
 4. Deterministic calculations (unit conversions, currency exchange)
+5. Document creation or editing (creating files, generating documents, editing files)
 
 Examples that NEED tools:
 - "告訴我此刻時間" / "what time is it" → needs_tools=true (requires time tool)
 - "幫我查台積電股價" / "check TSMC stock price" → needs_tools=true (requires stock API)
 - "今天天氣如何" / "what's the weather today" → needs_tools=true (requires weather API)
 - "搜尋AI相關資訊" / "search for AI information" → needs_tools=true (requires web search)
+- "幫我產生Data Agent文件" / "generate Data Agent document" → needs_tools=true (requires document editing tool)
+- "幫我產生文件" / "generate a file" → needs_tools=true (requires document editing tool)
+- "生成文件" / "create a file" → needs_tools=true (requires document editing tool)
+- "幫我將Data Agent的說明做成一份文件" / "create a document about Data Agent" → needs_tools=true (requires document editing tool)
+- "生成一份報告" / "generate a report" → needs_tools=true (requires document editing tool)
+- "編輯README.md文件" / "edit README.md file" → needs_tools=true (requires document editing tool)
 
 Examples that DON'T need tools:
 - "什麼是DevSecOps" / "what is DevSecOps" → needs_tools=false (knowledge question)
@@ -179,13 +186,19 @@ Classification Guidelines:
      * Weather information
      * Web search
      * Location/maps
-     * File operations
+     * File operations (creating, editing, generating documents - when user explicitly requests document creation/editing)
      * Database queries
    - false if query only needs knowledge/explanation (LLM can answer from training data)
    - Examples:
      * "告訴我此刻時間" → needs_tools=true (requires time tool)
      * "幫我看台積電股價" → needs_tools=true (requires stock API)
-     * "什麼是DevSecOps" → needs_tools=false (knowledge question)
+     * "幫我產生Data Agent文件" → needs_tools=true (user wants to GENERATE/CREATE a document - requires document editing tool)
+     * "幫我產生文件" → needs_tools=true (user wants to GENERATE/CREATE a document - requires document editing tool)
+     * "生成文件" → needs_tools=true (user wants to GENERATE/CREATE a document - requires document editing tool)
+     * "幫我將Data Agent的說明做成一份文件" → needs_tools=true (user wants to CREATE a document - requires document editing tool)
+     * "生成一份報告" → needs_tools=true (user wants to GENERATE a document - requires document editing tool)
+     * "編輯README.md文件" → needs_tools=true (user wants to EDIT a document - requires document editing tool)
+     * "什麼是DevSecOps" → needs_tools=false (knowledge question - user only wants explanation, not document creation)
 
 5. determinism_required:
    - true if output must be exact, reproducible, or from authoritative source
@@ -260,9 +273,7 @@ Return ONLY valid JSON following the RouterDecision schema."""
                 # 確保 session_context 不是 None
                 if router_input.session_context is None:
                     router_input.session_context = {}
-                router_input.session_context["similar_decisions"] = similar_decisions[
-                    :3
-                ]  # 最多 3 個
+                router_input.session_context["similar_decisions"] = similar_decisions[:3]  # 最多 3 個
             # 構建 Prompt
             user_prompt = self._build_user_prompt(router_input)
 
