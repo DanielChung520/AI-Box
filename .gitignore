@@ -106,13 +106,22 @@ data/chroma_data/
 *.sqlite
 *.sqlite3
 
-# Markdown files - only allow docs/ directory
+# Markdown files - only allow docs/ directory and root-level documentation
 # Ignore all .md files
 *.md
 **/*.md
 
 # But allow .md files in docs/ directory
 !docs/**/*.md
+
+# Allow root-level documentation files
+!README.md
+!CONTRIBUTING.md
+!CHANGELOG.md
+!LICENSE.md
+!QUICK_START.md
+!UPLOAD_INSTRUCTIONS.md
+!AI_開發規範檢查清單.md
 
 # Test files - ignore all test files
 # Ignore test_*.py and *_test.py files
