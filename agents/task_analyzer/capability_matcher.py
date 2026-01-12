@@ -1,7 +1,7 @@
 # 代碼功能說明: 能力匹配器
 # 創建日期: 2025-12-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-30
+# 最後修改日期: 2026-01-11
 
 """能力匹配器 - 匹配 Agent、Tool、Model 的能力"""
 
@@ -21,16 +21,18 @@ class CapabilityMatcher:
         """初始化能力匹配器"""
         self._agent_registry = None
         self._tool_registry = None
+        self._agent_capability_retriever = None
 
     def _get_agent_registry(self):
         """獲取 Agent Registry（懶加載）"""
         if self._agent_registry is None:
             try:
-                from agents.services.registry.registry import AgentRegistry
+                # 使用全局單例，而不是創建新實例，確保能訪問已註冊的 Agent
+                from agents.services.registry.registry import get_agent_registry
 
-                self._agent_registry = AgentRegistry()
+                self._agent_registry = get_agent_registry()
             except Exception as e:
-                logger.warning(f"Failed to initialize Agent Registry: {e}")
+                logger.warning(f"Failed to get Agent Registry: {e}")
                 self._agent_registry = None
         return self._agent_registry
 
@@ -45,6 +47,91 @@ class CapabilityMatcher:
                 logger.warning(f"Failed to initialize Tool Registry: {e}")
                 self._tool_registry = None
         return self._tool_registry
+
+    def _get_agent_capability_retriever(self):
+        """獲取 Agent 能力檢索服務（懶加載）"""
+        if self._agent_capability_retriever is None:
+            try:
+                from agents.task_analyzer.agent_capability_retriever import AgentCapabilityRetriever
+
+                self._agent_capability_retriever = AgentCapabilityRetriever()
+            except Exception as e:
+                logger.warning(f"Failed to initialize AgentCapabilityRetriever: {e}")
+                self._agent_capability_retriever = None
+        return self._agent_capability_retriever
+
+    def _is_file_editing_task(self, query: str) -> bool:
+        """
+        判斷是否為文件編輯任務
+
+        Args:
+            query: 用戶查詢文本
+
+        Returns:
+            是否為文件編輯任務
+        """
+        if not query:
+            return False
+
+        file_editing_keywords = [
+            # 明確的編輯動詞
+            "編輯",
+            "修改",
+            "更新",
+            "刪除",
+            "添加",
+            "替換",
+            "重寫",
+            "格式化",
+            # 隱含編輯意圖動詞
+            "加入",
+            "改成",
+            "整理",
+            "優化",
+            "調整",
+            "改善",
+            "改進",
+            # 產生/創建動詞
+            "產生",
+            "創建",
+            "寫",
+            "生成",
+            "建立",
+            "製作",
+            # 文件相關名詞
+            "文件",
+            "檔案",
+            "文檔",
+            "document",
+            "file",
+            # 文件擴展名（用於識別文件操作）
+            ".md",
+            ".py",
+            ".json",
+            ".txt",
+            ".yaml",
+            ".yml",
+            # 英文關鍵詞
+            "edit",
+            "create",
+            "generate",
+            "write",
+            "make",
+            "build",
+            "update",
+            "modify",
+            "delete",
+            "add",
+            "replace",
+            "rewrite",
+            "format",
+            "improve",
+            "optimize",
+            "refactor",
+        ]
+
+        query_lower = query.lower()
+        return any(keyword in query_lower for keyword in file_editing_keywords)
 
     def _extract_required_capabilities(self, router_decision: RouterDecision) -> List[str]:
         """
@@ -206,8 +293,29 @@ class CapabilityMatcher:
         Returns:
             匹配的 Agent 列表（按匹配度排序）
         """
-        if not router_decision.needs_agent:
+        # 檢查是否為文件編輯任務
+        user_query = context.get("task", "") or context.get("query", "") if context else ""
+        is_file_editing = self._is_file_editing_task(user_query)
+
+        logger.info(
+            f"CapabilityMatcher.match_agents: user_query='{user_query[:100]}...', "
+            f"is_file_editing={is_file_editing}, needs_agent={router_decision.needs_agent}"
+        )
+
+        # 如果是文件編輯任務，即使 needs_agent=False，也應該匹配 document-editing-agent
+        if not router_decision.needs_agent and not is_file_editing:
+            logger.info(
+                f"CapabilityMatcher.match_agents: Skipping agent matching "
+                f"(needs_agent={router_decision.needs_agent}, is_file_editing={is_file_editing})"
+            )
             return []
+
+        # 如果是文件編輯任務，強制設置 needs_agent=True（臨時設置，不影響原始決策）
+        if is_file_editing and not router_decision.needs_agent:
+            logger.info(
+                f"File editing task detected (query: {user_query[:100]}...), "
+                "forcing needs_agent=true to match document-editing-agent"
+            )
 
         registry = self._get_agent_registry()
         if registry is None:
@@ -220,13 +328,116 @@ class CapabilityMatcher:
             # 提取所需能力
             required_capabilities = self._extract_required_capabilities(router_decision)
 
-            # 發現可用 Agent
-            discovery = AgentDiscovery(registry)
-            agents = discovery.discover_agents(
-                required_capabilities=required_capabilities if required_capabilities else None,
-                user_id=context.get("user_id") if context else None,
-                user_roles=context.get("user_roles") if context else None,
-            )
+            # 使用 RAG 檢索匹配的 Agent（方案2：RAG 增強）
+            rag_matches = []
+            retriever = self._get_agent_capability_retriever()
+            if retriever:
+                try:
+                    rag_matches = await retriever.retrieve_matching_agents(
+                        user_input=user_query,
+                        intent_type=router_decision.intent_type,
+                        top_k=5,
+                    )
+                    if rag_matches:
+                        logger.info(
+                            f"CapabilityMatcher: RAG retrieved {len(rag_matches)} matching agents: "
+                            f"{[m['agent_id'] for m in rag_matches]}"
+                        )
+                except Exception as e:
+                    logger.warning(f"RAG retrieval failed: {e}, falling back to registry matching")
+
+            # 如果是文件編輯/轉換任務，需要發現 System Agent（document-editing-agent, md-editor, xls-editor, md-to-pdf, xls-to-pdf, pdf-to-md）
+            # 因此需要包括 System Agents（include_system_agents=True）
+            # 對於其他任務，可以使用 AgentDiscovery（會過濾 System Agents）
+            if is_file_editing:
+                from agents.services.registry.models import AgentStatus
+
+                # 文件編輯/轉換任務：同時查詢 document_editing 和 document_conversion 類型的 Agent
+                # 這樣可以涵蓋編輯任務（md-editor, xls-editor）和轉換任務（md-to-pdf, xls-to-pdf, pdf-to-md）
+                agents = []
+
+                # 1. 查詢 document_editing 類型的 Agent（包括 md-editor, xls-editor）
+                editing_agents = registry.list_agents(
+                    agent_type="document_editing",
+                    status=AgentStatus.ONLINE,
+                    include_system_agents=True,  # 包括 System Agents
+                )
+                logger.info(
+                    f"CapabilityMatcher: Query with agent_type='document_editing' found {len(editing_agents)} agents"
+                )
+                agents.extend(editing_agents)
+
+                # 2. 查詢 document_conversion 類型的 Agent（包括 md-to-pdf, xls-to-pdf, pdf-to-md）
+                conversion_agents = registry.list_agents(
+                    agent_type="document_conversion",
+                    status=AgentStatus.ONLINE,
+                    include_system_agents=True,  # 包括 System Agents
+                )
+                logger.info(
+                    f"CapabilityMatcher: Query with agent_type='document_conversion' found {len(conversion_agents)} agents"
+                )
+                agents.extend(conversion_agents)
+
+                # 3. 去重（使用 agent_id 作為唯一標識）
+                seen_ids = set()
+                unique_agents = []
+                for agent in agents:
+                    if agent.agent_id not in seen_ids:
+                        seen_ids.add(agent.agent_id)
+                        unique_agents.append(agent)
+                agents = unique_agents
+
+                logger.info(
+                    f"CapabilityMatcher: Total found {len(agents)} unique agents "
+                    f"(document_editing: {len(editing_agents)}, document_conversion: {len(conversion_agents)})"
+                )
+                # 記錄所有找到的 Agent ID（用於調試）
+                if agents:
+                    agent_ids = [a.agent_id for a in agents]
+                    logger.info(f"CapabilityMatcher: Found agent IDs: {agent_ids}")
+                else:
+                    logger.warning("CapabilityMatcher: No agents found for file editing task!")
+
+                # 如果沒有找到任何 Agent，嘗試查找所有類型（包括 System Agents）
+                if not agents:
+                    logger.info(
+                        "CapabilityMatcher: No document_editing/conversion agents found, trying all types..."
+                    )
+                    agents = registry.list_agents(
+                        status=AgentStatus.ONLINE,
+                        include_system_agents=True,  # 包括 System Agents
+                    )
+                    logger.info(
+                        f"CapabilityMatcher: Query without agent_type filter found {len(agents)} agents"
+                    )
+                    # 打印所有找到的 Agent 信息（用於診斷）
+                    for agent in agents:
+                        logger.info(
+                            f"CapabilityMatcher: Found agent: {agent.agent_id} "
+                            f"(type: {agent.agent_type}, status: {agent.status}, "
+                            f"is_system_agent: {agent.is_system_agent})"
+                        )
+                # 過濾能力匹配
+                if required_capabilities:
+                    required_set = set(required_capabilities)
+                    agents = [
+                        a
+                        for a in agents
+                        if required_set.issubset(set(a.capabilities))
+                        or a.agent_id == "document-editing-agent"  # 文件編輯 Agent 優先
+                    ]
+                logger.info(
+                    f"File editing/conversion task: Found {len(agents)} agents (including System Agents) "
+                    f"for query: {user_query[:100]}..."
+                )
+            else:
+                # 非文件編輯任務：使用 AgentDiscovery（會過濾 System Agents）
+                discovery = AgentDiscovery(registry)
+                agents = discovery.discover_agents(
+                    required_capabilities=required_capabilities if required_capabilities else None,
+                    user_id=context.get("user_id") if context else None,
+                    user_roles=context.get("user_roles") if context else None,
+                )
 
             # 計算匹配度
             matches = []
@@ -234,19 +445,50 @@ class CapabilityMatcher:
                 agent_capabilities = set(agent.capabilities)
                 required_set = set(required_capabilities)
 
-                # 計算能力匹配度
-                if required_set:
+                # 檢查 RAG 匹配結果（方案2：RAG 增強）
+                rag_score = 0.0
+                rag_match = next((m for m in rag_matches if m["agent_id"] == agent.agent_id), None)
+                if rag_match:
+                    rag_score = rag_match["score"]
+                    logger.debug(
+                        f"CapabilityMatcher: Agent {agent.agent_id} has RAG score: {rag_score:.2f}"
+                    )
+
+                # 如果是文件編輯任務，優先匹配 document-editing-agent
+                if is_file_editing and agent.agent_id == "document-editing-agent":
+                    # 文件編輯任務 + document-editing-agent = 完美匹配
+                    capability_match = 1.0
+                    logger.info(
+                        f"Perfect match: File editing task matched with document-editing-agent "
+                        f"(query: {user_query[:100]}...)"
+                    )
+                elif required_set:
                     capability_match = len(required_set.intersection(agent_capabilities)) / len(
                         required_set
                     )
                 else:
                     capability_match = 0.5  # 如果沒有明確要求，給中等匹配度
 
+                # 融合 RAG 分數（如果有的話）
+                if rag_score > 0:
+                    # 使用加權平均：70% 能力匹配 + 30% RAG 分數
+                    capability_match = 0.7 * capability_match + 0.3 * rag_score
+                    logger.debug(
+                        f"CapabilityMatcher: Agent {agent.agent_id} combined score: "
+                        f"capability={capability_match:.2f}, RAG={rag_score:.2f}"
+                    )
+
                 # 簡化的評分（實際應該從歷史數據獲取）
                 cost_score = 0.7  # 默認值
                 latency_score = 0.7  # 默認值
                 success_history = 0.8  # 默認值
                 stability = 0.8  # 默認值
+
+                # 如果是文件編輯任務且是 document-editing-agent，提高評分
+                if is_file_editing and agent.agent_id == "document-editing-agent":
+                    # 提高成功歷史和穩定性評分
+                    success_history = 0.95
+                    stability = 0.95
 
                 # 計算總評分
                 total_score = (
@@ -632,9 +874,11 @@ class CapabilityMatcher:
                 logger.info(
                     "document_editing_tool_not_matched",
                     extra={
-                        "top_3_tools": [(m.candidate_id, m.total_score) for m in matches[:3]]
-                        if matches
-                        else [],
+                        "top_3_tools": (
+                            [(m.candidate_id, m.total_score) for m in matches[:3]]
+                            if matches
+                            else []
+                        ),
                         "router_needs_tools": router_decision.needs_tools,
                         "router_intent_type": router_decision.intent_type,
                         "has_file_editing_enabled": has_file_editing_enabled,

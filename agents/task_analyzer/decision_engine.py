@@ -1,7 +1,7 @@
 # 代碼功能說明: 工作流決策引擎
 # 創建日期: 2025-11-26 22:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-26 22:30 (UTC+8)
+# 最後修改日期: 2026-01-09
 
 """實現工作流模式選擇決策邏輯。"""
 
@@ -37,6 +37,118 @@ class DecisionEngine:
 
         # 冷卻時間（秒）
         self.cooldown_seconds = 60
+
+    def _is_file_editing_task(self, query: str) -> bool:
+        """
+        判斷是否為文件編輯任務
+
+        Args:
+            query: 用戶查詢文本
+
+        Returns:
+            是否為文件編輯任務
+        """
+        if not query:
+            return False
+
+        file_editing_keywords = [
+            # 明確的編輯動詞
+            "編輯",
+            "修改",
+            "更新",
+            "刪除",
+            "添加",
+            "替換",
+            "重寫",
+            "格式化",
+            # 產生/創建動詞
+            "產生",
+            "創建",
+            "寫",
+            "生成",
+            "建立",
+            "製作",
+            # 文件相關名詞
+            "文件",
+            "檔案",
+            "文檔",
+            "document",
+            "file",
+            # 英文關鍵詞
+            "edit",
+            "create",
+            "generate",
+            "write",
+            "make",
+            "build",
+            "update",
+            "modify",
+            "delete",
+            "add",
+            "replace",
+            "rewrite",
+            "format",
+        ]
+
+        query_lower = query.lower()
+        return any(keyword in query_lower for keyword in file_editing_keywords)
+
+    def _select_agent_by_file_extension(self, query: str) -> Optional[str]:
+        """
+        根據文件擴展名和操作類型選擇具體的 Agent（方案1：精確匹配）
+
+        Args:
+            query: 用戶查詢文本
+
+        Returns:
+            建議的 Agent ID，如果無法確定則返回 None
+        """
+        if not query:
+            return None
+
+        query_lower = query.lower()
+
+        # 檢查文件擴展名
+        file_extensions = {
+            ".md": "md-editor",
+            ".markdown": "md-editor",
+            ".xlsx": "xls-editor",
+            ".xls": "xls-editor",
+            ".pdf": None,  # PDF 需要根據操作類型判斷
+        }
+
+        # 檢查轉換操作
+        conversion_keywords = ["轉換", "轉為", "轉成", "convert", "to", "轉"]
+        is_conversion = any(keyword in query_lower for keyword in conversion_keywords)
+
+        # 檢查文件擴展名
+        for ext, agent_id in file_extensions.items():
+            if ext in query_lower:
+                if agent_id:
+                    # 如果是轉換操作，檢查目標格式
+                    if is_conversion:
+                        if ext == ".md":
+                            # Markdown 轉換
+                            if "pdf" in query_lower:
+                                return "md-to-pdf"
+                            elif "markdown" in query_lower or "md" in query_lower:
+                                return None  # 同格式轉換，不需要特殊 Agent
+                        elif ext in [".xlsx", ".xls"]:
+                            # Excel 轉換
+                            if "pdf" in query_lower:
+                                return "xls-to-pdf"
+                    else:
+                        # 編輯操作
+                        return agent_id
+                elif ext == ".pdf":
+                    # PDF 文件
+                    if is_conversion:
+                        if "markdown" in query_lower or "md" in query_lower:
+                            return "pdf-to-md"
+                    # PDF 編輯（如果需要的話，可以返回 pdf-editor）
+                    return None
+
+        return None
 
     def decide_strategy(
         self,
@@ -222,6 +334,22 @@ class DecisionEngine:
         context = context or {}
         reasoning_parts = []
 
+        # 檢查是否為文件編輯任務
+        user_query = context.get("task", "") or context.get("query", "") if context else ""
+        is_file_editing = self._is_file_editing_task(user_query)
+
+        # 根據文件擴展名選擇具體的 Agent（方案1：精確匹配）
+        specific_agent_id = self._select_agent_by_file_extension(user_query)
+        if specific_agent_id:
+            logger.info(
+                f"Decision Engine: File extension match found agent: {specific_agent_id} "
+                f"for query: {user_query[:100]}..."
+            )
+        else:
+            logger.info(
+                f"Decision Engine: No file extension match for query: {user_query[:100]}..."
+            )
+
         # 1. Rule Filter（硬性規則過濾）
         # 風險等級過濾
         max_risk_level = router_decision.risk_level
@@ -241,7 +369,62 @@ class DecisionEngine:
 
         # 2. 選擇 Agent
         chosen_agent = None
-        if router_decision.needs_agent and agent_candidates:
+
+        # 方案1：根據文件擴展名精確匹配（優先級最高）
+        if specific_agent_id and agent_candidates:
+            # 記錄所有候選 Agent ID（用於調試）
+            candidate_ids = [a.candidate_id for a in agent_candidates]
+            logger.info(
+                f"Decision Engine: Agent candidates: {candidate_ids} "
+                f"(looking for: {specific_agent_id})"
+            )
+
+            matched_agent = next(
+                (a for a in agent_candidates if a.candidate_id == specific_agent_id), None
+            )
+            if matched_agent:
+                chosen_agent = specific_agent_id
+                reasoning_parts.append(
+                    f"根據文件擴展名精確匹配: {chosen_agent} (評分: {matched_agent.total_score:.2f})"
+                )
+                logger.info(
+                    f"Decision Engine: File extension match - selected {chosen_agent} "
+                    f"(score: {matched_agent.total_score:.2f})"
+                )
+            else:
+                logger.warning(
+                    f"Decision Engine: File extension match found {specific_agent_id}, "
+                    f"but it's not in agent_candidates! Available: {candidate_ids}"
+                )
+
+        # 方案2：如果是文件編輯任務，優先選擇 document-editing-agent（後備方案）
+        if not chosen_agent and is_file_editing and agent_candidates:
+            document_editing_agent = next(
+                (a for a in agent_candidates if a.candidate_id == "document-editing-agent"),
+                None,
+            )
+            if document_editing_agent:
+                # 文件編輯任務優先使用 document-editing-agent
+                chosen_agent = "document-editing-agent"
+                reasoning_parts.append(
+                    f"文件編輯任務，優先選擇 document-editing-agent (評分: {document_editing_agent.total_score:.2f})"
+                )
+                logger.info(
+                    f"Decision Engine: File editing task detected, selected document-editing-agent "
+                    f"(score: {document_editing_agent.total_score:.2f})"
+                )
+            elif router_decision.needs_agent and agent_candidates:
+                # 如果沒有 document-editing-agent，選擇評分最高的 Agent
+                best_agent = max(agent_candidates, key=lambda x: x.total_score)
+                if best_agent.total_score >= 0.5:
+                    chosen_agent = best_agent.candidate_id
+                    reasoning_parts.append(
+                        f"選擇 Agent: {chosen_agent} (評分: {best_agent.total_score:.2f})"
+                    )
+                    logger.info(
+                        f"Decision Engine: Selected agent: {chosen_agent} (score: {best_agent.total_score:.2f})"
+                    )
+        elif router_decision.needs_agent and agent_candidates:
             # 選擇評分最高的 Agent
             best_agent = max(agent_candidates, key=lambda x: x.total_score)
             if best_agent.total_score >= 0.5:  # 最低可接受評分
@@ -259,7 +442,8 @@ class DecisionEngine:
                 reasoning_parts.append(f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent")
         else:
             logger.debug(
-                f"Decision Engine: No agent selection - needs_agent={router_decision.needs_agent}, candidates_count={len(agent_candidates)}"
+                f"Decision Engine: No agent selection - needs_agent={router_decision.needs_agent}, "
+                f"is_file_editing={is_file_editing}, candidates_count={len(agent_candidates)}"
             )
 
         # 3. 選擇 Tool

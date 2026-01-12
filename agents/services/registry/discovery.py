@@ -55,8 +55,10 @@ class AgentDiscovery:
         if status is None:
             status = AgentStatus.ONLINE
 
-        # 獲取基礎 Agent 列表
-        agents = self._registry.list_agents(agent_type=agent_type, status=status)
+        # 獲取基礎 Agent 列表（不包括 System Agents，因為前端不需要顯示）
+        agents = self._registry.list_agents(
+            agent_type=agent_type, status=status, include_system_agents=False
+        )
 
         # 過濾分類（如果提供）
         if category:

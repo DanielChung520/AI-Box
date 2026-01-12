@@ -101,6 +101,11 @@ ignore = [
 "scripts/**/*.py" = ["F841", "E402"]
 "mcp/**/*.py" = ["E402"]
 "scripts/migration/**/*.py" = ["E402"]
+"services/api/services/migrations/**/*.py" = ["E402", "misc"]  # migration 腳本中的導入可能需要在 sys.path 修改之後，且可能有類型問題
+"tests/**/*.py" = ["E402"]  # 測試腳本中的導入可能需要在 sys.path 修改之後
+"data/**/*.py" = ["E722"]  # 數據腳本中可能使用 bare except
+"cleanup_files.py" = ["E402"]  # 清理腳本中的導入可能需要在 sys.path 修改之後
+"tests/文件上傳/**/*.py" = ["E722"]  # 文件上傳測試腳本中可能使用 bare except
 
 # isort 配置（導入排序）
 [tool.ruff.lint.isort]

@@ -1,7 +1,7 @@
 # 代碼功能說明: 任務分類器實現
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-21
+# 最後修改日期: 2026-01-09
 
 """任務分類器 - 實現任務類型分類邏輯"""
 
@@ -26,8 +26,22 @@ class TaskClassifier:
                 r"query|search|find|get|show|list|tell|what|how|why",
             ],
             TaskType.EXECUTION: [
+                # 基本操作動詞
                 r"執行|運行|操作|創建|刪除|更新|修改|發送|調用|執行",
                 r"execute|run|perform|create|delete|update|modify|send|call|do",
+                # 文件編輯相關動詞
+                r"編輯|產生|生成|寫|建立|製作|添加|替換|重寫|格式化",
+                r"edit|generate|write|make|build|add|replace|rewrite|format",
+                # 隱含編輯意圖動詞
+                r"加入|整理|優化|改成|改成|把.*改成",
+                r"add.*to|organize|optimize|change.*to|modify.*to",
+                # 文件相關名詞（結合動詞時才匹配）
+                r"(編輯|產生|創建|生成|寫|建立|製作|修改|更新|刪除|添加|替換|重寫|格式化).*(文件|檔案|文檔)",
+                r"(edit|generate|create|write|make|build|modify|update|delete|add|replace|rewrite|format).*(file|document)",
+                # 隱含編輯意圖模式（結合文件相關詞）
+                r"(幫我在|在).*(文件|檔案|文檔|這個文件|這個檔案|這個文檔).*(加入|添加|添加|改成|整理|優化)",
+                r"(幫我整理|幫我優化|把這個).*(文件|檔案|文檔|代碼文件)",
+                r"(在文件裡|在文件中|在檔案裡|在檔案中).*(添加|加入|改成)",
             ],
             TaskType.REVIEW: [
                 r"審查|檢查|驗證|評估|審核|校對|確認|審批",

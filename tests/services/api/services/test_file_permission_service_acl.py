@@ -5,13 +5,13 @@
 
 """文件權限服務 ACL 單元測試"""
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 from services.api.models.data_classification import DataClassification, SensitivityLabel
 from services.api.models.file_access_control import FileAccessControl, FileAccessLevel
-from services.api.models.file_metadata import FileMetadata, FileMetadataCreate
-from services.api.services.file_metadata_service import FileMetadataService
+from services.api.models.file_metadata import FileMetadata
 from services.api.services.file_permission_service import FilePermissionService
 from system.security.models import Permission, User
 
@@ -110,9 +110,12 @@ class TestFilePermissionServiceACL:
             upload_time=datetime.utcnow(),
         )
 
-        assert permission_service.check_file_access_with_acl(
-            user=authorized_user, file_metadata=file_metadata
-        ) is True
+        assert (
+            permission_service.check_file_access_with_acl(
+                user=authorized_user, file_metadata=file_metadata
+            )
+            is True
+        )
 
     def test_check_organization_access(
         self,
@@ -246,9 +249,7 @@ class TestFilePermissionServiceACL:
             is False
         )
 
-    def test_check_data_classification_access(
-        self, permission_service: FilePermissionService
-    ):
+    def test_check_data_classification_access(self, permission_service: FilePermissionService):
         """測試數據分類級別檢查"""
         # 創建沒有 CONFIDENTIAL 權限的用戶
         user = User(
@@ -275,15 +276,11 @@ class TestFilePermissionServiceACL:
 
         # 用戶沒有 CONFIDENTIAL 權限，應該被拒絕
         assert (
-            permission_service.check_file_access_with_acl(
-                user=user, file_metadata=file_metadata
-            )
+            permission_service.check_file_access_with_acl(user=user, file_metadata=file_metadata)
             is False
         )
 
-    def test_check_sensitivity_labels_access(
-        self, permission_service: FilePermissionService
-    ):
+    def test_check_sensitivity_labels_access(self, permission_service: FilePermissionService):
         """測試敏感性標籤檢查"""
         # 創建沒有 PII 標籤權限的用戶
         user = User(
@@ -316,9 +313,7 @@ class TestFilePermissionServiceACL:
 
         # 用戶沒有 PII 標籤權限，應該被拒絕
         assert (
-            permission_service.check_file_access_with_acl(
-                user=user, file_metadata=file_metadata
-            )
+            permission_service.check_file_access_with_acl(user=user, file_metadata=file_metadata)
             is False
         )
 
@@ -408,4 +403,3 @@ class TestFilePermissionServiceACL:
             )
             is True
         )
-

@@ -79,9 +79,11 @@ class TestFileAuditRoutes:
         self, mock_require_permission, mock_get_service, client, admin_user, sample_audit_logs
     ):
         """測試成功查詢文件訪問日誌"""
+
         # 設置模擬 - require_permission 返回一個依賴函數，該函數返回用戶
         def mock_dep():
             return admin_user
+
         mock_require_permission.return_value = mock_dep
         mock_service = MagicMock()
         # 轉換 AuditLog 對象為字典格式（模擬 file_audit_service 的返回格式）
@@ -92,7 +94,9 @@ class TestFileAuditRoutes:
                 "action": log.action.value if hasattr(log.action, "value") else log.action,
                 "resource_type": log.resource_type,
                 "resource_id": log.resource_id,
-                "timestamp": log.timestamp.isoformat() if isinstance(log.timestamp, datetime) else log.timestamp,
+                "timestamp": log.timestamp.isoformat()
+                if isinstance(log.timestamp, datetime)
+                else log.timestamp,
                 "ip_address": log.ip_address,
                 "user_agent": log.user_agent,
                 "details": log.details,
@@ -127,9 +131,11 @@ class TestFileAuditRoutes:
         self, mock_require_permission, mock_get_service, client, admin_user, sample_audit_logs
     ):
         """測試帶過濾條件的文件訪問日誌查詢"""
+
         # 設置模擬
         def mock_dep():
             return admin_user
+
         mock_require_permission.return_value = mock_dep
         mock_service = MagicMock()
         # 轉換 AuditLog 對象為字典格式
@@ -139,7 +145,9 @@ class TestFileAuditRoutes:
                 "action": log.action.value if hasattr(log.action, "value") else log.action,
                 "resource_type": log.resource_type,
                 "resource_id": log.resource_id,
-                "timestamp": log.timestamp.isoformat() if isinstance(log.timestamp, datetime) else log.timestamp,
+                "timestamp": log.timestamp.isoformat()
+                if isinstance(log.timestamp, datetime)
+                else log.timestamp,
                 "ip_address": log.ip_address,
                 "user_agent": log.user_agent,
                 "details": log.details,
@@ -179,11 +187,9 @@ class TestFileAuditRoutes:
         assert call_kwargs["granted"] is True
 
     @patch("api.routers.file_audit.get_file_audit_service")
-    def test_get_file_access_logs_permission_denied(
-        self, mock_get_service, client, regular_user
-    ):
+    def test_get_file_access_logs_permission_denied(self, mock_get_service, client, regular_user):
         """測試權限不足時返回 403
-        
+
         注意：此測試驗證權限檢查邏輯。由於 require_permission 依賴在測試環境中
         可能被繞過（should_bypass_auth），我們主要驗證路由的權限要求配置正確。
         實際的權限檢查在生產環境中由 require_permission 依賴執行。
@@ -192,7 +198,7 @@ class TestFileAuditRoutes:
         mock_service = MagicMock()
         mock_service.get_file_access_logs.return_value = ([], 0)
         mock_get_service.return_value = mock_service
-        
+
         # 發送請求（使用普通用戶，沒有管理員權限）
         response = client.get(
             "/api/v1/files/audit/logs",
@@ -211,9 +217,11 @@ class TestFileAuditRoutes:
         self, mock_require_permission, mock_get_service, client, admin_user
     ):
         """測試缺少必要參數時返回 400"""
+
         # 設置模擬
         def mock_dep():
             return admin_user
+
         mock_require_permission.return_value = mock_dep
 
         # 發送請求（不提供 file_id 或 user_id）
@@ -233,9 +241,11 @@ class TestFileAuditRoutes:
         self, mock_require_permission, mock_get_service, client, admin_user
     ):
         """測試成功獲取訪問統計"""
+
         # 設置模擬
         def mock_dep():
             return admin_user
+
         mock_require_permission.return_value = mock_dep
         mock_service = MagicMock()
         mock_service.get_access_statistics.return_value = {
@@ -275,9 +285,11 @@ class TestFileAuditRoutes:
         self, mock_require_permission, mock_get_service, client, admin_user
     ):
         """測試帶時間範圍的統計"""
+
         # 設置模擬
         def mock_dep():
             return admin_user
+
         mock_require_permission.return_value = mock_dep
         mock_service = MagicMock()
         mock_service.get_access_statistics.return_value = {
@@ -316,11 +328,9 @@ class TestFileAuditRoutes:
         assert call_kwargs["end_date"] is not None
 
     @patch("api.routers.file_audit.get_file_audit_service")
-    def test_get_access_statistics_permission_denied(
-        self, mock_get_service, client, regular_user
-    ):
+    def test_get_access_statistics_permission_denied(self, mock_get_service, client, regular_user):
         """測試統計接口權限檢查
-        
+
         注意：此測試驗證權限檢查邏輯。由於 require_permission 依賴在測試環境中
         可能被繞過（should_bypass_auth），我們主要驗證路由的權限要求配置正確。
         實際的權限檢查在生產環境中由 require_permission 依賴執行。
@@ -337,7 +347,7 @@ class TestFileAuditRoutes:
             "by_data_classification": {},
         }
         mock_get_service.return_value = mock_service
-        
+
         # 發送請求（使用普通用戶，沒有管理員權限）
         response = client.get(
             "/api/v1/files/audit/statistics",

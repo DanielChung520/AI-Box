@@ -9,7 +9,6 @@ import asyncio
 import json
 import os
 import sys
-from pathlib import Path
 from typing import Dict, List, Optional
 
 import httpx
@@ -120,7 +119,11 @@ async def main():
                 logger.info(f"[{i}/{len(FILE_IDS_NO_VECTOR)}] 成功", file_id=file_id)
             else:
                 fail_count += 1
-                logger.error(f"[{i}/{len(FILE_IDS_NO_VECTOR)}] 失敗", file_id=file_id, error=result.get("error"))
+                logger.error(
+                    f"[{i}/{len(FILE_IDS_NO_VECTOR)}] 失敗",
+                    file_id=file_id,
+                    error=result.get("error"),
+                )
 
         # 保存結果
         output_file = "regenerate_vectors_results.json"

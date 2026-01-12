@@ -1,7 +1,7 @@
 # 代碼功能說明: Task Analyzer 核心邏輯實現（4 層漸進式路由架構）
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-30
+# 最後修改日期: 2026-01-11 20:43
 
 """Task Analyzer 核心實現 - 整合任務分析、分類、路由和工作流選擇"""
 
@@ -11,9 +11,10 @@ import logging
 import re
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from agents.task_analyzer.capability_matcher import CapabilityMatcher
+from agents.task_analyzer.clarification import ClarificationService
 from agents.task_analyzer.classifier import TaskClassifier
 from agents.task_analyzer.decision_engine import DecisionEngine
 from agents.task_analyzer.llm_router import LLMRouter
@@ -21,7 +22,9 @@ from agents.task_analyzer.models import (
     ConfigIntent,
     DecisionLog,
     DecisionResult,
+    LLMProvider,
     LogQueryIntent,
+    RouterDecision,
     RouterInput,
     TaskAnalysisRequest,
     TaskAnalysisResult,
@@ -51,6 +54,8 @@ class TaskAnalyzer:
         self.capability_matcher = CapabilityMatcher()
         self.decision_engine = DecisionEngine()
         self.routing_memory = RoutingMemoryService()
+        # 澄清服務
+        self.clarification_service = ClarificationService()
 
     async def analyze(self, request: TaskAnalysisRequest) -> TaskAnalysisResult:
         """
@@ -66,6 +71,24 @@ class TaskAnalyzer:
 
         # 生成任務ID
         task_id = str(uuid.uuid4())
+
+        # ============================================
+        # 前端指定Agent驗證（如果指定）
+        # ============================================
+        if request.specified_agent_id:
+            validation_result = await self._validate_specified_agent(
+                request.specified_agent_id, request.task, request.context
+            )
+            if not validation_result["valid"]:
+                # 驗證失敗，返回錯誤結果
+                logger.warning(f"Specified agent validation failed: {validation_result['error']}")
+                return self._create_error_result(
+                    task_id,
+                    error_message=validation_result["error"],
+                    suggested_agents=(
+                        [request.specified_agent_id] if request.specified_agent_id else []
+                    ),
+                )
 
         # ============================================
         # Layer 0: Cheap Gating（快速過濾）
@@ -132,17 +155,110 @@ class TaskAnalyzer:
             f"Layer 2: After Rule Override - needs_tools={router_output.needs_tools}, needs_agent={router_output.needs_agent}"
         )
 
+        # 步驟4.5: 文件編輯任務強制修正（確保 Router LLM 的判斷覆蓋 TaskClassifier）
+        # 如果 Router LLM 識別為 execution 且包含文件編輯關鍵詞，強制設置 needs_agent=true
+        # 同時，如果任務包含隱含編輯意圖關鍵詞，即使 intent_type 不是 execution，也應該修正為 execution
+        file_editing_keywords = [
+            # 明確的編輯動詞
+            "編輯",
+            "修改",
+            "更新",
+            "刪除",
+            "添加",
+            "替換",
+            "重寫",
+            "格式化",
+            # 產生/創建動詞
+            "產生",
+            "創建",
+            "寫",
+            "生成",
+            "建立",
+            "製作",
+            # 文件相關名詞
+            "文件",
+            "檔案",
+            "文檔",
+            "document",
+            "file",
+        ]
+        # 隱含編輯意圖關鍵詞
+        implicit_editing_keywords = [
+            "幫我在文件中加入",
+            "在文件裡添加",
+            "在文件中添加",
+            "把這個改成",
+            "幫我整理一下這個文件",
+            "優化這個代碼文件",
+            "格式化整個文件",
+            "在文件裡添加註釋",
+            "幫我整理一下",
+            "加入安裝說明",
+            "添加註釋",
+            "改成新的實現",
+        ]
+        task_lower = request.task.lower()
+        is_file_editing = any(keyword in task_lower for keyword in file_editing_keywords)
+        is_implicit_editing = any(keyword in task_lower for keyword in implicit_editing_keywords)
+
+        logger.info(
+            f"File editing detection: task='{request.task[:100]}...', "
+            f"intent_type={router_output.intent_type}, "
+            f"needs_agent={router_output.needs_agent}, "
+            f"is_file_editing={is_file_editing}, "
+            f"is_implicit_editing={is_implicit_editing}"
+        )
+
+        # 如果是文件編輯任務（明確或隱含），強制修正
+        if (router_output.intent_type == "execution" and is_file_editing) or is_implicit_editing:
+            # 如果是隱含編輯意圖但 intent_type 不是 execution，修正為 execution
+            if is_implicit_editing and router_output.intent_type != "execution":
+                logger.info(
+                    f"Implicit file editing task detected, forcing intent_type=execution "
+                    f"(query: {request.task[:100]}...)"
+                )
+                router_output = RouterDecision(
+                    intent_type="execution",  # 強制設置為 execution
+                    complexity=router_output.complexity,
+                    needs_agent=True,  # 隱含編輯意圖也需要 agent
+                    needs_tools=True,  # 隱含編輯意圖也需要工具
+                    determinism_required=router_output.determinism_required,
+                    risk_level=router_output.risk_level,
+                    confidence=router_output.confidence,
+                )
+            elif router_output.intent_type == "execution" and is_file_editing:
+                # 明確編輯意圖，但 needs_agent 可能是 False，需要強制設置為 True
+                if not router_output.needs_agent:
+                    logger.info(
+                        f"File editing task detected, forcing needs_agent=true "
+                        f"(query: {request.task[:100]}...)"
+                    )
+                    router_output = RouterDecision(
+                        intent_type=router_output.intent_type,
+                        complexity=router_output.complexity,
+                        needs_agent=True,  # 強制設置為 True
+                        needs_tools=router_output.needs_tools,
+                        determinism_required=router_output.determinism_required,
+                        risk_level=router_output.risk_level,
+                        confidence=router_output.confidence,
+                    )
+
         # ============================================
         # Layer 3: Decision Engine（完整決策引擎）
         # ============================================
         # 步驟5: Capability Matching（能力匹配）
-        agent_candidates = await self.capability_matcher.match_agents(
-            router_output, request.context
-        )
-        # 將查詢文本添加到 context 中，供 Capability Matcher 使用
+        # 將查詢文本添加到 context 中，供 Capability Matcher 使用（特別是文件編輯任務檢測）
         enhanced_context = (request.context or {}).copy()
         enhanced_context["task"] = request.task
         enhanced_context["query"] = request.task
+        # 使用增強後的 context 進行能力匹配
+        agent_candidates = await self.capability_matcher.match_agents(
+            router_output, enhanced_context
+        )
+        logger.info(
+            f"Layer 3: Capability Matcher found {len(agent_candidates)} agent candidates: "
+            f"{[c.candidate_id for c in agent_candidates[:5]]}"
+        )
         tool_candidates = await self.capability_matcher.match_tools(router_output, enhanced_context)
         logger.info(
             f"Layer 3: Capability Matcher found {len(tool_candidates)} tool candidates: "
@@ -166,7 +282,7 @@ class TaskAnalyzer:
             agent_candidates,
             tool_candidates,
             model_candidates,
-            request.context,
+            enhanced_context,
         )
         logger.info(
             f"Layer 3: Decision Engine result - chosen_tools={decision_result.chosen_tools}, "
@@ -180,6 +296,18 @@ class TaskAnalyzer:
             request.task,
             request.context,
         )
+
+        # 如果 Router LLM 識別為 execution，覆蓋 TaskClassifier 的結果
+        # 優先信任 RouterLLM 的意圖識別結果，因為它更準確
+        if router_output.intent_type == "execution":
+            if classification.task_type != TaskType.EXECUTION:
+                logger.info(
+                    f"Overriding TaskClassifier result: {classification.task_type.value} -> execution "
+                    f"(Router LLM intent_type=execution, query: {request.task[:100]}...)"
+                )
+                classification.task_type = TaskType.EXECUTION
+                classification.confidence = max(classification.confidence, router_output.confidence)
+                classification.reasoning = f"{classification.reasoning} (覆蓋：Router LLM 識別為 execution 意圖，置信度 {router_output.confidence:.2f})"
 
         # 工作流選擇
         workflow_selection = self.workflow_selector.select(
@@ -1151,3 +1279,90 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
                 missing_slots=["scope", "level"],
                 original_instruction=instruction,
             )
+
+    async def _validate_specified_agent(
+        self,
+        agent_id: str,
+        task: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        驗證前端指定的Agent
+
+        Args:
+            agent_id: Agent ID
+            task: 任務描述
+            context: 上下文信息
+
+        Returns:
+            驗證結果字典，包含 'valid' (bool) 和 'error' (str, 如果驗證失敗)
+        """
+        try:
+            # 通過 Agent Registry 獲取 Agent 信息
+            from agents.services.registry.models import AgentStatus
+            from agents.services.registry.registry import get_agent_registry
+
+            registry = get_agent_registry()
+            agent_info = registry.get_agent_info(agent_id)
+
+            # 檢查 Agent 是否存在
+            if not agent_info:
+                return {
+                    "valid": False,
+                    "error": f"指定的Agent '{agent_id}' 不存在",
+                }
+
+            # 檢查 Agent 狀態（必須為 ONLINE）
+            if agent_info.status != AgentStatus.ONLINE:
+                return {
+                    "valid": False,
+                    "error": f"指定的Agent '{agent_id}' 當前狀態為 {agent_info.status.value}，無法使用",
+                }
+
+            # 檢查 Agent 能力匹配（可選，如果需要）
+            # 這裡可以添加更複雜的能力匹配邏輯
+            # 例如：檢查 Agent 的能力是否匹配任務需求
+
+            logger.info(f"Specified agent '{agent_id}' validation passed")
+            return {"valid": True}
+
+        except Exception as e:
+            logger.error(f"Failed to validate specified agent: {e}", exc_info=True)
+            return {
+                "valid": False,
+                "error": f"驗證Agent時發生錯誤：{str(e)}",
+            }
+
+    def _create_error_result(
+        self,
+        task_id: str,
+        error_message: str,
+        suggested_agents: Optional[List[str]] = None,
+    ) -> TaskAnalysisResult:
+        """
+        創建錯誤結果
+
+        Args:
+            task_id: 任務ID
+            error_message: 錯誤信息
+            suggested_agents: 建議的Agent列表（可選）
+
+        Returns:
+            TaskAnalysisResult 對象（包含錯誤信息）
+        """
+        return TaskAnalysisResult(
+            task_id=task_id,
+            task_type=TaskType.QUERY,  # 默認類型
+            workflow_type=WorkflowType.LANGCHAIN,  # 默認工作流
+            llm_provider=LLMProvider.CHATGPT,  # 默認提供商
+            confidence=0.0,
+            requires_agent=False,
+            analysis_details={
+                "error": error_message,
+                "error_type": "validation_error",
+            },
+            suggested_agents=suggested_agents or [],
+            router_decision=None,
+            decision_result=None,
+            suggested_tools=[],
+        )

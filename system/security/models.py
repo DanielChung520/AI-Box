@@ -145,7 +145,7 @@ class User:
     @classmethod
     def create_system_admin(cls) -> "User":
         """創建系統管理員用戶（修改時間：2026-01-06）
-        
+
         系統內部用戶，安全等級最高，外部任務看不到
         """
         return cls(

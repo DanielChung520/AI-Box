@@ -1,8 +1,11 @@
 # AI-Box IEE 式 Markdown 文件編輯器開發規格書
 
 <!-- Notion Page ID: 2ce10eba-142a-80f8-9dce-e46b779cf727 -->
+
 <!-- Last synced: 2025-12-19T04:12:52.386Z -->
+
 <!-- 可行性分析完成: 2025-01-27 -->
+
 <!-- 規格書調整完成: 2025-01-27 -->
 
 ---
@@ -58,10 +61,10 @@
 
 開發「AI 驅動的長文件 IEE」,類似 代碼開發IDE，**用戶能透過與 AI 對話，對長篇 Markdown 文件（支持 PDF/Word 匯入）進行精準的局部編輯、內容插入及結構化更新（如 Mermaid 圖表）。系統強調「非侵入式編輯」，透過前端暫存、Diff 審查、版本提交**的流程，確保文檔的準確性與可追溯性。### 核心價值
 
-  1. **精準定位：** 解決長文件中 AI 難以精確修改特定段落的痛點。
-  1. **上下文理解：** 整合 RAG（向量檢索）與知識圖譜，使 AI 能理解跨章節、跨檔案的關聯。
-  1. **結構化輸出：** 支持 Mermaid 流程圖即時渲染，讓文字與圖表同步協作。
-  1. **安全控制：** 編輯內容需經人工審查（Review）與正式提交（Commit）後才生效。
+1. **精準定位：** 解決長文件中 AI 難以精確修改特定段落的痛點。
+2. **上下文理解：** 整合 RAG（向量檢索）與知識圖譜，使 AI 能理解跨章節、跨檔案的關聯。
+3. **結構化輸出：** 支持 Mermaid 流程圖即時渲染，讓文字與圖表同步協作。
+4. **安全控制：** 編輯內容需經人工審查（Review）與正式提交（Commit）後才生效。
 
 ### 系統架構與業務流程 (System Architecture & Workflow)
 
@@ -197,16 +200,17 @@ graph TD
 IEE 編輯器採用**右側面板集成模式**，與文件管理和預覽功能統一整合：
 
 - **右側面板三種模式**:
+
   - **文件模式**: 顯示文件目錄樹和文件列表
   - **預覽模式**: 顯示文件預覽（支持 Markdown、PDF、Word、Excel 等格式）
   - **編輯模式**: 顯示 IEE 編輯器（僅支持 Markdown 文件）
-
 - **模式切換**:
+
   - 在右側面板頂部有模式切換按鈕（文件/預覽/編輯）
   - 點擊「編輯」模式時，會推開右側區域，類似預覽模式的行為
   - 編輯模式僅在選中 Markdown 文件時可用
-
 - **編輯器布局**:
+
   - 編輯模式使用與預覽模式相同的面板布局
   - 編輯器佔據整個右側面板區域
   - 支持與左側聊天區域並排顯示，不影響整體頁面布局
@@ -303,7 +307,29 @@ Agent 使用 `update_document` 工具來回傳結構化修改建議。
 - 將 Search-and-Replace 格式轉換為 unified diff 格式
 - 使用現有的 `apply_unified_diff()` 函數應用修改
 
----
+### 1.4 數據流
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant ChatInput as ChatInput组件
+    participant ChatArea as ChatArea组件
+    participant Hook as useStreamingEdit Hook
+    participant SSE as SSE流式客户端
+    participant API as 后端API
+    participant Agent as Document Editing Agent
+    participant Viewer as MarkdownViewer组件
+
+    User->>ChatInput: 输入编辑指令
+    ChatInput->>ChatArea: 发送消息
+    ChatArea->>API: POST /api/v1/editing/command
+    API->>Agent: 执行编辑任务
+    Agent-->>API: 生成patches
+    API-->>SSE: 流式输出patches
+    SSE->>Hook: 接收流式数据
+    Hook->>Viewer: 应用patches增量更新
+    Viewer-->>User: 实时显示修改预览
+```
 
 # 2. 文件處理與轉換模組 (Document Processing & Conversion)
 
@@ -321,6 +347,7 @@ Agent 使用 `update_document` 工具來回傳結構化修改建議。
 ### 2.2 Markdown 語義切片 (Chunking Strategy)
 
 - **結構化切片：** 捨棄固定字數切片，改採 **AST (Abstract Syntax Tree) 驅動切片**。
+
   - 以 Markdown 的 `H1` 至 `H3` 標題作為主要切割點。
   - **Context Window 補償：** 每個切片（Chunk）必須附帶其所屬的上層標題路徑（例如：`# 產品規格 > ## 功能描述 > ### 編輯器`），確保 AI 在處理局部片段時具備全局導航意識。
 - **Token 負載平衡：** 單個 Chunk 大小控制在 500-1000 Tokens 之間，以優化向量檢索的精確度。
@@ -328,7 +355,6 @@ Agent 使用 `update_document` 工具來回傳結構化修改建議。
   **現狀**: 已有 `ChunkProcessor` (`services/api/processors/chunk_processor.py`)，支持語義分塊（基於段落/句子）
 
   **需要增強**:
-
 - 集成 `unified/remark` 解析 Markdown AST
 - 實現基於標題層級（H1-H3）的切片策略
 - 在 metadata 中添加 `header_path` 字段（標題路徑）
@@ -378,16 +404,17 @@ Agent 使用 `update_document` 工具來回傳結構化修改建議。
 ### 3.1.2 右側面板編輯模式集成
 
 - **模式切換機制**:
+
   - 在右側面板（ResultPanel）頂部添加「編輯」模式按鈕
   - 與「文件」和「預覽」模式並列顯示
   - 僅在選中 Markdown 文件時啟用「編輯」按鈕
-
 - **編輯器渲染**:
+
   - 編輯模式使用與預覽模式相同的面板容器
   - 編輯器組件（IEEEditor）直接渲染在右側面板中
   - 保持與預覽模式一致的布局和尺寸
-
 - **狀態同步**:
+
   - 編輯模式與文件選擇狀態同步
   - 切換文件時自動切換到對應的編輯內容
   - 支持在編輯模式和預覽模式之間無縫切換
@@ -447,7 +474,6 @@ interface AIPatch {
   **現狀**: 已有 `doc_patch_service.py` 支持 unified diff 和 JSON Patch
 
   **需要實現**:
-
 - 在 `doc_patch_service.py` 中添加 `search_replace_to_unified_diff()` 函數
 - 實現 Search-and-Replace 到 unified diff 的轉換
 - 實現模糊匹配算法（Bitap 或 Levenshtein Distance）
@@ -461,15 +487,15 @@ def locate_text(full_doc, search_block, cursor_pos):
 
 ```
 
-  1. 嘗試精確查找
+1. 嘗試精確查找
 
 ```python
  idx = full_doc.find(search_block)
  if idx != -1: return idx
 ```
 
-  1. 去除空白後查找 (Normalized Match)
-解決 AI 輸出時縮排不一致的問題
+1. 去除空白後查找 (Normalized Match)
+   解決 AI 輸出時縮排不一致的問題
 
 ```python
 norm_doc = remove_whitespace(full_doc)
@@ -478,8 +504,8 @@ if norm_search in norm_doc:
 return map_index_back(norm_doc, full_doc)
 ```
 
-  1. 限制範圍的模糊查找 (Levenshtein Distance)
-僅在游標附近 +/- 1000 字範圍內搜索，容錯率 80%
+1. 限制範圍的模糊查找 (Levenshtein Distance)
+   僅在游標附近 +/- 1000 字範圍內搜索，容錯率 80%
 
 ```python
 local_window = get_window(full_doc, cursor_pos, 1000)
@@ -495,31 +521,31 @@ return match.index if match else Error("Locate Failed")
 - **終止保護：** 若流式傳輸中斷，系統自動回滾該次 `Pending Patch`，避免殘留損毀的標籤。
 
   **需要確認**: 現有系統是否已實現 WebSocket/SSE 流式傳輸
-
 - 如果已實現，需要確認協議格式是否匹配
 - 如果未實現，需要實現 WebSocket/SSE 支持
 
 ### 4.3 上下文注入 (Context Injection) 策略
 
 - **動態上下文窗：** 根據當前游標位置，自動抓取以下資訊：
-    1. **文件大綱：** 所有的 `#` 標題及其層級。
-    1. **局部細節：** 游標前後各 2,000 字的完整文本。
-    1. **外部參考：** 用戶使用 `@` 提及的文件片段。
+  1. **文件大綱：** 所有的 `#` 標題及其層級。
+  2. **局部細節：** 游標前後各 2,000 字的完整文本。
+  3. **外部參考：** 用戶使用 `@` 提及的文件片段。
 
 ### 4.3.1 System Prompt 組裝範本
 
-後端在發送請求給 LLM 時，Prompt 的組裝順序如下：> `[System Role]
-你是文檔編輯專家，必須嚴格遵守 XML 輸出協議。(注入協議定義...)`
+後端在發送請求給 LLM 時，Prompt 的組裝順序如下：> `[System Role] 你是文檔編輯專家，必須嚴格遵守 XML 輸出協議。(注入協議定義...)`
+
 > [Knowledge Context (RAG)]
-參考資料 (來自向量庫):
+> 參考資料 (來自向量庫):
 > [Current Editing Window]
-檔案: {{filename}}
-游標位置: 第 {{line_num}} 行
+> 檔案: {{filename}}
+> 游標位置: 第 {{line_num}} 行
 > [Code/Text Context]
 > (游標所在行)
- ... (游標後 50 行) ...
+> ... (游標後 50 行) ...
 > [User Instruction]
-{{user_query}}
+> {{user_query}}
+
 ---
 
 # 5. 數據一致性與併發處理 (Consistency & Concurrency)
@@ -542,7 +568,6 @@ return match.index if match else Error("Locate Failed")
 - 版本信息存儲在 `file_metadata.custom_metadata.doc_versions`（已有）
 
   **需要增強**:
-
 - 實現增量向量化（僅重新索引修改的 Chunks）
 - 實現版本快照的完整存儲和回滾功能
 
@@ -572,10 +597,10 @@ return match.index if match else Error("Locate Failed")
 
 點擊「確認提交」後，後端需執行原子化操作 (Atomic Operation)：  1. **Merge & Save:** 將 Draft 內容寫入主存儲 (File Storage / DB)。
 
-  1. **Snapshot:** 建立版本快照 (Version v1.x)，允許隨時 Rollback。
-  1. **Re-indexing (關鍵):**
-    - **增量更新 (Incremental Update):** 僅針對**有變動的 Chunks** 重新計算 Embedding 並更新至 Vector DB，避免全量重建索引導致高昂成本。
-    - **圖譜更新:** 若變更涉及實體定義，同步更新 Graph DB 中的關係。
+1. **Snapshot:** 建立版本快照 (Version v1.x)，允許隨時 Rollback。
+2. **Re-indexing (關鍵):**
+   - **增量更新 (Incremental Update):** 僅針對**有變動的 Chunks** 重新計算 Embedding 並更新至 Vector DB，避免全量重建索引導致高昂成本。
+   - **圖譜更新:** 若變更涉及實體定義，同步更新 Graph DB 中的關係。
 
 ### 6.3.1 提交 API (Submission Endpoint)
 
@@ -585,7 +610,6 @@ return match.index if match else Error("Locate Failed")
 
 - `POST /api/v1/editing/commit` (新 API，建議實現)
 - 或使用現有: `POST /api/v1/docs/{request_id}/apply` (已有)
-
 - **Body**:
 
 ```json
@@ -662,7 +686,7 @@ return match.index if match else Error("Locate Failed")
 
 **Role:** 你是一個專業的文檔編輯助手。你的任務是根據用戶要求，對 Markdown 文件進行精確的局部修改。**Constraints:**  1. **禁止重寫全文**：僅輸出需要修改的部分。
 
-  1. **格式要求**：你必須使用以下 XML 格式輸出所有的修改指令：
+1. **格式要求**：你必須使用以下 XML 格式輸出所有的修改指令：
 
 ```json
 {
@@ -675,10 +699,10 @@ return match.index if match else Error("Locate Failed")
 }
 ```
 
-  1. **精確匹配**：`<search>` 標籤內的內容必須是原文件中真實存在的片段（包含空格、換行與縮排）。
-  1. **多處修改**：若有多處修改，請並列多組 `<edit>` 區塊。
-  1. **插入操作**：若要插入新內容，請在 `<search>` 中定位插入點的前一段文字，並在 `<replace>` 中包含該段文字加上新內容。
-**Context:**  - **當前檔案路徑**：`{{file_path}}`
+1. **精確匹配**：`<search>` 標籤內的內容必須是原文件中真實存在的片段（包含空格、換行與縮排）。
+2. **多處修改**：若有多處修改，請並列多組 `<edit>` 區塊。
+3. **插入操作**：若要插入新內容，請在 `<search>` 中定位插入點的前一段文字，並在 `<replace>` 中包含該段文字加上新內容。
+   **Context:**  - **當前檔案路徑**：`{{file_path}}`
 
 - **目前處理片段 (Context Chunk)**：
 
@@ -686,7 +710,7 @@ return match.index if match else Error("Locate Failed")
 {{file_content_chunk}}
 ```
 
-User Request:"{{user_query}}"Output Requirement:直接開始輸出 <edit> 指令，不要解釋「好的，我幫你修改了」或「根據您的要求」。---
+User Request:"{{user_query}}"Output Requirement:直接開始輸出 `<edit>` 指令，不要解釋「好的，我幫你修改了」或「根據您的要求」。---
 
 ### 實際應用案例說明
 
@@ -707,11 +731,11 @@ User Request:"{{user_query}}"Output Requirement:直接開始輸出 <edit> 指令
 
 ## 技術實作關鍵點
 
-  1. **Context 截斷**：傳送給 AI 的 `{{file_content_chunk}}` 應該是游標所在位置的前後各 2,000 - 4,000 字，而不是整份 10 萬字的文件。
-  1. **後端校驗**：
-    1. 後端收到回傳後，先用 `string.includes(search_text)` 檢查。
-    1. 如果匹配失敗，嘗試使用 **Fuzzy Matching (模糊匹配)** 算法（如 Levenshtein Distance）找到最接近的行，容許 AI 在換行符號上的細微誤差。
-  1. **串流攔截 (Streaming)**：當後端偵測到 `<replace>` 標籤出現，立即將後續內容透過 WebSocket 推送給前端，前端即可開始在編輯器中渲染綠色的「建議修改區」。
+1. **Context 截斷**：傳送給 AI 的 `{{file_content_chunk}}` 應該是游標所在位置的前後各 2,000 - 4,000 字，而不是整份 10 萬字的文件。
+2. **後端校驗**：
+   1. 後端收到回傳後，先用 `string.includes(search_text)` 檢查。
+   1. 如果匹配失敗，嘗試使用 **Fuzzy Matching (模糊匹配)** 算法（如 Levenshtein Distance）找到最接近的行，容許 AI 在換行符號上的細微誤差。
+3. **串流攔截 (Streaming)**：當後端偵測到 `<replace>` 標籤出現，立即將後續內容透過 WebSocket 推送給前端，前端即可開始在編輯器中渲染綠色的「建議修改區」。
 
 ---
 
@@ -751,7 +775,7 @@ IEE 旨在消除用戶在「聊天視窗」與「文件編輯器」之間的複�
 Agent 與 IEE 交互時，必須遵循以下「非侵入式」路徑：1. **意圖解析：** Agent 決定修改文檔。
 
 1. **工具呼叫：** 調用 `edit_document` 工具，發送 XML Patch。
-1. **UI 觸發：** 編輯器進入「建議模式」，用戶看到綠色高亮預覽，只需點擊 `[確認]`。
+2. **UI 觸發：** 編輯器進入「建議模式」，用戶看到綠色高亮預覽，只需點擊 `[確認]`。
 
 ### 9.5 流程自動化介面 (Workflow UI/UX)
 
@@ -785,7 +809,7 @@ Agent 與 IEE 交互時，必須遵循以下「非侵入式」路徑：1. **意�
 在產生最終 PDF 或 Word 檔案時，系統執行「編譯（Compile）」流程：1. **標題層級校準 (Header Normalization)**：根據分文在主文中的嵌套層級，自動調整標題等級（例如：分文內的 `#` 若嵌入在主文 `##` 下，導出時自動降級為 `###`）。
 
 1. **變數注入**：將主文定義的全局變數（如專案名稱、日期）自動填充至各分文的占位符中。
-1. **格式統一化**：利用 **Pandoc** 進行最終排版渲染，確保字體、間距、引用格式在合併後完全一致。
+2. **格式統一化**：利用 **Pandoc** 進行最終排版渲染，確保字體、間距、引用格式在合併後完全一致。
 
 ### 10.5 模組化架構的 Agent 效益
 

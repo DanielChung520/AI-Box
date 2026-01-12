@@ -1,0 +1,37 @@
+{
+  "report_file": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/router_llm_model_comparison_20260109_133548.json",
+  "analysis": {
+    "model_scores": {
+      "quentinz/bge-large-zh-v1.5:latest": {
+        "task_type_accuracy": 0.0,
+        "needs_agent_accuracy": 0.0,
+        "overall_success_rate": 0.0,
+        "avg_time": 0.028930870691935222,
+        "score": 0.09942138258616129
+      }
+    },
+    "sorted_models": [
+      [
+        "quentinz/bge-large-zh-v1.5:latest",
+        {
+          "task_type_accuracy": 0.0,
+          "needs_agent_accuracy": 0.0,
+          "overall_success_rate": 0.0,
+          "avg_time": 0.028930870691935222,
+          "score": 0.09942138258616129
+        }
+      ]
+    ],
+    "best_model": "quentinz/bge-large-zh-v1.5:latest",
+    "statistics": {
+      "quentinz/bge-large-zh-v1.5:latest": {
+        "task_type_accuracy": 0.0,
+        "needs_agent_accuracy": 0.0,
+        "overall_success_rate": 0.0,
+        "avg_time": 0.028930870691935222,
+        "total_time": 0.4339630603790283,
+        "avg_confidence": 0.0
+      }
+    }
+  }
+}

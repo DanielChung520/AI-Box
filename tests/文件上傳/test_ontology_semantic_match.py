@@ -14,10 +14,8 @@
 
 import asyncio
 import json
-import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 import structlog
 from dotenv import load_dotenv
@@ -54,17 +52,17 @@ async def test_semantic_match():
     test_file_content = """
     預製菜產業概述
     預製菜是指經過洗、切、搭配等預處理，然後通過冷凍、真空包裝等方式保存，消費者購買後只需簡單加熱或調味即可食用的食品。
-    
+
     市場發展趨勢：
     1. 消費升級：消費者對便利性和品質的要求提高
     2. 中央廚房模式興起：標準化生產，降低成本
     3. 冷鏈物流完善：保證食品新鮮度和安全性
     4. 技術創新：真空包裝、冷凍技術、保鮮技術不斷進步
-    
+
     關鍵企業：
     - 東方伊廚：專業預製菜生產企業，擁有中央廚房和冷鏈物流系統
     - 主要產品：預製菜套餐、半成品食材、調理包
-    
+
     食品安全標準：
     - HACCP 認證
     - ISO 22000 食品安全管理體系
@@ -85,23 +83,24 @@ async def test_semantic_match():
         )
 
         if semantic_result:
-            print(f"✅ 語義匹配成功")
+            print("✅ 語義匹配成功")
             print(f"選擇方法: {semantic_result.get('selection_method')}")
             print(f"Domain Ontologies: {semantic_result.get('domain', [])}")
             print(f"Major Ontologies: {semantic_result.get('major', [])}")
             print(f"置信度: {semantic_result.get('confidence', 0.0)}")
             print(f"選擇理由: {semantic_result.get('reasoning', '無')}")
-            print(f"\n文件摘要:")
+            print("\n文件摘要:")
             try:
-                summary = json.loads(semantic_result.get('file_summary', '{}'))
+                summary = json.loads(semantic_result.get("file_summary", "{}"))
                 print(json.dumps(summary, ensure_ascii=False, indent=2))
             except json.JSONDecodeError:
-                print(semantic_result.get('file_summary', '無摘要'))
+                print(semantic_result.get("file_summary", "無摘要"))
         else:
             print("❌ 語義匹配失敗，返回 None")
     except Exception as e:
         print(f"❌ 語義匹配異常: {e}")
         import traceback
+
         traceback.print_exc()
 
     # 方法 2: 關鍵字匹配（對比）
@@ -120,6 +119,7 @@ async def test_semantic_match():
     except Exception as e:
         print(f"❌ 關鍵字匹配異常: {e}")
         import traceback
+
         traceback.print_exc()
 
     # 方法 3: 自動選擇（優先語義匹配）
@@ -135,11 +135,12 @@ async def test_semantic_match():
         print(f"選擇方法: {auto_result.get('selection_method')}")
         print(f"Domain Ontologies: {auto_result.get('domain', [])}")
         print(f"Major Ontologies: {auto_result.get('major', [])}")
-        if auto_result.get('confidence'):
+        if auto_result.get("confidence"):
             print(f"置信度: {auto_result.get('confidence', 0.0)}")
     except Exception as e:
         print(f"❌ 自動選擇異常: {e}")
         import traceback
+
         traceback.print_exc()
 
     # 測試案例 2: 沒有明確關鍵字的文件（測試語義理解能力）
@@ -150,17 +151,17 @@ async def test_semantic_match():
     test_file_name_2 = "企業經營分析報告.pdf"
     test_file_content_2 = """
     本報告分析了公司過去一年的經營狀況。
-    
+
     財務指標：
     - 營業收入增長 15%
     - 淨利潤率提升至 12%
     - 資產負債率控制在 60% 以下
-    
+
     組織管理：
     - 完成組織架構調整，優化部門職能
     - 建立績效考核體系
     - 加強員工培訓和發展
-    
+
     專案進展：
     - 新產品開發專案順利推進
     - 市場拓展專案取得初步成效
@@ -178,7 +179,7 @@ async def test_semantic_match():
         )
 
         if semantic_result_2:
-            print(f"\n✅ 語義匹配成功")
+            print("\n✅ 語義匹配成功")
             print(f"選擇方法: {semantic_result_2.get('selection_method')}")
             print(f"Domain Ontologies: {semantic_result_2.get('domain', [])}")
             print(f"Major Ontologies: {semantic_result_2.get('major', [])}")
@@ -189,6 +190,7 @@ async def test_semantic_match():
     except Exception as e:
         print(f"\n❌ 語義匹配異常: {e}")
         import traceback
+
         traceback.print_exc()
 
     print("\n" + "=" * 80)
@@ -198,4 +200,3 @@ async def test_semantic_match():
 
 if __name__ == "__main__":
     asyncio.run(test_semantic_match())
-

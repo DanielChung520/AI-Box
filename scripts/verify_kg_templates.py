@@ -21,7 +21,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from dotenv import load_dotenv
 
@@ -32,19 +32,19 @@ env_file = project_root / ".env"
 if env_file.exists():
     load_dotenv(env_file, override=True)
 
+import importlib.util
+from pathlib import Path as PathLib
+
 from kag.kag_schema_manager import OntologyManager
 from kag.ontology_selector import OntologySelector
 from services.api.processors.parser_factory import ParserFactory
 from services.api.services.file_metadata_service import get_metadata_service
 from services.api.services.ontology_store_service import get_ontology_store_service
-import importlib.util
-from pathlib import Path as PathLib
 
 # 直接导入 LocalFileStorage，绕过 __init__.py 中的 boto3 依赖
 project_root_storage = PathLib(__file__).parent.parent
 spec_storage = importlib.util.spec_from_file_location(
-    "local_file_storage",
-    project_root_storage / "storage" / "file_storage.py"
+    "local_file_storage", project_root_storage / "storage" / "file_storage.py"
 )
 module_storage = importlib.util.module_from_spec(spec_storage)
 spec_storage.loader.exec_module(module_storage)
@@ -129,7 +129,7 @@ def verify_ontology_selection(file_id: str) -> Dict[str, Any]:
         result["selection_result"] = selection
         result["verified"] = True
 
-        print(f"  ✅ Ontology 選擇成功")
+        print("  ✅ Ontology 選擇成功")
         print(f"     Base: {selection.get('base', 'N/A')}")
         print(f"     Domain: {selection.get('domain', [])}")
         print(f"     Major: {selection.get('major', [])}")
@@ -193,7 +193,9 @@ def verify_ontology_loading(selection_result: Dict[str, Any]) -> Dict[str, Any]:
             except Exception as e:
                 result["errors"].append(f"加載 Domain Ontology {domain_file} 失敗: {str(e)}")
 
-        major_file = selection_result.get("major", [None])[0] if selection_result.get("major") else None
+        major_file = (
+            selection_result.get("major", [None])[0] if selection_result.get("major") else None
+        )
         if major_file:
             try:
                 major_ontology = store_service.get_ontology_with_priority(
@@ -242,12 +244,16 @@ def verify_ontology_loading(selection_result: Dict[str, Any]) -> Dict[str, Any]:
                     if merged_rules:
                         result["merged_ontology"] = {
                             "entity_classes_count": len(merged_rules.get("entity_classes", [])),
-                            "object_properties_count": len(merged_rules.get("object_properties", [])),
+                            "object_properties_count": len(
+                                merged_rules.get("object_properties", [])
+                            ),
                         }
                         result["verified"] = True
-                        print(f"  ✅ Ontology 合併成功")
+                        print("  ✅ Ontology 合併成功")
                         print(f"     合併後實體類數量: {result['merged_ontology']['entity_classes_count']}")
-                        print(f"     合併後關係類型數量: {result['merged_ontology']['object_properties_count']}")
+                        print(
+                            f"     合併後關係類型數量: {result['merged_ontology']['object_properties_count']}"
+                        )
 
     except Exception as e:
         result["errors"].append(f"Ontology 加載驗證失敗: {str(e)}")
@@ -277,7 +283,7 @@ def verify_prompt_generation(merged_ontology: Dict[str, Any], sample_text: str) 
             )
             result["kg_extraction_prompt"] = kg_prompt
             result["verified"] = True
-            print(f"  ✅ KG Extraction Prompt 生成成功")
+            print("  ✅ KG Extraction Prompt 生成成功")
             print(f"     Prompt 長度: {len(kg_prompt)} 字符")
             print(f"     Prompt 預覽: {kg_prompt[:200]}...")
 
@@ -288,10 +294,7 @@ def verify_prompt_generation(merged_ontology: Dict[str, Any], sample_text: str) 
             relation_types_in_prompt = any(
                 rt.get("name", "") in kg_prompt if isinstance(rt, dict) else str(rt) in kg_prompt
                 for rt in merged_ontology.get("object_properties", [])
-            ) or any(
-                rt in kg_prompt
-                for rt in merged_ontology.get("relationship_types", [])
-            )
+            ) or any(rt in kg_prompt for rt in merged_ontology.get("relationship_types", []))
 
             if entity_classes_in_prompt:
                 print("  ✅ Prompt 包含實體類定義")
@@ -421,7 +424,7 @@ def generate_report(
 
     markdown_file = report_dir / f"verify_report_{file_id}_{timestamp}.md"
     with open(markdown_file, "w", encoding="utf-8") as f:
-        f.write(f"# 圖譜提取模板驗證報告\n\n")
+        f.write("# 圖譜提取模板驗證報告\n\n")
         f.write(f"**文件 ID**: `{file_id}`\n")
         f.write(f"**驗證時間**: {report_data['verification_time']}\n\n")
         f.write("## 驗證摘要\n\n")
@@ -466,7 +469,9 @@ def main():
             store_service = get_ontology_store_service()
             base_name = selection_result.get("base", "")
             domain_files = selection_result.get("domain", [])
-            major_file = selection_result.get("major", [None])[0] if selection_result.get("major") else None
+            major_file = (
+                selection_result.get("major", [None])[0] if selection_result.get("major") else None
+            )
 
             if base_name:
                 merged_ontology_rules = store_service.merge_ontologies(
@@ -477,9 +482,7 @@ def main():
         except Exception as e:
             print(f"⚠️  獲取合併後 Ontology 規則失敗: {e}")
 
-    prompt_generation = verify_prompt_generation(
-        merged_ontology_rules or {}, sample_text
-    )
+    prompt_generation = verify_prompt_generation(merged_ontology_rules or {}, sample_text)
 
     json_schema = verify_json_schema()
     report_data = generate_report(

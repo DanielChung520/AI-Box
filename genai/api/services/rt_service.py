@@ -152,9 +152,13 @@ class OllamaRTModel(BaseRTModel):
             if relationship_types:
                 relation_types_list = "\n".join([f"- {rt}" for rt in sorted(relationship_types)])
             else:
-                relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+                relation_types_list = "\n".join(
+                    [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
+                )
         else:
-            relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+            relation_types_list = "\n".join(
+                [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
+            )
 
         prompt = self._prompt_template.format(
             relation_text=relation_text,
@@ -219,7 +223,9 @@ class OllamaRTModel(BaseRTModel):
                                 break
                         else:
                             # 如果沒有找到列表鍵，檢查是否是單個類型對象
-                            if "type" in types_data or ("types" in types_data and not isinstance(types_data["types"], list)):
+                            if "type" in types_data or (
+                                "types" in types_data and not isinstance(types_data["types"], list)
+                            ):
                                 # 將單個類型對象轉換為列表
                                 types_data = [types_data]
                                 logger.info(
@@ -280,9 +286,13 @@ class OllamaRTModel(BaseRTModel):
             if relationship_types:
                 relation_types_list = "\n".join([f"- {rt}" for rt in sorted(relationship_types)])
             else:
-                relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+                relation_types_list = "\n".join(
+                    [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
+                )
         else:
-            relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+            relation_types_list = "\n".join(
+                [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
+            )
 
         # 組裝批次請求（避免 LLM 失去對應順序）
         batch_items = []
@@ -495,9 +505,13 @@ class GeminiRTModel(BaseRTModel):
             if relationship_types:
                 relation_types_list = "\n".join([f"- {rt}" for rt in sorted(relationship_types)])
             else:
-                relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+                relation_types_list = "\n".join(
+                    [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
+                )
         else:
-            relation_types_list = "\n".join([f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()])
+            relation_types_list = "\n".join(
+                [f"- {k}: {v}" for k, v in STANDARD_RELATION_TYPES.items()]
+            )
 
         prompt = self._prompt_template.format(
             relation_text=relation_text,
@@ -669,7 +683,7 @@ class RTService:
         env_model_type = os.getenv("RT_MODEL_TYPE")
         if env_model_type:
             model_type = env_model_type
-        
+
         # 優先級3: 從 config.json 讀取 model_type（向後兼容）
         if not model_type:
             model_type = self.config.get("model_type", "ollama")
@@ -711,7 +725,7 @@ class RTService:
         # 優先級6: 使用硬編碼默認值
         if not model_name:
             model_name = "qwen3-coder:30b"  # 默認使用 Ollama 模型
-        
+
         # 設置 model_name 屬性
         self.model_name = model_name
 
@@ -834,7 +848,13 @@ class RTService:
             raise RuntimeError("No available RT model")
 
         relation_types = await model.classify_relation_type(
-            relation_text, subject_text, object_text, ontology_rules=ontology_rules, user_id=user_id, file_id=file_id, task_id=task_id
+            relation_text,
+            subject_text,
+            object_text,
+            ontology_rules=ontology_rules,
+            user_id=user_id,
+            file_id=file_id,
+            task_id=task_id,
         )
         relation_types = self._validate_relation_types(relation_types)
         relation_types = self._apply_type_hierarchy(relation_types)
@@ -858,7 +878,11 @@ class RTService:
         try:
             # 模型原生 batch（單次 LLM 呼叫）
             batch_results = await model.classify_relation_types_batch(
-                requests, ontology_rules=ontology_rules, user_id=user_id, file_id=file_id, task_id=task_id
+                requests,
+                ontology_rules=ontology_rules,
+                user_id=user_id,
+                file_id=file_id,
+                task_id=task_id,
             )
             results: List[List[RelationType]] = []
             for relation_types in batch_results:

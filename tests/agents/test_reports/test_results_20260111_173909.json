@@ -1,0 +1,31 @@
+{
+  "execution_date": "2026-01-11",
+  "execution_time": "2026-01-11 17:39:11",
+  "executor": "Daniel Chung",
+  "test_environment": "本地開發環境",
+  "system_version": "v3.2",
+  "summary": {
+    "total_scenarios": 1,
+    "passed": 0,
+    "failed": 1,
+    "pass_rate": "0.00%"
+  },
+  "results": [
+    {
+      "scenario_id": "MD-001",
+      "category": "md-editor",
+      "complexity": "簡單",
+      "user_input": "編輯文件 README.md",
+      "expected_task_type": "execution",
+      "expected_agent": "md-editor",
+      "actual_task_type": "execution",
+      "actual_agents": [],
+      "task_type_match": true,
+      "agent_match": false,
+      "all_passed": false,
+      "confidence": 0.5533333333333333,
+      "status": "❌ 失敗",
+      "error": null
+    }
+  ]
+}

@@ -519,7 +519,7 @@ class REService:
         env_model_type = os.getenv("RE_MODEL_TYPE")
         if env_model_type:
             model_type = env_model_type
-        
+
         # 優先級3: 從 config.json 讀取 model_type（向後兼容）
         if not model_type:
             model_type = self.config.get("model_type", "ollama")
@@ -561,7 +561,7 @@ class REService:
         # 優先級6: 使用硬編碼默認值
         if not model_name:
             model_name = "qwen3-coder:30b"  # 默認使用 Ollama 模型
-        
+
         # 設置 model_name 屬性
         self.model_name = model_name
 
@@ -667,11 +667,20 @@ class REService:
             if self.ner_service is None:
                 raise RuntimeError("NER service is not available for automatic entity extraction")
             entities = await self.ner_service.extract_entities(
-                text, ontology_rules=ontology_rules, user_id=user_id, file_id=file_id, task_id=task_id
+                text,
+                ontology_rules=ontology_rules,
+                user_id=user_id,
+                file_id=file_id,
+                task_id=task_id,
             )
 
         return await model.extract_relations(
-            text, entities, ontology_rules=ontology_rules, user_id=user_id, file_id=file_id, task_id=task_id
+            text,
+            entities,
+            ontology_rules=ontology_rules,
+            user_id=user_id,
+            file_id=file_id,
+            task_id=task_id,
         )
 
     async def extract_relations_batch(

@@ -73,7 +73,7 @@ def _authenticate_user(username: str, password: str) -> Optional[User]:
     # TODO: 實現真實的用戶認證邏輯
     # 這裡暫時實現一個簡單的驗證（僅用於演示）
     # 在生產環境中，應該從數據庫查詢用戶並驗證密碼
-    
+
     # 修改時間：2026-01-06 - 添加系統管理員用戶支持
     if username == "systemAdmin":
         # 系統管理員用戶，需要特殊密碼（在生產環境中應該使用更安全的驗證方式）
@@ -83,7 +83,7 @@ def _authenticate_user(username: str, password: str) -> Optional[User]:
         else:
             logger.warning("System admin login attempt with incorrect password")
             return None
-    
+
     if username and password:
         # 使用 email 作為 user_id（如果 username 是 email）
         # 否則使用 username 作為 user_id

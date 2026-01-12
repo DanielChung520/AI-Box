@@ -6,7 +6,6 @@
 
 """通過 API 更新 KG 提取模型配置為 Gemini 最新模型"""
 
-import json
 import sys
 from pathlib import Path
 
@@ -29,7 +28,7 @@ def login(username: str = "daniel@test.com", password: str = "test123") -> str:
     """登錄獲取 access token"""
     url = f"{API_BASE}/auth/login"
     data = {"username": username, "password": password}
-    
+
     response = requests.post(url, json=data, timeout=60)
     if response.status_code == 200:
         result = response.json()
@@ -37,7 +36,7 @@ def login(username: str = "daniel@test.com", password: str = "test123") -> str:
             token = result.get("data", {}).get("access_token")
         else:
             token = result.get("access_token")
-        
+
         if token:
             return token
         else:
@@ -51,16 +50,16 @@ def update_kg_config(token: str, model_name: str = "gemini-2.5-flash"):
     # 先獲取當前配置
     url = f"{API_BASE}/config/kg_extraction"
     headers = {"Authorization": f"Bearer {token}"}
-    
+
     response = requests.get(url, headers=headers, timeout=10)
     if response.status_code != 200:
         print(f"❌ 獲取配置失敗: {response.status_code}")
         print(response.text)
         return False
-    
+
     current_config = response.json().get("data", {})
     config_data = current_config.get("config_data", {})
-    
+
     # 更新模型配置
     config_data["ner_model_type"] = "gemini"
     config_data["ner_model"] = model_name
@@ -68,14 +67,11 @@ def update_kg_config(token: str, model_name: str = "gemini-2.5-flash"):
     config_data["re_model"] = model_name
     config_data["rt_model_type"] = "gemini"
     config_data["rt_model"] = model_name
-    
+
     # 更新配置
     update_url = f"{API_BASE}/config/kg_extraction"
-    update_data = {
-        "config_data": config_data,
-        "is_active": True
-    }
-    
+    update_data = {"config_data": config_data, "is_active": True}
+
     response = requests.put(update_url, headers=headers, json=update_data, timeout=10)
     if response.status_code == 200:
         print("✅ 配置更新成功")
@@ -91,20 +87,20 @@ def update_kg_config(token: str, model_name: str = "gemini-2.5-flash"):
 
 def main():
     model_name = sys.argv[1] if len(sys.argv) > 1 else "gemini-2.5-flash"
-    
+
     print("=" * 60)
     print("通過 API 更新 KG 提取模型配置")
     print("=" * 60)
     print(f"模型名稱: {model_name}")
     print()
-    
+
     try:
         # 登錄
         print("正在登錄...")
         token = login()
         print("✅ 登錄成功")
         print()
-        
+
         # 更新配置
         print("正在更新配置...")
         if update_kg_config(token, model_name):
@@ -125,10 +121,10 @@ def main():
     except Exception as e:
         print(f"❌ 錯誤: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

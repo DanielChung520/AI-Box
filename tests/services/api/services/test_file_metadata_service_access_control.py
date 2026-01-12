@@ -5,12 +5,13 @@
 
 """文件元數據服務訪問控制集成測試"""
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 from services.api.models.data_classification import DataClassification
 from services.api.models.file_access_control import FileAccessControl, FileAccessLevel
-from services.api.models.file_metadata import FileMetadata, FileMetadataCreate, FileMetadataUpdate
+from services.api.models.file_metadata import FileMetadataCreate, FileMetadataUpdate
 from services.api.services.file_metadata_service import FileMetadataService
 
 
@@ -112,9 +113,7 @@ class TestFileMetadataServiceAccessControl:
         # 清理
         metadata_service.delete("test_file_123")
 
-    def test_backward_compatibility_no_access_control(
-        self, metadata_service: FileMetadataService
-    ):
+    def test_backward_compatibility_no_access_control(self, metadata_service: FileMetadataService):
         """測試向後兼容性：舊文件無 access_control 字段"""
         # 創建一個沒有 access_control 的文檔（模擬舊數據）
         if metadata_service.client.db is None:
@@ -167,4 +166,3 @@ class TestFileMetadataServiceAccessControl:
 
         # 清理
         metadata_service.delete("test_file_123")
-

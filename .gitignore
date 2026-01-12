@@ -135,3 +135,4 @@ data/chroma_data/
 **/*_test.py
 # Allow tests/ directory
 !tests/**/*.py
+data/tasks/

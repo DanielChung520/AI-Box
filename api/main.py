@@ -54,6 +54,7 @@ from api.routers import (
     data_consent,
     data_quality,
     docs_editing,
+    document_editing_v2,
     execution,
     file_audit,
     file_lookup,
@@ -345,6 +346,7 @@ app.include_router(llm.router, prefix=API_PREFIX, tags=["LLM"])
 # 修改時間：2025-12-13 17:28:02 (UTC+8) - 註冊產品級 Chat 入口
 app.include_router(chat.router, prefix=API_PREFIX, tags=["Chat"])
 app.include_router(docs_editing.router, prefix=API_PREFIX, tags=["Docs Editing"])
+app.include_router(document_editing_v2.router, tags=["Document Editing Agent v2.0"])  # 路由已包含完整前綴
 app.include_router(modular_documents.router, prefix=API_PREFIX, tags=["Modular Documents"])
 app.include_router(file_lookup.router, prefix=API_PREFIX, tags=["File Lookup"])
 try:
@@ -439,16 +441,23 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to load config definitions: {e}")
 
-    # 初始化内建 Agent（无需注册到 Registry）
+    # 初始化並註冊內建 Agent（需要註冊到 Registry 以便 Agent Discovery 發現）
     try:
-        from agents.builtin import initialize_builtin_agents
+        from agents.builtin import initialize_builtin_agents, register_builtin_agents
 
+        # 先初始化內建 Agent
         builtin_agents = initialize_builtin_agents()
         logger.info(
             f"Initialized {len(builtin_agents)} builtin agents: {list(builtin_agents.keys())}"
         )
+
+        # 註冊內建 Agent 到 Registry（特別是 document-editing-agent）
+        registered_agents = register_builtin_agents()
+        logger.info(
+            f"Registered {len(registered_agents)} builtin agents to registry: {list(registered_agents.keys())}"
+        )
     except Exception as e:
-        # SeaweedFS 连接失败是预期的（服务可能未运行），使用 WARNING 而不是 ERROR
+        # SeaweedFS 連接失敗是預期的（服務可能未運行），使用 WARNING 而不是 ERROR
         error_msg = str(e)
         if (
             "SeaweedFS" in error_msg
@@ -456,10 +465,10 @@ async def startup_event():
             or "Connection was closed" in error_msg
         ):
             logger.warning(
-                f"Failed to initialize builtin agents (SeaweedFS not available, this is expected if service is not running): {e}"
+                f"Failed to initialize/register builtin agents (SeaweedFS not available, this is expected if service is not running): {e}"
             )
         else:
-            logger.error(f"Failed to initialize builtin agents: {e}")
+            logger.error(f"Failed to initialize/register builtin agents: {e}")
 
     # 註冊核心 Agent（註冊為內部 Agent）
     try:
@@ -514,9 +523,7 @@ async def startup_event():
         init_results = initialize_system_configs(force=False)
         initialized_count = sum(1 for success in init_results.values() if success)
         skipped_count = len(init_results) - initialized_count
-        logger.info(
-            f"系統配置初始化完成: {initialized_count} 個已初始化，{skipped_count} 個已存在（跳過）"
-        )
+        logger.info(f"系統配置初始化完成: {initialized_count} 個已初始化，{skipped_count} 個已存在（跳過）")
     except Exception as e:
         logger.warning(f"系統配置初始化失敗（不影響啟動）: {e}")
 

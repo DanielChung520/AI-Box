@@ -15,7 +15,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import requests
 import structlog
@@ -38,7 +38,9 @@ DEFAULT_PASSWORD = os.getenv("TEST_PASSWORD", "1234")
 DEFAULT_REFRESH_INTERVAL = 3  # 秒
 
 
-def get_auth_token(username: str = DEFAULT_USERNAME, password: str = DEFAULT_PASSWORD) -> Optional[str]:
+def get_auth_token(
+    username: str = DEFAULT_USERNAME, password: str = DEFAULT_PASSWORD
+) -> Optional[str]:
     """獲取認證 Token"""
     try:
         response = requests.post(
@@ -132,9 +134,21 @@ def display_status_summary(
     print(f"批量處理進度監控 - {time.strftime('%Y-%m-%d %H:%M:%S')} (刷新次數: {refresh_count})")
     print("=" * 80)
     print(f"\n總文件數: {total}")
-    print(f"  {format_status('completed')}: {completed} ({completed/total*100:.1f}%)" if total > 0 else "")
-    print(f"  {format_status('partial_completed')}: {partial} ({partial/total*100:.1f}%)" if total > 0 else "")
-    print(f"  {format_status('processing')}: {processing} ({processing/total*100:.1f}%)" if total > 0 else "")
+    print(
+        f"  {format_status('completed')}: {completed} ({completed/total*100:.1f}%)"
+        if total > 0
+        else ""
+    )
+    print(
+        f"  {format_status('partial_completed')}: {partial} ({partial/total*100:.1f}%)"
+        if total > 0
+        else ""
+    )
+    print(
+        f"  {format_status('processing')}: {processing} ({processing/total*100:.1f}%)"
+        if total > 0
+        else ""
+    )
     print(f"  {format_status('failed')}: {failed} ({failed/total*100:.1f}%)" if total > 0 else "")
     print(f"\n平均進度: {format_progress_bar(int(avg_progress))}")
     print("\n" + "-" * 80)
@@ -172,7 +186,14 @@ def display_file_details(
         )
 
     # 排序：處理中 > 部分完成 > 完成 > 失敗
-    status_priority = {"processing": 0, "pending": 0, "uploaded": 0, "partial_completed": 1, "completed": 2, "failed": 3}
+    status_priority = {
+        "processing": 0,
+        "pending": 0,
+        "uploaded": 0,
+        "partial_completed": 1,
+        "completed": 2,
+        "failed": 3,
+    }
     file_list.sort(key=lambda x: (status_priority.get(x["status"], 99), -x["progress"]))
 
     # 顯示前 N 個

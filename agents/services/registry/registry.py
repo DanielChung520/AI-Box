@@ -1,7 +1,7 @@
 # 代碼功能說明: Agent Registry 核心服務
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2026-01-11
 
 """Agent Registry 核心服務實現"""
 
@@ -103,6 +103,23 @@ class AgentRegistry:
                     f"Instance should be provided for direct access."
                 )
 
+            # 檢查是否為 System Agent（從 System Agent Registry 查詢）
+            is_system_agent = False
+            try:
+                from services.api.services.system_agent_registry_store_service import (
+                    get_system_agent_registry_store_service,
+                )
+
+                system_agent_store = get_system_agent_registry_store_service()
+                system_agent = system_agent_store.get_system_agent(request.agent_id)
+                if system_agent:
+                    is_system_agent = True
+            except Exception as e:
+                # 如果查詢失敗，默認為非 System Agent
+                self._logger.debug(
+                    f"Failed to check system agent status for {request.agent_id}: {e}"
+                )
+
             # 創建新的 Agent 註冊信息
             agent_info = AgentRegistryInfo(
                 agent_id=request.agent_id,
@@ -116,6 +133,7 @@ class AgentRegistry:
                 registered_at=datetime.now(),
                 last_heartbeat=None,  # 初始註冊時沒有心跳
                 load=0,  # 初始負載為 0
+                is_system_agent=is_system_agent,  # 標記是否為 System Agent
             )
 
             self._agents[request.agent_id] = agent_info
@@ -329,6 +347,7 @@ class AgentRegistry:
         self,
         agent_type: Optional[str] = None,
         status: Optional[AgentStatus] = None,
+        include_system_agents: bool = False,  # 默認不包括 System Agents
     ) -> List[AgentRegistryInfo]:
         """
         列出 Agent
@@ -336,11 +355,87 @@ class AgentRegistry:
         Args:
             agent_type: Agent 類型過濾器
             status: Agent 狀態過濾器
+            include_system_agents: 是否包括 System Agents（默認 False，僅系統內部調用時為 True）
 
         Returns:
-            Agent 列表
+            Agent 列表（默認過濾 System Agents）
         """
         agents = list(self._agents.values())
+
+        # 如果包括 System Agents，從 System Agent Registry Store 加載
+        if include_system_agents:
+            try:
+                from services.api.services.system_agent_registry_store_service import (
+                    get_system_agent_registry_store_service,
+                )
+
+                system_agent_store = get_system_agent_registry_store_service()
+
+                # 構建查詢參數
+                system_agent_type = agent_type if agent_type else None
+                system_agent_status = status.value if status else None
+
+                # 從 System Agent Registry Store 加載 System Agents
+                system_agents = system_agent_store.list_system_agents(
+                    agent_type=system_agent_type,
+                    status=system_agent_status,
+                    is_active=True,
+                )
+
+                # 將 System Agents 轉換為 AgentRegistryInfo
+                from agents.services.protocol.base import AgentServiceProtocolType
+                from agents.services.registry.models import (
+                    AgentEndpoints,
+                    AgentMetadata,
+                    AgentPermissionConfig,
+                )
+
+                for sys_agent in system_agents:
+                    # 檢查是否已經在內存中
+                    if sys_agent.agent_id in self._agents:
+                        # 如果已經在內存中，使用內存中的版本（可能已註冊實例）
+                        continue
+
+                    # 轉換為 AgentRegistryInfo
+                    # 將 System Agent 狀態轉換為 AgentStatus
+                    agent_status = AgentStatus.ONLINE
+                    if sys_agent.status == "offline":
+                        agent_status = AgentStatus.OFFLINE
+                    elif sys_agent.status == "maintenance":
+                        agent_status = AgentStatus.MAINTENANCE
+
+                    agent_info = AgentRegistryInfo(
+                        agent_id=sys_agent.agent_id,
+                        agent_type=sys_agent.agent_type,
+                        name=sys_agent.name,
+                        description=sys_agent.description,
+                        capabilities=sys_agent.capabilities,
+                        status=agent_status,
+                        endpoints=AgentEndpoints(
+                            http=None,
+                            mcp=None,
+                            protocol=AgentServiceProtocolType.HTTP,
+                            is_internal=True,
+                        ),
+                        metadata=AgentMetadata(
+                            version=sys_agent.version,
+                            description=sys_agent.description,
+                            author="AI-Box Team",
+                            tags=[sys_agent.agent_type, "system", "builtin"],
+                        ),
+                        permissions=AgentPermissionConfig(),
+                        is_system_agent=True,
+                    )
+                    agents.append(agent_info)
+                    self._logger.debug(
+                        f"Loaded system agent from store: {sys_agent.agent_id} "
+                        f"(type: {sys_agent.agent_type}, status: {sys_agent.status})"
+                    )
+            except Exception as e:
+                self._logger.warning(f"Failed to load system agents from store: {e}", exc_info=True)
+        else:
+            # 默認過濾 System Agents（僅系統內部調用時才包括）
+            agents = [a for a in agents if not a.is_system_agent]
 
         if agent_type:
             agents = [a for a in agents if a.agent_type == agent_type]

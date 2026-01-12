@@ -85,7 +85,7 @@ def cleanup_file_metadata(file_ids: list, force: bool = False):
                     logger.info(f"  ✅ 已刪除文件元數據: {file_id[:8]}...")
                     cleaned_count += 1
                 else:
-                    logger.info(f"  ℹ️  文件元數據存在但未刪除（使用 --force 強制刪除）")
+                    logger.info("  ℹ️  文件元數據存在但未刪除（使用 --force 強制刪除）")
             else:
                 logger.info(f"  ℹ️  文件元數據不存在: {file_id[:8]}...")
 

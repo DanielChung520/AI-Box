@@ -120,7 +120,7 @@ async def test_datetime_query():
             if "datetime" in result.decision_result.chosen_tools:
                 print("  嘗試執行 DateTimeTool...")
                 try:
-                    from tools.time import DateTimeTool, DateTimeInput
+                    from tools.time import DateTimeInput, DateTimeTool
 
                     datetime_tool = DateTimeTool()
                     datetime_input = DateTimeInput(
@@ -129,7 +129,7 @@ async def test_datetime_query():
                     )
                     tool_result = await datetime_tool.execute(datetime_input)
 
-                    print(f"  ✅ DateTimeTool 執行成功!")
+                    print("  ✅ DateTimeTool 執行成功!")
                     print(f"  📅 時間: {tool_result.datetime}")
                     if hasattr(tool_result, "timezone"):
                         print(f"  🌍 時區: {tool_result.timezone}")
@@ -142,6 +142,7 @@ async def test_datetime_query():
                 except Exception as e:
                     print(f"  ❌ DateTimeTool 執行失敗: {e}")
                     import traceback
+
                     traceback.print_exc()
             else:
                 print("  ⚠️  未選擇 datetime 工具，跳過執行")
@@ -166,6 +167,7 @@ async def test_datetime_query():
     except Exception as e:
         print(f"\n❌ 測試失敗: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -194,7 +196,9 @@ async def test_simple_query():
         print(f"\n📝 查詢: {request.task}")
         if result.decision_result:
             print(f"📊 Chosen Tools: {result.decision_result.chosen_tools}")
-            print(f"📊 Needs Tools (Router): {result.router_decision.needs_tools if result.router_decision else 'N/A'}")
+            print(
+                f"📊 Needs Tools (Router): {result.router_decision.needs_tools if result.router_decision else 'N/A'}"
+            )
         print("✅ 簡單查詢測試完成")
     except Exception as e:
         print(f"❌ 簡單查詢測試失敗: {e}")
@@ -202,13 +206,13 @@ async def test_simple_query():
 
 if __name__ == "__main__":
     print("\n🚀 開始測試 DateTimeTool 意圖識別和執行流程\n")
-    
+
     # 測試時間查詢
     success = asyncio.run(test_datetime_query())
-    
+
     # 對比測試（簡單查詢）
     asyncio.run(test_simple_query())
-    
+
     print("\n" + "=" * 80)
     if success:
         print("✅ 所有測試完成")

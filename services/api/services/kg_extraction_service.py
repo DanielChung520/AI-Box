@@ -622,7 +622,10 @@ class KGExtractionService:
                     if not chunk_text.strip():
                         return (chunk_index, [])
                     triples = await self.triple_service.extract_triples(
-                        text=chunk_text, entities=None, enable_ner=True, ontology_rules=ontology_rules
+                        text=chunk_text,
+                        entities=None,
+                        enable_ner=True,
+                        ontology_rules=ontology_rules,
                     )
                     # chunk 上下文標記
                     for t in triples:
@@ -679,14 +682,18 @@ class KGExtractionService:
                     # 安全處理 chunk_triples 可能為 None 的情況
                     if chunk_triples is None:
                         chunk_triples = []
-                    
+
                     build_result = await self.build_kg_from_file(
                         file_id, chunk_triples, user_id, options=options
                     )
                     triples_total += len(chunk_triples)
                     # 統計包含 created 和 updated 的總數（實際存儲的實體/關係數量）
-                    entities_count = int(build_result.get("entities_created", 0) or 0) + int(build_result.get("entities_updated", 0) or 0)
-                    relations_count = int(build_result.get("relations_created", 0) or 0) + int(build_result.get("relations_updated", 0) or 0)
+                    int(build_result.get("entities_created", 0) or 0) + int(
+                        build_result.get("entities_updated", 0) or 0
+                    )
+                    int(build_result.get("relations_created", 0) or 0) + int(
+                        build_result.get("relations_updated", 0) or 0
+                    )
                     entities_created_total += int(build_result.get("entities_created", 0) or 0)
                     relations_created_total += int(build_result.get("relations_created", 0) or 0)
 

@@ -32,12 +32,12 @@ if env_file.exists():
                 key, value = line.split("=", 1)
                 os.environ[key.strip()] = value.strip()
 
-from database.redis import get_redis_client
+import structlog
+
 from database.arangodb import ArangoDBClient
 from database.chromadb import ChromaDBClient
 from database.chromadb.collection import ChromaCollection
-from genai.api.services.kg_builder_service import KGBuilderService
-import structlog
+from database.redis import get_redis_client
 
 logger = structlog.get_logger(__name__)
 
@@ -46,13 +46,13 @@ def cleanup_rq_jobs():
     """清理 RQ 任務隊列"""
     try:
         redis_client = get_redis_client()
-        
+
         queues = [
             "rq:queue:file_processing",
             "rq:queue:kg_extraction",
             "rq:queue:vectorization",
         ]
-        
+
         total_cleaned = 0
         for queue in queues:
             count = redis_client.llen(queue)
@@ -60,13 +60,13 @@ def cleanup_rq_jobs():
                 redis_client.delete(queue)
                 logger.info(f"清理 RQ 隊列: {queue}, 刪除 {count} 個任務")
                 total_cleaned += count
-        
+
         job_keys = redis_client.keys("rq:job:*")
         if job_keys:
             redis_client.delete(*job_keys)
             logger.info(f"清理 RQ 任務數據: {len(job_keys)} 個任務")
             total_cleaned += len(job_keys)
-        
+
         logger.info(f"RQ 任務清理完成，共清理 {total_cleaned} 個任務")
         return total_cleaned
     except Exception as e:
@@ -78,19 +78,19 @@ def cleanup_redis_status():
     """清理 Redis 狀態記錄"""
     try:
         redis_client = get_redis_client()
-        
+
         status_keys = redis_client.keys("processing:status:*")
         upload_keys = redis_client.keys("upload:progress:*")
         kg_state_keys = redis_client.keys("kg:chunk_state:*")
         kg_lock_keys = redis_client.keys("kg:continue_lock:*")
-        
+
         total_cleaned = 0
         for keys in [status_keys, upload_keys, kg_state_keys, kg_lock_keys]:
             if keys:
                 redis_client.delete(*keys)
                 total_cleaned += len(keys)
                 logger.info(f"清理 Redis 鍵: {len(keys)} 個")
-        
+
         logger.info(f"Redis 狀態清理完成，共清理 {total_cleaned} 個鍵")
         return total_cleaned
     except Exception as e:
@@ -105,17 +105,17 @@ def cleanup_arangodb_data():
             username=os.getenv("ARANGODB_USERNAME", "root"),
             password=os.getenv("ARANGODB_PASSWORD", "changeme"),
         )
-        
+
         if client.db is None:
             logger.warning("ArangoDB 未連接，跳過清理")
             return 0
-        
+
         collections_to_clean = [
             "file_metadata",
             "processing_status",
             "upload_progress",
         ]
-        
+
         total_cleaned = 0
         for collection_name in collections_to_clean:
             if client.db.has_collection(collection_name):
@@ -125,11 +125,11 @@ def cleanup_arangodb_data():
                     collection.truncate()
                     logger.info(f"清理 ArangoDB collection: {collection_name}, 刪除 {count} 個文檔")
                     total_cleaned += count
-        
+
         # 清理知識圖譜數據
         entities_collection = "entities"
         relations_collection = "relations"
-        
+
         if client.db.has_collection(entities_collection):
             entities = client.db.collection(entities_collection)
             entities_count = entities.count()
@@ -137,7 +137,7 @@ def cleanup_arangodb_data():
                 entities.truncate()
                 logger.info(f"清理 ArangoDB entities: {entities_count} 個")
                 total_cleaned += entities_count
-        
+
         if client.db.has_collection(relations_collection):
             relations = client.db.collection(relations_collection)
             relations_count = relations.count()
@@ -145,7 +145,7 @@ def cleanup_arangodb_data():
                 relations.truncate()
                 logger.info(f"清理 ArangoDB relations: {relations_count} 個")
                 total_cleaned += relations_count
-        
+
         logger.info(f"ArangoDB 數據清理完成，共清理 {total_cleaned} 個文檔")
         return total_cleaned
     except Exception as e:
@@ -162,10 +162,10 @@ def cleanup_chromadb_vectors():
             mode=os.getenv("CHROMADB_MODE", "http"),
             persist_directory=os.getenv("CHROMADB_PERSIST_DIR", "./data/datasets/chromadb"),
         )
-        
+
         collections = chroma_client.list_collections()
         logger.info(f"找到 {len(collections)} 個 ChromaDB collections")
-        
+
         total_cleaned = 0
         for collection_name in collections:
             try:
@@ -173,7 +173,7 @@ def cleanup_chromadb_vectors():
                 collection = chroma_client.get_or_create_collection(collection_name)
                 collection_obj = ChromaCollection(collection)
                 count = collection_obj.count()
-                
+
                 if count > 0:
                     # 刪除 collection（會刪除所有向量）
                     chroma_client.delete_collection(collection_name)
@@ -181,7 +181,7 @@ def cleanup_chromadb_vectors():
                     total_cleaned += count
             except Exception as e:
                 logger.warning(f"清理 ChromaDB collection {collection_name} 失敗: {e}")
-        
+
         logger.info(f"ChromaDB 向量清理完成，共清理 {total_cleaned} 個向量")
         return total_cleaned
     except Exception as e:
@@ -200,7 +200,7 @@ def cleanup_test_logs():
             "scripts/system_docs_processing_progress.json",
             "scripts/system_docs_processing_results.json",
         ]
-        
+
         total_cleaned = 0
         for log_file in log_files:
             log_path = project_root / log_file
@@ -208,7 +208,7 @@ def cleanup_test_logs():
                 log_path.unlink()
                 logger.info(f"刪除測試日誌: {log_file}")
                 total_cleaned += 1
-        
+
         logger.info(f"測試日誌清理完成，共清理 {total_cleaned} 個文件")
         return total_cleaned
     except Exception as e:
@@ -221,9 +221,9 @@ def verify_cleanup():
     print("\n" + "=" * 60)
     print("驗證清理結果")
     print("=" * 60)
-    
+
     results = {}
-    
+
     # 驗證 RQ 隊列
     try:
         redis_client = get_redis_client()
@@ -232,7 +232,7 @@ def verify_cleanup():
         results["RQ 任務"] = "✅ 已清理" if total_jobs == 0 else f"⚠️ 仍有 {total_jobs} 個任務"
     except Exception as e:
         results["RQ 任務"] = f"❌ 檢查失敗: {e}"
-    
+
     # 驗證 Redis 狀態
     try:
         redis_client = get_redis_client()
@@ -242,7 +242,7 @@ def verify_cleanup():
         results["Redis 狀態"] = "✅ 已清理" if total_keys == 0 else f"⚠️ 仍有 {total_keys} 個鍵"
     except Exception as e:
         results["Redis 狀態"] = f"❌ 檢查失敗: {e}"
-    
+
     # 驗證 ArangoDB
     try:
         client = ArangoDBClient(
@@ -250,18 +250,22 @@ def verify_cleanup():
             password=os.getenv("ARANGODB_PASSWORD", "changeme"),
         )
         if client.db:
-            collections = ["file_metadata", "processing_status", "upload_progress", "entities", "relations"]
+            collections = [
+                "file_metadata",
+                "processing_status",
+                "upload_progress",
+                "entities",
+                "relations",
+            ]
             total_docs = sum(
-                client.db.collection(c).count() 
-                for c in collections 
-                if client.db.has_collection(c)
+                client.db.collection(c).count() for c in collections if client.db.has_collection(c)
             )
             results["ArangoDB 數據"] = "✅ 已清理" if total_docs == 0 else f"⚠️ 仍有 {total_docs} 個文檔"
         else:
             results["ArangoDB 數據"] = "❌ 無法連接"
     except Exception as e:
         results["ArangoDB 數據"] = f"❌ 檢查失敗: {e}"
-    
+
     # 驗證 ChromaDB
     try:
         chroma_client = ChromaDBClient(
@@ -271,14 +275,16 @@ def verify_cleanup():
             persist_directory=os.getenv("CHROMADB_PERSIST_DIR", "./data/datasets/chromadb"),
         )
         collections = chroma_client.list_collections()
-        results["ChromaDB 向量"] = "✅ 已清理" if len(collections) == 0 else f"⚠️ 仍有 {len(collections)} 個 collections"
+        results["ChromaDB 向量"] = (
+            "✅ 已清理" if len(collections) == 0 else f"⚠️ 仍有 {len(collections)} 個 collections"
+        )
     except Exception as e:
         results["ChromaDB 向量"] = f"❌ 檢查失敗: {e}"
-    
+
     # 顯示驗證結果
     for key, value in results.items():
         print(f"  {key}: {value}")
-    
+
     return results
 
 
@@ -288,17 +294,17 @@ def main():
     print("完整清理階段二測試數據")
     print("=" * 60)
     print()
-    
+
     # 確認清理
     response = input("⚠️  此操作將清理所有階段二測試數據，是否繼續？(yes/no): ")
     if response.lower() != "yes":
         print("清理已取消")
         return
-    
+
     print()
     print("開始清理...")
     print()
-    
+
     results = {
         "rq_jobs": cleanup_rq_jobs(),
         "redis_status": cleanup_redis_status(),
@@ -306,7 +312,7 @@ def main():
         "chromadb_vectors": cleanup_chromadb_vectors(),
         "test_logs": cleanup_test_logs(),
     }
-    
+
     print()
     print("=" * 60)
     print("清理完成")
@@ -316,10 +322,10 @@ def main():
     for key, value in results.items():
         print(f"  {key}: {value}")
     print()
-    
+
     # 驗證清理結果
     verify_cleanup()
-    
+
     print()
     print("=" * 60)
     print("清理完成，系統已準備好進行第三階段測試")

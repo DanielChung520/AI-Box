@@ -1,17 +1,18 @@
 # 代碼功能說明: Agent Orchestrator API 路由
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2026-01-08
 
 """Agent Orchestrator API 路由"""
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from agents.services.orchestrator.models import TaskStatus
 from agents.services.orchestrator.orchestrator import AgentOrchestrator
 from agents.services.registry.models import AgentRegistrationRequest, AgentStatus
 from agents.services.registry.registry import get_agent_registry
@@ -227,6 +228,123 @@ async def aggregate_results(request: AggregateResultsRequest) -> JSONResponse:
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to aggregate results: {str(e)}",
+        )
+
+
+@router.get("/orchestrator/tasks/{task_id}/status", status_code=http_status.HTTP_200_OK)
+async def get_task_status(task_id: str) -> JSONResponse:
+    """
+    查詢任務狀態
+
+    Args:
+        task_id: 任務ID
+
+    Returns:
+        任務狀態信息
+    """
+    try:
+        task_tracker = orchestrator._task_tracker
+        task_record = task_tracker.get_task_status(task_id)
+
+        if not task_record:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail=f"Task not found: {task_id}",
+            )
+
+        return APIResponse.success(
+            data=task_record.to_dict(),
+            message="Task status retrieved successfully",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get task status: {str(e)}",
+        )
+
+
+@router.get("/orchestrator/tasks", status_code=http_status.HTTP_200_OK)
+async def list_tasks(
+    user_id: Optional[str] = Query(None, description="用戶ID過濾器"),
+    status: Optional[str] = Query(None, description="任務狀態過濾器（pending/running/completed/failed）"),
+    limit: int = Query(100, ge=1, le=1000, description="返回數量限制"),
+) -> JSONResponse:
+    """
+    查詢任務列表
+
+    Args:
+        user_id: 用戶ID過濾器（可選）
+        status: 任務狀態過濾器（可選）
+        limit: 返回數量限制（1-1000，默認100）
+
+    Returns:
+        任務列表
+    """
+    try:
+        task_tracker = orchestrator._task_tracker
+
+        # 轉換狀態字符串為TaskStatus枚舉
+        task_status = None
+        if status:
+            try:
+                task_status = TaskStatus(status.lower())
+            except ValueError:
+                raise HTTPException(
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid status: {status}. Valid values: pending, running, completed, failed",
+                )
+
+        tasks = task_tracker.list_tasks(user_id=user_id, status=task_status, limit=limit)
+
+        return APIResponse.success(
+            data={
+                "tasks": [task.to_dict() for task in tasks],
+                "count": len(tasks),
+            },
+            message="Tasks retrieved successfully",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list tasks: {str(e)}",
+        )
+
+
+@router.get("/orchestrator/tasks/user/{user_id}", status_code=http_status.HTTP_200_OK)
+async def get_user_tasks(
+    user_id: str,
+    limit: int = Query(100, ge=1, le=1000, description="返回數量限制"),
+) -> JSONResponse:
+    """
+    查詢用戶的所有任務
+
+    Args:
+        user_id: 用戶ID
+        limit: 返回數量限制（1-1000，默認100）
+
+    Returns:
+        用戶的任務列表
+    """
+    try:
+        task_tracker = orchestrator._task_tracker
+        tasks = task_tracker.get_tasks_by_user(user_id, limit=limit)
+
+        return APIResponse.success(
+            data={
+                "tasks": [task.to_dict() for task in tasks],
+                "count": len(tasks),
+                "user_id": user_id,
+            },
+            message="User tasks retrieved successfully",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get user tasks: {str(e)}",
         )
 
 

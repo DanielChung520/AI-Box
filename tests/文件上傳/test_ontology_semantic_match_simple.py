@@ -60,24 +60,25 @@ async def test_semantic_match_simple():
     print("-" * 80)
     try:
         ontologies = selector._get_available_ontologies()
-        print(f"✅ 成功獲取 Ontology 列表")
+        print("✅ 成功獲取 Ontology 列表")
         print(f"   Domain Ontologies 數量: {len(ontologies.get('domain', []))}")
         print(f"   Major Ontologies 數量: {len(ontologies.get('major', []))}")
 
         # 顯示前幾個 Domain Ontology
         if ontologies.get("domain"):
-            print(f"\n   Domain Ontologies 示例:")
+            print("\n   Domain Ontologies 示例:")
             for domain in ontologies["domain"][:3]:
                 print(f"     - {domain['file_name']}: {domain['ontology_name']}")
 
         # 顯示前幾個 Major Ontology
         if ontologies.get("major"):
-            print(f"\n   Major Ontologies 示例:")
+            print("\n   Major Ontologies 示例:")
             for major in ontologies["major"][:3]:
                 print(f"     - {major['file_name']}: {major['ontology_name']}")
     except Exception as e:
         print(f"❌ 獲取 Ontology 列表失敗: {e}")
         import traceback
+
         traceback.print_exc()
 
     # 測試 3: 測試語義匹配方法調用（會因為 LLM 不可用而返回 None，但不會報錯）
@@ -88,7 +89,7 @@ async def test_semantic_match_simple():
     test_file_content = """
     預製菜產業概述
     預製菜是指經過洗、切、搭配等預處理，然後通過冷凍、真空包裝等方式保存，消費者購買後只需簡單加熱或調味即可食用的食品。
-    
+
     市場發展趨勢：
     1. 消費升級：消費者對便利性和品質的要求提高
     2. 中央廚房模式興起：標準化生產，降低成本
@@ -101,16 +102,17 @@ async def test_semantic_match_simple():
             file_metadata=None,
         )
         if result:
-            print(f"✅ 語義匹配成功（如果 LLM 服務可用）")
+            print("✅ 語義匹配成功（如果 LLM 服務可用）")
             print(f"   選擇方法: {result.get('selection_method')}")
             print(f"   Domain: {result.get('domain', [])}")
             print(f"   Major: {result.get('major', [])}")
         else:
-            print(f"⚠️  語義匹配返回 None（可能是 LLM 服務不可用，這是預期的）")
-            print(f"   這是正常的，因為測試環境可能沒有配置 LLM 服務")
+            print("⚠️  語義匹配返回 None（可能是 LLM 服務不可用，這是預期的）")
+            print("   這是正常的，因為測試環境可能沒有配置 LLM 服務")
     except Exception as e:
         print(f"❌ 語義匹配調用異常: {e}")
         import traceback
+
         traceback.print_exc()
 
     # 測試 4: 測試自動選擇（會降級到關鍵字匹配）
@@ -124,18 +126,19 @@ async def test_semantic_match_simple():
             file_metadata=None,
             use_semantic_match=True,
         )
-        print(f"✅ 自動選擇成功")
+        print("✅ 自動選擇成功")
         print(f"   選擇方法: {result.get('selection_method')}")
         print(f"   Domain: {result.get('domain', [])}")
         print(f"   Major: {result.get('major', [])}")
-        
-        if result.get('selection_method') == 'semantic_match':
-            print(f"   ✅ 使用了語義匹配")
-        elif result.get('selection_method') == 'keywords':
-            print(f"   ⚠️  降級到關鍵字匹配（可能是 LLM 服務不可用）")
+
+        if result.get("selection_method") == "semantic_match":
+            print("   ✅ 使用了語義匹配")
+        elif result.get("selection_method") == "keywords":
+            print("   ⚠️  降級到關鍵字匹配（可能是 LLM 服務不可用）")
     except Exception as e:
         print(f"❌ 自動選擇異常: {e}")
         import traceback
+
         traceback.print_exc()
 
     # 測試 5: 測試關鍵字匹配（對比）
@@ -148,7 +151,7 @@ async def test_semantic_match_simple():
             file_content=test_file_content,
             file_metadata=None,
         )
-        print(f"✅ 關鍵字匹配成功")
+        print("✅ 關鍵字匹配成功")
         print(f"   選擇方法: {result.get('selection_method')}")
         print(f"   Domain: {result.get('domain', [])}")
         print(f"   Major: {result.get('major', [])}")
@@ -156,6 +159,7 @@ async def test_semantic_match_simple():
     except Exception as e:
         print(f"❌ 關鍵字匹配異常: {e}")
         import traceback
+
         traceback.print_exc()
 
     print("\n" + "=" * 80)
@@ -169,4 +173,3 @@ async def test_semantic_match_simple():
 
 if __name__ == "__main__":
     asyncio.run(test_semantic_match_simple())
-

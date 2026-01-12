@@ -5,7 +5,6 @@
 
 """测试文本规范化功能"""
 
-import pytest
 
 from services.api.processors.chunk_processor import normalize_text
 
@@ -110,4 +109,3 @@ class TestNormalizeText:
 
         # 正常文本应该保留
         assert "正常文本" in result
-

@@ -1,11 +1,12 @@
 # 代碼功能說明: LogService 統一日誌服務
 # 創建日期: 2025-12-21
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2026-01-08
 
 """LogService 統一日誌服務 - 提供統一的日誌記錄接口，支持任務追蹤與審計合規"""
 
 import json
+import uuid
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -777,6 +778,149 @@ class LogService:
                 "end_time": end_time.isoformat() + "Z" if end_time else None,
             },
         }
+
+    async def log_decision(
+        self,
+        react_id: str,
+        iteration: int,
+        state: str,
+        input_signature: Dict[str, Any],
+        decision: Dict[str, Any],
+        outcome: str,
+        observations: Optional[Dict[str, Any]] = None,
+        correlation_id: Optional[str] = None,
+    ) -> str:
+        """
+        記錄 GRO Decision Log（符合 GRO Schema）
+
+        符合 GRO Decision Log Schema（參考架構規格書 9.1.5 節）：
+        - react_id: ReAct session 主鍵
+        - iteration: 迭代次數
+        - state: 當前狀態（AWARENESS/PLANNING/DELEGATION/OBSERVATION/DECISION）
+        - input_signature: 輸入簽名
+        - decision: 決策結果（action, next_state）
+        - outcome: 結果（success/failure/partial）
+        - observations: 觀察結果（可選）
+        - correlation_id: 關聯ID（可選）
+
+        Args:
+            react_id: ReAct session ID
+            iteration: 迭代次數
+            state: 當前狀態
+            input_signature: 輸入簽名
+            decision: 決策結果
+            outcome: 結果
+            observations: 觀察結果（可選）
+            correlation_id: 關聯ID（可選）
+
+        Returns:
+            Decision Log ID
+        """
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+
+        # 確保 decision_logs Collection 存在
+        self._ensure_decision_logs_collection()
+
+        # 構建 Decision Log 文檔
+        decision_log_id = str(uuid.uuid4())
+        timestamp = datetime.utcnow().isoformat() + "Z"
+
+        decision_log_doc = {
+            "_key": decision_log_id,
+            "react_id": react_id,
+            "iteration": iteration,
+            "state": state,
+            "input_signature": input_signature,
+            "observations": observations,
+            "decision": decision,
+            "outcome": outcome,
+            "timestamp": timestamp,
+            "correlation_id": correlation_id,
+        }
+
+        try:
+            # 保存到 ArangoDB
+            collection = self.client.db.collection("decision_logs")
+            collection.insert(decision_log_doc)
+
+            logger.info(
+                f"Decision log recorded: react_id={react_id}, iteration={iteration}, "
+                f"state={state}, outcome={outcome}"
+            )
+
+            return decision_log_id
+
+        except Exception as e:
+            logger.error(f"Failed to log decision: {e}", exc_info=True)
+            raise RuntimeError(f"Failed to log decision: {str(e)}") from e
+
+    def _ensure_decision_logs_collection(self) -> None:
+        """確保 decision_logs Collection 存在並創建必要的索引"""
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+
+        collection_name = "decision_logs"
+
+        if not self.client.db.has_collection(collection_name):
+            self.client.db.create_collection(collection_name)
+            logger.info(f"Created collection: {collection_name}")
+
+        collection = self.client.db.collection(collection_name)
+
+        # 創建索引
+        indexes = collection.indexes()
+        index_names = [idx["name"] for idx in indexes]
+
+        # react_id 索引
+        if "idx_decision_logs_react_id" not in index_names:
+            collection.add_index(
+                {
+                    "type": "persistent",
+                    "fields": ["react_id"],
+                    "name": "idx_decision_logs_react_id",
+                }
+            )
+
+        # correlation_id 索引
+        if "idx_decision_logs_correlation_id" not in index_names:
+            collection.add_index(
+                {
+                    "type": "persistent",
+                    "fields": ["correlation_id"],
+                    "name": "idx_decision_logs_correlation_id",
+                }
+            )
+
+        # timestamp 索引
+        if "idx_decision_logs_timestamp" not in index_names:
+            collection.add_index(
+                {
+                    "type": "persistent",
+                    "fields": ["timestamp"],
+                    "name": "idx_decision_logs_timestamp",
+                }
+            )
+
+        # state 索引
+        if "idx_decision_logs_state" not in index_names:
+            collection.add_index(
+                {
+                    "type": "persistent",
+                    "fields": ["state"],
+                    "name": "idx_decision_logs_state",
+                }
+            )
+
+        # 複合索引：react_id + iteration
+        if "idx_decision_logs_react_iteration" not in index_names:
+            collection.add_index(
+                {
+                    "type": "persistent",
+                    "fields": ["react_id", "iteration"],
+                    "name": "idx_decision_logs_react_iteration",
+                }
+            )
 
 
 # 全局 LogService 實例

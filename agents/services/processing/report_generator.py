@@ -1,15 +1,76 @@
 # 代碼功能說明: Report Generator 報告生成器
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2026-01-08
 
-"""Report Generator - 使用 LLM 整理 Agent 產出並生成 HTML 報告"""
+"""Report Generator - 使用 LLM 整理 Agent 產出並生成 HTML/JSON/PDF 報告"""
 
+import base64
+import io
 import logging
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+
+from pydantic import BaseModel, Field
+
 logger = logging.getLogger(__name__)
+
+
+class DisplayType(str, Enum):
+    """顯示類型枚舉"""
+
+    INLINE = "inline"
+    LINK = "link"
+
+
+class StructuredReportResponse(BaseModel):
+    """結構化報告響應模型"""
+
+    report_id: str = Field(..., description="報告 ID")
+    title: str = Field(..., description="報告標題")
+    generated_at: str = Field(..., description="生成時間")
+    task_id: Optional[str] = Field(None, description="任務 ID")
+    display_type: DisplayType = Field(DisplayType.INLINE, description="顯示類型")
+    inline_data: Optional[Dict[str, Any]] = Field(None, description="內嵌數據（當 display_type=inline 時）")
+    link_data: Optional[str] = Field(None, description="鏈接數據（當 display_type=link 時）")
+    summary: Dict[str, Any] = Field(default_factory=dict, description="執行摘要")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
+
+
+class PDFReportResponse(BaseModel):
+    """PDF 報告響應模型"""
+
+    report_id: str = Field(..., description="報告 ID")
+    title: str = Field(..., description="報告標題")
+    generated_at: str = Field(..., description="生成時間")
+    pdf_content: bytes = Field(..., description="PDF 內容（base64 編碼）")
+    pdf_size: int = Field(..., description="PDF 文件大小（字節）")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
+
+
+class ReportMetadata(BaseModel):
+    """報告元數據模型"""
+
+    report_id: str = Field(..., description="報告 ID")
+    title: str = Field(..., description="報告標題")
+    format: str = Field(..., description="報告格式（html/json/pdf）")
+    generated_at: str = Field(..., description="生成時間")
+    task_id: Optional[str] = Field(None, description="任務 ID")
+    user_id: Optional[str] = Field(None, description="用戶 ID")
+    size: int = Field(0, description="報告大小（字節）")
+    version: int = Field(1, description="報告版本")
 
 
 class ReportGenerator:
@@ -30,6 +91,7 @@ class ReportGenerator:
         aggregated_results: Dict[str, Any],
         report_title: Optional[str] = None,
         include_output_files: bool = True,
+        format: str = "html",
     ) -> Dict[str, Any]:
         """
         生成最終報告
@@ -38,33 +100,61 @@ class ReportGenerator:
             aggregated_results: 聚合結果（來自 ResultAggregator）
             report_title: 報告標題（可選）
             include_output_files: 是否包含產出物文件鏈接
+            format: 報告格式（html/json/pdf），默認 html
 
         Returns:
-            報告數據字典，包含 HTML 內容和元數據
+            報告數據字典，包含報告內容和元數據
         """
         try:
             # 構建報告內容
             report_content = await self._generate_report_content(aggregated_results, report_title)
 
-            # 生成 HTML 報告
-            html_content = self._generate_html_report(
-                report_content, aggregated_results, include_output_files
-            )
+            report_id = f"report-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            title = report_title or "Agent 執行報告"
+            generated_at = datetime.now().isoformat()
+            task_id = aggregated_results.get("task_id")
 
-            report_data = {
-                "report_id": f"report-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                "title": report_title or "Agent 執行報告",
-                "generated_at": datetime.now().isoformat(),
-                "task_id": aggregated_results.get("task_id"),
-                "html_content": html_content,
-                "summary": aggregated_results.get("summary", {}),
-                "output_files": (
-                    aggregated_results.get("output_files", []) if include_output_files else []
-                ),
-            }
+            # 根據格式生成報告
+            if format == "json":
+                return await self.generate_structured_json(
+                    report_id=report_id,
+                    title=title,
+                    generated_at=generated_at,
+                    task_id=task_id,
+                    aggregated_results=aggregated_results,
+                    report_content=report_content,
+                    include_output_files=include_output_files,
+                )
+            elif format == "pdf":
+                return await self.generate_pdf(
+                    report_id=report_id,
+                    title=title,
+                    generated_at=generated_at,
+                    task_id=task_id,
+                    aggregated_results=aggregated_results,
+                    report_content=report_content,
+                    include_output_files=include_output_files,
+                )
+            else:
+                # 默認生成 HTML
+                html_content = self._generate_html_report(
+                    report_content, aggregated_results, include_output_files
+                )
 
-            self._logger.info(f"Generated report: {report_data['report_id']}")
-            return report_data
+                report_data = {
+                    "report_id": report_id,
+                    "title": title,
+                    "generated_at": generated_at,
+                    "task_id": task_id,
+                    "html_content": html_content,
+                    "summary": aggregated_results.get("summary", {}),
+                    "output_files": (
+                        aggregated_results.get("output_files", []) if include_output_files else []
+                    ),
+                }
+
+                self._logger.info(f"Generated HTML report: {report_data['report_id']}")
+                return report_data
 
         except Exception as e:
             self._logger.error(f"Failed to generate report: {e}")
@@ -395,3 +485,204 @@ class ReportGenerator:
         files_html += "</div>"
 
         return files_html
+
+    async def generate_structured_json(
+        self,
+        report_id: str,
+        title: str,
+        generated_at: str,
+        task_id: Optional[str],
+        aggregated_results: Dict[str, Any],
+        report_content: Dict[str, Any],
+        include_output_files: bool = True,
+        display_type: DisplayType = DisplayType.INLINE,
+    ) -> Dict[str, Any]:
+        """
+        生成結構化 JSON 報告
+
+        Args:
+            report_id: 報告 ID
+            title: 報告標題
+            generated_at: 生成時間
+            task_id: 任務 ID
+            aggregated_results: 聚合結果
+            report_content: 報告內容
+            include_output_files: 是否包含產出物文件
+            display_type: 顯示類型（inline/link）
+
+        Returns:
+            結構化 JSON 報告數據
+        """
+        summary = aggregated_results.get("summary", {})
+        results = aggregated_results.get("results", [])
+
+        # 構建內嵌數據
+        inline_data: Dict[str, Any] = {
+            "summary": summary,
+            "results": results,
+            "detailed_content": report_content.get("detailed_content", ""),
+        }
+
+        if include_output_files:
+            inline_data["output_files"] = aggregated_results.get("output_files", [])
+
+        # 構建響應
+        response_data: Dict[str, Any] = {
+            "report_id": report_id,
+            "title": title,
+            "generated_at": generated_at,
+            "task_id": task_id,
+            "display_type": display_type.value,
+            "summary": summary,
+            "metadata": {
+                "format": "json",
+                "version": "1.0",
+            },
+        }
+
+        if display_type == DisplayType.INLINE:
+            response_data["inline_data"] = inline_data
+        else:
+            # 如果 display_type 是 link，則生成鏈接（這裡簡化處理，實際應該存儲到存儲服務）
+            response_data["link_data"] = f"/api/reports/{report_id}"
+
+        self._logger.info(f"Generated structured JSON report: {report_id}")
+        return response_data
+
+    async def generate_pdf(
+        self,
+        report_id: str,
+        title: str,
+        generated_at: str,
+        task_id: Optional[str],
+        aggregated_results: Dict[str, Any],
+        report_content: Dict[str, Any],
+        include_output_files: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        生成 PDF 報告
+
+        Args:
+            report_id: 報告 ID
+            title: 報告標題
+            generated_at: 生成時間
+            task_id: 任務 ID
+            aggregated_results: 聚合結果
+            report_content: 報告內容
+            include_output_files: 是否包含產出物文件
+
+        Returns:
+            PDF 報告數據（包含 base64 編碼的 PDF 內容）
+
+        Raises:
+            RuntimeError: 如果 reportlab 不可用
+        """
+        if not REPORTLAB_AVAILABLE:
+            raise RuntimeError(
+                "reportlab library is not available. Please install it: pip install reportlab"
+            )
+
+        # 創建 PDF 緩衝區
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        styles = getSampleStyleSheet()
+        story = []
+
+        # 標題
+        title_style = styles["Title"]
+        title_para = Paragraph(title, title_style)
+        story.append(title_para)
+        story.append(Spacer(1, 0.2 * inch))
+
+        # 元數據
+        metadata_text = f"<b>生成時間:</b> {generated_at}<br/>"
+        if task_id:
+            metadata_text += f"<b>任務 ID:</b> {task_id}<br/>"
+        metadata_para = Paragraph(metadata_text, styles["Normal"])
+        story.append(metadata_para)
+        story.append(Spacer(1, 0.2 * inch))
+
+        # 執行摘要
+        summary = aggregated_results.get("summary", {})
+        summary_data = [
+            ["項目", "數值"],
+            ["總 Agent 數量", str(summary.get("total_count", 0))],
+            ["成功數量", str(summary.get("success_count", 0))],
+            ["失敗數量", str(summary.get("failure_count", 0))],
+            [
+                "成功率",
+                f"{summary.get('success_rate', 0.0) * 100:.1f}%",
+            ],
+        ]
+
+        summary_table = Table(summary_data, colWidths=[3 * inch, 2 * inch])
+        summary_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 12),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ]
+            )
+        )
+        story.append(Paragraph("<b>執行摘要</b>", styles["Heading2"]))
+        story.append(Spacer(1, 0.1 * inch))
+        story.append(summary_table)
+        story.append(Spacer(1, 0.3 * inch))
+
+        # 詳細內容
+        detailed_content = report_content.get("detailed_content", "")
+        if detailed_content:
+            story.append(Paragraph("<b>詳細結果</b>", styles["Heading2"]))
+            story.append(Spacer(1, 0.1 * inch))
+            # 簡單處理 Markdown 內容（轉換為純文本段落）
+            for line in detailed_content.split("\n"):
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    # 移除 Markdown 標記
+                    line = line.replace("##", "").replace("###", "").replace("-", "•")
+                    if line:
+                        para = Paragraph(line, styles["Normal"])
+                        story.append(para)
+            story.append(Spacer(1, 0.3 * inch))
+
+        # 產出物文件
+        if include_output_files:
+            output_files = aggregated_results.get("output_files", [])
+            if output_files:
+                story.append(Paragraph("<b>產出物文件</b>", styles["Heading2"]))
+                story.append(Spacer(1, 0.1 * inch))
+                for file_url in output_files:
+                    file_name = file_url.split("/")[-1]
+                    file_para = Paragraph(f"• {file_name}", styles["Normal"])
+                    story.append(file_para)
+                story.append(Spacer(1, 0.3 * inch))
+
+        # 構建 PDF
+        doc.build(story)
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+
+        # Base64 編碼
+        pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
+
+        response_data = {
+            "report_id": report_id,
+            "title": title,
+            "generated_at": generated_at,
+            "pdf_content": pdf_base64,
+            "pdf_size": len(pdf_bytes),
+            "metadata": {
+                "format": "pdf",
+                "version": "1.0",
+                "task_id": task_id,
+            },
+        }
+
+        self._logger.info(f"Generated PDF report: {report_id} ({len(pdf_bytes)} bytes)")
+        return response_data

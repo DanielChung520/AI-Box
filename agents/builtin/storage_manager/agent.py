@@ -38,6 +38,12 @@ class StorageManagerAgent(AgentServiceProtocol):
 
     def __init__(self):
         """初始化 Storage Manager Agent"""
+        # 先初始化 logger，以便在後續錯誤處理中使用
+        self._logger = logger
+        # Memory Manager 和数据库客户端延迟初始化
+        self._memory_manager = None
+        self._llm_client = None
+
         # 文件服务初始化可能失败（如 SeaweedFS 未运行），优雅处理
         try:
             self._file_service = get_agent_file_service()
@@ -56,10 +62,6 @@ class StorageManagerAgent(AgentServiceProtocol):
             else:
                 self._logger.warning(f"Failed to initialize file service: {e}")
                 self._file_service = None
-        # Memory Manager 和数据库客户端延迟初始化
-        self._memory_manager = None
-        self._llm_client = None
-        self._logger = logger
 
     def _get_llm_client(self):
         """获取 LLM 客户端（延迟初始化）"""

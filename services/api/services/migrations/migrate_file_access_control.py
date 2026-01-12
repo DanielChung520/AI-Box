@@ -22,9 +22,9 @@ project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import structlog  # noqa: E402
+
 from database.arangodb import ArangoDBClient  # noqa: E402
 from services.api.models.data_classification import DataClassification  # noqa: E402
-from services.api.models.file_access_control import FileAccessControl, FileAccessLevel  # noqa: E402
 from services.api.services.file_metadata_service import FileMetadataService  # noqa: E402
 
 logger = structlog.get_logger(__name__)
@@ -51,7 +51,7 @@ def migrate_file_access_control(
     if client.db is None:
         raise RuntimeError("ArangoDB client is not connected")
 
-    metadata_service = FileMetadataService(client=client)
+    FileMetadataService(client=client)
     collection = client.db.collection(COLLECTION_NAME)
 
     stats = {
@@ -240,4 +240,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

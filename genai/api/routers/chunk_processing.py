@@ -7,7 +7,7 @@
 
 import os
 from enum import Enum
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 if TYPE_CHECKING:
     from services.api.services.config_store_service import ConfigStoreService
@@ -33,6 +33,7 @@ logger = structlog.get_logger(__name__)
 # 向後兼容：如果 ConfigStoreService 不可用，使用舊的配置方式
 try:
     from services.api.services.config_store_service import ConfigStoreService
+
     _config_service: Optional[ConfigStoreService] = None
 
     def get_config_store_service() -> ConfigStoreService:
@@ -65,25 +66,26 @@ class ProcessingStatus(Enum):
 def get_storage() -> FileStorage:
     """獲取文件存儲實例"""
     config = get_config_section("file_upload", default={}) or {}
-    
+
     # 临时修复：如果配置读取失败（空字典），或者 storage_backend 未设置，强制使用本地存储
     # 这样可以避免因为配置系统问题导致无法使用本地存储
     if not config or not config.get("storage_backend"):
         from storage.file_storage import LocalFileStorage
+
         storage_path = config.get("storage_path", "./data/datasets/files")
         logger.warning(
             "配置读取失败或未设置 storage_backend，临时使用本地存储",
             storage_path=storage_path,
         )
         return LocalFileStorage(storage_path=storage_path, enable_encryption=False)
-    
+
     return create_storage_from_config(config)
 
 
 def get_chunk_processor() -> ChunkProcessor:
     """獲取分塊處理器實例（優先從 ArangoDB system_configs 讀取）"""
     config_data: Dict[str, Any] = {}
-    
+
     # 優先從 ArangoDB system_configs 讀取
     if CONFIG_STORE_AVAILABLE:
         try:
@@ -97,15 +99,15 @@ def get_chunk_processor() -> ChunkProcessor:
                 "failed_to_load_config_from_arangodb",
                 scope="chunk_processing",
                 error=str(e),
-                message="從 ArangoDB 讀取配置失敗，回退到 config.json"
+                message="從 ArangoDB 讀取配置失敗，回退到 config.json",
             )
-    
+
     # 如果 ArangoDB 中沒有配置，回退到 config.json（向後兼容）
     if not config_data:
         config = get_config_section("chunk_processing", default={}) or {}
         config_data = config
         logger.debug("使用 config.json 中的 chunk_processing 配置（向後兼容）")
-    
+
     return create_chunk_processor_from_config(config_data)
 
 

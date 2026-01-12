@@ -5,8 +5,9 @@
 
 """文件訪問控制模型單元測試"""
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 from services.api.models.data_classification import DataClassification, SensitivityLabel
 from services.api.models.file_access_control import FileAccessControl, FileAccessLevel
@@ -118,7 +119,7 @@ class TestFileAccessControl:
 
     def test_empty_authorized_lists(self):
         """測試空授權列表轉換為 None"""
-        acl = FileAccessControl(
+        FileAccessControl(
             access_level=FileAccessLevel.PRIVATE.value,
             owner_id="user123",
             authorized_organizations=[],
@@ -138,4 +139,3 @@ class TestFileAccessControl:
         assert acl.access_log_enabled is True
         assert acl.access_expires_at is None
         assert acl.owner_tenant_id is None
-

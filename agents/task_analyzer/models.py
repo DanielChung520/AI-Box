@@ -1,7 +1,7 @@
 # 代碼功能說明: Task Analyzer 數據模型
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-30
+# 最後修改日期: 2026-01-08
 
 """Task Analyzer 數據模型定義"""
 
@@ -51,6 +51,9 @@ class TaskAnalysisRequest(BaseModel):
     context: Optional[Dict[str, Any]] = Field(None, description="上下文信息")
     user_id: Optional[str] = Field(None, description="用戶ID")
     session_id: Optional[str] = Field(None, description="會話ID")
+    specified_agent_id: Optional[str] = Field(
+        None, description="前端指定的Agent ID（可選，如果指定則驗證該Agent是否可用）"
+    )
 
 
 class TaskAnalysisResult(BaseModel):
@@ -125,9 +128,7 @@ class LLMRoutingResult(BaseModel):
     model: str = Field(..., description="模型名稱")
     confidence: float = Field(..., ge=0.0, le=1.0, description="置信度")
     reasoning: str = Field(..., description="選擇理由")
-    fallback_providers: List[LLMProvider] = Field(
-        default_factory=list, description="備用提供商列表"
-    )
+    fallback_providers: List[LLMProvider] = Field(default_factory=list, description="備用提供商列表")
     target_node: Optional[str] = Field(
         None,
         description="當 provider 為本地 LLM 時指派的節點",
@@ -137,9 +138,7 @@ class LLMRoutingResult(BaseModel):
     estimated_latency: Optional[float] = Field(None, description="預估延遲時間（秒）", ge=0.0)
     estimated_cost: Optional[float] = Field(None, description="預估成本", ge=0.0)
     quality_score: Optional[float] = Field(None, description="質量評分（0.0-1.0）", ge=0.0, le=1.0)
-    routing_metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="路由元數據（擴展信息）"
-    )
+    routing_metadata: Dict[str, Any] = Field(default_factory=dict, description="路由元數據（擴展信息）")
 
 
 class LogQueryIntent(BaseModel):
@@ -154,9 +153,7 @@ class LogQueryIntent(BaseModel):
         description="日誌類型：TASK（任務日誌）、AUDIT（審計日誌）、SECURITY（安全日誌）",
     )
     actor: Optional[str] = Field(None, description="執行者（用戶 ID 或 Agent ID）")
-    level: Optional[str] = Field(
-        None, description="配置層級（system/tenant/user，僅 AUDIT 類型需要）"
-    )
+    level: Optional[str] = Field(None, description="配置層級（system/tenant/user，僅 AUDIT 類型需要）")
     tenant_id: Optional[str] = Field(None, description="租戶 ID")
     user_id: Optional[str] = Field(None, description="用戶 ID")
     start_time: Optional[datetime] = Field(None, description="開始時間")
@@ -182,12 +179,8 @@ class ConfigIntent(BaseModel):
     )
     tenant_id: Optional[str] = Field(None, description="租戶 ID（租戶級操作時需要）")
     user_id: Optional[str] = Field(None, description="用戶 ID（用戶級操作時需要）")
-    config_data: Optional[Dict[str, Any]] = Field(
-        None, description="配置數據（更新/創建操作時需要）"
-    )
-    clarification_needed: bool = Field(
-        default=False, description="是否需要澄清（信息不足時為 true）"
-    )
+    config_data: Optional[Dict[str, Any]] = Field(None, description="配置數據（更新/創建操作時需要）")
+    clarification_needed: bool = Field(default=False, description="是否需要澄清（信息不足時為 true）")
     clarification_question: Optional[str] = Field(
         None, description="澄清問題（clarification_needed=true 時生成）"
     )
@@ -201,12 +194,8 @@ class RouterInput(BaseModel):
     """Router LLM 輸入模型"""
 
     user_query: str = Field(..., description="用戶查詢")
-    session_context: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="會話上下文"
-    )
-    system_constraints: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="系統約束"
-    )
+    session_context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="會話上下文")
+    system_constraints: Optional[Dict[str, Any]] = Field(default_factory=dict, description="系統約束")
 
 
 class RouterDecision(BaseModel):
@@ -236,7 +225,11 @@ class DecisionResult(BaseModel):
 
 
 class DecisionLog(BaseModel):
-    """決策日誌模型"""
+    """決策日誌模型（舊版，已棄用）
+
+    注意：此模型已棄用，請使用 GroDecisionLog 模型（符合 GRO 規範）。
+    保留此模型僅用於向後兼容。
+    """
 
     decision_id: str = Field(..., description="決策 ID")
     timestamp: datetime = Field(..., description="時間戳")
@@ -246,6 +239,166 @@ class DecisionLog(BaseModel):
     execution_result: Optional[Dict[str, Any]] = Field(
         None, description="執行結果（success, latency_ms, cost）"
     )
+
+
+# GRO 規範相關模型
+class ReactStateType(str, Enum):
+    """ReAct 狀態類型枚舉（符合 GRO 規範）"""
+
+    AWARENESS = "AWARENESS"
+    PLANNING = "PLANNING"
+    DELEGATION = "DELEGATION"
+    OBSERVATION = "OBSERVATION"
+    DECISION = "DECISION"
+
+
+class DecisionAction(str, Enum):
+    """決策動作枚舉（符合 GRO 規範）"""
+
+    COMPLETE = "complete"
+    RETRY = "retry"
+    EXTEND_PLAN = "extend_plan"
+    ESCALATE = "escalate"
+
+
+class DecisionOutcome(str, Enum):
+    """決策結果枚舉（符合 GRO 規範）"""
+
+    SUCCESS = "success"
+    FAILURE = "failure"
+    PARTIAL = "partial"
+
+
+class GroDecision(BaseModel):
+    """GRO 決策模型（符合 GRO 規範）"""
+
+    action: DecisionAction = Field(..., description="決策動作")
+    reason: Optional[str] = Field(None, description="決策理由")
+    next_state: ReactStateType = Field(..., description="下一個狀態")
+
+
+class GroDecisionLog(BaseModel):
+    """GRO Decision Log 模型（符合 GRO 規範）
+
+    符合 GRO Decision Log Schema（參考架構規格書 9.1.5 節）：
+    - react_id: ReAct session 主鍵
+    - iteration: 迭代次數
+    - state: 當前狀態（AWARENESS/PLANNING/DELEGATION/OBSERVATION/DECISION）
+    - input_signature: 輸入簽名（命令分類、風險等級等）
+    - decision: 決策結果（action, next_state）
+    - outcome: 結果（success/failure/partial）
+    - observations: 觀察結果（可選）
+    - correlation_id: 關聯ID（可選，用於跨系統追蹤）
+    """
+
+    react_id: str = Field(..., description="ReAct session ID", min_length=8)
+    iteration: int = Field(..., description="迭代次數", ge=0)
+    state: ReactStateType = Field(..., description="狀態")
+    input_signature: Dict[str, Any] = Field(default_factory=dict, description="輸入簽名（命令分類、風險等級等）")
+    observations: Optional[Dict[str, Any]] = Field(None, description="觀察結果")
+    decision: GroDecision = Field(..., description="決策結果")
+    outcome: DecisionOutcome = Field(..., description="決策結果（success/failure/partial）")
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="時間戳")
+    correlation_id: Optional[str] = Field(None, description="關聯 ID（用於跨系統追蹤）")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
+
+    def to_dict(self) -> Dict[str, Any]:
+        """轉換為字典（用於持久化）"""
+        return {
+            "react_id": self.react_id,
+            "iteration": self.iteration,
+            "state": self.state.value,
+            "input_signature": self.input_signature,
+            "observations": self.observations,
+            "decision": {
+                "action": self.decision.action.value,
+                "reason": self.decision.reason,
+                "next_state": self.decision.next_state.value,
+            },
+            "outcome": self.outcome.value,
+            "timestamp": self.timestamp.isoformat(),
+            "correlation_id": self.correlation_id,
+            "metadata": self.metadata,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "GroDecisionLog":
+        """從字典創建 GroDecisionLog 對象"""
+        # 解析 decision
+        decision_data = data["decision"]
+        decision = GroDecision(
+            action=DecisionAction(decision_data["action"]),
+            reason=decision_data.get("reason"),
+            next_state=ReactStateType(decision_data["next_state"]),
+        )
+
+        # 解析 timestamp
+        timestamp = data.get("timestamp")
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        elif timestamp is None:
+            timestamp = datetime.utcnow()
+
+        return cls(
+            react_id=data["react_id"],
+            iteration=data["iteration"],
+            state=ReactStateType(data["state"]),
+            input_signature=data.get("input_signature", {}),
+            observations=data.get("observations"),
+            decision=decision,
+            outcome=DecisionOutcome(data["outcome"]),
+            timestamp=timestamp,
+            correlation_id=data.get("correlation_id"),
+            metadata=data.get("metadata", {}),
+        )
+
+    @classmethod
+    def from_legacy_decision_log(
+        cls, legacy_log: DecisionLog, react_id: str, iteration: int
+    ) -> "GroDecisionLog":
+        """從舊版 DecisionLog 轉換為 GroDecisionLog（向後兼容）"""
+        # 從舊版 DecisionLog 提取信息構建 input_signature
+        input_signature = {
+            "intent_type": legacy_log.router_output.intent_type,
+            "complexity": legacy_log.router_output.complexity,
+            "risk_level": legacy_log.router_output.risk_level,
+            "query": legacy_log.query,
+        }
+
+        # 從 execution_result 判斷 outcome
+        outcome = DecisionOutcome.SUCCESS
+        if legacy_log.execution_result:
+            success = legacy_log.execution_result.get("success", False)
+            if not success:
+                outcome = DecisionOutcome.FAILURE
+            # 可以根據實際情況判斷是否為 PARTIAL
+
+        # 構建 decision（從 decision_engine 提取信息）
+        # 注意：舊版 DecisionLog 沒有明確的 decision action，需要推斷
+        # 這裡假設為 COMPLETE（實際使用時應根據業務邏輯判斷）
+        decision = GroDecision(
+            action=DecisionAction.COMPLETE,
+            reason=legacy_log.decision_engine.reasoning,
+            next_state=ReactStateType.DECISION,
+        )
+
+        return cls(
+            react_id=react_id,
+            iteration=iteration,
+            state=ReactStateType.DECISION,
+            input_signature=input_signature,
+            observations=None,
+            decision=decision,
+            outcome=outcome,
+            timestamp=legacy_log.timestamp,
+            correlation_id=None,
+            metadata={
+                "legacy_decision_id": legacy_log.decision_id,
+                "chosen_agent": legacy_log.decision_engine.chosen_agent,
+                "chosen_model": legacy_log.decision_engine.chosen_model,
+                "execution_result": legacy_log.execution_result,
+            },
+        )
 
 
 class CapabilityMatch(BaseModel):

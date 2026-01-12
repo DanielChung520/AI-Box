@@ -1,0 +1,310 @@
+{
+  "test_time": "2026-01-09T13:35:48.611283",
+  "models": [
+    "quentinz/bge-large-zh-v1.5:latest",
+    "qwen3-next:latest",
+    "gpt-oss:120b-cloud",
+    "mistral-nemo:12b",
+    "gpt-oss:20b",
+    "qwen3-coder:30b"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "FE-011",
+      "user_input": "幫我產生一個 README.md 文件",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-012",
+      "user_input": "創建一個新的配置文件 config.json",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-013",
+      "user_input": "幫我寫一個 Python 腳本",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-014",
+      "user_input": "生成一份報告文件",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-015",
+      "user_input": "幫我建立一個新的文件",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-016",
+      "user_input": "製作一個 Markdown 文檔",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-017",
+      "user_input": "幫我產生一份測試報告",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-018",
+      "user_input": "建立一個新的程式檔案",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-019",
+      "user_input": "幫我寫一份文件",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-020",
+      "user_input": "生成一個新的檔案",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-021",
+      "user_input": "幫我在 README.md 中加入安裝說明",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-022",
+      "user_input": "在文件裡添加註釋",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-023",
+      "user_input": "把這個函數改成新的實現",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-024",
+      "user_input": "幫我整理一下這個文件",
+      "expected_task_type": "execution"
+    },
+    {
+      "scenario_id": "FE-025",
+      "user_input": "優化這個代碼文件",
+      "expected_task_type": "execution"
+    }
+  ],
+  "results": [
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-011",
+      "user_input": "幫我產生一個 README.md 文件",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.18979597091674805,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-012",
+      "user_input": "創建一個新的配置文件 config.json",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.0171811580657959,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-013",
+      "user_input": "幫我寫一個 Python 腳本",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.017114877700805664,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-014",
+      "user_input": "生成一份報告文件",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.021162033081054688,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-015",
+      "user_input": "幫我建立一個新的文件",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.01705789566040039,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-016",
+      "user_input": "製作一個 Markdown 文檔",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.01689600944519043,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-017",
+      "user_input": "幫我產生一份測試報告",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.01741313934326172,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-018",
+      "user_input": "建立一個新的程式檔案",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.01667189598083496,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-019",
+      "user_input": "幫我寫一份文件",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.01650404930114746,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-020",
+      "user_input": "生成一個新的檔案",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.01692795753479004,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-021",
+      "user_input": "幫我在 README.md 中加入安裝說明",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.019394874572753906,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-022",
+      "user_input": "在文件裡添加註釋",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.01667308807373047,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-023",
+      "user_input": "把這個函數改成新的實現",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.01633310317993164,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-024",
+      "user_input": "幫我整理一下這個文件",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.018411874771118164,
+      "success": false,
+      "error": null
+    },
+    {
+      "model": "quentinz/bge-large-zh-v1.5:latest",
+      "scenario_id": "FE-025",
+      "user_input": "優化這個代碼文件",
+      "expected_task_type": "execution",
+      "actual_task_type": "conversation",
+      "task_type_correct": false,
+      "needs_agent": false,
+      "needs_agent_correct": false,
+      "confidence": 0.0,
+      "elapsed_time": 0.016425132751464844,
+      "success": false,
+      "error": null
+    }
+  ],
+  "statistics": {
+    "quentinz/bge-large-zh-v1.5:latest": {
+      "task_type_accuracy": 0.0,
+      "needs_agent_accuracy": 0.0,
+      "overall_success_rate": 0.0,
+      "avg_time": 0.028930870691935222,
+      "total_time": 0.4339630603790283,
+      "avg_confidence": 0.0
+    }
+  }
+}

@@ -70,7 +70,7 @@ class KGBuilderService:
     ) -> tuple[str, bool]:
         """
         查找或創建實體（實體去重）
-        
+
         Returns:
             (entity_id, is_created): 實體ID和是否為新創建的標記
         """
@@ -131,7 +131,7 @@ class KGBuilderService:
     ) -> tuple[Optional[str], bool]:
         """
         查找或創建關係（關係去重）
-        
+
         Returns:
             (relation_id, is_created): 關係ID和是否為新創建的標記
         """
@@ -510,9 +510,9 @@ class KGBuilderService:
 
         # 1) 清理 relations（分離查詢以避免 ERR 1579 錯誤）
         # 修改時間：2026-01-05 - 將relations清理分成多個獨立查詢，避免ERR 1579錯誤
-        
+
         # 1.1) 查詢需要處理的relations（不修改數據）
-        check_rel_query = f"""
+        check_rel_query = """
             FOR r IN @@relations
                 LET ids = (
                     r.file_ids != null ? r.file_ids :
@@ -520,10 +520,10 @@ class KGBuilderService:
                 )
                 FILTER @file_id IN ids
                 LET new_ids = REMOVE_VALUE(ids, @file_id)
-                RETURN {{
+                RETURN {
                     key: r._key,
                     new_ids: new_ids
-                }}
+                }
         """
         check_rel_bind: Dict[str, Any] = {
             "@relations": RELATIONS_COLLECTION,
@@ -531,27 +531,29 @@ class KGBuilderService:
         }
         check_rel_result = self.client.execute_aql(check_rel_query, bind_vars=check_rel_bind)
         rel_targets = check_rel_result.get("results", [])
-        
+
         # 1.2) 分類relations：需要刪除的和需要更新的
         relations_to_delete: List[str] = []
         relations_to_update: List[Dict[str, Any]] = []
-        
+
         for target in rel_targets:
             new_ids = target.get("new_ids", [])
             rel_key = target.get("key")
-            
+
             if len(new_ids) == 0:
                 relations_to_delete.append(rel_key)
             else:
-                relations_to_update.append({
-                    "key": rel_key,
-                    "new_ids": new_ids,
-                })
-        
+                relations_to_update.append(
+                    {
+                        "key": rel_key,
+                        "new_ids": new_ids,
+                    }
+                )
+
         # 1.3) 刪除relations（單獨的查詢）
         relations_deleted = 0
         if relations_to_delete:
-            delete_rel_query = f"""
+            delete_rel_query = """
             FOR key IN @keys
                 REMOVE key IN @@relations
                 RETURN 1
@@ -562,7 +564,7 @@ class KGBuilderService:
             }
             delete_rel_result = self.client.execute_aql(delete_rel_query, bind_vars=delete_rel_bind)
             relations_deleted = len(delete_rel_result.get("results", []))
-        
+
         # 1.4) 更新relations（單獨的查詢）
         relations_updated = 0
         if relations_to_update:
@@ -576,17 +578,17 @@ class KGBuilderService:
                 RETURN 1
             """
             update_rel_bind: Dict[str, Any] = {
-            "@relations": RELATIONS_COLLECTION,
+                "@relations": RELATIONS_COLLECTION,
                 "items": relations_to_update,
-        }
+            }
             update_rel_result = self.client.execute_aql(update_rel_query, bind_vars=update_rel_bind)
             relations_updated = len(update_rel_result.get("results", []))
 
         # 2) 清理 entities（分離查詢以避免 ERR 1579 錯誤）
         # 修改時間：2026-01-03 - 將entities清理分成多個獨立查詢，避免ERR 1579錯誤
-        
+
         # 2.1) 查詢需要處理的entities（不修改數據）
-        check_query = f"""
+        check_query = """
             FOR e IN @@entities
                 LET ids = (
                     e.file_ids != null ? e.file_ids :
@@ -594,11 +596,11 @@ class KGBuilderService:
                 )
                 FILTER @file_id IN ids
                 LET new_ids = REMOVE_VALUE(ids, @file_id)
-            RETURN {{
+            RETURN {
                 key: e._key,
                 id: e._id,
                 new_ids: new_ids
-            }}
+            }
         """
         check_bind: Dict[str, Any] = {
             "@entities": ENTITIES_COLLECTION,
@@ -606,7 +608,7 @@ class KGBuilderService:
         }
         check_result = self.client.execute_aql(check_query, bind_vars=check_bind)
         targets = check_result.get("results", [])
-        
+
         if not targets:
             entities_deleted = 0
             entities_updated = 0
@@ -615,21 +617,23 @@ class KGBuilderService:
             entity_ids_to_check: List[str] = []  # 需要檢查是否有關聯relations的entity IDs
             entities_map: Dict[str, Dict[str, Any]] = {}  # entity_id -> {key, new_ids}
             entities_to_update: List[Dict[str, Any]] = []
-            
+
             for target in targets:
                 new_ids = target.get("new_ids", [])
                 entity_key = target.get("key")
                 entity_id = target.get("id")
                 entities_map[entity_id] = {"key": entity_key, "new_ids": new_ids}
-                
+
                 if len(new_ids) == 0:
                     entity_ids_to_check.append(entity_id)
                 else:
-                    entities_to_update.append({
-                        "key": entity_key,
-                        "new_ids": new_ids,
-                    })
-            
+                    entities_to_update.append(
+                        {
+                            "key": entity_key,
+                            "new_ids": new_ids,
+                        }
+                    )
+
             # 2.3) 批量查詢哪些entities有關聯的relations（在relations已經清理後，這個查詢不會觸發ERR 1579）
             entities_to_delete: List[str] = []
             if entity_ids_to_check:
@@ -651,16 +655,16 @@ class KGBuilderService:
                 }
                 has_edge_result = self.client.execute_aql(has_edge_query, bind_vars=has_edge_bind)
                 entities_without_edges = has_edge_result.get("results", [])
-                
+
                 # 找出對應的entity keys
                 for entity_id in entities_without_edges:
                     if entity_id in entities_map:
                         entities_to_delete.append(entities_map[entity_id]["key"])
-            
+
             # 2.4) 刪除entities（單獨的查詢）
             entities_deleted = 0
             if entities_to_delete:
-                delete_query = f"""
+                delete_query = """
                 FOR key IN @keys
                     REMOVE key IN @@entities
                 RETURN 1
@@ -671,7 +675,7 @@ class KGBuilderService:
                 }
                 delete_result = self.client.execute_aql(delete_query, bind_vars=delete_bind)
                 entities_deleted = len(delete_result.get("results", []))
-            
+
             # 2.5) 更新entities（單獨的查詢）
             entities_updated = 0
             if entities_to_update:
@@ -685,9 +689,9 @@ class KGBuilderService:
                 RETURN 1
                 """
                 update_bind: Dict[str, Any] = {
-            "@entities": ENTITIES_COLLECTION,
+                    "@entities": ENTITIES_COLLECTION,
                     "items": entities_to_update,
-        }
+                }
                 update_result = self.client.execute_aql(update_query, bind_vars=update_bind)
                 entities_updated = len(update_result.get("results", []))
 

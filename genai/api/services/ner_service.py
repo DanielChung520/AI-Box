@@ -206,7 +206,7 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
 
         # 如果提供了 ontology_rules，使用 Ontology 中的實體類型列表
         prompt = self._prompt_template.format(text=text)
-        
+
         # 記錄即將發送的 prompt（調試用）
         logger.info(
             "ollama_ner_prompt_prepared",
@@ -216,16 +216,18 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
             text_preview=text[:100],  # 記錄前 100 字符
             has_ontology=ontology_rules is not None,
         )
-        
+
         if ontology_rules:
             entity_classes = ontology_rules.get("entity_classes", [])
             if entity_classes:
                 # 構建實體類型列表說明（限制顯示數量，避免 prompt 過長）
                 entity_classes_sorted = sorted(entity_classes)
-                entity_types_list = "\n".join([f"- {ec}" for ec in entity_classes_sorted[:50]])  # 最多顯示50個
+                entity_types_list = "\n".join(
+                    [f"- {ec}" for ec in entity_classes_sorted[:50]]
+                )  # 最多顯示50個
                 if len(entity_classes_sorted) > 50:
                     entity_types_list += f"\n- ... (共 {len(entity_classes_sorted)} 個實體類型)"
-                
+
                 # 在 prompt 中添加 Ontology 實體類型約束（更明確的指導）
                 ontology_section = f"""
 
@@ -240,12 +242,10 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
 2. 如果無法歸類，可以嘗試使用最接近的父類型（如 Material, Process, Asset 等）
 3. **必須識別盡可能多的實體**：不要遺漏任何重要概念，包括材料、設備、過程、產物等
 4. 每個實體都應該使用上述 Ontology 類型列表中的類型，而不是示例中提到的標準類型"""
-                
+
                 # 在 prompt 中插入 Ontology 約束（在"待分析的文本內容"之前，但在 Few-Shot 示例之後）
                 if "待分析的文本內容：" in prompt:
-                    prompt = prompt.replace(
-                        "待分析的文本內容：", f"{ontology_section}\n\n待分析的文本內容："
-                    )
+                    prompt = prompt.replace("待分析的文本內容：", f"{ontology_section}\n\n待分析的文本內容：")
                 else:
                     prompt = f"{prompt}{ontology_section}"
 
@@ -256,7 +256,7 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
                 model=self.model_name,
                 prompt_length=len(prompt),
             )
-            
+
             response = await self.client.generate(
                 prompt,
                 model=self.model_name,
@@ -273,7 +273,7 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
                     "top_k": 40,  # Top-K 採樣參數
                 },
             )
-            
+
             # 記錄模型調用完成
             logger.info(
                 "ollama_ner_model_call_completed",
@@ -288,7 +288,7 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
 
             # 新接口返回 {"text": "...", "content": "...", "model": "..."}
             result_text = response.get("text") or response.get("content", "")
-            
+
             # 記錄原始響應（調試用）- 使用 info 級別以便在日誌中看到
             logger.info(
                 "ollama_ner_raw_response",
@@ -331,7 +331,9 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
                         parsed_obj = json.loads(result_text)
                         if isinstance(parsed_obj, dict):
                             # 優先處理 entities 字段（即使同時有 text 字段）
-                            if "entities" in parsed_obj and isinstance(parsed_obj["entities"], list):
+                            if "entities" in parsed_obj and isinstance(
+                                parsed_obj["entities"], list
+                            ):
                                 entities_data = parsed_obj["entities"]
                                 # 如果 entities 數組中有對象，且缺少 label，嘗試從外層對象繼承
                                 if entities_data and isinstance(entities_data[0], dict):
@@ -359,15 +361,23 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
                                 for label, items in parsed_obj.items():
                                     for item_text in items:
                                         if isinstance(item_text, str):
-                                             new_list.append({"text": item_text, "label": label, "confidence": 0.8})
+                                            new_list.append(
+                                                {
+                                                    "text": item_text,
+                                                    "label": label,
+                                                    "confidence": 0.8,
+                                                }
+                                            )
                                         elif isinstance(item_text, dict):
-                                             if "text" in item_text:
-                                                 item_text.setdefault("label", label)
-                                                 new_list.append(item_text)
-                                             elif "value" in item_text: # Handle {"text": "...", "value": "..."} variations
-                                                 item_text["text"] = item_text["value"]
-                                                 item_text.setdefault("label", label)
-                                                 new_list.append(item_text)
+                                            if "text" in item_text:
+                                                item_text.setdefault("label", label)
+                                                new_list.append(item_text)
+                                            elif (
+                                                "value" in item_text
+                                            ):  # Handle {"text": "...", "value": "..."} variations
+                                                item_text["text"] = item_text["value"]
+                                                item_text.setdefault("label", label)
+                                                new_list.append(item_text)
                                 entities_data = new_list
                             elif all(
                                 isinstance(v, dict) and "text" in v for v in parsed_obj.values()
@@ -400,7 +410,9 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
                                     parsed_obj = json.loads(obj_text)
                                     if isinstance(parsed_obj, dict):
                                         # 優先處理 entities 字段
-                                        if "entities" in parsed_obj and isinstance(parsed_obj["entities"], list):
+                                        if "entities" in parsed_obj and isinstance(
+                                            parsed_obj["entities"], list
+                                        ):
                                             entities_data = parsed_obj["entities"]
                                         # 如果是單個 entity 對象
                                         elif "text" in parsed_obj and (
@@ -421,7 +433,7 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
                         response_full=result_text,  # 記錄完整響應以便調試
                     )
                     return []
-                
+
                 # 記錄成功解析的情況
                 if isinstance(entities_data, list) and len(entities_data) == 0:
                     logger.info(
@@ -594,7 +606,7 @@ class NERService:
         env_model_type = os.getenv("NER_MODEL_TYPE")
         if env_model_type:
             model_type = env_model_type
-        
+
         # 優先級3: 從 config.json 讀取 model_type（向後兼容）
         if not model_type:
             model_type = self.config.get("model_type", "ollama")

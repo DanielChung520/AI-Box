@@ -153,10 +153,11 @@ async def submit_editing_command(
             registry = get_agent_registry()
 
             # 查找文檔編輯相關的 Agent
-            # 優先查找 "document_editing" 類型的 Agent，如果沒有則使用 "execution" 類型
-            agents = registry.list_agents(agent_type="document_editing")
+            # 優先查找 "document_editing" 類型的 Agent，包括 System Agent（系統內部調用需要）
+            # 注意：這裡需要使用 include_system_agents=True，因為 document-editing-agent 是 System Agent
+            agents = registry.list_agents(agent_type="document_editing", include_system_agents=True)
             if not agents:
-                agents = registry.list_agents(agent_type="execution")
+                agents = registry.list_agents(agent_type="execution", include_system_agents=True)
 
             if not agents:
                 # 如果沒有找到合適的 Agent，使用現有的 doc_edit API

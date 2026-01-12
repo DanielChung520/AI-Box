@@ -205,10 +205,11 @@ class WorkerService:
             # 修改時間：2025-12-31 - 確保 Worker 進程能夠訪問環境變數
             # 重新加載 .env 文件以確保環境變數可用（因為 Worker 是子進程）
             worker_env = {**os.environ, "PYTHONPATH": str(PROJECT_ROOT)}
-            
+
             # 確保 .env 文件中的環境變數被包含在 worker_env 中
             try:
                 from dotenv import dotenv_values
+
                 env_file = PROJECT_ROOT / ".env"
                 if env_file.exists():
                     env_vars = dotenv_values(env_file)

@@ -23,13 +23,14 @@ from typing import Dict, List, Optional
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+import structlog
+
+from api.routers.file_upload import get_storage
 from database.arangodb import ArangoDBClient
 from database.redis import get_redis_client
 from genai.api.services.kg_builder_service import KGBuilderService
 from services.api.services.file_metadata_service import FileMetadataService
 from services.api.services.vector_store_service import VectorStoreService
-from api.routers.file_upload import get_storage
-import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -237,7 +238,7 @@ def main():
         all_results.append(result)
 
         # 打印結果
-        print(f"\n清理結果:")
+        print("\n清理結果:")
         print(f"  - 向量數據: {'✅' if result['vector_deleted'] else '❌'}")
         print(f"  - 知識圖譜: {'✅' if result['kg_deleted'] else '❌'}")
         print(f"  - 文件元數據: {'✅' if result['metadata_deleted'] else '❌'}")
@@ -279,4 +280,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

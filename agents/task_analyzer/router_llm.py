@@ -1,7 +1,7 @@
 # 代碼功能說明: Router LLM 工程級實現
 # 創建日期: 2025-12-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-30
+# 最後修改日期: 2026-01-09
 
 """Router LLM 工程級實現 - 固定 System Prompt、完整 Schema 驗證、失敗保護機制"""
 
@@ -14,6 +14,10 @@ from agents.task_analyzer.models import RouterDecision, RouterInput
 from llm.clients.factory import LLMClientFactory
 
 logger = logging.getLogger(__name__)
+
+# 意圖分析默認模型（根據測試結果選擇最優模型）
+# 測試結果（2026-01-09）：gpt-oss:120b-cloud 表現最優（100% 正確率，2.56s 平均耗時）
+ROUTER_LLM_DEFAULT_MODEL = "gpt-oss:120b-cloud"
 
 # 固定 System Prompt（不可動）
 ROUTER_SYSTEM_PROMPT = """You are a routing and classification engine inside an enterprise GenAI system.
@@ -33,6 +37,17 @@ Set needs_tools=true if the query requires:
 3. System operations (file I/O, database queries, system info)
 4. Deterministic calculations (unit conversions, currency exchange)
 5. Document creation or editing (creating files, generating documents, editing files)
+
+AGENT REQUIREMENT DETECTION (needs_agent):
+Set needs_agent=true if the query requires:
+1. Multi-step planning, coordination, or complex workflow
+2. File/document operations (creating, editing, generating documents) - ALWAYS requires document-editing-agent
+3. Agent-specific capabilities that cannot be handled by simple tools
+
+CRITICAL RULE: File editing tasks MUST have:
+- intent_type=execution
+- needs_tools=true
+- needs_agent=true
 
 Examples that NEED tools:
 - "告訴我此刻時間" / "what time is it" → needs_tools=true (requires time tool)
@@ -136,6 +151,46 @@ class RouterLLM:
 
         return self._llm_client
 
+    def _get_available_agents_info(self) -> str:
+        """
+        獲取可用 Agent 列表信息（用於構建 Prompt）
+
+        Returns:
+            Agent 列表字符串
+        """
+        try:
+            from agents.task_analyzer.agent_capability_retriever import AgentCapabilityRetriever
+
+            retriever = AgentCapabilityRetriever()
+            agent_descriptions = retriever.get_agent_descriptions()
+
+            if not agent_descriptions:
+                return ""
+
+            # 構建 Agent 列表字符串
+            agent_list = "\n".join([f"- {desc['description']}" for desc in agent_descriptions])
+
+            # 添加 Agent 選擇示例
+            examples = """
+Agent Selection Examples:
+- "編輯文件 README.md" → md-editor (編輯 Markdown 文件)
+- "編輯文件 data.xlsx" → xls-editor (編輯 Excel 文件)
+- "將 README.md 轉換為 PDF" → md-to-pdf (Markdown 轉 PDF)
+- "將 data.xlsx 轉換為 PDF" → xls-to-pdf (Excel 轉 PDF)
+- "將 document.pdf 轉換為 Markdown" → pdf-to-md (PDF 轉 Markdown)
+"""
+
+            return f"""
+Available Agents:
+{agent_list}
+
+{examples}
+"""
+
+        except Exception as e:
+            logger.warning(f"Failed to get available agents info: {e}")
+            return ""
+
     def _build_user_prompt(self, router_input: RouterInput) -> str:
         """
         構建 User Prompt
@@ -151,7 +206,11 @@ class RouterLLM:
             router_input.system_constraints, ensure_ascii=False, indent=2
         )
 
+        # 獲取可用 Agent 信息
+        agents_info = self._get_available_agents_info()
+
         prompt = f"""Analyze the following input and classify it according to the schema.
+{agents_info}
 
 User Query:
 {router_input.user_query}
@@ -169,6 +228,32 @@ Classification Guidelines:
    - retrieval: lookup, fetch, search, query existing data
    - analysis: reasoning, comparison, evaluation, inference
    - execution: actions, commands, operations, system changes
+   - CRITICAL: File editing tasks (creating, editing, generating documents) MUST be classified as execution
+     * Explicit examples: "編輯文件", "產生文件", "生成報告", "創建文檔" → intent_type=execution
+     * Implicit examples (MUST also be execution):
+       - "幫我在文件中加入..." → intent_type=execution (adding content to file)
+       - "在文件裡添加..." → intent_type=execution (adding content to file)
+       - "把這個改成..." → intent_type=execution (modifying file content)
+       - "整理一下這個文件" → intent_type=execution (organizing file)
+       - "優化這個代碼文件" → intent_type=execution (optimizing file)
+       - "格式化整個文件" → intent_type=execution (formatting file)
+       - "在文件中添加註釋" → intent_type=execution (adding comments to file)
+       - "幫我整理一下這個文件" → intent_type=execution (organizing file)
+     * CRITICAL: Technical operation descriptions (MUST be execution):
+       - ANY task containing specific operation instructions MUST be classified as execution
+       - Technical operation keywords: "插入", "設置", "填充", "重命名", "合併", "凍結", "複製", "刪除", "更新", "創建"
+       - Excel/spreadsheet operation examples (ALL must be execution):
+         * "在 data.xlsx 中插入一列" → intent_type=execution (inserting column)
+         * "將 A1 單元格設置為粗體" → intent_type=execution (setting format)
+         * "填充 A1 到 A10 的序號" → intent_type=execution (filling sequence)
+         * "將 Sheet1 重命名為 '數據'" → intent_type=execution (renaming sheet)
+         * "合併 A1 到 C1 的單元格" → intent_type=execution (merging cells)
+         * "設置 A 列的寬度為 20" → intent_type=execution (setting column width)
+         * "凍結第一行" → intent_type=execution (freezing row)
+         * "複製 Sheet1 並命名為 '備份'" → intent_type=execution (copying sheet)
+         * "刪除第 5 行" → intent_type=execution (deleting row)
+         * "更新 B10 單元格的公式" → intent_type=execution (updating formula)
+       - Rule: If the query contains technical operation keywords (插入, 設置, 填充, 重命名, 合併, 凍結, 複製, 刪除, 更新, 創建) AND refers to a file/spreadsheet, it MUST be execution (NOT query)
 
 2. complexity:
    - low: single-step, obvious, straightforward (e.g., "what time is it")
@@ -176,8 +261,23 @@ Classification Guidelines:
    - high: multi-step, orchestration, planning required (e.g., "analyze last month's sales and create a report")
 
 3. needs_agent:
-   - true ONLY if task requires multi-step planning, coordination, or complex workflow
+   - true if task requires:
+     * Multi-step planning, coordination, or complex workflow
+     * File/document operations (creating, editing, generating documents) - REQUIRES document-editing-agent
+     * Agent-specific capabilities that cannot be handled by simple tools
    - false for simple queries that can be answered directly or with a single tool
+   - CRITICAL: File editing tasks (creating, editing, generating documents) ALWAYS require needs_agent=true
+     * Explicit examples: "編輯文件", "產生文件", "生成報告", "創建文檔" → needs_agent=true
+     * Implicit examples (MUST also have needs_agent=true):
+       - "幫我在文件中加入..." → needs_agent=true (adding content to file)
+       - "在文件裡添加..." → needs_agent=true (adding content to file)
+       - "把這個改成..." → needs_agent=true (modifying file content)
+       - "整理一下這個文件" → needs_agent=true (organizing file)
+       - "優化這個代碼文件" → needs_agent=true (optimizing file)
+       - "格式化整個文件" → needs_agent=true (formatting file)
+     * CRITICAL: Technical operation tasks (Excel/spreadsheet operations) ALWAYS require needs_agent=true
+       - ANY task containing technical operation keywords (插入, 設置, 填充, 重命名, 合併, 凍結, 複製, 刪除, 更新, 創建) with file references MUST have needs_agent=true
+       - Examples: "插入一列", "設置格式", "填充序號", "重命名工作表", "合併單元格", "凍結行", "複製工作表" → ALL need needs_agent=true
 
 4. needs_tools (CRITICAL):
    - true if query requires external data, real-time information, or system operations:
@@ -197,8 +297,10 @@ Classification Guidelines:
      * "生成文件" → needs_tools=true (user wants to GENERATE/CREATE a document - requires document editing tool)
      * "幫我將Data Agent的說明做成一份文件" → needs_tools=true (user wants to CREATE a document - requires document editing tool)
      * "生成一份報告" → needs_tools=true (user wants to GENERATE a document - requires document editing tool)
-     * "編輯README.md文件" → needs_tools=true (user wants to EDIT a document - requires document editing tool)
-     * "什麼是DevSecOps" → needs_tools=false (knowledge question - user only wants explanation, not document creation)
+     * "編輯README.md文件" → needs_tools=true, needs_agent=true (user wants to EDIT a document - requires document-editing-agent)
+     * "幫我產生文件" → needs_tools=true, needs_agent=true (user wants to CREATE a document - requires document-editing-agent)
+     * "生成報告" → needs_tools=true, needs_agent=true (user wants to GENERATE a document - requires document-editing-agent)
+     * "什麼是DevSecOps" → needs_tools=false, needs_agent=false (knowledge question - user only wants explanation, not document creation)
 
 5. determinism_required:
    - true if output must be exact, reproducible, or from authoritative source
@@ -295,7 +397,12 @@ Return ONLY valid JSON following the RouterDecision schema."""
             # 調用 LLM
             logger.info("Router LLM: Calling LLM for intent classification")
             client = self._get_llm_client()
-            response = await client.chat(messages=messages, model=None)  # 使用默認模型
+            # 模型選擇：優先使用環境變量（用於測試），否則使用默認最優模型
+            import os
+
+            model_name = os.getenv("ROUTER_LLM_MODEL", ROUTER_LLM_DEFAULT_MODEL)
+            logger.debug(f"Router LLM: Using model: {model_name}")
+            response = await client.chat(messages=messages, model=model_name)
             logger.debug("Router LLM: LLM response received")
 
             # 提取響應內容

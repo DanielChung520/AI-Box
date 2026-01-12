@@ -5,20 +5,21 @@
 
 """清理 RQ 隊列中的舊任務（排隊中、執行中、已調度、已延遲）"""
 
-import sys
 import os
+import sys
 from typing import List, Optional
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 try:
     from rq import Queue
+
     from database.rq.queue import (
-        get_redis_connection,
-        KG_EXTRACTION_QUEUE,
-        VECTORIZATION_QUEUE,
         FILE_PROCESSING_QUEUE,
         GENAI_CHAT_QUEUE,
+        KG_EXTRACTION_QUEUE,
+        VECTORIZATION_QUEUE,
+        get_redis_connection,
     )
 except ImportError as e:
     print(f"❌ 導入失敗: {e}")
@@ -130,12 +131,12 @@ def clear_all_queues(queue_names: Optional[List[str]] = None, clear_failed: bool
             total_cleared += queue_total
 
             if queue_total > 0:
-                print(f"  ✅ 已清理:")
+                print("  ✅ 已清理:")
                 for status, count in result["cleared"].items():
                     if count > 0:
                         print(f"    - {status}: {count} 個")
             else:
-                print(f"  ℹ️  隊列為空，無需清理")
+                print("  ℹ️  隊列為空，無需清理")
         except Exception as e:
             print(f"  ❌ 清理失敗: {e}")
             all_results[queue_name] = {"error": str(e)}

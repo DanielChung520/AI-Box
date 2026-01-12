@@ -21,7 +21,7 @@
 
 import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 # 添加項目根目錄到 Python 路徑
 project_root = Path(__file__).parent.parent.parent.parent.parent
@@ -30,6 +30,7 @@ sys.path.insert(0, str(project_root))
 # 嘗試載入 .env 文件（如果 python-dotenv 可用）
 try:
     from dotenv import load_dotenv
+
     env_path = project_root / ".env"
     if env_path.exists():
         load_dotenv(env_path)
@@ -37,6 +38,7 @@ except ImportError:
     pass  # python-dotenv 不可用時跳過
 
 import structlog  # noqa: E402
+
 from database.arangodb import ArangoDBClient  # noqa: E402
 from services.api.services.file_metadata_service import FileMetadataService  # noqa: E402
 
@@ -63,7 +65,7 @@ def migrate_files_to_initial_version(
         raise RuntimeError("ArangoDB client is not connected")
 
     metadata_service = FileMetadataService(client=client)
-    collection = client.db.collection(COLLECTION_NAME)
+    client.db.collection(COLLECTION_NAME)
 
     stats = {
         "total_files": 0,
@@ -243,4 +245,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

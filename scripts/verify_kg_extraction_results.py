@@ -17,7 +17,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import structlog
 from dotenv import load_dotenv
@@ -79,7 +79,9 @@ def verify_file_metadata(file_id: str) -> Dict[str, Any]:
                 result["has_access_control"] = True
                 if isinstance(access_control, dict):
                     result["access_level"] = access_control.get("access_level")
-                    result["authorized_groups"] = access_control.get("authorized_security_groups", [])
+                    result["authorized_groups"] = access_control.get(
+                        "authorized_security_groups", []
+                    )
                     result["data_classification"] = access_control.get("data_classification")
 
                     # 檢查是否為 SystemSecurity 授權
@@ -90,8 +92,12 @@ def verify_file_metadata(file_id: str) -> Dict[str, Any]:
                         result["is_system_security"] = True
                 elif hasattr(access_control, "access_level"):
                     result["access_level"] = access_control.access_level
-                    result["authorized_groups"] = getattr(access_control, "authorized_security_groups", [])
-                    result["data_classification"] = getattr(access_control, "data_classification", None)
+                    result["authorized_groups"] = getattr(
+                        access_control, "authorized_security_groups", []
+                    )
+                    result["data_classification"] = getattr(
+                        access_control, "data_classification", None
+                    )
 
                     if (
                         result["access_level"] == "security_group"

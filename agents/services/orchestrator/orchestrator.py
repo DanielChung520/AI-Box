@@ -528,6 +528,154 @@ class AgentOrchestrator:
                 return None
         return self._security_agent
 
+    async def call_service(
+        self,
+        service_type: str,
+        service_method: str,
+        params: Dict[str, Any],
+        caller_agent_id: Optional[str] = None,
+        skip_permission_check: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        統一服務調用接口（ATC - Agent-to-Service Call）
+
+        供業務Agent調用專屬服務Agent的統一接口，支持服務發現、路由和權限驗證。
+
+        Args:
+            service_type: 服務類型（如 "security", "system_config", "reports" 等）
+            service_method: 服務方法名（如 "check_permission", "assess_risk" 等）
+            params: 服務方法參數
+            caller_agent_id: 調用者Agent ID（可選，用於權限驗證）
+            skip_permission_check: 是否跳過權限檢查（默認False）
+
+        Returns:
+            服務調用結果字典，包含：
+            - success: bool - 是否成功
+            - result: Any - 服務返回結果
+            - error: str - 錯誤信息（如果失敗）
+
+        Raises:
+            ValueError: 當服務類型無效或服務Agent不存在時
+            RuntimeError: 當服務調用失敗時
+        """
+        import uuid
+
+        # 服務類型到Agent ID的映射
+        service_agent_mapping = {
+            "security": "security_manager",
+            "system_config": "system_config_agent",
+            "reports": "reports_agent",
+            "moe": "moe_agent",  # 未來實現
+            "knowledge_ontology": "knowledge_ontology_agent",  # 未來實現
+            "data": "data_agent",  # 未來實現
+        }
+
+        # 查找對應的Agent ID
+        agent_id = service_agent_mapping.get(service_type)
+        if not agent_id:
+            raise ValueError(
+                f"Unknown service type: {service_type}. "
+                f"Supported types: {', '.join(service_agent_mapping.keys())}"
+            )
+
+        # 通過Agent Registry查找Agent
+        agent_info = self._registry.get_agent_info(agent_id)
+        if not agent_info:
+            raise ValueError(f"Service agent '{agent_id}' not found in registry")
+
+        # 檢查Agent狀態
+        if agent_info.status != AgentStatus.ONLINE:
+            raise RuntimeError(
+                f"Service agent '{agent_id}' is not available (status: {agent_info.status.value})"
+            )
+
+        # 權限驗證（如果未跳過）
+        if not skip_permission_check and caller_agent_id:
+            try:
+                security_agent = self._get_security_agent()
+                if security_agent:
+                    permission_request = AgentServiceRequest(
+                        task_id=str(uuid.uuid4()),
+                        task_type="security_check",
+                        task_data={
+                            "action": "check_permission",
+                            "resource_type": "service_call",
+                            "resource_id": f"{service_type}:{service_method}",
+                            "actor_id": caller_agent_id,
+                            "operation": service_method,
+                        },
+                    )
+                    permission_response = await security_agent.execute(permission_request)
+                    if permission_response.status != "completed":
+                        return {
+                            "success": False,
+                            "error": f"Permission denied: {permission_response.error}",
+                            "result": None,
+                        }
+                    # 檢查權限結果
+                    result_data = permission_response.result or {}
+                    if not result_data.get("allowed", False):
+                        return {
+                            "success": False,
+                            "error": "Permission denied: Insufficient permissions",
+                            "result": None,
+                        }
+            except Exception as e:
+                logger.warning(f"Permission check failed: {e}, proceeding anyway")
+                # 權限檢查失敗時記錄警告但繼續執行（可根據需求調整）
+
+        # 獲取Agent實例
+        agent = self._registry.get_agent(agent_id)
+        if not agent:
+            raise RuntimeError(f"Failed to get agent instance: {agent_id}")
+
+        # 構建服務請求
+        task_id = str(uuid.uuid4())
+        service_request = AgentServiceRequest(
+            task_id=task_id,
+            task_type=service_type,
+            task_data={
+                "action": service_method,
+                **params,
+            },
+            context={"caller_agent_id": caller_agent_id} if caller_agent_id else None,
+        )
+
+        try:
+            # 調用服務Agent
+            logger.info(
+                f"Calling service '{service_type}.{service_method}' "
+                f"(agent: {agent_id}, caller: {caller_agent_id or 'unknown'})"
+            )
+            service_response: AgentServiceResponse = await agent.execute(service_request)
+
+            # 處理響應
+            if service_response.status == "completed":
+                return {
+                    "success": True,
+                    "result": service_response.result,
+                    "error": None,
+                    "metadata": service_response.metadata,
+                }
+            else:
+                return {
+                    "success": False,
+                    "result": None,
+                    "error": service_response.error or "Service call failed",
+                    "metadata": service_response.metadata,
+                }
+
+        except Exception as e:
+            logger.error(
+                f"Service call failed: {service_type}.{service_method}: {e}", exc_info=True
+            )
+            return {
+                "success": False,
+                "result": None,
+                "error": f"Service call exception: {str(e)}",
+                "metadata": None,
+            }
+
     async def process_natural_language_request(
         self,
         instruction: str,
@@ -894,26 +1042,31 @@ class AgentOrchestrator:
         agent_result: Dict[str, Any],
         original_instruction: str,
         intent: Optional[Dict[str, Any]] = None,
+        task_type: Optional[str] = None,
     ) -> str:
         """
-        使用 LLM 將技術性結果轉換為友好的自然語言
+        使用 LLM 將技術性結果轉換為友好的自然語言（增強版）
 
         Args:
             agent_result: Agent 執行的原始結果（技術性數據）
             original_instruction: 原始指令
-            intent: 結構化意圖（可選）
+            intent: 結構化意圖（可選，如 ConfigIntent、LogQueryIntent）
+            task_type: 任務類型（可選，如 "config", "log_query", "execution"）
 
         Returns:
             格式化後的自然語言描述
         """
         try:
-            # 1. 獲取 LLM Router 和客戶端
+            # 1. 識別結果類型
+            result_type = self._identify_result_type(agent_result, intent, task_type)
+
+            # 2. 獲取 LLM Router 和客戶端
             from agents.task_analyzer.llm_router import LLMRouter
             from llm.clients.factory import LLMClientFactory
 
             llm_router = LLMRouter()
 
-            # 2. 路由選擇合適的 LLM（用於結果格式化）
+            # 3. 路由選擇合適的 LLM（用於結果格式化）
             # 結果格式化通常不需要高性能模型，可以使用較快的模型
             from agents.task_analyzer.models import TaskClassificationResult, TaskType
 
@@ -928,47 +1081,26 @@ class AgentOrchestrator:
                 task="result_formatting",
             )
 
-            # 3. 獲取 LLM 客戶端
+            # 4. 獲取 LLM 客戶端
             llm_client = LLMClientFactory.create_client(routing_result.provider, use_cache=True)
 
-            # 4. 構建 System Prompt
-            system_prompt = """你是一個友好的 AI 助手。你的任務是將技術性的執行結果轉換為清晰、友好的自然語言響應。
+            # 5. 根據結果類型構建不同的 System Prompt
+            system_prompt = self._build_formatting_prompt(result_type, intent)
 
-請遵循以下原則：
-1. 使用簡潔明瞭的語言
-2. 避免使用技術術語，如果必須使用，請簡單解釋
-3. 突出顯示重要信息
-4. 如果結果包含錯誤，請友好地解釋問題
-5. 如果操作成功，請確認操作已完成並簡要說明結果
+            # 6. 構建用戶 Prompt（根據結果類型優化）
+            user_prompt = self._build_user_prompt(
+                original_instruction, agent_result, result_type, intent
+            )
 
-請只返回轉換後的自然語言描述，不要包含額外的格式標記。
-
-**Mermaid 圖表渲染要求**（如果響應中包含 Mermaid 圖表）：
-- **版本要求**：使用 Mermaid 10.0 版本語法規範。
-- **符號衝突處理**：節點標籤中包含特殊字符（如 `/`、`(`、`)`、`[`、`]`、`{`、`}`、`|`、`&`、`<`、`>` 等）時，必須使用雙引號包裹整個標籤文本。示例：`A["API/接口"]` 而不是 `A[API/接口]`。
-- **段落換行**：節點標籤中的多行文本必須使用 `<br>` 標籤進行換行，不能使用 `\\n` 或直接換行。示例：`A["第一行<br>第二行"]`。
-- **節點 ID 規範**：節點 ID 不能包含空格、特殊字符（如 `/`、`(`、`)` 等），建議使用下劃線或連字符：`api_gateway` 或 `api-gateway`。
-- **引號轉義**：如果節點標籤中包含雙引號，需要使用轉義：`A["用戶說：\\"你好\\""]`。
-- **避免保留字衝突**：避免使用 Mermaid 保留字（如 `style`、`classDef`、`click`、`link`、`class` 等）作為節點 ID 或類名。
-- **語法檢查**：確保所有箭頭方向正確（`-->`、`<--`、`<-->`），確保子圖語法正確：`subgraph id["標籤"]`。"""
-
-            # 5. 構建用戶 Prompt
-            user_prompt = f"""原始指令：{original_instruction}
-
-執行結果：
-{self._format_result_for_llm(agent_result)}
-
-請將上述技術性結果轉換為友好的自然語言響應。"""
-
-            # 6. 調用 LLM 生成格式化結果
+            # 7. 調用 LLM 生成格式化結果
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ]
 
-            response = await llm_client.chat(messages, max_tokens=500)
+            response = await llm_client.chat(messages, max_tokens=1000)
 
-            # 7. 提取格式化後的文本
+            # 8. 提取格式化後的文本
             formatted_text = response.get("content") or response.get("text") or ""
             if not formatted_text:
                 # 如果 LLM 調用失敗，返回簡單的格式化結果
@@ -980,6 +1112,183 @@ class AgentOrchestrator:
             logger.warning(f"Failed to format result with LLM: {e}, using simple formatting")
             # 如果 LLM 調用失敗，使用簡單格式化
             return self._format_result_simple(agent_result, original_instruction)
+
+    def _identify_result_type(
+        self,
+        agent_result: Dict[str, Any],
+        intent: Optional[Dict[str, Any]],
+        task_type: Optional[str],
+    ) -> str:
+        """
+        識別結果類型
+
+        Args:
+            agent_result: Agent 執行結果
+            intent: 結構化意圖
+            task_type: 任務類型
+
+        Returns:
+            結果類型字符串（如 "config", "log_query", "data_query", "execution"）
+        """
+        # 優先使用 intent 中的信息
+        if intent:
+            if isinstance(intent, dict):
+                if intent.get("scope") and intent.get("action"):
+                    return "config"
+                if intent.get("log_type"):
+                    return "log_query"
+            elif hasattr(intent, "scope") and hasattr(intent, "action"):
+                return "config"
+            elif hasattr(intent, "log_type"):
+                return "log_query"
+
+        # 使用 task_type
+        if task_type:
+            if task_type in ["config", "system_config"]:
+                return "config"
+            elif task_type == "log_query":
+                return "log_query"
+            elif task_type in ["query", "data_query"]:
+                return "data_query"
+
+        # 根據結果內容推斷
+        if "config_data" in agent_result or "scope" in agent_result:
+            return "config"
+        if "logs" in agent_result or "log_entries" in agent_result:
+            return "log_query"
+        if "data" in agent_result or "records" in agent_result:
+            return "data_query"
+
+        # 默認類型
+        return "execution"
+
+    def _build_formatting_prompt(self, result_type: str, intent: Optional[Dict[str, Any]]) -> str:
+        """
+        構建格式化提示詞（根據結果類型）
+
+        Args:
+            result_type: 結果類型
+            intent: 結構化意圖（可選）
+
+        Returns:
+            System Prompt 字符串
+        """
+        base_prompt = """你是一個友好的 AI 助手。你的任務是將技術性的執行結果轉換為清晰、友好的自然語言響應。
+
+請遵循以下原則：
+1. 使用簡潔明瞭的語言
+2. 避免使用技術術語，如果必須使用，請簡單解釋
+3. 突出顯示重要信息
+4. 如果結果包含錯誤，請友好地解釋問題
+5. 如果操作成功，請確認操作已完成並簡要說明結果
+6. 對於列表類結果，使用清晰的格式（如編號列表或表格）
+7. 對於配置操作，明確說明操作類型和影響範圍
+
+請只返回轉換後的自然語言描述，不要包含額外的格式標記。"""
+
+        # 根據結果類型添加特定指導
+        type_specific_prompts = {
+            "config": """
+**配置操作結果格式化要求**：
+- 明確說明操作類型（查詢/創建/更新/刪除/回滾）
+- 說明配置範圍（系統級/租戶級/用戶級）
+- 如果涉及配置值變更，清晰展示變更前後的值
+- 對於查詢結果，使用結構化的方式展示配置項
+- 如果操作需要二次確認，明確說明原因
+""",
+            "log_query": """
+**日誌查詢結果格式化要求**：
+- 如果查詢到日誌，使用清晰的時間順序展示
+- 對於錯誤日誌，突出顯示錯誤類型和影響
+- 如果沒有查詢到日誌，友好地說明
+- 統計信息（如總數、錯誤數）要清晰展示
+- 使用時間範圍說明查詢的時間範圍
+""",
+            "data_query": """
+**數據查詢結果格式化要求**：
+- 使用表格或列表格式展示數據
+- 如果數據量大，提供摘要和統計信息
+- 突出顯示關鍵數據點
+- 如果查詢結果為空，友好地說明
+""",
+            "execution": """
+**執行結果格式化要求**：
+- 明確說明執行狀態（成功/失敗/部分成功）
+- 如果成功，簡要說明執行的操作和結果
+- 如果失敗，友好地解釋錯誤原因和可能的解決方案
+- 對於多步驟操作，說明每個步驟的執行情況
+""",
+        }
+
+        specific_prompt = type_specific_prompts.get(result_type, "")
+
+        # Mermaid 圖表渲染要求（通用）
+        mermaid_prompt = """
+
+**Mermaid 圖表渲染要求**（如果響應中包含 Mermaid 圖表）：
+- **版本要求**：使用 Mermaid 10.0 版本語法規範。
+- **符號衝突處理**：節點標籤中包含特殊字符（如 `/`、`(`、`)`、`[`、`]`、`{`、`}`、`|`、`&`、`<`、`>` 等）時，必須使用雙引號包裹整個標籤文本。示例：`A["API/接口"]` 而不是 `A[API/接口]`。
+- **段落換行**：節點標籤中的多行文本必須使用 `<br>` 標籤進行換行，不能使用 `\\n` 或直接換行。示例：`A["第一行<br>第二行"]`。
+- **節點 ID 規範**：節點 ID 不能包含空格、特殊字符（如 `/`、`(`、`)` 等），建議使用下劃線或連字符：`api_gateway` 或 `api-gateway`。
+- **引號轉義**：如果節點標籤中包含雙引號，需要使用轉義：`A["用戶說：\\"你好\\""]`。
+- **避免保留字衝突**：避免使用 Mermaid 保留字（如 `style`、`classDef`、`click`、`link`、`class` 等）作為節點 ID 或類名。
+- **語法檢查**：確保所有箭頭方向正確（`-->`、`<--`、`<-->`），確保子圖語法正確：`subgraph id["標籤"]`。"""
+
+        return base_prompt + specific_prompt + mermaid_prompt
+
+    def _build_user_prompt(
+        self,
+        original_instruction: str,
+        agent_result: Dict[str, Any],
+        result_type: str,
+        intent: Optional[Dict[str, Any]],
+    ) -> str:
+        """
+        構建用戶提示詞（根據結果類型優化）
+
+        Args:
+            original_instruction: 原始指令
+            agent_result: Agent 執行結果
+            result_type: 結果類型
+            intent: 結構化意圖（可選）
+
+        Returns:
+            用戶 Prompt 字符串
+        """
+        formatted_result = self._format_result_for_llm(agent_result)
+
+        prompt = f"""原始指令：{original_instruction}
+
+執行結果：
+{formatted_result}"""
+
+        # 根據結果類型添加額外上下文
+        if result_type == "config" and intent:
+            if isinstance(intent, dict):
+                action = intent.get("action", "")
+                scope = intent.get("scope", "")
+                level = intent.get("level", "")
+                prompt += f"""
+
+配置操作上下文：
+- 操作類型：{action}
+- 配置範圍：{scope}
+- 配置層級：{level or '未指定'}"""
+
+        elif result_type == "log_query" and intent:
+            if isinstance(intent, dict):
+                log_type = intent.get("log_type", "")
+                start_time = intent.get("start_time", "")
+                end_time = intent.get("end_time", "")
+                prompt += f"""
+
+日誌查詢上下文：
+- 日誌類型：{log_type or '未指定'}
+- 時間範圍：{start_time or '未指定'} 至 {end_time or '未指定'}"""
+
+        prompt += "\n\n請將上述技術性結果轉換為友好的自然語言響應。"
+
+        return prompt
 
     def _format_result_for_llm(self, result: Dict[str, Any]) -> str:
         """
@@ -1331,3 +1640,92 @@ class AgentOrchestrator:
         message += "請確認是否繼續執行此操作？"
 
         return message
+
+    async def process_with_react(
+        self,
+        instruction: str,
+        context: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        react_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        使用 ReAct FSM 處理自然語言請求（GRO 架構模式）
+
+        ⭐ 這是階段2新增的方法，使用 ReAct FSM 狀態機模式處理請求。
+        與 process_natural_language_request() 方法並存，保持向後兼容。
+
+        Args:
+            instruction: 自然語言指令
+            context: 上下文信息（可選）
+            user_id: 用戶 ID（可選）
+            session_id: 會話 ID（可選）
+            react_id: ReAct session ID（可選，如果不提供則自動生成）
+
+        Returns:
+            處理結果字典，包含：
+            - status: 狀態（"completed", "failed"）
+            - result: 結果數據（如果成功）
+            - error: 錯誤信息（如果失敗）
+            - react_id: ReAct session ID
+            - trace_id: 追蹤 ID
+        """
+        from pathlib import Path
+
+        from agents.services.react_fsm import ReactStateMachine
+
+        # 初始化 ReAct FSM（懶加載）
+        if not hasattr(self, "_react_fsm"):
+            from agents.services.message_bus import MessageBus
+            from agents.services.observation_collector import ObservationCollector
+            from agents.services.policy_engine import PolicyEngine
+
+            # 加載默認政策文件
+            policy_path = (
+                Path(__file__).resolve().parent.parent.parent
+                / "config"
+                / "policies"
+                / "default_policy.yaml"
+            )
+            policy_engine = PolicyEngine(
+                default_policy_path=policy_path if policy_path.exists() else None
+            )
+
+            # 初始化 Message Bus
+            message_bus = MessageBus()
+
+            self._react_fsm = ReactStateMachine(
+                policy_engine=policy_engine,
+                observation_collector=ObservationCollector(),
+                message_bus=message_bus,
+            )
+
+        # 執行 ReAct FSM
+        try:
+            react_result = await self._react_fsm.execute(
+                command=instruction,
+                context={
+                    **(context or {}),
+                    "user_id": user_id,
+                    "session_id": session_id,
+                },
+                react_id=react_id,
+            )
+
+            # 格式化結果
+            return {
+                "status": "completed" if react_result.success else "failed",
+                "result": react_result.result,
+                "error": react_result.error,
+                "react_id": react_result.react_id,
+                "trace_id": react_result.react_id,  # 使用 react_id 作為 trace_id
+                "total_iterations": react_result.total_iterations,
+            }
+        except Exception as e:
+            logger.error(f"ReAct FSM execution failed: {e}", exc_info=True)
+            return {
+                "status": "failed",
+                "error": str(e),
+                "react_id": react_id or "unknown",
+                "trace_id": react_id or "unknown",
+            }

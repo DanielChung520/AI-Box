@@ -14,6 +14,7 @@
 import json
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # 添加項目根目錄到 Python 路徑
@@ -53,32 +54,32 @@ def import_ontology(json_file_path: Path) -> str:
     print(f"📖 載入文件: {json_file_path}")
     with open(json_file_path, "r", encoding="utf-8") as f:
         json_data = json.load(f)
-    
+
     # 提取信息
     ontology_name = json_data.get("ontology_name", "")
     filename = json_file_path.name
     name, type_val = extract_name_and_type(ontology_name, filename)
-    
+
     # 處理 inherits_from
     inherits_from = json_data.get("inherits_from", [])
     if isinstance(inherits_from, str):
         inherits_from = [inherits_from]
-    
+
     # 處理 compatible_domains
     compatible_domains = json_data.get("compatible_domains", [])
     if not compatible_domains and type_val == "major":
         # 如果是 major 類型且沒有指定，根據文件名推斷
         if "ai-box" in filename.lower() or "ai_box" in filename.lower():
             compatible_domains = ["domain-ai-box.json"]
-    
-    print(f"✅ JSON 數據解析成功")
+
+    print("✅ JSON 數據解析成功")
     print(f"   Ontology 名稱: {ontology_name}")
     print(f"   類型: {type_val}")
     print(f"   名稱: {name}")
     print(f"   版本: {json_data.get('version', '1.0')}")
     print(f"   實體類數量: {len(json_data.get('entity_classes', []))}")
     print(f"   關係屬性數量: {len(json_data.get('object_properties', []))}")
-    
+
     # 創建 OntologyCreate
     ontology_create = OntologyCreate(
         type=type_val,
@@ -100,24 +101,24 @@ def import_ontology(json_file_path: Path) -> str:
         data_classification="INTERNAL",
         sensitivity_labels=None,
     )
-    
+
     # 連接 ArangoDB
-    print(f"\n🔌 連接 ArangoDB...")
+    print("\n🔌 連接 ArangoDB...")
     client = ArangoDBClient()
     store_service = OntologyStoreService(client)
     print("✅ ArangoDB 連接成功")
-    
+
     # 保存 Ontology
-    print(f"\n💾 保存 Ontology 到 ArangoDB（系統級）...")
+    print("\n💾 保存 Ontology 到 ArangoDB（系統級）...")
     ontology_id = store_service.save_ontology(
         ontology_create,
         tenant_id=None,  # 系統級
         changed_by="system",
     )
-    print(f"✅ Ontology 保存成功！")
+    print("✅ Ontology 保存成功！")
     print(f"   Ontology ID: {ontology_id}")
-    print(f"   租戶 ID: null (系統級)")
-    
+    print("   租戶 ID: null (系統級)")
+
     return ontology_id
 
 
@@ -125,16 +126,17 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("用法: python import_ontology.py <json_file>")
         sys.exit(1)
-    
+
     json_file = Path(sys.argv[1])
     if not json_file.exists():
         print(f"❌ 錯誤：文件不存在: {json_file}")
         sys.exit(1)
-    
+
     try:
         import_ontology(json_file)
     except Exception as e:
         print(f"❌ 錯誤: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

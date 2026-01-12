@@ -89,7 +89,7 @@ def test_tool_indicators():
 
     from agents.task_analyzer.analyzer import TaskAnalyzer
 
-    analyzer = TaskAnalyzer()
+    TaskAnalyzer()
 
     # 獲取工具指示詞列表（從代碼中）
     tool_indicators = [
@@ -119,9 +119,7 @@ def test_tool_indicators():
     all_passed = True
     for query, expected_keywords, should_match in test_cases:
         query_lower = query.lower().strip()
-        matched_keywords = [
-            kw for kw in tool_indicators if kw in query_lower
-        ]
+        matched_keywords = [kw for kw in tool_indicators if kw in query_lower]
         matches = len(matched_keywords) > 0
         status = "✅" if matches == should_match else "❌"
         if matches != should_match:

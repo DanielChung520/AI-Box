@@ -1,0 +1,137 @@
+{
+  "report_file": "/Users/daniel/GitHub/AI-Box/docs/系统设计文档/核心组件/Agent平台/router_llm_model_comparison_20260109_141705.json",
+  "analysis": {
+    "model_scores": {
+      "qwen3-next:latest": {
+        "task_type_accuracy": 0.0,
+        "needs_agent_accuracy": 0.0,
+        "overall_success_rate": 0.0,
+        "avg_time": 30.00270520846049,
+        "score": 0.0
+      },
+      "gpt-oss:120b-cloud": {
+        "task_type_accuracy": 100.0,
+        "needs_agent_accuracy": 100.0,
+        "overall_success_rate": 100.0,
+        "avg_time": 2.5627603848775227,
+        "score": 1.0487447923024495
+      },
+      "mistral-nemo:12b": {
+        "task_type_accuracy": 40.0,
+        "needs_agent_accuracy": 40.0,
+        "overall_success_rate": 40.0,
+        "avg_time": 18.177489201227825,
+        "score": 0.4
+      },
+      "gpt-oss:20b": {
+        "task_type_accuracy": 100.0,
+        "needs_agent_accuracy": 100.0,
+        "overall_success_rate": 100.0,
+        "avg_time": 11.618354082107544,
+        "score": 1.0
+      },
+      "qwen3-coder:30b": {
+        "task_type_accuracy": 100.0,
+        "needs_agent_accuracy": 100.0,
+        "overall_success_rate": 100.0,
+        "avg_time": 13.031458616256714,
+        "score": 1.0
+      }
+    },
+    "sorted_models": [
+      [
+        "gpt-oss:120b-cloud",
+        {
+          "task_type_accuracy": 100.0,
+          "needs_agent_accuracy": 100.0,
+          "overall_success_rate": 100.0,
+          "avg_time": 2.5627603848775227,
+          "score": 1.0487447923024495
+        }
+      ],
+      [
+        "gpt-oss:20b",
+        {
+          "task_type_accuracy": 100.0,
+          "needs_agent_accuracy": 100.0,
+          "overall_success_rate": 100.0,
+          "avg_time": 11.618354082107544,
+          "score": 1.0
+        }
+      ],
+      [
+        "qwen3-coder:30b",
+        {
+          "task_type_accuracy": 100.0,
+          "needs_agent_accuracy": 100.0,
+          "overall_success_rate": 100.0,
+          "avg_time": 13.031458616256714,
+          "score": 1.0
+        }
+      ],
+      [
+        "mistral-nemo:12b",
+        {
+          "task_type_accuracy": 40.0,
+          "needs_agent_accuracy": 40.0,
+          "overall_success_rate": 40.0,
+          "avg_time": 18.177489201227825,
+          "score": 0.4
+        }
+      ],
+      [
+        "qwen3-next:latest",
+        {
+          "task_type_accuracy": 0.0,
+          "needs_agent_accuracy": 0.0,
+          "overall_success_rate": 0.0,
+          "avg_time": 30.00270520846049,
+          "score": 0.0
+        }
+      ]
+    ],
+    "best_model": "gpt-oss:120b-cloud",
+    "statistics": {
+      "qwen3-next:latest": {
+        "task_type_accuracy": 0.0,
+        "needs_agent_accuracy": 0.0,
+        "overall_success_rate": 0.0,
+        "avg_time": 30.00270520846049,
+        "total_time": 450.04057812690735,
+        "avg_confidence": 0.0
+      },
+      "gpt-oss:120b-cloud": {
+        "task_type_accuracy": 100.0,
+        "needs_agent_accuracy": 100.0,
+        "overall_success_rate": 100.0,
+        "avg_time": 2.5627603848775227,
+        "total_time": 38.44140577316284,
+        "avg_confidence": 0.958
+      },
+      "mistral-nemo:12b": {
+        "task_type_accuracy": 40.0,
+        "needs_agent_accuracy": 40.0,
+        "overall_success_rate": 40.0,
+        "avg_time": 18.177489201227825,
+        "total_time": 272.66233801841736,
+        "avg_confidence": 0.37
+      },
+      "gpt-oss:20b": {
+        "task_type_accuracy": 100.0,
+        "needs_agent_accuracy": 100.0,
+        "overall_success_rate": 100.0,
+        "avg_time": 11.618354082107544,
+        "total_time": 174.27531123161316,
+        "avg_confidence": 0.9266666666666666
+      },
+      "qwen3-coder:30b": {
+        "task_type_accuracy": 100.0,
+        "needs_agent_accuracy": 100.0,
+        "overall_success_rate": 100.0,
+        "avg_time": 13.031458616256714,
+        "total_time": 195.4718792438507,
+        "avg_confidence": 0.9533333333333333
+      }
+    }
+  }
+}

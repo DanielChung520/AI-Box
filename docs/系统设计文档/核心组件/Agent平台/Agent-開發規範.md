@@ -2,7 +2,7 @@
 
 **創建日期**: 2025-01-27
 **創建人**: Daniel Chung
-**最後修改日期**: 2025-01-27
+**最後修改日期**: 2026-01-11
 
 ## 目錄
 
@@ -39,6 +39,67 @@ AI-Box Agent Platform 是一個統一的 Agent 管理和協調平台，支持：
 ---
 
 ## 架構概述
+
+### 架構分離設計
+
+AI-Box Agent Platform 採用協調層與執行層分離的架構設計，支持多團隊協作和獨立開發。
+
+#### 整體架構
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              AI-Box 協調層（內建服務）                  │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Agent Registry（註冊表）                       │   │
+│  │  - Agent 服務發現                               │   │
+│  │  - 健康檢查                                     │   │
+│  │  - 負載均衡                                     │   │
+│  └──────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Agent Orchestrator（協調器）                    │   │
+│  │  - 任務路由                                     │   │
+│  │  - 任務分發                                     │   │
+│  │  - 結果聚合                                     │   │
+│  └──────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Task Analyzer（任務分析器）                     │   │
+│  │  - 任務分類                                     │   │
+│  │  - Agent 選擇                                   │   │
+│  └──────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+                        ↓ HTTP / MCP
+┌─────────────────────────────────────────────────────────┐
+│          Agent 執行服務（獨立服務，可選部署）            │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Planning Agent Service                         │   │
+│  │  - 計劃生成                                     │   │
+│  │  - 計劃驗證                                     │   │
+│  └──────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Execution Agent Service                        │   │
+│  │  - 任務執行                                     │   │
+│  │  - 狀態管理                                     │   │
+│  └──────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Review Agent Service                            │   │
+│  │  - 結果審查                                     │   │
+│  │  - 質量檢查                                     │   │
+│  └──────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Workflow Engine Service                        │   │
+│  │  - AutoGen 工作流                               │   │
+│  │  - CrewAI 工作流                                │   │
+│  │  - LangGraph 工作流                             │   │
+│  └──────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 設計目標
+
+1. **職責分離**: 協調層負責任務路由和調度，執行層負責具體 Agent 邏輯
+2. **獨立部署**: Agent 執行服務可以獨立部署和擴展
+3. **多協議支持**: 支持 HTTP REST API 和 MCP Protocol 兩種通信方式
+4. **團隊協作**: 支持不同團隊獨立開發和部署 Agent 服務
 
 ### 三層架構
 
@@ -191,6 +252,47 @@ success = registry.register_agent(request, instance=my_agent)
 
 ## 外部 Agent 開發
 
+### 通信協議
+
+外部 Agent 支持兩種通信協議：
+
+#### HTTP REST API
+
+**優點**:
+
+- 簡單易用，標準化
+- 易於調試和監控
+- 支持負載均衡和反向代理
+
+**端點示例**:
+
+```http
+POST /v1/execute
+Content-Type: application/json
+
+{
+  "task_id": "task-123",
+  "task_type": "planning",
+  "task_data": {...},
+  "context": {...},
+  "metadata": {...}
+}
+```
+
+#### MCP Protocol
+
+**優點**:
+
+- 高性能，低延遲
+- 支持雙向通信
+- 適合實時協作場景
+
+**使用場景**:
+
+- 需要實時狀態更新
+- 複雜的 Agent 協作
+- 高性能要求
+
 ### 實現 HTTP API
 
 外部 Agent 需要實現符合 `AgentServiceProtocol` 的 HTTP API：
@@ -221,6 +323,36 @@ async def health_check():
 async def get_capabilities():
     return {"description": "External agent capabilities"}
 ```
+
+### 獨立 Agent 服務開發
+
+#### 目錄結構
+
+```
+agent-planning-service/
+├── main.py                 # FastAPI 入口
+├── agent.py                # Agent 實現
+├── models.py               # 數據模型
+├── handlers.py             # MCP Handlers（可選）
+├── Dockerfile              # Docker 配置
+├── requirements.txt        # 依賴
+└── README.md              # 文檔
+```
+
+#### Agent 服務註冊流程
+
+1. **Agent 服務啟動**
+   - Agent 服務啟動後，自動向 Registry 註冊
+   - 提供服務端點（HTTP 或 MCP）
+   - 聲明服務能力和元數據
+
+2. **健康檢查**
+   - Registry 定期檢查 Agent 服務健康狀態
+   - 自動移除不可用的服務
+
+3. **服務發現**
+   - Orchestrator 通過 Registry 發現可用的 Agent 服務
+   - 根據任務類型選擇合適的 Agent
 
 ### 註冊外部 Agent
 
@@ -320,6 +452,32 @@ permissions = AgentPermissionConfig(
 
 ## API 參考
 
+### Agent Service Protocol
+
+所有 Agent 服務必須實現以下接口：
+
+```python
+from abc import ABC, abstractmethod
+
+class AgentServiceProtocol(ABC):
+    """Agent 服務協議接口"""
+
+    @abstractmethod
+    async def execute(request: AgentServiceRequest) -> AgentServiceResponse:
+        """執行任務"""
+        pass
+
+    @abstractmethod
+    async def health_check() -> AgentServiceStatus:
+        """健康檢查"""
+        pass
+
+    @abstractmethod
+    async def get_capabilities() -> Dict[str, Any]:
+        """獲取服務能力"""
+        pass
+```
+
 ### Agent Registry API
 
 #### 註冊 Agent
@@ -368,7 +526,13 @@ Content-Type: application/json
 - **可組合性**：Agent 之間可以協作完成複雜任務
 - **可擴展性**：易於添加新功能和能力
 
-### 2. 錯誤處理
+### 2. 服務設計
+
+- **單一職責**: 每個 Agent 服務只負責一種類型的任務
+- **無狀態**: Agent 服務應該是無狀態的，狀態存儲在共享數據庫
+- **可擴展**: 支持水平擴展，多個實例可以並行運行
+
+### 3. 錯誤處理
 
 ```python
 async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
@@ -387,7 +551,13 @@ async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
         )
 ```
 
-### 3. 日誌記錄
+**錯誤處理最佳實踐**:
+
+- **優雅降級**: 服務不可用時，應該返回明確的錯誤信息
+- **重試機制**: 協調層應該實現重試邏輯
+- **超時處理**: 設置合理的超時時間
+
+### 4. 日誌記錄
 
 ```python
 import logging
@@ -398,6 +568,40 @@ async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
     # ...
     logger.debug(f"Task {request.task_id} completed")
 ```
+
+**監控和日誌最佳實踐**:
+
+- **健康檢查**: 實現 `/health` 端點
+- **指標收集**: 收集執行時間、成功率等指標
+- **結構化日誌**: 使用結構化日誌格式
+
+### 5. 安全性
+
+- **認證**: 使用 API Key 或 OAuth 進行認證
+- **授權**: 實現基於角色的訪問控制
+- **加密**: 使用 HTTPS/WSS 進行通信
+
+---
+
+## 遷移計劃
+
+### Phase 1: 接口抽象（已完成）
+
+- ✅ 創建 Agent Service Protocol 接口定義
+- ✅ 實現 HTTP 和 MCP Client
+- ✅ 更新 Registry 支持 Client 創建
+
+### Phase 2: 示例服務（進行中）
+
+- ⏳ 創建 Planning Agent Service 示例
+- ⏳ 實現服務註冊和健康檢查
+- ⏳ 更新 Orchestrator 使用 Client
+
+### Phase 3: 完整遷移
+
+- ⏸️ 將所有 Agent 遷移到獨立服務
+- ⏸️ 實現服務發現和負載均衡
+- ⏸️ 添加監控和日誌
 
 ---
 
@@ -427,5 +631,9 @@ async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
 
 ---
 
-**文檔版本**: 1.0.0
-**最後更新**: 2025-01-27
+---
+
+**文檔版本**: 1.1.0
+**最後更新**: 2026-01-11
+
+**更新說明**: 整合 `ARCHITECTURE_AGENT_SEPARATION.md` 的內容，包括架構分離設計、通信協議、Agent Service Protocol、獨立服務開發、遷移計劃和最佳實踐。
