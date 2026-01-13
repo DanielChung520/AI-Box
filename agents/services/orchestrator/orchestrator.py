@@ -8,7 +8,9 @@
 使用 AgentRegistry 管理 Agent，支持內部/外部 Agent 統一調度。
 """
 
+import asyncio
 import logging
+import time
 import uuid
 from collections import deque
 from datetime import datetime
@@ -58,6 +60,8 @@ class AgentOrchestrator:
         from agents.services.orchestrator.task_tracker import TaskTracker
 
         self._task_tracker = TaskTracker()
+        # ⭐ Execution Record Store：執行記錄存儲（L5 層級）
+        self._execution_record_store: Optional[Any] = None
 
     def get_agent(self, agent_id: str) -> Optional[AgentRegistryInfo]:
         """
@@ -352,6 +356,34 @@ class AgentOrchestrator:
             # 更新負載計數
             self._agent_loads[agent_id] = max(0, self._agent_loads.get(agent_id, 0) - 1)
 
+            # L5 層級：記錄執行指標
+            if task_result.started_at and task_result.completed_at:
+                latency_ms = int(
+                    (task_result.completed_at - task_result.started_at).total_seconds() * 1000
+                )
+            else:
+                latency_ms = 0
+
+            # 從任務元數據中獲取 intent 信息
+            intent_name = task_request.metadata.get("intent", {}).get(
+                "intent_type"
+            ) or task_request.metadata.get("intent", {}).get("action", "unknown")
+            
+            # 異步記錄執行指標
+            asyncio.create_task(
+                self._record_execution_metrics(
+                    intent=intent_name,
+                    task_count=1,
+                    execution_success=(task_result.status == TaskStatus.COMPLETED),
+                    latency_ms=latency_ms,
+                    task_results=[task_result.result] if task_result.result else [],
+                    trace_id=task_request.metadata.get("trace_id"),
+                    user_id=task_request.metadata.get("user_id"),
+                    session_id=task_request.metadata.get("session_id"),
+                    agent_ids=[agent_id],
+                )
+            )
+
             logger.info(f"Task {task_id} completed with status: {service_response.status}")
             return task_result
 
@@ -527,6 +559,20 @@ class AgentOrchestrator:
                 logger.warning(f"Failed to import Security Agent: {e}")
                 return None
         return self._security_agent
+
+    def _get_execution_record_store(self) -> Any:
+        """獲取 Execution Record Store 實例（懶加載，避免循環導入）"""
+        if self._execution_record_store is None:
+            try:
+                from agents.task_analyzer.execution_record import (
+                    get_execution_record_store_service,
+                )
+
+                self._execution_record_store = get_execution_record_store_service()
+            except Exception as e:
+                logger.warning(f"Failed to import Execution Record Store: {e}")
+                return None
+        return self._execution_record_store
 
     async def call_service(
         self,
@@ -889,6 +935,24 @@ class AgentOrchestrator:
 
                 # 8. 對於其他任務類型，暫時返回未實現（後續任務中會完善任務分發和結果修飾）
                 # TODO: 任務 4.3 將完善結果修飾和任務分發
+                
+                # L5 層級：記錄執行指標（任務創建階段）
+                # 注意：這裡只記錄任務創建，實際執行指標需要在任務完成後記錄
+                intent_name = intent_dict.get("intent_type") or intent_dict.get("action", "unknown")
+                asyncio.create_task(
+                    self._record_execution_metrics(
+                        intent=intent_name,
+                        task_count=1,  # 單個任務
+                        execution_success=True,  # 任務創建成功
+                        latency_ms=0,  # 創建階段無延遲
+                        task_results=[],
+                        trace_id=trace_id,
+                        user_id=user_id,
+                        session_id=session_id,
+                        agent_ids=[target_agent_id],
+                    )
+                )
+
                 return {
                     "status": "task_created",
                     "result": {
@@ -1583,6 +1647,58 @@ class AgentOrchestrator:
                 risk_level="high",
                 audit_context={"error": str(e)},
             )
+
+    async def _record_execution_metrics(
+        self,
+        intent: str,
+        task_count: int,
+        execution_success: bool,
+        latency_ms: int,
+        task_results: List[Dict[str, Any]],
+        trace_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        agent_ids: Optional[List[str]] = None,
+    ) -> None:
+        """
+        記錄執行指標（L5 層級）
+
+        Args:
+            intent: Intent 名稱
+            task_count: 任務數量
+            execution_success: 執行是否成功
+            latency_ms: 延遲時間（毫秒）
+            task_results: 任務執行結果列表
+            trace_id: 追蹤 ID
+            user_id: 用戶 ID
+            session_id: 會話 ID
+            agent_ids: 使用的 Agent ID 列表
+        """
+        try:
+            record_store = self._get_execution_record_store()
+            if record_store is None:
+                logger.warning("Execution Record Store is not available, skipping metrics recording")
+                return
+
+            from agents.task_analyzer.execution_record import ExecutionRecordCreate
+
+            record = ExecutionRecordCreate(
+                intent=intent,
+                task_count=task_count,
+                execution_success=execution_success,
+                user_correction=False,  # 需要從上下文獲取
+                latency_ms=latency_ms,
+                task_results=task_results,
+                trace_id=trace_id,
+                user_id=user_id,
+                session_id=session_id,
+                agent_ids=agent_ids or [],
+            )
+
+            record_store.save_record(record)
+            logger.debug(f"Recorded execution metrics: intent={intent}, success={execution_success}")
+        except Exception as e:
+            logger.warning(f"Failed to record execution metrics: {e}", exc_info=True)
 
     def _generate_confirmation_message(self, intent: Any, risk_level: str) -> str:
         """

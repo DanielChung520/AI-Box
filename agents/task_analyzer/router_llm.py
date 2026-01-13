@@ -1,7 +1,7 @@
 # 代碼功能說明: Router LLM 工程級實現
 # 創建日期: 2025-12-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-09
+# 最後修改日期: 2026-01-13
 
 """Router LLM 工程級實現 - 固定 System Prompt、完整 Schema 驗證、失敗保護機制"""
 
@@ -10,7 +10,11 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from agents.task_analyzer.models import RouterDecision, RouterInput
+from agents.task_analyzer.models import (
+    RouterDecision,
+    RouterInput,
+    SemanticUnderstandingOutput,
+)
 from llm.clients.factory import LLMClientFactory
 
 logger = logging.getLogger(__name__)
@@ -19,60 +23,40 @@ logger = logging.getLogger(__name__)
 # 測試結果（2026-01-09）：gpt-oss:120b-cloud 表現最優（100% 正確率，2.56s 平均耗時）
 ROUTER_LLM_DEFAULT_MODEL = "gpt-oss:120b-cloud"
 
-# 固定 System Prompt（不可動）
-ROUTER_SYSTEM_PROMPT = """You are a routing and classification engine inside an enterprise GenAI system.
+# 固定 System Prompt（v4 更新：純語義理解，不產生 intent）
+ROUTER_SYSTEM_PROMPT = """You are a semantic understanding engine inside an enterprise GenAI system.
 
-Your ONLY responsibility is to classify the user's query and system context into a routing decision object.
+Your ONLY responsibility is to understand the semantic meaning of the user's query and extract structured semantic information.
 
 STRICT RULES:
 - You must NOT answer the user's question.
 - You must NOT perform reasoning, planning, or step-by-step thinking.
 - You must NOT select specific tools, agents, or models.
 - You must NOT include explanations, markdown, or extra text.
+- You must NOT generate intent types (intent matching happens at L2 layer).
+- You must NOT specify which agent to use (agent selection happens at L3 layer).
+- You must ONLY output semantic understanding: topics, entities, action_signals, modality, and certainty.
 
-TOOL REQUIREMENT DETECTION (needs_tools):
-Set needs_tools=true if the query requires:
-1. Real-time data (current time, stock prices, weather, exchange rates)
-2. External API calls (web search, location services, maps)
-3. System operations (file I/O, database queries, system info)
-4. Deterministic calculations (unit conversions, currency exchange)
-5. Document creation or editing (creating files, generating documents, editing files)
+You must ALWAYS return a valid JSON object that strictly follows the SemanticUnderstandingOutput schema.
+The output must ONLY contain: topics, entities, action_signals, modality, and certainty.
+Do NOT include any intent classification, agent selection, or tool requirements (these are handled at later layers)."""
 
-AGENT REQUIREMENT DETECTION (needs_agent):
-Set needs_agent=true if the query requires:
-1. Multi-step planning, coordination, or complex workflow
-2. File/document operations (creating, editing, generating documents) - ALWAYS requires document-editing-agent
-3. Agent-specific capabilities that cannot be handled by simple tools
+# Safe Fallback（失敗保護，v4 更新：純語義理解輸出）
+SAFE_FALLBACK_SEMANTIC = SemanticUnderstandingOutput(
+    topics=[],
+    entities=[],
+    action_signals=[],
+    modality="conversation",
+    certainty=0.0,
+)
 
-CRITICAL RULE: File editing tasks MUST have:
-- intent_type=execution
-- needs_tools=true
-- needs_agent=true
-
-Examples that NEED tools:
-- "告訴我此刻時間" / "what time is it" → needs_tools=true (requires time tool)
-- "幫我查台積電股價" / "check TSMC stock price" → needs_tools=true (requires stock API)
-- "今天天氣如何" / "what's the weather today" → needs_tools=true (requires weather API)
-- "搜尋AI相關資訊" / "search for AI information" → needs_tools=true (requires web search)
-- "幫我產生Data Agent文件" / "generate Data Agent document" → needs_tools=true (requires document editing tool)
-- "幫我產生文件" / "generate a file" → needs_tools=true (requires document editing tool)
-- "生成文件" / "create a file" → needs_tools=true (requires document editing tool)
-- "幫我將Data Agent的說明做成一份文件" / "create a document about Data Agent" → needs_tools=true (requires document editing tool)
-- "生成一份報告" / "generate a report" → needs_tools=true (requires document editing tool)
-- "編輯README.md文件" / "edit README.md file" → needs_tools=true (requires document editing tool)
-
-Examples that DON'T need tools:
-- "什麼是DevSecOps" / "what is DevSecOps" → needs_tools=false (knowledge question)
-- "解釋一下微服務架構" / "explain microservices" → needs_tools=false (explanation)
-- "你好" / "hello" → needs_tools=false (conversation)
-
-You must ALWAYS return a valid JSON object that strictly follows the given JSON Schema.
-If the query is ambiguous, unsafe, or unclear, choose the SAFEST and LOWEST-COST routing option.
-If you are unsure, reduce complexity, avoid agents, and avoid tools."""
-
-# Safe Fallback（失敗保護）
+# Legacy Safe Fallback（過渡期兼容，保留用於向後兼容）
 SAFE_FALLBACK = RouterDecision(
-    intent_type="conversation",
+    topics=[],
+    entities=[],
+    action_signals=[],
+    modality="conversation",
+    intent_type="conversation",  # 過渡期兼容
     complexity="low",
     needs_agent=False,
     needs_tools=False,
@@ -191,9 +175,87 @@ Available Agents:
             logger.warning(f"Failed to get available agents info: {e}")
             return ""
 
+    def _build_user_prompt_v4(self, router_input: RouterInput) -> str:
+        """
+        構建 User Prompt（v4.0 純語義理解版本）
+
+        Args:
+            router_input: Router 輸入
+
+        Returns:
+            User Prompt 字符串
+        """
+        session_context_str = json.dumps(router_input.session_context, ensure_ascii=False, indent=2)
+        system_constraints_str = json.dumps(
+            router_input.system_constraints, ensure_ascii=False, indent=2
+        )
+
+        prompt = f"""Analyze the following input and extract ONLY semantic understanding information.
+
+User Query:
+{router_input.user_query}
+
+Session Context:
+{session_context_str}
+
+System Constraints:
+{system_constraints_str}
+
+Semantic Understanding Guidelines (v4.0 - L1 Layer):
+
+Your task is to extract semantic information from the user's query. You must NOT:
+- Generate intent types (intent matching happens at L2 layer)
+- Select agents (agent selection happens at L3 layer)
+- Determine tool requirements (tool selection happens at L3 layer)
+- Classify complexity or risk levels (these are handled at later layers)
+
+You must ONLY extract:
+
+1. topics (List[str]): Extract key topics/themes from the query
+   - Examples:
+     * "幫我產生Data Agent文件" → topics: ["document", "agent_design"]
+     * "編輯README.md文件" → topics: ["document", "file_editing"]
+     * "什麼是DevSecOps" → topics: ["devops", "security"]
+     * "解釋一下微服務架構" → topics: ["architecture", "microservices"]
+
+2. entities (List[str]): Extract mentioned entities (agents, systems, documents, etc.)
+   - Examples:
+     * "幫我產生Data Agent文件" → entities: ["Data Agent"]
+     * "編輯README.md文件" → entities: ["README.md"]
+     * "查詢系統配置" → entities: ["System Config", "Config Service"]
+
+3. action_signals (List[str]): Extract action verbs/signals indicating user intent
+   - Examples:
+     * "幫我產生Data Agent文件" → action_signals: ["generate", "create", "design"]
+     * "編輯README.md文件" → action_signals: ["edit", "modify", "update"]
+     * "整理一下這個文件" → action_signals: ["organize", "structure", "refine"]
+     * "什麼是DevSecOps" → action_signals: ["explain", "query"]
+
+4. modality (Literal["instruction", "question", "conversation", "command"]): Determine the communication mode
+   - instruction: User is giving instructions (e.g., "幫我產生文件", "編輯README.md")
+   - question: User is asking a question (e.g., "什麼是DevSecOps", "如何實現")
+   - conversation: Casual chat (e.g., "你好", "謝謝")
+   - command: Direct command (e.g., "執行這個任務", "運行測試")
+
+5. certainty (float, 0.0-1.0): Your confidence in the semantic understanding
+   - 0.9-1.0: Very clear semantic meaning
+   - 0.7-0.9: Clear semantic meaning with some ambiguity
+   - 0.6-0.7: Ambiguous semantic meaning
+   - <0.6: Very uncertain (will use fallback)
+
+Return ONLY valid JSON following the SemanticUnderstandingOutput schema:
+{{
+  "topics": ["topic1", "topic2"],
+  "entities": ["entity1", "entity2"],
+  "action_signals": ["action1", "action2"],
+  "modality": "instruction|question|conversation|command",
+  "certainty": 0.95
+}}"""
+        return prompt
+
     def _build_user_prompt(self, router_input: RouterInput) -> str:
         """
-        構建 User Prompt
+        構建 User Prompt（Legacy 版本，過渡期兼容）
 
         Args:
             router_input: Router 輸入
@@ -209,7 +271,7 @@ Available Agents:
         # 獲取可用 Agent 信息
         agents_info = self._get_available_agents_info()
 
-        prompt = f"""Analyze the following input and classify it according to the schema.
+        prompt = f"""Analyze the following input and extract semantic understanding according to the schema.
 {agents_info}
 
 User Query:
@@ -221,9 +283,37 @@ Session Context:
 System Constraints:
 {system_constraints_str}
 
-Classification Guidelines:
+Semantic Understanding Guidelines (v4 - Primary Output):
 
-1. intent_type:
+1. topics (List[str]): Extract key topics/themes from the query
+   - Examples:
+     * "幫我產生Data Agent文件" → topics: ["document", "agent_design"]
+     * "編輯README.md文件" → topics: ["document", "file_editing"]
+     * "什麼是DevSecOps" → topics: ["devops", "security"]
+     * "解釋一下微服務架構" → topics: ["architecture", "microservices"]
+
+2. entities (List[str]): Extract mentioned entities (agents, systems, documents, etc.)
+   - Examples:
+     * "幫我產生Data Agent文件" → entities: ["Data Agent", "Document Editing Agent"]
+     * "編輯README.md文件" → entities: ["README.md", "Document Editing Agent"]
+     * "查詢系統配置" → entities: ["System Config", "Config Service"]
+
+3. action_signals (List[str]): Extract action verbs/signals indicating user intent
+   - Examples:
+     * "幫我產生Data Agent文件" → action_signals: ["generate", "create", "design"]
+     * "編輯README.md文件" → action_signals: ["edit", "modify", "update"]
+     * "整理一下這個文件" → action_signals: ["organize", "structure", "refine"]
+     * "什麼是DevSecOps" → action_signals: ["explain", "query"]
+
+4. modality (Literal["instruction", "question", "conversation", "command"]): Determine the communication mode
+   - instruction: User is giving instructions (e.g., "幫我產生文件", "編輯README.md")
+   - question: User is asking a question (e.g., "什麼是DevSecOps", "如何實現")
+   - conversation: Casual chat (e.g., "你好", "謝謝")
+   - command: Direct command (e.g., "執行這個任務", "運行測試")
+
+Legacy Classification Guidelines (Transition Period - Keep for compatibility):
+
+1. intent_type (DEPRECATED - kept for backward compatibility):
    - conversation: casual chat, greetings, explanations, discussions (no action needed)
    - retrieval: lookup, fetch, search, query existing data
    - analysis: reasoning, comparison, evaluation, inference
@@ -241,7 +331,7 @@ Classification Guidelines:
        - "幫我整理一下這個文件" → intent_type=execution (organizing file)
      * CRITICAL: Technical operation descriptions (MUST be execution):
        - ANY task containing specific operation instructions MUST be classified as execution
-       - Technical operation keywords: "插入", "設置", "填充", "重命名", "合併", "凍結", "複製", "刪除", "更新", "創建"
+       - Technical operation keywords: "插入", "設置", "填充", "重命名", "合併", "凍結", "複製", "刪除", "更新", "創建", "輸入", "添加", "修改", "編輯"
        - Excel/spreadsheet operation examples (ALL must be execution):
          * "在 data.xlsx 中插入一列" → intent_type=execution (inserting column)
          * "將 A1 單元格設置為粗體" → intent_type=execution (setting format)
@@ -253,7 +343,9 @@ Classification Guidelines:
          * "複製 Sheet1 並命名為 '備份'" → intent_type=execution (copying sheet)
          * "刪除第 5 行" → intent_type=execution (deleting row)
          * "更新 B10 單元格的公式" → intent_type=execution (updating formula)
-       - Rule: If the query contains technical operation keywords (插入, 設置, 填充, 重命名, 合併, 凍結, 複製, 刪除, 更新, 創建) AND refers to a file/spreadsheet, it MUST be execution (NOT query)
+         * "在 data.xlsx 的 Sheet1 中 A1 單元格輸入數據" → intent_type=execution (inputting data into cell)
+         * "在 Sheet1 中添加一行數據" → intent_type=execution (adding row data)
+       - Rule: If the query contains technical operation keywords (插入, 設置, 填充, 重命名, 合併, 凍結, 複製, 刪除, 更新, 創建, 輸入, 添加, 修改, 編輯) AND refers to a file/spreadsheet, it MUST be execution (NOT query)
 
 2. complexity:
    - low: single-step, obvious, straightforward (e.g., "what time is it")
@@ -263,7 +355,7 @@ Classification Guidelines:
 3. needs_agent:
    - true if task requires:
      * Multi-step planning, coordination, or complex workflow
-     * File/document operations (creating, editing, generating documents) - REQUIRES document-editing-agent
+     * File/document operations (creating, editing, generating documents) - requires appropriate file editing agents (md-editor, xls-editor, md-to-pdf, xls-to-pdf, pdf-to-md)
      * Agent-specific capabilities that cannot be handled by simple tools
    - false for simple queries that can be answered directly or with a single tool
    - CRITICAL: File editing tasks (creating, editing, generating documents) ALWAYS require needs_agent=true
@@ -297,9 +389,9 @@ Classification Guidelines:
      * "生成文件" → needs_tools=true (user wants to GENERATE/CREATE a document - requires document editing tool)
      * "幫我將Data Agent的說明做成一份文件" → needs_tools=true (user wants to CREATE a document - requires document editing tool)
      * "生成一份報告" → needs_tools=true (user wants to GENERATE a document - requires document editing tool)
-     * "編輯README.md文件" → needs_tools=true, needs_agent=true (user wants to EDIT a document - requires document-editing-agent)
-     * "幫我產生文件" → needs_tools=true, needs_agent=true (user wants to CREATE a document - requires document-editing-agent)
-     * "生成報告" → needs_tools=true, needs_agent=true (user wants to GENERATE a document - requires document-editing-agent)
+     * "編輯README.md文件" → needs_tools=true, needs_agent=true (user wants to EDIT a document - requires md-editor)
+     * "幫我產生文件" → needs_tools=true, needs_agent=true (user wants to CREATE a document - requires appropriate file editing agent)
+     * "生成報告" → needs_tools=true, needs_agent=true (user wants to GENERATE a document - requires appropriate file editing agent)
      * "什麼是DevSecOps" → needs_tools=false, needs_agent=false (knowledge question - user only wants explanation, not document creation)
 
 5. determinism_required:
@@ -451,3 +543,86 @@ Return ONLY valid JSON following the RouterDecision schema."""
             logger.error(f"Router LLM failed: {e}", exc_info=True)
             # 失敗時使用 Safe Fallback（不重試）
             return SAFE_FALLBACK
+
+    async def route_v4(
+        self, router_input: RouterInput, similar_decisions: Optional[List[Dict[str, Any]]] = None
+    ) -> SemanticUnderstandingOutput:
+        """
+        執行語義理解（v4.0 L1 層級純語義理解輸出）
+
+        Args:
+            router_input: Router 輸入
+            similar_decisions: 相似決策列表（可選，用於 Context Bias，v4 中不使用）
+
+        Returns:
+            語義理解結果（SemanticUnderstandingOutput）
+        """
+        logger.info(f"L1 Semantic Understanding: {router_input.user_query[:100]}...")
+
+        try:
+            # 構建 v4 Prompt（純語義理解）
+            user_prompt = self._build_user_prompt_v4(router_input)
+
+            # 構建消息列表
+            messages = [
+                {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ]
+
+            # 調用 LLM
+            logger.info("Router LLM v4: Calling LLM for semantic understanding")
+            client = self._get_llm_client()
+            # 模型選擇：優先使用環境變量（用於測試），否則使用默認最優模型
+            import os
+
+            model_name = os.getenv("ROUTER_LLM_MODEL", ROUTER_LLM_DEFAULT_MODEL)
+            logger.debug(f"Router LLM v4: Using model: {model_name}")
+            response = await client.chat(messages=messages, model=model_name)
+            logger.debug("Router LLM v4: LLM response received")
+
+            # 提取響應內容
+            content = response.get("content") or response.get("text", "")
+            if not content:
+                logger.warning("Router LLM v4: LLM returned empty response, using fallback")
+                return SAFE_FALLBACK_SEMANTIC
+
+            logger.debug(f"Router LLM v4: LLM response content length: {len(content)}")
+
+            # 提取 JSON
+            json_data = self._extract_json_from_response(content)
+            if json_data is None:
+                logger.warning(
+                    "Router LLM v4: Failed to extract JSON from LLM response, using fallback"
+                )
+                logger.debug(f"Router LLM v4: Raw response content (first 500 chars): {content[:500]}")
+                return SAFE_FALLBACK_SEMANTIC
+
+            logger.debug(f"Router LLM v4: Extracted JSON data: {json_data}")
+
+            # 驗證 Schema
+            try:
+                semantic_output = SemanticUnderstandingOutput(**json_data)
+            except Exception as e:
+                logger.warning(f"Router LLM v4: Schema validation failed: {e}, using fallback")
+                logger.debug(f"Router LLM v4: JSON data that failed validation: {json_data}")
+                return SAFE_FALLBACK_SEMANTIC
+
+            # Certainty 門檻檢查
+            if semantic_output.certainty < MIN_CONFIDENCE_THRESHOLD:
+                logger.warning(
+                    f"Router LLM v4: Certainty {semantic_output.certainty} below threshold {MIN_CONFIDENCE_THRESHOLD}, using fallback"
+                )
+                return SAFE_FALLBACK_SEMANTIC
+
+            logger.info(
+                f"Router LLM v4: Semantic understanding - topics={semantic_output.topics}, "
+                f"entities={semantic_output.entities}, action_signals={semantic_output.action_signals}, "
+                f"modality={semantic_output.modality}, certainty={semantic_output.certainty:.2f}"
+            )
+
+            return semantic_output
+
+        except Exception as e:
+            logger.error(f"Router LLM v4 failed: {e}", exc_info=True)
+            # 失敗時使用 Safe Fallback（不重試）
+            return SAFE_FALLBACK_SEMANTIC

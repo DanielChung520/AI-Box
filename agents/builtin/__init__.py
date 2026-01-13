@@ -1,7 +1,7 @@
 # 代碼功能說明: 内建 Agent 模組
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-09
+# 最後修改日期: 2026-01-13
 
 """内建 Agent 模組
 
@@ -249,19 +249,40 @@ def _register_agent_helper(
         except Exception as e:
             logger.warning(f"Failed to register {name}: {e}", exc_info=True)
 
+def _do_register_all_agents(agents_dict: Optional[Dict[str, AgentServiceProtocol]] = None) -> Dict[str, AgentServiceProtocol]:
     """
-    註冊所有內建 Agent 到 Registry
-
+    實際執行所有 Agent 註冊邏輯的內部函數
+    
+    Args:
+        agents_dict: Agent 實例字典（如果為 None，使用全局 _builtin_agents）
+        
     Returns:
         內建 Agent 實例字典
     """
     global _builtin_agents
 
+    if agents_dict is None:
+        agents_dict = _builtin_agents
+    
     if not agents_dict:
         # 如果未初始化，先初始化
         initialize_builtin_agents()
+        agents_dict = _builtin_agents
+    else:
+        # 如果傳入了 agents_dict，使用它
+        _builtin_agents = agents_dict
 
-    _ = get_agent_registry()  # 初始化 registry
+    registry = get_agent_registry()  # 初始化 registry
+    
+    # 導入需要的類（用於 Agent 註冊）
+    from agents.services.protocol.base import AgentServiceProtocolType
+    from agents.services.registry.models import (
+        AgentEndpoints,
+        AgentMetadata,
+        AgentPermissionConfig,
+        AgentRegistrationRequest,
+        AgentStatus,
+    )
 
     # 註冊 Document Editing Agent
     document_editing_agent = agents_dict.get("document_editing")
@@ -667,7 +688,8 @@ def register_builtin_agents() -> Dict[str, AgentServiceProtocol]:
         # 如果未初始化，先初始化
         initialize_builtin_agents()
 
-    _ = get_agent_registry()  # 初始化 registry
+    # 調用實際的註冊邏輯
+    return _do_register_all_agents()
 
 
 def get_builtin_agent(agent_id: str) -> Optional[AgentServiceProtocol]:

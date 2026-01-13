@@ -1343,7 +1343,7 @@ GET /api/v1/document-editing-agent/v2/diff?doc_id=doc-123&base_version=v2&target
 1. **規格文檔**
    - 《文件編輯-Agent（Markdown）工程系統規格書-v2.md》
    - 《文件編輯-Agent-現有實現與v2規格比較分析.md》
-   - 《Agent-Platform-v3.md》
+   - 《Agent-Platform.md》（內部版本 v4.0）
 
 2. **相關服務文檔**
    - TaskWorkspaceService：`services/api/services/task_workspace_service.py`

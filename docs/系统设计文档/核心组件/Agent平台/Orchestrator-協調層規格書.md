@@ -1,18 +1,24 @@
 # Agent Orchestrator 協調層規格書
 
-**版本**：1.1
+**版本**：1.1 → 1.2（v4 架構適配）
 **創建日期**：2025-12-20
 **創建人**：Daniel Chung
-**最後修改日期**：2025-12-21
+**最後修改日期**：2026-01-13
 
 > **📋 相關文檔**：
 >
-> - [AI-Box-Agent-架構規格書-v2.md](./AI-Box-Agent-架構規格書-v2.md) - Agent 架構總體設計
+> - [AI-Box-Agent-架構規格書.md](./AI-Box-Agent-架構規格書.md) - Agent 架構總體設計（內部版本 v4.0）
+> - **[AI-Box 語義與任務工程-設計說明書-v4.md](../語義與任務分析/AI-Box 語義與任務工程-設計說明書-v4.md)** ⭐ **新增** - v4 架構完整設計說明（**必讀**：了解 v4 架構的 5 層處理流程）
 > - [Security-Agent-規格書.md](./Security-Agent-規格書.md) - Security Agent 詳細規格（**必讀**：了解權限檢查流程）
 > - [System-Config-Agent-規格書.md](./System-Config-Agent-規格書.md) - System Config Agent 詳細規格
 > - [LogService-規格書.md](./Tools/LogService-規格書.md) - LogService 統一日誌服務規格（**必讀**：了解日誌記錄機制）
 > - [ConfigMetadata-配置元數據機制規格書.md](./Tools/ConfigMetadata-配置元數據機制規格書.md) - 配置元數據機制規格（**必讀**：了解配置驗證機制）
-> - [ARCHITECTURE_AGENT_SEPARATION.md](./ARCHITECTURE_AGENT_SEPARATION.md) - Agent 架構分離設計
+>
+> **⚠️ 架構升級說明**：
+>
+> - 本文檔正在適配 **v4 架構（5層處理流程）**
+> - v4 架構詳細說明請參考：[AI-Box 語義與任務工程-設計說明書-v4.md](../語義與任務分析/AI-Box 語義與任務工程-設計說明書-v4.md)
+> - 當前狀態：v3 架構已實現，v4 架構正在實施中
 
 ---
 
@@ -34,11 +40,24 @@
 
 **Agent Orchestrator（協調層）**是 AI-Box Agent 系統的核心協調中心，位於三層架構的第一層，負責：
 
-- **任務分析與意圖理解**：解析自然語言指令，理解用戶意圖
+- **任務分析與意圖理解**：解析自然語言指令，理解用戶意圖（v4: L1-L2）
+- **能力映射與任務規劃**：匹配 Agent 能力，生成任務執行計劃（v4: L3）
+- **策略檢查與約束驗證**：執行前的權限、風險、策略檢查（v4: L4）
 - **Agent 管理與發現**：管理 Agent 註冊、發現、健康監控
 - **任務路由與分發**：根據任務需求選擇合適的 Agent 並分發任務
+- **執行與觀察**：任務執行和結果觀察（v4: L5）
 - **結果聚合與修飾**：收集 Agent 執行結果，轉換為友好的自然語言響應
 - **異步任務追蹤**：支持長時間運行的任務，提供狀態查詢
+
+**v4 架構對應**：
+
+| v4 層級 | Orchestrator 職責 | 狀態 |
+|---------|------------------|------|
+| **L1: Semantic Understanding** | 語義理解（Task Analyzer） | ✅ 已實現基礎 |
+| **L2: Intent & Task Abstraction** | 意圖抽象（Task Analyzer） | ⚠️ 需擴展 |
+| **L3: Capability Mapping & Planning** | 能力映射與任務規劃（Decision Engine） | ✅ 已實現基礎 |
+| **L4: Policy & Constraint** | 策略檢查與約束驗證（Policy Service） | ❌ 需新建 |
+| **L5: Execution + Observation** | 任務執行與觀察（Orchestrator） | ✅ 已實現基礎 |
 
 ### 1.2 設計原則
 
@@ -55,7 +74,10 @@
 │  第一層：協調層（Agent Orchestrator）                    │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │  Task Analyzer（任務分析器）                     │   │
-│  │  - 任務分類、意圖識別、指令澄清                   │   │
+│  │  - L1: 語義理解（Semantic Understanding）        │   │
+│  │  - L2: 意圖抽象（Intent & Task Abstraction）     │   │
+│  │  - L3: 能力映射與任務規劃（Capability Mapping）  │   │
+│  │  - L4: 策略檢查（Policy & Constraint）           │   │
 │  └──────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │  Agent Registry（Agent 註冊表）                  │   │
@@ -63,6 +85,7 @@
 │  └──────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │  Agent Orchestrator（Agent 協調器）              │   │
+│  │  - L5: 任務執行與觀察（Execution + Observation）│   │
 │  │  - 任務路由、分發、結果聚合                       │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘

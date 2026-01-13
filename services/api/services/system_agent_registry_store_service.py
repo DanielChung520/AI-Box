@@ -1,7 +1,7 @@
 # 代碼功能說明: System Agent Registry 存儲服務
 # 創建日期: 2026-01-09
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-09
+# 最後修改日期: 2026-01-13
 
 """System Agent Registry 存儲服務
 
@@ -358,7 +358,9 @@ class SystemAgentRegistryStoreService:
         doc["is_system_agent"] = True  # 確保標記為 System Agent
 
         try:
-            self._collection.update(agent_id, doc)
+            # ArangoDB update 方法需要傳入文檔的 _key 或 _id，而不是字符串
+            # 使用 {"_key": agent_id} 作為文檔標識
+            self._collection.update({"_key": agent_id}, doc)
             self._logger.info("system_agent_updated", agent_id=agent_id)
             return _document_to_model(doc)
         except Exception as exc:
@@ -465,7 +467,8 @@ class SystemAgentRegistryStoreService:
         doc["updated_at"] = datetime.utcnow().isoformat()
 
         try:
-            self._collection.update(agent_id, doc)
+            # ArangoDB update 方法需要傳入文檔的 _key 或 _id，而不是字符串
+            self._collection.update({"_key": agent_id}, doc)
             self._logger.info("system_agent_unregistered", agent_id=agent_id)
             return True
         except Exception as exc:

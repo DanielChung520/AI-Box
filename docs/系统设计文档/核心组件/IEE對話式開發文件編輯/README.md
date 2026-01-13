@@ -157,7 +157,7 @@ v2.0 開發階段的相關文檔已歸檔到 `archive/v2.0-development/` 目錄�
 
 ### 其他系統文檔
 
-- **Agent 平台規格書**：`../Agent平台/Agent-Platform-v3.md`
+- **Agent 平台規格書**：`../Agent平台/Agent-Platform.md`（內部版本 v4.0）
 - **文件上傳向量圖譜**：`../文件上傳向量圖譜/`
 
 ---

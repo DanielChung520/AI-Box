@@ -61,7 +61,7 @@
 2. **設計文檔**
    - `文件編輯-Agent-模組設計-v2.md`
    - `文件編輯-Agent-系統規格書-v2.0.md`
-   - `Agent-Platform-v3.md`
+   - `Agent-Platform.md`（內部版本 v4.0）
 
 ### 使用方法
 

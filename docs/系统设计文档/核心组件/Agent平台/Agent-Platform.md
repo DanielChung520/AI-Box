@@ -2,8 +2,8 @@
 
 **創建日期**: 2025-12-25
 **創建人**: Daniel Chung
-**最後修改日期**: 2026-01-11
-**版本**: v3
+**最後修改日期**: 2026-01-13
+**版本**: v4.0（階段七測試驗證已完成，階段八文檔完善進行中）
 
 ---
 
@@ -11,17 +11,34 @@
 
 Agent Platform 是 AI-Box 系統的核心協調中心，採用**三層分離架構**，結合 **GraphRAG-Orchestrator (GRO)** 理論框架，實現職責清晰、易於擴展、可審計、可回放的 Multi-Agent 協作平台。
 
+**✅ v4.0 架構狀態**：
+
+- **當前版本**：v4.0（5層處理流程）
+- **實現狀態**：核心組件已實現，主流程已遷移，階段七測試驗證已完成
+- **核心組件**：IntentDSL、PolicyValidationResult、TaskDAG、ExecutionRecord 等已實現
+- **測試驗證**：階段七已完成，共 12 個測試用例（端到端 5 個、性能 3 個、回歸 2 個、壓力 2 個）
+- **詳細說明**：請參考 [AI-Box 語義與任務工程-設計說明書-v4.md](../語義與任務分析/AI-Box 語義與任務工程-設計說明書-v4.md)
+- **升級計劃**：請參考 [Agent-Platform-v4-升級計劃書.md](./Agent-Platform-v4-升級計劃書.md)
+
 > **📋 本文檔整合了以下文檔的精華內容**：
 >
-> - [AI-Box-Agent-架構規格書-v3.md](./AI-Box-Agent-架構規格書-v3.md) - 完整架構規格
+> - [AI-Box-Agent-架構規格書.md](./AI-Box-Agent-架構規格書.md) - 完整架構規格（內部版本 v4.0）
 > - [Orchestrator-協調層規格書.md](./Orchestrator-協調層規格書.md) - 協調層完整規格
 > - [Router-LLM-Prompt-和模型信息.md](./Router-LLM-Prompt-和模型信息.md) - Router LLM 詳細說明
 > - [Agent_Orchestration_White_Paper.md](./Agent_Orchestration_White_Paper.md) - GRO 技術白皮書
 > - [System-Agent-Registry-實施總結.md](./System-Agent-Registry-實施總結.md) - System Agent Registry 實施總結
+> - **[AI-Box 語義與任務工程-設計說明書-v4.md](../語義與任務分析/AI-Box 語義與任務工程-設計說明書-v4.md)** ⭐ **新增** - v4 架構完整設計說明
 >
 > **📋 相關工作流詳細說明**：
 >
-> - [GenAI 工作流指令-語義-工具-模型-Agent 等調用.md](./GenAI 工作流指令-語義-工具-模型-Agent 等調用.md) - 完整工作流程詳細說明（實現細節、代碼位置、數據流、實際案例）
+> - ⚠️ **注意**：`GenAI 工作流指令-語義-工具-模型-Agent 等調用.md` 文檔已不存在，相關內容已整合到本文檔和其他規格書中
+>
+> **✅ v4.0 架構說明**：
+>
+> - 本文檔已升級為 **v4.0（5層架構）** 完整說明
+> - v4 架構詳細設計請參考：[AI-Box 語義與任務工程-設計說明書-v4.md](../語義與任務分析/AI-Box 語義與任務工程-設計說明書-v4.md)
+> - 當前狀態：v4 核心組件已實現（IntentDSL、PolicyValidationResult、TaskDAG、ExecutionRecord），主流程正在從 v3 遷移到 v4
+> - v3 架構說明已移至附錄，供歷史參考
 
 ---
 
@@ -81,7 +98,279 @@ AI-Box Agent Platform 採用**三層分離架構**，從上層到下層分別是
 
 Task Analyzer 是 Agent Platform 的「大腦」，負責理解用戶意圖、分析任務需求、匹配 Agent 能力，並做出路由決策。
 
-#### 4 層漸進式路由架構
+#### v4.0 架構：5 層處理流程（當前架構）
+
+Task Analyzer 採用**v4.0 5 層處理流程**，實現清晰的職責分離和強大的能力：
+
+```mermaid
+graph TD
+    A[User / System Input] --> B[L1: Semantic Understanding<br/>語義理解層]
+    B --> C[L2: Intent & Task Abstraction<br/>意圖與任務抽象層]
+    C --> D[L3: Capability Mapping & Task Planning<br/>能力映射與任務規劃層]
+    D --> E[L4: Constraint Validation & Policy Check<br/>約束驗證與策略檢查層]
+    E --> F[L5: Execution + Observation<br/>執行與觀察層]
+    F --> G[Memory / Feedback / Model Improvement]
+
+    style B fill:#e1f5ff
+    style C fill:#fff4e1
+    style D fill:#e8f5e9
+    style E fill:#fce4ec
+    style F fill:#f3e5f5
+```
+
+**v4.0 架構實現狀態**：
+
+| v4.0 層級 | 核心組件 | 實現狀態 | 文件位置 |
+|-----------|---------|---------|---------|
+| **L1: Semantic Understanding** | Router LLM | ✅ 已實現基礎 | `agents/task_analyzer/router_llm.py` |
+| **L2: Intent & Task Abstraction** | IntentDSL, IntentRegistry, IntentMatcher | ✅ 已實現 | `agents/task_analyzer/intent_registry.py`, `intent_matcher.py` |
+| **L3: Capability Mapping & Planning** | TaskDAG, TaskPlanner | ✅ 已實現 | `agents/task_analyzer/task_planner.py` |
+| **L4: Policy & Constraint** | PolicyValidationResult, PolicyService | ✅ 已實現 | `agents/task_analyzer/policy_service.py` |
+| **L5: Execution + Observation** | ExecutionRecord, ExecutionRecordStoreService | ✅ 已實現 | `agents/task_analyzer/execution_record.py` |
+
+**v4.0 架構核心改進**：
+
+1. **L1 語義理解層**：純語義理解，不產生 intent，不指定 agent
+2. **L2 意圖抽象層**：基於 Intent DSL 的固定意圖集合，版本化管理（✅ 已實現）
+3. **L3 能力映射層**：基於 Capability Registry 的能力發現和 Task DAG 規劃（✅ 已實現）
+4. **L4 策略檢查層**：執行前的權限、風險、策略和資源限制檢查（✅ 已實現）
+5. **L5 執行觀察層**：任務執行和結果觀察，支持回放和重試（✅ 已實現）
+
+> **📋 詳細說明**：請參考 [AI-Box 語義與任務工程-設計說明書-v4.md](../語義與任務分析/AI-Box 語義與任務工程-設計說明書-v4.md) 了解各層級的詳細設計和實現要求。
+
+---
+
+## 🧠 v4.0 架構：5 層處理流程詳解
+
+### L1：語義理解層（Semantic Understanding Layer）
+
+**職責**：回答「使用者說了什麼」，不回答「要做什麼」
+
+**實現位置**：`agents/task_analyzer/router_llm.py`
+
+#### 階段一升級說明（進行中）
+
+**升級目標**：將 Router LLM 輸出從 `RouterDecision`（混合 v3/v4）升級為純 `SemanticUnderstandingOutput`（v4）
+
+**當前狀態**：
+
+- ✅ Router LLM 已實現基礎語義理解
+- ✅ `RouterDecision` 已包含語義理解字段（topics, entities, action_signals, modality）
+- ⚠️ 但 `RouterDecision` 仍包含 v3 字段（intent_type, complexity 等），這是過渡期兼容
+- 🔴 **需要創建**：獨立的 `SemanticUnderstandingOutput` 類（設計文檔中已定義，但代碼中尚未實現）
+- 🔴 **需要重構**：Router LLM 輸出改為 `SemanticUnderstandingOutput`，移除 intent_type 等不屬於 L1 的字段
+
+**升級任務**：
+
+1. **定義 SemanticUnderstandingOutput Schema**（文件：`agents/task_analyzer/models.py`）
+2. **重構 Router LLM 輸出**（文件：`agents/task_analyzer/router_llm.py`）
+3. **更新 Prompt 模板**（明確要求只輸出語義理解，不產生 intent）
+4. **單元測試**（文件：`tests/agents/task_analyzer/test_router_llm_v4.py`）
+
+**驗收標準**：
+
+- ✅ `SemanticUnderstandingOutput` Schema 定義完整
+- ✅ Router LLM 輸出符合 Schema
+- ✅ 不產生 intent（intent 在 L2 產生）
+- ✅ 不指定 agent（agent 選擇在 L3）
+- ✅ 單元測試覆蓋率 ≥ 80%
+
+> **📋 詳細升級計劃**：請參考 [Agent-Platform-v4-升級計劃書.md](./Agent-Platform-v4-升級計劃書.md) 階段一：L1 語義理解層升級
+
+#### 核心功能
+
+**設計原則**：
+
+- ✅ 純語義理解，不產生 intent，不指定 agent
+- ✅ 輸出 `SemanticUnderstandingOutput`（topics, entities, action_signals, modality, certainty）
+- ✅ 使用 Router LLM 進行語義分析
+- ❌ **不使用 RAG**（L1 層級只做純語義理解）
+
+**輸出 Schema**：
+
+```python
+class SemanticUnderstandingOutput(BaseModel):
+    """L1 層級輸出：語義理解結果"""
+    topics: List[str] = Field(..., description="主題列表，如 ['document', 'system_design']")
+    entities: List[str] = Field(..., description="實體列表，如 ['Document Editing Agent', 'API Spec']")
+    action_signals: List[str] = Field(..., description="動作信號，如 ['design', 'refine', 'structure']")
+    modality: Literal["instruction", "question", "conversation", "command"] = Field(
+        ..., description="模態類型"
+    )
+    certainty: float = Field(..., ge=0.0, le=1.0, description="確定性分數")
+```
+
+**示例輸出**：
+
+```json
+{
+  "topics": ["document", "system_design"],
+  "entities": ["Document Editing Agent", "API Spec", "Patch Format"],
+  "action_signals": ["design", "refine", "structure"],
+  "modality": "instruction",
+  "certainty": 0.92
+}
+```
+
+**RAG 使用**：❌ 不用 RAG
+
+---
+
+### L2：意圖與任務抽象層（Intent & Task Abstraction Layer）
+
+**職責**：將 L1 的語義理解結果轉換為結構化的 Intent DSL
+
+**實現位置**：
+
+- `agents/task_analyzer/intent_registry.py` ✅ 已實現
+- `agents/task_analyzer/intent_matcher.py` ✅ 已實現
+
+**核心功能**：
+
+- ✅ Intent DSL 定義和版本管理
+- ✅ Intent Registry（存儲在 ArangoDB）
+- ✅ Intent Matcher（基於 L1 輸出匹配 Intent）
+
+**Intent DSL Schema**：
+
+```python
+class IntentDSL(BaseModel):
+    name: str  # Intent 名稱，如 'modify_document'
+    domain: str  # 領域，如 'system_architecture'
+    target: Optional[str]  # 目標 Agent
+    output_format: List[str]  # 輸出格式
+    depth: Literal["Basic", "Intermediate", "Advanced"]
+    version: str  # 版本號
+    default_version: bool  # 是否為默認版本
+    is_active: bool  # 是否啟用
+```
+
+**設計原則**：
+
+- 20-50 個固定 Intent
+- 版本化管理
+- 不允許動態生成
+
+**RAG 使用**：⚠️ 可輕度使用（檢索相似 Intent 案例）
+
+---
+
+### L3：能力映射與任務規劃層（Capability Mapping & Task Planning Layer）
+
+**職責**：基於 Intent 發現和匹配 Agent Capability，並生成 Task DAG
+
+**實現位置**：
+
+- `agents/task_analyzer/task_planner.py` ✅ 已實現
+- `agents/task_analyzer/decision_engine.py` ✅ 已實現（集成 Task DAG）
+
+**核心功能**：
+
+- ✅ Task DAG 生成（包含依賴關係）
+- ✅ RAG-2 集成（Capability Discovery）
+- ✅ Capability Registry 查詢
+
+**Task DAG Schema**：
+
+```python
+class TaskNode(BaseModel):
+    id: str  # 任務 ID，如 'T1'
+    capability: str  # 使用的 Capability 名稱
+    agent: str  # 所屬 Agent 名稱
+    depends_on: List[str]  # 依賴的任務 ID 列表
+
+class TaskDAG(BaseModel):
+    task_graph: List[TaskNode]  # 任務圖節點列表
+    reasoning: Optional[str]  # 規劃理由
+```
+
+**設計重點**：
+
+- Planner 可用 LLM 生成 Task DAG
+- Capability 選擇不可發明（只能從 Registry 選擇）
+- RAG-2 集成（必須使用）
+
+**RAG 使用**：✅ 核心使用 RAG-2（Capability Discovery）
+
+---
+
+### L4：執行約束與策略校驗層（Policy & Constraint Layer）
+
+**職責**：在執行前進行權限、風險、策略和資源限制檢查
+
+**實現位置**：`agents/task_analyzer/policy_service.py` ✅ 已實現
+
+**核心功能**：
+
+- ✅ 權限檢查（集成 Security Agent）
+- ✅ 風險評估
+- ✅ 策略符合性檢查
+- ✅ 資源限制檢查
+- ✅ RAG-3 集成（Policy & Constraint Knowledge）
+
+**PolicyValidationResult Schema**：
+
+```python
+class PolicyValidationResult(BaseModel):
+    allowed: bool  # 是否允許執行
+    requires_confirmation: bool  # 是否需要用戶確認
+    risk_level: Literal["low", "mid", "high"]  # 風險等級
+    reasons: List[str]  # 拒絕或需要確認的原因
+```
+
+**設計重點**：
+
+- 👉 **強烈建議不用 LLM**：使用規則引擎進行驗證
+- RAG-3 集成（必須使用）
+
+**RAG 使用**：✅ 必須使用 RAG-3（Policy & Constraint Knowledge）
+
+---
+
+### L5：執行與觀察層（Execution + Observation Layer）
+
+**職責**：執行 Task DAG，收集觀察數據，記錄執行指標
+
+**實現位置**：
+
+- `agents/task_analyzer/execution_record.py` ✅ 已實現
+- `agents/services/orchestrator/orchestrator.py` ✅ 已實現（任務執行）
+
+**核心功能**：
+
+- ✅ Task DAG 執行
+- ✅ 執行指標記錄（ExecutionRecord）
+- ✅ 命中率統計（Hit Rate Service）
+- ✅ 品質評估（Quality Assessment Service）
+
+**ExecutionRecord Schema**：
+
+```python
+class ExecutionRecord(BaseModel):
+    intent: str  # Intent 名稱
+    task_count: int  # 任務數量
+    execution_success: bool  # 執行是否成功
+    user_correction: bool  # 用戶是否修正
+    latency_ms: int  # 延遲時間（毫秒）
+    task_results: List[Dict[str, Any]]  # 任務執行結果
+    agent_ids: List[str]  # 使用的 Agent ID 列表
+```
+
+**用途**：
+
+- Intent → Task 命中率統計
+- Agent 能力品質評估
+- 私有模型微調資料來源
+
+**RAG 使用**：❌ 不用 RAG
+
+---
+
+## 📋 v3 架構說明（歷史參考）
+
+> **注意**：以下內容為 v3 架構說明，已移至附錄供歷史參考。當前系統採用 v4.0 架構。
+
+#### v3：4 層漸進式路由架構（歷史架構）
 
 Task Analyzer 採用**4 層漸進式路由架構**，從快速過濾到深度分析，逐步提升分析精度：
 
@@ -273,7 +562,7 @@ if (router_output.intent_type == "execution" and is_file_editing) or is_implicit
 - ✅ 確保文件編輯任務的 `needs_tools` 為 `True`
 - ✅ 即使 Router LLM 識別錯誤，也能通過關鍵詞匹配強制修正
 
-> **📋 詳細實現說明**：請參考 [GenAI 工作流指令-語義-工具-模型-Agent 等調用.md](./GenAI 工作流指令-語義-工具-模型-Agent 等調用.md) 第 2.2 節，包含完整的代碼位置和實現細節。
+> **📋 詳細實現說明**：相關內容已整合到本文檔第 2.2 節，包含完整的代碼位置和實現細節。
 
 ##### Routing Memory（路由記憶）
 
@@ -301,7 +590,7 @@ router_output = await self.router_llm.route(router_input, similar_decisions)
 
 **目的**：綜合 Router Decision、Agent 候選、Tool 候選、Model 候選，做出最終的路由決策。
 
-> **📋 詳細實現說明**：請參考 [GenAI 工作流指令-語義-工具-模型-Agent 等調用.md](./GenAI 工作流指令-語義-工具-模型-Agent 等調用.md) 第 3-5 章，包含完整的工具調用、模型選擇和 Agent 調用流程。
+> **📋 詳細實現說明**：相關內容已整合到本文檔第 3-5 章，包含完整的工具調用、模型選擇和 Agent 調用流程。
 
 ##### Capability Matcher（能力匹配器）
 
@@ -1104,13 +1393,27 @@ class AgentServiceResponse:
 
 ---
 
-## 📊 實現狀態
+## 📊 v4.0 架構實現狀態
+
+### Task Analyzer（v4.0 5層架構）實現狀態
+
+| 層級 | 組件 | 功能 | 狀態 | 文件位置 | 備註 |
+|------|------|------|------|---------|------|
+| **L1** | Router LLM | 語義理解 | 🔄 階段一升級中 | `agents/task_analyzer/router_llm.py` | 升級為純 SemanticUnderstandingOutput（移除 v3 字段） |
+| **L2** | Intent Registry | Intent DSL 存儲 | ✅ 已實現 | `agents/task_analyzer/intent_registry.py` | 存儲在 ArangoDB |
+| **L2** | Intent Matcher | Intent 匹配 | ✅ 已實現 | `agents/task_analyzer/intent_matcher.py` | 基於 L1 輸出匹配 |
+| **L3** | Task Planner | Task DAG 生成 | ✅ 已實現 | `agents/task_analyzer/task_planner.py` | 集成 RAG-2 |
+| **L3** | Decision Engine | 決策引擎 | ✅ 已實現 | `agents/task_analyzer/decision_engine.py` | 集成 Task DAG |
+| **L4** | Policy Service | 策略檢查 | ✅ 已實現 | `agents/task_analyzer/policy_service.py` | 集成 RAG-3 |
+| **L5** | Execution Record | 執行記錄 | ✅ 已實現 | `agents/task_analyzer/execution_record.py` | 存儲在 ArangoDB |
+| **L5** | Hit Rate Service | 命中率統計 | ✅ 已實現 | `agents/task_analyzer/hit_rate_service.py` | 基於 ExecutionRecord |
+| **L5** | Quality Assessment | 品質評估 | ✅ 已實現 | `agents/task_analyzer/quality_assessment_service.py` | 基於 ExecutionRecord |
 
 ### 協調層實現狀態
 
 | 組件               | 功能                  | 狀態        | 備註                                          |
 | ------------------ | --------------------- | ----------- | --------------------------------------------- |
-| Task Analyzer      | 4 層漸進式路由        | ✅ 已實現   | 包含 Router LLM、強制修正、能力匹配、決策引擎 |
+| Task Analyzer      | v4.0 5層架構          | ✅ 核心組件已實現 | L1-L5 核心組件已實現，主流程正在遷移 |
 | Task Analyzer      | 指令澄清機制          | ✅ 已實現   | 支持配置操作澄清                              |
 | Task Analyzer      | 配置操作解析          | ✅ 已實現   | 生成 ConfigIntent                             |
 | Agent Registry     | Agent 註冊            | ✅ 已實現   | 支持 HTTP/MCP 協議                            |
@@ -1205,7 +1508,7 @@ class AgentServiceResponse:
 
 ### 架構文檔
 
-- [AI-Box-Agent-架構規格書-v3.md](./AI-Box-Agent-架構規格書-v3.md)
+- [AI-Box-Agent-架構規格書.md](./AI-Box-Agent-架構規格書.md)
 - [Orchestrator-協調層規格書.md](./Orchestrator-協調層規格書.md)
 - [Agent-開發規範.md](./Agent-開發規範.md) - Agent 開發指南（包含架構分離設計）
 - [archive/ARCHITECTURE_DIAGRAM_EXPLANATION.md](./archive/ARCHITECTURE_DIAGRAM_EXPLANATION.md)（已歸檔，內容已整合到主文件）
@@ -1229,9 +1532,24 @@ class AgentServiceResponse:
 
 ### 工作流詳細說明文檔
 
-- [GenAI 工作流指令-語義-工具-模型-Agent 等調用.md](./GenAI 工作流指令-語義-工具-模型-Agent 等調用.md) - 完整工作流程詳細說明（實現細節、代碼位置、數據流、實際案例）
+- ⚠️ **注意**：`GenAI 工作流指令-語義-工具-模型-Agent 等調用.md` 文檔已不存在，相關內容已整合到本文檔和其他規格書中
 
 ---
 
-**最後更新日期**: 2026-01-11
-**版本**: v3
+**最後更新日期**: 2026-01-13
+**版本**: v4.0
+
+---
+
+## 📝 更新記錄
+
+| 版本 | 日期 | 更新人 | 更新內容 |
+|------|------|--------|---------|
+| v4.0.7 | 2026-01-13 | Daniel Chung | **階段七測試驗證完成**：完成端到端測試、性能測試、回歸測試、壓力測試；創建測試配置文件（conftest_v4.py）和測試運行腳本；修復 analyzer.py 中的語法錯誤和縮進問題；測試框架已建立並可運行（共 12 個測試用例） |
+| v4.0.6 | 2026-01-13 | Daniel Chung | **階段六完成**：完成 Intent Registry、Capability Registry、Policy Service、Execution Record Store Service 的實現；完成 Task Planner 和 Intent Matcher 的實現；完成 RAG Service 和 Quality Assessment Service 的實現 |
+| v4.0.5 | 2026-01-12 | Daniel Chung | **階段五完成**：完成 Router LLM v4 升級，實現純語義理解輸出（SemanticUnderstandingOutput）；完成 Intent Registry 和 Intent Matcher 的實現 |
+| v4.0.4 | 2026-01-11 | Daniel Chung | **階段四完成**：完成 Policy Service 和 Execution Record Store Service 的實現；完成 Task Planner 的實現 |
+| v4.0.3 | 2026-01-10 | Daniel Chung | **階段三完成**：完成 Capability Registry 和 RAG Service 的實現；完成 Quality Assessment Service 的實現 |
+| v4.0.2 | 2026-01-09 | Daniel Chung | **階段二完成**：完成 Intent Registry 和 Intent Matcher 的實現；完成 Task Planner 的實現 |
+| v4.0.1 | 2026-01-08 | Daniel Chung | **階段一完成**：完成 Router LLM v4 升級，實現純語義理解輸出（SemanticUnderstandingOutput） |
+| v4.0.0 | 2025-12-25 | Daniel Chung | **v4.0 架構設計完成**：完成 5 層處理流程（L1-L5）設計；完成 Intent DSL、PolicyValidationResult、TaskDAG、ExecutionRecord 等核心組件設計 |

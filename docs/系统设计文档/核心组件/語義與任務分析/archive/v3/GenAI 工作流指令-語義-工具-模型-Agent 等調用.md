@@ -1785,8 +1785,8 @@ sequenceDiagram
 
 ### 架構文檔
 
-- [Agent-Platform-v3.md](./Agent-Platform-v3.md) - Agent Platform 架構文檔（架構設計、意圖分析、決策流程）
-- [AI-Box-Agent-架構規格書-v3.md](./AI-Box-Agent-架構規格書-v3.md) - 完整架構規格
+- [Agent-Platform.md](../Agent平台/Agent-Platform.md) - Agent Platform 架構文檔（內部版本 v4.0，架構設計、意圖分析、決策流程）
+- [AI-Box-Agent-架構規格書.md](../Agent平台/AI-Box-Agent-架構規格書.md) - 完整架構規格（內部版本 v4.0）
 - [Orchestrator-協調層規格書.md](./Orchestrator-協調層規格書.md) - Orchestrator 協調層完整規格
 
 ### 開發文檔

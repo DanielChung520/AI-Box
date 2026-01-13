@@ -2,11 +2,23 @@
 
 **創建日期**: 2026-01-09
 **創建人**: Daniel Chung
-**最後修改日期**: 2026-01-09
+**最後修改日期**: 2026-01-13
+
+> **⚠️ v4 架構說明**：
+>
+> - Router LLM 在 v4 架構中對應 **L1: Semantic Understanding** 層
+> - v4 架構要求 Router LLM **不產生 intent**（intent 在 L2 層級產生）
+> - v4 架構要求 Router LLM **不指定 agent**（agent 選擇在 L3 層級）
+> - 詳細說明請參考：[AI-Box 語義與任務工程-設計說明書-v4.md](../語義與任務分析/AI-Box 語義與任務工程-設計說明書-v4.md)
 
 ## 概述
 
 本文檔記錄 Router LLM 的完整 System Prompt、User Prompt 構建邏輯和使用的模型信息，用於意圖識別和任務路由決策。
+
+**v4 架構對應**：
+
+- **v3 架構**：Router LLM 負責意圖分類和路由決策
+- **v4 架構**：Router LLM 僅負責語義理解（L1），不產生 intent，不指定 agent
 
 ## System Prompt
 

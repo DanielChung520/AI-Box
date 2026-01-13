@@ -12,8 +12,14 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import structlog
-from botocore.exceptions import ConnectionClosedError
 from fastapi import APIRouter, Body, Depends, Query, Request, status
+
+# 延遲導入 botocore，避免在未安裝時導致模塊級導入錯誤
+try:
+    from botocore.exceptions import ConnectionClosedError
+except ImportError:
+    # 如果 botocore 未安裝，定義一個占位符類
+    ConnectionClosedError = Exception  # type: ignore[misc,assignment]
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 

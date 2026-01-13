@@ -1,7 +1,7 @@
 # 代碼功能說明: 能力匹配器
 # 創建日期: 2025-12-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-11
+# 最後修改日期: 2026-01-12
 
 """能力匹配器 - 匹配 Agent、Tool、Model 的能力"""
 
@@ -302,7 +302,7 @@ class CapabilityMatcher:
             f"is_file_editing={is_file_editing}, needs_agent={router_decision.needs_agent}"
         )
 
-        # 如果是文件編輯任務，即使 needs_agent=False，也應該匹配 document-editing-agent
+        # 如果是文件編輯任務，即使 needs_agent=False，也應該匹配對應的 Agent（md-editor, xls-editor 等）
         if not router_decision.needs_agent and not is_file_editing:
             logger.info(
                 f"CapabilityMatcher.match_agents: Skipping agent matching "
@@ -314,7 +314,7 @@ class CapabilityMatcher:
         if is_file_editing and not router_decision.needs_agent:
             logger.info(
                 f"File editing task detected (query: {user_query[:100]}...), "
-                "forcing needs_agent=true to match document-editing-agent"
+                "forcing needs_agent=true to match file editing agents"
             )
 
         registry = self._get_agent_registry()
@@ -346,7 +346,8 @@ class CapabilityMatcher:
                 except Exception as e:
                     logger.warning(f"RAG retrieval failed: {e}, falling back to registry matching")
 
-            # 如果是文件編輯/轉換任務，需要發現 System Agent（document-editing-agent, md-editor, xls-editor, md-to-pdf, xls-to-pdf, pdf-to-md）
+            # 如果是文件編輯/轉換任務，需要發現 System Agent（md-editor, xls-editor, md-to-pdf, xls-to-pdf, pdf-to-md）
+            # 注意：document-editing-agent 已棄用，不應被調用
             # 因此需要包括 System Agents（include_system_agents=True）
             # 對於其他任務，可以使用 AgentDiscovery（會過濾 System Agents）
             if is_file_editing:
@@ -395,6 +396,12 @@ class CapabilityMatcher:
                 if agents:
                     agent_ids = [a.agent_id for a in agents]
                     logger.info(f"CapabilityMatcher: Found agent IDs: {agent_ids}")
+                    # 記錄每個 Agent 的詳細信息
+                    for agent in agents:
+                        logger.debug(
+                            f"CapabilityMatcher: Agent {agent.agent_id} "
+                            f"(type: {agent.agent_type}, capabilities: {agent.capabilities})"
+                        )
                 else:
                     logger.warning("CapabilityMatcher: No agents found for file editing task!")
 
@@ -418,14 +425,46 @@ class CapabilityMatcher:
                             f"is_system_agent: {agent.is_system_agent})"
                         )
                 # 過濾能力匹配
-                if required_capabilities:
+                # 注意：過濾掉已棄用的 document-editing-agent
+                agents = [a for a in agents if a.agent_id != "document-editing-agent"]
+                # 對於文件編輯/轉換任務，能力匹配應該更寬鬆
+                # 因為文件編輯 Agent 的能力（如 document_editing, excel_editing）與通用能力（execution, action）可能不重疊
+                # 如果 Agent 類型是 document_editing 或 document_conversion，則認為匹配
+                if required_capabilities and agents:
                     required_set = set(required_capabilities)
-                    agents = [
+                    # 先嘗試完全匹配
+                    fully_matched = [
                         a
                         for a in agents
                         if required_set.issubset(set(a.capabilities))
-                        or a.agent_id == "document-editing-agent"  # 文件編輯 Agent 優先
                     ]
+                    # 如果沒有完全匹配，對於文件編輯/轉換任務，允許類型匹配
+                    if not fully_matched:
+                        # 對於文件編輯任務，如果 Agent 類型是 document_editing 或 document_conversion，則匹配
+                        type_matched = [
+                            a
+                            for a in agents
+                            if a.agent_type in ["document_editing", "document_conversion"]
+                        ]
+                        if type_matched:
+                            agents = type_matched
+                            logger.info(
+                                f"CapabilityMatcher: No full capability match, using type match for file editing task: "
+                                f"{[a.agent_id for a in agents]}"
+                            )
+                        else:
+                            # 最後嘗試部分能力匹配
+                            agents = [
+                                a
+                                for a in agents
+                                if required_set.intersection(set(a.capabilities))
+                            ]
+                            logger.info(
+                                f"CapabilityMatcher: No type match, using partial capability match: "
+                                f"{[a.agent_id for a in agents]}"
+                            )
+                    else:
+                        agents = fully_matched
                 logger.info(
                     f"File editing/conversion task: Found {len(agents)} agents (including System Agents) "
                     f"for query: {user_query[:100]}..."
@@ -439,6 +478,13 @@ class CapabilityMatcher:
                     user_roles=context.get("user_roles") if context else None,
                 )
 
+            # 過濾掉已棄用的 document-editing-agent
+            agents = [a for a in agents if a.agent_id != "document-editing-agent"]
+            logger.debug(
+                f"CapabilityMatcher: Filtered out document-editing-agent, remaining agents: "
+                f"{[a.agent_id for a in agents]}"
+            )
+            
             # 計算匹配度
             matches = []
             for agent in agents:
@@ -454,15 +500,8 @@ class CapabilityMatcher:
                         f"CapabilityMatcher: Agent {agent.agent_id} has RAG score: {rag_score:.2f}"
                     )
 
-                # 如果是文件編輯任務，優先匹配 document-editing-agent
-                if is_file_editing and agent.agent_id == "document-editing-agent":
-                    # 文件編輯任務 + document-editing-agent = 完美匹配
-                    capability_match = 1.0
-                    logger.info(
-                        f"Perfect match: File editing task matched with document-editing-agent "
-                        f"(query: {user_query[:100]}...)"
-                    )
-                elif required_set:
+                # 計算能力匹配度
+                if required_set:
                     capability_match = len(required_set.intersection(agent_capabilities)) / len(
                         required_set
                     )
@@ -483,12 +522,6 @@ class CapabilityMatcher:
                 latency_score = 0.7  # 默認值
                 success_history = 0.8  # 默認值
                 stability = 0.8  # 默認值
-
-                # 如果是文件編輯任務且是 document-editing-agent，提高評分
-                if is_file_editing and agent.agent_id == "document-editing-agent":
-                    # 提高成功歷史和穩定性評分
-                    success_history = 0.95
-                    stability = 0.95
 
                 # 計算總評分
                 total_score = (

@@ -1,0 +1,362 @@
+{
+  "version": "1.0.0",
+  "created_at": "2026-01-12",
+  "description": "AI-Box 語義與任務工程 v4.0 核心 Intent 定義（30個）",
+  "intents": [
+    {
+      "name": "modify_document",
+      "domain": "system_architecture",
+      "target": "Document Editing Agent",
+      "output_format": ["Engineering Spec"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "修改文檔內容，包括編輯、更新、重構等操作"
+    },
+    {
+      "name": "create_document",
+      "domain": "system_architecture",
+      "target": "Document Editing Agent",
+      "output_format": ["Engineering Spec", "Design Doc"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "創建新文檔，包括設計文檔、規格文檔等"
+    },
+    {
+      "name": "delete_document",
+      "domain": "system_architecture",
+      "target": "Document Editing Agent",
+      "output_format": [],
+      "depth": "Basic",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "刪除文檔"
+    },
+    {
+      "name": "design_system",
+      "domain": "system_architecture",
+      "target": "System Design Agent",
+      "output_format": ["System Architecture", "Design Doc"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "設計系統架構，包括整體架構設計、模組設計等"
+    },
+    {
+      "name": "analyze_architecture",
+      "domain": "system_architecture",
+      "target": "System Analysis Agent",
+      "output_format": ["Analysis Report"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "分析系統架構，包括架構評估、問題識別等"
+    },
+    {
+      "name": "refactor_code",
+      "domain": "code_generation",
+      "target": "Code Generation Agent",
+      "output_format": ["Refactored Code"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "重構代碼，包括代碼優化、結構調整等"
+    },
+    {
+      "name": "generate_code",
+      "domain": "code_generation",
+      "target": "Code Generation Agent",
+      "output_format": ["Source Code"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "生成代碼，包括函數、類、模組等"
+    },
+    {
+      "name": "review_code",
+      "domain": "code_generation",
+      "target": "Code Review Agent",
+      "output_format": ["Review Report"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "代碼審查，包括代碼質量檢查、問題識別等"
+    },
+    {
+      "name": "analyze_data",
+      "domain": "data_analysis",
+      "target": "Data Analysis Agent",
+      "output_format": ["Analysis Report", "Data Visualization"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "分析數據，包括統計分析、趨勢分析等"
+    },
+    {
+      "name": "generate_report",
+      "domain": "data_analysis",
+      "target": "Report Generation Agent",
+      "output_format": ["Report Document"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "生成報告，包括分析報告、總結報告等"
+    },
+    {
+      "name": "query_database",
+      "domain": "data_analysis",
+      "target": "Database Query Agent",
+      "output_format": ["Query Results"],
+      "depth": "Basic",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "查詢數據庫，包括 SQL 查詢、數據檢索等"
+    },
+    {
+      "name": "extract_information",
+      "domain": "information_retrieval",
+      "target": "Information Extraction Agent",
+      "output_format": ["Extracted Information"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "提取信息，包括實體提取、關係提取等"
+    },
+    {
+      "name": "search_knowledge",
+      "domain": "information_retrieval",
+      "target": "Knowledge Search Agent",
+      "output_format": ["Search Results"],
+      "depth": "Basic",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "搜索知識庫，包括文檔搜索、知識檢索等"
+    },
+    {
+      "name": "summarize_content",
+      "domain": "content_processing",
+      "target": "Content Processing Agent",
+      "output_format": ["Summary"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "總結內容，包括文檔摘要、內容濃縮等"
+    },
+    {
+      "name": "translate_content",
+      "domain": "content_processing",
+      "target": "Translation Agent",
+      "output_format": ["Translated Content"],
+      "depth": "Basic",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "翻譯內容，包括語言翻譯、格式轉換等"
+    },
+    {
+      "name": "validate_config",
+      "domain": "system_configuration",
+      "target": "Configuration Agent",
+      "output_format": ["Validation Report"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "驗證配置，包括配置檢查、合規性驗證等"
+    },
+    {
+      "name": "update_config",
+      "domain": "system_configuration",
+      "target": "Configuration Agent",
+      "output_format": ["Updated Config"],
+      "depth": "Basic",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "更新配置，包括配置修改、參數調整等"
+    },
+    {
+      "name": "monitor_system",
+      "domain": "system_monitoring",
+      "target": "Monitoring Agent",
+      "output_format": ["Monitoring Report"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "監控系統，包括性能監控、健康檢查等"
+    },
+    {
+      "name": "optimize_performance",
+      "domain": "system_optimization",
+      "target": "Performance Optimization Agent",
+      "output_format": ["Optimization Plan"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "優化性能，包括性能分析、優化建議等"
+    },
+    {
+      "name": "test_system",
+      "domain": "system_testing",
+      "target": "Testing Agent",
+      "output_format": ["Test Report"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "測試系統，包括單元測試、集成測試等"
+    },
+    {
+      "name": "deploy_system",
+      "domain": "system_deployment",
+      "target": "Deployment Agent",
+      "output_format": ["Deployment Plan"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "部署系統，包括部署計劃、執行部署等"
+    },
+    {
+      "name": "backup_data",
+      "domain": "data_management",
+      "target": "Data Management Agent",
+      "output_format": ["Backup Report"],
+      "depth": "Basic",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "備份數據，包括數據備份、恢復計劃等"
+    },
+    {
+      "name": "migrate_data",
+      "domain": "data_management",
+      "target": "Data Migration Agent",
+      "output_format": ["Migration Plan"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "遷移數據，包括數據遷移、格式轉換等"
+    },
+    {
+      "name": "manage_users",
+      "domain": "user_management",
+      "target": "User Management Agent",
+      "output_format": ["User Management Report"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "管理用戶，包括用戶創建、權限管理等"
+    },
+    {
+      "name": "authenticate_user",
+      "domain": "security",
+      "target": "Security Agent",
+      "output_format": ["Authentication Result"],
+      "depth": "Basic",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "用戶認證，包括登錄驗證、權限檢查等"
+    },
+    {
+      "name": "audit_logs",
+      "domain": "security",
+      "target": "Security Agent",
+      "output_format": ["Audit Report"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "審計日誌，包括日誌查詢、安全審計等"
+    },
+    {
+      "name": "plan_project",
+      "domain": "project_management",
+      "target": "Project Management Agent",
+      "output_format": ["Project Plan"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "規劃項目，包括項目計劃、任務分解等"
+    },
+    {
+      "name": "track_progress",
+      "domain": "project_management",
+      "target": "Project Management Agent",
+      "output_format": ["Progress Report"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "追蹤進度，包括進度報告、狀態更新等"
+    },
+    {
+      "name": "collaborate_team",
+      "domain": "collaboration",
+      "target": "Collaboration Agent",
+      "output_format": ["Collaboration Plan"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "團隊協作，包括協作計劃、溝通協調等"
+    },
+    {
+      "name": "learn_pattern",
+      "domain": "machine_learning",
+      "target": "ML Agent",
+      "output_format": ["Model", "Training Report"],
+      "depth": "Advanced",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "學習模式，包括模型訓練、模式識別等"
+    },
+    {
+      "name": "predict_outcome",
+      "domain": "machine_learning",
+      "target": "ML Agent",
+      "output_format": ["Prediction Result"],
+      "depth": "Intermediate",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "預測結果，包括結果預測、趨勢分析等"
+    },
+    {
+      "name": "general_query",
+      "domain": "general",
+      "target": null,
+      "output_format": ["General Response"],
+      "depth": "Basic",
+      "version": "1.0.0",
+      "default_version": true,
+      "is_active": true,
+      "description": "通用查詢 Intent，用於無法匹配特定 Intent 的情況（Fallback Intent）",
+      "metadata": {
+        "is_fallback": true
+      }
+    }
+  ]
+}

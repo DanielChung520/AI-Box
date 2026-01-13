@@ -1,7 +1,7 @@
 # 代碼功能說明: Task Analyzer 核心邏輯實現（4 層漸進式路由架構）
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-11 20:43
+# 最後修改日期: 2026-01-13
 
 """Task Analyzer 核心實現 - 整合任務分析、分類、路由和工作流選擇"""
 
@@ -17,7 +17,15 @@ from agents.task_analyzer.capability_matcher import CapabilityMatcher
 from agents.task_analyzer.clarification import ClarificationService
 from agents.task_analyzer.classifier import TaskClassifier
 from agents.task_analyzer.decision_engine import DecisionEngine
+from agents.task_analyzer.intent_matcher import IntentMatcher
 from agents.task_analyzer.llm_router import LLMRouter
+from agents.task_analyzer.task_planner import TaskPlanner, get_task_planner
+from agents.task_analyzer.policy_service import PolicyService, get_policy_service
+from agents.task_analyzer.execution_record import (
+    ExecutionRecordCreate,
+    ExecutionRecordStoreService,
+    get_execution_record_store_service,
+)
 from agents.task_analyzer.models import (
     ConfigIntent,
     DecisionLog,
@@ -29,6 +37,8 @@ from agents.task_analyzer.models import (
     TaskAnalysisRequest,
     TaskAnalysisResult,
     TaskClassificationResult,
+    TaskDAG,
+    TaskNode,
     TaskType,
     WorkflowType,
 )
@@ -54,12 +64,20 @@ class TaskAnalyzer:
         self.capability_matcher = CapabilityMatcher()
         self.decision_engine = DecisionEngine()
         self.routing_memory = RoutingMemoryService()
+        # v4 新增：Intent Matcher（L2 層級）
+        self.intent_matcher = IntentMatcher()
+        # v4 新增：Task Planner（L3 層級）
+        self.task_planner = get_task_planner()
+        # v4 新增：Policy Service（L4 層級）
+        self.policy_service = get_policy_service()
+        # v4 新增：Execution Record Store Service（L5 層級）
+        self.execution_record_store = get_execution_record_store_service()
         # 澄清服務
         self.clarification_service = ClarificationService()
 
     async def analyze(self, request: TaskAnalysisRequest) -> TaskAnalysisResult:
         """
-        分析任務並返回分析結果
+        分析任務並返回分析結果（v4.0 主流程：L1-L5）
 
         Args:
             request: 任務分析請求
@@ -67,98 +85,372 @@ class TaskAnalyzer:
         Returns:
             任務分析結果
         """
-        logger.info(f"Analyzing task: {request.task[:100]}...")
-
-        # 生成任務ID
         task_id = str(uuid.uuid4())
+        start_time = datetime.utcnow()
 
-        # ============================================
-        # 前端指定Agent驗證（如果指定）
-        # ============================================
-        if request.specified_agent_id:
-            validation_result = await self._validate_specified_agent(
-                request.specified_agent_id, request.task, request.context
+        try:
+            logger.info(
+                f"v4.0: Starting task analysis - task_id={task_id}, "
+                f"task='{request.task[:100]}...', user_id={request.user_id}"
             )
-            if not validation_result["valid"]:
-                # 驗證失敗，返回錯誤結果
-                logger.warning(f"Specified agent validation failed: {validation_result['error']}")
-                return self._create_error_result(
-                    task_id,
-                    error_message=validation_result["error"],
-                    suggested_agents=(
-                        [request.specified_agent_id] if request.specified_agent_id else []
-                    ),
+
+            # ============================================
+            # 前端指定Agent驗證（如果指定）
+            # ============================================
+            if request.specified_agent_id:
+                validation_result = await self._validate_specified_agent(
+                    request.specified_agent_id, request.task, request.context
+                )
+                if not validation_result["valid"]:
+                    logger.warning(
+                        f"Specified agent validation failed: {validation_result['error']}"
+                    )
+                    return self._create_error_result(
+                        task_id,
+                        error_message=validation_result["error"],
+                        suggested_agents=(
+                            [request.specified_agent_id] if request.specified_agent_id else []
+                        ),
+                    )
+
+            # ============================================
+            # v4.0 主流程：L1-L5 處理
+            # ============================================
+            # 注意：v3 的 Layer 0-3 邏輯已標記為過時，將逐步移除
+            # 當前保留是為了向後兼容，但優先使用 v4.0 流程
+
+            # ============================================
+            # L1: Semantic Understanding Layer（語義理解層）- v4.0
+            # ============================================
+            try:
+                router_input = RouterInput(
+                    user_query=request.task,
+                    session_context=request.context or {},
+                    system_constraints=self.rule_override.get_system_constraints(request.task),
                 )
 
-        # ============================================
-        # Layer 0: Cheap Gating（快速過濾）
-        # ============================================
-        if self._is_simple_query(request.task):
-            return await self._handle_simple_query(request, task_id)
+                logger.info(f"L1: Calling Router LLM v4 for semantic understanding: {request.task[:100]}...")
+                l1_start_time = datetime.utcnow()
+                # v4.0 更新：使用 route_v4() 獲取純語義理解輸出
+                semantic_output = await self.router_llm.route_v4(router_input)
+                l1_latency_ms = int((datetime.utcnow() - l1_start_time).total_seconds() * 1000)
 
-        # ============================================
-        # Layer 1: Fast Answer Layer（高級 LLM 直接回答）
-        # ============================================
-        direct_answer_result = await self._try_direct_answer(request, task_id)
-        if direct_answer_result:
-            logger.info(f"Layer 1: Direct answer returned for query: {request.task[:100]}...")
-            return direct_answer_result  # 直接返回，不進入 Layer 2/3
-
-        # ============================================
-        # Layer 2: Semantic Intent Analysis（語義意圖分析）
-        # ============================================
-        # 步驟2: Router 前置 Recall（可選，提供 Context Bias）
-        similar_decisions = []
-        try:
-            similar_decisions = await self.routing_memory.recall_similar_decisions(
-                request.task, top_k=3, filters={"success": True}
+                logger.info(
+                    f"L1: Semantic understanding completed - latency={l1_latency_ms}ms, "
+                    f"topics={semantic_output.topics}, entities={semantic_output.entities}, "
+                    f"action_signals={semantic_output.action_signals}, modality={semantic_output.modality}, "
+                    f"certainty={semantic_output.certainty:.2f}"
             )
-        except Exception as e:
-            logger.warning(f"Failed to recall similar decisions: {e}")
+            except Exception as e:
+                logger.error(f"L1: Semantic understanding failed: {e}", exc_info=True)
+                # 使用安全回退
+                from agents.task_analyzer.router_llm import SAFE_FALLBACK_SEMANTIC
+                semantic_output = SAFE_FALLBACK_SEMANTIC
+                logger.warning("L1: Using fallback semantic output due to error")
 
-        # 步驟3: Router LLM（意圖分類）
-        router_input = RouterInput(
-            user_query=request.task,
-            session_context=request.context or {},
-            system_constraints=self.rule_override.get_system_constraints(request.task),
-        )
+            # ============================================
+            # L2: Intent & Task Abstraction Layer（意圖與任務抽象層）- v4.0
+            # ============================================
+            # 步驟1: Intent DSL 匹配（基於 L1 語義理解輸出）
+            matched_intent = None
+            try:
+                l2_start_time = datetime.utcnow()
+                matched_intent = self.intent_matcher.match_intent(semantic_output, request.task)
+                l2_latency_ms = int((datetime.utcnow() - l2_start_time).total_seconds() * 1000)
 
-        logger.info(f"Layer 2: Calling Router LLM for query: {request.task[:100]}...")
-        router_output = await self.router_llm.route(router_input, similar_decisions)
+                if matched_intent:
+                    logger.info(
+                        f"L2: Intent DSL matched - latency={l2_latency_ms}ms, "
+                        f"intent={matched_intent.name}, domain={matched_intent.domain}, "
+                        f"target={matched_intent.target}"
+                    )
+                else:
+                    # 使用 Fallback Intent
+                    fallback_intent = self.intent_matcher.get_fallback_intent()
+                    if fallback_intent:
+                        matched_intent = fallback_intent
+                        logger.warning(
+                            f"L2: No Intent matched, using fallback intent: {fallback_intent.name} "
+                            f"(latency={l2_latency_ms}ms)"
+                        )
+                    else:
+                        logger.warning(
+                            f"L2: No Intent matched and no fallback intent available "
+                            f"(latency={l2_latency_ms}ms)"
+                        )
+            except Exception as e:
+                logger.error(f"L2: Intent matching failed: {e}", exc_info=True)
+                # 嘗試使用 Fallback Intent
+                try:
+                    matched_intent = self.intent_matcher.get_fallback_intent()
+                    logger.warning("L2: Using fallback intent due to matching error")
+                except Exception as fallback_error:
+                    logger.error(f"L2: Fallback intent also failed: {fallback_error}", exc_info=True)
+                    matched_intent = None
 
-        # 修改時間：2026-01-06 - 添加詳細日誌追蹤 Router LLM 的語義分析結果
-        # 修改時間：2026-01-06 - 修復：標準 logging 不支持關鍵字參數，使用 extra 字典
-        logger.info(
-            "router_llm_semantic_analysis_result",
-            extra={
-                "intent_type": router_output.intent_type,
-                "needs_tools": router_output.needs_tools,
-                "needs_agent": router_output.needs_agent,
-                "complexity": router_output.complexity,
-                "confidence": router_output.confidence,
-                "determinism_required": router_output.determinism_required,
-                "risk_level": router_output.risk_level,
-                "user_query": request.task[:200],
-                "note": "Router LLM semantic analysis - check if file generation intent detected (needs_tools=true, intent_type=execution)",
-            },
-        )
+            # ============================================
+            # 過渡期兼容：構建 RouterDecision（用於後續 Layer 3 處理）
+            # ============================================
+            # 注意：為了向後兼容，我們需要從 semantic_output 構建 RouterDecision
+            # 這是一個過渡期的臨時方案，直到 L3 層級也升級為 v4.0
+            from agents.task_analyzer.models import RouterDecision
 
-        logger.info(
-            f"Layer 2: Router LLM output - intent_type={router_output.intent_type}, "
-            f"needs_tools={router_output.needs_tools}, needs_agent={router_output.needs_agent}, "
-            f"complexity={router_output.complexity}, confidence={router_output.confidence}"
-        )
+            # 基於語義理解和 Intent 推斷 RouterDecision 字段
+            # 這些推斷邏輯將在 L3 層級被更精確的決策替代
+            router_output = RouterDecision(
+            topics=semantic_output.topics,
+            entities=semantic_output.entities,
+            action_signals=semantic_output.action_signals,
+            modality=semantic_output.modality,
+            # 過渡期推斷字段（將在 L3 層級被更精確的決策替代）
+            intent_type="execution" if matched_intent and matched_intent.target else "conversation",
+            complexity="high" if matched_intent and matched_intent.depth == "Advanced" else "mid",
+            needs_agent=matched_intent is not None and matched_intent.target is not None,
+            needs_tools=len(semantic_output.action_signals) > 0,
+            determinism_required=False,  # 將在 L4 層級決定
+            risk_level="low",  # 將在 L4 層級決定
+            confidence=semantic_output.certainty,
+            )
 
-        # 步驟4: Rule Override（硬性規則覆蓋）
-        router_output = self.rule_override.apply(router_output, request.task)
-        logger.debug(
-            f"Layer 2: After Rule Override - needs_tools={router_output.needs_tools}, needs_agent={router_output.needs_agent}"
-        )
+            # 步驟4: Rule Override（硬性規則覆蓋）
+            router_output = self.rule_override.apply(router_output, request.task)
 
-        # 步驟4.5: 文件編輯任務強制修正（確保 Router LLM 的判斷覆蓋 TaskClassifier）
-        # 如果 Router LLM 識別為 execution 且包含文件編輯關鍵詞，強制設置 needs_agent=true
-        # 同時，如果任務包含隱含編輯意圖關鍵詞，即使 intent_type 不是 execution，也應該修正為 execution
-        file_editing_keywords = [
+            # 修改時間：2026-01-06 - 添加詳細日誌追蹤 Router LLM 的語義分析結果
+            # 修改時間：2026-01-06 - 修復：標準 logging 不支持關鍵字參數，使用 extra 字典
+            logger.debug(
+            f"L2: After Rule Override - needs_tools={router_output.needs_tools}, needs_agent={router_output.needs_agent}"
+            )
+
+            # ============================================
+            # L3: Capability Mapping & Task Planning Layer（能力映射與任務規劃層）- v4.0
+            # ============================================
+            # 步驟1: 基於 Intent 生成 Task DAG
+            task_dag = None
+            if matched_intent and router_output.needs_agent:
+                try:
+                    logger.info(
+                        f"L3: Generating Task DAG for intent={matched_intent.name}, "
+                        f"domain={matched_intent.domain}, target={matched_intent.target}"
+                    )
+                    # 調用 Task Planner 生成 Task DAG
+                    task_dag = await asyncio.to_thread(
+                        self.task_planner.plan,
+                        request.task,
+                        router_output,
+                        top_k=10,
+                        similarity_threshold=0.7,
+                    )
+                    if task_dag and task_dag.task_graph:
+                        logger.info(
+                            f"L3: Task DAG generated - {len(task_dag.task_graph)} tasks, "
+                            f"reasoning={task_dag.reasoning[:100] if task_dag.reasoning else 'N/A'}"
+                        )
+                        # 記錄 Task DAG 詳情
+                        for task_node in task_dag.task_graph:
+                            logger.debug(
+                                f"L3: Task Node - id={task_node.id}, capability={task_node.capability}, "
+                                f"agent={task_node.agent}, depends_on={task_node.depends_on}"
+                            )
+                    else:
+                        logger.warning(
+                            f"L3: Task DAG generation failed or returned empty DAG - "
+                            f"reasoning={task_dag.reasoning if task_dag else 'N/A'}"
+                        )
+                except Exception as e:
+                    logger.error(f"L3: Task DAG generation failed: {e}", exc_info=True)
+                    task_dag = None
+
+            # ============================================
+            # L4: Constraint Validation & Policy Check Layer（約束驗證與策略檢查層）- v4.0
+            # ============================================
+            # 步驟1: 策略驗證（如果 Task DAG 已生成）
+            policy_validation_result = None
+            if task_dag and task_dag.task_graph:
+                try:
+                    logger.info(
+                        f"L4: Validating Task DAG with {len(task_dag.task_graph)} tasks"
+                    )
+                    # 將 TaskDAG 轉換為字典格式（PolicyService 需要）
+                    task_dag_dict = (
+                        task_dag.model_dump()
+                        if hasattr(task_dag, "model_dump")
+                        else task_dag.dict()
+                        if hasattr(task_dag, "dict")
+                        else {
+                            "task_graph": [
+                                {
+                                    "id": node.id,
+                                    "capability": node.capability,
+                                    "agent": node.agent,
+                                    "depends_on": node.depends_on,
+                                    "description": node.description,
+                                    "metadata": node.metadata,
+                                }
+                                for node in task_dag.task_graph
+                            ],
+                            "reasoning": task_dag.reasoning,
+                            "metadata": task_dag.metadata,
+                        }
+                    )
+
+                    # 構建上下文信息
+                    policy_context = {
+                        "user_id": request.user_id,
+                        "session_id": request.session_id,
+                        "task": request.task,
+                        **(request.context or {}),
+                    }
+
+                    # 調用 Policy Service 進行驗證
+                    policy_validation_result = await asyncio.to_thread(
+                        self.policy_service.validate,
+                        task_dag_dict,
+                        policy_context,
+                    )
+
+                    logger.info(
+                        f"L4: Policy validation result - allowed={policy_validation_result.allowed}, "
+                        f"requires_confirmation={policy_validation_result.requires_confirmation}, "
+                        f"risk_level={policy_validation_result.risk_level}, "
+                        f"reasons={policy_validation_result.reasons}"
+                    )
+
+                    # 如果策略驗證不通過，記錄警告
+                    if not policy_validation_result.allowed:
+                        logger.warning(
+                            f"L4: Policy validation failed - reasons: {policy_validation_result.reasons}"
+                        )
+                    elif policy_validation_result.requires_confirmation:
+                        logger.info(
+                            f"L4: Policy validation requires confirmation - risk_level={policy_validation_result.risk_level}"
+                        )
+
+                except Exception as e:
+                    logger.error(f"L4: Policy validation failed: {e}", exc_info=True)
+                    # 如果策略驗證失敗，為了安全起見，創建一個拒絕的驗證結果
+                    from agents.task_analyzer.models import PolicyValidationResult
+
+                    policy_validation_result = PolicyValidationResult(
+                        allowed=False,
+                        requires_confirmation=False,
+                        risk_level="high",
+                        reasons=[f"策略驗證過程發生錯誤: {str(e)}"],
+                    )
+
+            # ============================================
+            # L5: Execution & Observation Layer（執行與觀察層）- v4.0
+            # ============================================
+            # 步驟1: 執行 Task DAG（如果策略驗證通過）
+            execution_record = None
+            execution_start_time = None
+            execution_end_time = None
+            execution_success = False
+            task_results: List[Dict[str, Any]] = []
+            agent_ids: List[str] = []
+
+            if (
+                    task_dag
+                    and task_dag.task_graph
+                    and policy_validation_result
+                    and policy_validation_result.allowed
+                    ):
+                    try:
+                        execution_start_time = datetime.utcnow()
+                        logger.info(
+                        f"L5: Starting Task DAG execution - {len(task_dag.task_graph)} tasks, "
+                        f"intent={matched_intent.name if matched_intent else 'unknown'}"
+                        )
+
+                        # 收集 Agent IDs
+                        for task_node in task_dag.task_graph:
+                            if task_node.agent and task_node.agent not in agent_ids:
+                                agent_ids.append(task_node.agent)
+
+                        # 執行 Task DAG（這裡使用簡化的執行邏輯，實際應該調用 Orchestrator）
+                        # 注意：完整的 Orchestrator 集成需要根據實際的 Orchestrator API 進行調整
+                        execution_success = await self._execute_task_dag(
+                            task_dag=task_dag,
+                            context={
+                                "user_id": request.user_id,
+                                "session_id": request.session_id,
+                                "task": request.task,
+                                **(request.context or {}),
+                            },
+                            task_results=task_results,
+                        )
+
+                        execution_end_time = datetime.utcnow()
+                        execution_latency_ms = int(
+                            (execution_end_time - execution_start_time).total_seconds() * 1000
+                        )
+
+                        logger.info(
+                        f"L5: Task DAG execution completed - success={execution_success}, "
+                        f"latency={execution_latency_ms}ms, tasks={len(task_dag.task_graph)}"
+                        )
+
+                        # 步驟2: 記錄執行指標
+                        intent_name = matched_intent.name if matched_intent else "unknown"
+                        execution_record = ExecutionRecordCreate(
+                        intent=intent_name,
+                        task_count=len(task_dag.task_graph),
+                        execution_success=execution_success,
+                        user_correction=False,  # 用戶修正標記將在後續觀察中更新
+                        latency_ms=execution_latency_ms,
+                        task_results=task_results,
+                        trace_id=request.session_id or str(uuid.uuid4()),
+                        user_id=request.user_id,
+                        session_id=request.session_id,
+                        agent_ids=agent_ids,
+                        )
+
+                        # 保存執行記錄（異步執行，不阻塞主流程）
+                        try:
+                            record_id = await asyncio.to_thread(
+                                self.execution_record_store.save_record, execution_record
+                            )
+                            logger.debug(f"L5: Execution record saved - record_id={record_id}")
+                        except Exception as e:
+                            logger.warning(f"L5: Failed to save execution record: {e}")
+
+                    except Exception as e:
+                        logger.error(f"L5: Task DAG execution failed: {e}", exc_info=True)
+                        execution_success = False
+                        execution_end_time = datetime.utcnow()
+                        if execution_start_time:
+                            execution_latency_ms = int(
+                                (execution_end_time - execution_start_time).total_seconds() * 1000
+                            )
+                        else:
+                            execution_latency_ms = 0
+
+                        # 即使執行失敗，也記錄執行指標
+                        intent_name = matched_intent.name if matched_intent else "unknown"
+                        execution_record = ExecutionRecordCreate(
+                            intent=intent_name,
+                            task_count=len(task_dag.task_graph) if task_dag else 0,
+                            execution_success=False,
+                            user_correction=False,
+                            latency_ms=execution_latency_ms,
+                            task_results=[],
+                            trace_id=request.session_id or str(uuid.uuid4()),
+                            user_id=request.user_id,
+                            session_id=request.session_id,
+                            agent_ids=agent_ids,
+                        )
+
+                        try:
+                            record_id = await asyncio.to_thread(
+                                self.execution_record_store.save_record, execution_record
+                            )
+                            logger.debug(f"L5: Execution record saved (failed) - record_id={record_id}")
+                        except Exception as e:
+                            logger.warning(f"L5: Failed to save execution record (failed): {e}")
+
+                        # 步驟4.5: 文件編輯任務強制修正（確保 Router LLM 的判斷覆蓋 TaskClassifier）
+                        # 如果 Router LLM 識別為 execution 且包含文件編輯關鍵詞，強制設置 needs_agent=true
+            # 同時，如果任務包含隱含編輯意圖關鍵詞，即使 intent_type 不是 execution，也應該修正為 execution
+            file_editing_keywords = [
             # 明確的編輯動詞
             "編輯",
             "修改",
@@ -181,9 +473,9 @@ class TaskAnalyzer:
             "文檔",
             "document",
             "file",
-        ]
-        # 隱含編輯意圖關鍵詞
-        implicit_editing_keywords = [
+            ]
+            # 隱含編輯意圖關鍵詞
+            implicit_editing_keywords = [
             "幫我在文件中加入",
             "在文件裡添加",
             "在文件中添加",
@@ -196,153 +488,184 @@ class TaskAnalyzer:
             "加入安裝說明",
             "添加註釋",
             "改成新的實現",
-        ]
-        task_lower = request.task.lower()
-        is_file_editing = any(keyword in task_lower for keyword in file_editing_keywords)
-        is_implicit_editing = any(keyword in task_lower for keyword in implicit_editing_keywords)
+            ]
+            task_lower = request.task.lower()
+            is_file_editing = any(keyword in task_lower for keyword in file_editing_keywords)
+            is_implicit_editing = any(keyword in task_lower for keyword in implicit_editing_keywords)
 
-        logger.info(
+            logger.info(
             f"File editing detection: task='{request.task[:100]}...', "
             f"intent_type={router_output.intent_type}, "
             f"needs_agent={router_output.needs_agent}, "
             f"is_file_editing={is_file_editing}, "
             f"is_implicit_editing={is_implicit_editing}"
-        )
+            )
 
-        # 如果是文件編輯任務（明確或隱含），強制修正
-        if (router_output.intent_type == "execution" and is_file_editing) or is_implicit_editing:
-            # 如果是隱含編輯意圖但 intent_type 不是 execution，修正為 execution
-            if is_implicit_editing and router_output.intent_type != "execution":
-                logger.info(
-                    f"Implicit file editing task detected, forcing intent_type=execution "
-                    f"(query: {request.task[:100]}...)"
-                )
-                router_output = RouterDecision(
-                    intent_type="execution",  # 強制設置為 execution
-                    complexity=router_output.complexity,
-                    needs_agent=True,  # 隱含編輯意圖也需要 agent
-                    needs_tools=True,  # 隱含編輯意圖也需要工具
-                    determinism_required=router_output.determinism_required,
-                    risk_level=router_output.risk_level,
-                    confidence=router_output.confidence,
-                )
-            elif router_output.intent_type == "execution" and is_file_editing:
-                # 明確編輯意圖，但 needs_agent 可能是 False，需要強制設置為 True
-                if not router_output.needs_agent:
+            # 檢查技術操作關鍵詞（Excel/文件操作）
+            technical_keywords = [
+            "插入", "設置", "填充", "重命名", "合併", "凍結", "複製", "刪除", "更新", "創建",
+            "輸入", "添加", "修改", "編輯", "edit", "modify", "update", "insert", "set"
+            ]
+            # 檢查轉換操作關鍵詞（文件轉換操作也應該是 execution）
+            conversion_keywords = [
+            "轉換", "轉為", "轉成", "轉", "convert", "to",
+            "生成", "產生", "生成為", "產生為",
+            "版本", "version",
+            "導出", "export",
+            "輸出", "output",
+            "提取", "extract",  # PDF 轉 Markdown 可能使用"提取"
+            ]
+            task_lower = request.task.lower()
+            has_technical_keyword = any(keyword in task_lower for keyword in technical_keywords)
+            has_conversion_keyword = any(keyword in task_lower for keyword in conversion_keywords)
+            # 檢查是否包含文件擴展名
+            has_file_extension = any(ext in task_lower for ext in [".md", ".markdown", ".xlsx", ".xls", ".pdf"])
+            # 如果包含文件擴展名和（技術操作關鍵詞或轉換關鍵詞），應該是 execution
+            is_technical_file_operation = has_file_extension and (has_technical_keyword or has_conversion_keyword)
+
+            # 如果是文件編輯任務（明確或隱含），強制修正
+            if (router_output.intent_type == "execution" and is_file_editing) or is_implicit_editing or is_technical_file_operation:
+                # 如果是隱含編輯意圖、技術文件操作但 intent_type 不是 execution，修正為 execution
+                if (is_implicit_editing or is_technical_file_operation) and router_output.intent_type != "execution":
+                    reason = "implicit file editing" if is_implicit_editing else "technical file operation"
                     logger.info(
-                        f"File editing task detected, forcing needs_agent=true "
+                        f"{reason.capitalize()} task detected, forcing intent_type=execution "
                         f"(query: {request.task[:100]}...)"
                     )
                     router_output = RouterDecision(
-                        intent_type=router_output.intent_type,
+                        topics=router_output.topics,  # 保留語義理解信息
+                        entities=router_output.entities,
+                        action_signals=router_output.action_signals,
+                        modality=router_output.modality,
+                        intent_type="execution",  # 強制設置為 execution
                         complexity=router_output.complexity,
-                        needs_agent=True,  # 強制設置為 True
-                        needs_tools=router_output.needs_tools,
+                        needs_agent=True,  # 隱含編輯意圖/技術操作也需要 agent
+                        needs_tools=True,  # 隱含編輯意圖/技術操作也需要工具
                         determinism_required=router_output.determinism_required,
                         risk_level=router_output.risk_level,
                         confidence=router_output.confidence,
                     )
+                elif router_output.intent_type == "execution" and is_file_editing:
+                    # 明確編輯意圖，但 needs_agent 可能是 False，需要強制設置為 True
+                    if not router_output.needs_agent:
+                        logger.info(
+                            f"File editing task detected, forcing needs_agent=true "
+                            f"(query: {request.task[:100]}...)"
+                        )
+                        router_output = RouterDecision(
+                            topics=router_output.topics,  # 保留語義理解信息
+                            entities=router_output.entities,
+                            action_signals=router_output.action_signals,
+                            modality=router_output.modality,
+                            intent_type=router_output.intent_type,
+                            complexity=router_output.complexity,
+                            needs_agent=True,  # 強制設置為 True
+                            needs_tools=router_output.needs_tools,
+                            determinism_required=router_output.determinism_required,
+                            risk_level=router_output.risk_level,
+                            confidence=router_output.confidence,
+                        )
 
-        # ============================================
-        # Layer 3: Decision Engine（完整決策引擎）
-        # ============================================
-        # 步驟5: Capability Matching（能力匹配）
-        # 將查詢文本添加到 context 中，供 Capability Matcher 使用（特別是文件編輯任務檢測）
-        enhanced_context = (request.context or {}).copy()
-        enhanced_context["task"] = request.task
-        enhanced_context["query"] = request.task
-        # 使用增強後的 context 進行能力匹配
-        agent_candidates = await self.capability_matcher.match_agents(
+            # ============================================
+            # Layer 3: Decision Engine（完整決策引擎）
+            # ============================================
+            # 步驟5: Capability Matching（能力匹配）
+            # 將查詢文本添加到 context 中，供 Capability Matcher 使用（特別是文件編輯任務檢測）
+            enhanced_context = (request.context or {}).copy()
+            enhanced_context["task"] = request.task
+            enhanced_context["query"] = request.task
+            # 使用增強後的 context 進行能力匹配
+            agent_candidates = await self.capability_matcher.match_agents(
             router_output, enhanced_context
-        )
-        logger.info(
+            )
+            logger.info(
             f"Layer 3: Capability Matcher found {len(agent_candidates)} agent candidates: "
             f"{[c.candidate_id for c in agent_candidates[:5]]}"
-        )
-        tool_candidates = await self.capability_matcher.match_tools(router_output, enhanced_context)
-        logger.info(
+            )
+            tool_candidates = await self.capability_matcher.match_tools(router_output, enhanced_context)
+            logger.info(
             f"Layer 3: Capability Matcher found {len(tool_candidates)} tool candidates: "
             f"{[c.candidate_id for c in tool_candidates[:5]]}"
-        )
-        model_candidates = await self.capability_matcher.match_models(
+            )
+            model_candidates = await self.capability_matcher.match_models(
             router_output, request.context
-        )
-        logger.info(
+            )
+            logger.info(
             f"Layer 3: Capability Matcher found {len(model_candidates)} model candidates: "
             f"{[c.candidate_id for c in model_candidates[:5]]}"
-        )
+            )
 
-        # 步驟6: Decision Engine（綜合決策）
-        logger.info(
+            # 步驟6: Decision Engine（綜合決策）
+            logger.info(
             f"Layer 3: Calling Decision Engine with {len(agent_candidates)} agent candidates, "
             f"{len(tool_candidates)} tool candidates, {len(model_candidates)} model candidates"
-        )
-        decision_result = self.decision_engine.decide(
+            )
+            decision_result = self.decision_engine.decide(
             router_output,
             agent_candidates,
             tool_candidates,
             model_candidates,
             enhanced_context,
-        )
-        logger.info(
+            )
+            logger.info(
             f"Layer 3: Decision Engine result - chosen_tools={decision_result.chosen_tools}, "
             f"chosen_agent={decision_result.chosen_agent}, chosen_model={decision_result.chosen_model}, "
             f"score={decision_result.score}, fallback_used={decision_result.fallback_used}"
-        )
-
-        # 步驟7: 傳統流程（向後兼容）
-        # 任務分類
-        classification = self.classifier.classify(
-            request.task,
-            request.context,
-        )
-
-        # 如果 Router LLM 識別為 execution，覆蓋 TaskClassifier 的結果
-        # 優先信任 RouterLLM 的意圖識別結果，因為它更準確
-        if router_output.intent_type == "execution":
-            if classification.task_type != TaskType.EXECUTION:
-                logger.info(
-                    f"Overriding TaskClassifier result: {classification.task_type.value} -> execution "
-                    f"(Router LLM intent_type=execution, query: {request.task[:100]}...)"
-                )
-                classification.task_type = TaskType.EXECUTION
-                classification.confidence = max(classification.confidence, router_output.confidence)
-                classification.reasoning = f"{classification.reasoning} (覆蓋：Router LLM 識別為 execution 意圖，置信度 {router_output.confidence:.2f})"
-
-        # 工作流選擇
-        workflow_selection = self.workflow_selector.select(
-            classification,
-            request.task,
-            request.context,
-        )
-
-        # LLM 路由選擇（用於向後兼容）
-        llm_routing = self.llm_router.route(
-            classification,
-            request.task,
-            request.context,
-        )
-
-        # 判斷是否需要啟動 Agent（使用 Decision Engine 的結果）
-        requires_agent = decision_result.chosen_agent is not None
-
-        # 建議使用的 Agent 和工具列表（從 Decision Engine 獲取）
-        suggested_agents = []
-        if decision_result.chosen_agent:
-            suggested_agents.append(decision_result.chosen_agent)
-        suggested_tools = decision_result.chosen_tools
-
-        # 提取意圖（保留原有邏輯）
-        intent: Optional[Any] = None
-        if classification.task_type == TaskType.LOG_QUERY:
-            intent = self._extract_log_query_intent(request.task, request.context)
-        elif self._is_config_operation(classification, request.task):
-            intent = await self._extract_config_intent(
-                request.task, classification, request.context
             )
 
-        # 構建分析詳情
-        analysis_details = {
+            # 步驟7: 傳統流程（向後兼容）
+            # 任務分類
+            classification = self.classifier.classify(
+            request.task,
+            request.context,
+            )
+
+            # 如果 Router LLM 識別為 execution，覆蓋 TaskClassifier 的結果
+            # 優先信任 RouterLLM 的意圖識別結果，因為它更準確
+            if router_output.intent_type == "execution":
+                if classification.task_type != TaskType.EXECUTION:
+                    logger.info(
+                        f"Overriding TaskClassifier result: {classification.task_type.value} -> execution "
+                        f"(Router LLM intent_type=execution, query: {request.task[:100]}...)"
+                    )
+                    classification.task_type = TaskType.EXECUTION
+                    classification.confidence = max(classification.confidence, router_output.confidence)
+                    classification.reasoning = f"{classification.reasoning} (覆蓋：Router LLM 識別為 execution 意圖，置信度 {router_output.confidence:.2f})"
+
+            # 工作流選擇
+            workflow_selection = self.workflow_selector.select(
+            classification,
+            request.task,
+            request.context,
+            )
+
+            # LLM 路由選擇（用於向後兼容）
+            llm_routing = self.llm_router.route(
+            classification,
+            request.task,
+            request.context,
+            )
+
+            # 判斷是否需要啟動 Agent（使用 Decision Engine 的結果）
+            requires_agent = decision_result.chosen_agent is not None
+
+            # 建議使用的 Agent 和工具列表（從 Decision Engine 獲取）
+            suggested_agents = []
+            if decision_result.chosen_agent:
+                suggested_agents.append(decision_result.chosen_agent)
+            suggested_tools = decision_result.chosen_tools
+
+            # 提取意圖（保留原有邏輯）
+            intent: Optional[Any] = None
+            if classification.task_type == TaskType.LOG_QUERY:
+                intent = self._extract_log_query_intent(request.task, request.context)
+            elif self._is_config_operation(classification, request.task):
+                intent = await self._extract_config_intent(
+                    request.task, classification, request.context
+                )
+
+            # 構建分析詳情
+            analysis_details = {
             "classification": {
                 "task_type": classification.task_type.value,
                 "confidence": classification.confidence,
@@ -375,12 +698,90 @@ class TaskAnalyzer:
                 if hasattr(decision_result, "dict")
                 else decision_result
             ),
-        }
+            }
 
-        # 如果是混合模式，添加 strategy 信息
-        if workflow_selection.workflow_type == WorkflowType.HYBRID and workflow_selection.strategy:
-            strategy = workflow_selection.strategy
-            analysis_details["workflow_strategy"] = {
+            # v4.0 新增：添加 L2 Intent 和 L3 Task DAG 到 analysis_details
+            if matched_intent:
+                analysis_details["matched_intent"] = (
+                    matched_intent.model_dump()
+                    if hasattr(matched_intent, "model_dump")
+                    else matched_intent.dict()
+                    if hasattr(matched_intent, "dict")
+                    else {
+                        "name": matched_intent.name,
+                        "domain": matched_intent.domain,
+                        "target": matched_intent.target,
+                        "output_format": matched_intent.output_format,
+                        "depth": matched_intent.depth,
+                        "version": matched_intent.version,
+                        "description": matched_intent.description,
+                    }
+                )
+
+            if task_dag:
+                analysis_details["task_dag"] = (
+                    task_dag.model_dump()
+                    if hasattr(task_dag, "model_dump")
+                    else task_dag.dict()
+                    if hasattr(task_dag, "dict")
+                    else {
+                        "task_graph": [
+                            {
+                                "id": node.id,
+                                "capability": node.capability,
+                                "agent": node.agent,
+                                "depends_on": node.depends_on,
+                                "description": node.description,
+                                "metadata": node.metadata,
+                            }
+                            for node in task_dag.task_graph
+                        ],
+                        "reasoning": task_dag.reasoning,
+                        "metadata": task_dag.metadata,
+                    }
+                )
+
+            # v4.0 新增：添加 L4 Policy Validation Result 到 analysis_details
+            if policy_validation_result:
+                analysis_details["policy_validation"] = (
+                    policy_validation_result.model_dump()
+                    if hasattr(policy_validation_result, "model_dump")
+                else policy_validation_result.dict()
+                if hasattr(policy_validation_result, "dict")
+                else {
+                    "allowed": policy_validation_result.allowed,
+                    "requires_confirmation": policy_validation_result.requires_confirmation,
+                    "risk_level": policy_validation_result.risk_level,
+                    "reasons": policy_validation_result.reasons,
+                    "metadata": policy_validation_result.metadata,
+                }
+            )
+
+            # v4.0 新增：添加 L5 Execution Record 到 analysis_details
+            if execution_record:
+                analysis_details["execution_record"] = (
+                    execution_record.model_dump()
+                    if hasattr(execution_record, "model_dump")
+                    else execution_record.dict()
+                    if hasattr(execution_record, "dict")
+                    else {
+                        "intent": execution_record.intent,
+                        "task_count": execution_record.task_count,
+                        "execution_success": execution_record.execution_success,
+                        "user_correction": execution_record.user_correction,
+                        "latency_ms": execution_record.latency_ms,
+                        "task_results": execution_record.task_results,
+                        "trace_id": execution_record.trace_id,
+                        "user_id": execution_record.user_id,
+                        "session_id": execution_record.session_id,
+                        "agent_ids": execution_record.agent_ids,
+                    }
+                )
+
+            # 如果是混合模式，添加 strategy 信息
+            if workflow_selection.workflow_type == WorkflowType.HYBRID and workflow_selection.strategy:
+                strategy = workflow_selection.strategy
+                analysis_details["workflow_strategy"] = {
                 "mode": strategy.mode,
                 "primary": strategy.primary.value,
                 "fallback": [f.value for f in strategy.fallback],
@@ -388,28 +789,46 @@ class TaskAnalyzer:
                 "reasoning": strategy.reasoning,
             }
 
-        # 計算整體置信度（取平均值）
-        overall_confidence = (
+            # 計算整體置信度（取平均值）
+            overall_confidence = (
             classification.confidence + workflow_selection.confidence + llm_routing.confidence
-        ) / 3.0
+            ) / 3.0
 
-        logger.info(
-            f"Task analysis completed: task_id={task_id}, "
+            # v4.0 性能監控：計算總體處理時間
+            total_latency_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+
+            # v4.0 性能監控：添加性能指標到 analysis_details
+            analysis_details["performance_metrics"] = {
+            "total_latency_ms": total_latency_ms,
+            "start_time": start_time.isoformat(),
+            "end_time": datetime.utcnow().isoformat(),
+            }
+
+            logger.info(
+            f"v4.0: Task analysis completed - task_id={task_id}, total_latency={total_latency_ms}ms, "
+            f"intent={matched_intent.name if matched_intent else 'unknown'}, "
+            f"task_dag={len(task_dag.task_graph) if task_dag and task_dag.task_graph else 0} tasks, "
+            f"policy_allowed={policy_validation_result.allowed if policy_validation_result else 'N/A'}, "
+            f"execution_success={execution_record.execution_success if execution_record else 'N/A'}"
+            )
+
+            # 構建並返回結果
+            result = TaskAnalysisResult(
             f"type={classification.task_type.value}, "
             f"workflow={workflow_selection.workflow_type.value}, "
             f"llm={llm_routing.provider.value}, "
             f"requires_agent={requires_agent}"
-        )
-
-        # 將 intent 添加到 analysis_details 中
-        if intent:
-            analysis_details["intent"] = (
-                intent.model_dump()
-                if hasattr(intent, "model_dump")
-                else intent.dict()
-                if hasattr(intent, "dict")
-                else intent
             )
+
+            # 將 intent 添加到 analysis_details 中
+            if intent:
+                analysis_details["intent"] = (
+                    intent.model_dump()
+                    if hasattr(intent, "model_dump")
+                    else intent.dict()
+                    if hasattr(intent, "dict")
+                    else intent
+                )
 
             # 如果是 ConfigIntent，提取澄清信息並添加到分析詳情中
             if isinstance(intent, ConfigIntent):
@@ -420,7 +839,7 @@ class TaskAnalyzer:
                 if "system_config_agent" not in suggested_agents:
                     suggested_agents.insert(0, "system_config_agent")
 
-        result = TaskAnalysisResult(
+            result = TaskAnalysisResult(
             task_id=task_id,
             task_type=classification.task_type,
             workflow_type=workflow_selection.workflow_type,
@@ -432,23 +851,48 @@ class TaskAnalyzer:
             router_decision=router_output,
             decision_result=decision_result,
             suggested_tools=suggested_tools,
-        )
-
-        # 步驟8: 異步記錄決策到 Routing Memory（不阻塞）
-        try:
-            decision_log = DecisionLog(
-                decision_id=task_id,
-                timestamp=datetime.utcnow(),
-                query={"text": request.task},
-                router_output=router_output,
-                decision_engine=decision_result,
-                execution_result=None,  # 執行結果在執行後更新
             )
-            asyncio.create_task(self.routing_memory.record_decision(decision_log))
-        except Exception as e:
-            logger.warning(f"Failed to record decision to routing memory: {e}")
 
-        return result
+            # v4.0 性能監控：記錄總體處理時間
+            logger.info(
+            f"v4.0: Task analysis performance - task_id={task_id}, "
+            f"total_latency={total_latency_ms}ms, "
+            f"intent={matched_intent.name if matched_intent else 'unknown'}, "
+            f"task_dag_tasks={len(task_dag.task_graph) if task_dag and task_dag.task_graph else 0}, "
+            f"policy_allowed={policy_validation_result.allowed if policy_validation_result else 'N/A'}, "
+            f"execution_success={execution_record.execution_success if execution_record else 'N/A'}"
+            )
+
+            # 步驟8: 異步記錄決策到 Routing Memory（不阻塞）
+            try:
+                decision_log = DecisionLog(
+                    decision_id=task_id,
+                    timestamp=datetime.utcnow(),
+                    query={"text": request.task},
+                    router_output=router_output,
+                    decision_engine=decision_result,
+                    execution_result=None,  # 執行結果在執行後更新
+                )
+                asyncio.create_task(self.routing_memory.record_decision(decision_log))
+            except Exception as e:
+                logger.warning(f"Failed to record decision to routing memory: {e}")
+
+            return result
+
+        except Exception as e:
+            # v4.0 錯誤處理：捕獲所有未處理的異常
+            total_latency_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+            logger.error(
+                f"v4.0: Task analysis failed - task_id={task_id}, "
+                f"total_latency={total_latency_ms}ms, error={e}",
+                exc_info=True,
+            )
+            # 返回錯誤結果
+            return self._create_error_result(
+                task_id,
+                error_message=f"Task analysis failed: {str(e)}",
+                suggested_agents=[],
+            )
 
     def _is_simple_query(self, task: str) -> bool:
         """
@@ -926,6 +1370,192 @@ Important:
             agents.append("orchestrator")
 
         return agents
+
+    async def _execute_task_dag(
+        self,
+        task_dag: TaskDAG,
+        context: Dict[str, Any],
+        task_results: List[Dict[str, Any]],
+    ) -> bool:
+        """
+        執行 Task DAG（L5 層級）
+
+        Args:
+            task_dag: Task DAG 對象
+            context: 上下文信息
+            task_results: 任務執行結果列表（輸出參數）
+
+        Returns:
+            執行是否成功
+        """
+        try:
+            # 導入 Orchestrator（懶加載以避免循環導入）
+            from agents.services.orchestrator.orchestrator import AgentOrchestrator
+            from agents.services.orchestrator.models import TaskRequest, TaskStatus
+
+            orchestrator = AgentOrchestrator()
+
+            # 按照 DAG 的依賴順序執行任務
+            # 構建任務依賴圖
+            task_map: Dict[str, TaskNode] = {}
+            for task_node in task_dag.task_graph:
+                task_map[task_node.id] = task_node
+
+            # 拓撲排序：找到所有沒有依賴的任務
+            completed_tasks: set = set()
+            task_status: Dict[str, TaskStatus] = {}
+
+            # 初始化所有任務狀態
+            for task_node in task_dag.task_graph:
+                task_status[task_node.id] = TaskStatus.PENDING
+
+            execution_success = True
+
+            # 執行循環：直到所有任務完成或失敗
+            while len(completed_tasks) < len(task_dag.task_graph):
+                # 找到所有可以執行的任務（依賴已完成）
+                ready_tasks = []
+                for task_node in task_dag.task_graph:
+                    if task_node.id in completed_tasks:
+                        continue
+                    # 檢查所有依賴是否已完成
+                    if all(dep_id in completed_tasks for dep_id in task_node.depends_on):
+                        ready_tasks.append(task_node)
+
+                if not ready_tasks:
+                    # 沒有可執行的任務，可能存在循環依賴或錯誤
+                    logger.error(
+                        f"L5: No ready tasks found, possible circular dependency or error. "
+                        f"Completed: {completed_tasks}, Pending: {set(task_map.keys()) - completed_tasks}"
+                    )
+                    execution_success = False
+                    break
+
+                # 並行執行所有就緒的任務
+                execution_tasks = []
+                for task_node in ready_tasks:
+                    task_status[task_node.id] = TaskStatus.RUNNING
+                    execution_tasks.append(
+                        self._execute_single_task(
+                            orchestrator=orchestrator,
+                            task_node=task_node,
+                            context=context,
+                        )
+                    )
+
+                # 等待所有任務完成
+                results = await asyncio.gather(*execution_tasks, return_exceptions=True)
+
+                # 處理執行結果
+                for i, result in enumerate(results):
+                    task_node = ready_tasks[i]
+                    if isinstance(result, Exception):
+                        logger.error(
+                            f"L5: Task {task_node.id} execution failed: {result}",
+                            exc_info=True,
+                        )
+                        task_status[task_node.id] = TaskStatus.FAILED
+                        task_results.append(
+                            {
+                                "task_id": task_node.id,
+                                "status": "failed",
+                                "error": str(result),
+                                "capability": task_node.capability,
+                                "agent": task_node.agent,
+                            }
+                        )
+                        execution_success = False
+                    elif result:
+                        task_status[task_node.id] = TaskStatus.COMPLETED
+                        task_results.append(
+                            {
+                                "task_id": task_node.id,
+                                "status": "completed",
+                                "capability": task_node.capability,
+                                "agent": task_node.agent,
+                                "result": result,
+                            }
+                        )
+                        completed_tasks.add(task_node.id)
+                    else:
+                        logger.warning(f"L5: Task {task_node.id} execution returned None")
+                        task_status[task_node.id] = TaskStatus.FAILED
+                        task_results.append(
+                            {
+                                "task_id": task_node.id,
+                                "status": "failed",
+                                "error": "Task execution returned None",
+                                "capability": task_node.capability,
+                                "agent": task_node.agent,
+                            }
+                        )
+                        execution_success = False
+
+            logger.info(
+                f"L5: Task DAG execution completed - success={execution_success}, "
+                f"completed={len(completed_tasks)}/{len(task_dag.task_graph)}"
+            )
+
+            return execution_success
+
+        except Exception as e:
+            logger.error(f"L5: Task DAG execution failed: {e}", exc_info=True)
+            return False
+
+    async def _execute_single_task(
+        self,
+        orchestrator: Any,
+        task_node: TaskNode,
+        context: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        執行單個任務節點
+
+        Args:
+            orchestrator: Orchestrator 實例
+            task_node: 任務節點
+            context: 上下文信息
+
+        Returns:
+            任務執行結果，如果失敗則返回 None
+        """
+        try:
+            from agents.services.orchestrator.models import TaskRequest, TaskType
+
+            # 構建任務請求
+            task_request = TaskRequest(
+                task_id=task_node.id,
+                task_type=TaskType.EXECUTION,
+                task_data={
+                    "capability": task_node.capability,
+                    "description": task_node.description,
+                    "metadata": task_node.metadata,
+                    "context": context,
+                },
+                metadata={
+                    "agent_id": task_node.agent,
+                    "capability": task_node.capability,
+                    **context,
+                },
+            )
+
+            # 調用 Orchestrator 執行任務
+            task_result = await orchestrator.execute_task(
+                task_id=task_node.id,
+                agent_id=task_node.agent,
+            )
+
+            if task_result and task_result.status.value == "completed":
+                return task_result.result
+            else:
+                logger.warning(
+                    f"L5: Task {task_node.id} execution failed - status={task_result.status if task_result else 'None'}"
+                )
+                return None
+
+        except Exception as e:
+            logger.error(f"L5: Single task execution failed: {e}", exc_info=True)
+            return None
 
     def _extract_log_query_intent(
         self, task: str, context: Optional[Dict[str, Any]] = None

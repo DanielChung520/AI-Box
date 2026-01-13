@@ -1,24 +1,28 @@
 # 代碼功能說明: 工作流決策引擎
 # 創建日期: 2025-11-26 22:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-09
+# 最後修改日期: 2026-01-13
 
 """實現工作流模式選擇決策邏輯。"""
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from agents.task_analyzer.models import (
     CapabilityMatch,
     DecisionResult,
+    PolicyValidationResult,
     RouterDecision,
     TaskClassificationResult,
+    TaskDAG,
+    TaskNode,
     TaskType,
     WorkflowStrategy,
     WorkflowType,
 )
+from agents.task_analyzer.policy_service import get_policy_service
 
 logger = logging.getLogger(__name__)
 
@@ -118,36 +122,67 @@ class DecisionEngine:
         }
 
         # 檢查轉換操作
-        conversion_keywords = ["轉換", "轉為", "轉成", "convert", "to", "轉"]
+        # 擴展的轉換關鍵詞列表（包含更多表達轉換意圖的詞彙）
+        conversion_keywords = [
+            "轉換", "轉為", "轉成", "轉", "convert", "to",
+            "生成", "產生", "生成為", "產生為",  # 生成/產生 + 目標格式
+            "版本", "version",  # 版本（如 "PDF 版本"）
+            "導出", "export",  # 導出為某格式
+            "輸出", "output",  # 輸出為某格式
+        ]
         is_conversion = any(keyword in query_lower for keyword in conversion_keywords)
 
-        # 檢查文件擴展名
+        # 檢查文件擴展名（優先檢查轉換操作，因為轉換操作更明確）
+        # 先檢查轉換操作（明確的轉換關鍵詞）
+        # 注意：檢查順序很重要！應該先檢查更具體的轉換（pdf -> md），再檢查通用轉換（md -> pdf）
+        # 因為 "將 document.pdf 轉換為 Markdown" 同時包含 "pdf" 和 "markdown"，如果先檢查 md -> pdf 會錯誤匹配
+        if is_conversion:
+            # 先檢查 pdf -> md（更具體的轉換，優先檢查）
+            if ".pdf" in query_lower and ("markdown" in query_lower or ".md" in query_lower):
+                logger.debug(f"File extension match: pdf-to-md conversion detected in query: {query[:100]}")
+                return "pdf-to-md"
+            # 檢查 xlsx/xls -> pdf
+            if (".xlsx" in query_lower or ".xls" in query_lower) and "pdf" in query_lower:
+                logger.debug(f"File extension match: xls-to-pdf conversion detected in query: {query[:100]}")
+                return "xls-to-pdf"
+            # 最後檢查 md -> pdf（放在最後，避免與 pdf -> md 衝突）
+            if (".md" in query_lower or "markdown" in query_lower) and "pdf" in query_lower:
+                logger.debug(f"File extension match: md-to-pdf conversion detected in query: {query[:100]}")
+                return "md-to-pdf"
+        
+        # 檢查隱式轉換操作（沒有明確轉換關鍵詞，但同時包含源文件格式和目標格式）
+        # 例如："生成 README.md 的 PDF 版本" - 包含 .md 和 PDF，但沒有明確的轉換關鍵詞
+        # 注意：檢查順序很重要！應該先檢查更具體的轉換（pdf -> md），再檢查通用轉換（md -> pdf）
+        # 檢查 pdf -> md（隱式，優先檢查）
+        if ".pdf" in query_lower and ("markdown" in query_lower or ".md" in query_lower):
+            editing_keywords = ["編輯", "修改", "更新", "刪除", "添加", "插入", "設置", "edit", "modify", "update"]
+            has_editing_keyword = any(keyword in query_lower for keyword in editing_keywords)
+            if not has_editing_keyword:
+                logger.debug(f"File extension match: pdf-to-md implicit conversion detected in query: {query[:100]}")
+                return "pdf-to-md"
+        # 檢查 xlsx/xls -> pdf（隱式）
+        if (".xlsx" in query_lower or ".xls" in query_lower) and "pdf" in query_lower:
+            editing_keywords = ["編輯", "修改", "更新", "刪除", "添加", "插入", "設置", "edit", "modify", "update"]
+            has_editing_keyword = any(keyword in query_lower for keyword in editing_keywords)
+            if not has_editing_keyword:
+                logger.debug(f"File extension match: xls-to-pdf implicit conversion detected in query: {query[:100]}")
+                return "xls-to-pdf"
+        # 檢查 md -> pdf（隱式，放在最後）
+        if (".md" in query_lower or "markdown" in query_lower) and "pdf" in query_lower:
+            editing_keywords = ["編輯", "修改", "更新", "刪除", "添加", "插入", "設置", "edit", "modify", "update"]
+            has_editing_keyword = any(keyword in query_lower for keyword in editing_keywords)
+            if not has_editing_keyword:
+                logger.debug(f"File extension match: md-to-pdf implicit conversion detected in query: {query[:100]}")
+                return "md-to-pdf"
+        
+        # 檢查編輯操作（非轉換）
         for ext, agent_id in file_extensions.items():
-            if ext in query_lower:
-                if agent_id:
-                    # 如果是轉換操作，檢查目標格式
-                    if is_conversion:
-                        if ext == ".md":
-                            # Markdown 轉換
-                            if "pdf" in query_lower:
-                                return "md-to-pdf"
-                            elif "markdown" in query_lower or "md" in query_lower:
-                                return None  # 同格式轉換，不需要特殊 Agent
-                        elif ext in [".xlsx", ".xls"]:
-                            # Excel 轉換
-                            if "pdf" in query_lower:
-                                return "xls-to-pdf"
-                    else:
-                        # 編輯操作
-                        return agent_id
-                elif ext == ".pdf":
-                    # PDF 文件
-                    if is_conversion:
-                        if "markdown" in query_lower or "md" in query_lower:
-                            return "pdf-to-md"
-                    # PDF 編輯（如果需要的話，可以返回 pdf-editor）
-                    return None
+            if ext in query_lower and agent_id:
+                # 編輯操作
+                logger.debug(f"File extension match: {ext} -> {agent_id} for editing operation in query: {query[:100]}")
+                return agent_id
 
+        logger.debug(f"File extension match: No match found for query: {query[:100]}")
         return None
 
     def decide_strategy(
@@ -193,7 +228,9 @@ class DecisionEngine:
             mode = "hybrid"
             primary = WorkflowType.AUTOGEN
             fallback = [WorkflowType.LANGCHAIN]
-            reasoning_parts.append(f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式")
+            reasoning_parts.append(
+                f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式"
+            )
 
         # 規則 3: 需要可觀測性 → LangGraph 作為主要模式
         elif requires_observability:
@@ -338,6 +375,9 @@ class DecisionEngine:
         user_query = context.get("task", "") or context.get("query", "") if context else ""
         is_file_editing = self._is_file_editing_task(user_query)
 
+        # 注意：任務類型修正已在 analyzer.py 中處理（修正 RouterDecision.intent_type）
+        # 這裡不需要再次修正，因為 RouterDecision 沒有 task_type 字段
+
         # 根據文件擴展名選擇具體的 Agent（方案1：精確匹配）
         specific_agent_id = self._select_agent_by_file_extension(user_query)
         if specific_agent_id:
@@ -345,25 +385,112 @@ class DecisionEngine:
                 f"Decision Engine: File extension match found agent: {specific_agent_id} "
                 f"for query: {user_query[:100]}..."
             )
+            # 如果文件擴展名匹配到特定 Agent，但該 Agent 不在候選列表中
+            # 嘗試從 Registry 直接查找該 Agent 並添加到候選列表
+            candidate_ids_before = [a.candidate_id for a in agent_candidates] if agent_candidates else []
+            if specific_agent_id not in candidate_ids_before:
+                logger.warning(
+                    f"Decision Engine: File extension matched {specific_agent_id} but it's not in candidates "
+                    f"(current candidates: {candidate_ids_before}). Attempting to find it directly from registry..."
+                )
+                try:
+                    from agents.services.registry.registry import get_agent_registry
+                    registry = get_agent_registry()
+                    if registry:
+                        agent_info = registry.get_agent_info(specific_agent_id)
+                        logger.info(
+                            f"Decision Engine: Registry lookup for {specific_agent_id}: "
+                            f"found={agent_info is not None}, "
+                            f"status={agent_info.status.value if agent_info else 'N/A'}"
+                        )
+                        if agent_info and agent_info.status.value == "online":
+                            # 創建一個 CapabilityMatch 對象並添加到候選列表
+                            from agents.task_analyzer.models import CapabilityMatch
+                            matched_agent = CapabilityMatch(
+                                candidate_id=specific_agent_id,
+                                candidate_type="agent",
+                                capability_match=1.0,  # 文件擴展名匹配 = 完美匹配
+                                cost_score=0.7,
+                                latency_score=0.7,
+                                success_history=0.9,  # 文件擴展名匹配的 Agent 應該有較高的成功歷史
+                                stability=0.9,
+                                total_score=0.95,  # 非常高的評分，確保優先選擇（提高到 0.95）
+                                metadata={
+                                    "agent_type": agent_info.agent_type,
+                                    "capabilities": agent_info.capabilities,
+                                    "load": agent_info.load if hasattr(agent_info, "load") else 0,
+                                    "file_extension_match": True,  # 標記為文件擴展名匹配
+                                },
+                            )
+                            agent_candidates.insert(0, matched_agent)  # 插入到列表開頭，優先考慮
+                            logger.info(
+                                f"Decision Engine: ✅ Added {specific_agent_id} to candidates from registry "
+                                f"(file extension match, score: {matched_agent.total_score:.2f})"
+                            )
+                        else:
+                            logger.warning(
+                                f"Decision Engine: Agent {specific_agent_id} found in registry but "
+                                f"status is {agent_info.status.value if agent_info else 'not found'} "
+                                f"(expected: online)"
+                            )
+                    else:
+                        logger.warning(
+                            f"Decision Engine: Registry is None, cannot lookup {specific_agent_id}"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"Decision Engine: Failed to find {specific_agent_id} from registry: {e}",
+                        exc_info=True
+                    )
+            else:
+                logger.info(
+                    f"Decision Engine: File extension matched {specific_agent_id} and it's already in candidates"
+                )
         else:
             logger.info(
                 f"Decision Engine: No file extension match for query: {user_query[:100]}..."
             )
 
         # 1. Rule Filter（硬性規則過濾）
-        # 風險等級過濾
-        max_risk_level = router_decision.risk_level
+        # 過濾掉已棄用的 document-editing-agent
+        # 注意：如果文件擴展名匹配到特定 Agent，不要過濾掉它
         agent_candidates = [
-            a for a in agent_candidates if self._check_risk_level(a, max_risk_level)
+            a for a in agent_candidates if a.candidate_id != "document-editing-agent"
         ]
+        logger.debug(
+            f"Decision Engine: Filtered out document-editing-agent, remaining candidates: "
+            f"{[a.candidate_id for a in agent_candidates]}"
+        )
+        
+        # 風險等級過濾
+        # 注意：如果文件擴展名匹配到特定 Agent，跳過風險等級過濾（因為它是精確匹配）
+        max_risk_level = router_decision.risk_level
+        if specific_agent_id:
+            # 對於文件擴展名匹配的 Agent，跳過風險等級過濾
+            agent_candidates = [
+                a for a in agent_candidates 
+                if a.candidate_id == specific_agent_id or self._check_risk_level(a, max_risk_level)
+            ]
+        else:
+            agent_candidates = [
+                a for a in agent_candidates if self._check_risk_level(a, max_risk_level)
+            ]
         tool_candidates = [t for t in tool_candidates if self._check_risk_level(t, max_risk_level)]
         model_candidates = [
             m for m in model_candidates if self._check_risk_level(m, max_risk_level)
         ]
 
         # 成本限制
+        # 注意：如果文件擴展名匹配到特定 Agent，跳過成本過濾（因為它是精確匹配）
         max_cost = context.get("max_cost", "medium")
-        agent_candidates = [a for a in agent_candidates if self._check_cost_constraint(a, max_cost)]
+        if specific_agent_id:
+            # 對於文件擴展名匹配的 Agent，跳過成本過濾
+            agent_candidates = [
+                a for a in agent_candidates 
+                if a.candidate_id == specific_agent_id or self._check_cost_constraint(a, max_cost)
+            ]
+        else:
+            agent_candidates = [a for a in agent_candidates if self._check_cost_constraint(a, max_cost)]
         tool_candidates = [t for t in tool_candidates if self._check_cost_constraint(t, max_cost)]
         model_candidates = [m for m in model_candidates if self._check_cost_constraint(m, max_cost)]
 
@@ -371,17 +498,18 @@ class DecisionEngine:
         chosen_agent = None
 
         # 方案1：根據文件擴展名精確匹配（優先級最高）
-        if specific_agent_id and agent_candidates:
+        if specific_agent_id:
             # 記錄所有候選 Agent ID（用於調試）
-            candidate_ids = [a.candidate_id for a in agent_candidates]
+            candidate_ids = [a.candidate_id for a in agent_candidates] if agent_candidates else []
             logger.info(
-                f"Decision Engine: Agent candidates: {candidate_ids} "
-                f"(looking for: {specific_agent_id})"
+                f"Decision Engine: File extension match found {specific_agent_id}, "
+                f"Agent candidates: {candidate_ids}"
             )
 
             matched_agent = next(
                 (a for a in agent_candidates if a.candidate_id == specific_agent_id), None
-            )
+            ) if agent_candidates else None
+            
             if matched_agent:
                 chosen_agent = specific_agent_id
                 reasoning_parts.append(
@@ -392,39 +520,19 @@ class DecisionEngine:
                     f"(score: {matched_agent.total_score:.2f})"
                 )
             else:
+                # 如果文件擴展名匹配到特定 Agent，但該 Agent 不在候選列表中
+                # 這可能是因為 Agent 沒有被正確註冊或加載
+                # 記錄警告，但繼續使用候選列表中的 Agent
                 logger.warning(
                     f"Decision Engine: File extension match found {specific_agent_id}, "
-                    f"but it's not in agent_candidates! Available: {candidate_ids}"
+                    f"but it's not in agent_candidates! Available: {candidate_ids}. "
+                    f"This may indicate the agent is not properly registered or loaded."
                 )
+                # 注意：這裡不強制選擇 specific_agent_id，因為它不在候選列表中
+                # 如果強制選擇，可能會導致執行時錯誤
 
-        # 方案2：如果是文件編輯任務，優先選擇 document-editing-agent（後備方案）
-        if not chosen_agent and is_file_editing and agent_candidates:
-            document_editing_agent = next(
-                (a for a in agent_candidates if a.candidate_id == "document-editing-agent"),
-                None,
-            )
-            if document_editing_agent:
-                # 文件編輯任務優先使用 document-editing-agent
-                chosen_agent = "document-editing-agent"
-                reasoning_parts.append(
-                    f"文件編輯任務，優先選擇 document-editing-agent (評分: {document_editing_agent.total_score:.2f})"
-                )
-                logger.info(
-                    f"Decision Engine: File editing task detected, selected document-editing-agent "
-                    f"(score: {document_editing_agent.total_score:.2f})"
-                )
-            elif router_decision.needs_agent and agent_candidates:
-                # 如果沒有 document-editing-agent，選擇評分最高的 Agent
-                best_agent = max(agent_candidates, key=lambda x: x.total_score)
-                if best_agent.total_score >= 0.5:
-                    chosen_agent = best_agent.candidate_id
-                    reasoning_parts.append(
-                        f"選擇 Agent: {chosen_agent} (評分: {best_agent.total_score:.2f})"
-                    )
-                    logger.info(
-                        f"Decision Engine: Selected agent: {chosen_agent} (score: {best_agent.total_score:.2f})"
-                    )
-        elif router_decision.needs_agent and agent_candidates:
+        # 方案2：如果是文件編輯任務，選擇評分最高的 Agent（document-editing-agent 已被過濾）
+        if not chosen_agent and router_decision.needs_agent and agent_candidates:
             # 選擇評分最高的 Agent
             best_agent = max(agent_candidates, key=lambda x: x.total_score)
             if best_agent.total_score >= 0.5:  # 最低可接受評分
@@ -439,7 +547,9 @@ class DecisionEngine:
                 logger.info(
                     f"Decision Engine: No agent selected (best score {best_agent.total_score:.2f} < 0.5)"
                 )
-                reasoning_parts.append(f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent")
+                reasoning_parts.append(
+                    f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent"
+                )
         else:
             logger.debug(
                 f"Decision Engine: No agent selection - needs_agent={router_decision.needs_agent}, "
@@ -547,7 +657,9 @@ class DecisionEngine:
         if model_candidates:
             best_model = max(model_candidates, key=lambda x: x.total_score)
             chosen_model = best_model.candidate_id
-            reasoning_parts.append(f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})")
+            reasoning_parts.append(
+                f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})"
+            )
 
         # 5. 計算總評分
         scores = []
@@ -638,3 +750,172 @@ class DecisionEngine:
             return candidate.cost_score >= 0.5
         else:  # high
             return True  # 不限制
+
+    def validate_dag(self, task_dag: TaskDAG) -> tuple[bool, List[str]]:
+        """
+        驗證 Task DAG 的合法性
+
+        Args:
+            task_dag: Task DAG 對象
+
+        Returns:
+            (是否有效, 錯誤信息列表)
+        """
+        errors: List[str] = []
+
+        # 1. 檢查 task_graph 是否為空
+        if not task_dag.task_graph:
+            errors.append("Task DAG 為空")
+            return False, errors
+
+        # 2. 檢查任務 ID 唯一性
+        task_ids = set()
+        for task_node in task_dag.task_graph:
+            if task_node.id in task_ids:
+                errors.append(f"任務 ID 重複: {task_node.id}")
+            task_ids.add(task_node.id)
+
+        # 3. 檢查依賴關係
+        for task_node in task_dag.task_graph:
+            # 檢查依賴的任務是否存在
+            for dep_id in task_node.depends_on:
+                if dep_id not in task_ids:
+                    errors.append(f"任務 {task_node.id} 依賴的任務 {dep_id} 不存在")
+
+        # 4. 檢查循環依賴（簡單檢查）
+        # 構建依賴圖
+        dependency_graph: Dict[str, List[str]] = {}
+        for task_node in task_dag.task_graph:
+            dependency_graph[task_node.id] = task_node.depends_on
+
+        # 使用 DFS 檢測循環
+        visited: set[str] = set()
+        rec_stack: set[str] = set()
+
+        def has_cycle(node_id: str) -> bool:
+            """檢測從 node_id 開始是否有循環"""
+            visited.add(node_id)
+            rec_stack.add(node_id)
+
+            for dep_id in dependency_graph.get(node_id, []):
+                if dep_id not in visited:
+                    if has_cycle(dep_id):
+                        return True
+                elif dep_id in rec_stack:
+                    # 找到循環
+                    errors.append(f"檢測到循環依賴: {node_id} -> {dep_id}")
+                    return True
+
+            rec_stack.remove(node_id)
+            return False
+
+        # 檢查所有節點
+        for task_node in task_dag.task_graph:
+            if task_node.id not in visited:
+                has_cycle(task_node.id)
+
+        # 5. 檢查 Capability 和 Agent 是否為空
+        for task_node in task_dag.task_graph:
+            if not task_node.capability:
+                errors.append(f"任務 {task_node.id} 的 capability 為空")
+            if not task_node.agent:
+                errors.append(f"任務 {task_node.id} 的 agent 為空")
+
+        is_valid = len(errors) == 0
+        return is_valid, errors
+
+    def decide_with_dag(
+        self,
+        router_decision: RouterDecision,
+        task_dag: TaskDAG,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> DecisionResult:
+        """
+        使用 Task DAG 進行決策（擴展版本）
+
+        Args:
+            router_decision: Router 決策
+            task_dag: Task DAG
+            context: 上下文信息
+
+        Returns:
+            決策結果
+        """
+        context = context or {}
+
+        # 1. 驗證 DAG
+        is_valid, errors = self.validate_dag(task_dag)
+        if not is_valid:
+            logger.warning(
+                f"decision_engine_dag_validation_failed: {errors}",
+            )
+            return DecisionResult(
+                router_result=router_decision,
+                chosen_agent=None,
+                chosen_tools=[],
+                chosen_model=None,
+                score=0.0,
+                fallback_used=True,
+                reasoning=f"DAG 驗證失敗: {'; '.join(errors)}",
+            )
+
+        # 2. L4 層級：策略驗證
+        policy_service = get_policy_service()
+        task_dag_dict = task_dag.model_dump() if hasattr(task_dag, "model_dump") else task_dag.dict()
+        policy_result: PolicyValidationResult = policy_service.validate(task_dag_dict, context)
+
+        # 如果策略驗證不通過，拒絕執行
+        if not policy_result.allowed:
+            logger.warning(
+                f"decision_engine_policy_validation_failed: {policy_result.reasons}",
+            )
+            return DecisionResult(
+                router_result=router_decision,
+                chosen_agent=None,
+                chosen_tools=[],
+                chosen_model=None,
+                score=0.0,
+                fallback_used=True,
+                reasoning=f"策略驗證失敗: {'; '.join(policy_result.reasons)}",
+            )
+
+        # 如果策略驗證要求確認，記錄日誌
+        if policy_result.requires_confirmation:
+            logger.info(
+                f"decision_engine_policy_requires_confirmation: risk_level={policy_result.risk_level}, reasons={policy_result.reasons}",
+            )
+
+        # 3. 從 DAG 中提取 Agent 和 Capability 信息
+        # 選擇第一個任務的 Agent（可以根據實際需求調整策略）
+        chosen_agent = None
+        if task_dag.task_graph:
+            chosen_agent = task_dag.task_graph[0].agent
+
+        # 4. 構建決策理由
+        reasoning_parts = []
+        reasoning_parts.append(f"使用 Task DAG 規劃，共 {len(task_dag.task_graph)} 個任務")
+        if task_dag.reasoning:
+            reasoning_parts.append(f"規劃理由: {task_dag.reasoning}")
+        if policy_result.risk_level != "low":
+            reasoning_parts.append(f"風險等級: {policy_result.risk_level}")
+        if policy_result.requires_confirmation:
+            reasoning_parts.append("需要用戶確認")
+
+        # 5. 構建決策結果
+        reasoning = "；".join(reasoning_parts) if reasoning_parts else "使用 Task DAG 規劃"
+
+        result = DecisionResult(
+            router_result=router_decision,
+            chosen_agent=chosen_agent,
+            chosen_tools=[],  # DAG 模式下，工具由 DAG 中的任務定義
+            chosen_model=None,  # 可以根據需要選擇模型
+            score=0.8,  # DAG 模式下的默認評分
+            fallback_used=False,
+            reasoning=reasoning,
+        )
+
+        logger.info(
+            f"Decision made with DAG: agent={chosen_agent}, task_count={len(task_dag.task_graph)}, risk_level={policy_result.risk_level}",
+        )
+
+        return result
