@@ -1,0 +1,13 @@
+{
+  "part_number": "ABC-129",
+  "name": "金屬材料 G",
+  "specification": "50x50x25mm",
+  "unit": "KG",
+  "supplier": "供應商 C",
+  "category": "金屬材料",
+  "safety_stock": 196,
+  "unit_price": 76.15,
+  "currency": "TWD",
+  "created_at": "2025-12-14T06:42:24.969058Z",
+  "updated_at": "2026-01-13T06:42:24.969060Z"
+}

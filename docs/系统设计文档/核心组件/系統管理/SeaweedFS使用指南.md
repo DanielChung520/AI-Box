@@ -2,7 +2,7 @@
 
 **创建日期**: 2025-12-29
 **创建人**: Daniel Chung
-**最后修改日期**: 2025-12-29
+**最后修改日期**: 2026-01-13
 **关联文档**: [存储架构](./存储架构.md)、[资料架构建议报告](../資料架构建议报告.md)
 
 ---
@@ -67,19 +67,159 @@ SeaweedFS 采用 Master-Volume-Filer 三层架构：
 
 ```bash
 # AI-Box 专案的 SeaweedFS 配置
-AI_BOX_SEAWEEDFS_S3_ENDPOINT=http://seaweedfs-ai-box-filer:8333
-AI_BOX_SEAWEEDFS_S3_ACCESS_KEY=your-access-key
-AI_BOX_SEAWEEDFS_S3_SECRET_KEY=your-secret-key
+AI_BOX_SEAWEEDFS_S3_ENDPOINT=http://localhost:8333
+AI_BOX_SEAWEEDFS_S3_ACCESS_KEY=admin
+AI_BOX_SEAWEEDFS_S3_SECRET_KEY=admin123
 AI_BOX_SEAWEEDFS_USE_SSL=false
-AI_BOX_SEAWEEDFS_FILER_ENDPOINT=http://seaweedfs-ai-box-filer:8888
+AI_BOX_SEAWEEDFS_FILER_ENDPOINT=http://localhost:8888
 
 # DataLake 专案的 SeaweedFS 配置
-DATALAKE_SEAWEEDFS_S3_ENDPOINT=http://seaweedfs-datalake-filer:8333
-DATALAKE_SEAWEEDFS_S3_ACCESS_KEY=your-access-key
-DATALAKE_SEAWEEDFS_S3_SECRET_KEY=your-secret-key
+DATALAKE_SEAWEEDFS_S3_ENDPOINT=http://localhost:8334
+DATALAKE_SEAWEEDFS_S3_ACCESS_KEY=admin
+DATALAKE_SEAWEEDFS_S3_SECRET_KEY=admin123
 DATALAKE_SEAWEEDFS_USE_SSL=false
-DATALAKE_SEAWEEDFS_FILER_ENDPOINT=http://seaweedfs-datalake-filer:8888
+DATALAKE_SEAWEEDFS_FILER_ENDPOINT=http://localhost:8889
+DATALAKE_SEAWEEDFS_MASTER_HOST=localhost
+DATALAKE_SEAWEEDFS_MASTER_PORT=9334
 ```
+
+### 端口配置说明
+
+**AI-Box SeaweedFS 服务**：
+
+| 服务 | 容器内端口 | 主机端口 | 说明 |
+|------|-----------|---------|------|
+| Master API | 9333 | 9333 | 元数据管理 |
+| Filer API | 8888 | 8888 | 文件系统接口 |
+| S3 API | 8333 | 8333 | S3 兼容接口 |
+
+**DataLake SeaweedFS 服务**：
+
+| 服务 | 容器内端口 | 主机端口 | 说明 |
+|------|-----------|---------|------|
+| Master API | 9333 | 9334 | 元数据管理 |
+| Filer API | 8888 | 8889 | 文件系统接口 |
+| S3 API | 8333 | 8334 | S3 兼容接口 |
+
+### S3 API 启用配置
+
+⚠️ **重要**：SeaweedFS Filer 默认不启用 S3 API，必须在 Docker Compose 配置中显式启用。
+
+**AI-Box 服务配置**（`docker-compose.seaweedfs.yml`）：
+
+```yaml
+seaweedfs-filer:
+  command: "filer -master=seaweedfs-master:9333 -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json"
+  volumes:
+    - seaweedfs-ai-box-s3-config:/etc/seaweedfs
+```
+
+**DataLake 服务配置**（`docker-compose.seaweedfs-datalake.yml`）：
+
+```yaml
+seaweedfs-datalake-filer:
+  command: "filer -master=seaweedfs-datalake-master:9333 -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json"
+  volumes:
+    - seaweedfs-datalake-s3-config:/etc/seaweedfs
+```
+
+**S3 配置文件**（`s3.json`）：
+
+创建 Docker volume 并添加 S3 配置文件：
+
+```bash
+# AI-Box 服务
+docker volume create seaweedfs-ai-box-s3-config
+
+# DataLake 服务
+docker volume create seaweedfs-datalake-s3-config
+```
+
+配置文件内容（`s3.json`）：
+
+```json
+{
+  "identities": [
+    {
+      "name": "admin",
+      "credentials": [
+        {
+          "accessKey": "admin",
+          "secretKey": "admin123"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "Write"
+      ]
+    }
+  ]
+}
+```
+
+**配置步骤**：
+
+1. 创建临时目录并生成配置文件：
+
+   ```bash
+   mkdir -p /tmp/seaweedfs-s3-config
+   cat > /tmp/seaweedfs-s3-config/s3.json << 'EOF'
+   {
+     "identities": [
+       {
+         "name": "admin",
+         "credentials": [
+           {
+             "accessKey": "admin",
+             "secretKey": "admin123"
+           }
+         ],
+         "actions": [
+           "Admin",
+           "Read",
+           "Write"
+         ]
+       }
+     ]
+   }
+   EOF
+   ```
+
+2. 复制配置文件到 Docker volume：
+
+   ```bash
+   # AI-Box 服务
+   docker run --rm \
+     -v /tmp/seaweedfs-s3-config:/source \
+     -v seaweedfs-ai-box-s3-config:/target \
+     alpine sh -c 'cp -r /source/* /target/'
+
+   # DataLake 服务
+   docker run --rm \
+     -v /tmp/seaweedfs-s3-config:/source \
+     -v seaweedfs-datalake-s3-config:/target \
+     alpine sh -c 'cp -r /source/* /target/'
+   ```
+
+3. 重启容器：
+
+   ```bash
+   docker-compose -f docker-compose.seaweedfs.yml up -d
+   docker-compose -f docker-compose.seaweedfs-datalake.yml up -d
+   ```
+
+4. 验证 S3 API 已启用：
+
+   ```bash
+   # 检查日志
+   docker logs seaweedfs-ai-box-filer | grep -i s3
+   docker logs seaweedfs-datalake-filer | grep -i s3
+
+   # 测试连接
+   curl -v http://localhost:8333/
+   curl -v http://localhost:8334/
+   ```
 
 ### Python 代码示例
 
@@ -164,6 +304,57 @@ datalake_storage = create_storage_from_config(config, service_type="datalake")
 
 ---
 
+## 🌐 Web Dashboard
+
+SeaweedFS 提供了多个 Web Dashboard 用于监控和管理：
+
+### Master Server Dashboard
+
+**访问地址**：
+
+- **AI-Box 服务**：`http://localhost:9333/`
+- **DataLake 服务**：`http://localhost:9334/`
+
+**功能**：
+
+- 查看集群状态
+- 监控 Volume 节点
+- 查看系统信息
+- 管理拓扑结构
+
+### Filer Server Dashboard
+
+**访问地址**：
+
+- **AI-Box 服务**：`http://localhost:8888/`
+- **DataLake 服务**：`http://localhost:8889/`
+
+**功能**：
+
+- 浏览文件系统
+- 上传/下载文件
+- 创建/删除目录
+- 查看文件元数据
+
+### Volume Server Dashboard
+
+**访问地址**（需要端口映射）：
+
+- **AI-Box Volume**：`http://localhost:8080/ui/index.html`
+- **DataLake Volume**：`http://localhost:8081/ui/index.html`
+
+**功能**：
+
+- 查看 Volume 状态
+- 监控存储使用情况
+- 查看 Volume 节点信息
+
+**使用说明**：
+
+1. 在浏览器中打开对应的 URL
+2. Dashboard 会自动显示当前服务的状态信息
+3. 可以通过 Dashboard 进行基本的文件操作和管理
+
 ## 🚀 部署指南
 
 ### Kubernetes 部署
@@ -236,12 +427,92 @@ python scripts/migration/migrate_files_to_seaweedfs.py
 - **S3 API**：标准 S3 兼容接口（推荐使用）
 - **Filer API**：SeaweedFS 原生文件系统接口
 
+⚠️ **重要提示**：S3 API 需要显式启用。如果 Filer 启动命令中没有 `-s3` 参数，S3 API 将无法使用，即使端口已映射也会返回 "Empty reply from server" 错误。
+
+### Q6: 为什么 S3 API 连接失败，返回 "Empty reply from server"？
+
+**A**: 这通常是因为 S3 API 未启用。检查步骤：
+
+1. **检查 Filer 启动命令**：
+
+   ```bash
+   docker inspect seaweedfs-ai-box-filer --format='{{.Config.Cmd}}'
+   docker inspect seaweedfs-datalake-filer --format='{{.Config.Cmd}}'
+   ```
+
+   应该包含 `-s3` 参数。
+
+2. **检查容器日志**：
+
+   ```bash
+   docker logs seaweedfs-ai-box-filer | grep -i s3
+   docker logs seaweedfs-datalake-filer | grep -i s3
+   ```
+
+   应该看到 S3 API 启动的相关日志。
+
+3. **检查 S3 配置文件**：
+
+   ```bash
+   docker exec seaweedfs-ai-box-filer cat /etc/seaweedfs/s3.json
+   docker exec seaweedfs-datalake-filer cat /etc/seaweedfs/s3.json
+   ```
+
+   配置文件应该存在且格式正确。
+
+4. **修复方法**：
+   - 更新 Docker Compose 配置，添加 `-s3` 参数和 S3 配置文件
+   - 创建 S3 配置 volume 并添加配置文件
+   - 重启容器
+
+详细修复步骤请参考本文档的 "S3 API 启用配置" 章节。
+
 ### Q5: 如何处理文件版本管理？
 
 **A**: 文件版本通过文件路径管理，例如：
 
 - 原始文件：`files/{file_id}`
 - 版本快照：`files/{file_id}__v{version}`
+
+### Q7: SeaweedFS 是否有 HTTP Dashboard？
+
+**A**: 是的，SeaweedFS 提供了多个 Web Dashboard：
+
+#### Master Server Dashboard
+
+- **AI-Box 服务**：`http://localhost:9333/`
+- **DataLake 服务**：`http://localhost:9334/`
+
+功能包括：
+
+- 集群状态查看
+- Volume 节点管理
+- 系统信息显示
+
+#### Filer Server Dashboard
+
+- **AI-Box 服务**：`http://localhost:8888/`
+- **DataLake 服务**：`http://localhost:8889/`
+
+功能包括：
+
+- 文件系统浏览
+- 文件上传/下载
+- 目录管理
+
+#### Volume Server Dashboard
+
+- **AI-Box Volume**：`http://localhost:8080/ui/index.html`（如果端口已映射）
+- **DataLake Volume**：`http://localhost:8081/ui/index.html`（如果端口已映射）
+
+**访问方式**：
+
+直接在浏览器中打开上述 URL 即可访问对应的 Dashboard。
+
+**注意事项**：
+
+- 如果使用 Docker 部署，确保端口已正确映射
+- Volume Server 的 Dashboard 端口需要显式映射才能从主机访问
 
 ---
 
@@ -254,4 +525,4 @@ python scripts/migration/migrate_files_to_seaweedfs.py
 
 ---
 
-**最后更新日期**: 2025-12-29
+**最后更新日期**: 2026-01-13

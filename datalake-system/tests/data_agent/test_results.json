@@ -1,0 +1,890 @@
+{
+  "summary": {
+    "total": 29,
+    "passed": 29,
+    "failed": 0,
+    "pass_rate": "100.0%"
+  },
+  "results": [
+    {
+      "test_name": "Datalake 精確查詢 - 查詢單個文件",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "query_datalake",
+        "result": {
+          "success": true,
+          "rows": [
+            {
+              "part_number": "ABC-123",
+              "name": "電子元件 A",
+              "specification": "10x10x5mm",
+              "unit": "PCS",
+              "supplier": "供應商 A",
+              "category": "電子元件",
+              "safety_stock": 197,
+              "unit_price": 56.53,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968264Z",
+              "updated_at": "2026-01-13T06:42:24.968405Z"
+            }
+          ],
+          "row_count": 1,
+          "query_type": "exact",
+          "bucket": "bucket-datalake-assets",
+          "key": "parts/ABC-123.json"
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "Datalake 模糊查詢 - 按前綴查詢",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "query_datalake",
+        "result": {
+          "success": true,
+          "rows": [
+            {
+              "part_number": "ABC-123",
+              "name": "電子元件 A",
+              "specification": "10x10x5mm",
+              "unit": "PCS",
+              "supplier": "供應商 A",
+              "category": "電子元件",
+              "safety_stock": 197,
+              "unit_price": 56.53,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968264Z",
+              "updated_at": "2026-01-13T06:42:24.968405Z"
+            },
+            {
+              "part_number": "ABC-124",
+              "name": "電子元件 B",
+              "specification": "15x15x8mm",
+              "unit": "PCS",
+              "supplier": "供應商 B",
+              "category": "電子元件",
+              "safety_stock": 107,
+              "unit_price": 87.56,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968630Z",
+              "updated_at": "2026-01-13T06:42:24.968637Z"
+            },
+            {
+              "part_number": "ABC-125",
+              "name": "機械零件 C",
+              "specification": "20x20x10mm",
+              "unit": "PCS",
+              "supplier": "供應商 C",
+              "category": "機械零件",
+              "safety_stock": 197,
+              "unit_price": 20.0,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968756Z",
+              "updated_at": "2026-01-13T06:42:24.968759Z"
+            },
+            {
+              "part_number": "ABC-126",
+              "name": "包裝材料 D",
+              "specification": "30x30x20cm",
+              "unit": "BOX",
+              "supplier": "供應商 D",
+              "category": "包裝材料",
+              "safety_stock": 86,
+              "unit_price": 19.72,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968838Z",
+              "updated_at": "2026-01-13T06:42:24.968840Z"
+            },
+            {
+              "part_number": "ABC-127",
+              "name": "電子元件 E",
+              "specification": "5x5x3mm",
+              "unit": "PCS",
+              "supplier": "供應商 A",
+              "category": "電子元件",
+              "safety_stock": 167,
+              "unit_price": 49.57,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968914Z",
+              "updated_at": "2026-01-13T06:42:24.968915Z"
+            },
+            {
+              "part_number": "ABC-128",
+              "name": "化學原料 F",
+              "specification": "100ml",
+              "unit": "KG",
+              "supplier": "供應商 B",
+              "category": "化學原料",
+              "safety_stock": 148,
+              "unit_price": 28.53,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968985Z",
+              "updated_at": "2026-01-13T06:42:24.968986Z"
+            },
+            {
+              "part_number": "ABC-129",
+              "name": "金屬材料 G",
+              "specification": "50x50x25mm",
+              "unit": "KG",
+              "supplier": "供應商 C",
+              "category": "金屬材料",
+              "safety_stock": 196,
+              "unit_price": 76.15,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.969058Z",
+              "updated_at": "2026-01-13T06:42:24.969060Z"
+            },
+            {
+              "part_number": "ABC-130",
+              "name": "電子元件 H",
+              "specification": "12x12x6mm",
+              "unit": "PCS",
+              "supplier": "供應商 D",
+              "category": "電子元件",
+              "safety_stock": 94,
+              "unit_price": 78.86,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.969131Z",
+              "updated_at": "2026-01-13T06:42:24.969132Z"
+            },
+            {
+              "part_number": "ABC-131",
+              "name": "機械零件 I",
+              "specification": "25x25x12mm",
+              "unit": "PCS",
+              "supplier": "供應商 E",
+              "category": "機械零件",
+              "safety_stock": 78,
+              "unit_price": 81.69,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.969209Z",
+              "updated_at": "2026-01-13T06:42:24.969211Z"
+            },
+            {
+              "part_number": "ABC-132",
+              "name": "包裝材料 J",
+              "specification": "40x40x30cm",
+              "unit": "BOX",
+              "supplier": "供應商 A",
+              "category": "包裝材料",
+              "safety_stock": 166,
+              "unit_price": 84.24,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.969281Z",
+              "updated_at": "2026-01-13T06:42:24.969282Z"
+            }
+          ],
+          "row_count": 10,
+          "query_type": "fuzzy",
+          "bucket": "bucket-datalake-assets",
+          "key_prefix": "parts/"
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "Datalake 查詢 - 帶過濾條件",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "query_datalake",
+        "result": {
+          "success": true,
+          "rows": [
+            {
+              "part_number": "ABC-123",
+              "name": "電子元件 A",
+              "specification": "10x10x5mm",
+              "unit": "PCS",
+              "supplier": "供應商 A",
+              "category": "電子元件",
+              "safety_stock": 197,
+              "unit_price": 56.53,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968264Z",
+              "updated_at": "2026-01-13T06:42:24.968405Z"
+            }
+          ],
+          "row_count": 1,
+          "query_type": "fuzzy",
+          "bucket": "bucket-datalake-assets",
+          "key_prefix": "parts/"
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "Datalake 查詢 - 缺少 bucket 參數",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "bucket and key are required for query_datalake action",
+      "result": {
+        "success": false,
+        "action": "query_datalake",
+        "result": null,
+        "error": "bucket and key are required for query_datalake action",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "Datalake 查詢 - 缺少 key 參數",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "bucket and key are required for query_datalake action",
+      "result": {
+        "success": false,
+        "action": "query_datalake",
+        "result": null,
+        "error": "bucket and key are required for query_datalake action",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "獲取不存在的數據字典",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "Dictionary not found: non_existent_dictionary",
+      "result": {
+        "success": false,
+        "action": "get_dictionary",
+        "result": {
+          "success": false,
+          "error": "Dictionary not found: non_existent_dictionary"
+        },
+        "error": "Dictionary not found: non_existent_dictionary",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "創建數據字典 - 缺少數據",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "dictionary_id and dictionary_data are required for create_dictionary action",
+      "result": {
+        "success": false,
+        "action": "create_dictionary",
+        "result": null,
+        "error": "dictionary_id and dictionary_data are required for create_dictionary action",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "獲取不存在的 Schema",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "Schema not found: non_existent_schema",
+      "result": {
+        "success": false,
+        "action": "get_schema",
+        "result": {
+          "success": false,
+          "error": "Schema not found: non_existent_schema"
+        },
+        "error": "Schema not found: non_existent_schema",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "創建無效的 Schema",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "Invalid JSON Schema: JSON Schema must have 'type' field or use '$ref', 'anyOf', or 'oneOf'",
+      "result": {
+        "success": false,
+        "action": "create_schema",
+        "result": {
+          "success": false,
+          "error": "Invalid JSON Schema: JSON Schema must have 'type' field or use '$ref', 'anyOf', or 'oneOf'"
+        },
+        "error": "Invalid JSON Schema: JSON Schema must have 'type' field or use '$ref', 'anyOf', or 'oneOf'",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "驗證數據 - 缺少 Schema ID",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "schema_id is required for validate_data action",
+      "result": {
+        "success": false,
+        "action": "validate_data",
+        "result": null,
+        "error": "schema_id is required for validate_data action",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "Text-to-SQL - 簡單查詢",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "",
+          "parameters": [],
+          "confidence": 0.3,
+          "explanation": "將自然語言查詢「查詢所有用戶的姓名和年齡」轉換為 SQL: ...",
+          "warnings": [
+            "只允許 SELECT 查詢"
+          ]
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "Text-to-SQL - 缺少自然語言",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "natural_language is required for text_to_sql action",
+      "result": {
+        "success": false,
+        "action": "text_to_sql",
+        "result": null,
+        "error": "natural_language is required for text_to_sql action",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "驗證查詢 - 有效的 SQL",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "validate_query",
+        "result": {
+          "valid": true,
+          "warnings": [
+            "Consider using parameterized queries for better security"
+          ]
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "驗證查詢 - 無效的 SQL",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "Invalid SQL syntax: WHERE clause is incomplete (missing condition)",
+      "result": {
+        "success": false,
+        "action": "validate_query",
+        "result": {
+          "valid": false,
+          "error": "Invalid SQL syntax: WHERE clause is incomplete (missing condition)",
+          "details": [
+            "WHERE clause is incomplete (missing condition)"
+          ]
+        },
+        "error": "Invalid SQL syntax: WHERE clause is incomplete (missing condition)",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "驗證查詢 - 危險的 SQL",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "Dangerous operation detected",
+      "result": {
+        "success": false,
+        "action": "validate_query",
+        "result": {
+          "valid": false,
+          "error": "Dangerous operation detected",
+          "details": [
+            "Forbidden operation detected: DROP"
+          ]
+        },
+        "error": "Dangerous operation detected",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "未知操作",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "Unknown action: unknown_action",
+      "result": {
+        "success": false,
+        "action": "unknown_action",
+        "result": null,
+        "error": "Unknown action: unknown_action",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "Datalake 查詢 - 不存在的 bucket",
+      "status": "✅ 通過",
+      "expected_success": false,
+      "actual_success": false,
+      "error": "An error occurred (NoSuchBucket) when calling the GetObject operation: The specified bucket does not exist",
+      "result": {
+        "success": false,
+        "action": "query_datalake",
+        "result": {
+          "success": false,
+          "error": "An error occurred (NoSuchBucket) when calling the GetObject operation: The specified bucket does not exist"
+        },
+        "error": "An error occurred (NoSuchBucket) when calling the GetObject operation: The specified bucket does not exist",
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "Datalake 查詢 - 大量結果",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "query_datalake",
+        "result": {
+          "success": true,
+          "rows": [
+            {
+              "part_number": "ABC-123",
+              "name": "電子元件 A",
+              "specification": "10x10x5mm",
+              "unit": "PCS",
+              "supplier": "供應商 A",
+              "category": "電子元件",
+              "safety_stock": 197,
+              "unit_price": 56.53,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968264Z",
+              "updated_at": "2026-01-13T06:42:24.968405Z"
+            },
+            {
+              "part_number": "ABC-124",
+              "name": "電子元件 B",
+              "specification": "15x15x8mm",
+              "unit": "PCS",
+              "supplier": "供應商 B",
+              "category": "電子元件",
+              "safety_stock": 107,
+              "unit_price": 87.56,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968630Z",
+              "updated_at": "2026-01-13T06:42:24.968637Z"
+            },
+            {
+              "part_number": "ABC-125",
+              "name": "機械零件 C",
+              "specification": "20x20x10mm",
+              "unit": "PCS",
+              "supplier": "供應商 C",
+              "category": "機械零件",
+              "safety_stock": 197,
+              "unit_price": 20.0,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968756Z",
+              "updated_at": "2026-01-13T06:42:24.968759Z"
+            },
+            {
+              "part_number": "ABC-126",
+              "name": "包裝材料 D",
+              "specification": "30x30x20cm",
+              "unit": "BOX",
+              "supplier": "供應商 D",
+              "category": "包裝材料",
+              "safety_stock": 86,
+              "unit_price": 19.72,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968838Z",
+              "updated_at": "2026-01-13T06:42:24.968840Z"
+            },
+            {
+              "part_number": "ABC-127",
+              "name": "電子元件 E",
+              "specification": "5x5x3mm",
+              "unit": "PCS",
+              "supplier": "供應商 A",
+              "category": "電子元件",
+              "safety_stock": 167,
+              "unit_price": 49.57,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968914Z",
+              "updated_at": "2026-01-13T06:42:24.968915Z"
+            },
+            {
+              "part_number": "ABC-128",
+              "name": "化學原料 F",
+              "specification": "100ml",
+              "unit": "KG",
+              "supplier": "供應商 B",
+              "category": "化學原料",
+              "safety_stock": 148,
+              "unit_price": 28.53,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.968985Z",
+              "updated_at": "2026-01-13T06:42:24.968986Z"
+            },
+            {
+              "part_number": "ABC-129",
+              "name": "金屬材料 G",
+              "specification": "50x50x25mm",
+              "unit": "KG",
+              "supplier": "供應商 C",
+              "category": "金屬材料",
+              "safety_stock": 196,
+              "unit_price": 76.15,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.969058Z",
+              "updated_at": "2026-01-13T06:42:24.969060Z"
+            },
+            {
+              "part_number": "ABC-130",
+              "name": "電子元件 H",
+              "specification": "12x12x6mm",
+              "unit": "PCS",
+              "supplier": "供應商 D",
+              "category": "電子元件",
+              "safety_stock": 94,
+              "unit_price": 78.86,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.969131Z",
+              "updated_at": "2026-01-13T06:42:24.969132Z"
+            },
+            {
+              "part_number": "ABC-131",
+              "name": "機械零件 I",
+              "specification": "25x25x12mm",
+              "unit": "PCS",
+              "supplier": "供應商 E",
+              "category": "機械零件",
+              "safety_stock": 78,
+              "unit_price": 81.69,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.969209Z",
+              "updated_at": "2026-01-13T06:42:24.969211Z"
+            },
+            {
+              "part_number": "ABC-132",
+              "name": "包裝材料 J",
+              "specification": "40x40x30cm",
+              "unit": "BOX",
+              "supplier": "供應商 A",
+              "category": "包裝材料",
+              "safety_stock": 166,
+              "unit_price": 84.24,
+              "currency": "TWD",
+              "created_at": "2025-12-14T06:42:24.969281Z",
+              "updated_at": "2026-01-13T06:42:24.969282Z"
+            }
+          ],
+          "row_count": 10,
+          "query_type": "fuzzy",
+          "bucket": "bucket-datalake-assets",
+          "key_prefix": "parts/"
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "驗證數據 - 空列表",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "validate_data",
+        "result": {
+          "success": true,
+          "valid": true,
+          "issues": [],
+          "validated_count": 0,
+          "invalid_count": 0,
+          "message": "Empty data list is valid (no data to validate)"
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "創建數據字典",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "create_dictionary",
+        "result": {
+          "success": true,
+          "dictionary_id": "test_dictionary_001",
+          "key": "test_dictionary_001.json"
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "創建 JSON Schema",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "create_schema",
+        "result": {
+          "success": true,
+          "schema_id": "test_schema_001",
+          "key": "test_schema_001.json"
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "創建 Schema - 帶引用",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "create_schema",
+        "result": {
+          "success": true,
+          "schema_id": "test_schema_with_refs",
+          "key": "test_schema_with_refs.json"
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "獲取數據字典",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "get_dictionary",
+        "result": {
+          "success": true,
+          "dictionary": {
+            "dictionary_id": "test_dictionary_001",
+            "name": "測試數據字典",
+            "version": "1.0.0",
+            "description": "用於測試的數據字典",
+            "tables": [
+              {
+                "table_name": "users",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string",
+                    "description": "唯一標識符"
+                  },
+                  {
+                    "name": "name",
+                    "type": "string",
+                    "description": "名稱"
+                  },
+                  {
+                    "name": "age",
+                    "type": "integer",
+                    "description": "年齡"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "獲取 Schema",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "get_schema",
+        "result": {
+          "success": true,
+          "schema": {
+            "json_schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "age": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          }
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "驗證數據 - 有效數據",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "validate_data",
+        "result": {
+          "success": true,
+          "valid": true,
+          "issues": [],
+          "validated_count": 2,
+          "invalid_count": 0
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "驗證數據 - 無效數據",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "validate_data",
+        "result": {
+          "success": true,
+          "valid": false,
+          "issues": [
+            {
+              "row": 1,
+              "field": "",
+              "message": "'name' is a required property",
+              "value": {
+                "id": "001"
+              }
+            },
+            {
+              "row": 2,
+              "field": "age",
+              "message": "-5 is less than the minimum of 0",
+              "value": -5
+            }
+          ],
+          "validated_count": 2,
+          "invalid_count": 2
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "Text-to-SQL - 複雜查詢",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT id, name, age, status, created_at\nFROM users\nWHERE age > $1 AND status = $2\nORDER BY created_at DESC\nLIMIT 10",
+          "parameters": [
+            "param_1",
+            "param_2"
+          ],
+          "confidence": 0.8999999999999999,
+          "explanation": "將自然語言查詢「查詢年齡大於25歲且狀態為活躍的用戶，按創建時間降序排列，只返回前10條」轉換為 SQL: SELECT id, name, age, status, created_at\nFROM users\nWHERE age > $1 AND status = $2\nORDER BY created_...",
+          "warnings": [
+            "檢測到危險操作關鍵字: CREATE"
+          ]
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "創建數據字典 - 準備重複測試",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "create_dictionary",
+        "result": {
+          "success": true,
+          "dictionary_id": "duplicate_test",
+          "key": "duplicate_test.json"
+        },
+        "error": null,
+        "metadata": null
+      }
+    },
+    {
+      "test_name": "創建數據字典 - 重複 ID",
+      "status": "✅ 通過",
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "result": {
+        "success": true,
+        "action": "create_dictionary",
+        "result": {
+          "success": true,
+          "dictionary_id": "duplicate_test",
+          "key": "duplicate_test.json"
+        },
+        "error": null,
+        "metadata": null
+      }
+    }
+  ]
+}

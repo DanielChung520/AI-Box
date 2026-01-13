@@ -1,7 +1,7 @@
 # 代碼功能說明: Data Agent 實現
 # 創建日期: 2026-01-08
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-08
+# 最後修改日期: 2026-01-13
 
 """Data Agent 實現 - 數據查詢專屬服務 Agent"""
 
@@ -15,8 +15,11 @@ from agents.services.protocol.base import (
     AgentServiceStatus,
 )
 
+from .datalake_service import DatalakeService
+from .dictionary_service import DictionaryService
 from .models import DataAgentRequest, DataAgentResponse
 from .query_gateway import QueryGatewayService
+from .schema_service import SchemaService
 from .text_to_sql import TextToSQLService
 
 logger = logging.getLogger(__name__)
@@ -36,6 +39,9 @@ class DataAgent(AgentServiceProtocol):
         self,
         text_to_sql_service: Optional[TextToSQLService] = None,
         query_gateway_service: Optional[QueryGatewayService] = None,
+        datalake_service: Optional[DatalakeService] = None,
+        dictionary_service: Optional[DictionaryService] = None,
+        schema_service: Optional[SchemaService] = None,
     ):
         """
         初始化 Data Agent
@@ -43,9 +49,15 @@ class DataAgent(AgentServiceProtocol):
         Args:
             text_to_sql_service: Text-to-SQL 服務（可選，如果不提供則自動創建）
             query_gateway_service: 查詢閘道服務（可選，如果不提供則自動創建）
+            datalake_service: Datalake 查詢服務（可選，如果不提供則自動創建）
+            dictionary_service: 數據字典服務（可選，如果不提供則自動創建）
+            schema_service: Schema 服務（可選，如果不提供則自動創建）
         """
         self._text_to_sql_service = text_to_sql_service or TextToSQLService()
         self._query_gateway_service = query_gateway_service or QueryGatewayService()
+        self._datalake_service = datalake_service or DatalakeService()
+        self._dictionary_service = dictionary_service or DictionaryService()
+        self._schema_service = schema_service or SchemaService()
         self._logger = logger
 
     async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
@@ -73,6 +85,16 @@ class DataAgent(AgentServiceProtocol):
                 result = await self._handle_validate_query(data_request)
             elif action == "get_schema":
                 result = await self._handle_get_schema(data_request)
+            elif action == "query_datalake":
+                result = await self._handle_query_datalake(data_request)
+            elif action == "create_dictionary":
+                result = await self._handle_create_dictionary(data_request)
+            elif action == "get_dictionary":
+                result = await self._handle_get_dictionary(data_request)
+            elif action == "create_schema":
+                result = await self._handle_create_schema(data_request)
+            elif action == "validate_data":
+                result = await self._handle_validate_data(data_request)
             else:
                 result = DataAgentResponse(
                     success=False,
@@ -207,13 +229,27 @@ class DataAgent(AgentServiceProtocol):
 
     async def _handle_get_schema(self, request: DataAgentRequest) -> DataAgentResponse:
         """處理 Schema 查詢請求"""
-        try:
-            # 這裡應該實現實際的 Schema 查詢邏輯
-            # 目前返回基本響應
+        if not request.schema_id:
             return DataAgentResponse(
                 success=False,
                 action="get_schema",
-                error="get_schema action is not yet implemented",
+                error="schema_id is required for get_schema action",
+            )
+
+        try:
+            result = await self._schema_service.get(request.schema_id)
+            if not result.get("success"):
+                return DataAgentResponse(
+                    success=False,
+                    action="get_schema",
+                    error=result.get("error", "Schema query failed"),
+                    result=result,
+                )
+
+            return DataAgentResponse(
+                success=True,
+                action="get_schema",
+                result=result,
             )
 
         except Exception as e:
@@ -221,6 +257,195 @@ class DataAgent(AgentServiceProtocol):
             return DataAgentResponse(
                 success=False,
                 action="get_schema",
+                error=str(e),
+            )
+
+    async def _handle_query_datalake(self, request: DataAgentRequest) -> DataAgentResponse:
+        """處理 Datalake 查詢請求"""
+        if not request.bucket or not request.key:
+            return DataAgentResponse(
+                success=False,
+                action="query_datalake",
+                error="bucket and key are required for query_datalake action",
+            )
+
+        try:
+            result = await self._datalake_service.query(
+                bucket=request.bucket,
+                key=request.key,
+                query_type=request.query_type or "exact",
+                filters=request.filters,
+                user_id=request.user_id,
+                tenant_id=request.tenant_id,
+            )
+
+            if not result.get("success"):
+                return DataAgentResponse(
+                    success=False,
+                    action="query_datalake",
+                    error=result.get("error", "Query failed"),
+                    result=result,
+                )
+
+            return DataAgentResponse(
+                success=True,
+                action="query_datalake",
+                result=result,
+            )
+
+        except Exception as e:
+            self._logger.error(f"Datalake query failed: {e}")
+            return DataAgentResponse(
+                success=False,
+                action="query_datalake",
+                error=str(e),
+            )
+
+    async def _handle_create_dictionary(self, request: DataAgentRequest) -> DataAgentResponse:
+        """處理創建數據字典請求"""
+        if not request.dictionary_id or not request.dictionary_data:
+            return DataAgentResponse(
+                success=False,
+                action="create_dictionary",
+                error="dictionary_id and dictionary_data are required for create_dictionary action",
+            )
+
+        try:
+            result = await self._dictionary_service.create(
+                dictionary_id=request.dictionary_id,
+                data=request.dictionary_data,
+                user_id=request.user_id,
+                tenant_id=request.tenant_id,
+            )
+
+            if not result.get("success"):
+                return DataAgentResponse(
+                    success=False,
+                    action="create_dictionary",
+                    error=result.get("error", "Create dictionary failed"),
+                    result=result,
+                )
+
+            return DataAgentResponse(
+                success=True,
+                action="create_dictionary",
+                result=result,
+            )
+
+        except Exception as e:
+            self._logger.error(f"Create dictionary failed: {e}")
+            return DataAgentResponse(
+                success=False,
+                action="create_dictionary",
+                error=str(e),
+            )
+
+    async def _handle_get_dictionary(self, request: DataAgentRequest) -> DataAgentResponse:
+        """處理查詢數據字典請求"""
+        if not request.dictionary_id:
+            return DataAgentResponse(
+                success=False,
+                action="get_dictionary",
+                error="dictionary_id is required for get_dictionary action",
+            )
+
+        try:
+            result = await self._dictionary_service.get(request.dictionary_id)
+            if not result.get("success"):
+                return DataAgentResponse(
+                    success=False,
+                    action="get_dictionary",
+                    error=result.get("error", "Get dictionary failed"),
+                    result=result,
+                )
+
+            return DataAgentResponse(
+                success=True,
+                action="get_dictionary",
+                result=result,
+            )
+
+        except Exception as e:
+            self._logger.error(f"Get dictionary failed: {e}")
+            return DataAgentResponse(
+                success=False,
+                action="get_dictionary",
+                error=str(e),
+            )
+
+    async def _handle_create_schema(self, request: DataAgentRequest) -> DataAgentResponse:
+        """處理創建 Schema 請求"""
+        if not request.schema_id or not request.schema_data:
+            return DataAgentResponse(
+                success=False,
+                action="create_schema",
+                error="schema_id and schema_data are required for create_schema action",
+            )
+
+        try:
+            result = await self._schema_service.create(
+                schema_id=request.schema_id,
+                data=request.schema_data,
+                user_id=request.user_id,
+                tenant_id=request.tenant_id,
+            )
+
+            if not result.get("success"):
+                return DataAgentResponse(
+                    success=False,
+                    action="create_schema",
+                    error=result.get("error", "Create schema failed"),
+                    result=result,
+                )
+
+            return DataAgentResponse(
+                success=True,
+                action="create_schema",
+                result=result,
+            )
+
+        except Exception as e:
+            self._logger.error(f"Create schema failed: {e}")
+            return DataAgentResponse(
+                success=False,
+                action="create_schema",
+                error=str(e),
+            )
+
+    async def _handle_validate_data(self, request: DataAgentRequest) -> DataAgentResponse:
+        """處理數據驗證請求"""
+        if not request.schema_id or not request.data:
+            return DataAgentResponse(
+                success=False,
+                action="validate_data",
+                error="schema_id and data are required for validate_data action",
+            )
+
+        try:
+            result = await self._schema_service.validate_data(
+                data=request.data,
+                schema_id=request.schema_id,
+            )
+
+            if not result.get("success"):
+                return DataAgentResponse(
+                    success=False,
+                    action="validate_data",
+                    error=result.get("error", "Data validation failed"),
+                    result=result,
+                )
+
+            return DataAgentResponse(
+                success=True,
+                action="validate_data",
+                result=result,
+            )
+
+        except Exception as e:
+            self._logger.error(f"Validate data failed: {e}")
+            return DataAgentResponse(
+                success=False,
+                action="validate_data",
                 error=str(e),
             )
 
@@ -258,7 +483,12 @@ class DataAgent(AgentServiceProtocol):
                 "text_to_sql",  # Text-to-SQL 轉換
                 "execute_query",  # 安全查詢執行
                 "validate_query",  # 查詢驗證
-                "get_schema",  # Schema 查詢（待實現）
+                "get_schema",  # Schema 查詢
+                "query_datalake",  # Datalake 數據查詢
+                "create_dictionary",  # 創建數據字典
+                "get_dictionary",  # 查詢數據字典
+                "create_schema",  # 創建 Schema
+                "validate_data",  # 數據驗證
             ],
             "supported_databases": [
                 "postgresql",

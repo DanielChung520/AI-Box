@@ -101,8 +101,9 @@ ignore = [
 "scripts/**/*.py" = ["F841", "E402"]
 "mcp/**/*.py" = ["E402"]
 "scripts/migration/**/*.py" = ["E402"]
-"services/api/services/migrations/**/*.py" = ["E402", "misc"]  # migration 腳本中的導入可能需要在 sys.path 修改之後，且可能有類型問題
+"services/api/services/migrations/**/*.py" = ["E402"]  # migration 腳本中的導入可能需要在 sys.path 修改之後
 "tests/**/*.py" = ["E402"]  # 測試腳本中的導入可能需要在 sys.path 修改之後
+"datalake-system/**/*.py" = ["E402"]  # datalake-system 腳本中的導入可能需要在 sys.path 修改之後
 "data/**/*.py" = ["E722"]  # 數據腳本中可能使用 bare except
 "cleanup_files.py" = ["E402"]  # 清理腳本中的導入可能需要在 sys.path 修改之後
 "tests/文件上傳/**/*.py" = ["E722"]  # 文件上傳測試腳本中可能使用 bare except
@@ -185,6 +186,8 @@ exclude = [
     ".*\\.pyc$",
     "scripts/.*",      # 排除腳本目錄（不需要嚴格類型檢查）
     "tests/.*",        # 排除測試目錄（可以放寬類型檢查）
+    "datalake-system/tests/.*",  # 排除 datalake-system 測試目錄（避免模塊重複問題）
+    "^datalake-system/tests/",  # 額外的排除模式，確保測試目錄被排除
 ]
 
 # 每個模塊的配置
@@ -229,3 +232,12 @@ extend-exclude = '''
   | rag-file-upload
 )/
 '''
+
+# Mypy overrides for specific modules
+[[tool.mypy.overrides]]
+# 排除 datalake-system 測試目錄，避免模塊重複問題
+module = [
+    "datalake-system.tests.*",
+    "datalake-system.tests.warehouse_manager_agent.*",
+]
+ignore_errors = true

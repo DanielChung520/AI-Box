@@ -1,0 +1,33 @@
+{
+  "schema_id": "stock_schema",
+  "name": "庫存 Schema",
+  "version": "1.0.0",
+  "json_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "part_number": {
+        "type": "string"
+      },
+      "current_stock": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "normal",
+          "low",
+          "shortage"
+        ]
+      }
+    },
+    "required": [
+      "part_number",
+      "current_stock",
+      "status"
+    ]
+  },
+  "created_at": "2026-01-13T06:42:24.972889Z",
+  "updated_at": "2026-01-13T06:42:24.972890Z"
+}

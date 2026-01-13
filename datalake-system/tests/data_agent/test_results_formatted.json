@@ -1,0 +1,492 @@
+{
+    "summary": {
+        "total": 29,
+        "passed": 15,
+        "failed": 14,
+        "pass_rate": "51.7%"
+    },
+    "results": [
+        {
+            "test_name": "Datalake \u7cbe\u78ba\u67e5\u8a62 - \u67e5\u8a62\u55ae\u500b\u6587\u4ef6",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "An error occurred (NoSuchBucket) when calling the GetObject operation: The specified bucket does not exist",
+            "result": {
+                "success": false,
+                "action": "query_datalake",
+                "result": {
+                    "success": false,
+                    "error": "An error occurred (NoSuchBucket) when calling the GetObject operation: The specified bucket does not exist"
+                },
+                "error": "An error occurred (NoSuchBucket) when calling the GetObject operation: The specified bucket does not exist",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "Datalake \u6a21\u7cca\u67e5\u8a62 - \u6309\u524d\u7db4\u67e5\u8a62",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist",
+            "result": {
+                "success": false,
+                "action": "query_datalake",
+                "result": {
+                    "success": false,
+                    "error": "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist"
+                },
+                "error": "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "Datalake \u67e5\u8a62 - \u5e36\u904e\u6ffe\u689d\u4ef6",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist",
+            "result": {
+                "success": false,
+                "action": "query_datalake",
+                "result": {
+                    "success": false,
+                    "error": "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist"
+                },
+                "error": "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "Datalake \u67e5\u8a62 - \u7f3a\u5c11 bucket \u53c3\u6578",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "bucket and key are required for query_datalake action",
+            "result": {
+                "success": false,
+                "action": "query_datalake",
+                "result": null,
+                "error": "bucket and key are required for query_datalake action",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "Datalake \u67e5\u8a62 - \u7f3a\u5c11 key \u53c3\u6578",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "bucket and key are required for query_datalake action",
+            "result": {
+                "success": false,
+                "action": "query_datalake",
+                "result": null,
+                "error": "bucket and key are required for query_datalake action",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u5275\u5efa\u6578\u64da\u5b57\u5178",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "Invalid dictionary data: Missing required field: dictionary_id",
+            "result": {
+                "success": false,
+                "action": "create_dictionary",
+                "result": {
+                    "success": false,
+                    "error": "Invalid dictionary data: Missing required field: dictionary_id"
+                },
+                "error": "Invalid dictionary data: Missing required field: dictionary_id",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u7372\u53d6\u6578\u64da\u5b57\u5178",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "Dictionary not found: test_dictionary_001",
+            "result": {
+                "success": false,
+                "action": "get_dictionary",
+                "result": {
+                    "success": false,
+                    "error": "Dictionary not found: test_dictionary_001"
+                },
+                "error": "Dictionary not found: test_dictionary_001",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u7372\u53d6\u4e0d\u5b58\u5728\u7684\u6578\u64da\u5b57\u5178",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "Dictionary not found: non_existent_dictionary",
+            "result": {
+                "success": false,
+                "action": "get_dictionary",
+                "result": {
+                    "success": false,
+                    "error": "Dictionary not found: non_existent_dictionary"
+                },
+                "error": "Dictionary not found: non_existent_dictionary",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u5275\u5efa\u6578\u64da\u5b57\u5178 - \u7f3a\u5c11\u6578\u64da",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "dictionary_id and dictionary_data are required for create_dictionary action",
+            "result": {
+                "success": false,
+                "action": "create_dictionary",
+                "result": null,
+                "error": "dictionary_id and dictionary_data are required for create_dictionary action",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u5275\u5efa JSON Schema",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "Missing json_schema field",
+            "result": {
+                "success": false,
+                "action": "create_schema",
+                "result": {
+                    "success": false,
+                    "error": "Missing json_schema field"
+                },
+                "error": "Missing json_schema field",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u7372\u53d6 Schema",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "Schema not found: test_schema_001",
+            "result": {
+                "success": false,
+                "action": "get_schema",
+                "result": {
+                    "success": false,
+                    "error": "Schema not found: test_schema_001"
+                },
+                "error": "Schema not found: test_schema_001",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u7372\u53d6\u4e0d\u5b58\u5728\u7684 Schema",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "Schema not found: non_existent_schema",
+            "result": {
+                "success": false,
+                "action": "get_schema",
+                "result": {
+                    "success": false,
+                    "error": "Schema not found: non_existent_schema"
+                },
+                "error": "Schema not found: non_existent_schema",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u5275\u5efa\u7121\u6548\u7684 Schema",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "Missing json_schema field",
+            "result": {
+                "success": false,
+                "action": "create_schema",
+                "result": {
+                    "success": false,
+                    "error": "Missing json_schema field"
+                },
+                "error": "Missing json_schema field",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u9a57\u8b49\u6578\u64da - \u6709\u6548\u6578\u64da",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "Schema not found: test_schema_001",
+            "result": {
+                "success": false,
+                "action": "validate_data",
+                "result": {
+                    "success": false,
+                    "error": "Schema not found: test_schema_001"
+                },
+                "error": "Schema not found: test_schema_001",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u9a57\u8b49\u6578\u64da - \u7121\u6548\u6578\u64da",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "Schema not found: test_schema_001",
+            "result": {
+                "success": false,
+                "action": "validate_data",
+                "result": {
+                    "success": false,
+                    "error": "Schema not found: test_schema_001"
+                },
+                "error": "Schema not found: test_schema_001",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u9a57\u8b49\u6578\u64da - \u7f3a\u5c11 Schema ID",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "schema_id and data are required for validate_data action",
+            "result": {
+                "success": false,
+                "action": "validate_data",
+                "result": null,
+                "error": "schema_id and data are required for validate_data action",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "Text-to-SQL - \u7c21\u55ae\u67e5\u8a62",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": true,
+            "actual_success": true,
+            "error": null,
+            "result": {
+                "success": true,
+                "action": "text_to_sql",
+                "result": {
+                    "sql_query": "SELECT name, age FROM users WHERE $1 = $1",
+                    "parameters": [
+                        "param_1",
+                        "param_1"
+                    ],
+                    "confidence": 0.8999999999999999,
+                    "explanation": "\u5c07\u81ea\u7136\u8a9e\u8a00\u67e5\u8a62\u300c\u67e5\u8a62\u6240\u6709\u7528\u6236\u7684\u59d3\u540d\u548c\u5e74\u9f61\u300d\u8f49\u63db\u70ba SQL: SELECT name, age FROM users WHERE $1 = $1...",
+                    "warnings": []
+                },
+                "error": null,
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "Text-to-SQL - \u8907\u96dc\u67e5\u8a62",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "'str' object has no attribute 'get'",
+            "result": {
+                "success": false,
+                "action": "text_to_sql",
+                "result": null,
+                "error": "'str' object has no attribute 'get'",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "Text-to-SQL - \u7f3a\u5c11\u81ea\u7136\u8a9e\u8a00",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "natural_language is required for text_to_sql action",
+            "result": {
+                "success": false,
+                "action": "text_to_sql",
+                "result": null,
+                "error": "natural_language is required for text_to_sql action",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u9a57\u8b49\u67e5\u8a62 - \u6709\u6548\u7684 SQL",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": true,
+            "actual_success": true,
+            "error": null,
+            "result": {
+                "success": true,
+                "action": "validate_query",
+                "result": {
+                    "valid": true,
+                    "warnings": [
+                        "Consider using parameterized queries for better security"
+                    ]
+                },
+                "error": null,
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u9a57\u8b49\u67e5\u8a62 - \u7121\u6548\u7684 SQL",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": false,
+            "actual_success": true,
+            "error": null,
+            "result": {
+                "success": true,
+                "action": "validate_query",
+                "result": {
+                    "valid": true,
+                    "warnings": [
+                        "Consider using parameterized queries for better security"
+                    ]
+                },
+                "error": null,
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u9a57\u8b49\u67e5\u8a62 - \u5371\u96aa\u7684 SQL",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "Dangerous operation detected",
+            "result": {
+                "success": false,
+                "action": "validate_query",
+                "result": {
+                    "valid": false,
+                    "error": "Dangerous operation detected",
+                    "details": [
+                        "Forbidden operation detected: DROP"
+                    ]
+                },
+                "error": "Dangerous operation detected",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u672a\u77e5\u64cd\u4f5c",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "Unknown action: unknown_action",
+            "result": {
+                "success": false,
+                "action": "unknown_action",
+                "result": null,
+                "error": "Unknown action: unknown_action",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "Datalake \u67e5\u8a62 - \u7a7a bucket",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "An error occurred (NoSuchBucket) when calling the GetObject operation: The specified bucket does not exist",
+            "result": {
+                "success": false,
+                "action": "query_datalake",
+                "result": {
+                    "success": false,
+                    "error": "An error occurred (NoSuchBucket) when calling the GetObject operation: The specified bucket does not exist"
+                },
+                "error": "An error occurred (NoSuchBucket) when calling the GetObject operation: The specified bucket does not exist",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u5275\u5efa\u6578\u64da\u5b57\u5178 - \u6e96\u5099\u91cd\u8907\u6e2c\u8a66",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "Invalid dictionary data: Missing required field: dictionary_id",
+            "result": {
+                "success": false,
+                "action": "create_dictionary",
+                "result": {
+                    "success": false,
+                    "error": "Invalid dictionary data: Missing required field: dictionary_id"
+                },
+                "error": "Invalid dictionary data: Missing required field: dictionary_id",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u5275\u5efa\u6578\u64da\u5b57\u5178 - \u91cd\u8907 ID",
+            "status": "\u2705 \u901a\u904e",
+            "expected_success": false,
+            "actual_success": false,
+            "error": "Invalid dictionary data: Missing required field: dictionary_id",
+            "result": {
+                "success": false,
+                "action": "create_dictionary",
+                "result": {
+                    "success": false,
+                    "error": "Invalid dictionary data: Missing required field: dictionary_id"
+                },
+                "error": "Invalid dictionary data: Missing required field: dictionary_id",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "Datalake \u67e5\u8a62 - \u5927\u91cf\u7d50\u679c",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist",
+            "result": {
+                "success": false,
+                "action": "query_datalake",
+                "result": {
+                    "success": false,
+                    "error": "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist"
+                },
+                "error": "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u9a57\u8b49\u6578\u64da - \u7a7a\u5217\u8868",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "schema_id and data are required for validate_data action",
+            "result": {
+                "success": false,
+                "action": "validate_data",
+                "result": null,
+                "error": "schema_id and data are required for validate_data action",
+                "metadata": null
+            }
+        },
+        {
+            "test_name": "\u5275\u5efa Schema - \u5e36\u5f15\u7528",
+            "status": "\u274c \u5931\u6557",
+            "expected_success": true,
+            "actual_success": false,
+            "error": "Missing json_schema field",
+            "result": {
+                "success": false,
+                "action": "create_schema",
+                "result": {
+                    "success": false,
+                    "error": "Missing json_schema field"
+                },
+                "error": "Missing json_schema field",
+                "metadata": null
+            }
+        }
+    ]
+}

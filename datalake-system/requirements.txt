@@ -1,0 +1,25 @@
+# Datalake System 依賴
+# 創建日期: 2026-01-13
+# 創建人: Daniel Chung
+
+# HTTP 服務框架
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# S3/SeaweedFS 存儲
+boto3>=1.28.0
+
+# Schema 驗證
+jsonschema>=4.0.0
+
+# 環境變數管理
+python-dotenv>=1.0.0
+
+# 日誌
+structlog>=25.0.0
+
+# HTTP 客戶端（用於服務註冊）
+httpx>=0.25.0
+
+# Pydantic（數據驗證）
+pydantic>=2.0.0

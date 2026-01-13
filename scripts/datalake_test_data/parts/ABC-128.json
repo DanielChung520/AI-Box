@@ -1,0 +1,13 @@
+{
+  "part_number": "ABC-128",
+  "name": "化學原料 F",
+  "specification": "100ml",
+  "unit": "KG",
+  "supplier": "供應商 B",
+  "category": "化學原料",
+  "safety_stock": 148,
+  "unit_price": 28.53,
+  "currency": "TWD",
+  "created_at": "2025-12-14T06:42:24.968985Z",
+  "updated_at": "2026-01-13T06:42:24.968986Z"
+}

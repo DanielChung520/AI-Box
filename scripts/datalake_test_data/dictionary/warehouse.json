@@ -1,0 +1,22 @@
+{
+  "dictionary_id": "warehouse",
+  "name": "倉庫數據字典",
+  "version": "1.0.0",
+  "description": "倉庫管理系統數據字典",
+  "tables": {
+    "parts": {
+      "description": "物料表",
+      "primary_key": "part_number"
+    },
+    "stock": {
+      "description": "庫存表",
+      "primary_key": "part_number"
+    },
+    "stock_history": {
+      "description": "庫存歷史記錄表",
+      "primary_key": "timestamp"
+    }
+  },
+  "created_at": "2026-01-13T06:42:24.972805Z",
+  "updated_at": "2026-01-13T06:42:24.972807Z"
+}

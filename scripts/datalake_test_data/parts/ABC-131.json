@@ -1,0 +1,13 @@
+{
+  "part_number": "ABC-131",
+  "name": "機械零件 I",
+  "specification": "25x25x12mm",
+  "unit": "PCS",
+  "supplier": "供應商 E",
+  "category": "機械零件",
+  "safety_stock": 78,
+  "unit_price": 81.69,
+  "currency": "TWD",
+  "created_at": "2025-12-14T06:42:24.969209Z",
+  "updated_at": "2026-01-13T06:42:24.969211Z"
+}

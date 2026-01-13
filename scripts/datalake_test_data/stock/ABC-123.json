@@ -1,0 +1,8 @@
+{
+  "part_number": "ABC-123",
+  "current_stock": 265,
+  "location": "倉庫 A-02",
+  "status": "normal",
+  "last_updated": "2026-01-13T06:42:24.969382Z",
+  "last_counted": "2026-01-10T06:42:24.969384Z"
+}
