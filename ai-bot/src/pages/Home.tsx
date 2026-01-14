@@ -482,6 +482,8 @@ export default function Home() {
         allowedTools.push('web_search');
       }
 
+      // 修改時間：2026-01-27 - 添加 agent_id 到草稿檔編輯請求中
+      const agentId = taskWithUserMessage.executionConfig?.agentId;
       try {
         const resp = await chatProduct({
           messages: chatMessages,
@@ -490,6 +492,7 @@ export default function Home() {
           model_selector,
           attachments: attachments.length ? attachments : undefined,
           allowed_tools: allowedTools.length > 0 ? allowedTools : undefined,
+          agent_id: agentId,
         } as any); // 临时使用 any，因为接口定义可能还没有更新
 
         if (resp?.success && resp.data?.content !== undefined) {
@@ -633,6 +636,8 @@ export default function Home() {
       });
 
       // 添加详细的请求数据日志
+      // 修改時間：2026-01-27 - 添加 agent_id 到請求中
+      const agentId = taskWithUserMessage.executionConfig?.agentId;
       const requestData = {
         messages: chatMessages,
         session_id: sessionId,
@@ -641,6 +646,7 @@ export default function Home() {
         attachments: attachments.length ? attachments : undefined,
         allowed_tools: allowedTools.length > 0 ? allowedTools : undefined,
         assistant_id: assistantId,
+        agent_id: agentId,
       };
 
       console.log('[Home] Request data:', {

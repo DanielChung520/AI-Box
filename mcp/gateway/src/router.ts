@@ -27,16 +27,17 @@ export class Router {
     }
   }
 
-  async route(mcpRequest: any): Promise<string | null> {
-    // 从请求中提取工具名称
-    const toolName = mcpRequest.params?.name;
-    if (!toolName) {
+  async route(mcpRequest: any, toolName?: string): Promise<string | null> {
+    // 从参数或请求中提取工具名称
+    // 优先使用传入的 toolName（来自请求头 X-Tool-Name）
+    const extractedToolName = toolName || mcpRequest.params?.name;
+    if (!extractedToolName) {
       return null;
     }
 
     // 匹配路由规则
     for (const [pattern, target] of this.routes.entries()) {
-      if (this.matchPattern(pattern, toolName)) {
+      if (this.matchPattern(pattern, extractedToolName)) {
         return target;
       }
     }

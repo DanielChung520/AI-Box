@@ -73,7 +73,7 @@ async def execute_warehouse_agent_task_handler(arguments: dict) -> dict:
 
 
 mcp_server.register_tool(
-    name="execute_warehouse_agent_task",
+    name="warehouse_execute_task",
     description="執行庫存管理任務（查詢料號、查詢庫存、缺料分析、生成採購單等）",
     input_schema={
         "type": "object",

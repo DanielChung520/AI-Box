@@ -17,7 +17,6 @@ from agents.task_analyzer.models import (
     RouterDecision,
     TaskClassificationResult,
     TaskDAG,
-    TaskNode,
     TaskType,
     WorkflowStrategy,
     WorkflowType,
@@ -124,11 +123,22 @@ class DecisionEngine:
         # 檢查轉換操作
         # 擴展的轉換關鍵詞列表（包含更多表達轉換意圖的詞彙）
         conversion_keywords = [
-            "轉換", "轉為", "轉成", "轉", "convert", "to",
-            "生成", "產生", "生成為", "產生為",  # 生成/產生 + 目標格式
-            "版本", "version",  # 版本（如 "PDF 版本"）
-            "導出", "export",  # 導出為某格式
-            "輸出", "output",  # 輸出為某格式
+            "轉換",
+            "轉為",
+            "轉成",
+            "轉",
+            "convert",
+            "to",
+            "生成",
+            "產生",
+            "生成為",
+            "產生為",  # 生成/產生 + 目標格式
+            "版本",
+            "version",  # 版本（如 "PDF 版本"）
+            "導出",
+            "export",  # 導出為某格式
+            "輸出",
+            "output",  # 輸出為某格式
         ]
         is_conversion = any(keyword in query_lower for keyword in conversion_keywords)
 
@@ -139,47 +149,94 @@ class DecisionEngine:
         if is_conversion:
             # 先檢查 pdf -> md（更具體的轉換，優先檢查）
             if ".pdf" in query_lower and ("markdown" in query_lower or ".md" in query_lower):
-                logger.debug(f"File extension match: pdf-to-md conversion detected in query: {query[:100]}")
+                logger.debug(
+                    f"File extension match: pdf-to-md conversion detected in query: {query[:100]}"
+                )
                 return "pdf-to-md"
             # 檢查 xlsx/xls -> pdf
             if (".xlsx" in query_lower or ".xls" in query_lower) and "pdf" in query_lower:
-                logger.debug(f"File extension match: xls-to-pdf conversion detected in query: {query[:100]}")
+                logger.debug(
+                    f"File extension match: xls-to-pdf conversion detected in query: {query[:100]}"
+                )
                 return "xls-to-pdf"
             # 最後檢查 md -> pdf（放在最後，避免與 pdf -> md 衝突）
             if (".md" in query_lower or "markdown" in query_lower) and "pdf" in query_lower:
-                logger.debug(f"File extension match: md-to-pdf conversion detected in query: {query[:100]}")
+                logger.debug(
+                    f"File extension match: md-to-pdf conversion detected in query: {query[:100]}"
+                )
                 return "md-to-pdf"
-        
+
         # 檢查隱式轉換操作（沒有明確轉換關鍵詞，但同時包含源文件格式和目標格式）
         # 例如："生成 README.md 的 PDF 版本" - 包含 .md 和 PDF，但沒有明確的轉換關鍵詞
         # 注意：檢查順序很重要！應該先檢查更具體的轉換（pdf -> md），再檢查通用轉換（md -> pdf）
         # 檢查 pdf -> md（隱式，優先檢查）
         if ".pdf" in query_lower and ("markdown" in query_lower or ".md" in query_lower):
-            editing_keywords = ["編輯", "修改", "更新", "刪除", "添加", "插入", "設置", "edit", "modify", "update"]
+            editing_keywords = [
+                "編輯",
+                "修改",
+                "更新",
+                "刪除",
+                "添加",
+                "插入",
+                "設置",
+                "edit",
+                "modify",
+                "update",
+            ]
             has_editing_keyword = any(keyword in query_lower for keyword in editing_keywords)
             if not has_editing_keyword:
-                logger.debug(f"File extension match: pdf-to-md implicit conversion detected in query: {query[:100]}")
+                logger.debug(
+                    f"File extension match: pdf-to-md implicit conversion detected in query: {query[:100]}"
+                )
                 return "pdf-to-md"
         # 檢查 xlsx/xls -> pdf（隱式）
         if (".xlsx" in query_lower or ".xls" in query_lower) and "pdf" in query_lower:
-            editing_keywords = ["編輯", "修改", "更新", "刪除", "添加", "插入", "設置", "edit", "modify", "update"]
+            editing_keywords = [
+                "編輯",
+                "修改",
+                "更新",
+                "刪除",
+                "添加",
+                "插入",
+                "設置",
+                "edit",
+                "modify",
+                "update",
+            ]
             has_editing_keyword = any(keyword in query_lower for keyword in editing_keywords)
             if not has_editing_keyword:
-                logger.debug(f"File extension match: xls-to-pdf implicit conversion detected in query: {query[:100]}")
+                logger.debug(
+                    f"File extension match: xls-to-pdf implicit conversion detected in query: {query[:100]}"
+                )
                 return "xls-to-pdf"
         # 檢查 md -> pdf（隱式，放在最後）
         if (".md" in query_lower or "markdown" in query_lower) and "pdf" in query_lower:
-            editing_keywords = ["編輯", "修改", "更新", "刪除", "添加", "插入", "設置", "edit", "modify", "update"]
+            editing_keywords = [
+                "編輯",
+                "修改",
+                "更新",
+                "刪除",
+                "添加",
+                "插入",
+                "設置",
+                "edit",
+                "modify",
+                "update",
+            ]
             has_editing_keyword = any(keyword in query_lower for keyword in editing_keywords)
             if not has_editing_keyword:
-                logger.debug(f"File extension match: md-to-pdf implicit conversion detected in query: {query[:100]}")
+                logger.debug(
+                    f"File extension match: md-to-pdf implicit conversion detected in query: {query[:100]}"
+                )
                 return "md-to-pdf"
-        
+
         # 檢查編輯操作（非轉換）
         for ext, agent_id in file_extensions.items():
             if ext in query_lower and agent_id:
                 # 編輯操作
-                logger.debug(f"File extension match: {ext} -> {agent_id} for editing operation in query: {query[:100]}")
+                logger.debug(
+                    f"File extension match: {ext} -> {agent_id} for editing operation in query: {query[:100]}"
+                )
                 return agent_id
 
         logger.debug(f"File extension match: No match found for query: {query[:100]}")
@@ -228,9 +285,7 @@ class DecisionEngine:
             mode = "hybrid"
             primary = WorkflowType.AUTOGEN
             fallback = [WorkflowType.LANGCHAIN]
-            reasoning_parts.append(
-                f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式"
-            )
+            reasoning_parts.append(f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式")
 
         # 規則 3: 需要可觀測性 → LangGraph 作為主要模式
         elif requires_observability:
@@ -378,8 +433,20 @@ class DecisionEngine:
         # 注意：任務類型修正已在 analyzer.py 中處理（修正 RouterDecision.intent_type）
         # 這裡不需要再次修正，因為 RouterDecision 沒有 task_type 字段
 
-        # 根據文件擴展名選擇具體的 Agent（方案1：精確匹配）
-        specific_agent_id = self._select_agent_by_file_extension(user_query)
+        # 修改時間：2026-01-27 - 優先使用 context 中用戶明確選擇的 agent_id（最高優先級）
+        user_selected_agent_id = context.get("agent_id") if context else None
+
+        # 根據文件擴展名選擇具體的 Agent（方案2：精確匹配，僅在用戶未選擇時使用）
+        file_extension_agent_id = self._select_agent_by_file_extension(user_query)
+
+        # 優先級：用戶選擇 > 文件擴展名匹配
+        specific_agent_id = user_selected_agent_id or file_extension_agent_id
+
+        if user_selected_agent_id:
+            logger.info(
+                f"Decision Engine: User explicitly selected agent: {user_selected_agent_id} "
+                f"for query: {user_query[:100]}..."
+            )
         if specific_agent_id:
             logger.info(
                 f"Decision Engine: File extension match found agent: {specific_agent_id} "
@@ -387,7 +454,9 @@ class DecisionEngine:
             )
             # 如果文件擴展名匹配到特定 Agent，但該 Agent 不在候選列表中
             # 嘗試從 Registry 直接查找該 Agent 並添加到候選列表
-            candidate_ids_before = [a.candidate_id for a in agent_candidates] if agent_candidates else []
+            candidate_ids_before = (
+                [a.candidate_id for a in agent_candidates] if agent_candidates else []
+            )
             if specific_agent_id not in candidate_ids_before:
                 logger.warning(
                     f"Decision Engine: File extension matched {specific_agent_id} but it's not in candidates "
@@ -395,6 +464,7 @@ class DecisionEngine:
                 )
                 try:
                     from agents.services.registry.registry import get_agent_registry
+
                     registry = get_agent_registry()
                     if registry:
                         agent_info = registry.get_agent_info(specific_agent_id)
@@ -406,6 +476,7 @@ class DecisionEngine:
                         if agent_info and agent_info.status.value == "online":
                             # 創建一個 CapabilityMatch 對象並添加到候選列表
                             from agents.task_analyzer.models import CapabilityMatch
+
                             matched_agent = CapabilityMatch(
                                 candidate_id=specific_agent_id,
                                 candidate_type="agent",
@@ -440,7 +511,7 @@ class DecisionEngine:
                 except Exception as e:
                     logger.warning(
                         f"Decision Engine: Failed to find {specific_agent_id} from registry: {e}",
-                        exc_info=True
+                        exc_info=True,
                     )
             else:
                 logger.info(
@@ -461,14 +532,15 @@ class DecisionEngine:
             f"Decision Engine: Filtered out document-editing-agent, remaining candidates: "
             f"{[a.candidate_id for a in agent_candidates]}"
         )
-        
+
         # 風險等級過濾
         # 注意：如果文件擴展名匹配到特定 Agent，跳過風險等級過濾（因為它是精確匹配）
         max_risk_level = router_decision.risk_level
         if specific_agent_id:
             # 對於文件擴展名匹配的 Agent，跳過風險等級過濾
             agent_candidates = [
-                a for a in agent_candidates 
+                a
+                for a in agent_candidates
                 if a.candidate_id == specific_agent_id or self._check_risk_level(a, max_risk_level)
             ]
         else:
@@ -486,11 +558,14 @@ class DecisionEngine:
         if specific_agent_id:
             # 對於文件擴展名匹配的 Agent，跳過成本過濾
             agent_candidates = [
-                a for a in agent_candidates 
+                a
+                for a in agent_candidates
                 if a.candidate_id == specific_agent_id or self._check_cost_constraint(a, max_cost)
             ]
         else:
-            agent_candidates = [a for a in agent_candidates if self._check_cost_constraint(a, max_cost)]
+            agent_candidates = [
+                a for a in agent_candidates if self._check_cost_constraint(a, max_cost)
+            ]
         tool_candidates = [t for t in tool_candidates if self._check_cost_constraint(t, max_cost)]
         model_candidates = [m for m in model_candidates if self._check_cost_constraint(m, max_cost)]
 
@@ -506,10 +581,12 @@ class DecisionEngine:
                 f"Agent candidates: {candidate_ids}"
             )
 
-            matched_agent = next(
-                (a for a in agent_candidates if a.candidate_id == specific_agent_id), None
-            ) if agent_candidates else None
-            
+            matched_agent = (
+                next((a for a in agent_candidates if a.candidate_id == specific_agent_id), None)
+                if agent_candidates
+                else None
+            )
+
             if matched_agent:
                 chosen_agent = specific_agent_id
                 reasoning_parts.append(
@@ -547,9 +624,7 @@ class DecisionEngine:
                 logger.info(
                     f"Decision Engine: No agent selected (best score {best_agent.total_score:.2f} < 0.5)"
                 )
-                reasoning_parts.append(
-                    f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent"
-                )
+                reasoning_parts.append(f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent")
         else:
             logger.debug(
                 f"Decision Engine: No agent selection - needs_agent={router_decision.needs_agent}, "
@@ -657,9 +732,7 @@ class DecisionEngine:
         if model_candidates:
             best_model = max(model_candidates, key=lambda x: x.total_score)
             chosen_model = best_model.candidate_id
-            reasoning_parts.append(
-                f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})"
-            )
+            reasoning_parts.append(f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})")
 
         # 5. 計算總評分
         scores = []
@@ -861,7 +934,9 @@ class DecisionEngine:
 
         # 2. L4 層級：策略驗證
         policy_service = get_policy_service()
-        task_dag_dict = task_dag.model_dump() if hasattr(task_dag, "model_dump") else task_dag.dict()
+        task_dag_dict = (
+            task_dag.model_dump() if hasattr(task_dag, "model_dump") else task_dag.dict()
+        )
         policy_result: PolicyValidationResult = policy_service.validate(task_dag_dict, context)
 
         # 如果策略驗證不通過，拒絕執行

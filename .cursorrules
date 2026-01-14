@@ -9,12 +9,12 @@
 ### 每次代碼修改後必須執行的檢查流程
 
 1. **更新文件頭註釋**（優先級最高）
-   - ⚠️ **必須**使用瀏覽器工具訪問 `https://tw.piliapp.com/time/` 確認當前日期（UTC+8）
-   - ❌ **禁止**使用 `web_search` 或其他方式獲取日期
+   - ⚠️ **必須**使用瀏覽器工具訪問 `https://tw.piliapp.com/time/` 確認當前日期時間（UTC+8）
+   - ❌ **禁止**使用 `web_search` 或其他方式獲取日期時間
    - ✅ **必須**使用 `mcp_cursor-browser-extension_browser_navigate` 訪問指定網站
    - ✅ **必須**使用 `browser_evaluate` 獲取頁面上的實際日期時間
-   - 更新「最後修改日期」為確認的日期
-   - 格式：`# 最後修改日期: YYYY-MM-DD`
+   - 更新「最後修改日期」為確認的日期時間
+   - 格式：`# 最後修改日期: YYYY-MM-DD HH:MM UTC+8`
 
 2. **代碼格式檢查**（必須全部通過）
    - 運行 `black <文件>` 格式化代碼
@@ -45,9 +45,9 @@
 
 ```python
 # 代碼功能說明: [功能描述]
-# 創建日期: YYYY-MM-DD
+# 創建日期: YYYY-MM-DD HH:MM UTC+8
 # 創建人: Daniel Chung
-# 最後修改日期: YYYY-MM-DD
+# 最後修改日期: YYYY-MM-DD HH:MM UTC+8
 ```
 
 ### 日期確認規範（強制執行）
@@ -57,7 +57,7 @@
 **執行步驟**（必須按順序執行）：
 1. 使用 `mcp_cursor-browser-extension_browser_navigate` 訪問 `https://tw.piliapp.com/time/`
 2. 使用 `mcp_cursor-browser-extension_browser_evaluate` 執行 JavaScript 獲取頁面上的實際日期時間
-3. 使用獲取的日期更新文件頭註釋中的「最後修改日期」
+3. 使用獲取的日期時間更新文件頭註釋中的「最後修改日期」（格式：`YYYY-MM-DD HH:MM UTC+8`）
 
 **禁止行為**：
 - ❌ 使用 `web_search` 獲取日期

@@ -191,19 +191,27 @@ export default function IconPicker({ isOpen, selectedIcon, onSelect, onClose }: 
           {showCustomInput && (
             <div className="border-t border-primary pt-3">
               <label className="block text-xs text-tertiary mb-2">
-                從 <a href="https://react-icons.github.io/react-icons/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-500 underline">react-icons 官網</a> 找到圖標後，輸入圖標名稱（例如：FaBeer, MdFavorite, HiOutlineSparkles）
+                輸入圖標名稱：
+                <br />
+                • <a href="https://react-icons.github.io/react-icons/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-500 underline">react-icons</a> 格式（例如：FaBeer, MdFavorite）
+                <br />
+                • <a href="https://fontawesome.com/icons" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-500 underline">FontAwesome</a> 類名格式（例如：fa-beer, fa-user-tie）
               </label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={customIconName}
                   onChange={(e) => setCustomIconName(e.target.value)}
-                  placeholder="例如：FaBeer, MdFavorite, HiOutlineSparkles"
+                  placeholder="例如：FaBeer 或 fa-beer"
                   className="flex-1 px-4 py-2 bg-tertiary border border-primary rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {customIconName.trim() && (
                   <div className="flex items-center gap-2 px-3 bg-tertiary border border-primary rounded-lg">
-                    <IconRenderer iconName={customIconName.trim()} size={24} />
+                    {customIconName.trim().startsWith('fa-') ? (
+                      <i className={`fa-solid ${customIconName.trim()} text-blue-400`} style={{ fontSize: '24px' }}></i>
+                    ) : (
+                      <IconRenderer iconName={customIconName.trim()} size={24} />
+                    )}
                   </div>
                 )}
                 <button
@@ -219,7 +227,7 @@ export default function IconPicker({ isOpen, selectedIcon, onSelect, onClose }: 
                 </button>
               </div>
               <p className="text-xs text-tertiary mt-2">
-                💡 提示：圖標名稱必須以庫前綴開頭（如 Fa、Md、Hi、Si、Lu、Tb、Ri 等）
+                💡 提示：支持 react-icons 格式（如 Fa、Md、Hi 等）或 FontAwesome 類名格式（如 fa-beer、fa-user-tie）
               </p>
             </div>
           )}

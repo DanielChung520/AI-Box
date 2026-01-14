@@ -37,11 +37,46 @@ class ExternalToolManager:
 
     def load_config(self) -> List[Dict[str, Any]]:
         """
-        加載外部工具配置
+        加載外部工具配置（優先從 ArangoDB 讀取，回退到 YAML 文件）
 
         Returns:
             List[Dict[str, Any]]: 工具配置列表
         """
+        # 優先從 ArangoDB 讀取配置
+        try:
+            from services.api.services.config_store_service import ConfigStoreService
+
+            config_service = ConfigStoreService()
+            config = config_service.get_config("mcp.external_services", tenant_id=None)
+
+            if config and config.config_data:
+                # 從 ArangoDB 讀取配置
+                external_services = config.config_data.get("external_services", [])
+
+                # 過濾啟用的服務
+                enabled_services = [
+                    service for service in external_services if service.get("enabled", True)
+                ]
+
+                # 解析環境變量引用
+                resolved_services = []
+                for service in enabled_services:
+                    resolved_service = self._resolve_env_variables(service)
+                    resolved_services.append(resolved_service)
+
+                self.external_tool_configs = resolved_services
+                logger.info(
+                    f"Loaded {len(resolved_services)} external service configurations from ArangoDB"
+                )
+                return resolved_services
+        except Exception as e:
+            logger.warning(f"Failed to load config from ArangoDB: {e}, falling back to YAML file")
+
+        # 回退到 YAML 文件（向後兼容）
+        return self._load_config_from_yaml()
+
+    def _load_config_from_yaml(self) -> List[Dict[str, Any]]:
+        """從 YAML 文件加載配置（向後兼容）"""
         config_file = Path(self.config_path)
 
         if not config_file.exists():
@@ -53,12 +88,50 @@ class ExternalToolManager:
                 config = yaml.safe_load(f)
                 self.external_tool_configs = config.get("external_tools", [])
                 logger.info(
-                    f"Loaded {len(self.external_tool_configs)} external tool configurations"
+                    f"Loaded {len(self.external_tool_configs)} external tool configurations from YAML"
                 )
                 return self.external_tool_configs
         except Exception as e:
             logger.error(f"Failed to load external tools config: {e}")
             return []
+
+    def _resolve_env_variables(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        解析配置中的環境變量引用（如 ${GLAMA_OFFICE_API_KEY}）
+
+        Args:
+            config: 配置字典
+
+        Returns:
+            解析後的配置字典
+        """
+        import os
+        import re
+
+        def resolve_value(value: Any) -> Any:
+            if isinstance(value, str):
+                # 匹配 ${VAR_NAME} 格式
+                pattern = r"\$\{([^}]+)\}"
+                matches = re.findall(pattern, value)
+
+                for var_name in matches:
+                    env_value = os.getenv(var_name)
+                    if env_value:
+                        value = value.replace(f"${{{var_name}}}", env_value)
+                    else:
+                        logger.warning(
+                            f"Environment variable {var_name} not found in config {config.get('name', 'unknown')}"
+                        )
+
+                return value
+            elif isinstance(value, dict):
+                return {k: resolve_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [resolve_value(item) for item in value]
+            else:
+                return value
+
+        return resolve_value(config)
 
     async def discover_tools(self, mcp_endpoint: str) -> List[Dict[str, Any]]:
         """
@@ -101,24 +174,56 @@ class ExternalToolManager:
         註冊外部工具
 
         Args:
-            tool_config: 工具配置
+            tool_config: 工具配置（從 ArangoDB 或 YAML 文件讀取）
             server: MCP Server 實例（可選）
 
         Returns:
             bool: 是否成功註冊
         """
         try:
+            # 處理從 ArangoDB 讀取的配置格式（可能沒有 input_schema，需要自動發現）
+            input_schema = tool_config.get("input_schema")
+            if not input_schema:
+                # 如果沒有 input_schema，使用默認 schema（將在工具發現時自動更新）
+                input_schema = {
+                    "type": "object",
+                    "properties": {},
+                    "description": "Schema will be auto-discovered from MCP Server",
+                }
+
             # 創建外部工具代理
             external_tool = ExternalMCPTool(
                 name=tool_config["name"],
-                description=tool_config["description"],
-                input_schema=tool_config["input_schema"],
+                description=tool_config.get("description", ""),
+                input_schema=input_schema,
                 mcp_endpoint=tool_config["mcp_endpoint"],
                 tool_name_on_server=tool_config.get("tool_name_on_server"),
                 auth_config=tool_config.get("auth_config", {}),
                 proxy_endpoint=tool_config.get("proxy_endpoint"),  # Gateway 代理端點
                 proxy_config=tool_config.get("proxy_config", {}),  # 代理配置
             )
+
+            # 如果啟用了自動發現，先發現工具並更新 schema
+            if tool_config.get("auto_discover", True):
+                try:
+                    discovered_tools = await self.discover_tools(tool_config["mcp_endpoint"])
+                    if discovered_tools:
+                        # 找到對應的工具並更新 schema
+                        tool_name_on_server = tool_config.get(
+                            "tool_name_on_server", tool_config["name"]
+                        )
+                        for discovered_tool in discovered_tools:
+                            if discovered_tool.get("name") == tool_name_on_server:
+                                # 更新 input_schema
+                                if "inputSchema" in discovered_tool:
+                                    external_tool.input_schema = discovered_tool["inputSchema"]
+                                elif "input_schema" in discovered_tool:
+                                    external_tool.input_schema = discovered_tool["input_schema"]
+                                break
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to auto-discover tools for {tool_config['name']}: {e}, using default schema"
+                    )
 
             # 驗證連接
             if await external_tool.verify_connection():

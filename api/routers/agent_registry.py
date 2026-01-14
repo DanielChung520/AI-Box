@@ -1,13 +1,16 @@
 # 代碼功能說明: Agent Registry API 路由
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2026-01-14 16:05 UTC+8
 
 """Agent Registry API 路由 - 提供 Agent 註冊和管理接口"""
 
+import json
+import os
+import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 
@@ -18,10 +21,35 @@ from agents.services.registry.models import (
 )
 from agents.services.registry.registry import get_agent_registry
 from api.core.response import APIResponse
+from services.api.models.agent_display_config import AgentConfig, MultilingualText
+from services.api.services.agent_display_config_store_service import AgentDisplayConfigStoreService
 from system.security.dependencies import get_current_user
 from system.security.models import User
 
 router = APIRouter()
+
+
+def _react_icon_to_fa(icon_name: Optional[str]) -> str:
+    """將 react-icons 格式（如 FaRobot）轉換為 FontAwesome 格式（如 fa-robot）"""
+    if not icon_name:
+        return "fa-robot"  # 默認圖標
+
+    if icon_name.startswith("fa-"):
+        return icon_name
+
+    # 移除前綴（Fa, Md, Hi 等）
+    fa_icon = re.sub(
+        r"^(Fa|Md|Hi|Si|Lu|Tb|Ri|Bs|Bi|Ai|Io|Gr|Im|Wi|Di|Fi|Gi|Go|Hi2|Sl|Tb2|Vsc|Cg)", "", icon_name
+    )
+
+    # 將駝峰命名轉換為 kebab-case
+    fa_icon = re.sub(r"([a-z])([A-Z])", r"\1-\2", fa_icon).lower()
+
+    # 確保以 fa- 開頭
+    if not fa_icon.startswith("fa-"):
+        fa_icon = "fa-" + fa_icon
+
+    return fa_icon
 
 
 @router.post("/agents/register", status_code=http_status.HTTP_201_CREATED)
@@ -106,6 +134,86 @@ async def register_agent(
 
                     logging.warning(
                         f"Failed to bind secret '{request.permissions.secret_id}' to agent '{request.agent_id}'"
+                    )
+
+            # 如果提供了 category_id，自動創建 AgentDisplayConfig（持久化到數據庫）
+            if request.category_id:
+                try:
+                    display_store = AgentDisplayConfigStoreService()
+
+                    # 檢查是否已存在（避免重複創建）
+                    existing_config = display_store.get_agent_config(
+                        agent_id=request.agent_id, tenant_id=None
+                    )
+                    if existing_config:
+                        import logging
+
+                        logging.warning(
+                            f"Agent Display Config for agent '{request.agent_id}' already exists, skipping creation"
+                        )
+                    else:
+                        # 獲取該分類下的現有 Agent 數量，用於計算 display_order
+                        existing_agents = display_store.get_agents_by_category(
+                            category_id=request.category_id, tenant_id=None, include_inactive=False
+                        )
+                        next_display_order = len(existing_agents)  # 新 Agent 放在最後
+
+                        # 獲取 Agent 名稱和描述
+                        agent_name = request.name
+                        agent_description = (
+                            request.metadata.description
+                            if request.metadata and request.metadata.description
+                            else agent_name
+                        )
+
+                        # 獲取圖標（轉換為 FontAwesome 格式）
+                        icon_name = (
+                            request.metadata.icon
+                            if request.metadata and request.metadata.icon
+                            else "FaRobot"
+                        )
+                        fa_icon = _react_icon_to_fa(icon_name)
+
+                        # 創建 AgentConfig
+                        agent_config = AgentConfig(
+                            id=request.agent_id,
+                            category_id=request.category_id,
+                            display_order=next_display_order,
+                            is_visible=True,
+                            name=MultilingualText(
+                                en=agent_name,
+                                zh_CN=agent_name,
+                                zh_TW=agent_name,
+                            ),
+                            description=MultilingualText(
+                                en=agent_description,
+                                zh_CN=agent_description,
+                                zh_TW=agent_description,
+                            ),
+                            icon=fa_icon,
+                            status="registering",  # 狀態為"審查中"
+                            usage_count=0,
+                            agent_id=request.agent_id,
+                        )
+
+                        # 創建 Display Config
+                        display_store.create_agent(
+                            agent_config=agent_config,
+                            tenant_id=None,
+                            created_by=user.user_id if user else None,
+                        )
+                        import logging
+
+                        logging.info(
+                            f"Agent Display Config created for agent '{request.agent_id}' in category '{request.category_id}'"
+                        )
+                except Exception as exc:
+                    # 創建 Display Config 失敗不影響 Agent 註冊，只記錄警告
+                    import logging
+
+                    logging.warning(
+                        f"Failed to create Agent Display Config for agent '{request.agent_id}': {exc}",
+                        exc_info=True,
                     )
 
             return APIResponse.success(
@@ -405,4 +513,181 @@ async def update_heartbeat(
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update heartbeat: {str(e)}",
+        )
+
+
+@router.get("/gateway/available-agents", status_code=http_status.HTTP_200_OK)
+async def get_gateway_available_agents(
+    user: Optional[User] = Depends(get_current_user),
+) -> JSONResponse:
+    """
+    查詢 Cloudflare Gateway 上已配置但尚未在 AI-Box 註冊的 Agent
+
+    從環境變數 MCP_GATEWAY_ROUTES 讀取 Gateway 路由配置，對比已註冊的 Agent，
+    返回未註冊的 Agent 列表。
+
+    Args:
+        user: 當前認證用戶（可選）
+
+    Returns:
+        可用 Agent 列表，包含：
+        - pattern: 工具名稱模式（如 warehouse_*）
+        - target: 目標端點 URL
+        - agent_name: 推斷的 Agent 名稱
+        - is_registered: 是否已在 AI-Box 註冊
+    """
+    try:
+        # 1. 從環境變數讀取 Gateway 路由配置
+        mcp_routes_str = os.getenv("MCP_GATEWAY_ROUTES", "[]")
+
+        try:
+            mcp_routes = json.loads(mcp_routes_str)
+        except json.JSONDecodeError as e:
+            raise HTTPException(
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Invalid MCP_GATEWAY_ROUTES format: {str(e)}",
+            )
+
+        if not isinstance(mcp_routes, list):
+            raise HTTPException(
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="MCP_GATEWAY_ROUTES must be a JSON array",
+            )
+
+        # 2. 獲取已註冊的 Agent 列表
+        registry = get_agent_registry()
+        registered_agents = registry.get_all_agents()
+
+        # 3. 構建已註冊 Agent 的工具前綴集合（用於比對）
+        registered_patterns = set()
+        for agent in registered_agents:
+            # 檢查 Agent 是否使用 MCP 協議
+            if (
+                agent.endpoints
+                and agent.endpoints.protocol
+                and agent.endpoints.protocol.value == "mcp"
+            ):
+                # 從 capabilities 中提取工具前綴
+                # 假設 capabilities 包含工具名稱，提取前綴（如 warehouse_execute_task -> warehouse_*）
+                if agent.capabilities:
+                    for capability in agent.capabilities:
+                        # 提取前綴（去除 * 後的部分）
+                        if "*" in capability:
+                            prefix = capability.split("*")[0]
+                            if prefix:
+                                registered_patterns.add(prefix.rstrip("_") + "_*")
+                        elif capability:
+                            # 如果沒有 *，嘗試從工具名稱推斷前綴
+                            parts = capability.split("_")
+                            if len(parts) > 1:
+                                prefix = parts[0] + "_*"
+                                registered_patterns.add(prefix)
+
+        # 4. 對比並構建可用 Agent 列表
+        available_agents = []
+        for route in mcp_routes:
+            if not isinstance(route, dict):
+                continue
+
+            pattern = route.get("pattern", "")
+            target = route.get("target", "")
+
+            if not pattern or not target:
+                continue
+
+            # 推斷 Agent 名稱（從 pattern 中提取，如 warehouse_* -> Warehouse Agent）
+            agent_name = pattern.replace("_*", "").replace("_", " ").title() + " Agent"
+            if pattern.startswith("warehouse_"):
+                agent_name = "庫管員 Agent"
+            elif pattern.startswith("finance_"):
+                agent_name = "財務 Agent"
+            elif pattern.startswith("office_"):
+                agent_name = "Office Agent"
+
+            # 檢查是否已註冊（通過 pattern 比對）
+            is_registered = pattern in registered_patterns
+
+            # 如果未註冊，添加到可用列表
+            if not is_registered:
+                available_agents.append(
+                    {
+                        "pattern": pattern,
+                        "target": target,
+                        "agent_name": agent_name,
+                        "is_registered": False,
+                        "suggested_agent_id": pattern.replace("_*", "").replace("_", "-"),
+                        "suggested_capabilities": [pattern.replace("*", "execute_task")],
+                    }
+                )
+
+        return APIResponse.success(
+            data={
+                "available_agents": available_agents,
+                "total": len(available_agents),
+                "gateway_endpoint": os.getenv("MCP_GATEWAY_ENDPOINT", "https://mcp.k84.org"),
+            },
+            message=f"Found {len(available_agents)} available agents in Gateway",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to query gateway available agents: {str(e)}",
+        )
+
+
+@router.get("/agents", status_code=http_status.HTTP_200_OK)
+async def list_all_agents(
+    status: Optional[AgentStatus] = Query(None, description="Agent 狀態過濾器"),
+    user: Optional[User] = Depends(get_current_user),
+) -> JSONResponse:
+    """
+    獲取所有 Agent 列表（包括所有狀態）
+
+    用於管理員查看和批准 Agent。可以通過 status 參數過濾特定狀態的 Agent。
+
+    Args:
+        status: Agent 狀態過濾器（可選，如不提供則返回所有狀態）
+        user: 當前認證用戶（可選）
+
+    Returns:
+        Agent 列表
+    """
+    try:
+        registry = get_agent_registry()
+        all_agents = registry.get_all_agents()
+
+        # 如果指定了狀態過濾器，進行過濾
+        if status:
+            filtered_agents = [agent for agent in all_agents if agent.status == status]
+        else:
+            filtered_agents = all_agents
+
+        # 構建響應數據
+        agents_data = []
+        for agent in filtered_agents:
+            agent_dict = agent.model_dump(mode="json")
+            agent_dict["is_internal"] = agent.endpoints.is_internal
+            agent_dict["protocol"] = (
+                agent.endpoints.protocol.value if agent.endpoints.protocol else None
+            )
+            agents_data.append(agent_dict)
+
+        return APIResponse.success(
+            data={
+                "agents": agents_data,
+                "total": len(agents_data),
+                "filtered_by_status": status.value if status else None,
+            },
+            message=f"Retrieved {len(agents_data)} agents",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list agents: {str(e)}",
         )

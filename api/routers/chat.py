@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import time
 import uuid
@@ -1003,6 +1004,8 @@ async def _process_chat_request(
         # 修改時間：2026-01-06 - 將 allowed_tools 傳遞給 Task Analyzer，讓 Capability Matcher 優先考慮啟用的工具
         # 注意：allowed_tools 需要從 request_body 中獲取
         allowed_tools_for_analyzer = request_body.allowed_tools or []
+        # 修改時間：2026-01-27 - 如果用戶明確選擇了 agent_id，優先使用用戶選擇的 Agent
+        user_selected_agent_id = request_body.agent_id
         analysis_result = await task_analyzer.analyze(
             TaskAnalysisRequest(
                 task=last_user_text,
@@ -1012,9 +1015,11 @@ async def _process_chat_request(
                     "task_id": task_id,
                     "request_id": request_id,
                     "allowed_tools": allowed_tools_for_analyzer,  # ✅ 傳遞 allowed_tools
+                    "agent_id": user_selected_agent_id,  # ✅ 傳遞用戶選擇的 agent_id
                 },
                 user_id=current_user.user_id,
                 session_id=session_id,
+                specified_agent_id=user_selected_agent_id,  # ✅ 設置 specified_agent_id，讓 Task Analyzer 優先使用用戶選擇的 Agent
             )
         )
         task_analyzer_result = analysis_result
@@ -1032,6 +1037,10 @@ async def _process_chat_request(
         log_lines.append(f"[task_analyzer] Task ID: {task_id}")
         log_lines.append(f"[task_analyzer] Session ID: {session_id}")
         log_lines.append(f"[task_analyzer] Allowed Tools: {allowed_tools_for_analyzer}")
+        # 修改時間：2026-01-27 - 記錄用戶選擇的 agent_id
+        if user_selected_agent_id:
+            log_lines.append(f"[task_analyzer] 用戶選擇的 Agent ID: {user_selected_agent_id}")
+            log_lines.append("[task_analyzer] ⚠️  用戶明確選擇了 Agent，將優先使用用戶選擇的 Agent")
 
         if task_analyzer_result:
             # Router Decision 信息
@@ -1229,8 +1238,158 @@ async def _process_chat_request(
         )
     )
 
+    # 修改時間：2026-01-27 - 如果選擇了 Agent，先調用 Agent 的工具獲取結果
+    agent_tool_results = []
+    if task_analyzer_result and task_analyzer_result.decision_result:
+        chosen_agent_id = task_analyzer_result.decision_result.chosen_agent
+        if chosen_agent_id:
+            try:
+                from agents.services.registry.registry import get_agent_registry
+                from mcp.client.client import MCPClient
+
+                registry = get_agent_registry()
+                agent_info = registry.get_agent_info(chosen_agent_id)
+
+                if agent_info and agent_info.status.value == "online":
+                    logger.info(
+                        "agent_selected_for_execution",
+                        request_id=request_id,
+                        agent_id=chosen_agent_id,
+                        agent_name=agent_info.name,
+                        capabilities=agent_info.capabilities,
+                    )
+
+                    # 如果 Agent 使用 MCP 協議，調用 Agent 的工具
+                    if agent_info.endpoints and agent_info.endpoints.mcp:
+                        mcp_endpoint = agent_info.endpoints.mcp
+                        logger.info(
+                            "calling_agent_mcp_tools",
+                            request_id=request_id,
+                            agent_id=chosen_agent_id,
+                            mcp_endpoint=mcp_endpoint,
+                            user_query=last_user_text[:200],
+                        )
+
+                        # 根據用戶查詢選擇合適的工具
+                        # 例如：如果查詢包含「料號」，使用 warehouse_query_part
+                        # 如果查詢包含「列出」，使用 warehouse_execute_task
+                        tool_name = None
+
+                        # 優先匹配：根據查詢內容選擇最合適的工具
+                        query_lower = last_user_text.lower()
+                        if "料號" in last_user_text or "料" in last_user_text or "part" in query_lower:
+                            # 查找 warehouse_query_part 或類似的查詢工具
+                            for cap in agent_info.capabilities:
+                                cap_lower = cap.lower()
+                                if "query_part" in cap_lower or (
+                                    "query" in cap_lower and "part" in cap_lower
+                                ):
+                                    tool_name = cap
+                                    break
+                            # 如果沒找到，嘗試其他查詢工具
+                            if not tool_name:
+                                for cap in agent_info.capabilities:
+                                    if "query" in cap.lower():
+                                        tool_name = cap
+                                        break
+                        elif (
+                            "列出" in last_user_text or "前" in last_user_text or "list" in query_lower
+                        ):
+                            # 查找 warehouse_execute_task 或類似的執行工具
+                            for cap in agent_info.capabilities:
+                                cap_lower = cap.lower()
+                                if "execute" in cap_lower or "task" in cap_lower:
+                                    tool_name = cap
+                                    break
+
+                        # 如果沒有找到特定工具，使用第一個可用的工具
+                        if not tool_name and agent_info.capabilities:
+                            tool_name = agent_info.capabilities[0]
+                            logger.info(
+                                "using_first_available_agent_tool",
+                                request_id=request_id,
+                                agent_id=chosen_agent_id,
+                                tool_name=tool_name,
+                                all_capabilities=agent_info.capabilities,
+                            )
+
+                        if tool_name:
+                            try:
+                                # 通過 MCP Gateway 調用工具
+                                gateway_endpoint = os.getenv(
+                                    "MCP_GATEWAY_ENDPOINT", "https://mcp.k84.org"
+                                )
+                                mcp_client = MCPClient(endpoint=gateway_endpoint, timeout=30.0)
+                                await mcp_client.initialize()
+
+                                # 構建工具參數（根據用戶查詢）
+                                tool_arguments = {
+                                    "query": last_user_text,
+                                    "task": last_user_text,
+                                }
+
+                                # 調用工具
+                                tool_result = await mcp_client.call_tool(
+                                    name=tool_name,
+                                    arguments=tool_arguments,
+                                )
+
+                                await mcp_client.close()
+
+                                # 將工具結果添加到消息中
+                                if tool_result:
+                                    # 將工具結果格式化為消息，注入到 LLM 上下文
+                                    tool_result_text = str(
+                                        tool_result.get("text", tool_result)
+                                        if isinstance(tool_result, dict)
+                                        else tool_result
+                                    )
+                                    agent_result_message = {
+                                        "role": "system",
+                                        "content": f"Agent '{agent_info.name}' 執行工具 '{tool_name}' 的結果：\n{tool_result_text}",
+                                    }
+                                    # 將 Agent 工具結果消息添加到列表中，稍後插入到 messages_for_llm
+                                    agent_tool_results.append(
+                                        {
+                                            "tool_name": tool_name,
+                                            "result": tool_result,
+                                            "message": agent_result_message,
+                                        }
+                                    )
+
+                                    logger.info(
+                                        "agent_tool_executed",
+                                        request_id=request_id,
+                                        agent_id=chosen_agent_id,
+                                        tool_name=tool_name,
+                                        result_length=len(tool_result_text),
+                                    )
+                            except Exception as agent_error:
+                                logger.error(
+                                    "agent_tool_execution_failed",
+                                    request_id=request_id,
+                                    agent_id=chosen_agent_id,
+                                    tool_name=tool_name,
+                                    error=str(agent_error),
+                                    exc_info=True,
+                                )
+                                # Agent 工具執行失敗不影響主流程，繼續執行
+            except Exception as agent_registry_error:
+                logger.warning(
+                    "agent_registry_lookup_failed",
+                    request_id=request_id,
+                    error=str(agent_registry_error),
+                    exc_info=True,
+                )
+                # Agent 查找失敗不影響主流程，繼續執行
+
     base_system = system_messages[:1] if system_messages else []
     messages_for_llm = base_system + memory_result.injection_messages + windowed_history
+
+    # 將 Agent 工具結果消息插入到 messages_for_llm 開頭（優先級最高）
+    for tool_result_item in agent_tool_results:
+        if "message" in tool_result_item:
+            messages_for_llm.insert(0, tool_result_item["message"])
 
     # 呼叫 MoE
     llm_call_start = time.perf_counter()
@@ -2218,6 +2377,150 @@ async def chat_product_stream(
                 )
 
             base_system = system_messages[:1] if system_messages else []
+
+            # 修改時間：2026-01-27 - 如果選擇了 Agent，先調用 Agent 的工具獲取結果（流式版本）
+            if task_analyzer_result and task_analyzer_result.decision_result:
+                chosen_agent_id = task_analyzer_result.decision_result.chosen_agent
+                if chosen_agent_id:
+                    try:
+                        from agents.services.registry.registry import get_agent_registry
+                        from mcp.client.client import MCPClient
+
+                        registry = get_agent_registry()
+                        agent_info = registry.get_agent_info(chosen_agent_id)
+
+                        if agent_info and agent_info.status.value == "online":
+                            logger.info(
+                                "agent_selected_for_execution_stream",
+                                request_id=request_id,
+                                agent_id=chosen_agent_id,
+                                agent_name=agent_info.name,
+                                capabilities=agent_info.capabilities,
+                            )
+
+                            # 如果 Agent 使用 MCP 協議，調用 Agent 的工具
+                            if agent_info.endpoints and agent_info.endpoints.mcp:
+                                mcp_endpoint = agent_info.endpoints.mcp
+                                logger.info(
+                                    "calling_agent_mcp_tools_stream",
+                                    request_id=request_id,
+                                    agent_id=chosen_agent_id,
+                                    mcp_endpoint=mcp_endpoint,
+                                    user_query=last_user_text[:200],
+                                )
+
+                                # 根據用戶查詢選擇合適的工具
+                                tool_name = None
+
+                                # 優先匹配：根據查詢內容選擇最合適的工具
+                                query_lower = last_user_text.lower()
+                                if (
+                                    "料號" in last_user_text
+                                    or "料" in last_user_text
+                                    or "part" in query_lower
+                                ):
+                                    # 查找 warehouse_query_part 或類似的查詢工具
+                                    for cap in agent_info.capabilities:
+                                        cap_lower = cap.lower()
+                                        if "query_part" in cap_lower or (
+                                            "query" in cap_lower and "part" in cap_lower
+                                        ):
+                                            tool_name = cap
+                                            break
+                                    # 如果沒找到，嘗試其他查詢工具
+                                    if not tool_name:
+                                        for cap in agent_info.capabilities:
+                                            if "query" in cap.lower():
+                                                tool_name = cap
+                                                break
+                                elif (
+                                    "列出" in last_user_text
+                                    or "前" in last_user_text
+                                    or "list" in query_lower
+                                ):
+                                    # 查找 warehouse_execute_task 或類似的執行工具
+                                    for cap in agent_info.capabilities:
+                                        cap_lower = cap.lower()
+                                        if "execute" in cap_lower or "task" in cap_lower:
+                                            tool_name = cap
+                                            break
+
+                                # 如果沒有找到特定工具，使用第一個可用的工具
+                                if not tool_name and agent_info.capabilities:
+                                    tool_name = agent_info.capabilities[0]
+                                    logger.info(
+                                        "using_first_available_agent_tool_stream",
+                                        request_id=request_id,
+                                        agent_id=chosen_agent_id,
+                                        tool_name=tool_name,
+                                        all_capabilities=agent_info.capabilities,
+                                    )
+
+                                if tool_name:
+                                    try:
+                                        # 通過 MCP Gateway 調用工具
+                                        gateway_endpoint = os.getenv(
+                                            "MCP_GATEWAY_ENDPOINT", "https://mcp.k84.org"
+                                        )
+                                        mcp_client = MCPClient(
+                                            endpoint=gateway_endpoint, timeout=30.0
+                                        )
+                                        await mcp_client.initialize()
+
+                                        # 構建工具參數（根據用戶查詢）
+                                        tool_arguments = {
+                                            "query": last_user_text,
+                                            "task": last_user_text,
+                                        }
+
+                                        # 調用工具
+                                        tool_result = await mcp_client.call_tool(
+                                            name=tool_name,
+                                            arguments=tool_arguments,
+                                        )
+
+                                        await mcp_client.close()
+
+                                        # 將工具結果格式化為消息，注入到 LLM 上下文
+                                        if tool_result:
+                                            tool_result_text = str(
+                                                tool_result.get("text", tool_result)
+                                                if isinstance(tool_result, dict)
+                                                else tool_result
+                                            )
+                                            agent_result_message = {
+                                                "role": "system",
+                                                "content": f"Agent '{agent_info.name}' 執行工具 '{tool_name}' 的結果：\n{tool_result_text}",
+                                            }
+                                            base_system.insert(
+                                                0, agent_result_message
+                                            )  # 插入到開頭，優先級最高
+
+                                            logger.info(
+                                                "agent_tool_executed_stream",
+                                                request_id=request_id,
+                                                agent_id=chosen_agent_id,
+                                                tool_name=tool_name,
+                                                result_length=len(tool_result_text),
+                                            )
+                                    except Exception as agent_error:
+                                        logger.error(
+                                            "agent_tool_execution_failed_stream",
+                                            request_id=request_id,
+                                            agent_id=chosen_agent_id,
+                                            tool_name=tool_name,
+                                            error=str(agent_error),
+                                            exc_info=True,
+                                        )
+                                        # Agent 工具執行失敗不影響主流程，繼續執行
+                    except Exception as agent_registry_error:
+                        logger.warning(
+                            "agent_registry_lookup_failed_stream",
+                            request_id=request_id,
+                            error=str(agent_registry_error),
+                            exc_info=True,
+                        )
+                        # Agent 查找失敗不影響主流程，繼續執行
 
             # 修改時間：2026-01-06 - 如果 Task Analyzer 選擇了 document_editing 工具，增強 System Prompt 指示 AI 生成文檔內容
             # 注意：這裡不依賴關鍵詞匹配，而是依賴 Task Analyzer 的語義分析結果

@@ -116,7 +116,8 @@ export class MCPGateway {
       }
 
       // 6. 路由到目标 MCP Server
-      const targetEndpoint = await this.router.route(mcpRequest);
+      // 使用从请求头提取的 toolName（如果 tools/list 请求，可能没有 params.name）
+      const targetEndpoint = await this.router.route(mcpRequest, toolName);
       if (!targetEndpoint) {
         return this.errorResponse(mcpRequest.id, -32601, 'Method not found: No route for tool');
       }

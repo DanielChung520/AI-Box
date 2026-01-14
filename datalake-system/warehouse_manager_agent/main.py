@@ -29,6 +29,7 @@ env_path = ai_box_root / ".env"
 load_dotenv(dotenv_path=env_path)
 
 from warehouse_manager_agent.agent import WarehouseManagerAgent
+from warehouse_manager_agent.mcp_server import mcp_server
 
 from agents.services.protocol.base import AgentServiceRequest
 
@@ -48,6 +49,50 @@ app = FastAPI(
     description="庫管員Agent服務 - 庫存管理業務Agent",
     version="1.0.0",
 )
+
+
+# 集成 MCP Server 到 FastAPI 應用
+# 直接使用 MCP Server 的 FastAPI 應用實例
+from fastapi import Request
+
+from mcp.server.protocol.models import MCPError, MCPErrorResponse, MCPRequest
+
+
+@app.post("/mcp")
+async def handle_mcp_request(request: Request):
+    """處理 MCP 請求（/mcp 端點）"""
+    return await _handle_mcp_request_internal(request)
+
+
+@app.post("/")
+async def handle_mcp_root(request: Request):
+    """處理 MCP 請求（根路徑，用於 Cloudflare Tunnel）"""
+    return await _handle_mcp_request_internal(request)
+
+
+async def _handle_mcp_request_internal(request: Request):
+    """處理 MCP 請求"""
+    body = None
+
+    try:
+        body = await request.json()
+        mcp_request = MCPRequest(**body)
+        response = await mcp_server._handle_request(mcp_request)
+        return JSONResponse(content=response.model_dump(exclude_none=True))
+    except Exception as e:
+        logger.error(f"Error handling MCP request: {e}", exc_info=True)
+        error_response = MCPErrorResponse(
+            id=body.get("id") if body else None,
+            error=MCPError(
+                code=-32603,
+                message="Internal error",
+                data={"error": str(e)},
+            ),
+        )
+        return JSONResponse(
+            content=error_response.model_dump(exclude_none=True),
+            status_code=500,
+        )
 
 
 @app.get("/health")

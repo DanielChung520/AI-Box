@@ -297,8 +297,15 @@ export async function apiPut<T = any>(endpoint: string, data?: any): Promise<T> 
 /**
  * DELETE 請求
  */
-export async function apiDelete<T = any>(endpoint: string): Promise<T> {
-  return apiRequest<T>(endpoint, { method: 'DELETE' });
+export async function apiDelete<T = any>(endpoint: string, data?: any): Promise<T> {
+  const options: RequestInit = { method: 'DELETE' };
+  if (data) {
+    options.body = JSON.stringify(data);
+    options.headers = {
+      'Content-Type': 'application/json',
+    };
+  }
+  return apiRequest<T>(endpoint, options);
 }
 
 /**
@@ -367,6 +374,7 @@ export interface AgentRegistrationRequest {
     description?: string | null;
     tags?: string[];
     capabilities?: Record<string, any>;
+    icon?: string | null;
   };
   permissions?: {
     read?: boolean;
@@ -384,6 +392,7 @@ export interface AgentRegistrationRequest {
     ip_whitelist?: string[];
     server_fingerprint?: string;
   };
+  category_id?: string; // 分類 ID（用於創建 Display Config）
 }
 
 /**
@@ -497,6 +506,45 @@ export async function verifySecret(
   } catch (error: any) {
     const errorMessage =
       error?.message || 'Secret verification failed';
+    throw new Error(errorMessage);
+  }
+}
+
+/**
+ * Gateway 可用 Agent 響應類型
+ */
+export interface GatewayAvailableAgent {
+  pattern: string;
+  target: string;
+  agent_name: string;
+  is_registered: boolean;
+  suggested_agent_id: string;
+  suggested_capabilities: string[];
+}
+
+export interface GatewayAvailableAgentsResponse {
+  success: boolean;
+  data?: {
+    available_agents: GatewayAvailableAgent[];
+    total: number;
+    gateway_endpoint: string;
+  };
+  message?: string;
+  error?: string;
+}
+
+/**
+ * 查詢 Cloudflare Gateway 上已配置但尚未在 AI-Box 註冊的 Agent
+ */
+export async function getGatewayAvailableAgents(): Promise<GatewayAvailableAgentsResponse> {
+  try {
+    const response = await apiGet<GatewayAvailableAgentsResponse>(
+      '/gateway/available-agents'
+    );
+    return response;
+  } catch (error: any) {
+    const errorMessage =
+      error?.message || 'Failed to query gateway available agents';
     throw new Error(errorMessage);
   }
 }
@@ -919,7 +967,14 @@ export async function getFileTree(params?: {
     // 修改時間：2026-01-06 - 如果任務不存在（403），返回空文件樹，避免顯示錯誤
     if (error?.status === 403 || error?.message?.includes('403') || error?.message?.includes('不存在') || error?.message?.includes('不屬於')) {
       console.debug('[getFileTree] Task not found or access denied, returning empty tree', { task_id: params?.task_id });
-      return { success: true, data: {} };
+      return {
+        success: true,
+        data: {
+          tree: {},
+          total_tasks: 0,
+          total_files: 0,
+        }
+      };
     }
     // 其他錯誤繼續拋出
     throw error;
@@ -2153,8 +2208,6 @@ export interface UserTask {
     type: 'folder' | 'file';
     children?: Array<any>;
   }>;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface ListUserTasksResponse {
@@ -2340,6 +2393,7 @@ export interface ChatProductRequest {
   attachments?: ChatAttachment[];
   allowed_tools?: string[]; // 允许使用的工具列表，例如 ['web_search']
   assistant_id?: string; // 当前选中的助理 ID
+  agent_id?: string; // 修改時間：2026-01-27 - 當前選中的代理 ID
 }
 
 export interface ChatProductResult {
@@ -2650,4 +2704,117 @@ export async function submitEditingCommand(
   request: SubmitEditingCommandRequest
 ): Promise<SubmitEditingCommandResponse> {
   return apiPost<SubmitEditingCommandResponse>('/editing/command', request);
+}
+
+/**
+ * Agent Display Config API
+ * 修改時間：2026-01-13 - 添加代理展示配置 API
+ */
+
+import type { AgentDisplayConfigResponse } from '../types/agentDisplayConfig';
+
+/**
+ * API 響應格式
+ */
+interface APIResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
+/**
+ * 獲取代理展示配置
+ */
+export async function getAgentDisplayConfig(
+  tenantId?: string,
+  includeInactive: boolean = false
+): Promise<AgentDisplayConfigResponse> {
+  const params = new URLSearchParams();
+  if (tenantId) params.append('tenant_id', tenantId);
+  if (includeInactive) params.append('include_inactive', 'true');
+
+  const queryString = params.toString();
+  const endpoint = queryString ? `/agent-display-configs?${queryString}` : '/agent-display-configs';
+
+  const response = await apiGet<APIResponse<AgentDisplayConfigResponse>>(endpoint);
+
+  // 從 API 響應中提取 data 字段
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+
+  // 如果響應格式不符合預期，嘗試直接返回（向後兼容）
+  if (response && (response as any).categories) {
+    return response as unknown as AgentDisplayConfigResponse;
+  }
+
+  // 如果都沒有，返回空結構
+  return { categories: [] };
+}
+
+/**
+ * 獲取單個代理配置
+ */
+export async function getAgentConfig(
+  agentId: string,
+  tenantId?: string
+): Promise<any> {
+  const params = new URLSearchParams();
+  if (tenantId) params.append('tenant_id', tenantId);
+
+  const queryString = params.toString();
+  const endpoint = `/agent-display-configs/agents/${agentId}${queryString ? `?${queryString}` : ''}`;
+
+  const response = await apiGet<APIResponse<any>>(endpoint);
+
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+
+  throw new Error(response?.message || 'Failed to get agent config');
+}
+
+/**
+ * 更新代理配置
+ */
+export async function updateAgentConfig(
+  agentId: string,
+  agentConfig: any,
+  tenantId?: string
+): Promise<any> {
+  const params = new URLSearchParams();
+  if (tenantId) params.append('tenant_id', tenantId);
+
+  const queryString = params.toString();
+  const endpoint = `/agent-display-configs/agents/${agentId}${queryString ? `?${queryString}` : ''}`;
+
+  const response = await apiPut<APIResponse<any>>(endpoint, agentConfig);
+
+  if (response && response.success) {
+    return response.data;
+  }
+
+  throw new Error(response?.message || 'Failed to update agent config');
+}
+
+/**
+ * 刪除代理配置
+ */
+export async function deleteAgentConfig(
+  agentId: string,
+  tenantId?: string
+): Promise<any> {
+  const params = new URLSearchParams();
+  if (tenantId) params.append('tenant_id', tenantId);
+
+  const queryString = params.toString();
+  const endpoint = `/agent-display-configs/agents/${agentId}${queryString ? `?${queryString}` : ''}`;
+
+  const response = await apiDelete<APIResponse<any>>(endpoint);
+
+  if (response && response.success) {
+    return response.data;
+  }
+
+  throw new Error(response?.message || 'Failed to delete agent config');
 }

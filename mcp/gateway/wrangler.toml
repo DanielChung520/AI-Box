@@ -37,7 +37,20 @@ DEFAULT_RATE_LIMIT = "100"
 #   }
 # ]
 # '''
-MCP_ROUTES = "[]"
+# MCP 路由配置
+# Yahoo Finance MCP Server 和庫管員 Agent 路由配置
+MCP_ROUTES = '''
+[
+  {
+    "pattern": "yahoo_finance_*",
+    "target": "https://smithery.ai/server/@tsmdev-ux/yahoo-finance-mcp"
+  },
+  {
+    "pattern": "warehouse_*",
+    "target": "https://182740a0a99a.ngrok-free.app"
+  }
+]
+'''
 
 # KV 存储（用于认证配置）
 [[kv_namespaces]]

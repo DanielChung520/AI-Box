@@ -7,6 +7,7 @@
 
 from . import (
     agent_catalog,
+    agent_display_config,
     agent_files,
     agent_registry,
     agents,
@@ -68,6 +69,7 @@ __all__ = [
     "workflows",
     "agent_registry",
     "agent_catalog",
+    "agent_display_config",
     "agent_files",
     "reports",
     "tools_registry",

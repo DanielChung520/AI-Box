@@ -43,6 +43,8 @@ from typing import Optional
 
 from api.routers import (
     agent_catalog,
+    agent_category,
+    agent_display_config,
     agent_files,
     agent_registry,
     agents,
@@ -333,6 +335,8 @@ async def get_version():
 app.include_router(agents.router, prefix=API_PREFIX, tags=["Agents"])
 app.include_router(agent_registry.router, prefix=API_PREFIX, tags=["Agent Registry"])
 app.include_router(agent_catalog.router, prefix=API_PREFIX, tags=["Agent Catalog"])
+app.include_router(agent_category.router, prefix=API_PREFIX, tags=["Agent Categories"])
+app.include_router(agent_display_config.router, prefix=API_PREFIX, tags=["Agent Display Config"])
 app.include_router(agent_auth.router, prefix=API_PREFIX, tags=["Agent Authentication"])
 app.include_router(agent_secret.router, prefix=API_PREFIX, tags=["Agent Secret"])
 app.include_router(task_analyzer.router, prefix=API_PREFIX, tags=["Task Analyzer"])
@@ -526,6 +530,18 @@ async def startup_event():
         logger.info(f"系統配置初始化完成: {initialized_count} 個已初始化，{skipped_count} 個已存在（跳過）")
     except Exception as e:
         logger.warning(f"系統配置初始化失敗（不影響啟動）: {e}")
+
+    # 初始化 MCP 第三方服務配置（從 .env 加載到 ArangoDB）
+    try:
+        from services.api.services.config_initializer import initialize_mcp_external_services_config
+
+        mcp_config_initialized = initialize_mcp_external_services_config(force=False)
+        if mcp_config_initialized:
+            logger.info("MCP 第三方服務配置已初始化（從 .env 文件）")
+        else:
+            logger.debug("MCP 第三方服務配置已存在，跳過初始化")
+    except Exception as e:
+        logger.warning(f"MCP 第三方服務配置初始化失敗（不影響啟動）: {e}")
 
     # 初始化時間服務（單例模式，無需後台任務）
     try:

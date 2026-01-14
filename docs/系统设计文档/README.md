@@ -221,7 +221,7 @@ graph TB
 - **文件编辑与diff**：支持AI驱动的精准文件编辑
 - **文件同步工程**：规划与Notion等知识库集成
 
-**详细文档**：[IEE前端系统.md](./核心组件/IEE前端系统.md)
+**详细文档**：[IEE前端系统.md](./IEE前端系統/IEE前端系统.md)
 
 ### 8. 生成式AI链式处理系统
 
@@ -327,7 +327,7 @@ graph TB
 - [Ontology选择策略](./核心组件/文件上傳向量圖譜/Ontology选择策略-优先级降级fallback实现说明.md) - Ontology选择策略实现说明
 - [文件上传向量图谱化测试计划](./核心组件/文件上傳向量圖譜/文件上傳向量圖譜化測試計劃.md) - 测试计划和验证方法
 - [MoE系统](./核心组件/MoE系统.md) - Multi-model专家模型架构
-- [IEE前端系统](./核心组件/IEE前端系统.md) - Intelligent Editor Environment
+- [IEE前端系统](./IEE前端系統/IEE前端系统.md) - Intelligent Editor Environment
 - [生成式AI链式处理系统](./核心组件/生成式AI链式处理系统.md) - System prompt与文件处理流程
 - [存储架构](./資料架构建议报告.md) - SeaweedFS 统一对象存储与治理数据存储
 - [存储架构详细说明](./核心组件/存储架构.md) - SeaweedFS 双服务部署架构详细说明

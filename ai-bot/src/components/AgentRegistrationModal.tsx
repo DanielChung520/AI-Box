@@ -3,13 +3,19 @@
  * 功能：提供代理服務註冊界面，支持內部和外部的 Agent 註冊
  * 創建日期：2025-01-27
  * 創建人：Daniel Chung
- * 最後修改日期：2025-01-27
+ * 最後修改日期：2026-01-14 14:30 UTC+8
  */
 
 import { useState, useMemo } from 'react';
 import { useLanguage } from '../contexts/languageContext';
 import { cn } from '../lib/utils';
-import { registerAgent, verifySecret } from '../lib/api';
+import {
+  registerAgent,
+  verifySecret,
+  getGatewayAvailableAgents,
+  GatewayAvailableAgent,
+  generateSecret,
+} from '../lib/api';
 import IconPicker from './IconPicker';
 import IconRenderer from './IconRenderer';
 
@@ -17,6 +23,8 @@ interface AgentRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  categoryName?: string; // 當前分類名稱（如「人力資源」、「物流」等）
+  categoryId?: string; // 當前分類 ID（如 'human-resource'、'logistics' 等）
 }
 
 type AgentType = 'planning' | 'execution' | 'review' | '';
@@ -27,6 +35,8 @@ export default function AgentRegistrationModal({
   isOpen,
   onClose,
   onSuccess,
+  categoryName,
+  categoryId,
 }: AgentRegistrationModalProps) {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'basic' | 'endpoints' | 'permissions'>('basic');
@@ -63,7 +73,7 @@ export default function AgentRegistrationModal({
   const [isInternal, setIsInternal] = useState(true);
   const [protocol, setProtocol] = useState<ProtocolType>('http');
   const [httpEndpoint, setHttpEndpoint] = useState('');
-  const [mcpEndpoint, setMcpEndpoint] = useState('');
+  const [mcpEndpoint, setMcpEndpoint] = useState('https://mcp.k84.org'); // 默認使用系統 Gateway 端點
 
   // Secret 驗證（外部 Agent 需要）
   const [secretId, setSecretId] = useState('');
@@ -71,6 +81,7 @@ export default function AgentRegistrationModal({
   const [secretVerified, setSecretVerified] = useState(false);
   const [isVerifyingSecret, setIsVerifyingSecret] = useState(false);
   const [secretVerificationError, setSecretVerificationError] = useState<string | null>(null);
+  const [isGeneratingSecret, setIsGeneratingSecret] = useState(false);
 
   // 權限配置（僅外部 Agent 需要）
   const [authType, setAuthType] = useState<AuthType>('none');
@@ -81,6 +92,13 @@ export default function AgentRegistrationModal({
   const [allowedMemoryNamespaces, setAllowedMemoryNamespaces] = useState<string>('');
   const [allowedTools, setAllowedTools] = useState<string>('');
   const [allowedLlmProviders, setAllowedLlmProviders] = useState<string>('');
+
+  // Gateway 可用 Agent 查詢
+  const [availableAgents, setAvailableAgents] = useState<GatewayAvailableAgent[]>([]);
+  const [selectedAvailableAgentIndex, setSelectedAvailableAgentIndex] = useState<number | null>(null);
+  const [isQueryingAgents, setIsQueryingAgents] = useState(false);
+  const [queryError, setQueryError] = useState<string | null>(null);
+  const [gatewayEndpoint, setGatewayEndpoint] = useState<string>('https://mcp.k84.org');
 
   const handleClose = () => {
     if (!isSubmitting) {
@@ -93,6 +111,9 @@ export default function AgentRegistrationModal({
       setSelectedIcon('FaRobot');
       setIsInternal(true);
       setProtocol('http');
+      setAvailableAgents([]);
+      setSelectedAvailableAgentIndex(null);
+      setQueryError(null);
       setHttpEndpoint('');
       setMcpEndpoint('');
       setAuthType('none');
@@ -109,6 +130,8 @@ export default function AgentRegistrationModal({
       setSecretVerificationError(null);
       setError(null);
       setActiveTab('basic');
+      setAvailableAgents([]);
+      setQueryError(null);
       onClose();
     }
   };
@@ -164,6 +187,50 @@ export default function AgentRegistrationModal({
       setSecretVerificationError(err.message || t('agentRegistration.errors.secretVerificationFailed', 'Secret 驗證失敗，請稍後再試'));
     } finally {
       setIsVerifyingSecret(false);
+    }
+  };
+
+  const handleQueryGatewayAgents = async () => {
+    setIsQueryingAgents(true);
+    setQueryError(null);
+    setAvailableAgents([]);
+
+    try {
+      const response = await getGatewayAvailableAgents();
+
+      if (response.success && response.data) {
+        setAvailableAgents(response.data.available_agents || []);
+        if (response.data.gateway_endpoint) {
+          setGatewayEndpoint(response.data.gateway_endpoint);
+        }
+      } else {
+        setQueryError(response.error || t('agentRegistration.errors.queryFailed', '查詢 Gateway Agent 失敗'));
+      }
+    } catch (err: any) {
+      setQueryError(err.message || t('agentRegistration.errors.queryFailed', '查詢 Gateway Agent 失敗'));
+    } finally {
+      setIsQueryingAgents(false);
+    }
+  };
+
+  const handleSelectAvailableAgent = (index: number) => {
+    // 設置選中的 Agent 索引
+    setSelectedAvailableAgentIndex(index);
+  };
+
+  const handleUseSelectedAgent = () => {
+    // 使用選中的 Agent 自動填充表單字段
+    if (selectedAvailableAgentIndex !== null && availableAgents[selectedAvailableAgentIndex]) {
+      const agent = availableAgents[selectedAvailableAgentIndex];
+      setAgentName(agent.agent_name);
+      setMcpEndpoint(gatewayEndpoint);
+      setCapabilities(agent.suggested_capabilities || []);
+      // 可以根據 pattern 推斷 Agent 類型
+      if (agent.pattern.includes('warehouse')) {
+        setAgentType('execution');
+      }
+      // 清空選擇狀態
+      setSelectedAvailableAgentIndex(null);
     }
   };
 
@@ -278,7 +345,13 @@ export default function AgentRegistrationModal({
 
       requestData.permissions = permissions;
 
+      // 添加 category_id（如果提供）
+      if (categoryId) {
+        requestData.category_id = categoryId;
+      }
+
       // 調用 API
+      console.log('[提交Agent註冊]', requestData);
       await registerAgent(requestData);
 
       // 成功後回調
@@ -313,6 +386,7 @@ export default function AgentRegistrationModal({
             <i className="fa-solid fa-robot mr-3 text-blue-400"></i>
             <h3 className="text-lg font-semibold text-primary">
               {t('agentRegistration.title', '註冊新 Agent 服務')}
+              {categoryName && <span className="text-tertiary font-normal"> - {categoryName}</span>}
             </h3>
           </div>
           <button
@@ -628,20 +702,53 @@ export default function AgentRegistrationModal({
                             </>
                           )}
                         </button>
-                        <p className="text-xs text-tertiary text-center">
-                          {t('agentRegistration.noSecret', '還沒有 Secret ID？')}
-                          <a
-                            href="#"
-                            className="text-blue-400 hover:text-blue-500 ml-1"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              // TODO: 跳轉到 Secret 申請頁面
-                              alert(t('agentRegistration.applySecretHint', 'Secret 申請功能將在 Phase 2 實現'));
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-tertiary">
+                            {t('agentRegistration.noSecret', '還沒有 Secret ID？')}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setIsGeneratingSecret(true);
+                              setSecretVerificationError(null);
+                              try {
+                                const response = await generateSecret();
+                                if (response.success && response.data) {
+                                  setSecretId(response.data.secret_id);
+                                  setSecretKey(response.data.secret_key);
+                                  // 自動驗證生成的 Secret
+                                  setTimeout(() => {
+                                    handleVerifySecret();
+                                  }, 100);
+                                } else {
+                                  setSecretVerificationError(
+                                    response.error || t('agentRegistration.errors.secretGenerationFailed', '生成 Secret 失敗')
+                                  );
+                                }
+                              } catch (err: any) {
+                                setSecretVerificationError(
+                                  err.message || t('agentRegistration.errors.secretGenerationFailed', '生成 Secret 失敗')
+                                );
+                              } finally {
+                                setIsGeneratingSecret(false);
+                              }
                             }}
+                            disabled={isGeneratingSecret || isSubmitting}
+                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                           >
-                            {t('agentRegistration.applySecret', '點擊這裡申請')}
-                          </a>
-                        </p>
+                            {isGeneratingSecret ? (
+                              <>
+                                <i className="fa-solid fa-spinner fa-spin"></i>
+                                {t('agentRegistration.generating', '生成中...')}
+                              </>
+                            ) : (
+                              <>
+                                <i className="fa-solid fa-key"></i>
+                                {t('agentRegistration.generateTestSecret', '生成測試 Secret')}
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -652,7 +759,14 @@ export default function AgentRegistrationModal({
                     </label>
                     <select
                       value={protocol}
-                      onChange={(e) => setProtocol(e.target.value as ProtocolType)}
+                      onChange={(e) => {
+                        const newProtocol = e.target.value as ProtocolType;
+                        setProtocol(newProtocol);
+                        // 當選擇 MCP 協議時，自動設置默認端點
+                        if (newProtocol === 'mcp' && !mcpEndpoint.trim()) {
+                          setMcpEndpoint('https://mcp.k84.org');
+                        }
+                      }}
                       className="w-full px-4 py-2 bg-tertiary border border-primary rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                       disabled={isSubmitting}
                     >
@@ -678,18 +792,130 @@ export default function AgentRegistrationModal({
                   )}
 
                   {protocol === 'mcp' && (
-                    <div>
-                      <label className="block text-sm font-medium text-primary mb-2">
-                        {t('agentRegistration.fields.mcpEndpoint', 'MCP 端點 URL')} *
-                      </label>
-                      <input
-                        type="url"
-                        value={mcpEndpoint}
-                        onChange={(e) => setMcpEndpoint(e.target.value)}
-                        className="w-full px-4 py-2 bg-tertiary border border-primary rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={t('agentRegistration.placeholders.mcpEndpoint', 'mcp://example.com:8080')}
-                        disabled={isSubmitting}
-                      />
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-primary mb-2">
+                          {t('agentRegistration.fields.mcpEndpoint', 'MCP 端點 URL')} *
+                        </label>
+                        <input
+                          type="url"
+                          value={mcpEndpoint}
+                          onChange={(e) => setMcpEndpoint(e.target.value)}
+                          className="w-full px-4 py-2 bg-tertiary border border-primary rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder={t('agentRegistration.placeholders.mcpEndpoint', 'https://mcp.k84.org')}
+                          disabled={isSubmitting}
+                        />
+                        <p className="text-xs text-tertiary mt-1">
+                          {t('agentRegistration.hints.mcpEndpoint', '通常指向 Cloudflare Gateway 端點：https://mcp.k84.org')}
+                        </p>
+                      </div>
+
+                      {/* Gateway 可用 Agent 查詢 */}
+                      <div className="border-t border-primary pt-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-medium text-primary">
+                            {t('agentRegistration.fields.queryGateway', '查詢 Gateway 可用 Agent')}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleQueryGatewayAgents}
+                            disabled={isQueryingAgents || isSubmitting}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                          >
+                            {isQueryingAgents ? (
+                              <>
+                                <i className="fa-solid fa-spinner fa-spin"></i>
+                                {t('agentRegistration.querying', '查詢中...')}
+                              </>
+                            ) : (
+                              <>
+                                <i className="fa-solid fa-search"></i>
+                                {t('agentRegistration.queryGateway', '查詢可用 Agent')}
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {queryError && (
+                          <div className="mb-3 p-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-xs">
+                            <i className="fa-solid fa-exclamation-circle mr-1"></i>
+                            {queryError}
+                          </div>
+                        )}
+
+                        {availableAgents.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs text-tertiary">
+                              {t('agentRegistration.foundAgents', `找到 ${availableAgents.length} 個可用 Agent（請選擇一個使用）`)}
+                            </p>
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                              {availableAgents.map((agent, index) => (
+                                <div
+                                  key={index}
+                                  onClick={() => handleSelectAvailableAgent(index)}
+                                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                    selectedAvailableAgentIndex === index
+                                      ? 'bg-blue-500/20 border-blue-500/50'
+                                      : 'bg-tertiary border-primary hover:bg-primary/20'
+                                  }`}
+                                >
+                                  <div className="flex items-start">
+                                    <div className="flex items-center mr-3 mt-0.5">
+                                      <input
+                                        type="radio"
+                                        checked={selectedAvailableAgentIndex === index}
+                                        onChange={() => handleSelectAvailableAgent(index)}
+                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                        disabled={isSubmitting}
+                                      />
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-medium text-primary text-sm">
+                                          {agent.agent_name}
+                                        </span>
+                                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">
+                                          {agent.pattern}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-tertiary mb-2">
+                                        {t('agentRegistration.targetEndpoint', '目標端點')}: {agent.target}
+                                      </p>
+                                      {agent.suggested_capabilities && agent.suggested_capabilities.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-2">
+                                          {agent.suggested_capabilities.map((cap, capIndex) => (
+                                            <span
+                                              key={capIndex}
+                                              className="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded text-xs"
+                                            >
+                                              {cap}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleUseSelectedAgent}
+                              disabled={isSubmitting || selectedAvailableAgentIndex === null}
+                              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                              <i className="fa-solid fa-check"></i>
+                              {t('agentRegistration.useSelectedAgent', '使用選中的 Agent')}
+                            </button>
+                          </div>
+                        )}
+
+                        {availableAgents.length === 0 && !isQueryingAgents && !queryError && (
+                          <p className="text-xs text-tertiary text-center py-2">
+                            {t('agentRegistration.noAvailableAgents', '點擊上方按鈕查詢 Gateway 上可用的 Agent')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </>

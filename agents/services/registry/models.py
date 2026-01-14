@@ -203,3 +203,4 @@ class AgentRegistrationRequest(BaseModel):
     capabilities: List[str] = Field(default_factory=list, description="能力列表")
     metadata: Optional[AgentMetadata] = Field(None, description="元數據")
     permissions: Optional[AgentPermissionConfig] = Field(None, description="權限配置（包含資源訪問權限和認證配置）")
+    category_id: Optional[str] = Field(None, description="分類 ID（用於創建 Display Config，可選）")

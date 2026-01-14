@@ -26,6 +26,7 @@ ONTOLOGIES_COLLECTION = "ontologies"
 SYSTEM_CONFIGS_COLLECTION = "system_configs"
 TENANT_CONFIGS_COLLECTION = "tenant_configs"
 USER_CONFIGS_COLLECTION = "user_configs"
+AGENT_DISPLAY_CONFIGS_COLLECTION = "agent_display_configs"
 
 
 def create_collections(client: ArangoDBClient) -> None:
@@ -38,6 +39,7 @@ def create_collections(client: ArangoDBClient) -> None:
         (SYSTEM_CONFIGS_COLLECTION, "document"),
         (TENANT_CONFIGS_COLLECTION, "document"),
         (USER_CONFIGS_COLLECTION, "document"),
+        (AGENT_DISPLAY_CONFIGS_COLLECTION, "document"),
     ]
 
     for name, collection_type in collections:
@@ -108,11 +110,31 @@ def create_indexes(client: ArangoDBClient) -> None:
         },
     ]
 
+    # agent_display_configs collection 索引
+    agent_display_configs_indexes = [
+        {
+            "name": "idx_agent_display_configs_tenant_type_active",
+            "fields": ["tenant_id", "config_type", "is_active"],
+            "type": "persistent",
+        },
+        {
+            "name": "idx_agent_display_configs_category",
+            "fields": ["tenant_id", "config_type", "category_id", "is_active"],
+            "type": "persistent",
+        },
+        {
+            "name": "idx_agent_display_configs_agent",
+            "fields": ["tenant_id", "config_type", "agent_id", "is_active"],
+            "type": "persistent",
+        },
+    ]
+
     index_configs = [
         (ONTOLOGIES_COLLECTION, ontologies_indexes),
         (SYSTEM_CONFIGS_COLLECTION, system_configs_indexes),
         (TENANT_CONFIGS_COLLECTION, tenant_configs_indexes),
         (USER_CONFIGS_COLLECTION, user_configs_indexes),
+        (AGENT_DISPLAY_CONFIGS_COLLECTION, agent_display_configs_indexes),
     ]
 
     for collection_name, indexes in index_configs:

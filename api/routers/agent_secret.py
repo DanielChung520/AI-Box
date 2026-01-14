@@ -60,7 +60,7 @@ async def verify_secret(
             return APIResponse.error(
                 message="Invalid Secret ID or Secret Key",
                 error_code="INVALID_SECRET",
-                status_code=http_status.HTTP_401_UNAUTHORIZED,
+                status_code=http_status.HTTP_400_BAD_REQUEST,  # 使用 400 而非 401，因為這是業務邏輯錯誤而非用戶認證錯誤
             )
 
         # 檢查是否已綁定

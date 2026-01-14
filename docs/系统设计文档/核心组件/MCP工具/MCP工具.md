@@ -1863,11 +1863,152 @@ external_tools:
 
 完整的 Cloudflare 设置步骤、代码示例和配置说明，请参阅：
 
-- [Cloudflare MCP Gateway 设置指南](./Cloudflare-MCP-Gateway-设置指南.md) - 完整的设置指南和状态追踪
-- [開發環境部署狀態報告](./開發環境部署狀態報告.md) - 当前开发环境部署状态和配置信息
-- [Cloudflare 手动操作清单](./Cloudflare-手动操作清单.md) - 必须手动执行的操作清单
+- [第三方 MCP 服务配置指南](./第三方MCP服务配置指南.md) - 第三方 MCP 服务配置主指南
+- [Cloudflare MCP Gateway 设置指南](./Cloudflare-MCP-Gateway-设置指南.md) - Cloudflare Gateway 详细设置指南
 
 ---
 
-**最后更新日期**: 2025-12-31
+## 📦 其他 MCP 工具记录
+
+本章节记录 AI-Box 中集成的其他 MCP 工具，包括内部工具和外部工具。
+
+### 内部工具（Internal Tools）
+
+#### 1. TaskAnalyzerTool（任务分析工具）
+
+**功能**：分析用户任务，提取关键信息和执行步骤
+
+**文件位置**：`mcp/server/tools/task_analyzer.py`
+
+**特点**：
+
+- 本地执行，无需网络调用
+- 支持复杂任务分解
+- 提供任务执行建议
+
+**使用场景**：
+
+- 任务规划和分解
+- 工作流设计
+- 自动化任务生成
+
+#### 2. FileTool（文件操作工具）
+
+**功能**：提供文件读写、搜索、管理等操作
+
+**文件位置**：`mcp/server/tools/file_tool.py`
+
+**特点**：
+
+- 支持多种文件格式
+- 提供文件搜索功能
+- 支持批量操作
+
+**使用场景**：
+
+- 文件内容读取和编辑
+- 文件搜索和过滤
+- 文件管理和组织
+
+### 外部 MCP 工具（External MCP Tools）
+
+#### 1. Yahoo Finance MCP
+
+**提供商**：smithery.ai / 社区维护
+
+**功能**：股票数据查询、市场信息获取
+
+**端点**：`https://smithery.ai/server/@tsmdev-ux/yahoo-finance-mcp`
+
+**认证**：无（公开服务）
+
+**状态**：✅ 已集成
+
+**配置参考**：请参阅 [第三方 MCP 服务配置指南](./第三方MCP服务配置指南.md)
+
+#### 2. Glama Office MCP
+
+**提供商**：Glama Office
+
+**功能**：Office 文档处理（Word、Excel、PowerPoint）
+
+**端点**：`https://api.glama.office/mcp`
+
+**认证**：API Key
+
+**状态**：✅ 已集成
+
+**配置参考**：请参阅 [第三方 MCP 服务配置指南](./第三方MCP服务配置指南.md)
+
+#### 3. Slack MCP
+
+**提供商**：Slack / 社区维护
+
+**功能**：Slack 消息发送、频道管理、用户交互
+
+**端点**：`https://slack-mcp-server.example.com/mcp`
+
+**认证**：OAuth 2.0 / Bot Token
+
+**状态**：✅ 已集成
+
+**配置参考**：请参阅 [第三方 MCP 服务配置指南](./第三方MCP服务配置指南.md)
+
+#### 4. Notion MCP
+
+**提供商**：Notion / 社区维护
+
+**功能**：Notion 页面创建、编辑、数据库操作
+
+**端点**：`https://notion-mcp-server.example.com/mcp`
+
+**认证**：Notion API Key
+
+**状态**：✅ 已集成
+
+**配置参考**：请参阅 [第三方 MCP 服务配置指南](./第三方MCP服务配置指南.md)
+
+#### 5. Confluence MCP（规划中）
+
+**提供商**：Atlassian / 社区维护
+
+**功能**：Confluence 页面管理、空间操作
+
+**端点**：待定
+
+**认证**：Confluence API Token
+
+**状态**：⏳ 规划中
+
+### 工具发现和注册
+
+所有外部 MCP 工具通过 `ExternalToolManager` 统一管理：
+
+1. **自动发现**：系统启动时自动发现并注册配置的外部工具
+2. **动态刷新**：支持定期刷新工具列表，获取最新工具
+3. **健康检查**：定期检查工具可用性，自动禁用不可用工具
+
+**配置位置**：
+
+- ArangoDB：`system_configs` Collection，scope: `mcp.external_services`
+- YAML 文件（向后兼容）：`external_mcp_tools.yaml`
+
+**详细配置说明**：请参阅 [第三方 MCP 服务配置指南](./第三方MCP服务配置指南.md)
+
+---
+
+## 📚 相关文档
+
+### 核心文档
+
+- [第三方 MCP 服务配置指南](./第三方MCP服务配置指南.md) - 第三方 MCP 服务配置主指南（最上层指南）
+- [Cloudflare MCP Gateway 设置指南](./Cloudflare-MCP-Gateway-设置指南.md) - Cloudflare Gateway 详细设置指南
+
+### 参考文档
+
+- [參考&歸檔文件](./參考&歸檔文件/) - 历史文档和参考材料
+
+---
+
+**最后更新日期**: 2026-01-14
 **维护人**: Daniel Chung

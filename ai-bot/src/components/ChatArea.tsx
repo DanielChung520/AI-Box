@@ -7,13 +7,16 @@ import Tabs from './Tabs';
 import { Task } from './Sidebar';
 import ChatMessage from './ChatMessage';
 import AgentRegistrationModal from './AgentRegistrationModal';
+import AgentDisplayConfigModal from './AgentDisplayConfigModal';
+import DeleteAgentConfirmModal from './DeleteAgentConfirmModal';
 import AssistantMaintenanceModal from './AssistantMaintenanceModal';
 import ChatSearchModal from './ChatSearchModal';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage, languageNames, languageIcons } from '../contexts/languageContext';
 import { useFileEditing } from '../contexts/fileEditingContext';
 import { useStreamingEdit } from '../hooks/useStreamingEdit';
-import { startEditingSession, submitEditingCommand } from '../lib/api';
+import { startEditingSession, submitEditingCommand, deleteAgentConfig } from '../lib/api';
+import { useAgentDisplayConfig } from '../hooks/useAgentDisplayConfig';
 
   // 定义Agent分类和卡片数据
   interface AgentCategory {
@@ -83,6 +86,13 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deletingAssistantId, setDeletingAssistantId] = useState<string | null>(null);
     const [showSearchModal, setShowSearchModal] = useState(false);
+    // 修改時間：2026-01-13 - 添加 Agent Display Config 編輯相關狀態
+    const [maintainingAgentId, setMaintainingAgentId] = useState<string | null>(null);
+    const [showAgentEditModal, setShowAgentEditModal] = useState(false);
+    // 修改時間：2026-01-13 - 添加 Agent 刪除相關狀態
+    const [deletingAgentId, setDeletingAgentId] = useState<string | null>(null);
+    const [deletingAgentName, setDeletingAgentName] = useState<string>('');
+    const [showDeleteAgentModal, setShowDeleteAgentModal] = useState(false);
 
     // 修改時間：2026-01-06 - 文件編輯相關狀態
     const { editingFileId, setEditingFile, setPatches, clearEditing, setCurrentRequestId } = useFileEditing();
@@ -124,8 +134,9 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
         return;
       }
 
-      const handleMessageSent = async (event: CustomEvent) => {
-        const { message, fileId } = event.detail;
+      const handleMessageSent = async (event: Event) => {
+        const customEvent = event as CustomEvent;
+        const { message, fileId } = customEvent.detail;
         if (fileId === editingFileId && message) {
           // 提交編輯指令
           try {
@@ -138,7 +149,7 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
               // 存儲 request_id 到 Context
               setCurrentRequestId(response.data.request_id);
               // 連接流式編輯端點
-              connect(editingSessionIdRef.current, response.data.request_id);
+              connect(editingSessionIdRef.current!, response.data.request_id);
             }
           } catch (error) {
             console.error('[ChatArea] Failed to submit editing command:', error);
@@ -146,9 +157,9 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
         }
       };
 
-      window.addEventListener('messageSentForFileEditing', handleMessageSent as EventListener);
+      window.addEventListener('messageSentForFileEditing', handleMessageSent);
       return () => {
-        window.removeEventListener('messageSentForFileEditing', handleMessageSent as EventListener);
+        window.removeEventListener('messageSentForFileEditing', handleMessageSent);
       };
     }, [editingFileId, connect, setCurrentRequestId]);
 
@@ -202,224 +213,19 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
       }
     }, [selectedTask?.messages]);
 
-    // Mock数据 - 不同类别的Agent - 使用useMemo和updateCounter确保语言变更时重新渲染
-    const agentCategories: AgentCategory[] = useMemo(() => [
-      {
-        id: 'human-resource',
-        name: t('agent.category.humanResource'),
-        agents: [
-          {
-            id: 'hr-1',
-             name: t('agent.category.humanResource') + t('agent.hr.assistant'),
-             description: t('agent.hr.description.assistant'),
-            icon: 'fa-user-tie',
-            status: 'online',
-            usageCount: 124
-          },
-          {
-            id: 'hr-2',
-            name: t('agent.hr.trainingManager'),
-            description: t('agent.hr.description.trainingManager'),
-            icon: 'fa-graduation-cap',
-            status: 'online',
-            usageCount: 87
-          },
-          {
-            id: 'hr-3',
-            name: t('agent.hr.performanceAnalysis'),
-            description: t('agent.hr.description.performanceAnalysis'),
-            icon: 'fa-chart-line',
-            status: 'maintenance',
-            usageCount: 65
-          },
-          {
-            id: 'hr-4',
-            name: t('agent.hr.employeeRelations'),
-            description: t('agent.hr.description.employeeRelations'),
-            icon: 'fa-handshake',
-            status: 'online',
-            usageCount: 92
-          },
-          {
-            id: 'hr-5',
-            name: t('agent.hr.compensationBenefits'),
-            description: t('agent.hr.description.compensationBenefits'),
-            icon: 'fa-coins',
-            status: 'online',
-            usageCount: 78
-          },
-          {
-            id: 'hr-6',
-            name: t('agent.hr.talentDevelopment'),
-            description: t('agent.hr.description.talentDevelopment'),
-            icon: 'fa-seedling',
-            status: 'online',
-            usageCount: 63
-          }
-        ]
-      },
-      {
-        id: 'logistics',
-        name: t('agent.category.logistics'),agents: [
-          {
-            id: 'log-1',
-            name: t('agent.logistics.supplyChainOptimization'),
-            description: t('agent.logistics.description.supplyChainOptimization'),
-            icon: 'fa-truck',
-            status: 'online',
-            usageCount: 156
-          },
-          {
-            id: 'log-2',
-            name: t('agent.logistics.inventoryManagement'),
-            description: t('agent.logistics.description.inventoryManagement'),
-            icon: 'fa-warehouse',
-            status: 'online',
-            usageCount: 98
-          },
-          {
-            id: 'log-3',
-            name: t('agent.logistics.routePlanning'),
-            description: t('agent.logistics.description.routePlanning'),
-            icon: 'fa-route',
-            status: 'online',
-            usageCount: 129
-          },
-          {
-            id: 'log-4',
-            name: t('agent.logistics.dataAnalysis'),
-            description: t('agent.logistics.description.dataAnalysis'),
-            icon: 'fa-chart-bar',
-            status: 'online',
-            usageCount: 85
-          },
-          {
-            id: 'log-5',
-            name: t('agent.logistics.supplierManagement'),
-            description: t('agent.logistics.description.supplierManagement'),
-            icon: 'fa-hand-holding-box',
-            status: 'online',
-            usageCount: 76
-          }
-        ]
-      },
-      {
-        id: 'finance',
-        name: t('agent.category.finance'),
-        agents: [
-          {
-            id: 'fin-1',
-            name: t('agent.finance.financialAnalyst'),
-            description: t('agent.finance.description.financialAnalyst'),
-            icon: 'fa-chart-pie',
-            status: 'online',
-            usageCount: 203
-          },
-          {
-            id: 'fin-2',
-            name: t('agent.finance.budgetPlanning'),
-            description: t('agent.finance.description.budgetPlanning'),
-            icon: 'fa-money-bill-wave',
-            status: 'maintenance',
-            usageCount: 112
-          },
-          {
-            id: 'fin-3',
-            name: t('agent.finance.costControl'),
-            description: t('agent.finance.description.costControl'),
-            icon: 'fa-piggy-bank',
-            status: 'online',
-            usageCount: 157
-          },
-          {
-            id: 'fin-4',
-            name: t('agent.finance.financialReportGeneration'),
-            description: t('agent.finance.description.financialReportGeneration'),
-            icon: 'fa-file-invoice-dollar',
-            status: 'online',
-            usageCount: 189
-          },
-          {
-            id: 'fin-5',
-            name: t('agent.finance.taxPlanning'),
-            description: t('agent.finance.description.taxPlanning'),
-            icon: 'fa-receipt',
-            status: 'maintenance',
-            usageCount: 67
-          },
-          {
-            id: 'fin-6',
-            name: t('agent.finance.investmentAnalysis'),
-            description: t('agent.finance.description.investmentAnalysis'),
-            icon: 'fa-chart-line',
-            status: 'online',
-            usageCount: 134
-          }
-        ]
-      },
-      {
-        id: 'mes',
-        name: t('agent.category.mes'),
-        agents: [
-          {
-            id: 'mes-1',
-            name: t('agent.mes.productionMonitoring'),
-            description: t('agent.mes.description.productionMonitoring'),
-            icon: 'fa-industry',
-            status: 'online',
-            usageCount: 256
-          },
-          {
-            id: 'mes-2',
-            name: t('agent.mes.qualityControl'),
-            description: t('agent.mes.description.qualityControl'),
-            icon: 'fa-check-circle',
-            status: 'online',
-            usageCount: 143
-          },
-          {
-            id: 'mes-3',
-            name: t('agent.mes.efficiencyAnalysis'),
-            description: t('agent.mes.description.efficiencyAnalysis'),
-            icon: 'fa-tachometer-alt',
-            status: 'online',
-            usageCount: 109
-          },
-          {
-            id: 'mes-4',
-            name: t('agent.mes.equipmentMaintenance'),
-            description: t('agent.mes.description.equipmentMaintenance'),
-            icon: 'fa-tools',
-            status: 'online',
-            usageCount: 137
-          },
-          {
-            id: 'mes-5',
-            name: t('agent.mes.productionScheduling'),
-            description: t('agent.mes.description.productionScheduling'),
-            icon: 'fa-calendar-alt',
-            status: 'online',
-            usageCount: 168
-          },
-          {
-            id: 'mes-6',
-            name: t('agent.mes.materialManagement'),
-            description: t('agent.mes.description.materialManagement'),
-            icon: 'fa-box-open',
-            status: 'online',
-            usageCount: 95
-          },
-          {
-            id: 'mes-7',
-            name: t('agent.mes.processOptimization'),
-            description: t('agent.mes.description.processOptimization'),
-            icon: 'fa-sliders-h',
-            status: 'online',
-            usageCount: 83
-          }
-        ]
+    // 從後端獲取代理展示配置 - 修改時間：2026-01-13 - 使用 API 替代硬編碼
+    const { agentCategories, loading: agentConfigLoading, error: agentConfigError, refetch: refetchAgentConfig } = useAgentDisplayConfig();
+
+    // 當配置加載完成後，確保 activeTab 指向有效的分類
+    useEffect(() => {
+      if (!agentConfigLoading && agentCategories.length > 0) {
+        const categoryIds = agentCategories.map(cat => cat.id);
+        if (!categoryIds.includes(activeTab)) {
+          // 如果當前 activeTab 不在新的分類列表中，切換到第一個分類
+          setActiveTab(categoryIds[0]);
+        }
       }
-    ], [language, updateCounter, t]);
+    }, [agentConfigLoading, agentCategories, activeTab]);
 
   // Mock数据 - 不同类别的Assistant - 使用useMemo和updateCounter确保语言变更时重新渲染
   const assistantCategories: AssistantCategory[] = useMemo(() => [
@@ -545,11 +351,19 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
     }
   ], [language, updateCounter, t]);
 
-  // 获取当前选中分类的Agent
-  const currentAgents = agentCategories.find(category => category.id === activeTab)?.agents || [];
+  // 获取当前选中分类的Agent - 修改時間：2026-01-13 - 使用從 API 獲取的數據
+  const currentAgents = useMemo(() => {
+    if (!agentCategories || agentCategories.length === 0) {
+      return [];
+    }
+    return agentCategories.find(category => category.id === activeTab)?.agents || [];
+  }, [agentCategories, activeTab]);
 
-  // 获取所有Agent（用于聊天输入框的代理选择器）
+  // 获取所有Agent（用于聊天输入框的代理选择器） - 修改時間：2026-01-13 - 使用從 API 獲取的數據
   const allAgents = useMemo(() => {
+    if (!agentCategories || agentCategories.length === 0) {
+      return [];
+    }
     return agentCategories.flatMap(category => category.agents);
   }, [agentCategories]);
 
@@ -696,7 +510,8 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
                   tabs={assistantCategories.map(cat => ({
                     id: cat.id,
                     label: cat.name,
-                    translationKey: `agent.category.${cat.id.replace('-', '')}`
+                    // 移除 translationKey，直接使用從 API 獲取的多語言文本（如果 Assistant 也改用 API）
+                    // translationKey: `agent.category.${cat.id.replace('-', '')}`
                   }))}
                   activeTab={activeAssistantTab}
                   onTabChange={setActiveAssistantTab}
@@ -770,62 +585,113 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
               </div>
             </div>
 
-            {/* Agent分类Tabs 和管理按钮 */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex-1">
-                <Tabs
-                  tabs={agentCategories.map(cat => ({
-                    id: cat.id,
-                    label: cat.name,
-                    translationKey: `agent.category.${cat.id.replace('-', '')}`
-                  }))}
-                  activeTab={activeTab}
-                  onTabChange={setActiveTab}
-                />
+            {/* 加载状态 */}
+            {agentConfigLoading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <i className="fa-solid fa-spinner fa-spin text-[28.8px] text-tertiary mb-4"></i>
+                  <p className="text-[12.8px] text-tertiary">{t('common.loading', '載入中...')}</p>
+                </div>
               </div>
-              <button
-                className="ml-4 px-4 py-2 rounded-full bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-500/30 hover:border-green-500/50 transition-all duration-200 flex items-center"
-                title={t('chat.manageAgents')}
-                aria-label={t('chat.manageAgents')}
-                onClick={() => setShowAgentRegistrationModal(true)}
-              >
-                <i className="fa-solid fa-cog mr-2"></i>
-                <span className="text-[11.2px] font-medium">{t('chat.manage')}</span>
-              </button>
-            </div>
+            )}
 
-            {/* Agent卡片展示区域 */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {currentAgents.map(agent => {
-                // 检查是否收藏 - 兼容 Set 和 Map
-                const isFavorite = favoriteAgents instanceof Map
-                  ? favoriteAgents.has(agent.id)
-                  : favoriteAgents.has(agent.id);
+            {/* 错误状态 */}
+            {agentConfigError && !agentConfigLoading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <i className="fa-solid fa-exclamation-triangle text-[28.8px] text-yellow-400 mb-4"></i>
+                  <p className="text-[12.8px] text-tertiary mb-4">
+                    {t('common.error', '載入代理配置失敗')}: {agentConfigError.message}
+                  </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11.2px] transition-colors"
+                  >
+                    {t('common.retry', '重試')}
+                  </button>
+                </div>
+              </div>
+            )}
 
-                return (
-                  <AgentCard
-                    key={agent.id}
-                    agent={agent}
-                    isFavorite={isFavorite}
-                    onEdit={(_agentId) => {
-                      // 可以在这里添加编辑代理的逻辑
-                    }}
-                    onDelete={(_agentId) => {
-                      // 可以在这里添加删除代理的逻辑
-                    }}
-                    onClick={() => {
-                      if (onAgentSelect) {
-                        onAgentSelect(agent.id);
-                      }
-                    }}
-                    onFavorite={(agentId, isFav) => {
-                      // 传递代理名称
-                      onAgentFavorite?.(agentId, isFav, agent.name);
-                    }}
-                  />
-                );
-              })}
-            </div>
+            {/* Agent分类Tabs 和管理按钮 - 只在非加载且无错误时显示 */}
+            {!agentConfigLoading && !agentConfigError && (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <Tabs
+                      tabs={agentCategories.map(cat => ({
+                        id: cat.id,
+                        label: cat.name,
+                        // 移除 translationKey，直接使用從 API 獲取的多語言文本
+                        // translationKey: `agent.category.${cat.id.replace('-', '')}`
+                      }))}
+                      activeTab={activeTab}
+                      onTabChange={setActiveTab}
+                    />
+                  </div>
+                  <button
+                    className="ml-4 px-4 py-2 rounded-full bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-500/30 hover:border-green-500/50 transition-all duration-200 flex items-center"
+                    title={t('chat.manageAgents')}
+                    aria-label={t('chat.manageAgents')}
+                    onClick={() => setShowAgentRegistrationModal(true)}
+                  >
+                    <i className="fa-solid fa-cog mr-2"></i>
+                    <span className="text-[11.2px] font-medium">{t('chat.manage')}</span>
+                  </button>
+                </div>
+
+                {/* Agent卡片展示区域 */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {currentAgents.length > 0 ? (
+                    currentAgents.map(agent => {
+                      // 检查是否收藏 - 兼容 Set 和 Map
+                      const isFavorite = favoriteAgents instanceof Map
+                        ? favoriteAgents.has(agent.id)
+                        : favoriteAgents.has(agent.id);
+
+                      return (
+                        <AgentCard
+                          key={agent.id}
+                          agent={agent}
+                          isFavorite={isFavorite}
+                          onEdit={(agentId) => {
+                            // 修改時間：2026-01-13 - 實現 Agent Display Config 編輯功能
+                            setMaintainingAgentId(agentId);
+                            setShowAgentEditModal(true);
+                          }}
+                          onDelete={(agentId) => {
+                            // 修改時間：2026-01-13 - 打開刪除確認 Modal
+                            const agent = currentAgents.find(a => a.id === agentId);
+                            if (agent) {
+                              setDeletingAgentId(agentId);
+                              setDeletingAgentName(agent.name);
+                              setShowDeleteAgentModal(true);
+                            }
+                          }}
+                          onClick={() => {
+                            // 審查中的 Agent 無法啟動對話
+                            if (agent.status === 'registering') {
+                              return;
+                            }
+                            if (onAgentSelect) {
+                              onAgentSelect(agent.id);
+                            }
+                          }}
+                          onFavorite={(agentId, isFav) => {
+                            // 传递代理名称
+                            onAgentFavorite?.(agentId, isFav, agent.name);
+                          }}
+                        />
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full text-center py-12">
+                      <p className="text-[12.8px] text-tertiary">{t('common.empty', '暫無代理')}</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </>
         ) : null}
       </div>
@@ -871,7 +737,10 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
         onSuccess={() => {
           setShowAgentRegistrationModal(false);
           // 可以在這裡刷新 Agent 列表
+          refetchAgentConfig();
         }}
+        categoryName={agentCategories.find(cat => cat.id === activeTab)?.name}
+        categoryId={activeTab}
       />
 
       {/* Assistant 維護模態框 */}
@@ -996,6 +865,44 @@ import { startEditingSession, submitEditingCommand } from '../lib/api';
           </div>
         </div>
       )}
+
+      {/* Agent Display Config 編輯模態框 - 修改時間：2026-01-13 */}
+      <AgentDisplayConfigModal
+        isOpen={showAgentEditModal}
+        agentId={maintainingAgentId || undefined}
+        onClose={() => {
+          setShowAgentEditModal(false);
+          setMaintainingAgentId(null);
+        }}
+        onSuccess={() => {
+          setShowAgentEditModal(false);
+          setMaintainingAgentId(null);
+          // 刷新代理配置列表
+          if (refetchAgentConfig) {
+            refetchAgentConfig();
+          }
+        }}
+      />
+
+      {/* 刪除代理確認模態框 - 修改時間：2026-01-13 */}
+      <DeleteAgentConfirmModal
+        isOpen={showDeleteAgentModal}
+        agentId={deletingAgentId || ''}
+        agentName={deletingAgentName}
+        onClose={() => {
+          setShowDeleteAgentModal(false);
+          setDeletingAgentId(null);
+          setDeletingAgentName('');
+        }}
+        onConfirm={async () => {
+          if (!deletingAgentId) return;
+          await deleteAgentConfig(deletingAgentId);
+          // 刪除成功後刷新代理配置列表
+          if (refetchAgentConfig) {
+            refetchAgentConfig();
+          }
+        }}
+      />
     </div>
   );
 }

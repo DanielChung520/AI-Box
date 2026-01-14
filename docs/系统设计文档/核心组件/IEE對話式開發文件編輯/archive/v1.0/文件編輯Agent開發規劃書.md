@@ -158,7 +158,7 @@ graph TB
 
 #### 現有 IEE 前端系統文檔檢討
 
-**文檔位置**: `docs/系统设计文档/核心组件/IEE前端系统.md`
+**文檔位置**: `docs/系统设计文档/IEE前端系統/IEE前端系统.md`
 
 **現有設計**:
 
@@ -1662,7 +1662,7 @@ useEffect(() => {
 - [AI-Box Agent 架構規格書 v2](../Agent平台/AI-Box-Agent-架構規格書-v2.md)
 - [Agent 開發規範](../Agent平台/Agent-開發規範.md)
 - [Agent 註冊規格書](../Agent平台/Agent-註冊-規格書.md)
-- [IEE 前端系統架構](./IEE前端系统.md)
+- [IEE 前端系統架構](../../../../IEE前端系統/IEE前端系统.md)
 - [IEE 式 Markdown 文件編輯器開發規格書](./AI-Box-IEE-式-Markdown-文件編輯器開發規格書.md)
 
 ### 6.2 相關 API 文檔

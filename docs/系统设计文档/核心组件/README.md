@@ -36,7 +36,7 @@
 
 ### 前端组件
 
-17. **[IEE前端系统](./IEE前端系统.md)** - Intelligent Editor Environment
+17. **[IEE前端系统](../IEE前端系統/IEE前端系统.md)** - Intelligent Editor Environment
 
 ### 规划中组件
 

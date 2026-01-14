@@ -2,7 +2,7 @@
 
 **创建日期**: 2025-12-31
 **创建人**: Daniel Chung
-**最后修改日期**: 2025-12-31
+**最后修改日期**: 2026-01-14
 
 ---
 
@@ -16,7 +16,7 @@
 
 ### 当前部署状态
 
-**最后更新**: 2025-12-31
+**最后更新**: 2026-01-14
 
 | 项目 | 状态 | 详情 | 备注 |
 |------|------|------|------|
@@ -26,7 +26,9 @@
 | **R2 存储桶** | ⏸️ 待手动 | 需要在 Dashboard 启用 R2 | 见下方说明 |
 | **Gateway Secret** | ✅ 已完成 | 已生成并设置 | 见下方详情 |
 | **Worker 部署** | ✅ 已完成 | 已部署到生产环境 | 见下方详情 |
-| **域名路由** | ⏸️ 待配置 | mcp.k84.org | 需要在 Dashboard 配置 DNS |
+| **域名路由** | ✅ 已完成 | mcp.k84.org | 已在 Dashboard 配置路由 |
+| **ngrok 配置** | ✅ 已完成 | 已配置并运行 | 见下方详情 |
+| **庫管員 Agent** | ✅ 已完成 | 已注册并配置 | 见下方详情 |
 
 ### 详细配置信息
 
@@ -51,30 +53,129 @@
 #### Worker 部署信息
 
 - **Worker 名称**: `mcp-gateway`
-- **Workers.dev URL**: `https://mcp-gateway.896445070.workers.dev`
-- **自定义域名**: `mcp.k84.org` (⏸️ 待配置 DNS)
+- **Workers.dev URL**: `https://mcp-gateway.896445070.workers.dev` ✅ 正常工作
+- **自定义域名**: `mcp.k84.org` ✅ 已配置（在 Dashboard 中设置路由）
 - **部署状态**: ✅ 已部署
-- **版本 ID**: `cc1088a1-2f2c-4530-bc25-cdddb66a9b9f`
+- **当前版本 ID**: `ff825e48-8a80-477d-b6d4-61acd3e79304` (2026-01-14)
 
-#### 待完成操作
+#### 实际配置详情
 
-1. **配置 DNS 记录** (必须手动)
-   - 域名: `k84.org`
-   - 记录类型: CNAME
-   - 名称: `mcp`
-   - 目标: `mcp-gateway.896445070.workers.dev`
-   - 代理状态: 启用（橙色云朵）
+**1. DNS 配置** ✅ 已完成
 
-2. **启用 R2** (可选，用于审计日志)
+- **域名**: `k84.org`
+- **记录类型**: CNAME
+- **名称**: `mcp`
+- **目标**: `mcp-gateway.896445070.workers.dev`
+- **代理状态**: ✅ 已启用（橙色云朵）
+
+**2. Cloudflare Dashboard 路由配置** ✅ 已完成
+
+**重要**: 除了在 `wrangler.toml` 中配置路由外，还需要在 Cloudflare Dashboard 中手动绑定路由。
+
+**配置步骤**:
+
+1. 登录 Cloudflare Dashboard: <https://dash.cloudflare.com>
+2. 选择域名 `k84.org`
+3. 进入 **Workers & Pages** → 选择 `mcp-gateway` Worker
+4. 点击 **Triggers** 标签
+5. 在 **Routes** 部分，添加路由:
+   - **Route**: `mcp.k84.org/*`
+   - **Zone**: `k84.org`
+   - 点击 **Save**
+
+**当前路由状态**: ✅ `mcp.k84.org/*` 已绑定到 `mcp-gateway` Worker
+
+**3. ngrok 配置** ✅ 已完成
+
+**ngrok URL**: `https://182740a0a99a.ngrok-free.app`
+
+**配置步骤**:
+
+1. **注册 ngrok 账号**:
+   - 访问: <https://dashboard.ngrok.com/signup>
+   - 注册免费账号
+
+2. **获取 Authtoken**:
+   - 登录后访问: <https://dashboard.ngrok.com/get-started/your-authtoken>
+   - 复制 authtoken
+
+3. **配置 Authtoken**:
+
+   ```bash
+   ngrok config add-authtoken YOUR_AUTHTOKEN
+   ```
+
+4. **启动 ngrok**:
+
+   ```bash
+   ngrok http 8003
+   ```
+
+5. **更新 Gateway 配置**:
+   - 复制 ngrok 提供的 URL（例如: `https://182740a0a99a.ngrok-free.app`）
+   - 更新 `wrangler.toml` 中的 `MCP_ROUTES` 配置
+
+**注意**:
+
+- ngrok 免费版每次重启会生成新的 URL，需要更新 Gateway 配置
+- 建议使用 ngrok 付费版获得固定域名（生产环境）
+
+**4. 庫管員 Agent 配置** ✅ 已完成
+
+**Agent 服务信息**:
+
+- **本地服务**: `http://localhost:8003`
+- **MCP 端点**: `http://localhost:8003/mcp` 和 `http://localhost:8003/`
+- **工具名称**: `warehouse_execute_task`
+- **路由模式**: `warehouse_*`
+
+**Gateway 路由配置** (`wrangler.toml`):
+
+```toml
+MCP_ROUTES = '''
+[
+  {
+    "pattern": "yahoo_finance_*",
+    "target": "https://smithery.ai/server/@tsmdev-ux/yahoo-finance-mcp"
+  },
+  {
+    "pattern": "warehouse_*",
+    "target": "https://182740a0a99a.ngrok-free.app"
+  }
+]
+'''
+```
+
+**认证配置** (KV Store):
+
+```bash
+# 配置工具认证（无认证）
+wrangler kv key put "auth:warehouse_execute_task" \
+  '{"type":"none"}' \
+  --binding=AUTH_STORE --preview=false --remote
+```
+
+**权限配置** (KV Store):
+
+```bash
+# 配置租户默认权限
+wrangler kv key put "permissions:test-tenant:default" \
+  '{"tools":["warehouse_*"]}' \
+  --binding=PERMISSIONS_STORE --preview=false --remote
+```
+
+**5. 待完成操作** (可选)
+
+1. **启用 R2** (可选，用于审计日志)
    - 在 Cloudflare Dashboard → R2 中启用 R2
    - 然后创建存储桶: `mcp-gateway-audit-logs`
    - 更新 `wrangler.toml` 取消注释 R2 配置
 
-3. **配置外部 MCP 认证** (按需)
+2. **配置其他外部 MCP 认证** (按需)
    - 使用 `wrangler kv key put` 命令导入认证配置
    - 设置外部 MCP API Keys (Worker Secrets)
 
-4. **配置用户权限** (按需)
+3. **配置其他用户权限** (按需)
    - 使用 `wrangler kv key put` 命令导入用户权限配置
 
 ### 配置检查清单
@@ -640,6 +741,423 @@ export class AuditLogger {
   }
 }
 ```
+
+---
+
+## 📝 实际配置详情（2026-01-14 更新）
+
+本章节记录所有实际部署的配置信息，包括 Cloudflare、ngrok、mcp_gateway 等所有相关设置。
+
+### 1. Cloudflare Worker 配置
+
+#### 1.1 wrangler.toml 完整配置
+
+**文件位置**: `/Users/daniel/GitHub/AI-Box/mcp/gateway/wrangler.toml`
+
+```toml
+name = "mcp-gateway"
+main = "src/index.ts"
+compatibility_date = "2024-12-31"
+
+# 环境变量
+[vars]
+DEFAULT_MCP_ENDPOINT = ""
+ENABLE_DATA_MASKING = "true"
+ENABLE_RESPONSE_FILTERING = "false"
+DEFAULT_RATE_LIMIT = "100"
+
+# MCP 路由配置
+MCP_ROUTES = '''
+[
+  {
+    "pattern": "yahoo_finance_*",
+    "target": "https://smithery.ai/server/@tsmdev-ux/yahoo-finance-mcp"
+  },
+  {
+    "pattern": "warehouse_*",
+    "target": "https://182740a0a99a.ngrok-free.app"
+  }
+]
+'''
+
+# KV 存储
+[[kv_namespaces]]
+binding = "AUTH_STORE"
+id = "5b6e229c21f649269e93db9dcb8a7e16"
+preview_id = "b1295b79c8f64b879d5d7a3fd8c65400"
+
+[[kv_namespaces]]
+binding = "PERMISSIONS_STORE"
+id = "75e2e224e5844e1ea7639094b87d1001"
+preview_id = "89d30fa67fc944e0a5bce820c2b6b4b3"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_STORE"
+id = "e5b99f78db7c452aa70a080b662e0530"
+preview_id = "437f52b27010407ab1730f85d89d835a"
+
+# 路由配置（自定义域名）
+routes = [
+  { pattern = "mcp.k84.org/*", zone_name = "k84.org" }
+]
+```
+
+#### 1.2 Gateway Secret 配置
+
+**Secret 值**: `0d28bdb881c5aeea501bf535b45c153ea78bf6f28b4856a41e36068dfbf7410e`
+
+**设置方式**:
+
+```bash
+cd /Users/daniel/GitHub/AI-Box/mcp/gateway
+wrangler secret put GATEWAY_SECRET
+# 输入: 0d28bdb881c5aeea501bf535b45c153ea78bf6f28b4856a41e36068dfbf7410e
+```
+
+**AI-Box 环境变量** (`.env`):
+
+```bash
+MCP_GATEWAY_SECRET=0d28bdb881c5aeea501bf535b45c153ea78bf6f28b4856a41e36068dfbf7410e
+```
+
+#### 1.3 部署信息
+
+**部署命令**:
+
+```bash
+cd /Users/daniel/GitHub/AI-Box/mcp/gateway
+wrangler deploy
+```
+
+**当前部署状态**:
+
+- ✅ **Workers.dev URL**: `https://mcp-gateway.896445070.workers.dev` (正常工作)
+- ✅ **自定义域名**: `https://mcp.k84.org` (已配置路由)
+- ✅ **版本 ID**: `ff825e48-8a80-477d-b6d4-61acd3e79304` (2026-01-14)
+
+### 2. DNS 和路由配置
+
+#### 2.1 DNS 记录配置
+
+**Cloudflare Dashboard → DNS → Records**:
+
+| 类型 | 名称 | 目标 | 代理状态 |
+|------|------|------|----------|
+| CNAME | `mcp` | `mcp-gateway.896445070.workers.dev` | ✅ 已启用（橙色云朵） |
+
+#### 2.2 Worker 路由配置（重要）
+
+**⚠️ 重要**: 除了在 `wrangler.toml` 中配置路由外，**必须在 Cloudflare Dashboard 中手动绑定路由**。
+
+**配置步骤**:
+
+1. **登录 Cloudflare Dashboard**
+   - 访问: <https://dash.cloudflare.com>
+   - 选择域名: `k84.org`
+
+2. **进入 Workers & Pages**
+   - 左侧菜单 → **Workers & Pages**
+   - 选择 Worker: `mcp-gateway`
+
+3. **配置 Triggers**
+   - 点击 **Triggers** 标签
+   - 在 **Routes** 部分，检查是否有 `mcp.k84.org/*` 路由
+
+4. **添加路由**（如果不存在）
+   - 点击 **Add route**
+   - **Route**: `mcp.k84.org/*`
+   - **Zone**: `k84.org`
+   - 点击 **Save**
+
+**当前路由状态**: ✅ `mcp.k84.org/*` 已绑定到 `mcp-gateway` Worker
+
+**验证路由**:
+
+```bash
+# 测试自定义域名
+curl -X POST https://mcp.k84.org \
+  -H "Content-Type: application/json" \
+  -H "X-Gateway-Secret: 0d28bdb881c5aeea501bf535b45c153ea78bf6f28b4856a41e36068dfbf7410e" \
+  -H "X-User-ID: test-user" \
+  -H "X-Tenant-ID: test-tenant" \
+  -H "X-Tool-Name: warehouse_execute_task" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+### 3. ngrok 配置
+
+#### 3.1 ngrok 基本信息
+
+**当前 ngrok URL**: `https://182740a0a99a.ngrok-free.app`
+
+**ngrok Authtoken**: `2ezS4bIh0BK7iIRd2l5jxSYmUkk_3hecAfh6scnJrGVQ7Urco`
+
+#### 3.2 ngrok 配置步骤
+
+**1. 注册 ngrok 账号**:
+
+- 访问: <https://dashboard.ngrok.com/signup>
+- 注册免费账号（使用 GitHub、Google 或 Email）
+
+**2. 获取 Authtoken**:
+
+- 登录后访问: <https://dashboard.ngrok.com/get-started/your-authtoken>
+- 复制 authtoken
+
+**3. 配置 Authtoken**:
+
+```bash
+ngrok config add-authtoken 2ezS4bIh0BK7iIRd2l5jxSYmUkk_3hecAfh6scnJrGVQ7Urco
+```
+
+**4. 启动 ngrok**:
+
+```bash
+# 暴露本地 8003 端口（庫管員 Agent）
+ngrok http 8003
+```
+
+**5. 更新 Gateway 配置**:
+
+- 复制 ngrok 提供的 URL（例如: `https://182740a0a99a.ngrok-free.app`）
+- 更新 `wrangler.toml` 中的 `MCP_ROUTES` 配置:
+
+  ```toml
+  {
+    "pattern": "warehouse_*",
+    "target": "https://182740a0a99a.ngrok-free.app"
+  }
+  ```
+
+- 重新部署: `wrangler deploy`
+
+#### 3.3 ngrok 注意事项
+
+**免费版限制**:
+
+- ⚠️ 每次重启 ngrok 会生成新的 URL，需要更新 Gateway 配置
+- ⚠️ 免费版可能有连接限制
+- ⚠️ 建议生产环境使用 ngrok 付费版获得固定域名
+
+**后台运行**:
+
+```bash
+# 使用 nohup 后台运行
+nohup ngrok http 8003 > ngrok.log 2>&1 &
+```
+
+**查看 ngrok Web UI**:
+
+- 访问: `http://localhost:4040`
+- 可以查看请求日志和统计信息
+
+### 4. 庫管員 Agent 配置
+
+#### 4.1 Agent 服务信息
+
+**本地服务**:
+
+- **端口**: `8003`
+- **本地 URL**: `http://localhost:8003`
+- **MCP 端点**:
+  - `http://localhost:8003/mcp`
+  - `http://localhost:8003/` (根路径，用于 Tunnel/ngrok)
+
+**工具信息**:
+
+- **工具名称**: `warehouse_execute_task`
+- **路由模式**: `warehouse_*`
+- **描述**: 执行库存管理任务（查询料号、查询库存、缺料分析、生成采购单等）
+
+#### 4.2 Gateway 路由配置
+
+**wrangler.toml**:
+
+```toml
+MCP_ROUTES = '''
+[
+  {
+    "pattern": "warehouse_*",
+    "target": "https://182740a0a99a.ngrok-free.app"
+  }
+]
+'''
+```
+
+#### 4.3 Gateway 认证配置
+
+**配置工具认证** (无认证):
+
+```bash
+cd /Users/daniel/GitHub/AI-Box/mcp/gateway
+
+# 配置工具认证（无认证）
+wrangler kv key put "auth:warehouse_execute_task" \
+  '{"type":"none"}' \
+  --binding=AUTH_STORE --preview=false --remote
+```
+
+**配置权限**:
+
+```bash
+# 配置租户默认权限（允许 warehouse_* 工具）
+wrangler kv key put "permissions:test-tenant:default" \
+  '{"tools":["warehouse_*"]}' \
+  --binding=PERMISSIONS_STORE --preview=false --remote
+```
+
+#### 4.4 测试配置
+
+**测试本地服务**:
+
+```bash
+# 健康检查
+curl http://localhost:8003/health
+
+# MCP 端点测试
+curl -X POST http://localhost:8003/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+**测试 ngrok**:
+
+```bash
+curl -X POST https://182740a0a99a.ngrok-free.app/ \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+**测试 Gateway (workers.dev)**:
+
+```bash
+curl -X POST https://mcp-gateway.896445070.workers.dev \
+  -H "Content-Type: application/json" \
+  -H "X-Gateway-Secret: 0d28bdb881c5aeea501bf535b45c153ea78bf6f28b4856a41e36068dfbf7410e" \
+  -H "X-User-ID: test-user" \
+  -H "X-Tenant-ID: test-tenant" \
+  -H "X-Tool-Name: warehouse_execute_task" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+**测试 Gateway (自定义域名)**:
+
+```bash
+curl -X POST https://mcp.k84.org \
+  -H "Content-Type: application/json" \
+  -H "X-Gateway-Secret: 0d28bdb881c5aeea501bf535b45c153ea78bf6f28b4856a41e36068dfbf7410e" \
+  -H "X-User-ID: test-user" \
+  -H "X-Tenant-ID: test-tenant" \
+  -H "X-Tool-Name: warehouse_execute_task" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+### 5. 完整配置检查清单
+
+#### 5.1 Cloudflare 配置
+
+- [x] Cloudflare 账户已创建并登录
+- [x] Wrangler CLI 已安装并登录
+- [x] 所有 KV 命名空间已创建
+- [x] Gateway Secret 已生成并设置
+- [x] Worker 已成功部署
+- [x] DNS 记录已配置 (mcp.k84.org)
+- [x] Worker 路由已在 Dashboard 中绑定
+
+#### 5.2 ngrok 配置
+
+- [x] ngrok 账号已注册
+- [x] Authtoken 已配置
+- [x] ngrok 已启动并运行
+- [x] Gateway 路由已更新为 ngrok URL
+
+#### 5.3 庫管員 Agent 配置
+
+- [x] Agent 服务已启动 (localhost:8003)
+- [x] MCP 端点已配置 (`/mcp` 和 `/`)
+- [x] 工具已注册 (`warehouse_execute_task`)
+- [x] Gateway 路由已配置 (`warehouse_*`)
+- [x] Gateway 认证已配置 (无认证)
+- [x] Gateway 权限已配置 (允许 `warehouse_*`)
+
+#### 5.4 测试验证
+
+- [x] 本地服务测试通过
+- [x] ngrok 直接访问测试通过
+- [x] Gateway (workers.dev) 测试通过
+- [x] Gateway (自定义域名) 测试通过
+
+### 6. 当前可用端点
+
+| 端点 | URL | 状态 | 说明 |
+|------|-----|------|------|
+| **本地服务** | `http://localhost:8003` | ✅ | 本地开发 |
+| **ngrok** | `https://182740a0a99a.ngrok-free.app` | ✅ | 内网穿透 |
+| **Gateway (workers.dev)** | `https://mcp-gateway.896445070.workers.dev` | ✅ | 生产环境 |
+| **Gateway (自定义域名)** | `https://mcp.k84.org` | ✅ | 生产环境（推荐） |
+
+### 7. 配置更新流程
+
+#### 7.1 更新 ngrok URL
+
+如果 ngrok 重启并生成新 URL:
+
+1. **获取新 URL**:
+
+   ```bash
+   # 查看 ngrok Web UI
+   open http://localhost:4040
+   # 或查看 ngrok 终端输出
+   ```
+
+2. **更新 wrangler.toml**:
+
+   ```toml
+   {
+     "pattern": "warehouse_*",
+     "target": "https://NEW_NGROK_URL.ngrok-free.app"
+   }
+   ```
+
+3. **重新部署**:
+
+   ```bash
+   cd /Users/daniel/GitHub/AI-Box/mcp/gateway
+   wrangler deploy
+   ```
+
+#### 7.2 添加新的 MCP 工具
+
+1. **更新 wrangler.toml**:
+
+   ```toml
+   {
+     "pattern": "new_tool_*",
+     "target": "https://new-mcp-server.example.com/mcp"
+   }
+   ```
+
+2. **配置认证** (如果需要):
+
+   ```bash
+   wrangler kv key put "auth:new_tool_name" \
+     '{"type":"api_key","api_key":"YOUR_API_KEY"}' \
+     --binding=AUTH_STORE --preview=false --remote
+   ```
+
+3. **配置权限**:
+
+   ```bash
+   wrangler kv key put "permissions:tenant-id:default" \
+     '{"tools":["new_tool_*"]}' \
+     --binding=PERMISSIONS_STORE --preview=false --remote
+   ```
+
+4. **重新部署**:
+
+   ```bash
+   wrangler deploy
+   ```
 
 ---
 
@@ -1437,5 +1955,35 @@ wrangler kv:key put "auth:tool_name" \
 
 ---
 
-**最后更新日期**: 2025-12-31
+**最后更新日期**: 2026-01-14
 **维护人**: Daniel Chung
+
+---
+
+## 📝 更新日志
+
+### 2026-01-14 更新
+
+**重要更新**:
+
+- ✅ 添加了完整的"实际配置详情"章节，包含所有 Cloudflare、ngrok、mcp_gateway 配置
+- ✅ 记录了自定义域名 `mcp.k84.org` 的完整配置步骤（包括 Dashboard 路由设置）
+- ✅ 添加了 ngrok 配置详情（包括 authtoken 和启动步骤）
+- ✅ 添加了庫管員 Agent 完整配置流程（包括路由、认证、权限配置）
+- ✅ 更新了所有实际配置值（Gateway Secret、KV 命名空间 ID、ngrok URL 等）
+- ✅ 添加了完整的测试命令和验证步骤
+- ✅ 添加了配置更新流程和维护指南
+- ✅ 更新了部署状态追踪表（所有配置标记为已完成）
+
+**配置状态**:
+
+- ✅ Cloudflare Worker 已部署并正常工作
+- ✅ 自定义域名 `mcp.k84.org` 已配置并正常工作
+- ✅ ngrok 已配置并运行（`https://182740a0a99a.ngrok-free.app`）
+- ✅ 庫管員 Agent 已注册并配置（`warehouse_execute_task`）
+- ✅ 所有路由、认证、权限配置已完成
+
+### 2025-12-31 初始版本
+
+- ✅ 创建了 Cloudflare MCP Gateway 设置指南
+- ✅ 记录了基本配置步骤和架构说明

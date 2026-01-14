@@ -2,19 +2,21 @@
 
 **创建日期**: 2025-12-31
 **创建人**: Daniel Chung
-**最后修改日期**: 2025-12-31
+**最后修改日期**: 2026-01-14
 
 ---
 
 ## 📋 概述
 
-本指南说明如何在 AI-Box 中配置和使用第三方 MCP (Model Context Protocol) 服务，通过 Cloudflare Gateway 统一管理和代理所有第三方 MCP Server 请求。
+本指南说明如何在 AI-Box 中配置和使用第三方 MCP (Model Context Protocol) 服务，通过 Gateway 统一管理和代理所有第三方 MCP Server 请求。
+
+AI-Box 支持多种 Gateway 提供商，目前主要使用 **Cloudflare Gateway**，未来可能支持 Google Cloud、AWS 等其他提供商。
 
 ---
 
 ## 🎯 配置目标
 
-通过 Cloudflare Gateway 统一管理第三方 MCP 服务，实现：
+通过 Gateway 统一管理第三方 MCP 服务，实现：
 
 - ✅ 统一认证和授权
 - ✅ IP 隐藏和隐私保护
@@ -24,9 +26,68 @@
 
 ---
 
+## 🏗️ Gateway 提供商选择
+
+### 当前支持
+
+#### Cloudflare Gateway（推荐，当前使用）
+
+**特点**：
+
+- ✅ 全球边缘网络，低延迟
+- ✅ 商业 SLA 保障
+- ✅ 完整的审计和监控功能
+- ✅ 易于配置和部署
+- ✅ 成本效益高
+
+**设置指南**：请参阅 [Cloudflare MCP Gateway 设置指南](./Cloudflare-MCP-Gateway-设置指南.md)
+
+### 未来计划
+
+#### Google Cloud Gateway（规划中）
+
+**特点**：
+
+- 与 Google Cloud 服务深度集成
+- 支持 Google Cloud IAM 认证
+- 适用于已使用 Google Cloud 的企业
+
+**状态**：规划中，待实现
+
+#### AWS API Gateway（规划中）
+
+**特点**：
+
+- 与 AWS 服务深度集成
+- 支持 AWS IAM 认证
+- 适用于已使用 AWS 的企业
+
+**状态**：规划中，待实现
+
+---
+
 ## 🔧 配置流程
 
-### 步骤 1: 在 Cloudflare Gateway 中配置路由
+### 步骤 1: 选择并设置 Gateway
+
+根据您的需求和现有基础设施，选择合适的 Gateway 提供商：
+
+#### 选项 1: Cloudflare Gateway（推荐）
+
+**适用场景**：
+
+- 需要全球低延迟访问
+- 需要商业 SLA 保障
+- 需要快速部署和配置
+- 成本敏感的项目
+
+**设置步骤**：请参阅 [Cloudflare MCP Gateway 设置指南](./Cloudflare-MCP-Gateway-设置指南.md)
+
+#### 选项 2: 其他 Gateway（未来支持）
+
+当其他 Gateway 提供商支持后，将在此处添加相应的设置指南。
+
+### 步骤 2: 在 Gateway 中配置路由
 
 #### 1.1 查找第三方 MCP Server 端点
 
@@ -51,13 +112,17 @@
 - `https://smithery.ai/server/@username/server-name`（smithery.ai 托管）
 - `wss://your-mcp-server.com/mcp`（WebSocket MCP Server，需要适配）
 
-#### 1.2 配置 Gateway 路由
+#### 1.2 配置 Gateway 路由（以 Cloudflare Gateway 为例）
+
+**注意**：以下配置示例基于 Cloudflare Gateway。如果您使用其他 Gateway 提供商，请参考相应的设置指南。
 
 **当前实现说明**: Gateway 支持两种路由方式，优先使用方式一（pattern 匹配），如果未匹配则使用方式二（请求头）。
 
 **方式一：通过 wrangler.toml 配置路由规则（推荐，优先使用）**
 
 **文件位置**: `mcp/gateway/wrangler.toml`
+
+**详细设置步骤**：请参阅 [Cloudflare MCP Gateway 设置指南](./Cloudflare-MCP-Gateway-设置指南.md)
 
 ```toml
 [vars]
@@ -127,7 +192,11 @@ wrangler deploy
 
 **注意**: 当前实现**不支持**从请求头 `X-Real-Endpoint` 获取端点。如果需要此功能，需要修改 `router.ts` 实现。建议使用方式一（pattern 匹配）配置路由。
 
-#### 1.2 配置认证信息（在 Gateway KV 存储中）
+#### 1.3 配置认证信息（在 Gateway KV 存储中）
+
+**注意**：以下配置示例基于 Cloudflare Gateway。如果您使用其他 Gateway 提供商，请参考相应的设置指南。
+
+**详细设置步骤**：请参阅 [Cloudflare MCP Gateway 设置指南](./Cloudflare-MCP-Gateway-设置指南.md) 中的认证配置部分。
 
 **配置无认证的 MCP Server**（如 Yahoo Finance public demo）:
 
@@ -665,9 +734,14 @@ external_manager = ExternalToolManager(
 
 ## 📚 相关文档
 
-- [MCP 工具系统规格](./MCP工具.md) - MCP 工具系统完整规格
-- [Cloudflare MCP Gateway 设置指南](./Cloudflare-MCP-Gateway-设置指南.md) - Gateway 设置详细指南
-- [開發環境部署狀態報告](./開發環境部署狀態報告.md) - 当前部署状态
+### 核心文档
+
+- [MCP 工具系统规格](./MCP工具.md) - MCP 工具系统完整规格，包含其他 MCP 工具记录
+- [Cloudflare MCP Gateway 设置指南](./Cloudflare-MCP-Gateway-设置指南.md) - Cloudflare Gateway 详细设置指南（当前使用）
+
+### 参考文档
+
+- [參考&歸檔文件](./參考&歸檔文件/) - 历史文档和参考材料
 
 ---
 

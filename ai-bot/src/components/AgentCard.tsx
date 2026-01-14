@@ -61,7 +61,7 @@ export default function AgentCard({ agent, onEdit, onDelete, onClick, onFavorite
   const getStatusInfo = () => {
     switch (agent.status) {
       case 'registering':
-        return { color: 'bg-gray-500', text: t('agent.status.registering', '註冊中') };
+        return { color: 'bg-orange-500', text: t('agent.status.registering', '審查中') };
       case 'online':
         return { color: 'bg-green-500', text: t('agent.status.online', '在線') };
       case 'maintenance':
@@ -74,17 +74,23 @@ export default function AgentCard({ agent, onEdit, onDelete, onClick, onFavorite
   };
 
   const statusInfo = getStatusInfo();
+  const isRegistering = agent.status === 'registering';
 
   return (
     <div
     className={cn(
-      'bg-secondary rounded-xl p-4 border border-primary transition-all duration-300 theme-transition cursor-pointer',
+      'bg-secondary rounded-xl p-4 border border-primary transition-all duration-300 theme-transition',
+      isRegistering ? 'cursor-not-allowed opacity-75' : 'cursor-pointer',
       theme === 'light' && 'shadow-xl shadow-gray-300/80', // 增强浅色模式下的阴影效果
-      isHovered ? 'border-blue-500/50 shadow-2xl shadow-blue-500/20' : ''
+      isHovered && !isRegistering ? 'border-blue-500/50 shadow-2xl shadow-blue-500/20' : ''
     )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={onClick}
+      onClick={() => {
+        if (!isRegistering && onClick) {
+          onClick();
+        }
+      }}
     >
       {/* 卡片头部 */}
       <div className="flex items-center justify-between mb-3">
@@ -154,9 +160,7 @@ export default function AgentCard({ agent, onEdit, onDelete, onClick, onFavorite
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowMenu(false);
-                    if (window.confirm(t('agent.actions.confirmDelete', `確定要刪除 "${agent.name}" 嗎？`))) {
-                      onDelete?.(agent.id);
-                    }
+                    onDelete?.(agent.id);
                   }}
                   className="w-full text-left px-4 py-2 text-sm hover:bg-tertiary transition-colors flex items-center gap-2 text-red-400"
                 >
