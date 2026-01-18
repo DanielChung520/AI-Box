@@ -249,13 +249,16 @@ def _register_agent_helper(
         except Exception as e:
             logger.warning(f"Failed to register {name}: {e}", exc_info=True)
 
-def _do_register_all_agents(agents_dict: Optional[Dict[str, AgentServiceProtocol]] = None) -> Dict[str, AgentServiceProtocol]:
+
+def _do_register_all_agents(
+    agents_dict: Optional[Dict[str, AgentServiceProtocol]] = None,
+) -> Dict[str, AgentServiceProtocol]:
     """
     實際執行所有 Agent 註冊邏輯的內部函數
-    
+
     Args:
         agents_dict: Agent 實例字典（如果為 None，使用全局 _builtin_agents）
-        
+
     Returns:
         內建 Agent 實例字典
     """
@@ -263,7 +266,7 @@ def _do_register_all_agents(agents_dict: Optional[Dict[str, AgentServiceProtocol
 
     if agents_dict is None:
         agents_dict = _builtin_agents
-    
+
     if not agents_dict:
         # 如果未初始化，先初始化
         initialize_builtin_agents()
@@ -273,7 +276,7 @@ def _do_register_all_agents(agents_dict: Optional[Dict[str, AgentServiceProtocol
         _builtin_agents = agents_dict
 
     registry = get_agent_registry()  # 初始化 registry
-    
+
     # 導入需要的類（用於 Agent 註冊）
     from agents.services.protocol.base import AgentServiceProtocolType
     from agents.services.registry.models import (
@@ -420,8 +423,6 @@ def _do_register_all_agents(agents_dict: Optional[Dict[str, AgentServiceProtocol
             agent_info = registry.get_agent_info(agent_id)
             if agent_info:
                 # 內部 Agent 應該直接設置為 ONLINE
-                from agents.services.registry.models import AgentStatus
-
                 agent_info.status = AgentStatus.ONLINE  # type: ignore[assignment]
                 logger.info(
                     f"Document Editing Agent ({agent_id}) registered successfully (status: ONLINE)"

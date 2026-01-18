@@ -414,6 +414,11 @@ class LLMMoEManager:
                 logger.debug(
                     f"Extracted Ollama model name from model_id: {model} -> {normalized_model}"
                 )
+            else:
+                # 簡化格式（如 gpt-oss:120b-cloud），直接使用
+                # 這種格式本身就是模型名稱，可以直接傳遞給 Ollama
+                normalized_model = model
+                logger.debug(f"Using simplified Ollama model name: {model} (no extraction needed)")
 
         # 嘗試調用
         latency: Optional[float] = None
@@ -609,6 +614,11 @@ class LLMMoEManager:
                 logger.debug(
                     f"Extracted Ollama model name from model_id: {model} -> {normalized_model}"
                 )
+            else:
+                # 簡化格式（如 gpt-oss:120b-cloud），直接使用
+                # 這種格式本身就是模型名稱，可以直接傳遞給 Ollama
+                normalized_model = model
+                logger.debug(f"Using simplified Ollama model name: {model} (no extraction needed)")
 
         # 檢查客戶端是否支持 streaming
         if not hasattr(client, "chat_stream"):

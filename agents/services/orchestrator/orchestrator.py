@@ -10,7 +10,6 @@
 
 import asyncio
 import logging
-import time
 import uuid
 from collections import deque
 from datetime import datetime
@@ -368,7 +367,7 @@ class AgentOrchestrator:
             intent_name = task_request.metadata.get("intent", {}).get(
                 "intent_type"
             ) or task_request.metadata.get("intent", {}).get("action", "unknown")
-            
+
             # 異步記錄執行指標
             asyncio.create_task(
                 self._record_execution_metrics(
@@ -564,9 +563,7 @@ class AgentOrchestrator:
         """獲取 Execution Record Store 實例（懶加載，避免循環導入）"""
         if self._execution_record_store is None:
             try:
-                from agents.task_analyzer.execution_record import (
-                    get_execution_record_store_service,
-                )
+                from agents.task_analyzer.execution_record import get_execution_record_store_service
 
                 self._execution_record_store = get_execution_record_store_service()
             except Exception as e:
@@ -935,7 +932,7 @@ class AgentOrchestrator:
 
                 # 8. 對於其他任務類型，暫時返回未實現（後續任務中會完善任務分發和結果修飾）
                 # TODO: 任務 4.3 將完善結果修飾和任務分發
-                
+
                 # L5 層級：記錄執行指標（任務創建階段）
                 # 注意：這裡只記錄任務創建，實際執行指標需要在任務完成後記錄
                 intent_name = intent_dict.get("intent_type") or intent_dict.get("action", "unknown")
@@ -1677,7 +1674,9 @@ class AgentOrchestrator:
         try:
             record_store = self._get_execution_record_store()
             if record_store is None:
-                logger.warning("Execution Record Store is not available, skipping metrics recording")
+                logger.warning(
+                    "Execution Record Store is not available, skipping metrics recording"
+                )
                 return
 
             from agents.task_analyzer.execution_record import ExecutionRecordCreate
@@ -1696,7 +1695,9 @@ class AgentOrchestrator:
             )
 
             record_store.save_record(record)
-            logger.debug(f"Recorded execution metrics: intent={intent}, success={execution_success}")
+            logger.debug(
+                f"Recorded execution metrics: intent={intent}, success={execution_success}"
+            )
         except Exception as e:
             logger.warning(f"Failed to record execution metrics: {e}", exc_info=True)
 

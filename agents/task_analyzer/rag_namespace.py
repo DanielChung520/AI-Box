@@ -121,7 +121,9 @@ class RAGNamespaceManager:
         return NAMESPACE_CONFIGS[RAGNamespace.RAG_2_CAPABILITY_DISCOVERY]
 
     @staticmethod
-    def get_namespace_by_layer(layer: Literal["L1", "L2", "L3", "L4", "L5"]) -> List[NamespaceConfig]:
+    def get_namespace_by_layer(
+        layer: Literal["L1", "L2", "L3", "L4", "L5"],
+    ) -> List[NamespaceConfig]:
         """
         根據層級獲取適用的 Namespace
 

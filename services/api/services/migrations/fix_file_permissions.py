@@ -8,7 +8,12 @@
 
 import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import structlog
+
+from database.arangodb import ArangoDBClient
+from services.api.models.file_access_control import FileAccessLevel
 
 # 添加項目根目錄到 Python 路徑
 project_root = Path(__file__).parent.parent.parent.parent.parent
@@ -17,15 +22,12 @@ sys.path.insert(0, str(project_root))
 # 嘗試載入 .env 文件
 try:
     from dotenv import load_dotenv
+
     env_path = project_root / ".env"
     if env_path.exists():
         load_dotenv(env_path)
 except ImportError:
     pass
-
-import structlog
-from database.arangodb import ArangoDBClient
-from services.api.models.file_access_control import FileAccessLevel
 
 logger = structlog.get_logger(__name__)
 
@@ -271,4 +273,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

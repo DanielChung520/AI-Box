@@ -90,7 +90,11 @@ class FileAuditService:
                 "action": log.action.value if hasattr(log.action, "value") else log.action,
                 "resource_type": log.resource_type,
                 "resource_id": log.resource_id,
-                "timestamp": log.timestamp.isoformat() if isinstance(log.timestamp, datetime) else log.timestamp,
+                "timestamp": (
+                    log.timestamp.isoformat()
+                    if isinstance(log.timestamp, datetime)
+                    else log.timestamp
+                ),
                 "ip_address": log.ip_address,
                 "user_agent": log.user_agent,
                 "details": log.details,
@@ -150,7 +154,11 @@ class FileAuditService:
                 "action": log.action.value if hasattr(log.action, "value") else log.action,
                 "resource_type": log.resource_type,
                 "resource_id": log.resource_id,
-                "timestamp": log.timestamp.isoformat() if isinstance(log.timestamp, datetime) else log.timestamp,
+                "timestamp": (
+                    log.timestamp.isoformat()
+                    if isinstance(log.timestamp, datetime)
+                    else log.timestamp
+                ),
                 "ip_address": log.ip_address,
                 "user_agent": log.user_agent,
                 "details": log.details,

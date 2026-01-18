@@ -10,7 +10,6 @@ api.core.settings 可能依賴於 llm.router，而 llm.router 可能依賴於 ag
 這會導致循環導入，因此使用 __getattr__ 實現延遲導入。
 """
 
-import importlib
 from typing import Any
 
 __all__ = [

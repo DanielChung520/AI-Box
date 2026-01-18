@@ -432,7 +432,7 @@ def create_validator_from_config(config: dict) -> FileValidator:
     else:
         # 如果都沒有，使用默認值
         allowed_extensions = ALLOWED_EXTENSIONS
-    
+
     max_file_size = config.get("max_file_size", 104857600)  # 默認 100MB（與文檔一致）
 
     return FileValidator(allowed_extensions=allowed_extensions, max_file_size=max_file_size)

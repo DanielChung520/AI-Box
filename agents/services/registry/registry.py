@@ -1,7 +1,7 @@
 # 代碼功能說明: Agent Registry 核心服務
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-11
+# 最後修改日期: 2026-01-14 22:35 UTC+8
 
 """Agent Registry 核心服務實現"""
 
@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 from agents.services.protocol.base import AgentServiceProtocol, AgentServiceProtocolType
 from agents.services.protocol.factory import AgentServiceClientFactory
 from agents.services.registry.models import (
+    AgentEndpoints,
     AgentMetadata,
     AgentPermissionConfig,
     AgentRegistrationRequest,
@@ -229,7 +230,120 @@ class AgentRegistry:
         Returns:
             Agent 註冊信息，如果不存在則返回 None
         """
-        return self._agents.get(agent_id)
+        # 如果尚未加載，先嘗試加載（避免 Registry 尚未初始化時返回 None）
+        if not self._agents:
+            try:
+                self.get_all_agents()
+            except Exception as exc:  # noqa: BLE001
+                self._logger.warning(
+                    "get_agent_info_autoload_failed",
+                    agent_id=agent_id,
+                    error=str(exc),
+                    exc_info=True,
+                )
+
+        # 獲取內存中的 Agent 信息
+        agent_info = self._agents.get(agent_id)
+
+        # 【調試】輸出當前內存中的 Agent 配置
+        self._logger.info(
+            f"🔍 [get_agent_info] Agent ID: {agent_id}, "
+            f"exists={agent_info is not None}, "
+            f"is_system_agent={agent_info.is_system_agent if agent_info else 'N/A'}, "
+            f"mcp={agent_info.endpoints.mcp if agent_info else 'N/A'}, "
+            f"http={agent_info.endpoints.http if agent_info else 'N/A'}"
+        )
+
+        # 【調試】輸出條件判斷
+        if agent_info:
+            self._logger.info(
+                f"🔍 條件檢查: agent_info={agent_info is not None}, "
+                f"is_system_agent={agent_info.is_system_agent}, "
+                f"type(is_system_agent)={type(agent_info.is_system_agent)}, "
+                f"not is_system_agent={not agent_info.is_system_agent}"
+            )
+
+        # 【新增】如果是外部 Agent（is_system_agent=False）且缺少 endpoint 配置
+        # 從 agent_display_configs 加載完整的技術配置（外部 Agent 不使用 system_agent_registry）
+        if agent_info and not agent_info.is_system_agent:
+            # 檢查是否缺少 endpoint 配置
+            if not agent_info.endpoints.mcp and not agent_info.endpoints.http:
+                self._logger.info(
+                    f"✅ 外部 Agent 缺少 endpoint，從 agent_display_configs 加載（agent_id={agent_id}）"
+                )
+                try:
+                    from database.arangodb import ArangoDBClient
+
+                    # 連接到 ArangoDB
+                    arango_client = ArangoDBClient()
+                    if not arango_client.db:
+                        raise RuntimeError("ArangoDB connection failed")
+
+                    # 查詢 agent_display_configs
+                    cursor = arango_client.db.aql.execute(
+                        """
+                        FOR doc IN agent_display_configs
+                            FILTER doc.config_type == "agent"
+                            FILTER doc.agent_config.agent_id == @agent_id OR doc.agent_config.id == @agent_id
+                            RETURN doc.agent_config
+                        """,
+                        bind_vars={"agent_id": agent_id},
+                    )
+
+                    agent_config = None
+                    for config in cursor:
+                        agent_config = config
+                        break
+
+                    if agent_config:
+                        endpoint_url = agent_config.get("endpoint_url")
+                        protocol = agent_config.get("protocol", "http")
+
+                        self._logger.info(
+                            f"📋 從 agent_display_configs 讀取配置: agent_id={agent_id}, "
+                            f"endpoint_url={endpoint_url}, protocol={protocol}"
+                        )
+
+                        if endpoint_url:
+                            # 更新內存中的 endpoint 配置
+                            from agents.services.registry.models import AgentServiceProtocolType
+
+                            if protocol == "mcp":
+                                agent_info.endpoints.mcp = endpoint_url
+                                agent_info.endpoints.protocol = AgentServiceProtocolType.MCP
+                            else:
+                                agent_info.endpoints.http = endpoint_url
+                                agent_info.endpoints.protocol = AgentServiceProtocolType.HTTP
+
+                            # 更新 permissions（如果有）
+                            secret_id = agent_config.get("secret_id")
+                            secret_key = agent_config.get("secret_key")
+                            if secret_id or secret_key:
+                                agent_info.permissions.secret_id = secret_id
+                                agent_info.permissions.api_key = secret_key
+
+                            # 更新緩存
+                            self._agents[agent_id] = agent_info
+
+                            self._logger.info(
+                                f"✅ 已從 agent_display_configs 更新配置: agent_id={agent_id}, "
+                                f"protocol={protocol}, endpoint={endpoint_url}"
+                            )
+                        else:
+                            self._logger.warning(
+                                f"⚠️ agent_display_configs 中沒有 endpoint_url（agent_id={agent_id}）"
+                            )
+                    else:
+                        self._logger.warning(
+                            f"⚠️ agent_display_configs 中找不到 Agent（agent_id={agent_id}）"
+                        )
+
+                except Exception as reload_exc:  # noqa: BLE001
+                    self._logger.warning(
+                        f"從 agent_display_configs 加載配置失敗: agent_id={agent_id}, error={str(reload_exc)}"
+                    )
+
+        return agent_info
 
     def get_agent(self, agent_id: str) -> Optional[AgentServiceProtocol]:
         """
@@ -504,6 +618,155 @@ class AgentRegistry:
         Returns:
             所有 Agent 列表
         """
+        # 修改時間：2026-01-27 - 自動加載 System Agents（如果尚未加載）
+        # 確保 Agent Registry 包含所有已註冊的 System Agents
+        if len(self._agents) == 0:
+            try:
+                from services.api.services.system_agent_registry_store_service import (
+                    get_system_agent_registry_store_service,
+                )
+
+                system_agent_store = get_system_agent_registry_store_service()
+                system_agents = system_agent_store.list_system_agents(
+                    agent_type=None,
+                    status=None,
+                    is_active=True,
+                )
+
+                self._logger.info(f"Auto-loading {len(system_agents)} system agents into registry")
+
+                for sys_agent in system_agents:
+                    # 只加載狀態為 online 的 System Agents
+                    if sys_agent.status == "online":
+                        agent_status = AgentStatus.ONLINE
+                    elif sys_agent.status == "offline":
+                        agent_status = AgentStatus.OFFLINE
+                    elif sys_agent.status == "maintenance":
+                        agent_status = AgentStatus.MAINTENANCE
+                    else:
+                        agent_status = AgentStatus.REGISTERING
+
+                    # 如果 Agent 尚未在 Registry 中，添加它
+                    if sys_agent.agent_id not in self._agents:
+                        # 從 metadata 中提取 endpoints（如果存在）
+                        endpoints_dict = (
+                            sys_agent.metadata.get("endpoints", {}) if sys_agent.metadata else {}
+                        )
+
+                        agent_info = AgentRegistryInfo(
+                            agent_id=sys_agent.agent_id,
+                            agent_type=sys_agent.agent_type,
+                            name=sys_agent.name,
+                            description=sys_agent.description,
+                            capabilities=sys_agent.capabilities,
+                            status=agent_status,
+                            endpoints=AgentEndpoints(
+                                http=endpoints_dict.get("http") if endpoints_dict else None,
+                                mcp=endpoints_dict.get("mcp") if endpoints_dict else None,
+                                protocol=(
+                                    AgentServiceProtocolType.MCP
+                                    if endpoints_dict and endpoints_dict.get("mcp")
+                                    else AgentServiceProtocolType.HTTP
+                                ),
+                                is_internal=(
+                                    endpoints_dict.get("is_internal", False)
+                                    if endpoints_dict
+                                    else False
+                                ),
+                            ),
+                            metadata=AgentMetadata(
+                                version=sys_agent.version,
+                                description=sys_agent.description,
+                                author="AI-Box Team",
+                                tags=[sys_agent.agent_type, "system", "builtin"],
+                            ),
+                            permissions=AgentPermissionConfig(),
+                            is_system_agent=True,
+                        )
+                        self._agents[sys_agent.agent_id] = agent_info
+                        self._logger.debug(
+                            f"Auto-loaded system agent: {sys_agent.agent_id} "
+                            f"(type: {sys_agent.agent_type}, status: {agent_status.value})"
+                        )
+            except Exception as e:
+                self._logger.warning(f"Failed to auto-load system agents: {e}", exc_info=True)
+
+        # 修改時間：2026-01-27 - 也從 agent_display_configs 加載 Agent（如果它們不在 system_agent_registry 中）
+        # 這確保了前端顯示的 Agent 也能在 Registry 中找到
+        try:
+            from services.api.services.agent_display_config_store_service import (
+                AgentDisplayConfigStoreService,
+            )
+
+            display_store = AgentDisplayConfigStoreService()
+            all_display_configs = display_store.list_all_agent_configs()
+
+            loaded_from_display = 0
+            for config in all_display_configs:
+                agent_id = config.agent_id or (
+                    config.agent_config.agent_id if config.agent_config else None
+                )
+
+                # 如果 Agent 已經在 Registry 中，跳過
+                if agent_id in self._agents:
+                    continue
+                if agent_id is None:
+                    continue
+
+                # 如果 Agent 不在 system_agent_registry 中，但存在於 display_config 中，
+                # 創建一個基本的 AgentRegistryInfo（用於前端顯示，但可能無法實際調用）
+                agent_config = config.agent_config
+                if agent_config and agent_config.is_visible and agent_config.status == "online":
+                    # 從 agent_config 中提取信息
+                    name = (
+                        agent_config.name.get("zh_TW", agent_config.name.get("en", agent_id))
+                        if isinstance(agent_config.name, dict)
+                        else str(agent_config.name)
+                    )
+                    description = (
+                        agent_config.description.get(
+                            "zh_TW", agent_config.description.get("en", "")
+                        )
+                        if isinstance(agent_config.description, dict)
+                        else str(agent_config.description)
+                    )
+
+                    agent_info = AgentRegistryInfo(
+                        agent_id=agent_id,
+                        agent_type="execution",  # 默認類型
+                        name=name,
+                        description=description,
+                        capabilities=[],  # 空能力列表，因為沒有實際註冊信息
+                        status=AgentStatus.ONLINE,
+                        endpoints=AgentEndpoints(
+                            http=None,
+                            mcp=None,
+                            protocol=AgentServiceProtocolType.HTTP,
+                            is_internal=False,
+                        ),
+                        metadata=AgentMetadata(
+                            version="1.0.0",
+                            description=description,
+                            author="Unknown",
+                            tags=["display_config", "unregistered"],
+                        ),
+                        permissions=AgentPermissionConfig(),
+                        is_system_agent=False,
+                    )
+                    self._agents[agent_id] = agent_info
+                    loaded_from_display += 1
+                    self._logger.debug(
+                        f"Auto-loaded agent from display config: {agent_id} "
+                        f"(name: {name}, note: Agent exists in display config but not in system_agent_registry)"
+                    )
+
+            if loaded_from_display > 0:
+                self._logger.info(f"Auto-loaded {loaded_from_display} agents from display configs")
+        except Exception as e:
+            self._logger.warning(
+                f"Failed to auto-load agents from display configs: {e}", exc_info=True
+            )
+
         return list(self._agents.values())
 
 

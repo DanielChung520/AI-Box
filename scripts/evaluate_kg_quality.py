@@ -21,9 +21,9 @@
 import json
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
-from datetime import datetime
 
 from dotenv import load_dotenv
 
@@ -40,21 +40,15 @@ def json_serial(obj):
     if isinstance(obj, datetime):
         return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
-
-
-def json_serial(obj):
-    """JSON serializer for objects not serializable by default json code"""
-    from datetime import datetime
-    if isinstance(obj, datetime):
-        return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
 
 
 def get_kg_stats(file_id: str) -> Dict[str, Any]:
     """獲取圖譜統計（使用系統服務）"""
     try:
-        from database.redis import get_redis_client
         import json
+
+        from database.redis import get_redis_client
 
         redis_client = get_redis_client()
         status_key = f"processing:status:{file_id}"

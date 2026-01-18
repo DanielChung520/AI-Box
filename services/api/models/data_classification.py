@@ -71,7 +71,9 @@ def validate_classification(classification: Optional[str]) -> Optional[str]:
         return None
 
     # 轉換為小寫以便不區分大小寫的驗證
-    classification_lower = classification.lower() if isinstance(classification, str) else classification
+    classification_lower = (
+        classification.lower() if isinstance(classification, str) else classification
+    )
 
     valid_values = DataClassification.get_all_values()
     if classification_lower not in valid_values:
@@ -105,9 +107,9 @@ def validate_sensitivity_labels(labels: Optional[List[str]]) -> Optional[List[st
     # 修改時間：2026-01-06 - 允許自定義標籤，不進行嚴格驗證
     # 只確保標籤是字符串列表，允許自定義值（如 'low', 'high'）
     valid_labels = [str(label) for label in labels if label is not None]
-    
+
     # 如果所有標籤都無效，返回 None
     if len(valid_labels) == 0:
         return None
-    
+
     return valid_labels

@@ -84,9 +84,7 @@ class IntentMatcher:
             )
             return None
 
-        self._logger.info(
-            f"Matched intent: {best_match.name} (score: {best_score:.2f})"
-        )
+        self._logger.info(f"Matched intent: {best_match.name} (score: {best_score:.2f})")
         return best_match
 
     def _calculate_match_score(
@@ -139,9 +137,7 @@ class IntentMatcher:
                 "refactor",
             ]
             action_keywords = [kw for kw in intent_keywords if kw in action_text]
-            intent_keywords_in_name = [
-                kw for kw in intent_keywords if kw in intent.name.lower()
-            ]
+            intent_keywords_in_name = [kw for kw in intent_keywords if kw in intent.name.lower()]
             if action_keywords and intent_keywords_in_name:
                 action_match = len(set(action_keywords) & set(intent_keywords_in_name)) / max(
                     len(action_keywords), 1

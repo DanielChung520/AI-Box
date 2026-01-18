@@ -1,7 +1,7 @@
 # 代碼功能說明: Agent Display Config 存儲服務
 # 創建日期: 2026-01-13
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-13
+# 最後修改日期: 2026-01-14 21:41 UTC+8
 
 """Agent Display Config 存儲服務
 
@@ -249,6 +249,51 @@ class AgentDisplayConfigStoreService:
             )
             raise
 
+    def list_all_agent_configs(
+        self, tenant_id: Optional[str] = None, include_inactive: bool = False
+    ) -> List[AgentDisplayConfigModel]:
+        """
+        列出所有 agent 類型的展示配置（不分分類）
+
+        Args:
+            tenant_id: 租戶 ID（None 表示系統級）
+            include_inactive: 是否包含未啟用的配置
+
+        Returns:
+            AgentDisplayConfigModel 列表（僅包含 config_type = 'agent'）
+        """
+        if self._client.db is None or self._client.db.aql is None:
+            raise RuntimeError("AQL is not available")
+
+        aql = """
+        FOR doc IN agent_display_configs
+        FILTER doc.config_type == @config_type
+        AND doc.tenant_id == @tenant_id
+        AND (@include_inactive OR doc.is_active == true)
+        RETURN doc
+        """
+        bind_vars = {
+            "config_type": "agent",
+            "tenant_id": tenant_id,
+            "include_inactive": include_inactive,
+        }
+
+        try:
+            cursor = self._client.db.aql.execute(aql, bind_vars=bind_vars)
+            results: List[AgentDisplayConfigModel] = []
+            for doc in cursor:
+                results.append(AgentDisplayConfigModel(**doc))
+            return results
+        except Exception as exc:
+            self._logger.error(
+                "list_all_agent_configs_failed",
+                tenant_id=tenant_id,
+                include_inactive=include_inactive,
+                error=str(exc),
+                exc_info=True,
+            )
+            raise
+
     def get_all_display_config(
         self, tenant_id: Optional[str] = None, include_inactive: bool = False
     ) -> Dict[str, Any]:
@@ -489,13 +534,14 @@ class AgentDisplayConfigStoreService:
 
         now = datetime.utcnow().isoformat()
         update_data = {
+            "_key": config_key,
             "agent_config": agent_config.model_dump(),
             "updated_at": now,
             "updated_by": updated_by,
         }
 
         try:
-            self._collection.update(config_key, update_data)
+            self._collection.update(update_data)
             self._logger.info(
                 "agent_config_updated",
                 agent_id=agent_id,

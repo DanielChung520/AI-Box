@@ -639,8 +639,8 @@ class OntologyStoreService:
         mapping: Dict[str, Dict[str, str]] = {"domain": {}, "major": {}}
 
         try:
-            from pathlib import Path
             import json
+            from pathlib import Path
 
             # 嘗試找到 ontology_list.json（相對於項目根目錄）
             # 先嘗試從當前文件所在位置推斷
@@ -734,9 +734,7 @@ class OntologyStoreService:
             ]
 
             for name_candidate in name_candidates:
-                ontology = self.get_ontology_with_priority(
-                    name_candidate, ontology_type, tenant_id
-                )
+                ontology = self.get_ontology_with_priority(name_candidate, ontology_type, tenant_id)
                 if ontology:
                     return ontology
 
@@ -831,7 +829,9 @@ class OntologyStoreService:
                     op_dict = (
                         op
                         if isinstance(op, dict)
-                        else op.model_dump() if hasattr(op, "model_dump") else {}
+                        else op.model_dump()
+                        if hasattr(op, "model_dump")
+                        else {}
                     )
                     rel_name = op_dict.get("name", "")
                     if rel_name:
@@ -864,7 +864,9 @@ class OntologyStoreService:
                         ec_dict = (
                             ec
                             if isinstance(ec, dict)
-                            else ec.model_dump() if hasattr(ec, "model_dump") else {}
+                            else ec.model_dump()
+                            if hasattr(ec, "model_dump")
+                            else {}
                         )
                         entity_name = ec_dict.get("name", "")
                         if entity_name:
@@ -874,7 +876,9 @@ class OntologyStoreService:
                         op_dict = (
                             op
                             if isinstance(op, dict)
-                            else op.model_dump() if hasattr(op, "model_dump") else {}
+                            else op.model_dump()
+                            if hasattr(op, "model_dump")
+                            else {}
                         )
                         rel_name = op_dict.get("name", "")
                         if rel_name and rel_name not in merged_rules["relationship_types"]:
@@ -908,7 +912,9 @@ class OntologyStoreService:
                         ec_dict = (
                             ec
                             if isinstance(ec, dict)
-                            else ec.model_dump() if hasattr(ec, "model_dump") else {}
+                            else ec.model_dump()
+                            if hasattr(ec, "model_dump")
+                            else {}
                         )
                         entity_name = ec_dict.get("name", "")
                         if entity_name:
@@ -918,7 +924,9 @@ class OntologyStoreService:
                         op_dict = (
                             op
                             if isinstance(op, dict)
-                            else op.model_dump() if hasattr(op, "model_dump") else {}
+                            else op.model_dump()
+                            if hasattr(op, "model_dump")
+                            else {}
                         )
                         rel_name = op_dict.get("name", "")
                         if rel_name and rel_name not in merged_rules["relationship_types"]:

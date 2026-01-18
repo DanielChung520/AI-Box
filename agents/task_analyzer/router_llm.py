@@ -10,17 +10,22 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from agents.task_analyzer.models import (
-    RouterDecision,
-    RouterInput,
-    SemanticUnderstandingOutput,
-)
+from agents.task_analyzer.models import RouterDecision, RouterInput, SemanticUnderstandingOutput
 from llm.clients.factory import LLMClientFactory
 
 logger = logging.getLogger(__name__)
 
 # 意圖分析默認模型（根據測試結果選擇最優模型）
 # 測試結果（2026-01-09）：gpt-oss:120b-cloud 表現最優（100% 正確率，2.56s 平均耗時）
+#
+# 【重要架構說明】
+# 任務分析和語義理解（L1-L2層級）始終使用本地模型（Ollama），不受前端選擇的模型影響。
+# 前端聊天框選擇的模型只用於：
+# 1. 交付任務（任務描述的最終補全）
+# 2. 上網和內部信息無關的模型調用（需要外部API的模型）
+# 3. 最終輸出生成
+#
+# 這是多模型架構的核心設計：不同的工作使用不同的模型。
 ROUTER_LLM_DEFAULT_MODEL = "gpt-oss:120b-cloud"
 
 # 固定 System Prompt（v4 更新：純語義理解，不產生 intent）
@@ -78,6 +83,9 @@ class RouterLLM:
 
         Args:
             preferred_provider: 首選 LLM 提供商（優先使用低成本模型，如 ollama）
+
+        【重要】任務分析和語義理解始終使用本地模型（Ollama），不受前端選擇的模型影響。
+        這是多模型架構的核心設計：不同的工作使用不同的模型。
         """
         self.preferred_provider = preferred_provider or "ollama"
         self._llm_client: Optional[Any] = None
@@ -594,7 +602,9 @@ Return ONLY valid JSON following the RouterDecision schema."""
                 logger.warning(
                     "Router LLM v4: Failed to extract JSON from LLM response, using fallback"
                 )
-                logger.debug(f"Router LLM v4: Raw response content (first 500 chars): {content[:500]}")
+                logger.debug(
+                    f"Router LLM v4: Raw response content (first 500 chars): {content[:500]}"
+                )
                 return SAFE_FALLBACK_SEMANTIC
 
             logger.debug(f"Router LLM v4: Extracted JSON data: {json_data}")

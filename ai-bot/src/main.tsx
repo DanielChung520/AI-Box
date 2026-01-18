@@ -133,3 +133,54 @@ requestAnimationFrame(() => {
     hideInitialWelcome();
   }, 100);
 });
+
+// 註冊 Service Worker (PWA 支持)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/service-worker.js')
+      .then((registration) => {
+        console.log('[Service Worker] Registered successfully:', registration.scope);
+
+        // 監聽 Service Worker 更新
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('[Service Worker] New version available');
+
+                // 可以在此處提示用戶刷新頁面以使用新版本
+                // 或者自動激活新的 Service Worker
+                if (confirm('發現新版本，是否立即刷新頁面？')) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  window.location.reload();
+                }
+              }
+            });
+          }
+        });
+
+        // 定期同步服務狀態到緩存（每 5 分鐘）
+        setInterval(() => {
+          if (navigator.onLine) {
+            registration.active?.postMessage({ type: 'SYNC_SERVICE_STATUS' });
+          }
+        }, 5 * 60 * 1000);
+      })
+      .catch((error) => {
+        console.error('[Service Worker] Registration failed:', error);
+      });
+
+    // 監聽在線/離線狀態
+    window.addEventListener('online', () => {
+      console.log('[Network] Back online');
+      // 可以在此處觸發數據同步
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('[Network] Offline');
+      // 可以在此處顯示離線提示
+    });
+  });
+}

@@ -61,9 +61,9 @@ class AwarenessState:
             # 構建 input_signature（命令分類）
             input_signature = {
                 "command_type": analysis_result.task_type.value,
-                "scope": "multi_step"
-                if analysis_result.task_type.value == "complex"
-                else "single_step",
+                "scope": (
+                    "multi_step" if analysis_result.task_type.value == "complex" else "single_step"
+                ),
                 "risk_level": "safe",  # 可以從 Security Agent 獲取
                 "urgency": "normal",
                 "workflow_type": analysis_result.workflow_type.value,

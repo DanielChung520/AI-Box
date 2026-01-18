@@ -420,7 +420,7 @@ export default function Home() {
     const modelId = selectedTask.executionConfig?.modelId || 'auto';
 
     const userMessage = {
-      id: `msg-${Date.now()}-user`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-user`,
       sender: 'user' as const,
       content: text || '(no text)',
       timestamp,
@@ -484,20 +484,42 @@ export default function Home() {
 
       // 修改時間：2026-01-27 - 添加 agent_id 到草稿檔編輯請求中
       const agentId = taskWithUserMessage.executionConfig?.agentId;
+      const assistantId = taskWithUserMessage.executionConfig?.assistantId;
+
+      // 修改時間：2026-01-27 - 添加完整的請求參數日誌（草稿檔編輯）
+      const draftEditRequest = {
+        messages: chatMessages,
+        session_id: sessionId,
+        task_id: String(taskWithUserMessage.id),
+        model_selector,
+        attachments: attachments.length ? attachments : undefined,
+        allowed_tools: allowedTools.length > 0 ? allowedTools : undefined,
+        assistant_id: assistantId,
+        agent_id: agentId,
+      };
+
+      console.log('[chatMessage] 📤 發送聊天請求（草稿檔編輯）:', {
+        task_id: String(taskWithUserMessage.id),
+        assistant_id: assistantId || '未選擇',
+        agent_id: agentId || '未選擇',
+        model_id: modelId,
+        model_selector: draftEditRequest.model_selector,
+        web_search: tools?.web_search || false,
+        message_count: chatMessages.length,
+        last_message: chatMessages[chatMessages.length - 1]?.content?.substring(0, 100),
+        allowed_tools: draftEditRequest.allowed_tools || [],
+        attachments_count: draftEditRequest.attachments?.length || 0,
+        session_id: sessionId,
+        timestamp: new Date().toISOString(),
+        full_request: draftEditRequest,
+      });
+
       try {
-        const resp = await chatProduct({
-          messages: chatMessages,
-          session_id: sessionId,
-          task_id: String(taskWithUserMessage.id),
-          model_selector,
-          attachments: attachments.length ? attachments : undefined,
-          allowed_tools: allowedTools.length > 0 ? allowedTools : undefined,
-          agent_id: agentId,
-        } as any); // 临时使用 any，因为接口定义可能还没有更新
+        const resp = await chatProduct(draftEditRequest as any); // 临时使用 any，因为接口定义可能还没有更新
 
         if (resp?.success && resp.data?.content !== undefined) {
           const aiMessage = {
-            id: `msg-${Date.now()}-ai`,
+            id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-ai`,
             sender: 'ai' as const,
             content: String(resp.data.content ?? ''),
             timestamp: new Date().toLocaleString(),
@@ -513,7 +535,7 @@ export default function Home() {
           );
 
           const editActionMessage = {
-            id: `msg-${Date.now()}-ai-edit-action`,
+            id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-ai-edit-action`,
             sender: 'ai' as const,
             content: `✅ 已更新草稿檔：${fileRef.filename}`,
             timestamp: new Date().toLocaleString(),
@@ -579,31 +601,10 @@ export default function Home() {
           ? 'favorite'
           : 'manual';
 
-    const model_selector: any =
-      mode === 'auto'
-        ? { mode: 'auto' }
-        : { mode, model_id: modelId };
-
     try {
       // 修改時間：2025-12-21 - 使用流式 API
-      // 創建初始 AI 消息（內容為空，將逐步更新）
-      const aiMessageId = `msg-${Date.now()}-ai`;
-      const initialAiMessage = {
-        id: aiMessageId,
-        sender: 'ai' as const,
-        content: '',
-        timestamp: new Date().toLocaleString(),
-      };
-
-      // 先顯示空的 AI 消息
-      const taskWithInitialAiMessage: Task = {
-        ...taskWithUserMessage,
-        messages: [...(taskWithUserMessage.messages || []), initialAiMessage],
-      };
-      setSelectedTask(taskWithInitialAiMessage);
-
       // 修改時間：2026-01-06 - 從消息中獲取 Assistant 的 allowedTools，而不僅僅是 web_search
-      // 構建允許的工具列表
+      // 構建允許的工具列表（必須在使用之前聲明）
       const allowedTools: string[] = [];
 
       // 從消息中提取 allowedTools（如果存在）
@@ -627,6 +628,16 @@ export default function Home() {
         allowedTools.push('web_search');
       }
 
+      // 修改時間：2026-01-27 - 獲取 assistantId 和 agentId（必須在使用之前聲明）
+      const assistantId = taskWithUserMessage.executionConfig?.assistantId;
+      const agentId = taskWithUserMessage.executionConfig?.agentId;
+
+      // 構建 model_selector
+      const model_selector: any =
+        mode === 'auto'
+          ? { mode: 'auto' }
+          : { mode, model_id: modelId };
+
       console.log('[Home] Calling chatProductStream with tools:', {
         allowedTools,
         messageAllowedTools,
@@ -635,34 +646,78 @@ export default function Home() {
         toolsFromMessage: messageAllowedTools,
       });
 
-      // 添加详细的请求数据日志
-      // 修改時間：2026-01-27 - 添加 agent_id 到請求中
-      const agentId = taskWithUserMessage.executionConfig?.agentId;
-      const requestData = {
+      // 修改時間：2026-01-27 - 添加詳細的請求參數日誌
+      const requestParams = {
+        assistant_id: assistantId,
+        agent_id: agentId,
+        model_id: modelId,
+        model_selector,
+        web_search: tools?.web_search || false,
         messages: chatMessages,
         session_id: sessionId,
         task_id: String(taskWithUserMessage.id),
-        model_selector,
         attachments: attachments.length ? attachments : undefined,
         allowed_tools: allowedTools.length > 0 ? allowedTools : undefined,
-        assistant_id: assistantId,
-        agent_id: agentId,
       };
 
-      console.log('[Home] Request data:', {
-        messagesCount: chatMessages.length,
-        messages: chatMessages,
-        model_selector,
-        allowed_tools: requestData.allowed_tools,
-        assistant_id: requestData.assistant_id,
-        hasAttachments: !!requestData.attachments,
+      console.log('[chatMessage] 📤 發送聊天請求（流式）:', {
+        task_id: String(taskWithUserMessage.id),
+        assistant_id: requestParams.assistant_id || '未選擇',
+        agent_id: requestParams.agent_id || '未選擇',
+        model_id: requestParams.model_id,
+        model_selector: requestParams.model_selector,
+        web_search: requestParams.web_search,
+        message_count: requestParams.messages.length,
+        last_message: requestParams.messages[requestParams.messages.length - 1]?.content?.substring(0, 100),
+        allowed_tools: requestParams.allowed_tools || [],
+        attachments_count: requestParams.attachments?.length || 0,
+        session_id: sessionId,
+        timestamp: new Date().toISOString(),
+        full_request: requestParams, // 完整請求對象
+      });
+
+      // 創建初始 AI 消息（內容為空，將逐步更新）
+      const aiMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-ai`;
+      const initialAiMessage = {
+        id: aiMessageId,
+        sender: 'ai' as const,
+        content: '',
+        timestamp: new Date().toLocaleString(),
+      };
+
+      // 先顯示空的 AI 消息
+      const taskWithInitialAiMessage: Task = {
+        ...taskWithUserMessage,
+        messages: [...(taskWithUserMessage.messages || []), initialAiMessage],
+      };
+      setSelectedTask(taskWithInitialAiMessage);
+
+      // 修改時間：2026-01-27 - 添加 agent_id 到請求中
+      // 使用之前構建的 requestParams（已經包含所有參數）
+      const requestData = requestParams;
+
+      // 修改時間：2026-01-27 - 添加完整的請求參數日誌
+      console.log('[chatMessage] 📤 發送聊天請求（流式）:', {
+        task_id: String(taskWithUserMessage.id),
+        assistant_id: requestData.assistant_id || '未選擇',
+        agent_id: requestData.agent_id || '未選擇',
+        model_id: modelId,
+        model_selector: requestData.model_selector,
+        web_search: tools?.web_search || false,
+        message_count: chatMessages.length,
+        last_message: chatMessages[chatMessages.length - 1]?.content?.substring(0, 100),
+        allowed_tools: requestData.allowed_tools || [],
+        attachments_count: requestData.attachments?.length || 0,
+        session_id: sessionId,
+        timestamp: new Date().toISOString(),
+        full_request: requestData, // 完整請求對象
       });
 
       // 验证 messages 不为空
       if (chatMessages.length === 0) {
         console.error('[Home] ❌ Error: messages array is empty!');
         const errorMessage = {
-          id: `msg-${Date.now()}-error`,
+          id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-error`,
           sender: 'ai' as const,
           content: '错误：消息列表为空，无法发送请求',
           timestamp: new Date().toLocaleString(),
@@ -910,7 +965,7 @@ export default function Home() {
     } catch (error: any) {
       console.error('[Home] chatProduct request failed:', error);
       const errorMessage = {
-        id: `msg-${Date.now()}-ai-error`,
+        id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-ai-error`,
         sender: 'ai' as const,
         content: `Chat failed: ${error?.message || 'network error'}`,
         timestamp: new Date().toLocaleString(),
@@ -1197,7 +1252,7 @@ export default function Home() {
   const handleAgentSelect = (agentId: string) => {
     // 如果已经有选中的任务，直接更新任务的执行配置，不打开模态框
     if (selectedTask) {
-      setSelectedTask({
+      const updatedTask: Task = {
         ...selectedTask,
         executionConfig: {
           ...selectedTask.executionConfig,
@@ -1205,6 +1260,11 @@ export default function Home() {
           agentId: agentId,
           assistantId: undefined, // 清除助理ID
         }
+      };
+      setSelectedTask(updatedTask);
+      // 修改時間：2026-01-27 - 保存 Agent 選擇到任務，確保發送請求時能獲取到 agentId
+      saveTask(updatedTask, true).catch((error) => {
+        console.error('[Home] Failed to save task after agent select:', error);
       });
       // 清除浏览模式（如果正在浏览）
       if (browseMode) {

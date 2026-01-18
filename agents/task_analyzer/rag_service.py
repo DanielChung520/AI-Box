@@ -10,27 +10,16 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any, Dict, List, Optional
 
 import structlog
 
-from agents.task_analyzer.models import (
-    Capability,
-    CapabilityDiscoveryChunk,
-    PolicyConstraintChunk,
-)
+from agents.task_analyzer.models import Capability, PolicyConstraintChunk
 from agents.task_analyzer.rag_chunk_generator import (
-    RAGChunkGenerator,
-    RAGRetrievalStrategy,
     get_rag_chunk_generator,
     get_rag_retrieval_strategy,
 )
-from agents.task_analyzer.rag_namespace import (
-    RAGNamespace,
-    RAGNamespaceManager,
-    get_rag_namespace_manager,
-)
+from agents.task_analyzer.rag_namespace import RAGNamespace, get_rag_namespace_manager
 from database.chromadb import ChromaCollection, ChromaDBClient
 from services.api.services.capability_registry_store_service import (
     get_capability_registry_store_service,
@@ -276,10 +265,8 @@ class RAGService:
             return "## 可用能力列表\n\n**警告：未找到任何匹配的能力。請確認查詢是否正確，或檢查能力註冊表。**\n"
 
         formatted_lines = ["## 可用能力列表\n"]
-        formatted_lines.append(
-            f"**重要：以下能力是從能力註冊表中檢索到的，您只能使用這些能力。**\n"
-        )
-        formatted_lines.append(f"**禁止：不能發明或使用未在此列表中的能力。**\n\n")
+        formatted_lines.append("**重要：以下能力是從能力註冊表中檢索到的，您只能使用這些能力。**\n")
+        formatted_lines.append("**禁止：不能發明或使用未在此列表中的能力。**\n\n")
 
         for i, result in enumerate(retrieved_results, 1):
             metadata = result.get("metadata", {})

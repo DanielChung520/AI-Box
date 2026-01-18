@@ -5,11 +5,17 @@ import DocumentAssistant from "@/pages/DocumentAssistant";
 import IEEEditor from "@/pages/IEEEditor";
 import WelcomePage from "@/pages/WelcomePage";
 import LoginPage from "@/pages/LoginPage";
+import SystemServiceStatus from "@/pages/SystemServiceStatus";
+import SystemMonitoring from "@/pages/SystemMonitoring";
+import AccountSecuritySettings from "@/pages/AccountSecuritySettings";
+import SystemSettings from "@/pages/SystemSettings";
+import AgentRequestManagement from "@/pages/AgentRequestManagement";
 import { useState, useEffect } from "react";
-import { AuthContext } from '@/contexts/authContext';
+import { AuthContext, User } from '@/contexts/authContext';
 import { LanguageProvider, useLanguage } from '@/contexts/languageContext';
 import { FileEditingProvider } from '@/contexts/fileEditingContext';
 import { performanceMonitor } from '@/lib/performance';
+import { isSystemAdmin } from '@/lib/userUtils';
 
 // IEE Editor Wrapper 組件，用於從 URL 參數獲取 fileId
 function IEEEditorWrapper() {
@@ -19,11 +25,47 @@ function IEEEditorWrapper() {
   return <IEEEditor fileId={fileId} />;
 }
 
+// 權限檢查組件 - 系統管理員權限
+interface AdminRouteProps {
+  children: JSX.Element;
+}
+
+function AdminRoute({ children }: AdminRouteProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const userJson = localStorage.getItem('currentUser');
+    return userJson ? JSON.parse(userJson) : null;
+  });
+
+  // 使用統一的系統管理員檢查函數
+  const isAdmin = isSystemAdmin(currentUser);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return children;
+}
+
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     // 從 localStorage 讀取登錄狀態
     return localStorage.getItem('isAuthenticated') === 'true';
   });
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    // 從 localStorage 讀取用戶信息
+    const userJson = localStorage.getItem('currentUser');
+    return userJson ? JSON.parse(userJson) : null;
+  });
+
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -33,32 +75,53 @@ function AppContent() {
     // 監聽 localStorage 變化（跨標籤頁）
     const handleStorageChange = () => {
       setIsAuthenticated(localStorage.getItem('isAuthenticated') === 'true');
+      const userJson = localStorage.getItem('currentUser');
+      setCurrentUser(userJson ? JSON.parse(userJson) : null);
     };
 
     // 監聽自定義事件（同標籤頁內的認證狀態變化）
-    const handleAuthStateChanged = () => {
+    const handleAuthStateChanged = (event?: CustomEvent) => {
       setIsAuthenticated(localStorage.getItem('isAuthenticated') === 'true');
+      // 優先使用事件中的 currentUser，否則從 localStorage 讀取
+      if (event?.detail?.currentUser) {
+        setCurrentUser(event.detail.currentUser);
+        localStorage.setItem('currentUser', JSON.stringify(event.detail.currentUser));
+      } else {
+        const userJson = localStorage.getItem('currentUser');
+        setCurrentUser(userJson ? JSON.parse(userJson) : null);
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('authStateChanged', handleAuthStateChanged);
+    window.addEventListener('authStateChanged', handleAuthStateChanged as EventListener);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('authStateChanged', handleAuthStateChanged);
+      window.removeEventListener('authStateChanged', handleAuthStateChanged as EventListener);
     };
   }, []);
 
   const logout = () => {
+    // 清除所有認證相關的 localStorage
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userName');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('currentUser');
+
+    // 更新狀態
     setIsAuthenticated(false);
+    setCurrentUser(null);
+
+    // 觸發自定義事件，通知其他組件認證狀態已改變
+    window.dispatchEvent(new CustomEvent('authStateChanged'));
   };
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, setIsAuthenticated, logout }}
+      value={{ isAuthenticated, setIsAuthenticated, logout, currentUser, setCurrentUser }}
     >
       <FileEditingProvider>
         <Routes>
@@ -97,6 +160,48 @@ function AppContent() {
           path="/iee-editor"
           element={
             isAuthenticated ? <IEEEditorWrapper /> : <Navigate to="/login" replace />
+          }
+        />
+
+        {/* 系統管理路由 - 需要系統管理員權限 */}
+        <Route
+          path="/admin/services"
+          element={
+            <AdminRoute>
+              <SystemServiceStatus />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/monitoring"
+          element={
+            <AdminRoute>
+              <SystemMonitoring />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/accounts"
+          element={
+            <AdminRoute>
+              <AccountSecuritySettings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <AdminRoute>
+              <SystemSettings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/agent-requests"
+          element={
+            <AdminRoute>
+              <AgentRequestManagement />
+            </AdminRoute>
           }
         />
 

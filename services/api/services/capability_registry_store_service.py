@@ -14,13 +14,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import structlog
-from database.arangodb import ArangoCollection, ArangoDBClient
 
-from agents.task_analyzer.models import (
-    Capability,
-    CapabilityCreate,
-    CapabilityUpdate,
-)
+from agents.task_analyzer.models import Capability, CapabilityCreate, CapabilityUpdate
+from database.arangodb import ArangoCollection, ArangoDBClient
 
 logger = structlog.get_logger(__name__)
 
@@ -232,10 +228,14 @@ class CapabilityRegistryStoreService:
             # 獲取更新後的文檔
             updated_doc = self._collection.get(key)
             if updated_doc is None:
-                raise RuntimeError(f"Failed to retrieve updated capability '{name}' for agent '{agent}'")
+                raise RuntimeError(
+                    f"Failed to retrieve updated capability '{name}' for agent '{agent}'"
+                )
             return _document_to_model(updated_doc)
         except Exception as exc:
-            self._logger.error("capability_update_failed", capability_name=name, agent=agent, error=str(exc))
+            self._logger.error(
+                "capability_update_failed", capability_name=name, agent=agent, error=str(exc)
+            )
             raise
 
     def delete_capability(self, name: str, agent: str) -> bool:
@@ -265,7 +265,9 @@ class CapabilityRegistryStoreService:
             self._logger.info("capability_deleted", capability_name=name, agent=agent)
             return True
         except Exception as exc:
-            self._logger.error("capability_delete_failed", capability_name=name, agent=agent, error=str(exc))
+            self._logger.error(
+                "capability_delete_failed", capability_name=name, agent=agent, error=str(exc)
+            )
             return False
 
     def _ensure_indexes(self) -> None:
@@ -278,9 +280,11 @@ class CapabilityRegistryStoreService:
         # 獲取現有索引
         indexes = collection.indexes()
         existing_index_fields = {
-            tuple(idx.get("fields", []))
-            if isinstance(idx.get("fields"), list)
-            else idx.get("fields")
+            (
+                tuple(idx.get("fields", []))
+                if isinstance(idx.get("fields"), list)
+                else idx.get("fields")
+            )
             for idx in indexes
         }
 

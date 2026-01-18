@@ -6,7 +6,6 @@
 """文件訪問審計路由 - 提供文件訪問日誌查詢和統計功能"""
 
 from datetime import datetime
-from functools import partial
 from typing import Optional
 
 import structlog
@@ -15,10 +14,38 @@ from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
 from services.api.services.file_audit_service import get_file_audit_service
-from system.security.dependencies import require_permission
+from system.security.dependencies import get_current_user
 from system.security.models import Permission, User
 
 logger = structlog.get_logger(__name__)
+
+
+# 創建需要系統管理員權限的依賴函數
+async def require_system_admin(user: User = Depends(get_current_user)) -> User:
+    """檢查用戶是否擁有系統管理員權限的依賴函數（修改時間：2026-01-18）"""
+    from fastapi import HTTPException
+
+    from system.security.config import get_security_settings
+
+    settings = get_security_settings()
+
+    # 開發模式下自動通過權限檢查
+    if settings.should_bypass_auth:
+        return user
+
+    # 生產模式下進行真實權限檢查
+    if not settings.rbac.enabled:
+        # 如果 RBAC 未啟用，則所有已認證用戶都可以訪問
+        return user
+
+    if not user.has_permission(Permission.ALL.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions. Required: system_admin",
+        )
+
+    return user
+
 
 router = APIRouter(prefix="/files/audit", tags=["File Audit"])
 
@@ -32,7 +59,7 @@ async def get_file_access_logs(
     end_date: Optional[str] = Query(None, description="結束時間（ISO 8601格式）"),
     limit: int = Query(100, ge=1, le=1000, description="返回記錄數限制"),
     offset: int = Query(0, ge=0, description="偏移量"),
-    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),
+    current_user: User = Depends(require_system_admin),
 ) -> JSONResponse:
     """查詢文件訪問日誌 (WBS-4.4.3)
 
@@ -120,7 +147,7 @@ async def get_access_statistics(
     user_id: Optional[str] = Query(None, description="用戶 ID"),
     start_date: Optional[str] = Query(None, description="開始時間（ISO 8601格式）"),
     end_date: Optional[str] = Query(None, description="結束時間（ISO 8601格式）"),
-    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),
+    current_user: User = Depends(require_system_admin),
 ) -> JSONResponse:
     """獲取文件訪問統計信息 (WBS-4.4.3)
 

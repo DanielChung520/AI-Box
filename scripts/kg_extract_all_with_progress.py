@@ -211,7 +211,11 @@ def wait_for_processing(file_id: str, token: str, timeout: int) -> Dict[str, Any
 
     while time.time() - start_time < timeout:
         if _should_stop:
-            return {"status": "cancelled", "error": "用戶中斷", "total_time": time.time() - start_time}
+            return {
+                "status": "cancelled",
+                "error": "用戶中斷",
+                "total_time": time.time() - start_time,
+            }
 
         try:
             response = requests.get(

@@ -53,6 +53,48 @@ class AgentConfig(BaseModel):
     agent_id: Optional[str] = Field(default=None, description="實際的 Agent ID（用於關聯註冊的 Agent）")
     metadata: Optional[Dict[str, Any]] = Field(default=None, description="額外元數據（可選）")
 
+    # ============================================
+    # 技術配置字段（用於 Agent Registry 註冊）
+    # ============================================
+    agent_type: Optional[str] = Field(
+        default="execution",
+        pattern="^(execution|planning|review)$",
+        description="Agent 類型：execution（執行）/planning（規劃）/review（審查）",
+    )
+    protocol: Optional[str] = Field(
+        default="http",
+        pattern="^(http|mcp)$",
+        description="通信協議：http/mcp",
+    )
+    endpoint_url: Optional[str] = Field(
+        default=None,
+        description="Agent 端點 URL（HTTP 或 MCP endpoint）",
+    )
+    secret_id: Optional[str] = Field(
+        default=None,
+        description="Secret ID（由 AI-Box 簽發，用於外部 Agent 身份驗證）",
+    )
+    secret_key: Optional[str] = Field(
+        default=None,
+        description="Secret Key（用於外部 Agent 認證）",
+    )
+
+    # ============================================
+    # 預留字段（下個迭代使用）
+    # ============================================
+    capabilities: Optional[list[str]] = Field(
+        default=None,
+        description="能力列表（預留，下個迭代使用）",
+    )
+    permission_groups: Optional[list[str]] = Field(
+        default=None,
+        description="權限組列表（預留，下個迭代使用）",
+    )
+    tool_calls: Optional[list[str]] = Field(
+        default=None,
+        description="工具調用列表（預留，下個迭代使用）",
+    )
+
 
 class AgentDisplayConfigModel(BaseModel):
     """代理展示配置模型（ArangoDB 文檔格式）"""

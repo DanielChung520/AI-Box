@@ -150,8 +150,8 @@ export default defineConfig(({ mode }) => {
         '.localhost',       // localhost 子域名
       ],
       // 配置 HMR WebSocket（用於代理環境）
-      // 修改時間：2026-01-05 - 優化 HMR 配置，支持開發環境和代理交付場景
-      // 當通過 Cloudflare Tunnel 等代理訪問時，需要正確配置客戶端連接參數
+      // 修改時間：2026-01-17 - 優化 HMR 配置，在代理環境中禁用 HMR 以避免 WebSocket 連接錯誤
+      // 當通過 Cloudflare Tunnel 等代理訪問時，WebSocket 連接通常無法正常工作
       hmr: (() => {
         // 如果明確禁用 HMR，直接返回 false
         if (env.VITE_HMR_DISABLE === 'true') {
@@ -160,31 +160,20 @@ export default defineConfig(({ mode }) => {
 
         // 檢測是否為代理環境：如果配置了 VITE_HMR_CLIENT_HOST，則為代理環境
         const isProxyAccess = !!env.VITE_HMR_CLIENT_HOST;
-        const protocol = (env.VITE_HMR_PROTOCOL as 'ws' | 'wss') || (isProxyAccess ? 'wss' : 'ws');
 
+        // 在代理環境中禁用 HMR，避免 WebSocket 連接錯誤
+        // 用戶可以手動刷新頁面來查看更新
         if (isProxyAccess) {
-          // 代理環境配置（通過 Cloudflare Tunnel 等）
-          // 修改時間：2026-01-05 - 優雅處理 WebSocket 連接失敗，不影響正常使用
-          return {
-            // 服務器在本地監聽的端口（與 server.port 一致）
-            port: 3000,
-            // WebSocket 協議（wss 用於 HTTPS）
-            protocol: protocol,
-            // 客戶端應該連接的主機名（代理域名，如 iee.k84.org）
-            clientHost: env.VITE_HMR_CLIENT_HOST,
-            // 客戶端應該連接的端口（代理端口，443 用於 HTTPS）
-            clientPort: env.VITE_HMR_CLIENT_PORT ? parseInt(env.VITE_HMR_CLIENT_PORT) : 443,
-            // 修改時間：2026-01-05 - 添加配置，優雅處理連接失敗
-            // 注意：Vite 的 HMR 配置不直接支持 overlay 和 timeout，這些需要在客戶端處理
-          };
-        } else {
-          // 本地開發環境配置（直接訪問 localhost）
-          return {
-            port: 3000,
-            protocol: 'ws',
-            // 本地開發不需要指定 clientHost 和 clientPort，使用默認值
-          };
+          console.info('[Vite] HMR disabled in proxy environment to avoid WebSocket connection errors');
+          return false;
         }
+
+        // 本地開發環境配置（直接訪問 localhost）
+        return {
+          port: 3000,
+          protocol: 'ws',
+          // 本地開發不需要指定 clientHost 和 clientPort，使用默認值
+        };
       })(),
       proxy: {
         // 代理 API 請求到後端服務器

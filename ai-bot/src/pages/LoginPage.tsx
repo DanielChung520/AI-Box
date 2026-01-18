@@ -2,7 +2,7 @@
  * 代碼功能說明: 登錄頁面組件
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-08 08:46:00 UTC+8
+ * 最後修改日期: 2026-01-17 23:30 UTC+8
  */
 
 import { useState } from 'react';
@@ -22,12 +22,25 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
+    // 驗證輸入不為空（但不限制格式）
+    if (!email.trim()) {
+      setError('請輸入帳號（用戶名或郵箱）');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!password.trim()) {
+      setError('請輸入密碼');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // 嘗試調用真實的登錄 API
       try {
         const { apiPost } = await import('../lib/api');
         const response = await apiPost('/auth/login', {
-          username: email,
+          username: email.trim(), // 使用 trim() 去除首尾空格
           password: password,
         });
 
@@ -60,10 +73,35 @@ export default function LoginPage() {
             console.warn('[Login] Failed to parse user_id from token');
           }
 
+          // 從 token 中解析用戶信息（包括 roles）
+          const { parseJwtToken } = await import('../lib/jwtUtils');
+          const tokenPayload = parseJwtToken(accessToken);
+
+          // 構建 currentUser 對象
+          const user_id = tokenPayload?.user_id || tokenPayload?.sub || userId;
+          let roles = tokenPayload?.roles || [];
+
+          // 如果 user_id 是 systemAdmin 但 roles 為空，自動添加 system_admin 角色
+          if (user_id === 'systemAdmin' && (!roles || roles.length === 0)) {
+            roles = ['system_admin'];
+            console.log('[Login] Auto-added system_admin role for systemAdmin user');
+          }
+
+          const currentUser = {
+            user_id: user_id,
+            username: tokenPayload?.username || email,
+            email: tokenPayload?.email || email,
+            roles: roles,
+          };
+
+          // 保存完整的用戶信息到 localStorage
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          console.log('[Login] Saved currentUser to localStorage:', currentUser);
+
           // 保存認證狀態
           localStorage.setItem('isAuthenticated', 'true');
-          localStorage.setItem('userEmail', email);
-          localStorage.setItem('userName', 'Daniel');
+          localStorage.setItem('userEmail', currentUser.email || email);
+          localStorage.setItem('userName', currentUser.username || 'Daniel');
           localStorage.setItem('loginTime', new Date().toISOString());
 
           // 修改時間：2025-12-09 - 確保 token 已保存後再觸發同步
@@ -113,7 +151,10 @@ export default function LoginPage() {
 
           // 觸發自定義事件，通知 App 組件更新認證狀態
           window.dispatchEvent(new CustomEvent('authStateChanged', {
-            detail: { isAuthenticated: true }
+            detail: {
+              isAuthenticated: true,
+              currentUser: currentUser
+            }
           }));
 
           // 短暫延遲後跳轉到主頁，確保狀態已更新
@@ -225,21 +266,22 @@ export default function LoginPage() {
             {/* 帳號輸入 */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-blue-200 mb-2">
-                帳號
+                帳號（用戶名或郵箱）
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <i className="fa-solid fa-envelope text-blue-300"></i>
+                  <i className="fa-solid fa-user text-blue-300"></i>
                 </div>
                 <input
                   id="email"
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
-                  placeholder="daniel@test.com"
-                  required
-                  autoComplete="email"
+                  placeholder="systemAdmin 或 daniel@test.com"
+                  autoComplete="username"
+                  pattern=".*"
+                  title="請輸入用戶名或郵箱地址"
                 />
               </div>
             </div>
@@ -260,7 +302,6 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
                   placeholder="請輸入密碼"
-                  required
                   autoComplete="current-password"
                 />
               </div>
@@ -288,7 +329,8 @@ export default function LoginPage() {
             {/* 提示訊息 */}
             <div className="text-center text-sm text-blue-300 pt-4 border-t border-white/10">
               <p className="mb-2">測試帳號：</p>
-              <p className="font-mono text-xs">daniel@test.com / 1234</p>
+              <p className="font-mono text-xs mb-1">daniel@test.com / 1234</p>
+              <p className="font-mono text-xs">systemAdmin / systemAdmin@2026</p>
             </div>
           </form>
         </div>

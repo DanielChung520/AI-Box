@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件管理路由
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-09
+# 最後修改日期: 2026-01-14 22:17 UTC+8
 
 """文件管理路由 - 提供文件列表查詢、搜索、下載、預覽等功能"""
 
@@ -487,7 +487,11 @@ async def get_file_tree(
                     "task_id": task_id,
                 },
             )
-            all_folders = list(cursor) if cursor else []  # type: ignore[arg-type]  # 同步模式下 Cursor 可迭代
+            # 避免觸發 cursor.__len__（未啟用 count 會報 CursorCountError）
+            if cursor is None:
+                all_folders = []
+            else:
+                all_folders = list(cursor)  # type: ignore[arg-type]
         except Exception as aql_error:
             logger.error(
                 "Failed to query folders",

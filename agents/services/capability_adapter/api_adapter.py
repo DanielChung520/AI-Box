@@ -117,9 +117,13 @@ class APIAdapter(CapabilityAdapter):
                         "url": url,
                         "method": method,
                         "status_code": response.status_code,
-                        "response": response.json()
-                        if response.headers.get("content-type", "").startswith("application/json")
-                        else response.text,
+                        "response": (
+                            response.json()
+                            if response.headers.get("content-type", "").startswith(
+                                "application/json"
+                            )
+                            else response.text
+                        ),
                     },
                     audit_log=audit_log,
                 )

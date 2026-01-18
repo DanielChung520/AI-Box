@@ -1,16 +1,4 @@
-# 代碼功能說明: 批量遷移所有文件記錄為初版
-# 創建日期: 2026-01-06
-# 創建人: Daniel Chung
-# 最後修改日期: 2026-01-06
-
-"""批量遷移所有文件記錄為初版（版本1.0，備註"遷移原文件"）"""
-
 #!/usr/bin/env python3
-# 代碼功能說明: 批量遷移所有文件記錄為初版
-# 創建日期: 2026-01-06
-# 創建人: Daniel Chung
-# 最後修改日期: 2026-01-06
-
 """
 批量遷移所有文件記錄為初版（版本1.0，備註"遷移原文件"）
 
@@ -22,6 +10,11 @@
 import sys
 from pathlib import Path
 from typing import Any, Dict
+
+import structlog
+
+from database.arangodb import ArangoDBClient
+from services.api.services.file_metadata_service import FileMetadataService
 
 # 添加項目根目錄到 Python 路徑
 project_root = Path(__file__).parent.parent.parent.parent.parent
@@ -36,11 +29,6 @@ try:
         load_dotenv(env_path)
 except ImportError:
     pass  # python-dotenv 不可用時跳過
-
-import structlog  # noqa: E402
-
-from database.arangodb import ArangoDBClient  # noqa: E402
-from services.api.services.file_metadata_service import FileMetadataService  # noqa: E402
 
 logger = structlog.get_logger(__name__)
 

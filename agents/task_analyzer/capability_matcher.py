@@ -434,9 +434,7 @@ class CapabilityMatcher:
                     required_set = set(required_capabilities)
                     # 先嘗試完全匹配
                     fully_matched = [
-                        a
-                        for a in agents
-                        if required_set.issubset(set(a.capabilities))
+                        a for a in agents if required_set.issubset(set(a.capabilities))
                     ]
                     # 如果沒有完全匹配，對於文件編輯/轉換任務，允許類型匹配
                     if not fully_matched:
@@ -455,9 +453,7 @@ class CapabilityMatcher:
                         else:
                             # 最後嘗試部分能力匹配
                             agents = [
-                                a
-                                for a in agents
-                                if required_set.intersection(set(a.capabilities))
+                                a for a in agents if required_set.intersection(set(a.capabilities))
                             ]
                             logger.info(
                                 f"CapabilityMatcher: No type match, using partial capability match: "
@@ -484,7 +480,7 @@ class CapabilityMatcher:
                 f"CapabilityMatcher: Filtered out document-editing-agent, remaining agents: "
                 f"{[a.agent_id for a in agents]}"
             )
-            
+
             # 計算匹配度
             matches = []
             for agent in agents:

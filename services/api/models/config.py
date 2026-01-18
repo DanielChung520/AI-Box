@@ -26,6 +26,10 @@ class ConfigModel(BaseModel):
     user_id: Optional[str] = Field(default=None, description="用戶 ID（僅 user_configs）")
     scope: str = Field(description="配置範圍，如 genai.policy, genai.model_registry")
     sub_scope: Optional[str] = Field(default=None, description="子範圍（可選）")
+    category: Optional[str] = Field(
+        default=None,
+        description="配置分類：basic/feature_flag/performance/security/business",
+    )
     is_active: bool = Field(default=True, description="是否啟用")
     config_data: Dict[str, Any] = Field(description="配置數據（JSON 對象）")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
@@ -33,13 +37,28 @@ class ConfigModel(BaseModel):
     data_classification: Optional[str] = Field(
         default=None, description="數據分類級別（public/internal/confidential/restricted）"
     )
-    sensitivity_labels: Optional[List[str]] = Field(
-        default=None, description="敏感性標籤列表（可多選）"
-    )
+    sensitivity_labels: Optional[List[str]] = Field(default=None, description="敏感性標籤列表（可多選）")
     created_at: Optional[datetime] = Field(default=None, description="創建時間")
     updated_at: Optional[datetime] = Field(default=None, description="更新時間")
     created_by: Optional[str] = Field(default=None, description="創建者")
     updated_by: Optional[str] = Field(default=None, description="更新者")
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: Optional[str]) -> Optional[str]:
+        """驗證配置分類"""
+        if v is None:
+            return None
+        valid_categories = [
+            "basic",
+            "feature_flag",
+            "performance",
+            "security",
+            "business",
+        ]
+        if v not in valid_categories:
+            raise ValueError(f"category must be one of {valid_categories}, got {v}")
+        return v
 
     @field_validator("data_classification")
     @classmethod
@@ -59,6 +78,10 @@ class ConfigCreate(BaseModel):
 
     scope: str
     sub_scope: Optional[str] = None
+    category: Optional[str] = Field(
+        default=None,
+        description="配置分類：basic/feature_flag/performance/security/business",
+    )
     config_data: Dict[str, Any]
     metadata: Optional[Dict[str, Any]] = None
     tenant_id: Optional[str] = None
@@ -67,9 +90,7 @@ class ConfigCreate(BaseModel):
     data_classification: Optional[str] = Field(
         default=None, description="數據分類級別（public/internal/confidential/restricted）"
     )
-    sensitivity_labels: Optional[List[str]] = Field(
-        default=None, description="敏感性標籤列表（可多選）"
-    )
+    sensitivity_labels: Optional[List[str]] = Field(default=None, description="敏感性標籤列表（可多選）")
 
 
 class ConfigUpdate(BaseModel):
@@ -77,6 +98,10 @@ class ConfigUpdate(BaseModel):
 
     config_data: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
+    category: Optional[str] = Field(
+        default=None,
+        description="配置分類：basic/feature_flag/performance/security/business",
+    )
     is_active: Optional[bool] = None
     # WBS-4.2.1: 數據分類與標記
     data_classification: Optional[str] = None

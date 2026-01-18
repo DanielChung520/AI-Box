@@ -1,7 +1,7 @@
 # 代碼功能說明: Agent Discovery 服務
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-27
+# 最後修改日期: 2026-01-14 21:41 UTC+8
 
 """Agent Discovery 服務 - 實現按能力、權限、分類等條件發現 Agent"""
 
@@ -55,9 +55,11 @@ class AgentDiscovery:
         if status is None:
             status = AgentStatus.ONLINE
 
-        # 獲取基礎 Agent 列表（不包括 System Agents，因為前端不需要顯示）
+        # 修改時間：2026-01-27 - 獲取基礎 Agent 列表
+        # 包括 System Agents（內建）和外部 Agent（從 agent_display_configs 加載）
+        # 因為能力發現需要檢索所有可用的 Agent
         agents = self._registry.list_agents(
-            agent_type=agent_type, status=status, include_system_agents=False
+            agent_type=agent_type, status=status, include_system_agents=True
         )
 
         # 過濾分類（如果提供）

@@ -1,7 +1,7 @@
 # 代碼功能說明: FastAPI 應用主入口
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-14 10:27:19 (UTC+8)
+# 最後修改日期: 2026-01-17 18:07 UTC+8
 # ruff: noqa: E402
 
 """FastAPI 應用主入口文件"""
@@ -46,8 +46,10 @@ from api.routers import (
     agent_category,
     agent_display_config,
     agent_files,
+    agent_registration,
     agent_registry,
     agents,
+    alert_webhook,
     audit_log,
     auth,
     chat,
@@ -76,14 +78,22 @@ from api.routers import (
     ner,
     orchestrator,
     planning,
+    prometheus_compat,
     re,
     reports,
     review,
     rq_monitor,
     rt,
+    security_group,
+    service_alert,
+    service_monitor,
+    system_admin,
+    system_config,
     task_analyzer,
     tools_registry,
     triple_extraction,
+    user_account,
+    user_sessions,
     user_tasks,
     workflows,
 )
@@ -317,6 +327,15 @@ except ImportError:
 app.include_router(auth.router, prefix=API_PREFIX, tags=["Authentication"])
 app.include_router(data_consent.router, prefix=API_PREFIX, tags=["Data Consent"])
 app.include_router(audit_log.router, prefix=API_PREFIX, tags=["Audit Logs"])
+app.include_router(system_admin.router, prefix=API_PREFIX, tags=["System Admin"])
+app.include_router(service_monitor.router, prefix=API_PREFIX, tags=["Service Monitor"])
+app.include_router(service_alert.router, prefix=API_PREFIX, tags=["Service Alert"])
+app.include_router(alert_webhook.router, prefix=API_PREFIX, tags=["Alert Webhook"])
+app.include_router(prometheus_compat.router, prefix=API_PREFIX, tags=["Prometheus Compat"])
+app.include_router(security_group.router, prefix=API_PREFIX, tags=["Security Group"])
+app.include_router(system_config.router, prefix=API_PREFIX, tags=["System Config"])
+app.include_router(user_account.router, prefix=API_PREFIX, tags=["User Account"])
+app.include_router(user_sessions.router, prefix=API_PREFIX, tags=["User Session"])
 
 
 # 添加版本信息端點
@@ -340,6 +359,11 @@ app.include_router(agent_display_config.router, prefix=API_PREFIX, tags=["Agent 
 app.include_router(agent_auth.router, prefix=API_PREFIX, tags=["Agent Authentication"])
 app.include_router(agent_secret.router, prefix=API_PREFIX, tags=["Agent Secret"])
 app.include_router(task_analyzer.router, prefix=API_PREFIX, tags=["Task Analyzer"])
+# Agent 註冊申請路由（公開路由 + 管理員路由）
+app.include_router(agent_registration.public_router, prefix=API_PREFIX, tags=["Agent Registration"])
+app.include_router(
+    agent_registration.admin_router, prefix=API_PREFIX, tags=["Agent Request Management"]
+)
 app.include_router(orchestrator.router, prefix=API_PREFIX, tags=["Agent Orchestrator"])
 app.include_router(planning.router, prefix=API_PREFIX, tags=["Planning Agent"])
 app.include_router(execution.router, prefix=API_PREFIX, tags=["Execution Agent"])
@@ -551,6 +575,16 @@ async def startup_event():
         logger.info("Time service initialized")
     except Exception as e:
         logger.warning(f"Failed to initialize time service: {e}")
+
+    # 啟動系統資源指標收集後台任務（Prometheus 監控）
+    if PROMETHEUS_AVAILABLE:
+        try:
+            from services.api.middleware.prometheus import start_system_metrics_task
+
+            start_system_metrics_task()
+            logger.info("System metrics collection task started")
+        except Exception as e:
+            logger.warning(f"Failed to start system metrics task: {e}")
 
 
 @app.on_event("shutdown")

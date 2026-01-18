@@ -202,11 +202,13 @@ export async function apiRequest<T = any>(
 
       // 檢查是否為預期錯誤（新任務創建時的常見情況）
       const isExpectedError =
-        // 任務不存在或不屬於當前用戶（403）
+        // 任務不存在或不屬於當前用戶（403）- 包括文件樹查詢
         (response.status === 403 && (
           errorMessage.includes('不存在') ||
           errorMessage.includes('不屬於當前用戶') ||
-          errorMessage.includes('not found')
+          errorMessage.includes('不屬於') ||
+          errorMessage.includes('not found') ||
+          url.includes('/files/tree') // 文件樹查詢的 403 錯誤通常是任務不存在
         )) ||
         // cursor count not enabled（500，後端配置問題，不影響功能）
         (response.status === 500 && errorMessage.includes('cursor count not enabled')) ||
@@ -1103,7 +1105,7 @@ export async function saveFile(
     // 创建编辑请求
     const editResponse = await createDocEdit({
       file_id: fileId,
-      instruction: 'Save file content',
+      instruction: `Replace the entire file content with the following:\n\n${content}`,
     });
 
     if (!editResponse.success || !editResponse.data?.request_id) {
@@ -2817,4 +2819,434 @@ export async function deleteAgentConfig(
   }
 
   throw new Error(response?.message || 'Failed to delete agent config');
+}
+
+// ========================================
+// System Admin API
+// ========================================
+
+/**
+ * 系統服務狀態相關接口
+ */
+
+// 服務狀態類型定義
+export interface ServiceStatus {
+  service_name: string;
+  service_type: string;
+  status: 'running' | 'stopped' | 'error' | 'unknown';
+  health_status: 'healthy' | 'unhealthy' | 'degraded';
+  port?: number;
+  pid?: number;
+  host?: string;
+  last_check_at: string;
+  last_success_at?: string;
+  check_interval: number;
+  metadata?: {
+    version?: string;
+    uptime?: number;
+    cpu_usage?: number;
+    memory_usage?: number;
+    request_count?: number;
+    error_count?: number;
+  };
+}
+
+// 獲取所有服務狀態
+export async function getServices(): Promise<ServiceStatus[]> {
+  const response = await apiGet<APIResponse<{ services: ServiceStatus[]; total: number }>>('/admin/services');
+  if (response && response.success && response.data) {
+    // 後端返回的格式是 {services: [], total: number}
+    return response.data.services || [];
+  }
+  throw new Error(response?.message || 'Failed to get services');
+}
+
+// 獲取特定服務狀態
+export async function getServiceStatus(serviceName: string): Promise<ServiceStatus> {
+  const response = await apiGet<APIResponse<ServiceStatus>>(`/admin/services/${serviceName}`);
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to get service status');
+}
+
+// 手動觸發服務健康檢查
+export async function checkServiceHealth(serviceName: string): Promise<ServiceStatus> {
+  const response = await apiPost<APIResponse<ServiceStatus>>(`/admin/services/${serviceName}/check`, {});
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to check service health');
+}
+
+// 獲取服務日誌
+export interface ServiceLogFilters {
+  start_time?: string;
+  end_time?: string;
+  log_level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL' | 'ALL';
+  keyword?: string;
+  limit?: number;
+}
+
+export interface ServiceLog {
+  timestamp: string;
+  log_level: string;
+  message: string;
+  metadata?: Record<string, any>;
+}
+
+export async function getServiceLogs(
+  serviceName: string,
+  filters: ServiceLogFilters = {}
+): Promise<ServiceLog[]> {
+  const params = new URLSearchParams();
+  if (filters.start_time) params.append('start_time', filters.start_time);
+  if (filters.end_time) params.append('end_time', filters.end_time);
+  if (filters.log_level && filters.log_level !== 'ALL') params.append('log_level', filters.log_level);
+  if (filters.keyword) params.append('keyword', filters.keyword);
+  if (filters.limit) params.append('limit', filters.limit.toString());
+
+  const queryString = params.toString();
+  const endpoint = `/admin/services/${serviceName}/logs${queryString ? `?${queryString}` : ''}`;
+
+  const response = await apiGet<APIResponse<ServiceLog[]>>(endpoint);
+  if (response && response.success) {
+    return response.data || [];
+  }
+  throw new Error(response?.message || 'Failed to get service logs');
+}
+
+/**
+ * 用戶賬號管理相關接口
+ */
+
+export interface UserAccount {
+  user_id: string;
+  username: string;
+  email: string;
+  roles: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+  last_login_at?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface UserAccountCreate {
+  username: string;
+  email: string;
+  password: string;
+  roles: string[];
+  tenant_id?: string;
+}
+
+export interface UserAccountUpdate {
+  username?: string;
+  email?: string;
+  roles?: string[];
+  is_active?: boolean;
+}
+
+// 獲取用戶列表
+export interface UserListFilters {
+  search?: string;
+  roles?: string[];
+  is_active?: boolean;
+  page?: number;
+  page_size?: number;
+}
+
+export async function getUsers(filters: UserListFilters = {}): Promise<{ users: UserAccount[]; total: number }> {
+  const params = new URLSearchParams();
+  if (filters.search) params.append('search', filters.search);
+  if (filters.roles) params.append('roles', filters.roles.join(','));
+  if (filters.is_active !== undefined) params.append('is_active', filters.is_active.toString());
+  if (filters.page) params.append('page', filters.page.toString());
+  if (filters.page_size) params.append('page_size', filters.page_size.toString());
+
+  const queryString = params.toString();
+  const endpoint = `/admin/users${queryString ? `?${queryString}` : ''}`;
+
+  const response = await apiGet<APIResponse<{ users: UserAccount[]; total: number }>>(endpoint);
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to get users');
+}
+
+// 獲取用戶詳情
+export async function getUserDetail(userId: string): Promise<UserAccount> {
+  const response = await apiGet<APIResponse<UserAccount>>(`/admin/users/${userId}`);
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to get user detail');
+}
+
+// 創建用戶
+export async function createUser(userData: UserAccountCreate): Promise<UserAccount> {
+  const response = await apiPost<APIResponse<UserAccount>>('/admin/users', userData);
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to create user');
+}
+
+// 更新用戶
+export async function updateUser(userId: string, userData: UserAccountUpdate): Promise<UserAccount> {
+  const response = await apiPut<APIResponse<UserAccount>>(`/admin/users/${userId}`, userData);
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to update user');
+}
+
+// 刪除用戶
+export async function deleteUser(userId: string): Promise<void> {
+  const response = await apiDelete<APIResponse<void>>(`/admin/users/${userId}`);
+  if (!response || !response.success) {
+    throw new Error(response?.message || 'Failed to delete user');
+  }
+}
+
+// 重置用戶密碼
+export async function resetUserPassword(userId: string, newPassword: string): Promise<void> {
+  const response = await apiPost<APIResponse<void>>(`/admin/users/${userId}/reset-password`, { new_password: newPassword });
+  if (!response || !response.success) {
+    throw new Error(response?.message || 'Failed to reset password');
+  }
+}
+
+// 切換用戶啟用狀態
+export async function toggleUserActive(userId: string): Promise<UserAccount> {
+  const response = await apiPost<APIResponse<UserAccount>>(`/admin/users/${userId}/toggle-active`, {});
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to toggle user active status');
+}
+
+/**
+ * 系統配置管理相關接口
+ */
+
+export interface SystemConfig {
+  scope: string;
+  sub_scope?: string;
+  config_data: Record<string, any>;
+  category?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+// 獲取系統配置列表
+export async function getSystemConfigs(scope?: string, category?: string): Promise<SystemConfig[]> {
+  const params = new URLSearchParams();
+  if (scope) params.append('scope', scope);
+  if (category) params.append('category', category);
+
+  const queryString = params.toString();
+  const endpoint = `/admin/system-configs${queryString ? `?${queryString}` : ''}`;
+
+  const response = await apiGet<APIResponse<{ configs: SystemConfig[]; total: number }>>(endpoint);
+  if (response && response.success && response.data) {
+    // 後端返回的格式是 {configs: [], total: number}
+    return response.data.configs || [];
+  }
+  throw new Error(response?.message || 'Failed to get system configs');
+}
+
+// 獲取特定配置
+export async function getSystemConfig(scope: string): Promise<SystemConfig> {
+  const response = await apiGet<APIResponse<SystemConfig>>(`/admin/system-configs/${scope}`);
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to get system config');
+}
+
+// 更新系統配置
+export async function updateSystemConfig(scope: string, configData: Record<string, any>): Promise<SystemConfig> {
+  const response = await apiPut<APIResponse<SystemConfig>>(`/admin/system-configs/${scope}`, { config_data: configData });
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to update system config');
+}
+
+/**
+ * Agent 申請管理相關接口
+ */
+
+export interface AgentRegistrationRequest {
+  request_id: string;
+  agent_id: string;
+  agent_name: string;
+  agent_description: string;
+  applicant_info: {
+    name: string;
+    email: string;
+    company?: string;
+    contact_phone?: string;
+  };
+  agent_config: {
+    agent_type: 'execution' | 'planning' | 'review';
+    protocol: 'http' | 'mcp';
+    endpoint_url: string;
+    capabilities: string[];
+    input_schema?: Record<string, any>;
+  };
+  requested_permissions: {
+    tools: string[];
+    rate_limits: Record<string, number>;
+    access_level: 'system' | 'tenant' | 'user';
+  };
+  status: 'pending' | 'approved' | 'rejected' | 'revoked';
+  secret_info?: {
+    secret_id?: string;
+    issued_at?: string;
+    expires_at?: string;
+  };
+  review_info?: {
+    reviewed_by?: string;
+    reviewed_at?: string;
+    review_notes?: string;
+    rejection_reason?: string;
+  };
+  tenant_id: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+// 獲取 Agent 申請列表
+export interface AgentRequestFilters {
+  status?: 'pending' | 'approved' | 'rejected' | 'revoked';
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export async function getAgentRequests(filters: AgentRequestFilters = {}): Promise<{ requests: AgentRegistrationRequest[]; total: number }> {
+  const params = new URLSearchParams();
+  if (filters.status) params.append('status', filters.status);
+  if (filters.search) params.append('search', filters.search);
+  if (filters.page) params.append('page', filters.page.toString());
+  if (filters.page_size) params.append('page_size', filters.page_size.toString());
+
+  const queryString = params.toString();
+  const endpoint = `/admin/agent-requests${queryString ? `?${queryString}` : ''}`;
+
+  const response = await apiGet<APIResponse<{ requests: AgentRegistrationRequest[]; total: number }>>(endpoint);
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to get agent requests');
+}
+
+// 獲取 Agent 申請詳情
+export async function getAgentRequestDetail(requestId: string): Promise<AgentRegistrationRequest> {
+  const response = await apiGet<APIResponse<AgentRegistrationRequest>>(`/admin/agent-requests/${requestId}`);
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to get agent request detail');
+}
+
+// 批准 Agent 申請
+export interface ApproveAgentRequestResult {
+  request: AgentRegistrationRequest;
+  secret_id: string;
+  secret_key: string;
+}
+
+export async function approveAgentRequest(requestId: string): Promise<ApproveAgentRequestResult> {
+  const response = await apiPost<APIResponse<ApproveAgentRequestResult>>(`/admin/agent-requests/${requestId}/approve`, {});
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to approve agent request');
+}
+
+// 拒絕 Agent 申請
+export async function rejectAgentRequest(requestId: string, rejectionReason: string): Promise<AgentRegistrationRequest> {
+  const response = await apiPost<APIResponse<AgentRegistrationRequest>>(`/admin/agent-requests/${requestId}/reject`, { rejection_reason: rejectionReason });
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to reject agent request');
+}
+
+// 撤銷 Agent 申請
+export async function revokeAgentRequest(requestId: string, revocationReason: string): Promise<AgentRegistrationRequest> {
+  const response = await apiPost<APIResponse<AgentRegistrationRequest>>(`/admin/agent-requests/${requestId}/revoke`, { revocation_reason: revocationReason });
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to revoke agent request');
+}
+
+// 用戶登出
+export async function logout(): Promise<void> {
+  try {
+    // 調用後端登出 API（可選，即使失敗也不影響登出流程）
+    await apiPost<APIResponse<void>>('/auth/logout');
+  } catch (error) {
+    // 忽略登出 API 錯誤，登出主要在前端完成
+    console.warn('[logout] Failed to call logout API, continuing with local logout:', error);
+  }
+}
+
+// 用戶個人信息接口
+export interface UserProfile {
+  user_id: string;
+  username: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+  is_active: boolean;
+  tenant_id?: string;
+  created_at?: string;        // ISO 8601 格式
+  last_login_at?: string;    // ISO 8601 格式
+  login_count?: number;
+  updated_at?: string;        // ISO 8601 格式
+}
+
+// 更新個人信息請求接口
+export interface UpdateProfileRequest {
+  username?: string;
+  email?: string;
+}
+
+// 獲取當前用戶信息
+export async function getCurrentUser(): Promise<UserProfile> {
+  const response = await apiGet<APIResponse<UserProfile>>('/auth/me');
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to get current user information');
+}
+
+// 更新當前用戶信息
+export async function updateUserProfile(data: UpdateProfileRequest): Promise<UserProfile> {
+  const response = await apiPut<APIResponse<UserProfile>>('/auth/me', data);
+  if (response && response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to update user information');
+}
+
+// 變更密碼請求接口
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+// 變更當前用戶密碼
+export async function changePassword(data: ChangePasswordRequest): Promise<void> {
+  const response = await apiPost<APIResponse<{}>>('/auth/change-password', data);
+  if (response && response.success) {
+    return;
+  }
+  throw new Error(response?.message || 'Failed to change password');
 }

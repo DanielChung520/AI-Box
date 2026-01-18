@@ -73,9 +73,7 @@ class BlankMarkdownCreateRequest(BaseModel):
     """建立空白 Markdown 檔案（不走 upload multipart）。"""
 
     task_id: str = Field(..., description="任務ID（必填）")
-    folder_id: Optional[str] = Field(
-        None, description="資料夾ID（可選；None 表示任務工作區根目錄）"
-    )
+    folder_id: Optional[str] = Field(None, description="資料夾ID（可選；None 表示任務工作區根目錄）")
     filename: str = Field(..., description="檔名（會自動補 .md）")
 
 
@@ -726,7 +724,9 @@ async def process_file_chunking_and_vectorization(
                 # 將摘要存儲到 custom_metadata
                 if file_summary:
                     # 獲取現有的 custom_metadata（如果存在）
-                    existing_metadata = file_metadata_obj.custom_metadata if file_metadata_obj else {}
+                    existing_metadata = (
+                        file_metadata_obj.custom_metadata if file_metadata_obj else {}
+                    )
                     existing_metadata = existing_metadata.copy() if existing_metadata else {}
 
                     # 更新 custom_metadata
@@ -1771,7 +1771,7 @@ async def process_kg_extraction_only(
                 )
             # 清理 chunk 狀態（重置續跑狀態）
             # 清理 Redis 中的 chunk 狀態
-            redis_client = get_redis_client()
+            redis_client = get_redis_client()  # noqa: F823
             chunk_state_key = f"kg:chunk_state:{file_id}"
             redis_client.delete(chunk_state_key)
             logger.info(
@@ -2052,9 +2052,7 @@ async def upload_files(
     request: Request,
     files: List[UploadFile] = File(...),
     task_id: Optional[str] = Form(None, description="任務ID（可選，用於組織文件到工作區）"),
-    target_folder_id: Optional[str] = Form(
-        None, description="目標資料夾ID（可選，未提供則放任務工作區）"
-    ),
+    target_folder_id: Optional[str] = Form(None, description="目標資料夾ID（可選，未提供則放任務工作區）"),
     current_user: User = Depends(require_consent(ConsentType.FILE_UPLOAD)),
 ) -> JSONResponse:
     # 修改時間：2025-01-27 - 添加日誌記錄以便調試 JWT 認證問題
@@ -2309,7 +2307,11 @@ async def upload_files(
             _update_upload_progress(file_id, 50, "uploading", "文件已保存，正在處理...")
 
             # 獲取文件類型
-            file_type = validator.get_file_type(file.filename) if file.filename else "application/octet-stream"  # type: ignore[arg-type]  # file.filename 可能為 None
+            file_type = (
+                validator.get_file_type(file.filename)
+                if file.filename
+                else "application/octet-stream"
+            )  # type: ignore[arg-type]  # file.filename 可能為 None
 
             # 創建元數據
             try:
@@ -2663,9 +2665,7 @@ async def get_processing_status(
         else:
             # Redis 中沒有狀態，嘗試從 ArangoDB 讀取持久化狀態
             try:
-                from services.api.services.upload_status_service import (
-                    get_upload_status_service,
-                )
+                from services.api.services.upload_status_service import get_upload_status_service
 
                 status_service = get_upload_status_service()
                 processing_status = status_service.get_processing_status(file_id)
@@ -2701,9 +2701,7 @@ async def get_processing_status(
 
                     # 將狀態同步回 Redis（如果已完成，設置較長的 TTL；如果進行中，設置較短的 TTL）
                     ttl = (
-                        86400
-                        if (processing_status.overall_status == "completed")
-                        else 7200
+                        86400 if (processing_status.overall_status == "completed") else 7200
                     )  # 已完成：24小時，進行中：2小時
                     redis_client.setex(
                         status_key,
@@ -2976,9 +2974,7 @@ async def get_kg_stats(
                     RETURN count
                 """
                 entities_result = list(
-                    arangodb_client.db.aql.execute(
-                        entities_query, bind_vars={"file_id": file_id}
-                    )
+                    arangodb_client.db.aql.execute(entities_query, bind_vars={"file_id": file_id})
                 )
                 db_entities_count = entities_result[0] if entities_result else 0
 
@@ -2990,9 +2986,7 @@ async def get_kg_stats(
                     RETURN count
                 """
                 relations_result = list(
-                    arangodb_client.db.aql.execute(
-                        relations_query, bind_vars={"file_id": file_id}
-                    )
+                    arangodb_client.db.aql.execute(relations_query, bind_vars={"file_id": file_id})
                 )
                 db_relations_count = relations_result[0] if relations_result else 0
 

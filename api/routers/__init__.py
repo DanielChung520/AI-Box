@@ -1,7 +1,7 @@
 # 代碼功能說明: API 路由模組初始化文件
 # 創建日期: 2025-01-27
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-14 10:27:19 (UTC+8)
+# 最後修改日期: 2026-01-17 18:07 UTC+8
 
 """API 路由模組 - 提供所有 API 端點的路由定義"""
 
@@ -33,9 +33,13 @@ from . import (
     reports,
     review,
     rt,
+    service_monitor,
+    system_admin,
     task_analyzer,
     tools_registry,
     triple_extraction,
+    user_account,
+    user_sessions,
     user_tasks,
     workflows,
 )
@@ -73,4 +77,8 @@ __all__ = [
     "agent_files",
     "reports",
     "tools_registry",
+    "system_admin",
+    "service_monitor",
+    "user_account",
+    "user_sessions",
 ]

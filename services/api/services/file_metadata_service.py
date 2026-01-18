@@ -199,7 +199,7 @@ class FileMetadataService:
         except Exception:
             # 文件不存在，繼續創建
             pass
-        
+
         collection.insert(doc)
 
         # 確保所有必需字段都存在且類型正確

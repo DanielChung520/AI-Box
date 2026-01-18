@@ -1,5 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useContext } from 'react';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import AgentCard from './AgentCard';
 import AssistantCard from './AssistantCard';
 import ChatInput from './ChatInput';
@@ -17,6 +18,8 @@ import { useFileEditing } from '../contexts/fileEditingContext';
 import { useStreamingEdit } from '../hooks/useStreamingEdit';
 import { startEditingSession, submitEditingCommand, deleteAgentConfig } from '../lib/api';
 import { useAgentDisplayConfig } from '../hooks/useAgentDisplayConfig';
+import { AuthContext } from '../contexts/authContext';
+import { isSystemAdmin } from '../lib/userUtils';
 
   // 定义Agent分类和卡片数据
   interface AgentCategory {
@@ -75,11 +78,17 @@ import { useAgentDisplayConfig } from '../hooks/useAgentDisplayConfig';
   }
 
   export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, onModelSelect, onMessageSend, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete, isPreviewMode = false, isLoadingAI = false }: ChatAreaProps) {
+    const navigate = useNavigate();
+    const { currentUser } = useContext(AuthContext);
+    // 使用統一的系統管理員檢查函數
+    const isAdmin = isSystemAdmin(currentUser);
+
     const [activeTab, setActiveTab] = useState('human-resource');
     const [activeAssistantTab, setActiveAssistantTab] = useState('human-resource');
     const { theme, toggleTheme } = useTheme();
     const { language, setLanguage, t, updateCounter } = useLanguage();
     const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+    const [showSystemMenu, setShowSystemMenu] = useState(false);
     const [showAgentRegistrationModal, setShowAgentRegistrationModal] = useState(false);
     const [showAssistantMaintenanceModal, setShowAssistantMaintenanceModal] = useState(false);
     const [maintainingAssistantId, setMaintainingAssistantId] = useState<string | null>(null);
@@ -98,6 +107,37 @@ import { useAgentDisplayConfig } from '../hooks/useAgentDisplayConfig';
     const { editingFileId, setEditingFile, setPatches, clearEditing, setCurrentRequestId } = useFileEditing();
     const { connect, disconnect, patches: streamingPatches, isStreaming, error: streamingError } = useStreamingEdit();
     const editingSessionIdRef = useRef<string | null>(null);
+
+    // 處理點擊外部區域關閉系統管理菜單
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (showSystemMenu && !target.closest('.system-menu-container')) {
+          setShowSystemMenu(false);
+        }
+      };
+
+      if (showSystemMenu) {
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+        };
+      }
+    }, [showSystemMenu]);
+
+    // 處理 ESC 鍵關閉系統管理菜單
+    useEffect(() => {
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && showSystemMenu) {
+          setShowSystemMenu(false);
+        }
+      };
+
+      document.addEventListener('keydown', handleEscape);
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }, [showSystemMenu]);
 
     // 修改時間：2026-01-06 - 監聽文件選擇事件
     useEffect(() => {
@@ -437,9 +477,74 @@ import { useAgentDisplayConfig } from '../hooks/useAgentDisplayConfig';
               </div>
             )}
           </div>
-          <button className="p-2 rounded-full hover:bg-tertiary transition-colors">
-            <i className="fa-solid fa-cog text-tertiary"></i>
-          </button>
+          {/* 系統管理菜單（僅 system_admin 可見） */}
+          {isAdmin && (
+            <div className="relative system-menu-container">
+              <button
+                className="p-2 rounded-full hover:bg-tertiary transition-colors relative group"
+                onClick={() => setShowSystemMenu(!showSystemMenu)}
+                title="系統管理"
+                aria-label="系統管理"
+              >
+                <i className="fa-solid fa-cog text-tertiary group-hover:text-blue-400 transition-colors"></i>
+              </button>
+              {/* 系統管理下拉菜單 */}
+              {showSystemMenu && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-secondary border border-primary rounded-lg shadow-lg z-30 theme-transition">
+                  <div className="p-1 border-b border-primary text-xs font-medium text-primary px-3 py-2">
+                    系統管理
+                  </div>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-tertiary transition-colors flex items-center gap-3"
+                    onClick={() => {
+                      navigate('/admin/services');
+                      setShowSystemMenu(false);
+                    }}
+                  >
+                    <i className="fa-solid fa-server w-4 text-center"></i>
+                    <span>系統服務狀態</span>
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-tertiary transition-colors flex items-center gap-3"
+                    onClick={() => {
+                      navigate('/admin/accounts');
+                      setShowSystemMenu(false);
+                    }}
+                  >
+                    <i className="fa-solid fa-users-cog w-4 text-center"></i>
+                    <span>賬號/安全群組設置</span>
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-tertiary transition-colors flex items-center gap-3"
+                    onClick={() => {
+                      navigate('/admin/agent-requests');
+                      setShowSystemMenu(false);
+                    }}
+                  >
+                    <i className="fa-solid fa-clipboard-check w-4 text-center"></i>
+                    <span>Agent 申請審查</span>
+                  </button>
+                  <div className="border-t border-primary my-1"></div>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-tertiary transition-colors flex items-center gap-3"
+                    onClick={() => {
+                      navigate('/admin/settings');
+                      setShowSystemMenu(false);
+                    }}
+                  >
+                    <i className="fa-solid fa-sliders-h w-4 text-center"></i>
+                    <span>系統設置</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {/* 普通設置按鈕（非 system_admin 用戶） */}
+          {!isAdmin && (
+            <button className="p-2 rounded-full hover:bg-tertiary transition-colors">
+              <i className="fa-solid fa-cog text-tertiary"></i>
+            </button>
+          )}
           {onResultPanelToggle && (
             <button
               onClick={onResultPanelToggle}

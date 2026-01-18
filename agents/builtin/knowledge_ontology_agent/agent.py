@@ -138,9 +138,9 @@ class KnowledgeOntologyAgent(AgentServiceProtocol):
                 user_id=request.user_id,
                 min_confidence=request.min_confidence or 0.5,
                 core_node_threshold=request.core_node_threshold or 0.9,
-                enable_judgment=request.enable_judgment
-                if request.enable_judgment is not None
-                else True,
+                enable_judgment=(
+                    request.enable_judgment if request.enable_judgment is not None else True
+                ),
             )
 
             return KnowledgeOntologyAgentResponse(
@@ -307,21 +307,21 @@ class KnowledgeOntologyAgent(AgentServiceProtocol):
             # 構建 GraphRAG 查詢請求
             graphrag_request = GraphRAGQueryRequest(
                 query_type=request.query_type,
-                entity_name=request.query_params.get("entity_name")
-                if request.query_params
-                else None,
-                from_entity=request.query_params.get("from_entity")
-                if request.query_params
-                else None,
+                entity_name=(
+                    request.query_params.get("entity_name") if request.query_params else None
+                ),
+                from_entity=(
+                    request.query_params.get("from_entity") if request.query_params else None
+                ),
                 to_entity=request.query_params.get("to_entity") if request.query_params else None,
-                center_entity=request.query_params.get("center_entity")
-                if request.query_params
-                else None,
+                center_entity=(
+                    request.query_params.get("center_entity") if request.query_params else None
+                ),
                 max_depth=request.query_params.get("max_depth", 2) if request.query_params else 2,
                 limit=request.query_params.get("limit", 50) if request.query_params else 50,
-                relation_types=request.query_params.get("relation_types")
-                if request.query_params
-                else None,
+                relation_types=(
+                    request.query_params.get("relation_types") if request.query_params else None
+                ),
             )
 
             # 根據查詢類型執行相應功能

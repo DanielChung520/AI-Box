@@ -70,6 +70,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
           // 使用 getUserTask 檢查任務是否存在，避免 404/409 錯誤
           let syncResult: any = null;
           let lastError: any = null;
+          let isNewTask: boolean = false; // 記錄是創建還是更新
 
           try {
             // 先嘗試獲取任務，檢查是否存在
@@ -77,6 +78,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
 
             if (existingTask.success && existingTask.data) {
               // 任務存在，執行更新
+              isNewTask = false;
               console.debug('[TaskStorage] Task exists, updating', { taskId: task.id });
               try {
                 // 修改時間：2026-01-06 - 更新時記錄 updated_at 時間
@@ -99,6 +101,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
               }
             } else {
               // 任務不存在，執行創建
+              isNewTask = true;
               console.debug('[TaskStorage] Task not found, creating', { taskId: task.id });
               try {
                 syncResult = await createUserTask(backendTask);
@@ -107,6 +110,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
                 lastError = createError;
                 // 檢查是否為 409 錯誤（任務已存在，可能是並發創建）
                 if (createError?.status === 409 || createError?.message?.includes('409') || createError?.message?.includes('unique constraint')) {
+                  isNewTask = false; // 任務已存在，切換為更新
                   console.debug('[TaskStorage] Task already exists (409), retrying update', { taskId: task.id });
                   // 任務已存在，再次嘗試更新
                   try {
@@ -135,6 +139,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
             }
           } catch (checkError: any) {
             // 如果檢查任務失敗（可能是網絡錯誤），回退到原來的邏輯
+            isNewTask = true; // 假設是新任務
             console.warn('[TaskStorage] Failed to check task existence, falling back to create-first strategy', { taskId: task.id, error: checkError });
             try {
               syncResult = await createUserTask(backendTask);
@@ -143,6 +148,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
               lastError = createError;
               // 如果是 409，嘗試更新
               if (createError?.status === 409 || createError?.message?.includes('409') || createError?.message?.includes('unique constraint')) {
+                isNewTask = false; // 任務已存在，切換為更新
                 try {
                   // 修改時間：2026-01-06 - 更新時記錄 updated_at 時間
                   const now = new Date().toISOString();

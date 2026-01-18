@@ -1,7 +1,7 @@
 # 代碼功能說明: Prometheus 指標中間件（WBS-2.4: 監控與日誌）
 # 創建日期: 2025-12-18
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-18
+# 最後修改日期: 2026-01-18 13:35 UTC+8
 
 """Prometheus 指標收集中間件
 
@@ -9,17 +9,23 @@
 - HTTP 請求和響應時間
 - 請求計數
 - 錯誤率
+- 系統資源使用情況（CPU、內存、磁盤）
 """
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import time
 from typing import Callable
 
+import psutil
 from fastapi import Request, Response
 from prometheus_client import Counter, Gauge, Histogram
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
+
+logger = logging.getLogger(__name__)
 
 # 定義 Prometheus 指標
 http_requests_total = Counter(
@@ -32,7 +38,7 @@ http_request_duration_seconds = Histogram(
     "http_request_duration_seconds",
     "HTTP 請求處理時間（秒）",
     ["method", "endpoint"],
-    buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.5, 5.0, 10.0],
+    buckets=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
 )
 
 http_request_in_progress = Gauge(
@@ -57,6 +63,34 @@ file_upload_size_bytes = Histogram(
 active_connections = Gauge(
     "active_connections",
     "當前活躍連接數",
+)
+
+# 系統資源指標
+cpu_usage_percent = Gauge(
+    "cpu_usage_percent",
+    "CPU 使用率（百分比）",
+)
+
+memory_usage_percent = Gauge(
+    "memory_usage_percent",
+    "內存使用率（百分比）",
+)
+
+memory_usage_bytes = Gauge(
+    "memory_usage_bytes",
+    "內存使用量（字節）",
+)
+
+disk_usage_percent = Gauge(
+    "disk_usage_percent",
+    "磁盤使用率（百分比）",
+    ["path"],
+)
+
+disk_usage_bytes = Gauge(
+    "disk_usage_bytes",
+    "磁盤使用量（字節）",
+    ["path"],
 )
 
 
@@ -140,3 +174,48 @@ def register_file_upload_metrics(file_size: int, status: str = "success") -> Non
     file_uploads_total.labels(status=status).inc()
     if status == "success":
         file_upload_size_bytes.observe(file_size)
+
+
+async def update_system_metrics() -> None:
+    """
+    定期更新系統資源指標
+
+    每 15 秒更新一次 CPU、內存和磁盤使用情況
+    """
+    while True:
+        try:
+            # 更新 CPU 使用率（間隔 1 秒採樣）
+            cpu_percent = psutil.cpu_percent(interval=1)
+            cpu_usage_percent.set(cpu_percent)
+
+            # 更新內存使用率
+            memory = psutil.virtual_memory()
+            memory_usage_percent.set(memory.percent)
+            memory_usage_bytes.set(memory.used)
+
+            # 更新磁盤使用率（根目錄）
+            disk = psutil.disk_usage("/")
+            disk_usage_percent.labels(path="/").set(disk.percent)
+            disk_usage_bytes.labels(path="/").set(disk.used)
+
+            logger.debug(
+                f"System metrics updated: CPU={cpu_percent:.1f}%, "
+                f"Memory={memory.percent:.1f}%, Disk={disk.percent:.1f}%"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to update system metrics: {e}")
+
+        # 每 15 秒更新一次
+        await asyncio.sleep(15)
+
+
+def start_system_metrics_task() -> None:
+    """
+    啟動系統資源指標收集後台任務
+    """
+    try:
+        asyncio.create_task(update_system_metrics())
+        logger.info("System metrics background task started")
+    except Exception as e:
+        logger.error(f"Failed to start system metrics task: {e}")

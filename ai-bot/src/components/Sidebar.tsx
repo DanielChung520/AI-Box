@@ -1,10 +1,12 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useContext } from 'react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/languageContext';
+import { AuthContext } from '../contexts/authContext';
 import { saveTask, getAllTasks, deleteTask, getFavorites, addTaskToFavorites, removeTaskFromFavorites, isTaskFavorite, clearHardcodedFavorites, removeFavorite } from '../lib/taskStorage';
 import { saveMockFiles } from '../lib/mockFileStorage';
 import { deleteUserTask, getUserTask, updateUserTask } from '../lib/api';
 import FileRecordModal from './FileRecordModal';
+import UserMenu from './UserMenu';
 
 // 定义消息接口
 export interface Message {
@@ -70,6 +72,11 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   const [activeSection, setActiveSection] = useState<'favorites' | 'tasks'>('tasks');
   const [activeItemId, setActiveItemId] = useState<string | number | null>(null); // 跟踪当前选中的具体 item ID
   const { t, updateCounter, language } = useLanguage();
+  const { currentUser } = useContext(AuthContext);
+
+  // 用戶菜單狀態
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuButtonRef = useRef<HTMLButtonElement>(null);
 
   // 可收合区域的状态管理
   const [expandedSections, setExpandedSections] = useState({
@@ -1447,16 +1454,43 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
       )}
 
       {/* 侧边栏底部 */}
-      <div className="p-4 border-t border-primary" key={`sidebar-footer-${language}-${updateCounter}`}>
+      <div className="p-4 border-t border-primary relative" key={`sidebar-footer-${language}-${updateCounter}`}>
         <div className="flex items-center">
            {!collapsed && <div key={`user-info-${language}-${updateCounter}`}>
-               <div className="text-sm font-medium">{translations.user}</div>
-               <div className="text-xs text-tertiary">{localStorage.getItem('userEmail') || translations.userEmail}</div>
+               <div className="text-sm font-medium">
+                 {currentUser?.username || localStorage.getItem('userName') || translations.user}
+               </div>
+               <div className="text-xs text-tertiary">
+                 {currentUser?.email || localStorage.getItem('userEmail') || translations.userEmail}
+               </div>
             </div>}
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center ml-auto">
-            <i className="fa-solid fa-user"></i>
-          </div>
+          <button
+            ref={userMenuButtonRef}
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center ml-auto cursor-pointer hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-secondary"
+            aria-label="用戶菜單"
+            title="用戶菜單"
+          >
+            {currentUser?.username ? (
+              <span className="text-white text-xs font-medium">
+                {currentUser.username.charAt(0).toUpperCase()}
+              </span>
+            ) : (
+              <i className="fa-solid fa-user text-white text-sm"></i>
+            )}
+          </button>
         </div>
+
+        {/* 用戶菜單 */}
+        {showUserMenu && (
+          <div className="absolute right-4" style={{ [collapsed ? 'top' : 'bottom']: '100%' }}>
+            <UserMenu
+              isOpen={showUserMenu}
+              onClose={() => setShowUserMenu(false)}
+              position={collapsed ? 'bottom' : 'top'}
+            />
+          </div>
+        )}
       </div>
 
       {/* 歷史任務右鍵菜單 */}

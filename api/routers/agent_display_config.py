@@ -309,6 +309,7 @@ async def create_agent(
         # if not user or not user.has_permission("agent:display_config:create"):
         #     raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
+        # 1. 保存展示配置
         store = get_store_service()
         config_key = store.create_agent(
             agent_config=agent_config,
@@ -316,9 +317,73 @@ async def create_agent(
             created_by=user.user_id if user else None,
         )
 
+        # 2. 如果有技術配置，同時註冊到 Agent Registry
+        if agent_config.endpoint_url:
+            from agents.services.registry.models import (
+                AgentEndpoints,
+                AgentMetadata,
+                AgentPermissionConfig,
+                AgentRegistryInfo,
+                AgentServiceProtocolType,
+                AgentStatus,
+            )
+            from agents.services.registry.registry import get_agent_registry
+
+            registry = get_agent_registry()
+
+            # 構建 Agent Registry 註冊信息
+            agent_info = AgentRegistryInfo(
+                agent_id=agent_config.id,
+                agent_type=agent_config.agent_type or "execution",
+                name=(
+                    agent_config.name.zh_TW
+                    if hasattr(agent_config.name, "zh_TW")
+                    else str(agent_config.name)
+                ),
+                description=(
+                    agent_config.description.zh_TW
+                    if hasattr(agent_config.description, "zh_TW")
+                    else str(agent_config.description)
+                ),
+                endpoints=AgentEndpoints(
+                    http=agent_config.endpoint_url if agent_config.protocol == "http" else None,
+                    mcp=agent_config.endpoint_url if agent_config.protocol == "mcp" else None,
+                    protocol=(
+                        AgentServiceProtocolType.MCP
+                        if agent_config.protocol == "mcp"
+                        else AgentServiceProtocolType.HTTP
+                    ),
+                    is_internal=False,
+                ),
+                capabilities=agent_config.capabilities or [],
+                status=(
+                    AgentStatus.ONLINE
+                    if agent_config.status == "online"
+                    else AgentStatus.REGISTERING
+                ),
+                metadata=AgentMetadata(
+                    version="1.0.0",
+                    description=(
+                        agent_config.description.zh_TW
+                        if hasattr(agent_config.description, "zh_TW")
+                        else str(agent_config.description)
+                    ),
+                    author=user.user_id if user else "system",
+                    tags=[],
+                ),
+                permissions=AgentPermissionConfig(
+                    secret_id=agent_config.secret_id,
+                    api_key=agent_config.secret_key,
+                ),
+                is_system_agent=False,
+            )
+
+            # 註冊到 Agent Registry
+            registry.register_agent(agent_info)
+
         return APIResponse.success(
             data={"config_key": config_key},
-            message="Agent config created successfully",
+            message="Agent config created successfully and registered to Agent Registry",
         )
     except Exception as e:
         raise HTTPException(
@@ -356,6 +421,7 @@ async def update_agent(
         # if not user or not user.has_permission("agent:display_config:update"):
         #     raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
+        # 1. 更新展示配置
         store = get_store_service()
         success = store.update_agent(
             agent_id=agent_id,
@@ -370,9 +436,73 @@ async def update_agent(
                 detail=f"Agent config {agent_id} not found",
             )
 
+        # 2. 如果有技術配置，同時更新 Agent Registry
+        if agent_config.endpoint_url:
+            from agents.services.registry.models import (
+                AgentEndpoints,
+                AgentMetadata,
+                AgentPermissionConfig,
+                AgentRegistryInfo,
+                AgentServiceProtocolType,
+                AgentStatus,
+            )
+            from agents.services.registry.registry import get_agent_registry
+
+            registry = get_agent_registry()
+
+            # 構建 Agent Registry 更新信息
+            agent_info = AgentRegistryInfo(
+                agent_id=agent_id,
+                agent_type=agent_config.agent_type or "execution",
+                name=(
+                    agent_config.name.zh_TW
+                    if isinstance(agent_config.name, dict)
+                    else str(agent_config.name)
+                ),
+                description=(
+                    agent_config.description.zh_TW
+                    if isinstance(agent_config.description, dict)
+                    else str(agent_config.description)
+                ),
+                endpoints=AgentEndpoints(
+                    http=agent_config.endpoint_url if agent_config.protocol == "http" else None,
+                    mcp=agent_config.endpoint_url if agent_config.protocol == "mcp" else None,
+                    protocol=(
+                        AgentServiceProtocolType.MCP
+                        if agent_config.protocol == "mcp"
+                        else AgentServiceProtocolType.HTTP
+                    ),
+                    is_internal=False,
+                ),
+                capabilities=agent_config.capabilities or [],
+                status=(
+                    AgentStatus.ONLINE
+                    if agent_config.status == "online"
+                    else AgentStatus.REGISTERING
+                ),
+                metadata=AgentMetadata(
+                    version="1.0.0",
+                    description=(
+                        agent_config.description.zh_TW
+                        if hasattr(agent_config.description, "zh_TW")
+                        else str(agent_config.description)
+                    ),
+                    author=user.user_id if user else "system",
+                    tags=[],
+                ),
+                permissions=AgentPermissionConfig(
+                    secret_id=agent_config.secret_id,
+                    api_key=agent_config.secret_key,
+                ),
+                is_system_agent=False,
+            )
+
+            # 更新 Agent Registry（register_agent 方法会覆盖已存在的 Agent）
+            registry.register_agent(agent_info)
+
         return APIResponse.success(
             data={"agent_id": agent_id},
-            message="Agent config updated successfully",
+            message="Agent config updated successfully and synced to Agent Registry",
         )
     except HTTPException:
         raise

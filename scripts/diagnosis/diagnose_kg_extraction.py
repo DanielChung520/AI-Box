@@ -22,12 +22,13 @@ env_file = project_root / ".env"
 if env_file.exists():
     load_dotenv(env_file, override=True)
 
+import structlog
+
 from genai.api.services.ner_service import NERService
 from genai.api.services.re_service import REService
 from genai.api.services.rt_service import RTService
 from genai.api.services.triple_extraction_service import TripleExtractionService
 from services.api.services.config_store_service import ConfigStoreService
-import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -95,6 +96,7 @@ async def diagnose():
     except Exception as e:
         print(f"  ❌ NER 服務初始化失敗: {e}")
         import traceback
+
         traceback.print_exc()
     print()
 
@@ -113,6 +115,7 @@ async def diagnose():
     except Exception as e:
         print(f"  ❌ RE 服務初始化失敗: {e}")
         import traceback
+
         traceback.print_exc()
     print()
 
@@ -131,6 +134,7 @@ async def diagnose():
     except Exception as e:
         print(f"  ❌ RT 服務初始化失敗: {e}")
         import traceback
+
         traceback.print_exc()
     print()
 
@@ -153,12 +157,15 @@ async def diagnose():
         print(f"  提取結果: {len(triples)} 個三元組")
         if triples:
             for i, triple in enumerate(triples[:3], 1):
-                print(f"    {i}. {triple.subject.text} - {triple.relation.type} - {triple.object.text}")
+                print(
+                    f"    {i}. {triple.subject.text} - {triple.relation.type} - {triple.object.text}"
+                )
         else:
             print("  ⚠️  未提取到任何三元組")
     except Exception as e:
         print(f"  ❌ 提取失敗: {e}")
         import traceback
+
         traceback.print_exc()
     print()
 
@@ -191,4 +198,3 @@ async def diagnose():
 
 if __name__ == "__main__":
     asyncio.run(diagnose())
-

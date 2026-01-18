@@ -147,9 +147,11 @@ class SystemAgentRegistryStoreService:
         indexes = collection.indexes()
         # 使用 tuple 而不是 list，因為列表不可哈希
         existing_index_fields = {
-            tuple(idx.get("fields", []))
-            if isinstance(idx.get("fields"), list)
-            else idx.get("fields")
+            (
+                tuple(idx.get("fields", []))
+                if isinstance(idx.get("fields"), list)
+                else idx.get("fields")
+            )
             for idx in indexes
         }
 

@@ -17,8 +17,7 @@ import structlog
 
 from agents.builtin.security_manager.agent import SecurityManagerAgent
 from agents.builtin.security_manager.models import SecurityManagerRequest
-from agents.task_analyzer.models import PolicyRule, PolicyValidationResult, TaskDAG, TaskNode
-from agents.task_analyzer.rag_namespace import RAGNamespace
+from agents.task_analyzer.models import PolicyRule, PolicyValidationResult
 from agents.task_analyzer.rag_service import RAGService, get_rag_service
 
 logger = structlog.get_logger(__name__)
@@ -97,7 +96,9 @@ class PolicyService:
         policy_knowledge = self._retrieve_policy_knowledge(task_dag_dict)
 
         # 執行規則評估
-        rule_result = self.evaluate_rules({**context, "task_dag": task_dag_dict, "policy_knowledge": policy_knowledge})
+        rule_result = self.evaluate_rules(
+            {**context, "task_dag": task_dag_dict, "policy_knowledge": policy_knowledge}
+        )
 
         # 執行各項檢查
         permission_result = self.check_permission(
@@ -122,7 +123,10 @@ class PolicyService:
         else:
             # 其他情況根據各項檢查結果判斷
             allowed = permission_result and risk_result.get("allowed", False) and resource_result
-            requires_confirmation = risk_result.get("requires_confirmation", False) or rule_result.get("action") == "require_confirmation"
+            requires_confirmation = (
+                risk_result.get("requires_confirmation", False)
+                or rule_result.get("action") == "require_confirmation"
+            )
 
         # 確定風險等級（取最高等級）
         risk_levels = [risk_result.get("risk_level", "low")]
@@ -161,9 +165,7 @@ class PolicyService:
 
         return result
 
-    def check_permission(
-        self, user_id: Optional[str], action: str, resource: Any
-    ) -> bool:
+    def check_permission(self, user_id: Optional[str], action: str, resource: Any) -> bool:
         """
         權限檢查（集成 Security Agent）
 
@@ -231,7 +233,9 @@ class PolicyService:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    response = loop.run_until_complete(self._security_agent._check_permission(request))
+                    response = loop.run_until_complete(
+                        self._security_agent._check_permission(request)
+                    )
                 finally:
                     loop.close()
                     asyncio.set_event_loop(None)
@@ -305,20 +309,17 @@ class PolicyService:
         sensitive_operations = ["delete", "remove", "drop", "destroy", "clear", "wipe"]
         sensitive_capabilities = ["config_update", "config_delete", "file_delete", "data_delete"]
 
-        has_sensitive_operation = False
         for task in task_graph:
             if isinstance(task, dict):
                 capability = task.get("capability", "").lower()
                 description = task.get("description", "").lower()
                 for op in sensitive_operations:
                     if op in capability or op in description:
-                        has_sensitive_operation = True
                         risk_score += 3
                         risk_factors.append(f"包含敏感操作：{capability}")
                         break
                 for cap in sensitive_capabilities:
                     if cap in capability:
-                        has_sensitive_operation = True
                         risk_score += 2
                         risk_factors.append(f"包含敏感能力：{capability}")
                         break
@@ -463,9 +464,6 @@ class PolicyService:
         if context is None:
             context = {}
 
-        user_id = context.get("user_id")
-        tenant_id = context.get("tenant_id")
-
         # 默認資源限制配置（可以從配置服務或數據庫讀取）
         default_limits = {
             "api_calls": {"daily": 1000, "per_user": True},
@@ -533,7 +531,9 @@ class PolicyService:
                 return False
 
         result = True
-        self._logger.debug("resource_limit_check_complete", result=result, resource_type=resource_type)
+        self._logger.debug(
+            "resource_limit_check_complete", result=result, resource_type=resource_type
+        )
         return result
 
     def add_rule(self, rule: PolicyRule) -> None:
@@ -576,9 +576,7 @@ class PolicyService:
         """
         return self._rules.copy()
 
-    def evaluate_rules(
-        self, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def evaluate_rules(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         評估規則（規則引擎接口）
 
@@ -718,7 +716,9 @@ class PolicyService:
             # 所有條件都必須滿足
             and_conditions = conditions["AND"]
             if isinstance(and_conditions, list):
-                return all(self._evaluate_single_condition(cond, context) for cond in and_conditions)
+                return all(
+                    self._evaluate_single_condition(cond, context) for cond in and_conditions
+                )
             return False
 
         if "OR" in conditions:
@@ -734,9 +734,14 @@ class PolicyService:
             return not self._evaluate_single_condition(not_condition, context)
 
         # 如果沒有邏輯運算符，則所有條件都必須滿足（AND 語義）
-        return all(self._evaluate_single_condition({key: value}, context) for key, value in conditions.items())
+        return all(
+            self._evaluate_single_condition({key: value}, context)
+            for key, value in conditions.items()
+        )
 
-    def _evaluate_single_condition(self, condition: Dict[str, Any], context: Dict[str, Any]) -> bool:
+    def _evaluate_single_condition(
+        self, condition: Dict[str, Any], context: Dict[str, Any]
+    ) -> bool:
         """
         評估單個條件
 

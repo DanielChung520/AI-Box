@@ -138,6 +138,19 @@ class GenAIModelRegistryService:
 
         discovered: List[ModelRegistryItem] = []
         for name in sorted(names):
+            # 只顯示 gpt-oss:120b-cloud 相關模型，其他 Ollama 模型暫時不顯示（但不代表禁用）
+            # 支持多種格式：gpt-oss:120b-cloud, gpt-oss:120b-cloud:latest, gpt-oss:120b 等
+            name_lower = name.lower()
+            if "gpt-oss" in name_lower and ("120b" in name_lower or "120" in name_lower):
+                # 匹配 gpt-oss:120b-cloud 相關模型
+                pass
+            elif "gpt-oss:120b-cloud" in name_lower:
+                # 完全匹配 gpt-oss:120b-cloud
+                pass
+            else:
+                # 其他模型不顯示
+                continue
+
             caps = ["chat"]
             lower = name.lower()
             if "vl" in lower or "vision" in lower:

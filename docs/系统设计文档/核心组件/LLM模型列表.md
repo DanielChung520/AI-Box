@@ -1,9 +1,9 @@
 # LLM 模型列表
 
-**版本**: 1.0
+**版本**: 1.1
 **創建日期**: 2025-12-20
 **創建人**: Daniel Chung
-**最後修改日期**: 2025-12-20
+**最後修改日期**: 2026-01-27
 
 ---
 
@@ -13,6 +13,50 @@
 
 1. **數據庫模型**: 存儲在 ArangoDB 中的預定義模型（全域配置）
 2. **動態發現模型**: 從 Ollama 服務器（本地和遠程）自動發現的模型
+
+---
+
+## 🔐 模型激活邏輯（重要）
+
+**重要更新（2026-01-27）**：前端模型選擇列表現在只顯示**已激活的模型**。
+
+### 激活條件
+
+模型必須滿足以下條件才會在前端顯示：
+
+1. **雲端模型（需要 API Key）**：
+   - 必須在 ArangoDB 中配置對應 Provider 的 API Key
+   - 通過 `llm_provider_config_service` 檢查 API Key 是否存在
+   - 只有已配置 API Key 的 Provider 的模型才會顯示
+
+2. **Ollama 模型（本地/遠程）**：
+   - 默認激活（不需要 API Key）
+   - 需要 Ollama 服務運行且模型已下載
+
+3. **Auto 模型**：
+   - 默認激活（自動選擇最佳模型）
+
+### 實現位置
+
+- **API 端點**：
+  - `/api/v1/models`（`llm_models.py`）：過濾 `is_active=False` 的模型
+  - `/api/v1/chat/models`（`chat.py`）：檢查 Provider API Key 配置並過濾未激活模型
+
+- **服務層**：
+  - `llm_model_service.get_all_with_discovery()`：設置 `is_active` 狀態
+  - `genai_model_registry_service.list_models()`：返回所有模型（由 API 層過濾）
+
+### 模型狀態字段
+
+- `is_active`: 布爾值，表示模型是否可用
+  - `True`: 模型已激活，會在前端顯示
+  - `False`: 模型未激活，不會在前端顯示
+
+### 注意事項
+
+- 如果 Provider 未配置 API Key，該 Provider 的所有模型都不會在前端顯示
+- 配置 API Key 後，需要刷新前端頁面才能看到新激活的模型
+- Ollama 模型的激活狀態取決於 Ollama 服務是否運行以及模型是否已下載
 
 ---
 
@@ -32,9 +76,11 @@
 
 以下列表包含所有可用的模型，並標記 Active 狀態：
 
-- ✅ **Active**: 模型可用（雲端模型已配置 API Key，或本地 Ollama 模型）
-- ⚠️ **Inactive**: 模型不可用（雲端模型未配置 API Key）
-- 🟢 **Local**: 本地模型（Ollama，無需 API Key）
+- ✅ **Active**: 模型可用（雲端模型已配置 API Key，或本地 Ollama 模型）**會在前端顯示**
+- ⚠️ **Inactive**: 模型不可用（雲端模型未配置 API Key）**不會在前端顯示**
+- 🟢 **Local**: 本地模型（Ollama，無需 API Key）**會在前端顯示**
+
+**重要**：前端模型選擇列表只顯示 Active 狀態的模型。未配置 API Key 的雲端模型不會出現在前端列表中。
 
 ### 所有模型列表
 
@@ -77,15 +123,16 @@
 
 **說明**:
 
-- ✅ **Active**: 模型已配置且可用
-- ⚠️ **Inactive**: 需要配置 Provider API Key 後才能使用
-- 🟢 **Local**: 本地 Ollama 模型，無需 API Key（但需要 Ollama 服務運行）
+- ✅ **Active**: 模型已配置且可用，**會在前端模型選擇列表中顯示**
+- ⚠️ **Inactive**: 需要配置 Provider API Key 後才能使用，**不會在前端模型選擇列表中顯示**
+- 🟢 **Local**: 本地 Ollama 模型，無需 API Key（但需要 Ollama 服務運行），**會在前端模型選擇列表中顯示**
 
 **備註**:
 
 - 所有雲端模型的 Active 狀態取決於是否已配置對應 Provider 的 API Key
 - Ollama 模型的 Active 狀態取決於 Ollama 服務是否運行以及模型是否已下載
 - 實際的 Active 狀態會根據系統配置動態變化
+- **前端只顯示 Active 狀態的模型**，未激活的模型不會出現在模型選擇列表中
 
 ---
 
@@ -381,21 +428,32 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 - 智譜 AI (chatglm): 需要配置 `chatglm` Provider API Key
 - 火山引擎 (volcano): 需要配置 `volcano` Provider API Key
 
+**重要**：未配置 API Key 的 Provider 的所有模型**不會在前端模型選擇列表中顯示**。
+
 **本地模型（無需 API Key）**:
 
 - Ollama 模型: 只需要 Ollama 服務運行，無需 API Key
   - 模型格式: `ollama:{host}:{port}:{model_name}`
   - 示例: `ollama:localhost:11434:llama3.1:8b`
   - 系統會自動發現所有配置節點上的可用模型
+  - **會在前端模型選擇列表中顯示**（如果 Ollama 服務運行且模型已下載）
 
 **檢查 Active 狀態**:
 
 - 通過 `GET /api/v1/models/providers/{provider}/api-key` 查詢 Provider 是否已配置 API Key
 - 對於 Ollama 模型，Active 狀態取決於模型是否已被下載到對應的 Ollama 服務器
+- **前端模型選擇列表只顯示 Active 狀態的模型**
 
 ---
 
 ## 🔄 更新記錄
+
+### 2026-01-27
+
+- ✅ **重要更新**：前端模型選擇列表現在只顯示已激活的模型
+- ✅ 修復後端 API：`/api/v1/models` 和 `/api/v1/chat/models` 端點現在會過濾掉未激活的模型
+- ✅ 添加模型激活邏輯說明：詳細說明哪些模型會在前端顯示
+- ✅ 更新文檔：明確說明 Active 狀態與前端顯示的關係
 
 ### 2025-12-30
 
@@ -419,6 +477,6 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 
 ---
 
-**文檔版本**: 1.1
-**最後更新**: 2025-12-30
+**文檔版本**: 1.2
+**最後更新**: 2026-01-27
 **維護者**: Daniel Chung

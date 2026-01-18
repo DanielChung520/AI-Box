@@ -4,16 +4,47 @@ import { useLanguage } from '../contexts/languageContext';
 
 type Theme = 'light' | 'dark';
 
+// 检测系统主题偏好
+const getSystemTheme = (): Theme => {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'dark'; // 默认值
+};
+
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme') as Theme;
     if (savedTheme) {
       return savedTheme;
     }
-    // 修改時間：2025-12-12 - 將登錄後的默認主題設置為深色
-    return 'dark';
+    // 修改時間：2026-01-18 - 如果没有保存的主题，则跟随系统偏好
+    return getSystemTheme();
   });
   const { t } = useLanguage();
+
+  // 监听系统主题变化
+  useEffect(() => {
+    // 只在用户没有手动设置主题时，才监听系统主题变化
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      return; // 用户已手动设置，不监听系统变化
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      const newTheme = e.matches ? 'dark' : 'light';
+      setTheme(newTheme);
+    };
+
+    // 添加监听器
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+
+    // 清理函数
+    return () => {
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    };
+  }, []);
 
   // 初始化时设置主题类（确保与main.tsx中的初始化一致）
   useEffect(() => {

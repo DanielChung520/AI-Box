@@ -20,7 +20,7 @@ from services.api.models.llm_model import (
     ModelStatus,
 )
 from services.api.services.llm_model_service import get_llm_model_service
-from system.security.dependencies import get_current_user
+from system.security.dependencies import get_current_tenant_id, get_current_user
 from system.security.models import User
 
 router = APIRouter(prefix="/models", tags=["LLM Models"])
@@ -36,6 +36,7 @@ async def get_models(
     include_favorite_status: bool = True,
     limit: int = 1000,  # 增加默認限制，確保返回所有模型
     offset: int = 0,
+    tenant_id: str = Depends(get_current_tenant_id),
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """
@@ -78,6 +79,7 @@ async def get_models(
             models = await service.get_all_with_discovery(
                 query=query,
                 user_id=current_user.user_id,
+                tenant_id=tenant_id,
                 include_favorite_status=include_favorite_status,
                 include_discovered=True,
             )
@@ -105,10 +107,16 @@ async def get_models(
                             model.is_favorite = True
                             models[i] = model
 
+        # 過濾掉未激活的模型（只返回 is_active=True 的模型）
+        # 注意：is_active 字段在 get_all_with_discovery 中已經設置
+        active_models = [model for model in models if getattr(model, "is_active", True) is True]
+
         return APIResponse.success(
             data={
-                "models": [model.model_dump(mode="json", exclude_none=True) for model in models],
-                "total": len(models),
+                "models": [
+                    model.model_dump(mode="json", exclude_none=True) for model in active_models
+                ],
+                "total": len(active_models),
             },
             message="Models retrieved successfully",
         )

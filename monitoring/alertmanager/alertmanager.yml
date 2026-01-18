@@ -1,0 +1,27 @@
+# 代碼功能說明: Alertmanager 告警配置
+# 創建日期: 2026-01-18 13:26 UTC+8
+# 創建人: Daniel Chung
+# 最後修改日期: 2026-01-18 13:26 UTC+8
+
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ["alertname", "cluster", "service"]
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: "webhook"
+
+receivers:
+  - name: "webhook"
+    webhook_configs:
+      - url: "http://host.docker.internal:8000/api/v1/admin/alerts/webhook"
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: "critical"
+    target_match:
+      severity: "warning"
+    equal: ["alertname", "cluster", "service"]

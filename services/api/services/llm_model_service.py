@@ -379,12 +379,26 @@ class LLMModelService:
                         if not model_name:
                             continue
 
+                        # 只顯示 gpt-oss:120b-cloud 相關模型，其他 Ollama 模型暫時不顯示（但不代表禁用）
+                        # 支持多種格式：gpt-oss:120b-cloud, gpt-oss:120b-cloud:latest, gpt-oss:120b 等
+                        model_name_lower = model_name.lower()
+                        if "gpt-oss" in model_name_lower and (
+                            "120b" in model_name_lower or "120" in model_name_lower
+                        ):
+                            # 匹配 gpt-oss:120b-cloud 相關模型
+                            pass
+                        elif "gpt-oss:120b-cloud" in model_name_lower:
+                            # 完全匹配 gpt-oss:120b-cloud
+                            pass
+                        else:
+                            # 其他模型不顯示
+                            continue
+
                         # 構建唯一的 model_id（包含節點信息）
                         model_id = f"ollama:{node.host}:{node.port}:{model_name}"
 
                         # 判斷能力
                         capabilities = [ModelCapability.CHAT]
-                        model_name_lower = model_name.lower()
                         if "vl" in model_name_lower or "vision" in model_name_lower:
                             capabilities.append(ModelCapability.VISION)
                         if "embed" in model_name_lower:
@@ -435,6 +449,7 @@ class LLMModelService:
         self,
         query: Optional[LLMModelQuery] = None,
         user_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         include_favorite_status: bool = False,
         include_discovered: bool = True,
     ) -> List[LLMModel]:
@@ -444,6 +459,7 @@ class LLMModelService:
         Args:
             query: 查詢參數
             user_id: 用戶ID（用於標記收藏狀態）
+            tenant_id: 租戶ID（用於檢查租戶級 API Key 配置）
             include_favorite_status: 是否包含收藏狀態
             include_discovered: 是否包含動態發現的模型
 
@@ -528,12 +544,17 @@ class LLMModelService:
                 self.logger.warning("favorite_status_error", user_id=user_id, error=str(e))
 
         # 4. 標記模型的 Active 狀態（根據 Provider API Key 配置）
+        # 支持全局、租戶、用戶三級配置檢查
         try:
+            from services.api.services.genai_config_resolver_service import (
+                get_genai_config_resolver_service,
+            )
             from services.api.services.llm_provider_config_service import (
                 get_llm_provider_config_service,
             )
 
-            config_service = get_llm_provider_config_service()
+            global_config_service = get_llm_provider_config_service()
+            config_resolver = get_genai_config_resolver_service()
             # 緩存每個 provider 的 API key 狀態
             provider_status_cache: Dict[LLMProvider, bool] = {}
 
@@ -545,10 +566,48 @@ class LLMModelService:
                 if model.provider not in (LLMProvider.AUTO, LLMProvider.OLLAMA):
                     # 檢查緩存
                     if model.provider not in provider_status_cache:
-                        status_obj = config_service.get_status(model.provider)
-                        provider_status_cache[model.provider] = (
-                            status_obj.has_api_key if status_obj else False
-                        )
+                        # 優先檢查租戶/用戶級配置（如果提供了 tenant_id 和 user_id）
+                        if tenant_id and user_id:
+                            api_key = config_resolver.resolve_api_key(
+                                tenant_id=tenant_id,
+                                user_id=user_id,
+                                provider=model.provider.value,
+                            )
+                            if api_key:
+                                provider_status_cache[model.provider] = True
+                                self.logger.debug(
+                                    "api_key_found_tenant_or_user",
+                                    provider=model.provider.value,
+                                    tenant_id=tenant_id,
+                                    user_id=user_id,
+                                )
+                            else:
+                                # 如果租戶/用戶級沒有配置，檢查全局配置
+                                status_obj = global_config_service.get_status(model.provider)
+                                has_global_key = status_obj.has_api_key if status_obj else False
+                                provider_status_cache[model.provider] = has_global_key
+                                if has_global_key:
+                                    self.logger.debug(
+                                        "api_key_found_global",
+                                        provider=model.provider.value,
+                                    )
+                                else:
+                                    self.logger.debug(
+                                        "api_key_not_found",
+                                        provider=model.provider.value,
+                                        tenant_id=tenant_id,
+                                        user_id=user_id,
+                                    )
+                        else:
+                            # 沒有提供 tenant_id/user_id，只檢查全局配置
+                            status_obj = global_config_service.get_status(model.provider)
+                            has_global_key = status_obj.has_api_key if status_obj else False
+                            provider_status_cache[model.provider] = has_global_key
+                            if not has_global_key:
+                                self.logger.debug(
+                                    "api_key_not_found_no_tenant",
+                                    provider=model.provider.value,
+                                )
 
                     is_active = provider_status_cache[model.provider]
                 # Ollama 模型默認可用（不需要 API key）

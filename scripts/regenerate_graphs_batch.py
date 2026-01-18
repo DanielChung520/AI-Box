@@ -56,8 +56,8 @@ class GraphRegenerationClient:
     async def get_all_file_ids(self) -> List[str]:
         """從ArangoDB獲取所有文件的file_id"""
         try:
-            from dotenv import load_dotenv
             from arango import ArangoClient
+            from dotenv import load_dotenv
 
             # 加載環境變量
             env_path = Path(".env")
@@ -153,7 +153,9 @@ async def main():
                 logger.info(f"[{i}/{len(file_ids)}] 成功", file_id=file_id)
             else:
                 fail_count += 1
-                logger.error(f"[{i}/{len(file_ids)}] 失敗", file_id=file_id, error=result.get("error"))
+                logger.error(
+                    f"[{i}/{len(file_ids)}] 失敗", file_id=file_id, error=result.get("error")
+                )
 
         # 保存結果
         output_file = "regenerate_graphs_results.json"

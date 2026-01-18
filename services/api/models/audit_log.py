@@ -49,6 +49,10 @@ class AuditAction(str, Enum):
     ROLE_DELETE = "role_delete"  # 角色刪除
     USER_ROLE_ASSIGN = "user_role_assign"  # 用戶角色分配
     USER_ROLE_REVOKE = "user_role_revoke"  # 用戶角色撤銷
+    USER_CREATE = "user_create"  # 用戶創建
+    USER_UPDATE = "user_update"  # 用戶更新
+    USER_DELETE = "user_delete"  # 用戶刪除
+    SYSTEM_ACTION = "system_action"  # 系統操作（服務檢查等）
 
 
 class AuditLog(BaseModel):

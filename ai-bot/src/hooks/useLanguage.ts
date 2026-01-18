@@ -1629,6 +1629,103 @@ export const translations: Translations = {
     zh_TW: '還沒有消息，開始對話吧！'
   },
 
+  // 聊天搜索功能
+  'chat.search.title': {
+    en: 'Search Chat History',
+    zh_CN: '搜索聊天记录',
+    zh_TW: '搜索聊天記錄'
+  },
+  'chat.search.close': {
+    en: 'Close',
+    zh_CN: '关闭',
+    zh_TW: '關閉'
+  },
+  'chat.search.placeholder': {
+    en: 'Enter keywords to search...',
+    zh_CN: '输入关键词搜索...',
+    zh_TW: '輸入關鍵詞搜索...'
+  },
+  'chat.search.search': {
+    en: 'Search',
+    zh_CN: '搜索',
+    zh_TW: '搜索'
+  },
+  'chat.search.noResults': {
+    en: 'No matching results found',
+    zh_CN: '没有找到匹配的结果',
+    zh_TW: '沒有找到匹配的結果'
+  },
+  'chat.search.enterQuery': {
+    en: 'Enter keywords or select a date range to start searching',
+    zh_CN: '输入关键词或选择日期范围开始搜索',
+    zh_TW: '輸入關鍵詞或選擇日期範圍開始搜索'
+  },
+  'chat.search.resultsCount': {
+    en: 'Found {count} results',
+    zh_CN: '找到 {count} 条结果',
+    zh_TW: '找到 {count} 條結果'
+  },
+  'chat.search.tryDifferent': {
+    en: 'Try adjusting the date range or keywords',
+    zh_CN: '请尝试调整日期范围或关键词',
+    zh_TW: '請嘗試調整日期範圍或關鍵詞'
+  },
+  'chat.search.dateFilter.all': {
+    en: 'All Time',
+    zh_CN: '全部时间',
+    zh_TW: '全部時間'
+  },
+  'chat.search.dateFilter.today': {
+    en: 'Today',
+    zh_CN: '今天',
+    zh_TW: '今天'
+  },
+  'chat.search.dateFilter.yesterday': {
+    en: 'Yesterday',
+    zh_CN: '昨天',
+    zh_TW: '昨天'
+  },
+  'chat.search.dateFilter.7days': {
+    en: 'Last 7 Days',
+    zh_CN: '最近 7 天',
+    zh_TW: '最近 7 天'
+  },
+  'chat.search.dateFilter.30days': {
+    en: 'Last 30 Days',
+    zh_CN: '最近 30 天',
+    zh_TW: '最近 30 天'
+  },
+  'chat.search.dateFilter.custom': {
+    en: 'Custom',
+    zh_CN: '自定义',
+    zh_TW: '自定義'
+  },
+  'chat.search.dateRange.start': {
+    en: 'Start Date',
+    zh_CN: '起始日期',
+    zh_TW: '起始日期'
+  },
+  'chat.search.dateRange.end': {
+    en: 'End Date',
+    zh_CN: '结束日期',
+    zh_TW: '結束日期'
+  },
+  'chat.search.dateRange.to': {
+    en: 'to',
+    zh_CN: '至',
+    zh_TW: '至'
+  },
+  'chat.search.dateRange.incomplete': {
+    en: 'Please select a complete date range',
+    zh_CN: '请选择完整的日期范围',
+    zh_TW: '請選擇完整的日期範圍'
+  },
+  'chat.search.dateRange.invalid': {
+    en: 'Start date cannot be later than end date',
+    zh_CN: '起始日期不能晚于结束日期',
+    zh_TW: '起始日期不能晚於結束日期'
+  },
+
   // 提及功能翻译
   'chatInput.mention.title': {
     en: 'Mention',

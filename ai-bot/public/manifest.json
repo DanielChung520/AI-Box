@@ -1,46 +1,70 @@
 {
-  "name": "SmartQ 智慧任務文件編輯",
-  "short_name": "SmartQ IEE",
-  "description": "SmartQ 智慧任務文件編輯 - 智能任務文件編輯助手平台",
+  "name": "AI-Box System Admin",
+  "short_name": "AI-Box Admin",
+  "description": "AI-Box 系統管理界面 - 提供服務監控、用戶管理、系統配置等功能",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#9333ea",
-  "orientation": "portrait-primary",
-  "scope": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2",
+  "orientation": "any",
   "icons": [
     {
-      "src": "/SmartQ.-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "utilities"],
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "開始聊天",
-      "short_name": "聊天",
-      "description": "開始新的對話",
-      "url": "/",
+      "name": "系統服務狀態",
+      "short_name": "服務狀態",
+      "description": "查看系統服務狀態",
+      "url": "/admin/system-service-status",
       "icons": [
         {
-          "src": "/SmartQ.-logo.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "賬號管理",
+      "short_name": "賬號",
+      "description": "管理用戶賬號和安全群組",
+      "url": "/admin/account-security",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "系統設置",
+      "short_name": "設置",
+      "description": "管理系統配置參數",
+      "url": "/admin/system-settings",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }
-  ],
-  "share_target": {
-    "action": "/",
-    "method": "GET",
-    "enctype": "application/x-www-form-urlencoded",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
-    }
-  }
+  ]
 }

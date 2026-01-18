@@ -14,9 +14,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import structlog
-from database.arangodb import ArangoCollection, ArangoDBClient
 
 from agents.task_analyzer.models import IntentCreate, IntentDSL, IntentQuery, IntentUpdate
+from database.arangodb import ArangoCollection, ArangoDBClient
 
 logger = structlog.get_logger(__name__)
 
@@ -63,9 +63,7 @@ class IntentRegistry:
         self._collection = ArangoCollection(collection)
         self._ensure_indexes()
 
-    def create_intent(
-        self, intent: IntentCreate, created_by: Optional[str] = None
-    ) -> IntentDSL:
+    def create_intent(self, intent: IntentCreate, created_by: Optional[str] = None) -> IntentDSL:
         """
         創建 Intent
 
@@ -271,7 +269,9 @@ class IntentRegistry:
             # 獲取更新後的文檔
             updated_doc = self._collection.get(key)
             if updated_doc is None:
-                raise RuntimeError(f"Failed to retrieve updated intent '{name}' version '{version}'")
+                raise RuntimeError(
+                    f"Failed to retrieve updated intent '{name}' version '{version}'"
+                )
             return _document_to_model(updated_doc)
         except Exception as exc:
             self._logger.error("intent_update_failed", intent_name=name, error=str(exc))
@@ -310,10 +310,14 @@ class IntentRegistry:
             self._logger.info("intent_default_version_set", intent_name=name, version=version)
             updated_doc = self._collection.get(key)
             if updated_doc is None:
-                raise RuntimeError(f"Failed to retrieve updated intent '{name}' version '{version}'")
+                raise RuntimeError(
+                    f"Failed to retrieve updated intent '{name}' version '{version}'"
+                )
             return _document_to_model(updated_doc)
         except Exception as exc:
-            self._logger.error("intent_set_default_version_failed", intent_name=name, error=str(exc))
+            self._logger.error(
+                "intent_set_default_version_failed", intent_name=name, error=str(exc)
+            )
             raise
 
     def _unset_default_version(self, name: str, exclude_version: Optional[str] = None) -> None:
@@ -349,7 +353,9 @@ class IntentRegistry:
         try:
             self._client.db.aql.execute(aql, bind_vars=bind_vars)
         except Exception as exc:
-            self._logger.warning("intent_unset_default_version_failed", intent_name=name, error=str(exc))
+            self._logger.warning(
+                "intent_unset_default_version_failed", intent_name=name, error=str(exc)
+            )
 
     def delete_intent(self, name: str, version: str) -> bool:
         """
@@ -407,9 +413,11 @@ class IntentRegistry:
         # 獲取現有索引
         indexes = collection.indexes()
         existing_index_fields = {
-            tuple(idx.get("fields", []))
-            if isinstance(idx.get("fields"), list)
-            else idx.get("fields")
+            (
+                tuple(idx.get("fields", []))
+                if isinstance(idx.get("fields"), list)
+                else idx.get("fields")
+            )
             for idx in indexes
         }
 

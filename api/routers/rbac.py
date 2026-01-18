@@ -5,7 +5,6 @@
 
 """RBAC 角色管理路由 - 提供角色和權限管理API"""
 
-from functools import partial
 
 import structlog
 from fastapi import APIRouter, Depends, status
@@ -21,10 +20,38 @@ from services.api.models.rbac import (
     UserRoleModel,
 )
 from system.security.audit_decorator import audit_log
-from system.security.dependencies import get_current_user, require_permission
+from system.security.dependencies import get_current_user
 from system.security.models import Permission, User
 
 logger = structlog.get_logger(__name__)
+
+
+# 創建需要系統管理員權限的依賴函數
+async def require_system_admin(user: User = Depends(get_current_user)) -> User:
+    """檢查用戶是否擁有系統管理員權限的依賴函數（修改時間：2026-01-18）"""
+    from fastapi import HTTPException
+
+    from system.security.config import get_security_settings
+
+    settings = get_security_settings()
+
+    # 開發模式下自動通過權限檢查
+    if settings.should_bypass_auth:
+        return user
+
+    # 生產模式下進行真實權限檢查
+    if not settings.rbac.enabled:
+        # 如果 RBAC 未啟用，則所有已認證用戶都可以訪問
+        return user
+
+    if not user.has_permission(Permission.ALL.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions. Required: system_admin",
+        )
+
+    return user
+
 
 router = APIRouter(prefix="/rbac", tags=["RBAC"])
 
@@ -37,9 +64,7 @@ router = APIRouter(prefix="/rbac", tags=["RBAC"])
 )
 async def create_role(
     role_data: RoleCreate,
-    current_user: User = Depends(
-        partial(require_permission, Permission.ALL.value)
-    ),  # 只有管理員可以創建角色
+    current_user: User = Depends(require_system_admin),  # 只有管理員可以創建角色
 ) -> JSONResponse:
     """
     創建角色
@@ -180,7 +205,7 @@ async def get_role(
 async def update_role(
     role_id: str,
     role_data: RoleUpdate,
-    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
+    current_user: User = Depends(require_system_admin),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
 ) -> JSONResponse:
     """
     更新角色
@@ -228,7 +253,7 @@ async def update_role(
 )
 async def delete_role(
     role_id: str,
-    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
+    current_user: User = Depends(require_system_admin),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
 ) -> JSONResponse:
     """
     刪除角色
@@ -267,7 +292,7 @@ async def delete_role(
 async def assign_user_role(
     user_id: str,
     role_data: UserRoleAssign,
-    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
+    current_user: User = Depends(require_system_admin),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
 ) -> JSONResponse:
     """
     分配用戶角色
@@ -313,7 +338,7 @@ async def assign_user_role(
 async def revoke_user_role(
     user_id: str,
     role_id: str,
-    current_user: User = Depends(partial(require_permission, Permission.ALL.value)),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
+    current_user: User = Depends(require_system_admin),  # type: ignore[arg-type]  # require_permission 是異步函數，使用 partial 包裝
 ) -> JSONResponse:
     """
     撤銷用戶角色

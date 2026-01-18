@@ -28,7 +28,7 @@ class EmbeddingService:
     2. 智能批次大小：batch_size 自動匹配 concurrency_limit，避免資源浪費
     3. 部分失敗容錯：單個 embedding 失敗不影響整個批次
     4. 詳細監控：記錄活躍請求數和並發狀態
-    
+
     # 向量維度到模型的映射表
     DIMENSION_MODEL_MAP: Dict[int, str] = {
         384: "nomic-embed-text",
