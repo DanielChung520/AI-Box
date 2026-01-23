@@ -1,7 +1,7 @@
 // 代碼功能說明：PDF 文件預覽組件
 // 創建日期：2025-01-27
 // 創建人：Daniel Chung
-// 最後修改日期：2025-12-17
+// 最後修改日期：2026-01-21 11:57 UTC+8
 
 import { useState, useEffect, useMemo } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -21,13 +21,17 @@ if (typeof window !== 'undefined') {
   console.log('[PDFViewer] PDF.js worker URL:', workerUrl);
 }
 
+import { FileMetadata } from '../lib/api';
+
 interface PDFViewerProps {
   fileId: string;
   fileName: string;
   fileUrl?: string; // 保留作為可選參數，用於向後兼容
+  fileMetadata?: FileMetadata; // 文件元數據（包含 storage_path，用於 SeaWeedFS 直接訪問）
+  showHeader?: boolean; // 是否顯示 Header（默認 true）
 }
 
-export default function PDFViewer({ fileId, fileName, fileUrl }: PDFViewerProps) {
+export default function PDFViewer({ fileId, fileName, fileUrl, fileMetadata, showHeader = true }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
@@ -57,7 +61,8 @@ export default function PDFViewer({ fileId, fileName, fileUrl }: PDFViewerProps)
         console.log('[PDFViewer] 開始加載 PDF 文件:', { fileId, fileName });
 
         // 使用 downloadFile API 下載文件（自動處理認證）
-        const blob = await downloadFile(fileId);
+        // 如果提供了 fileMetadata 且包含 storage_path，優先使用 SeaWeedFS 直接訪問
+        const blob = await downloadFile(fileId, fileMetadata);
         console.log('[PDFViewer] 文件下載成功，大小:', blob.size, 'bytes', '類型:', blob.type);
 
         if (blob.size === 0) {
@@ -161,6 +166,7 @@ export default function PDFViewer({ fileId, fileName, fileUrl }: PDFViewerProps)
   return (
     <div className="flex flex-col theme-transition" style={{ height: '100%', minHeight: 0 }}>
       {/* 文件標題欄和工具欄 */}
+      {showHeader && (
       <div className="flex items-center justify-between p-4 pb-2 border-b border-primary flex-shrink-0">
         <div className="flex items-center">
           <i className="fa-solid fa-file-pdf text-red-400 mr-2"></i>
@@ -256,6 +262,7 @@ export default function PDFViewer({ fileId, fileName, fileUrl }: PDFViewerProps)
           </button>
         </div>
       </div>
+      )}
 
       {/* PDF 內容區域 */}
       <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 flex items-start justify-center p-4" style={{ minHeight: 0 }}>

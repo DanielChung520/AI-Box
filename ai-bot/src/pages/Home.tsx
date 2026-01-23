@@ -1,3 +1,8 @@
+// 代碼功能說明: 首頁頁面組件
+// 創建日期: 2025-10-25
+// 創建人: Daniel Chung
+// 最後修改日期: 2026-01-23 00:08 UTC+8
+
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLanguage } from '../contexts/languageContext';
 import Sidebar from '../components/Sidebar';
@@ -25,6 +30,20 @@ export default function Home() {
   const prevResultPanelCollapsedRef = useRef<boolean>(false);
   const { t, updateCounter, language } = useLanguage();
 
+  // 調試：記錄 token 狀態
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    const userEmail = localStorage.getItem('userEmail');
+    const currentUser = localStorage.getItem('currentUser');
+    console.log('[Home] Token status:', {
+      hasToken: !!token,
+      tokenLength: token?.length || 0,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'None',
+      userEmail,
+      currentUser: currentUser ? JSON.parse(currentUser) : null,
+    });
+  }, []);
+
   // 修改時間：2025-12-13 17:28:02 (UTC+8) - 收藏模型 localStorage key（與 api.ts 一致）
   const FAVORITE_MODELS_STORAGE_KEY = 'ai-box-favorite-models';
 
@@ -47,6 +66,16 @@ export default function Home() {
       return crypto.randomUUID();
     }
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  };
+
+  // 生成唯一消息 ID（使用 UUID 避免重複）
+  const generateMessageId = (): string => {
+    // @ts-ignore
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      // @ts-ignore
+      return `msg-${crypto.randomUUID()}-ai`;
+    }
+    return `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-ai`;
   };
 
   // 执行者选择相关状态
@@ -420,7 +449,7 @@ export default function Home() {
     const modelId = selectedTask.executionConfig?.modelId || 'auto';
 
     const userMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-user`,
+      id: `msg-${generateMessageId().split('-')[1]}-user`,  // 使用 generateMessageId 但保持 user 後綴
       sender: 'user' as const,
       content: text || '(no text)',
       timestamp,
@@ -519,7 +548,7 @@ export default function Home() {
 
         if (resp?.success && resp.data?.content !== undefined) {
           const aiMessage = {
-            id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-ai`,
+            id: generateMessageId(),
             sender: 'ai' as const,
             content: String(resp.data.content ?? ''),
             timestamp: new Date().toLocaleString(),
@@ -535,7 +564,7 @@ export default function Home() {
           );
 
           const editActionMessage = {
-            id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-ai-edit-action`,
+            id: generateMessageId(),
             sender: 'ai' as const,
             content: `✅ 已更新草稿檔：${fileRef.filename}`,
             timestamp: new Date().toLocaleString(),
@@ -677,7 +706,7 @@ export default function Home() {
       });
 
       // 創建初始 AI 消息（內容為空，將逐步更新）
-      const aiMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-ai`;
+      const aiMessageId = generateMessageId();
       const initialAiMessage = {
         id: aiMessageId,
         sender: 'ai' as const,
@@ -717,7 +746,7 @@ export default function Home() {
       if (chatMessages.length === 0) {
         console.error('[Home] ❌ Error: messages array is empty!');
         const errorMessage = {
-          id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-error`,
+          id: generateMessageId(),
           sender: 'ai' as const,
           content: '错误：消息列表为空，无法发送请求',
           timestamp: new Date().toLocaleString(),
@@ -849,20 +878,25 @@ export default function Home() {
               })
             );
           } else if (event.type === 'error') {
-            // 處理錯誤
+            // 處理錯誤 - 必須生成新的 ID，避免與初始 AI 消息衝突
+            const errorMessageId = generateMessageId();
             const errorMessage = {
-              id: aiMessageId,
+              id: errorMessageId,
               sender: 'ai' as const,
-              content: `Chat failed: ${event.data?.error || 'unknown error'}`,
+              content: event.data?.error || '發生了一些錯誤，請稍後再試',
               timestamp: new Date().toLocaleString(),
             };
             setSelectedTask((currentTask) => {
               if (!currentTask || currentTask.id !== taskWithUserMessage.id) {
                 return currentTask;
               }
+              // 過濾掉初始的 AI 消息（空內容），然後添加錯誤消息
+              const filteredMessages = (currentTask.messages || []).filter(
+                (m) => m.id !== aiMessageId || m.content !== ''
+              );
               return {
                 ...currentTask,
-                messages: [...(currentTask.messages || []), errorMessage],
+                messages: [...filteredMessages, errorMessage],
               };
             });
             setIsLoadingAI(false);
@@ -887,19 +921,25 @@ export default function Home() {
           clearTimeout(pendingUpdateTimer);
           pendingUpdateTimer = null;
         }
+        // 生成新的 ID 避免衝突
+        const errorMessageId = generateMessageId();
         const errorMessage = {
-          id: aiMessageId,
+          id: errorMessageId,
           sender: 'ai' as const,
-          content: `Chat failed: ${streamError?.message || 'streaming error'}`,
+          content: streamError?.message || '發生了一些錯誤，請稍後再試',
           timestamp: new Date().toLocaleString(),
         };
         setSelectedTask((currentTask) => {
           if (!currentTask || currentTask.id !== taskWithUserMessage.id) {
             return currentTask;
           }
+          // 過濾掉初始的 AI 消息（空內容），然後添加錯誤消息
+          const filteredMessages = (currentTask.messages || []).filter(
+            (m) => m.id !== aiMessageId || m.content !== ''
+          );
           return {
             ...currentTask,
-            messages: [...(currentTask.messages || []), errorMessage],
+            messages: [...filteredMessages, errorMessage],
           };
         });
         setIsLoadingAI(false);
@@ -965,9 +1005,9 @@ export default function Home() {
     } catch (error: any) {
       console.error('[Home] chatProduct request failed:', error);
       const errorMessage = {
-        id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-ai-error`,
+        id: generateMessageId(),
         sender: 'ai' as const,
-        content: `Chat failed: ${error?.message || 'network error'}`,
+        content: error?.message || '發生了一些錯誤，請稍後再試',
         timestamp: new Date().toLocaleString(),
       };
 
@@ -988,12 +1028,10 @@ export default function Home() {
 
   // 修改時間：2025-12-08 09:04:21 UTC+8 - 任務保存時同步到後台
   // 處理任務創建（用於文件上傳時創建新任務）
-  const handleTaskCreate = (task: Task) => {
+  const handleTaskCreate = async (task: Task) => {
     setSelectedTask(task);
-    // 保存任務到 localStorage 並同步到後台（異步執行，不阻塞）
-    saveTask(task, true).catch((error) => {
-      console.error('[Home] Failed to save task:', error);
-    });
+    // 保存任務到 localStorage 並同步到後台（等待後端同步完成）
+    await saveTask(task, true);
     // 觸發事件通知 Sidebar 更新焦點
     window.dispatchEvent(new CustomEvent('taskCreated', {
       detail: { taskId: task.id }
@@ -1177,12 +1215,31 @@ export default function Home() {
     window.addEventListener('fileTreeUpdated', handleFileTreeUpdated as EventListener);
     window.addEventListener('filesReordered', handleFilesReordered as EventListener);
 
+    // 監聽任務刪除事件
+    const handleTaskDeleted = (event: CustomEvent) => {
+      const detail = event?.detail || {};
+      const deletedTaskId = String(detail?.taskId || '');
+
+      // 使用函數式更新，確保獲取最新的 selectedTask
+      setSelectedTask((currentTask) => {
+        if (currentTask && String(currentTask.id) === deletedTaskId) {
+          console.log('[Home] Task deleted, clearing selectedTask', { taskId: deletedTaskId });
+          return undefined;
+        }
+        return currentTask;
+      });
+
+      // 清除瀏覽模式
+      setBrowseMode(null);
+    };
+    window.addEventListener('taskDeleted', handleTaskDeleted as EventListener);
+
     return () => {
       window.removeEventListener('filesUploaded', handleFilesUploadedEvent as EventListener);
       window.removeEventListener('mockFilesUploaded', handleMockFilesUploaded as EventListener);
       window.removeEventListener('fileTreeUpdated', handleFileTreeUpdated as EventListener);
       window.removeEventListener('filesReordered', handleFilesReordered as EventListener);
-      window.removeEventListener('fileEditPreviewReady', handleFileEditPreviewReady as EventListener);
+      window.removeEventListener('taskDeleted', handleTaskDeleted as EventListener);
     };
   }, []); // 移除 selectedTask 依賴，使用函數式更新
 
@@ -1468,34 +1525,7 @@ export default function Home() {
             }}
             fileTree={selectedTask?.fileTree}
             onFileTreeChange={handleFileTreeChange}
-            taskId={(() => {
-              // 邏輯說明：
-              // 1. 如果任務已經有 fileTree（從 prop 傳入），不傳遞 taskId，FileTree 會使用 fileTree prop
-              // 2. 如果任務沒有 fileTree 但需要從後端獲取，傳遞 taskId
-              // 3. 新任務（剛創建，沒有文件、沒有消息、標題為"新任務"）不傳遞 taskId，避免不必要的 API 調用
-              if (!selectedTask) {
-                return undefined;
-              }
-
-              // 如果已經有 fileTree，不調用 API，使用 prop
-              if (selectedTask.fileTree?.length) {
-                return undefined;
-              }
-
-              // 檢查是否為新任務：標題為"新任務"且沒有消息和文件
-              const isNewTask = (
-                (selectedTask.title === '新任務' || selectedTask.title === '新任务' || selectedTask.title === 'New Task') &&
-                (!selectedTask.messages || selectedTask.messages.length === 0) &&
-                (!selectedTask.fileTree || selectedTask.fileTree.length === 0)
-              );
-
-              if (isNewTask) {
-                return undefined;
-              }
-
-              // 其他情況都傳遞 taskId，讓 FileTree 從後端獲取文件
-              return String(selectedTask.id);
-            })()}
+            taskId={selectedTask ? String(selectedTask.id) : undefined}
             userId={
               // 修改時間：2025-12-08 08:46:00 UTC+8 - 優先使用 user_id，確保正確從後台加載文件樹
               localStorage.getItem('user_id') || localStorage.getItem('userEmail') || undefined

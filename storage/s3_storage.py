@@ -306,12 +306,23 @@ class S3FileStorage(FileStorage):
         bucket_name = self.default_bucket
 
         try:
+            # 確定內容類型（對於文本類型文件，添加 charset=utf-8）
+            content_type = self._guess_content_type(filename)
+
+            # 對於文本類型文件，在 Content-Type 中添加 charset=utf-8
+            if content_type.startswith("text/") or content_type in [
+                "application/json",
+                "application/javascript",
+                "application/xml",
+            ]:
+                content_type = f"{content_type}; charset=utf-8"
+
             # 上傳文件到 S3
             self.s3_client.put_object(
                 Bucket=bucket_name,
                 Key=s3_key,
                 Body=file_content,
-                ContentType=self._guess_content_type(filename),
+                ContentType=content_type,
             )
 
             # 生成 S3 URI
@@ -644,3 +655,95 @@ class S3FileStorage(FileStorage):
                     return False
 
         return False
+
+    def move_file(
+        self,
+        file_id: str,
+        old_task_id: Optional[str],
+        new_task_id: str,
+        metadata_storage_path: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        S3/SeaweedFS 文件移動（更新存儲路徑）
+
+        S3 不支持直接重命名對象，需要通過 copy + delete 實現
+
+        修改時間：2026-01-21 - 實現 S3 文件移動
+
+        Args:
+            file_id: 文件 ID
+            old_task_id: 舊任務 ID
+            new_task_id: 新任務 ID
+            metadata_storage_path: 元數據中記錄的存儲路徑（優先使用）
+
+        Returns:
+            新的存儲路徑，如果移動失敗則返回 None
+        """
+        old_key = None
+        old_bucket = None
+
+        if metadata_storage_path:
+            parsed = self._parse_s3_uri(metadata_storage_path)
+            if parsed:
+                old_bucket, old_key = parsed
+
+        if old_key is None:
+            old_key = self._get_s3_key(file_id, None, old_task_id)
+
+        new_key = self._get_s3_key(file_id, None, new_task_id)
+
+        if old_key == new_key:
+            return f"s3://{self.default_bucket}/{new_key}"
+
+        source_bucket = old_bucket if old_bucket else self.default_bucket
+
+        try:
+            copy_source = {"Bucket": source_bucket, "Key": old_key}
+            self.s3_client.copy_object(
+                Bucket=self.default_bucket, CopySource=copy_source, Key=new_key
+            )
+            self.logger.info(
+                "File copied in S3",
+                file_id=file_id,
+                source_bucket=source_bucket,
+                source_key=old_key,
+                destination_bucket=self.default_bucket,
+                destination_key=new_key,
+            )
+
+            try:
+                self.s3_client.delete_object(Bucket=source_bucket, Key=old_key)
+                self.logger.info(
+                    "File deleted from old location",
+                    file_id=file_id,
+                    bucket=source_bucket,
+                    key=old_key,
+                )
+            except ClientError as delete_error:
+                self.logger.warning(
+                    "Failed to delete file from old location",
+                    file_id=file_id,
+                    bucket=source_bucket,
+                    key=old_key,
+                    error=str(delete_error),
+                )
+
+            new_uri = f"s3://{self.default_bucket}/{new_key}"
+            self.logger.info(
+                "File moved successfully in S3",
+                file_id=file_id,
+                old_key=old_key,
+                new_key=new_key,
+                new_uri=new_uri,
+            )
+            return new_uri
+
+        except ClientError as e:
+            self.logger.error(
+                "Failed to move file in S3",
+                file_id=file_id,
+                old_key=old_key,
+                new_key=new_key,
+                error=str(e),
+            )
+            return None

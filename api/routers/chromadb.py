@@ -1,10 +1,20 @@
-# 代碼功能說明: ChromaDB API 路由
+# 代碼功能說明: ChromaDB API 路由（⚠️ 已廢棄）
 # 創建日期: 2025-11-25 21:45 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25 21:45 (UTC+8)
+# 最後修改日期: 2026-01-20
+#
+# ⚠️ 警告: 此模組已於 2026-01-20 廢棄
+#    請使用 Qdrant 向量存儲服務：
+#    - from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
+#
+# 遷移指南: docs/系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md
 
-"""ChromaDB API 路由 - 提供向量資料庫操作接口"""
+"""ChromaDB API 路由 - 提供向量資料庫操作接口
 
+⚠️  此模組已廢棄，請使用 Qdrant 向量存儲服務
+"""
+
+import logging
 import os
 from typing import List, Optional
 
@@ -25,6 +35,14 @@ from services.api.models.chromadb import (
     DocumentAddRequest,
     DocumentUpdateRequest,
     QueryRequest,
+)
+
+logger = logging.getLogger(__name__)
+
+# 記錄廢棄警告
+logger.warning(
+    "CHROMADB_DEPRECATED message='ChromaDB API 已廢棄，請遷移到 Qdrant' "
+    "migration_guide=docs/系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md"
 )
 
 # 嘗試導入 ChromaDB 客戶端

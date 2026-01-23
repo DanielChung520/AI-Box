@@ -1,7 +1,7 @@
 # 代碼功能說明: Task Planner - 生成 Task DAG
 # 創建日期: 2026-01-12
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-12
+# 最後修改日期: 2026-01-22 22:44 UTC+8
 
 """Task Planner
 
@@ -16,11 +16,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from agents.task_analyzer.models import (
-    RouterDecision,
-    TaskDAG,
-    TaskNode,
-)
+from agents.task_analyzer.models import RouterDecision, TaskDAG, TaskNode
 from agents.task_analyzer.rag_service import get_rag_service
 
 logger = structlog.get_logger(__name__)
@@ -98,14 +94,22 @@ class TaskPlanner:
         # 嘗試獲取 LLM 服務（如果未提供）
         if self._llm_service is None:
             try:
-                from services.api.services.llm_service import get_llm_service
+                # 修改時間：2026-01-22 - 使用 LLMClientFactory 獲取 LLM 客戶端
+                from llm.clients.factory import LLMClientFactory
+                from services.api.models.llm_model import LLMProvider
 
-                self._llm_service = get_llm_service()
-            except ImportError:
+                # 優先使用本地 Ollama 模型（低成本）
+                self._llm_service = LLMClientFactory.create_client(
+                    LLMProvider.OLLAMA, use_cache=True
+                )
+                logger.debug("TaskPlanner LLM service initialized with Ollama")
+            except Exception as exc:
                 logger.warning(
                     "task_planner_llm_service_not_available",
                     message="LLM service not available, planner will use fallback",
+                    error=str(exc),
                 )
+                self._llm_service = None
 
     def build_planner_prompt(
         self,

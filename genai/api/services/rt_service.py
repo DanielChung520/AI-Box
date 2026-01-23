@@ -1,22 +1,24 @@
 # 代碼功能說明: RT 關係類型分類服務
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-04
+# 最後修改日期: 2026-01-23 00:55 UTC+8
 
 """RT 關係類型分類服務 - 支持 Ollama 和 transformers 模型"""
 
 import json
+import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
-
-import structlog
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from genai.api.models.rt_models import RelationType
 from llm.clients.gemini import GeminiClient
 from llm.clients.ollama import OllamaClient, get_ollama_client
 from system.infra.config.config import get_config_section
 
-logger = structlog.get_logger(__name__)
+if TYPE_CHECKING:
+    pass
+
+logger = logging.getLogger(__name__)
 
 # 標準關係類型定義（擴展）
 STANDARD_RELATION_TYPES = {
@@ -103,25 +105,37 @@ class OllamaRTModel(BaseRTModel):
     def __init__(self, model_name: str = "qwen3-coder:30b", client: Optional[OllamaClient] = None):
         self.model_name = model_name
         self.client = client or get_ollama_client()
-        self._prompt_template = """請對以下關係文本進行分類，識別其關係類型，並以 JSON 格式返回結果。
+        self._prompt_template = """## 任務
+對以下關係文本進行分類，識別其關係類型。
 
-關係文本：{relation_text}
+## 重要規則（必須嚴格遵守）
+1. **只返回一個 JSON 數組**，不要返回任何其他內容
+2. 不要添加 markdown 代碼塊標記（如 ```json）
+3. 不要用額外的對象包裹數組（例如不要返回 {{"types": [...]}} 或 {{"results": [...]}}）
+4. 一個關係可能屬於多個類型（多標籤分類），請返回所有相關的類型
+
+## 關係文本
+{relation_text}
 {context_section}
 
-可選的關係類型包括：
+## 可選的關係類型
 {relation_types_list}
 
-請返回 JSON 格式，包含以下字段：
-- type: 關係類型名稱
+## 必須返回的 JSON 格式
+直接返回一個 JSON 數組，每個元素包含：
+- type: 關係類型名稱（使用上方列出的類型）
 - confidence: 置信度（0-1之間的浮點數）
 
-注意：一個關係可能屬於多個類型（多標籤分類），請返回所有相關的類型。
-
-返回格式示例：
+## 正確示例
 [
-  {{"type": "WORKS_FOR", "confidence": 0.9}},
+  {{"type": "WORKS_FOR", "confidence": 0.95}},
   {{"type": "RELATED_TO", "confidence": 0.7}}
-]"""
+]
+
+## 錯誤示例（不要這樣返回）
+{{"types": [...]}}           <!-- 錯誤：被額外對象包裹 -->
+{{"index": 0, "types": [...]}}  <!-- 錯誤：被額外對象包裹 -->
+```json [...] ```           <!-- 錯誤：包含 markdown 代碼塊 -->"""
 
     def is_available(self) -> bool:
         """檢查 Ollama 模型是否可用"""
@@ -179,7 +193,7 @@ class OllamaRTModel(BaseRTModel):
             )
 
             if response is None:
-                logger.error("ollama_rt_no_response", model=self.model_name)
+                logger.error(f"ollama_rt_no_response: model={self.model_name}")
                 return []
 
             # 新接口返回 {"text": "...", "content": "...", "model": "..."}
@@ -197,10 +211,9 @@ class OllamaRTModel(BaseRTModel):
                 # 如果返回的是字典，嘗試轉換為列表（類似 RE service 的處理邏輯）
                 if not isinstance(types_data, list):
                     logger.error(
-                        "ollama_rt_invalid_format",
-                        model=self.model_name,
-                        response_type=type(types_data).__name__,
-                        response_preview=str(types_data)[:500],
+                        f"ollama_rt_invalid_format: model={self.model_name}, "
+                        f"response_type={type(types_data).__name__}, "
+                        f"response_preview={str(types_data)[:500]}"
                     )
                     # 嘗試從字典中提取列表
                     if isinstance(types_data, dict):
@@ -216,9 +229,8 @@ class OllamaRTModel(BaseRTModel):
                             if key in types_data and isinstance(types_data[key], list):
                                 types_data = types_data[key]
                                 logger.info(
-                                    "ollama_rt_format_converted",
-                                    converted_key=key,
-                                    types_count=len(types_data),
+                                    f"ollama_rt_format_converted: converted_key={key}, "
+                                    f"types_count={len(types_data)}"
                                 )
                                 break
                         else:
@@ -229,15 +241,12 @@ class OllamaRTModel(BaseRTModel):
                                 # 將單個類型對象轉換為列表
                                 types_data = [types_data]
                                 logger.info(
-                                    "ollama_rt_format_converted",
-                                    converted_key="single_type_object",
-                                    types_count=1,
+                                    "ollama_rt_format_converted: converted_key=single_type_object, types_count=1"
                                 )
                             else:
                                 logger.warning(
-                                    "ollama_rt_format_unknown",
-                                    response_preview=str(types_data)[:500],
-                                    message="無法識別的 RT 返回格式",
+                                    f"ollama_rt_format_unknown: response_preview={str(types_data)[:500]}, "
+                                    "message=無法識別的 RT 返回格式"
                                 )
                                 return []
                     else:
@@ -259,10 +268,12 @@ class OllamaRTModel(BaseRTModel):
 
                 return relation_types
             except json.JSONDecodeError as e:
-                logger.error("ollama_rt_json_parse_failed", error=str(e), response=result_text)
+                logger.error(f"ollama_rt_json_parse_failed: error={str(e)}, response={result_text}")
                 return []
         except Exception as e:
-            logger.error("ollama_rt_classification_failed", error=str(e), model=self.model_name)
+            logger.error(
+                f"ollama_rt_classification_failed: error={str(e)}, model={self.model_name}"
+            )
             return []
 
     async def classify_relation_types_batch(
@@ -356,10 +367,9 @@ class OllamaRTModel(BaseRTModel):
             # 如果返回的是字典，嘗試轉換為列表（類似 RE service 的處理邏輯）
             if not isinstance(parsed, list):
                 logger.error(
-                    "ollama_rt_invalid_format",
-                    model=self.model_name,
-                    response_type=type(parsed).__name__,
-                    response_preview=str(parsed)[:500],
+                    f"ollama_rt_invalid_format: model={self.model_name}, "
+                    f"response_type={type(parsed).__name__}, "
+                    f"response_preview={str(parsed)[:500]}"
                 )
                 # 嘗試從字典中提取列表
                 if isinstance(parsed, dict):
@@ -375,9 +385,8 @@ class OllamaRTModel(BaseRTModel):
                         if key in parsed and isinstance(parsed[key], list):
                             parsed = parsed[key]
                             logger.info(
-                                "ollama_rt_format_converted",
-                                converted_key=key,
-                                types_count=len(parsed),
+                                f"ollama_rt_format_converted: converted_key={key}, "
+                                f"types_count={len(parsed)}"
                             )
                             break
                     else:
@@ -385,15 +394,13 @@ class OllamaRTModel(BaseRTModel):
                         if "index" in parsed and "types" in parsed:
                             parsed = [parsed]
                             logger.info(
-                                "ollama_rt_format_converted",
-                                converted_key="single_type_object",
-                                types_count=1,
+                                "ollama_rt_format_converted: converted_key=single_type_object, "
+                                "types_count=1"
                             )
                         else:
                             logger.warning(
-                                "ollama_rt_format_unknown",
-                                response_preview=str(parsed)[:500],
-                                message="無法識別的 RT 返回格式",
+                                f"ollama_rt_format_unknown: response_preview={str(parsed)[:500]}, "
+                                "message=無法識別的 RT 返回格式"
                             )
                             return [[] for _ in requests]
                 else:
@@ -401,9 +408,8 @@ class OllamaRTModel(BaseRTModel):
 
             if not isinstance(parsed, list):
                 logger.error(
-                    "ollama_rt_invalid_format_after_conversion",
-                    model=self.model_name,
-                    response_type=type(parsed).__name__,
+                    f"ollama_rt_invalid_format_after_conversion: model={self.model_name}, "
+                    f"response_type={type(parsed).__name__}"
                 )
                 return [[] for _ in requests]
 
@@ -447,34 +453,48 @@ class OllamaRTModel(BaseRTModel):
 class GeminiRTModel(BaseRTModel):
     """Gemini RT 模型實現"""
 
-    def __init__(self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None):
+    def __init__(
+        self, model_name: str = "gemini-pro-latest", client: Optional[GeminiClient] = None
+    ):
         self.model_name = model_name
         self.client: Optional[GeminiClient] = None
         try:
             self.client = client or GeminiClient()
         except (ImportError, ValueError) as e:
             # Gemini 不可用（缺少依赖或 API key），设置为 None
-            logger.warning("gemini_rt_client_unavailable", error=str(e))
+            logger.warning(f"gemini_rt_client_unavailable: error={str(e)}")
             self.client = None
-        self._prompt_template = """請對以下關係文本進行分類，識別其關係類型，並以 JSON 格式返回結果。
+        self._prompt_template = """## 任務
+對以下關係文本進行分類，識別其關係類型。
 
-關係文本：{relation_text}
+## 重要規則（必須嚴格遵守）
+1. **只返回一個 JSON 數組**，不要返回任何其他內容
+2. 不要添加 markdown 代碼塊標記（如 ```json）
+3. 不要用額外的對象包裹數組（例如不要返回 {{"types": [...]}} 或 {{"results": [...]}}）
+4. 一個關係可能屬於多個類型（多標籤分類），請返回所有相關的類型
+
+## 關係文本
+{relation_text}
 {context_section}
 
-可選的關係類型包括：
+## 可選的關係類型
 {relation_types_list}
 
-請返回 JSON 格式，包含以下字段：
-- type: 關係類型名稱
+## 必須返回的 JSON 格式
+直接返回一個 JSON 數組，每個元素包含：
+- type: 關係類型名稱（使用上方列出的類型）
 - confidence: 置信度（0-1之間的浮點數）
 
-注意：一個關係可能屬於多個類型（多標籤分類），請返回所有相關的類型。
-
-返回格式示例：
+## 正確示例
 [
-  {{"type": "WORKS_FOR", "confidence": 0.9}},
+  {{"type": "WORKS_FOR", "confidence": 0.95}},
   {{"type": "RELATED_TO", "confidence": 0.7}}
-]"""
+]
+
+## 錯誤示例（不要這樣返回）
+{{"types": [...]}}           <!-- 錯誤：被額外對象包裹 -->
+{{"index": 0, "types": [...]}}  <!-- 錯誤：被額外對象包裹 -->
+```json [...] ```           <!-- 錯誤：包含 markdown 代碼塊 -->"""
 
     def is_available(self) -> bool:
         """檢查 Gemini 模型是否可用"""
@@ -526,7 +546,7 @@ class GeminiRTModel(BaseRTModel):
             )
 
             if response is None:
-                logger.error("gemini_rt_no_response", model=self.model_name)
+                logger.error(f"gemini_rt_no_response: model={self.model_name}")
                 return []
 
             # 新接口返回 {"text": "...", "content": "...", "model": "..."}
@@ -542,7 +562,7 @@ class GeminiRTModel(BaseRTModel):
                 types_data = json.loads(result_text)
 
                 if not isinstance(types_data, list):
-                    logger.error("gemini_rt_invalid_format", model=self.model_name)
+                    logger.error(f"gemini_rt_invalid_format: model={self.model_name}")
                     return []
 
                 relation_types = []
@@ -561,10 +581,12 @@ class GeminiRTModel(BaseRTModel):
 
                 return relation_types
             except json.JSONDecodeError as e:
-                logger.error("gemini_rt_json_parse_failed", error=str(e), response=result_text)
+                logger.error(f"gemini_rt_json_parse_failed: error={str(e)}, response={result_text}")
                 return []
         except Exception as e:
-            logger.error("gemini_rt_classification_failed", error=str(e), model=self.model_name)
+            logger.error(
+                f"gemini_rt_classification_failed: error={str(e)}, model={self.model_name}"
+            )
             return []
 
 
@@ -589,13 +611,15 @@ class TransformersRTModel(BaseRTModel):
             if self.enable_gpu:
                 self._model = self._model.cuda()
 
-            logger.info("transformers_rt_model_loaded", model=self.model_name)
+            logger.info(f"transformers_rt_model_loaded: model={self.model_name}")
         except ImportError:
-            logger.warning("transformers_not_installed", model=self.model_name)
+            logger.warning(f"transformers_not_installed: model={self.model_name}")
             self._model = None
             self._tokenizer = None
         except Exception as e:
-            logger.error("transformers_rt_model_load_failed", error=str(e), model=self.model_name)
+            logger.error(
+                f"transformers_rt_model_load_failed: model={self.model_name}, error={str(e)}"
+            )
             self._model = None
             self._tokenizer = None
 
@@ -646,7 +670,51 @@ class RTService:
 
     def __init__(self):
         self.config = get_config_section("text_analysis", "rt", default={}) or {}
-        # 優先使用本地模型（Ollama），只有在無法達成時才使用外部 provider
+
+        # MoE 場景名稱
+        self._moe_scene = "knowledge_graph_extraction"
+        self._moe_model_config = None
+
+        # 優先使用 MoE 配置
+        moe_model = self._get_moe_model_config()
+        if moe_model:
+            self.model_name = moe_model.model
+            self.model_type = "ollama"  # MoE 返回的模型都是 Ollama 格式
+            self._moe_model_config = moe_model
+            logger.info(
+                f"rt_using_moe_config: model={self.model_name}, scene={self._moe_scene}, "
+                f"temperature={moe_model.temperature}, timeout={moe_model.timeout}"
+            )
+        else:
+            # 向後兼容：使用原有配置
+            self._init_model_from_config()
+
+        self.classification_threshold = self.config.get("classification_threshold", 0.7)
+        self.enable_gpu = self.config.get("enable_gpu", False)
+
+        # 初始化模型
+        self._primary_model: Optional[BaseRTModel] = None
+        self._fallback_model: Optional[BaseRTModel] = None
+        self._init_models()
+
+    def _get_moe_model_config(self):
+        """從 MoE 獲取模型配置"""
+        from llm.moe.moe_manager import LLMMoEManager
+
+        try:
+            moe_manager = LLMMoEManager()
+            result = moe_manager.select_model(self._moe_scene)
+            if result:
+                return result
+        except Exception as e:
+            logger.debug(
+                f"failed_to_get_moe_model_config: scene={self._moe_scene}, error={str(e)}, "
+                "message=從 MoE 獲取模型配置失敗，使用向後兼容方式"
+            )
+        return None
+
+    def _init_model_from_config(self):
+        """從配置文件初始化模型（向後兼容）"""
         import os
 
         # 優先級1: 從 ArangoDB system_configs 讀取 model_type 和 model_name
@@ -662,21 +730,18 @@ class RTService:
                 model_name = kg_config.config_data.get("rt_model")
                 if model_type:
                     logger.debug(
-                        "rt_model_type_from_system_configs",
-                        model_type=model_type,
-                        message="從 ArangoDB system_configs 讀取 RT model_type 配置",
+                        f"rt_model_type_from_system_configs: model_type={model_type}, "
+                        "message=從 ArangoDB system_configs 讀取 RT model_type 配置"
                     )
                 if model_name:
                     logger.debug(
-                        "rt_model_from_system_configs",
-                        model=model_name,
-                        message="從 ArangoDB system_configs 讀取 RT 模型配置",
+                        f"rt_model_from_system_configs: model={model_name}, "
+                        "message=從 ArangoDB system_configs 讀取 RT 模型配置"
                     )
         except Exception as e:
             logger.debug(
-                "failed_to_load_rt_model_from_system_configs",
-                error=str(e),
-                message="從 ArangoDB 讀取 RT 模型配置失敗，使用向後兼容方式",
+                f"failed_to_load_rt_model_from_system_configs: error={str(e)}, "
+                "message=從 ArangoDB 讀取 RT 模型配置失敗，使用向後兼容方式"
             )
 
         # 優先級2: 從環境變量讀取 model_type（允許覆蓋 ArangoDB 配置）
@@ -690,26 +755,19 @@ class RTService:
         self.model_type = model_type or "ollama"
 
         # 優先級4: 從環境變量讀取（只在 model_type 匹配時覆蓋）
-        # 注意：OLLAMA_RT_MODEL 只在 model_type=ollama 時使用
-        # 對於其他 model_type（如 gemini），應該使用對應的環境變量或 ArangoDB 配置
         if self.model_type == "ollama":
             env_model_name = os.getenv("OLLAMA_RT_MODEL") or os.getenv("OLLAMA_NER_MODEL")
             if env_model_name:
                 model_name = env_model_name
                 logger.debug(
-                    "rt_model_from_env",
-                    model=model_name,
-                    message="從環境變量讀取 RT 模型配置（覆蓋）",
+                    f"rt_model_from_env: model={model_name}, " "message=從環境變量讀取 RT 模型配置（覆蓋）"
                 )
-        # 對於 gemini，可以從 GEMINI_RT_MODEL 環境變量讀取（如果設置）
         elif self.model_type == "gemini":
             env_model_name = os.getenv("GEMINI_RT_MODEL")
             if env_model_name:
                 model_name = env_model_name
                 logger.debug(
-                    "rt_model_from_env",
-                    model=model_name,
-                    message="從環境變量讀取 RT 模型配置（覆蓋）",
+                    f"rt_model_from_env: model={model_name}, " "message=從環境變量讀取 RT 模型配置（覆蓋）"
                 )
 
         # 優先級5: 從 config.json 讀取（向後兼容）
@@ -717,9 +775,8 @@ class RTService:
             model_name = self.config.get("model_name")
             if model_name:
                 logger.debug(
-                    "rt_model_from_config_json",
-                    model=model_name,
-                    message="從 config.json 讀取 RT 模型配置",
+                    f"rt_model_from_config_json: model={model_name}, "
+                    "message=從 config.json 讀取 RT 模型配置"
                 )
 
         # 優先級6: 使用硬編碼默認值
@@ -728,14 +785,6 @@ class RTService:
 
         # 設置 model_name 屬性
         self.model_name = model_name
-
-        self.classification_threshold = self.config.get("classification_threshold", 0.7)
-        self.enable_gpu = self.config.get("enable_gpu", False)
-
-        # 初始化模型
-        self._primary_model: Optional[BaseRTModel] = None
-        self._fallback_model: Optional[BaseRTModel] = None
-        self._init_models()
 
     def _init_models(self):
         """初始化主模型和備選模型"""
@@ -755,14 +804,14 @@ class RTService:
                 model_name=self.model_name, enable_gpu=self.enable_gpu
             )
         else:
-            logger.warning("unknown_rt_model_type", model_type=self.model_type)
+            logger.warning(f"unknown_rt_model_type: model_type={self.model_type}")
             self._primary_model = None
 
         # 初始化備選模型
         # 優先使用本地模型（Ollama），外部 provider 作為最後備選
         if self.model_type == "ollama":
             # Ollama 不可用時，嘗試使用 Gemini（外部 provider）
-            self._fallback_model = GeminiRTModel(model_name="gemini-pro")
+            self._fallback_model = GeminiRTModel(model_name="gemini-pro-latest")
         elif self.model_type == "gemini":
             # Gemini 不可用時，優先嘗試本地 Ollama
             self._fallback_model = OllamaRTModel(model_name="qwen3-coder:30b")
@@ -792,7 +841,7 @@ class RTService:
             return model
 
         if self._fallback_model and self._fallback_model.is_available():
-            logger.info("using_fallback_rt_model", requested=requested_type)
+            logger.info(f"using_fallback_rt_model: requested={requested_type}")
             return self._fallback_model
 
         return None
@@ -891,7 +940,7 @@ class RTService:
                 results.append(relation_types)
             return results
         except Exception as e:
-            logger.error("rt_batch_classification_failed", error=str(e))
+            logger.error(f"rt_batch_classification_failed: error={str(e)}")
             # fallback：逐條
             fallback_results: List[List[RelationType]] = []  # 重命名以避免重複定義
             for req in requests:

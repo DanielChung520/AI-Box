@@ -3,9 +3,6 @@
 		{
 			"name": "AI-Box",
 			"path": "."
-		},
-		{
-			"path": "../../Documents/Notion/pages/AI-Box-v2"
 		}
 	],
 	"settings": {}

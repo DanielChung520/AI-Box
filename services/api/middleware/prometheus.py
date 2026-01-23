@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Callable
+from typing import Callable, Optional
 
 import psutil
 from fastapi import Request, Response
@@ -91,6 +91,46 @@ disk_usage_bytes = Gauge(
     "disk_usage_bytes",
     "磁盤使用量（字節）",
     ["path"],
+)
+
+# ============================================================================
+# MoE (Mixture of Experts) Metrics
+# ============================================================================
+
+moe_model_selections_total = Counter(
+    "moe_model_selections_total",
+    "MoE 模型選擇總次數",
+    ["scene", "model", "status"],
+)
+
+moe_selection_duration_seconds = Histogram(
+    "moe_selection_duration_seconds",
+    "MoE 模型選擇耗時（秒）",
+    ["scene"],
+    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
+)
+
+moe_active_scenes = Gauge(
+    "moe_active_scenes",
+    "活躍的 MoE 場景數量",
+)
+
+moe_fallback_count_total = Counter(
+    "moe_fallback_count_total",
+    "MoE 回退總次數",
+    ["scene", "original_model", "fallback_model"],
+)
+
+moe_user_preferences_total = Counter(
+    "moe_user_preferences_total",
+    "MoE 用戶偏好設置總次數",
+    ["scene", "user_id"],
+)
+
+moe_provider_health_status = Gauge(
+    "moe_provider_health_status",
+    "MoE 提供商健康狀態",
+    ["provider", "status"],
 )
 
 
@@ -219,3 +259,68 @@ def start_system_metrics_task() -> None:
         logger.info("System metrics background task started")
     except Exception as e:
         logger.error(f"Failed to start system metrics task: {e}")
+
+
+# ============================================================================
+# MoE Metrics 記錄函數
+# ============================================================================
+
+
+def record_moe_model_selection(
+    scene: str,
+    model: str,
+    status: str,
+    duration: float,
+    fallback_model: Optional[str] = None,
+) -> None:
+    """
+    記錄 MoE 模型選擇指標
+
+    Args:
+        scene: 場景名稱
+        model: 選擇的模型
+        status: 狀態 (success, fallback, error)
+        duration: 選擇耗時（秒）
+        fallback_model: 回退模型（如果發生了回退）
+    """
+    moe_model_selections_total.labels(scene=scene, model=model, status=status).inc()
+    moe_selection_duration_seconds.labels(scene=scene).observe(duration)
+
+    if status == "fallback" and fallback_model:
+        moe_fallback_count_total.labels(
+            scene=scene, original_model=model, fallback_model=fallback_model
+        ).inc()
+
+
+def record_moe_user_preference(scene: str, user_id: str) -> None:
+    """
+    記錄 MoE 用戶偏好設置
+
+    Args:
+        scene: 場景名稱
+        user_id: 用戶 ID
+    """
+    moe_user_preferences_total.labels(scene=scene, user_id=user_id).inc()
+
+
+def update_moe_active_scenes(count: int) -> None:
+    """
+    更新活躍 MoE 場景數量
+
+    Args:
+        count: 活躍場景數量
+    """
+    moe_active_scenes.set(count)
+
+
+def update_moe_provider_health(provider: str, healthy: bool) -> None:
+    """
+    更新 MoE 提供商健康狀態
+
+    Args:
+        provider: 提供商名稱
+        healthy: 是否健康
+    """
+    moe_provider_health_status.labels(
+        provider=provider, status="healthy" if healthy else "unhealthy"
+    ).set(1 if healthy else 0)

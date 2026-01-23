@@ -1,18 +1,27 @@
 # 代碼功能說明: RAG 服務 - Capability 向量化存儲和檢索（RAG-2）和策略知識檢索（RAG-3）
 # 創建日期: 2026-01-12
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-12
+# 最後修改日期: 2026-01-20
+#
+# 變更記錄:
+# 2026-01-20: 從 ChromaDB 遷移到 Qdrant（統一 VectorDB）
 
 """RAG 服務
 
 實現 Capability 的向量化存儲和檢索（RAG-2 Namespace）。
+使用 Qdrant 作為向量數據庫存儲後端。
 """
 
 from __future__ import annotations
 
+import asyncio
+import json
 from typing import Any, Dict, List, Optional
 
 import structlog
+from qdrant_client import QdrantClient
+from qdrant_client.http import models as qmodels
+from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from agents.task_analyzer.models import Capability, PolicyConstraintChunk
 from agents.task_analyzer.rag_chunk_generator import (
@@ -20,70 +29,86 @@ from agents.task_analyzer.rag_chunk_generator import (
     get_rag_retrieval_strategy,
 )
 from agents.task_analyzer.rag_namespace import RAGNamespace, get_rag_namespace_manager
-from database.chromadb import ChromaCollection, ChromaDBClient
 from services.api.services.capability_registry_store_service import (
     get_capability_registry_store_service,
 )
 from services.api.services.embedding_service import get_embedding_service
+from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
 
 logger = structlog.get_logger(__name__)
+
+
+def _sync_generate_embedding(embedding_service, content: str) -> List[float]:
+    """同步生成 embedding"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(embedding_service.generate_embedding(content))
+    finally:
+        loop.close()
 
 
 class RAGService:
     """RAG 服務類 - 處理 Capability 的向量化存儲和檢索"""
 
-    def __init__(self, chroma_client: Optional[ChromaDBClient] = None):
+    def __init__(self, qdrant_client: Optional[QdrantClient] = None):
         """
         初始化 RAG 服務
 
         Args:
-            chroma_client: ChromaDB 客戶端（可選）
+            qdrant_client: Qdrant 客戶端（可選）
         """
-        self._chroma_client = chroma_client or ChromaDBClient()
+        self._qdrant_client = qdrant_client or get_qdrant_vector_store_service().client
         self._chunk_generator = get_rag_chunk_generator()
         self._namespace_manager = get_rag_namespace_manager()
         self._embedding_service = get_embedding_service()
         self._capability_registry = get_capability_registry_store_service()
 
-        # 獲取 RAG-2 Namespace 配置
         rag2_config = self._namespace_manager.get_core_namespace()
         self._rag2_collection_name = rag2_config.storage_location
 
-        # 獲取 RAG-3 Namespace 配置
         rag3_config = self._namespace_manager.get_namespace(RAGNamespace.RAG_3_POLICY_CONSTRAINT)
         self._rag3_collection_name = (
             rag3_config.storage_location if rag3_config else "rag_policy_constraint"
         )
 
-    def _get_rag2_collection(self) -> ChromaCollection:
-        """
-        獲取 RAG-2 Collection
+        self._dimension_cache: Dict[str, Optional[int]] = {}
 
-        Returns:
-            ChromaCollection 實例
-        """
-        collection = self._chroma_client.get_or_create_collection(
-            name=self._rag2_collection_name,
-            metadata={"namespace": RAGNamespace.RAG_2_CAPABILITY_DISCOVERY},
+        logger.info(
+            "RAGService initialized",
+            rag2_collection=self._rag2_collection_name,
+            rag3_collection=self._rag3_collection_name,
         )
-        return ChromaCollection(collection)
+
+    def _ensure_collection(self, collection_name: str) -> None:
+        """確保 Collection 存在"""
+        try:
+            self._qdrant_client.get_collection(collection_name)
+        except Exception:
+            self._qdrant_client.create_collection(
+                collection_name=collection_name,
+                vectors_config=VectorParams(
+                    size=768,
+                    distance=Distance.COSINE,
+                    on_disk=True,
+                ),
+            )
+            self._qdrant_client.create_payload_index(
+                collection_name=collection_name,
+                field_name="chunk_id",
+                field_schema=qmodels.PayloadSchemaType.KEYWORD,
+            )
+
+    def _get_vector_size(self) -> int:
+        """獲取向量維度"""
+        return 768
 
     def store_capability(self, capability: Capability) -> bool:
-        """
-        將 Capability 向量化並存儲到 RAG-2
-
-        Args:
-            capability: Capability 對象
-
-        Returns:
-            是否成功存儲
-        """
+        """將 Capability 向量化並存儲到 RAG-2"""
         try:
-            # 生成 Chunk
             chunk = self._chunk_generator.generate_capability_chunk(capability)
+            embedding = _sync_generate_embedding(self._embedding_service, chunk.content)
 
-            # 生成 Embedding
-            embedding = self._embedding_service.generate_embedding(chunk.content)
             if not embedding or len(embedding) == 0:
                 logger.error(
                     "rag_service_embedding_failed",
@@ -92,13 +117,25 @@ class RAGService:
                 )
                 return False
 
-            # 存儲到 ChromaDB
-            collection = self._get_rag2_collection()
-            collection.add(
-                ids=[chunk.chunk_id],
-                embeddings=[embedding],
-                documents=[chunk.content],
-                metadatas=[chunk.metadata],
+            self._ensure_collection(self._rag2_collection_name)
+
+            metadata = chunk.metadata.copy()
+            metadata["agent"] = capability.agent
+            metadata["capability_name"] = capability.name
+
+            self._qdrant_client.upsert(
+                collection_name=self._rag2_collection_name,
+                points=[
+                    PointStruct(
+                        id=chunk.chunk_id,
+                        vector=embedding,
+                        payload={
+                            "chunk_id": chunk.chunk_id,
+                            "content": chunk.content,
+                            "metadata": json.dumps(metadata, ensure_ascii=False),
+                        },
+                    )
+                ],
             )
 
             logger.info(
@@ -119,14 +156,8 @@ class RAGService:
             return False
 
     def store_all_capabilities(self) -> Dict[str, Any]:
-        """
-        將所有 Capability 向量化並存儲到 RAG-2
-
-        Returns:
-            存儲結果統計
-        """
+        """將所有 Capability 向量化並存儲到 RAG-2"""
         try:
-            # 獲取所有啟用的 Capability
             capabilities = self._capability_registry.list_capabilities(is_active=True)
 
             success_count = 0
@@ -164,66 +195,53 @@ class RAGService:
         similarity_threshold: float = 0.7,
         agent_filter: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """
-        檢索相關的 Capability（RAG-2）
-
-        Args:
-            query: 查詢文本
-            top_k: 返回數量
-            similarity_threshold: 相似度閾值
-            agent_filter: Agent 過濾器（可選）
-
-        Returns:
-            檢索結果列表（包含 capability 信息和相似度）
-        """
+        """檢索相關的 Capability（RAG-2）"""
         try:
-            # 生成查詢 Embedding
-            query_embedding = self._embedding_service.generate_embedding(query)
+            query_embedding = _sync_generate_embedding(self._embedding_service, query)
             if not query_embedding or len(query_embedding) == 0:
                 logger.error("rag_service_query_embedding_failed", query=query[:100])
                 return []
 
-            # 檢索
-            collection = self._get_rag2_collection()
-
-            # 構建 where 過濾條件
-            where_filter: Optional[Dict[str, Any]] = None
+            must_conditions = []
             if agent_filter:
-                where_filter = {"agent": agent_filter}
+                must_conditions.append(
+                    qmodels.FieldCondition(
+                        key="agent",
+                        match=qmodels.MatchValue(value=agent_filter),
+                    )
+                )
 
-            # 執行檢索
-            results = collection.query(
-                query_embeddings=[query_embedding],
-                n_results=top_k * 2,  # 獲取更多結果以便過濾
-                where=where_filter,
-                include=["documents", "metadatas", "distances"],
-            )
+            filter_model = None
+            if must_conditions:
+                filter_model = qmodels.Filter(must=must_conditions)
 
-            # 處理結果
+            try:
+                results = self._qdrant_client.query_points(
+                    collection_name=self._rag2_collection_name,
+                    query=query_embedding,
+                    limit=top_k * 2,
+                    query_filter=filter_model,
+                    with_payload=True,
+                ).points
+            except Exception:
+                return []
+
             retrieved_results: List[Dict[str, Any]] = []
 
-            if results and "ids" in results and len(results["ids"]) > 0:
-                ids = results["ids"][0]
-                documents = results.get("documents", [[]])[0]
-                metadatas = results.get("metadatas", [[]])[0]
-                distances = results.get("distances", [[]])[0]
+            for point in results:
+                payload = point.payload
+                metadata = json.loads(payload.get("metadata", "{}"))
+                similarity = point.score
 
-                for i, (doc_id, doc, metadata, distance) in enumerate(
-                    zip(ids, documents, metadatas, distances)
-                ):
-                    # 計算相似度（ChromaDB 返回的是距離，需要轉換為相似度）
-                    similarity = 1.0 - distance if distance <= 1.0 else 0.0
-
+                if similarity >= similarity_threshold:
                     result_item = {
-                        "chunk_id": doc_id,
-                        "content": doc,
+                        "chunk_id": payload.get("chunk_id"),
+                        "content": payload.get("content"),
                         "metadata": metadata,
                         "similarity": similarity,
-                        "distance": distance,
                     }
                     retrieved_results.append(result_item)
 
-            # 應用防幻覺檢索策略
             retrieval_strategy = get_rag_retrieval_strategy(
                 top_k=top_k,
                 similarity_threshold=similarity_threshold,
@@ -241,7 +259,7 @@ class RAGService:
                 filtered_results=len(filtered_results),
             )
 
-            return filtered_results
+            return filtered_results[:top_k]
 
         except Exception as exc:
             logger.error(
@@ -252,15 +270,7 @@ class RAGService:
             return []
 
     def format_capabilities_for_prompt(self, retrieved_results: List[Dict[str, Any]]) -> str:
-        """
-        將檢索到的 Capability 格式化為 Prompt 文本
-
-        Args:
-            retrieved_results: 檢索結果列表
-
-        Returns:
-            格式化後的 Prompt 文本
-        """
+        """將檢索到的 Capability 格式化為 Prompt 文本"""
         if not retrieved_results:
             return "## 可用能力列表\n\n**警告：未找到任何匹配的能力。請確認查詢是否正確，或檢查能力註冊表。**\n"
 
@@ -292,48 +302,16 @@ class RAGService:
     def validate_capability_exists(
         self, capability_name: str, agent: str, retrieved_results: List[Dict[str, Any]]
     ) -> bool:
-        """
-        驗證 Capability 是否存在（硬邊界檢查）
-
-        Args:
-            capability_name: Capability 名稱
-            agent: Agent 名稱
-            retrieved_results: 檢索結果列表
-
-        Returns:
-            是否存在
-        """
+        """驗證 Capability 是否存在（硬邊界檢查）"""
         retrieval_strategy = get_rag_retrieval_strategy()
         return retrieval_strategy.validate_capability_exists(
             capability_name, agent, retrieved_results
         )
 
-    def _get_rag3_collection(self) -> ChromaCollection:
-        """
-        獲取 RAG-3 Collection
-
-        Returns:
-            ChromaCollection 實例
-        """
-        collection = self._chroma_client.get_or_create_collection(
-            name=self._rag3_collection_name,
-            metadata={"namespace": RAGNamespace.RAG_3_POLICY_CONSTRAINT},
-        )
-        return ChromaCollection(collection)
-
     def store_policy_chunk(self, policy_chunk: PolicyConstraintChunk) -> bool:
-        """
-        將 Policy Chunk 向量化並存儲到 RAG-3
-
-        Args:
-            policy_chunk: PolicyConstraintChunk 對象
-
-        Returns:
-            是否成功存儲
-        """
+        """將 Policy Chunk 向量化並存儲到 RAG-3"""
         try:
-            # 生成 Embedding
-            embedding = self._embedding_service.generate_embedding(policy_chunk.content)
+            embedding = _sync_generate_embedding(self._embedding_service, policy_chunk.content)
             if not embedding or len(embedding) == 0:
                 logger.error(
                     "rag_service_policy_embedding_failed",
@@ -341,13 +319,21 @@ class RAGService:
                 )
                 return False
 
-            # 存儲到 ChromaDB
-            collection = self._get_rag3_collection()
-            collection.add(
-                ids=[policy_chunk.chunk_id],
-                embeddings=[embedding],
-                documents=[policy_chunk.content],
-                metadatas=[policy_chunk.metadata],
+            self._ensure_collection(self._rag3_collection_name)
+
+            self._qdrant_client.upsert(
+                collection_name=self._rag3_collection_name,
+                points=[
+                    PointStruct(
+                        id=policy_chunk.chunk_id,
+                        vector=embedding,
+                        payload={
+                            "chunk_id": policy_chunk.chunk_id,
+                            "content": policy_chunk.content,
+                            "metadata": json.dumps(policy_chunk.metadata, ensure_ascii=False),
+                        },
+                    )
+                ],
             )
 
             logger.info(
@@ -372,70 +358,57 @@ class RAGService:
         similarity_threshold: float = 0.7,
         policy_type_filter: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """
-        檢索相關的策略知識（RAG-3）
-
-        Args:
-            query: 查詢文本
-            top_k: 返回數量
-            similarity_threshold: 相似度閾值
-            policy_type_filter: 策略類型過濾器（可選）
-
-        Returns:
-            檢索結果列表（包含策略信息和相似度）
-        """
+        """檢索相關的策略知識（RAG-3）"""
         try:
-            # 生成查詢 Embedding
-            query_embedding = self._embedding_service.generate_embedding(query)
+            query_embedding = _sync_generate_embedding(self._embedding_service, query)
             if not query_embedding or len(query_embedding) == 0:
                 logger.error("rag_service_policy_query_embedding_failed", query=query[:100])
                 return []
 
-            # 檢索
-            collection = self._get_rag3_collection()
-
-            # 構建 where 過濾條件
-            where_filter: Optional[Dict[str, Any]] = None
+            must_conditions = []
             if policy_type_filter:
-                where_filter = {"policy_type": policy_type_filter}
+                must_conditions.append(
+                    qmodels.FieldCondition(
+                        key="policy_type",
+                        match=qmodels.MatchValue(value=policy_type_filter),
+                    )
+                )
 
-            # 執行檢索
-            results = collection.query(
-                query_embeddings=[query_embedding],
-                n_results=top_k * 2,  # 獲取更多結果以便過濾
-                where=where_filter,
-                include=["documents", "metadatas", "distances"],
-            )
+            filter_model = None
+            if must_conditions:
+                filter_model = qmodels.Filter(must=must_conditions)
 
-            # 處理結果
+            try:
+                results = self._qdrant_client.query_points(
+                    collection_name=self._rag3_collection_name,
+                    query=query_embedding,
+                    limit=top_k * 2,
+                    query_filter=filter_model,
+                    with_payload=True,
+                ).points
+            except Exception:
+                return []
+
             retrieved_results: List[Dict[str, Any]] = []
 
-            if results and "ids" in results and len(results["ids"]) > 0:
-                ids = results["ids"][0]
-                documents = results.get("documents", [[]])[0]
-                metadatas = results.get("metadatas", [[]])[0]
-                distances = results.get("distances", [[]])[0]
+            for point in results:
+                payload = point.payload
+                metadata = json.loads(payload.get("metadata", "{}"))
+                similarity = point.score
 
-                for i, (doc_id, doc, metadata, distance) in enumerate(
-                    zip(ids, documents, metadatas, distances)
-                ):
-                    # 計算相似度（ChromaDB 返回的是距離，需要轉換為相似度）
-                    similarity = 1.0 - distance if distance <= 1.0 else 0.0
-
+                if similarity >= similarity_threshold:
                     result_item = {
-                        "chunk_id": doc_id,
-                        "content": doc,
+                        "chunk_id": payload.get("chunk_id"),
+                        "content": payload.get("content"),
                         "metadata": metadata,
                         "similarity": similarity,
-                        "distance": distance,
                     }
                     retrieved_results.append(result_item)
 
-            # 應用防幻覺檢索策略
             retrieval_strategy = get_rag_retrieval_strategy(
                 top_k=top_k,
                 similarity_threshold=similarity_threshold,
-                require_active=False,  # Policy 不需要 is_active 檢查
+                require_active=False,
             )
             filtered_results = retrieval_strategy.filter_results(
                 retrieved_results,
@@ -449,7 +422,7 @@ class RAGService:
                 filtered_results=len(filtered_results),
             )
 
-            return filtered_results
+            return filtered_results[:top_k]
 
         except Exception as exc:
             logger.error(
@@ -460,15 +433,7 @@ class RAGService:
             return []
 
     def format_policies_for_prompt(self, retrieved_results: List[Dict[str, Any]]) -> str:
-        """
-        將檢索到的策略知識格式化為 Prompt 文本
-
-        Args:
-            retrieved_results: 檢索結果列表
-
-        Returns:
-            格式化後的 Prompt 文本
-        """
+        """將檢索到的策略知識格式化為 Prompt 文本"""
         if not retrieved_results:
             return "## 策略知識\n\n**未找到相關的策略知識。**\n"
 
@@ -493,21 +458,20 @@ class RAGService:
         return "\n".join(formatted_lines)
 
 
-def get_rag_service(chroma_client: Optional[ChromaDBClient] = None) -> RAGService:
+def get_rag_service(qdrant_client: Optional[QdrantClient] = None) -> RAGService:
     """
     獲取 RAG Service 實例（單例模式）
 
     Args:
-        chroma_client: ChromaDB 客戶端（可選）
+        qdrant_client: Qdrant 客戶端（可選）
 
     Returns:
         RAG Service 實例
     """
     global _rag_service_instance
     if _rag_service_instance is None:
-        _rag_service_instance = RAGService(chroma_client)
+        _rag_service_instance = RAGService(qdrant_client)
     return _rag_service_instance
 
 
-# 全局單例實例
 _rag_service_instance: Optional[RAGService] = None

@@ -271,6 +271,7 @@ class SeaweedFSAuditLogService:
                 Key=file_path,
                 Body=new_content,
                 ContentType="application/x-ndjson",
+                ContentEncoding="utf-8",
             )
             log_id = f"{log.user_id}_{int(timestamp.timestamp() * 1000000)}"
             self.logger.debug(
@@ -537,6 +538,7 @@ class SeaweedFSSystemLogService:
                 Key=file_path,
                 Body=new_content,
                 ContentType="application/x-ndjson",
+                ContentEncoding="utf-8",
             )
             log_id = log_entry["_key"]
             self.logger.debug(

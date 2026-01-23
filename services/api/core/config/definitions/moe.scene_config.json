@@ -1,0 +1,204 @@
+{
+  "scope": "moe.scene_config",
+  "description": "MoE 場景配置定義",
+  "version": "1.0.0",
+  "last_updated": "2026-01-20T00:00:00Z",
+  "fields": {
+    "chat": {
+      "type": "object",
+      "description": "Chat 對話場景配置",
+      "fields": {
+        "temperature": {
+          "type": "number",
+          "min": 0.0,
+          "max": 2.0,
+          "default": 0.7,
+          "description": "生成溫度，較高值使輸出更隨機"
+        },
+        "timeout": {
+          "type": "integer",
+          "min": 10,
+          "max": 300,
+          "default": 60,
+          "unit": "seconds",
+          "description": "請求超時時間"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "min": 256,
+          "max": 16384,
+          "default": 4096,
+          "description": "最大生成 token 數"
+        },
+        "frontend_editable": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否允許用戶在前端修改此場景的模型選擇"
+        }
+      }
+    },
+    "semantic_understanding": {
+      "type": "object",
+      "description": "語義理解場景配置",
+      "fields": {
+        "temperature": {
+          "type": "number",
+          "min": 0.0,
+          "max": 1.0,
+          "default": 0.3,
+          "description": "較低溫度確保一致性"
+        },
+        "timeout": {
+          "type": "integer",
+          "min": 10,
+          "max": 60,
+          "default": 30,
+          "unit": "seconds",
+          "description": "請求超時時間"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "min": 256,
+          "max": 8192,
+          "default": 4096,
+          "description": "最大生成 token 數"
+        },
+        "frontend_editable": {
+          "type": "boolean",
+          "default": false,
+          "description": "不允許用戶在前端修改"
+        }
+      }
+    },
+    "task_analysis": {
+      "type": "object",
+      "description": "任務分析場景配置",
+      "fields": {
+        "temperature": {
+          "type": "number",
+          "min": 0.0,
+          "max": 1.0,
+          "default": 0.3,
+          "description": "較低溫度確保分析一致性"
+        },
+        "timeout": {
+          "type": "integer",
+          "min": 15,
+          "max": 120,
+          "default": 45,
+          "unit": "seconds",
+          "description": "請求超時時間"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "min": 512,
+          "max": 16384,
+          "default": 8192,
+          "description": "最大生成 token 數"
+        },
+        "frontend_editable": {
+          "type": "boolean",
+          "default": false,
+          "description": "不允許用戶在前端修改"
+        }
+      }
+    },
+    "orchestrator": {
+      "type": "object",
+      "description": "協調器場景配置",
+      "fields": {
+        "temperature": {
+          "type": "number",
+          "min": 0.0,
+          "max": 0.5,
+          "default": 0.2,
+          "description": "極低溫度確保決策穩定"
+        },
+        "timeout": {
+          "type": "integer",
+          "min": 10,
+          "max": 60,
+          "default": 30,
+          "unit": "seconds",
+          "description": "請求超時時間"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "min": 256,
+          "max": 8192,
+          "default": 4096,
+          "description": "最大生成 token 數"
+        },
+        "frontend_editable": {
+          "type": "boolean",
+          "default": false,
+          "description": "不允許用戶在前端修改"
+        }
+      }
+    },
+    "embedding": {
+      "type": "object",
+      "description": "向量化場景配置",
+      "fields": {
+        "dimension": {
+          "type": "integer",
+          "min": 256,
+          "max": 4096,
+          "default": 768,
+          "description": "向量維度"
+        },
+        "timeout": {
+          "type": "integer",
+          "min": 30,
+          "max": 300,
+          "default": 120,
+          "unit": "seconds",
+          "description": "請求超時時間"
+        },
+        "frontend_editable": {
+          "type": "boolean",
+          "default": false,
+          "description": "不允許用戶在前端修改"
+        }
+      }
+    },
+    "knowledge_graph_extraction": {
+      "type": "object",
+      "description": "知識圖譜提取場景配置",
+      "fields": {
+        "temperature": {
+          "type": "number",
+          "min": 0.0,
+          "max": 0.5,
+          "default": 0.2,
+          "description": "低溫度確保提取一致性"
+        },
+        "timeout": {
+          "type": "integer",
+          "min": 60,
+          "max": 600,
+          "default": 180,
+          "unit": "seconds",
+          "description": "請求超時時間"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "min": 1024,
+          "max": 32768,
+          "default": 16384,
+          "description": "最大生成 token 數"
+        },
+        "frontend_editable": {
+          "type": "boolean",
+          "default": false,
+          "description": "不允許用戶在前端修改"
+        }
+      }
+    }
+  },
+  "convergence_rules": {
+    "tenant_limit_must_be_less_than_system": true,
+    "must_subset_of_parent": [],
+    "must_not_exceed_system_max": ["chat.temperature", "chat.timeout", "chat.max_tokens"]
+  }
+}

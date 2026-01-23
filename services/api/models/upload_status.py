@@ -53,6 +53,7 @@ class ProcessingStatusModel(BaseModel):
     vectorization: Optional[ProcessingStageStatus] = Field(None, description="向量化階段狀態")
     storage: Optional[ProcessingStageStatus] = Field(None, description="存儲階段狀態")
     kg_extraction: Optional[ProcessingStageStatus] = Field(None, description="知識圖譜提取階段狀態")
+    dual_track: Optional[ProcessingStageStatus] = Field(None, description="雙軌處理階段狀態")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="創建時間")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="更新時間")
 
@@ -84,6 +85,11 @@ class ProcessingStatusCreate(BaseModel):
     overall_status: str = "pending"
     overall_progress: int = 0
     message: Optional[str] = None
+    chunking: Optional[Dict[str, Any]] = None
+    vectorization: Optional[Dict[str, Any]] = None
+    storage: Optional[Dict[str, Any]] = None
+    kg_extraction: Optional[Dict[str, Any]] = None
+    dual_track: Optional[Dict[str, Any]] = None
 
 
 class ProcessingStatusUpdate(BaseModel):
@@ -96,3 +102,4 @@ class ProcessingStatusUpdate(BaseModel):
     vectorization: Optional[Dict[str, Any]] = None
     storage: Optional[Dict[str, Any]] = None
     kg_extraction: Optional[Dict[str, Any]] = None
+    dual_track: Optional[Dict[str, Any]] = None

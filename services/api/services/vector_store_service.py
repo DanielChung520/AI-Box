@@ -1,9 +1,18 @@
-# 代碼功能說明: 向量存儲服務
+# 代碼功能說明: 向量存儲服務（⚠️ 已廢棄）
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-02
+# 最後修改日期: 2026-01-20
+#
+# ⚠️ 警告: 此模組已於 2026-01-20 廢棄
+#    請使用 Qdrant 向量存儲服務：
+#    - from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
+#
+# 遷移指南: docs/系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md
 
-"""向量存儲服務 - 封裝 ChromaDB 操作，實現向量存儲和查詢"""
+"""向量存儲服務 - 封裝 ChromaDB 操作，實現向量存儲和查詢
+
+⚠️  此模組已廢棄，請使用 Qdrant 向量存儲服務
+"""
 
 from __future__ import annotations
 
@@ -20,6 +29,13 @@ from system.infra.config.config import get_config_section
 from system.security.models import Permission, User
 
 logger = structlog.get_logger(__name__)
+
+# 記錄廢棄警告
+logger.warning(
+    "VECTOR_STORE_SERVICE_DEPRECATED",
+    message="VectorStoreService 已廢棄，請遷移到 Qdrant",
+    migration_guide="docs/系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md",
+)
 
 # 全局服務實例（單例模式）
 _vector_store_service: Optional["VectorStoreService"] = None

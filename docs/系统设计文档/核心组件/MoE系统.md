@@ -2,7 +2,7 @@
 
 **创建日期**: 2025-12-25
 **创建人**: Daniel Chung
-**最后修改日期**: 2025-12-25
+**最后修改日期**: 2026-01-21
 
 ---
 
@@ -14,6 +14,7 @@ MoE（Mixture of Experts，专家模型混合）系统是 AI-Box 的多模型路
 >
 > - [LLM路由架构文档](../../備份與歸檔/architecture/llm-routing-architecture.md)
 > - [GenAI主计划](../../開發過程文件/plans/genai/GENAI_MASTER_PLAN.md)
+> - [AI-Box双轨 RAG 解析规格书](../文件上傳向量圖譜/AI-Box雙軌RAG解析規格書.md)
 
 ---
 
@@ -86,6 +87,68 @@ graph TB
 
 ---
 
+## 🎯 场景配置
+
+### 支持的任务场景
+
+MoE 系统支持以下任务场景，根据场景自动选择最适合的模型：
+
+| 场景 | 用途 | 默认模型 | 前端可编辑 |
+|------|------|----------|-----------|
+| **chat** | 通用聊天对话 | gpt-oss:120b-cloud | ✅ |
+| **semantic_understanding** | 语义理解和摘要生成 | gpt-oss:120b-cloud | ❌ |
+| **task_analysis** | 任务分析和规划 | gpt-oss:120b-cloud | ❌ |
+| **orchestrator** | 协调和编排 | gpt-oss:120b-cloud | ❌ |
+| **embedding** | 文本向量化 | nomic-embed-text:latest | ❌ |
+| **knowledge_graph_extraction** | 知识图谱提取 | mistral-nemo:12b | ❌ |
+| **vision** | 视觉理解（图片/表格/图表） | qwen3-vl:latest | ❌ |
+
+### Vision 场景配置（2026-01-21）
+
+**用途**：处理视觉元素识别和描述，应用于双轨 RAG 解析的 Stage 2 - Prompt B（视觉解析员）
+
+**配置示例**（`config/config.json`）：
+
+```json
+{
+  "services": {
+    "moe": {
+      "model_priority": {
+        "vision": {
+          "frontend_editable": false,
+          "priority": [
+            {
+              "model": "qwen3-vl:latest",
+              "context_size": 32768,
+              "max_tokens": 4096,
+              "temperature": 0.3,
+              "timeout": 120,
+              "retries": 3,
+              "rpm": 20,
+              "concurrency": 3
+            },
+            {
+              "model": "qwen3-vl:8b",
+              "context_size": 16384,
+              "max_tokens": 4096,
+              "temperature": 0.3,
+              "timeout": 90,
+              "retries": 2,
+              "rpm": 30,
+              "concurrency": 5
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+**环境变量**：`MOE_VISION_MODEL`（可覆盖默认模型）
+
+---
+
 ## 🔧 核心组件
 
 ### 1. 任务分类
@@ -139,6 +202,8 @@ graph TB
 | 负载均衡 | ✅ 已实现 | 多 Provider 负载均衡 |
 | 故障转移 | ✅ 已实现 | 自动故障转移 |
 | 任务分类集成 | ✅ 已实现 | 与 Task Analyzer 集成 |
+| Vision 场景 | ✅ 已实现 | qwen3-vl:latest 用于视觉理解 |
+| 双轨 RAG 集成 | ✅ 已实现 | Prompt A/B/C 场景支持 |
 
 ---
 

@@ -23,6 +23,8 @@ NC='\033[0m' # No Color
 
 # 服務配置
 ARANGODB_PORT=8529
+QDRANT_REST_PORT=6333
+QDRANT_GRPC_PORT=6334
 CHROMADB_PORT=8001
 FASTAPI_PORT=8000
 REDIS_PORT=6379
@@ -60,16 +62,28 @@ check_port() {
 }
 
 # 函數：關閉占用端口的進程
+# 函數：關閉占用端口的進程（但跳過 Docker 容器）
 kill_port() {
     local port=$1
     local service_name=$2
 
     if check_port $port; then
+        # 檢查是否是 Docker 容器占用端口
+        if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ":$port->"; then
+            echo -e "${GREEN}端口 $port 被 Docker 容器占用，跳過關閉${NC}"
+            return 0
+        fi
+
         echo -e "${YELLOW}檢測到端口 $port 已被占用，正在關閉...${NC}"
         local pids=$(lsof -ti :$port)
         if [ -n "$pids" ]; then
             for pid in $pids; do
                 local proc_name=$(ps -p $pid -o comm= 2>/dev/null || echo "unknown")
+                # 跳過 Docker 相關進程
+                if [[ "$proc_name" == *"docker"* ]] || [[ "$proc_name" == *"com.docker"* ]]; then
+                    echo -e "${GREEN}  跳過 Docker 進程 $pid ($proc_name) - 端口 $port${NC}"
+                    continue
+                fi
                 echo -e "${YELLOW}  關閉進程 $pid ($proc_name) - 端口 $port${NC}"
                 # 先嘗試優雅關閉
                 kill $pid 2>/dev/null || true
@@ -84,15 +98,28 @@ kill_port() {
             # 再次檢查
             local remaining_pids=$(lsof -ti :$port 2>/dev/null)
             if [ -n "$remaining_pids" ]; then
-                echo -e "${RED}  警告: 端口 $port 仍被占用 (PID: $remaining_pids)${NC}"
-                echo -e "${YELLOW}  嘗試強制關閉...${NC}"
+                # 再次過濾 Docker 進程
+                local non_docker_pids=""
                 for pid in $remaining_pids; do
-                    kill -9 $pid 2>/dev/null || true
+                    local proc_name=$(ps -p $pid -o comm= 2>/dev/null || echo "unknown")
+                    if [[ "$proc_name" != *"docker"* ]] && [[ "$proc_name" != *"com.docker"* ]]; then
+                        non_docker_pids="$non_docker_pids $pid"
+                    fi
                 done
-                sleep 1
-                if check_port $port; then
-                    echo -e "${RED}  錯誤: 無法釋放端口 $port${NC}"
-                    return 1
+                if [ -n "$non_docker_pids" ]; then
+                    echo -e "${RED}  警告: 端口 $port 仍被占用 (PID: $non_docker_pids)${NC}"
+                    echo -e "${YELLOW}  嘗試強制關閉...${NC}"
+                    for pid in $non_docker_pids; do
+                        kill -9 $pid 2>/dev/null || true
+                    done
+                    sleep 1
+                    if check_port $port; then
+                        # 再次檢查是否是 Docker
+                        if ! docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ":$port->"; then
+                            echo -e "${RED}  錯誤: 無法釋放端口 $port${NC}"
+                            return 1
+                        fi
+                    fi
                 fi
             fi
             echo -e "${GREEN}  端口 $port 已釋放${NC}"
@@ -100,12 +127,11 @@ kill_port() {
     fi
     return 0
 }
-
 # 函數：根據進程名稱殺死進程
 kill_process_by_name() {
     local name=$1
     local pids=$(ps aux | grep "$name" | grep -v grep | awk '{print $2}')
-    
+
     if [ -n "$pids" ]; then
         echo -e "${YELLOW}發現 $name 進程，正在關閉...${NC}"
         for pid in $pids; do
@@ -221,9 +247,120 @@ start_arangodb() {
 }
 
 
-# 函數：啟動 ChromaDB
+# 函數：啟動 Qdrant（向量數據庫，取代 ChromaDB）
+start_qdrant() {
+    echo -e "${BLUE}=== 啟動 Qdrant 向量數據庫 ===${NC}"
+
+    kill_port $QDRANT_REST_PORT "Qdrant REST"
+    kill_port $QDRANT_GRPC_PORT "Qdrant gRPC"
+
+    # 檢查 Docker 是否安裝
+    if ! command -v docker &> /dev/null; then
+        echo -e "${RED}錯誤: Docker 未安裝${NC}"
+        echo -e "${YELLOW}請先安裝 Docker Desktop: https://www.docker.com/products/docker-desktop${NC}"
+        return 1
+    fi
+
+    # 檢查 Docker daemon 是否運行
+    if ! docker ps &> /dev/null 2>&1; then
+        echo -e "${RED}錯誤: Docker daemon 未運行${NC}"
+        echo -e "${YELLOW}請執行以下操作之一：${NC}"
+        echo -e "${YELLOW}  1. 啟動 Docker Desktop 應用程式${NC}"
+        echo -e "${YELLOW}  2. 或運行: open -a Docker${NC}"
+        echo ""
+
+        # 嘗試自動啟動 Docker Desktop (macOS)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            echo -e "${BLUE}嘗試自動啟動 Docker Desktop...${NC}"
+            if open -a Docker 2>/dev/null; then
+                echo -e "${GREEN}已嘗試啟動 Docker Desktop，請等待其完全啟動後重新運行此命令${NC}"
+                echo -e "${YELLOW}提示: Docker Desktop 通常需要 10-30 秒才能完全啟動${NC}"
+            else
+                echo -e "${YELLOW}無法自動啟動 Docker Desktop，請手動啟動${NC}"
+            fi
+        fi
+
+        return 1
+    fi
+
+    # 查找 Qdrant 容器
+    local container=$(docker ps -a --format '{{.Names}}' | grep -i qdrant | head -1)
+    if [ -n "$container" ]; then
+        echo -e "${GREEN}發現 Qdrant Docker 容器: $container${NC}"
+
+        # 檢查容器是否已在運行
+        if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
+            echo -e "${GREEN}✅ Qdrant 已在運行 (端口 $QDRANT_REST_PORT / $QDRANT_GRPC_PORT)${NC}"
+            echo -e "${GREEN}   REST API: http://localhost:$QDRANT_REST_PORT${NC}"
+            echo -e "${GREEN}   gRPC API: localhost:$QDRANT_GRPC_PORT${NC}"
+            echo -e "${GREEN}   Dashboard: http://localhost:$QDRANT_REST_PORT/dashboard${NC}"
+            return 0
+        fi
+
+        # 啟動容器
+        echo -e "${GREEN}啟動 Qdrant 容器...${NC}"
+        docker start "$container"
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}❌ 啟動 Qdrant 容器失敗${NC}"
+            echo -e "${YELLOW}請檢查日誌: docker logs $container${NC}"
+            return 1
+        fi
+
+        sleep 5
+
+        if check_port $QDRANT_REST_PORT; then
+            echo -e "${GREEN}✅ Qdrant 已啟動 (端口 $QDRANT_REST_PORT)${NC}"
+            echo -e "${GREEN}   Dashboard: http://localhost:$QDRANT_REST_PORT/dashboard${NC}"
+            return 0
+        else
+            echo -e "${RED}❌ Qdrant 啟動失敗（端口未監聽）${NC}"
+            echo -e "${YELLOW}請檢查日誌: docker logs $container${NC}"
+            return 1
+        fi
+    else
+        echo -e "${YELLOW}未找到 Qdrant Docker 容器${NC}"
+        echo -e "${BLUE}正在創建 Qdrant 容器...${NC}"
+
+        # 從環境變數獲取配置
+        QDRANT_DATA_DIR=${QDRANT_DATA_DIR:-"./data/qdrant"}
+
+        # 創建持久化目錄（如果不存在）
+        mkdir -p "$QDRANT_DATA_DIR"
+
+        if docker run -d \
+            -p $QDRANT_REST_PORT:6333 \
+            -p $QDRANT_GRPC_PORT:6334 \
+            -v "$(pwd)/$QDRANT_DATA_DIR:/qdrant/storage" \
+            --name qdrant \
+            qdrant/qdrant:latest; then
+            echo -e "${GREEN}✅ Qdrant 容器已創建${NC}"
+            echo -e "${GREEN}   持久化目錄: $QDRANT_DATA_DIR${NC}"
+            sleep 5
+
+            if check_port $QDRANT_REST_PORT; then
+                echo -e "${GREEN}✅ Qdrant 已啟動 (端口 $QDRANT_REST_PORT)${NC}"
+                echo -e "${GREEN}   Dashboard: http://localhost:$QDRANT_REST_PORT/dashboard${NC}"
+                return 0
+            else
+                echo -e "${YELLOW}⚠️ 容器已創建，但端口尚未就緒，請稍後檢查${NC}"
+                return 0
+            fi
+        else
+            echo -e "${RED}❌ 創建 Qdrant 容器失敗${NC}"
+            return 1
+        fi
+    fi
+}
+
+
+# 函數：啟動 ChromaDB（⚠️ 已廢棄，請使用 start_qdrant）
 start_chromadb() {
-    echo -e "${BLUE}=== 啟動 ChromaDB ===${NC}"
+    echo -e "${YELLOW}=== ⚠️  啟動 ChromaDB（已廢棄）===${NC}"
+    echo -e "${YELLOW}⚠️  注意：ChromaDB 已遷移到 Qdrant${NC}"
+    echo -e "${YELLOW}   請使用 'start_qdrant' 替代 'start_chromadb'${NC}"
+    echo -e "${YELLOW}   詳細信息請參考: docs/系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md${NC}"
+    echo ""
 
     kill_port $CHROMADB_PORT "ChromaDB"
 
@@ -656,16 +793,17 @@ show_usage() {
     echo "用法: $0 [選項]"
     echo ""
     echo "選項:"
-    echo "  all        啟動所有服務 (ArangoDB, ChromaDB, FastAPI)"
+    echo "  all        啟動所有服務 (Qdrant, ArangoDB, FastAPI)"
+    echo "  qdrant     啟動 Qdrant 向量數據庫（推薦）"
     echo "  arangodb   啟動 ArangoDB"
-    echo "  chromadb   啟動 ChromaDB"
+    echo "  chromadb   啟動 ChromaDB（⚠️ 已廢棄，請使用 qdrant）"
     echo "  fastapi|api  啟動 FastAPI (API 服務)"
     echo "  mcp        啟動 MCP Server"
     echo "  frontend   啟動前端服務 (Vite)"
     echo "  worker     啟動 RQ Worker (後台任務處理)"
     echo "  seaweedfs          啟動 SeaweedFS (AI-Box 和 DataLake)
-  seaweedfs-ai-box    啟動 AI-Box SeaweedFS
-  seaweedfs-datalake  啟動 DataLake SeaweedFS"
+   seaweedfs-ai-box    啟動 AI-Box SeaweedFS
+   seaweedfs-datalake  啟動 DataLake SeaweedFS"
     echo "  buckets      創建 SeaweedFS Buckets"
     echo "  dashboard  啟動 RQ Dashboard (任務監控界面)"
     echo "  status     檢查服務狀態"
@@ -675,9 +813,10 @@ show_usage() {
     echo ""
     echo "範例:"
     echo "  $0 all              # 啟動所有服務"
+    echo "  $0 qdrant           # 只啟動 Qdrant 向量數據庫"
     echo "  $0 fastapi          # 只啟動 FastAPI
-  $0 api              # 同上（別名）"
-    echo "  $0 arangodb chromadb # 啟動 ArangoDB 和 ChromaDB"
+   $0 api              # 同上（別名）"
+    echo "  $0 arangodb qdrant  # 啟動 ArangoDB 和 Qdrant"
 }
 
 # 函數：啟動 RQ Worker
@@ -995,6 +1134,7 @@ check_status() {
     echo ""
 
     services=(
+        "Qdrant:$QDRANT_REST_PORT"
         "ArangoDB:$ARANGODB_PORT"
         "ChromaDB:$CHROMADB_PORT"
         "Redis:$REDIS_PORT"
@@ -1024,9 +1164,21 @@ check_status() {
     else
         echo -e "${RED}❌ RQ Dashboard${NC} - 未運行 (端口 $dashboard_port)"
     fi
+
+    # 檢查 Qdrant 狀態
+    echo -e "${BLUE}向量數據庫狀態:${NC}"
+    if check_port $QDRANT_REST_PORT; then
+        local qdrant_pid=$(lsof -ti :$QDRANT_REST_PORT | head -1)
+        echo -e "${GREEN}✅ Qdrant${NC} - 運行中 (端口 $QDRANT_REST_PORT, PID: $qdrant_pid)"
+        echo -e "${GREEN}   Dashboard: http://localhost:$QDRANT_REST_PORT/dashboard${NC}"
+    else
+        echo -e "${RED}❌ Qdrant${NC} - 未運行 (端口 $QDRANT_REST_PORT)"
+        echo -e "${YELLOW}   提示: 請運行 'start_qdrant' 啟動${NC}"
+    fi
+
     # 檢查 SeaweedFS 狀態（改進版 - 分別檢查 Master、Volume、Filer）
     echo -e "${BLUE}SeaweedFS 狀態:${NC}"
-    
+
     # 檢查 AI-Box SeaweedFS
     echo -e "${BLUE}  AI-Box SeaweedFS:${NC}"
     # 檢查 Master
@@ -1054,7 +1206,7 @@ check_status() {
     else
         echo -e "${RED}    ❌ S3 API${NC} - 未運行 (端口 $AI_BOX_SEAWEEDFS_S3_PORT)"
     fi
-    
+
     # 檢查 DataLake SeaweedFS
     echo -e "${BLUE}  DataLake SeaweedFS:${NC}"
     # 檢查 Master
@@ -1250,8 +1402,8 @@ monitor_fastapi() {
 stop_all() {
     echo -e "${BLUE}=== 停止所有服務 ===${NC}"
 
-    ports=($ARANGODB_PORT $CHROMADB_PORT $REDIS_PORT $FASTAPI_PORT $MCP_SERVER_PORT $FRONTEND_PORT)
-    service_names=("ArangoDB" "ChromaDB" "Redis" "FastAPI" "MCP Server" "Frontend")
+    ports=($QDRANT_REST_PORT $ARANGODB_PORT $CHROMADB_PORT $REDIS_PORT $FASTAPI_PORT $MCP_SERVER_PORT $FRONTEND_PORT)
+    service_names=("Qdrant" "ArangoDB" "ChromaDB" "Redis" "FastAPI" "MCP Server" "Frontend")
 
     for i in "${!ports[@]}"; do
         port=${ports[$i]}
@@ -1316,8 +1468,9 @@ main() {
                 echo -e "${BLUE}啟動所有服務...${NC}"
                 start_seaweedfs_docker || true
                 create_seaweedfs_buckets || true
+                start_qdrant || true
                 start_arangodb || true
-                start_chromadb || true
+                start_chromadb || true  # ⚠️ 已廢棄，仍保留向後兼容
                 start_redis || true
                 start_fastapi || true
                 start_mcp || true
@@ -1327,10 +1480,14 @@ main() {
                 echo -e "${GREEN}=== 啟動完成 ===${NC}"
                 check_status
                 ;;
+            qdrant)
+                start_qdrant
+                ;;
             arangodb)
                 start_arangodb
                 ;;
             chromadb)
+                echo -e "${YELLOW}⚠️  ChromaDB 已廢棄，請使用 'qdrant' 替代${NC}"
                 start_chromadb
                 ;;
             redis)

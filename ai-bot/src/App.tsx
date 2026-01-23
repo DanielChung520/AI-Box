@@ -7,6 +7,7 @@ import WelcomePage from "@/pages/WelcomePage";
 import LoginPage from "@/pages/LoginPage";
 import SystemServiceStatus from "@/pages/SystemServiceStatus";
 import SystemMonitoring from "@/pages/SystemMonitoring";
+import MonitoringTools from "@/pages/MonitoringTools";
 import AccountSecuritySettings from "@/pages/AccountSecuritySettings";
 import SystemSettings from "@/pages/SystemSettings";
 import AgentRequestManagement from "@/pages/AgentRequestManagement";
@@ -16,6 +17,7 @@ import { LanguageProvider, useLanguage } from '@/contexts/languageContext';
 import { FileEditingProvider } from '@/contexts/fileEditingContext';
 import { performanceMonitor } from '@/lib/performance';
 import { isSystemAdmin } from '@/lib/userUtils';
+import { clearAllLocalTasks } from '@/lib/taskStorage';
 
 // IEE Editor Wrapper 組件，用於從 URL 參數獲取 fileId
 function IEEEditorWrapper() {
@@ -102,6 +104,8 @@ function AppContent() {
   }, []);
 
   const logout = () => {
+    console.log('[App] Starting logout...');
+
     // 清除所有認證相關的 localStorage
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('access_token');
@@ -110,10 +114,26 @@ function AppContent() {
     localStorage.removeItem('userName');
     localStorage.removeItem('user_id');
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('last_sync_user_id');
+
+    // 清除所有本地任務數據（用戶切換時）
+    try {
+      clearAllLocalTasks();
+      console.log('[App] clearAllLocalTasks() completed');
+    } catch (error) {
+      console.error('[App] clearAllLocalTasks error:', error);
+    }
+
+    // 清除收藏夾數據
+    localStorage.removeItem('ai-box-favorites');
+    localStorage.removeItem('favoriteAssistants');
+    localStorage.removeItem('favoriteAgents');
 
     // 更新狀態
     setIsAuthenticated(false);
     setCurrentUser(null);
+
+    console.log('[App] Logout completed');
 
     // 觸發自定義事件，通知其他組件認證狀態已改變
     window.dispatchEvent(new CustomEvent('authStateChanged'));
@@ -169,6 +189,54 @@ function AppContent() {
           element={
             <AdminRoute>
               <SystemServiceStatus />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/monitoring-tools"
+          element={
+            <AdminRoute>
+              <MonitoringTools />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/monitoring"
+          element={
+            <AdminRoute>
+              <SystemMonitoring />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/accounts"
+          element={
+            <AdminRoute>
+              <AccountSecuritySettings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <AdminRoute>
+              <SystemSettings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/agent-requests"
+          element={
+            <AdminRoute>
+              <AgentRequestManagement />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/monitoring-tools"
+          element={
+            <AdminRoute>
+              <MonitoringTools />
             </AdminRoute>
           }
         />

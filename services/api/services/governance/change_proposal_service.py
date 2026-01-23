@@ -123,6 +123,7 @@ class SeaweedFSChangeProposalService:
                 Key=file_path,
                 Body=content,
                 ContentType="application/json",
+                ContentEncoding="utf-8",
             )
             self.logger.info(
                 "Proposal created",
@@ -233,6 +234,7 @@ class SeaweedFSChangeProposalService:
                 Key=file_path,
                 Body=content,
                 ContentType="application/json",
+                ContentEncoding="utf-8",
             )
 
             # 3. 應用到 ArangoDB（Active State）
@@ -289,6 +291,7 @@ class SeaweedFSChangeProposalService:
                 Key=file_path,
                 Body=content,
                 ContentType="application/json",
+                ContentEncoding="utf-8",
             )
 
             self.logger.info(

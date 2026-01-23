@@ -39,7 +39,7 @@ class LLMRouter:
         # 定義模型映射
         self.model_mapping = {
             LLMProvider.CHATGPT: "gpt-4-turbo-preview",
-            LLMProvider.GEMINI: "gemini-pro",
+            LLMProvider.GEMINI: "gemini-pro-latest",
             LLMProvider.GROK: "grok-beta",
             LLMProvider.QWEN: "qwen-turbo",
             LLMProvider.OLLAMA: "llama2",
@@ -148,7 +148,7 @@ class LLMRouter:
             try:
                 nodes_cfg.append(
                     LLMNodeConfig(
-                        name=node.get("name", f"ollama-node-{idx+1}"),
+                        name=node.get("name", f"ollama-node-{idx + 1}"),
                         host=node["host"],
                         port=int(node.get("port", 11434)),
                         weight=int(node.get("weight", 1)),
@@ -334,9 +334,7 @@ class LLMRouter:
                         # 如果推導出 provider 且在規則中，增加得分
                         if provider and provider in rules:
                             rules[provider] += 0.3  # 收藏模型增加更高的優先級
-                            logger.debug(
-                                f"收藏模型 {model_id} 增加 {provider.value} provider 優先級"
-                            )
+                            logger.debug(f"收藏模型 {model_id} 增加 {provider.value} provider 優先級")
 
                 # 考慮成本因素
                 if context.get("cost_sensitive", False):
@@ -355,10 +353,7 @@ class LLMRouter:
             # 選擇得分最高的提供商
             provider = max(rules.items(), key=lambda x: x[1])[0]
             confidence = rules[provider]
-            reasoning = (
-                f"根據任務類型 {task_type.value}，選擇 {provider.value} 提供商，"
-                f"置信度 {confidence:.2f}"
-            )
+            reasoning = f"根據任務類型 {task_type.value}，選擇 {provider.value} 提供商，" f"置信度 {confidence:.2f}"
 
         # 確保 provider 不為 None
         if provider is None:

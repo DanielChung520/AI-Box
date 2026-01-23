@@ -4,7 +4,7 @@ import { useLanguage } from '../contexts/languageContext';
 import { AuthContext } from '../contexts/authContext';
 import { saveTask, getAllTasks, deleteTask, getFavorites, addTaskToFavorites, removeTaskFromFavorites, isTaskFavorite, clearHardcodedFavorites, removeFavorite } from '../lib/taskStorage';
 import { saveMockFiles } from '../lib/mockFileStorage';
-import { deleteUserTask, getUserTask, updateUserTask } from '../lib/api';
+import { deleteUserTask, deleteUserTaskSoft, restoreUserTask, permanentDeleteUserTask, getUserTask, updateUserTask } from '../lib/api';
 import FileRecordModal from './FileRecordModal';
 import UserMenu from './UserMenu';
 
@@ -25,25 +25,28 @@ export interface FileNode {
   children?: FileNode[];
 }
 
+// 修改時間：2026-01-21 - 添加 trash 狀態支援 Soft Delete
 // 定义任务接口
 export interface Task {
   id: number | string;
   title: string;
   status: 'pending' | 'in-progress' | 'completed';
-  task_status?: 'activate' | 'archive'; // 修改時間：2025-12-09 - 添加任務顯示狀態（activate/archive）
-  label_color?: string; // 修改時間：2025-12-09 - 添加任務顏色標籤（類似 Apple Mac 的顏色標籤）
+  task_status?: 'activate' | 'archive' | 'trash'; // 添加 trash 狀態
+  label_color?: string;
   dueDate: string;
-  created_at?: string; // 修改時間：2026-01-06 - 添加創建時間（ISO 8601 格式字符串）
-  updated_at?: string; // 修改時間：2026-01-06 - 添加更新時間（ISO 8601 格式字符串）
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null; // 修改時間：2026-01-21 - 添加 Soft Delete 時間
+  permanent_delete_at?: string | null; // 修改時間：2026-01-21 - 添加預定永久刪除時間
   messages?: Message[];
   executionConfig?: {
     mode: 'free' | 'assistant' | 'agent';
     assistantId?: string;
     agentId?: string;
-    modelId?: string; // 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：模型選擇（任務維度）
-    sessionId?: string; // 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：session_id（任務維度）
+    modelId?: string;
+    sessionId?: string;
   };
-  fileTree?: FileNode[]; // 每個任務的文件目錄結構
+  fileTree?: FileNode[];
 }
 
 // 定义收藏项接口
@@ -173,6 +176,10 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   // 從 localStorage 加載保存的任務
   const [savedTasks, setSavedTasks] = useState<Task[]>([]);
 
+  // 修改時間：2026-01-21 - 添加 Trash 相關狀態
+  const [trashTasks, setTrashTasks] = useState<Task[]>([]);
+  const [showTrash, setShowTrash] = useState(false); // 是否顯示 Trash 頁籤
+
   // 修改時間：2025-12-08 14:00:00 UTC+8 - 添加歷史任務右鍵菜單狀態
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; task: Task } | null>(null);
   // 修改時間：2026-01-06 - 添加收藏夾項目右鍵菜單狀態
@@ -249,15 +256,21 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
           return acc;
         }, []);
 
+        // 修改時間：2026-01-21 - 分離 Trash 任務和正常任務
+        const normalTasks = uniqueTasks.filter(task => task.task_status !== 'trash');
+        const trashTasksFromStorage = uniqueTasks.filter(task => task.task_status === 'trash');
+
         // 修改時間：2025-01-27 - 不再過濾任務，所有從 localStorage 加載的任務都是真實任務
         // 所有任務都應該顯示（沒有硬編碼的示範任務了）
         console.log('[Sidebar] Loaded tasks from localStorage:', {
           total: loadedTasks.length,
           unique: uniqueTasks.length,
-          duplicates: loadedTasks.length - uniqueTasks.length,
+          normal: normalTasks.length,
+          trash: trashTasksFromStorage.length,
           tasks: uniqueTasks.map(t => ({ id: t.id, title: t.title, task_status: t.task_status })),
         });
-        setSavedTasks(uniqueTasks);
+        setSavedTasks(normalTasks);
+        setTrashTasks(trashTasksFromStorage);
       } catch (error) {
         console.error('Failed to load saved tasks:', error);
       }
@@ -351,6 +364,11 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     }, []);
 
     const filtered = uniqueSavedTasks.filter(task => {
+      // 修改時間：2026-01-21 - 排除已刪除的任務（task_status 為 trash）
+      if (task.task_status === 'trash') {
+        return false;
+      }
+
       // 根據歸檔篩選器過濾任務狀態
       if (showArchivedFilter) {
         // 顯示歸檔的任務
@@ -376,7 +394,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
           // 顯示匹配指定顏色的任務
           if (task.label_color !== selectedColorFilter) {
             return false;
-      }
+          }
         }
       }
 
@@ -955,90 +973,173 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   };
 
   // 確認刪除任務
+  // 修改時間：2026-01-21 - 使用 Soft Delete 機制：先從 UI 清除，再調用後端 Soft Delete API
   const handleConfirmDelete = async () => {
     if (!deleteTaskTarget) return;
 
-    // 修改時間：2025-12-08 14:15:00 UTC+8 - 驗證輸入的 DELETE 文本
     if (deleteConfirmText !== 'DELETE') {
       alert('請輸入大寫 "DELETE" 以確認刪除');
       return;
     }
 
+    const taskId = String(deleteTaskTarget.id);
+    const taskIdForState = deleteTaskTarget.id;
+
     try {
-      const taskId = String(deleteTaskTarget.id);
+      // ========== 步驟 1：將任務移到 Trash ==========
+      console.log('[Sidebar] Step 1: Moving task to trash', { taskId });
 
-      // 修改時間：2025-12-08 14:15:00 UTC+8 - 調用後台刪除 API（會清除所有相關數據）
-      // 修改時間：2026-01-06 - 改進錯誤處理：如果後端任務不存在（404），仍然允許刪除本地任務
-      try {
-        const result = await deleteUserTask(taskId);
-        if (!result.success) {
-          // 如果不是 404 錯誤（任務不存在），才拋出錯誤
-          // 404 錯誤表示任務在後端不存在，可能是本地任務或已被刪除，允許繼續刪除本地任務
-          if (!result.message?.includes('not found') && !result.message?.includes('404')) {
-            throw new Error(result.message || '刪除任務失敗');
-          } else {
-            console.warn('[Sidebar] Task not found in backend, deleting locally only', { taskId });
-          }
-        }
-      } catch (error: any) {
-        // 檢查是否為 404 錯誤（任務不存在）
-        const isNotFoundError =
-          error?.status === 404 ||
-          error?.message?.includes('404') ||
-          error?.message?.includes('not found') ||
-          error?.message?.includes('Task not found');
+      // 創建 Trash 狀態的任務對象
+      const trashTask = {
+        ...deleteTaskTarget,
+        task_status: 'trash' as const,
+        deleted_at: new Date().toISOString(),
+        permanent_delete_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      };
 
-        if (isNotFoundError) {
-          // 任務在後端不存在，可能是本地任務或已被刪除，允許繼續刪除本地任務
-          console.warn('[Sidebar] Task not found in backend (404), deleting locally only', {
-            taskId,
-            error: error.message
-          });
-        } else {
-          // 其他錯誤（如網絡錯誤、權限錯誤等），顯示錯誤但不阻止刪除本地任務
-          console.error('[Sidebar] Failed to delete task from backend, deleting locally only', {
-            taskId,
-            error: error.message
-          });
-          // 不 return，繼續執行本地刪除
-        }
-      }
+      // 從 savedTasks 中移除任務
+      const tasksAfterRemoveFromUI = savedTasks.filter(t => t.id !== taskIdForState);
+      setSavedTasks(tasksAfterRemoveFromUI);
 
-      // 從本地刪除（無論後端刪除是否成功）
-      deleteTask(deleteTaskTarget.id);
+      // 添加任務到 Trash 列表
+      setTrashTasks(prev => [...prev, trashTask]);
+
+      // 保存到 localStorage（保存完整任務列表，包含 Trash）
+      // 先獲取所有任務，更新狀態後保存
+      const allTasks = getAllTasks();
+      const otherTasks = allTasks.filter(t => t.id !== taskIdForState);
+      saveTask({ ...trashTask, messages: trashTask.messages || [] }); // 保存到 Trash
+      setSavedTasks([...otherTasks, trashTask]);
 
       // 如果刪除的是當前選中的任務，清除選中狀態
-      if (activeItemId === deleteTaskTarget.id) {
+      if (activeItemId === taskIdForState) {
         setActiveItemId(null);
-        if (onTaskSelect) {
-          // 可以選擇不傳遞任務，或者傳遞 null
-          // onTaskSelect(null as any);
-        }
       }
 
-      // 修改時間：2025-12-09 - 從收藏夾中移除已刪除的任務
-      removeTaskFromFavorites(typeof deleteTaskTarget.id === 'number' ? deleteTaskTarget.id : Number(deleteTaskTarget.id));
+      // 從收藏夾中移除
+      removeTaskFromFavorites(typeof taskIdForState === 'number' ? taskIdForState : Number(taskIdForState));
       const updatedFavorites = getFavorites();
       setFavorites(updatedFavorites);
       window.dispatchEvent(new CustomEvent('favoritesUpdated'));
 
-      // 觸發任務刪除事件
-      window.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId: deleteTaskTarget.id } }));
+      // 關閉刪除確認對話框
+      setShowDeleteModal(false);
+      setDeleteTaskTarget(null);
+      setDeleteConfirmText('');
 
-      // 重新加載任務列表
+      // ========== 步驟 2：調用後端 Soft Delete API ==========
+      console.log('[Sidebar] Step 2: Calling backend soft delete API', { taskId });
+
+      try {
+        const result = await deleteUserTaskSoft(taskId);
+        if (result.success && result.data) {
+          console.log('[Sidebar] Soft delete successful', {
+            taskId,
+            deleted_at: result.data.deleted_at,
+            permanent_delete_at: result.data.permanent_delete_at,
+          });
+        } else {
+          console.warn('[Sidebar] Soft delete API returned failure:', { taskId, message: result.message });
+        }
+      } catch (error: any) {
+        console.warn('[Sidebar] Soft delete API error:', {
+          taskId,
+          error: error.message
+        });
+      }
+
+      // 觸發任務刪除事件（通知其他組件）
+      window.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
+
+      console.log('[Sidebar] Task moved to trash successfully', { taskId });
+
+    } catch (error: any) {
+      console.error('[Sidebar] Failed to soft delete task:', error);
+
+      // 如果出現錯誤，嘗試回滾 UI 狀態
+      console.warn('[Sidebar] Attempting to rollback UI state after error', { taskId });
+
+      // 重新加載任務列表以恢復 UI
       const loadedTasks = getAllTasks();
-      // 修改時間：2025-01-27 - 不再過濾任務
       setSavedTasks(loadedTasks);
 
-      alert('任務已刪除');
-    } catch (error: any) {
-      console.error('Failed to delete task:', error);
       alert(`刪除任務失敗: ${error.message || '未知錯誤'}`);
     }
+  };
 
-    setShowDeleteModal(false);
-    setDeleteTaskTarget(null);
-    setDeleteConfirmText('');
+  // 恢復任務（從 Trash 恢復到任務列表）
+  // 修改時間：2026-01-21 - 添加恢復功能
+  const handleRestoreTask = async (task: Task) => {
+    try {
+      const taskId = String(task.id);
+      console.log('[Sidebar] Restoring task:', { taskId });
+
+      const result = await restoreUserTask(taskId);
+      if (result.success) {
+        // ========== 更新 UI ==========
+        // 從 Trash 列表中移除
+        const trashTasksAfterRemove = trashTasks.filter(t => t.id !== task.id);
+        setTrashTasks(trashTasksAfterRemove);
+
+        // 恢復任務狀態
+        const restoredTask = {
+          ...task,
+          task_status: 'activate' as const,
+          deleted_at: null,
+          permanent_delete_at: null,
+          updated_at: new Date().toISOString(),
+        };
+
+        // 添加回任務列表
+        setSavedTasks(prev => [...prev, restoredTask]);
+
+        // 保存到 localStorage
+        saveTask({ ...restoredTask, messages: restoredTask.messages || [] });
+
+        // 觸發任務更新事件
+        window.dispatchEvent(new CustomEvent('taskRestored', { detail: { taskId } }));
+
+        console.log('[Sidebar] Task restored successfully:', { taskId });
+      } else {
+        alert(`恢復任務失敗: ${result.message || '未知錯誤'}`);
+      }
+    } catch (error: any) {
+      console.error('[Sidebar] Failed to restore task:', error);
+      alert(`恢復任務失敗: ${error.message || '未知錯誤'}`);
+    }
+  };
+
+  // 永久刪除任務（從 Trash 徹底刪除）
+  // 修改時間：2026-01-21 - 添加永久刪除功能
+  const handlePermanentDelete = async (task: Task) => {
+    const taskId = String(task.id);
+    const confirmed = confirm(`確定要永久刪除任務「${task.title}」嗎？此操作無法復原。`);
+
+    if (!confirmed) return;
+
+    try {
+      console.log('[Sidebar] Permanently deleting task:', { taskId });
+
+      const result = await permanentDeleteUserTask(taskId);
+      if (result.success) {
+        // 從 Trash 列表中移除
+        const trashTasksAfterRemove = trashTasks.filter(t => t.id !== task.id);
+        setTrashTasks(trashTasksAfterRemove);
+
+        // 從 localStorage 中刪除
+        deleteTask(task.id);
+
+        // 觸發任務刪除事件
+        window.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
+
+        console.log('[Sidebar] Task permanently deleted:', { taskId });
+      } else {
+        alert(`永久刪除任務失敗: ${result.message || '未知錯誤'}`);
+      }
+    } catch (error: any) {
+      console.error('[Sidebar] Failed to permanently delete task:', error);
+      alert(`永久刪除任務失敗: ${error.message || '未知錯誤'}`);
+    }
   };
 
   // 处理收藏项点击
@@ -1433,6 +1534,84 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
                     </div>
                   </div>
                 </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* 修改時間：2026-01-21 - 添加 Trash 頁籤 */}
+        {/* Trash 區塊 - 可收合 */}
+        <div className="mb-4" key={`trash-section-${language}-${updateCounter}`}>
+          <button
+            className="w-full flex items-center justify-between mb-2 p-2 rounded-lg hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"
+            onClick={() => {
+              toggleSection('trash');
+              setShowTrash(!showTrash);
+              setActiveSection('tasks');
+            }}
+          >
+            <div className="flex items-center">
+              {!collapsed && <span key={`trash-label-${language}-${updateCounter}`} className="text-sm font-medium text-red-400/80">Trash</span>}
+              <i className="fa-solid fa-trash ml-2 text-red-500"></i>
+            </div>
+            {!collapsed && (
+              <i className={`fa-solid fa-chevron-down transition-transform ${showTrash ? 'rotate-0' : 'rotate-180'}`}></i>
+            )}
+          </button>
+
+          {/* Trash 區域內容 */}
+          {showTrash && (
+            <>
+              {/* 修改時間：2026-01-21 - 顯示已刪除任務列表 */}
+              {!collapsed && trashTasks.length === 0 ? (
+                <div className="text-xs text-tertiary text-center py-4 px-2">
+                  Trash 是空的
+                </div>
+              ) : (
+                trashTasks.map(task => {
+                  // 計算剩餘時間
+                  let timeLeft = '';
+                  if (task.permanent_delete_at) {
+                    const deleteDate = new Date(task.permanent_delete_at);
+                    const now = new Date();
+                    const diffMs = deleteDate.getTime() - now.getTime();
+                    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+                    if (diffDays > 0) {
+                      timeLeft = `${diffDays} 天後徹底刪除`;
+                    } else {
+                      timeLeft = '即將刪除';
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={task.id}
+                      className="w-full text-left p-2 rounded-lg flex items-center justify-between mb-1 bg-red-500/5 border border-red-500/20"
+                    >
+                      <div className="flex-1 min-w-0 mr-2">
+                        <div className="text-sm truncate text-red-300">{task.title}</div>
+                        <div className="text-xs text-red-400/60">{timeLeft}</div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="p-1.5 rounded hover:bg-green-500/20 text-green-400 transition-colors"
+                          onClick={() => handleRestoreTask(task)}
+                          title="恢復任務"
+                        >
+                          <i className="fa-solid fa-trash-arrow-up"></i>
+                        </button>
+                        <button
+                          className="p-1.5 rounded hover:bg-red-500/20 text-red-400 transition-colors"
+                          onClick={() => handlePermanentDelete(task)}
+                          title="永久刪除"
+                        >
+                          <i className="fa-solid fa-xmark"></i>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </>
           )}

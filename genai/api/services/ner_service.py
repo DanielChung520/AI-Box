@@ -1,22 +1,24 @@
 # 代碼功能說明: NER 命名實體識別服務
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-04
+# 最後修改日期: 2026-01-23 01:33 UTC+8
 
 """NER 命名實體識別服務 - 支持 spaCy 和 Ollama 模型"""
 
 import json
+import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
-
-import structlog
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from genai.api.models.ner_models import Entity
 from llm.clients.gemini import GeminiClient
 from llm.clients.ollama import OllamaClient, get_ollama_client
 from system.infra.config.config import get_config_section
 
-logger = structlog.get_logger(__name__)
+if TYPE_CHECKING:
+    pass
+
+logger = logging.getLogger(__name__)
 
 # 標準實體類型定義
 STANDARD_ENTITY_TYPES = {
@@ -85,12 +87,12 @@ class SpacyNERModel(BaseNERModel):
                 spacy.require_gpu()
 
             self._model = spacy.load(self.model_name)
-            logger.info("spacy_model_loaded", model=self.model_name)
+            logger.info(f"spacy_model_loaded: model={self.model_name}")
         except ImportError:
-            logger.warning("spacy_not_installed", model=self.model_name)
+            logger.warning(f"spacy_not_installed: model={self.model_name}")
             self._model = None
         except Exception as e:
-            logger.error("spacy_model_load_failed", error=str(e), model=self.model_name)
+            logger.error(f"spacy_model_load_failed: model={self.model_name}, error={str(e)}")
             self._model = None
 
     def is_available(self) -> bool:
@@ -209,13 +211,11 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
 
         # 記錄即將發送的 prompt（調試用）
         logger.info(
-            "ollama_ner_prompt_prepared",
-            model=self.model_name,
-            prompt_length=len(prompt),
-            prompt_preview=prompt[:300],  # 記錄前 300 字符
-            text_preview=text[:100],  # 記錄前 100 字符
-            has_ontology=ontology_rules is not None,
+            f"ollama_ner_prompt_prepared: model={self.model_name}, "
+            f"prompt_length={len(prompt)}, has_ontology={ontology_rules is not None}"
         )
+        logger.debug(f"ollama_ner_prompt_preview: {prompt[:300]}")
+        logger.debug(f"ollama_ner_text_preview: {text[:100]}")
 
         if ontology_rules:
             entity_classes = ontology_rules.get("entity_classes", [])
@@ -252,9 +252,7 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
         try:
             # 記錄即將調用模型
             logger.info(
-                "ollama_ner_calling_model",
-                model=self.model_name,
-                prompt_length=len(prompt),
+                f"ollama_ner_calling_model: model={self.model_name}, prompt_length={len(prompt)}"
             )
 
             response = await self.client.generate(
@@ -276,14 +274,12 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
 
             # 記錄模型調用完成
             logger.info(
-                "ollama_ner_model_call_completed",
-                model=self.model_name,
-                response_is_none=response is None,
-                response_type=type(response).__name__ if response else None,
+                f"ollama_ner_model_call_completed: model={self.model_name}, "
+                f"response_is_none={response is None}"
             )
 
             if response is None:
-                logger.error("ollama_ner_no_response", model=self.model_name)
+                logger.error(f"ollama_ner_no_response: model={self.model_name}")
                 return []
 
             # 新接口返回 {"text": "...", "content": "...", "model": "..."}
@@ -291,11 +287,10 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
 
             # 記錄原始響應（調試用）- 使用 info 級別以便在日誌中看到
             logger.info(
-                "ollama_ner_raw_response",
-                model=self.model_name,
-                response_length=len(result_text),
-                response_preview=result_text[:500],  # 記錄前 500 字符以便調試
+                f"ollama_ner_raw_response: model={self.model_name}, "
+                f"response_length={len(result_text)}"
             )
+            logger.debug(f"ollama_ner_response_preview: {result_text[:500]}")
             # 嘗試從響應中提取 JSON
             try:
                 # 移除可能的 markdown 代碼塊標記
@@ -427,20 +422,15 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
                 # 如果仍然无法解析，返回空列表
                 if entities_data is None or not isinstance(entities_data, list):
                     logger.warning(
-                        "ollama_ner_no_valid_json",
-                        model=self.model_name,
-                        response_preview=result_text[:500],  # 增加預覽長度
-                        response_full=result_text,  # 記錄完整響應以便調試
+                        f"ollama_ner_no_valid_json: model={self.model_name}, "
+                        f"response_preview={result_text[:200]}"
                     )
                     return []
 
                 # 記錄成功解析的情況
                 if isinstance(entities_data, list) and len(entities_data) == 0:
                     logger.info(
-                        "ollama_ner_empty_result",
-                        model=self.model_name,
-                        response_preview=result_text[:300],
-                        message="模型返回空實體列表",
+                        f"ollama_ner_empty_result: model={self.model_name}, message=模型返回空實體列表"
                     )
 
                 entities = []
@@ -449,7 +439,7 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
                         continue
                     entities.append(
                         Entity(
-                            text=item.get("text", ""),
+                            text=item.get("text") or item.get("name") or "",
                             label=item.get("label")
                             or item.get("type")
                             or item.get("entity_type")
@@ -462,24 +452,28 @@ Few-Shot 示例（通用格式，實體類型將根據 Ontology 動態調整）�
 
                 return entities
             except json.JSONDecodeError as e:
-                logger.error("ollama_ner_json_parse_failed", error=str(e), response=result_text)
+                logger.error(
+                    f"ollama_ner_json_parse_failed: error={str(e)}, response={result_text}"
+                )
                 return []
         except Exception as e:
-            logger.error("ollama_ner_extraction_failed", error=str(e), model=self.model_name)
+            logger.error(f"ollama_ner_extraction_failed: model={self.model_name}, error={str(e)}")
             return []
 
 
 class GeminiNERModel(BaseNERModel):
     """Gemini NER 模型實現"""
 
-    def __init__(self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None):
+    def __init__(
+        self, model_name: str = "gemini-pro-latest", client: Optional[GeminiClient] = None
+    ):
         self.model_name = model_name
         self.client: Optional[GeminiClient] = None
         try:
             self.client = client or GeminiClient()
         except (ImportError, ValueError) as e:
             # Gemini 不可用（缺少依赖或 API key），设置为 None
-            logger.warning("gemini_ner_client_unavailable", error=str(e))
+            logger.warning(f"gemini_ner_client_unavailable: error={str(e)}")
             self.client = None
         self._prompt_template = """請從以下文本中識別命名實體，並以 JSON 格式返回結果。
 文本：{text}
@@ -522,7 +516,7 @@ class GeminiNERModel(BaseNERModel):
             )
 
             if response is None:
-                logger.error("gemini_ner_no_response", model=self.model_name)
+                logger.error(f"gemini_ner_no_response: model={self.model_name}")
                 return []
 
             # 新接口返回 {"text": "...", "content": "...", "model": "..."}
@@ -538,7 +532,7 @@ class GeminiNERModel(BaseNERModel):
                 entities_data = json.loads(result_text)
 
                 if not isinstance(entities_data, list):
-                    logger.error("gemini_ner_invalid_format", model=self.model_name)
+                    logger.error(f"gemini_ner_invalid_format: model={self.model_name}")
                     return []
 
                 entities = []
@@ -547,8 +541,8 @@ class GeminiNERModel(BaseNERModel):
                         continue
                     entities.append(
                         Entity(
-                            text=item.get("text", ""),
-                            label=item.get("label", "UNKNOWN"),
+                            text=item.get("text") or item.get("name") or "",
+                            label=item.get("label") or item.get("type") or "UNKNOWN",
                             start=item.get("start", 0),
                             end=item.get("end", 0),
                             confidence=float(item.get("confidence", 0.5)),
@@ -557,10 +551,12 @@ class GeminiNERModel(BaseNERModel):
 
                 return entities
             except json.JSONDecodeError as e:
-                logger.error("gemini_ner_json_parse_failed", error=str(e), response=result_text)
+                logger.error(
+                    f"gemini_ner_json_parse_failed: error={str(e)}, response={result_text}"
+                )
                 return []
         except Exception as e:
-            logger.error("gemini_ner_extraction_failed", error=str(e), model=self.model_name)
+            logger.error(f"gemini_ner_extraction_failed: model={self.model_name}, error={str(e)}")
             return []
 
 
@@ -569,7 +565,53 @@ class NERService:
 
     def __init__(self):
         self.config = get_config_section("text_analysis", "ner", default={}) or {}
-        # 優先使用本地模型（Ollama），只有在無法達成時才使用外部 provider
+
+        # MoE 場景名稱
+        self._moe_scene = "knowledge_graph_extraction"
+        self._moe_model_config = None
+
+        # 優先使用 MoE 配置
+        moe_model = self._get_moe_model_config()
+        if moe_model:
+            self.model_name = moe_model.model
+            self.model_type = "ollama"  # MoE 返回的模型都是 Ollama 格式
+            self._moe_model_config = moe_model
+            logger.info(
+                f"ner_using_moe_config: model={self.model_name}, scene={self._moe_scene}, "
+                f"temperature={moe_model.temperature}, timeout={moe_model.timeout}"
+            )
+        else:
+            # 向後兼容：使用原有配置
+            self._init_model_from_config()
+
+        # Fallback 順序：本地模型優先，外部 provider 作為最後備選
+        self.fallback_model = self.config.get("fallback_model", "gemini:gemini-pro-latest")
+        self.batch_size = self.config.get("batch_size", 32)
+        self.enable_gpu = self.config.get("enable_gpu", False)
+
+        # 初始化模型
+        self._primary_model: Optional[BaseNERModel] = None
+        self._fallback_model: Optional[BaseNERModel] = None
+        self._init_models()
+
+    def _get_moe_model_config(self):
+        """從 MoE 獲取模型配置"""
+        from llm.moe.moe_manager import LLMMoEManager
+
+        try:
+            moe_manager = LLMMoEManager()
+            result = moe_manager.select_model(self._moe_scene)
+            if result:
+                return result
+        except Exception as e:
+            logger.debug(
+                f"failed_to_get_moe_model_config: scene={self._moe_scene}, error={str(e)}, "
+                "message=從 MoE 獲取模型配置失敗，使用向後兼容方式"
+            )
+        return None
+
+    def _init_model_from_config(self):
+        """從配置文件初始化模型（向後兼容）"""
         import os
 
         # 優先級1: 從 ArangoDB system_configs 讀取 model_type 和 model_name
@@ -585,21 +627,18 @@ class NERService:
                 model_name = kg_config.config_data.get("ner_model")
                 if model_type:
                     logger.debug(
-                        "ner_model_type_from_system_configs",
-                        model_type=model_type,
-                        message="從 ArangoDB system_configs 讀取 NER model_type 配置",
+                        f"ner_model_type_from_system_configs: model_type={model_type}, "
+                        "message=從 ArangoDB system_configs 讀取 NER model_type 配置"
                     )
                 if model_name:
                     logger.debug(
-                        "ner_model_from_system_configs",
-                        model=model_name,
-                        message="從 ArangoDB system_configs 讀取 NER 模型配置",
+                        f"ner_model_from_system_configs: model={model_name}, "
+                        "message=從 ArangoDB system_configs 讀取 NER 模型配置"
                     )
         except Exception as e:
             logger.debug(
-                "failed_to_load_ner_model_from_system_configs",
-                error=str(e),
-                message="從 ArangoDB 讀取 NER 模型配置失敗，使用向後兼容方式",
+                f"failed_to_load_ner_model_from_system_configs: error={str(e)}, "
+                "message=從 ArangoDB 讀取 NER 模型配置失敗，使用向後兼容方式"
             )
 
         # 優先級2: 從環境變量讀取 model_type（允許覆蓋 ArangoDB 配置）
@@ -612,51 +651,33 @@ class NERService:
             model_type = self.config.get("model_type", "ollama")
         self.model_type = model_type or "ollama"
 
-        # 優先級2: 從環境變量讀取（只在 model_type 匹配時覆蓋）
-        # 注意：OLLAMA_NER_MODEL 只在 model_type=ollama 時使用
-        # 對於其他 model_type（如 gemini），應該使用對應的環境變量或 ArangoDB 配置
+        # 優先級4: 從環境變量讀取（只在 model_type 匹配時覆蓋）
         if self.model_type == "ollama":
             env_model_name = os.getenv("OLLAMA_NER_MODEL")
             if env_model_name:
                 model_name = env_model_name
                 logger.debug(
-                    "ner_model_from_env",
-                    model=model_name,
-                    message="從環境變量讀取 NER 模型配置（覆蓋）",
+                    f"ner_model_from_env: model={model_name}, " "message=從環境變量讀取 NER 模型配置（覆蓋）"
                 )
-        # 對於 gemini，可以從 GEMINI_NER_MODEL 環境變量讀取（如果設置）
         elif self.model_type == "gemini":
             env_model_name = os.getenv("GEMINI_NER_MODEL")
             if env_model_name:
                 model_name = env_model_name
                 logger.debug(
-                    "ner_model_from_env",
-                    model=model_name,
-                    message="從環境變量讀取 NER 模型配置（覆蓋）",
+                    f"ner_model_from_env: model={model_name}, " "message=從環境變量讀取 NER 模型配置（覆蓋）"
                 )
 
-        # 優先級3: 從 config.json 讀取（向後兼容）
+        # 優先級5: 從 config.json 讀取（向後兼容）
         if not model_name:
             model_name = self.config.get("model_name")
             if model_name:
                 logger.debug(
-                    "ner_model_from_config_json",
-                    model=model_name,
-                    message="從 config.json 讀取 NER 模型配置",
+                    f"ner_model_from_config_json: model={model_name}, "
+                    "message=從 config.json 讀取 NER 模型配置"
                 )
 
-        # 優先級4: 使用硬編碼默認值
+        # 優先級6: 使用硬編碼默認值
         self.model_name = model_name or "mistral-nemo:12b"
-
-        # Fallback 順序：本地模型優先，外部 provider 作為最後備選
-        self.fallback_model = self.config.get("fallback_model", "gemini:gemini-pro")
-        self.batch_size = self.config.get("batch_size", 32)
-        self.enable_gpu = self.config.get("enable_gpu", False)
-
-        # 初始化模型
-        self._primary_model: Optional[BaseNERModel] = None
-        self._fallback_model: Optional[BaseNERModel] = None
-        self._init_models()
 
     def _init_models(self):
         """初始化主模型和備選模型"""
@@ -676,7 +697,7 @@ class NERService:
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = GeminiNERModel(model_name=model_name)
         else:
-            logger.warning("unknown_ner_model_type", model_type=self.model_type)
+            logger.warning(f"unknown_ner_model_type: model_type={self.model_type}")
             self._primary_model = None
 
         # 初始化備選模型
@@ -722,7 +743,7 @@ class NERService:
             return model
 
         if self._fallback_model and self._fallback_model.is_available():
-            logger.info("using_fallback_ner_model", requested=requested_type)
+            logger.info(f"using_fallback_ner_model: requested={requested_type}")
             return self._fallback_model
 
         return None
@@ -764,7 +785,7 @@ class NERService:
                 entities = await model.extract_entities(text)
                 results.append(entities)
             except Exception as e:
-                logger.error("ner_batch_extraction_failed", error=str(e), text=text[:50])
+                logger.error(f"ner_batch_extraction_failed: error={str(e)}, text={text[:50]}")
                 results.append([])
 
         return results

@@ -1,7 +1,7 @@
 // 代碼功能說明: API 客戶端配置
 // 創建日期: 2025-01-27
 // 創建人: Daniel Chung
-// 最後修改日期: 2025-12-21 (UTC+8)
+// 最後修改日期: 2026-01-21 11:57 UTC+8
 
 /**
  * API 客戶端配置
@@ -215,7 +215,10 @@ export async function apiRequest<T = any>(
         // 任務未找到（404，更新任務時可能出現）
         (response.status === 404 && (
           errorMessage.includes('Task not found') ||
-          errorMessage.includes('任務') && errorMessage.includes('不存在')
+          errorMessage.includes('任務') && errorMessage.includes('不存在') ||
+          errorMessage.includes('not found') ||
+          // 修改時間：2026-01-22 - 對於 user-tasks 的 404，如果是獲取任務（不是更新/刪除），視為預期錯誤
+          (url.includes('/user-tasks/') && !url.includes('/user-tasks?'))
         )) ||
         // 任務已存在（409，並發創建時的常見情況）
         (response.status === 409 && (
@@ -625,7 +628,7 @@ export async function uploadFiles(
     formData.append('task_id', taskId);
   }
 
-  const url = `${API_URL}/files/upload`;
+  const url = `${API_URL}/files/v2/upload`;
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -843,6 +846,7 @@ export interface FileMetadata {
   access_control?: FileAccessControl;
   data_classification?: DataClassification;
   sensitivity_labels?: SensitivityLabel[];
+  storage_path?: string; // S3 URI 格式：s3://bucket-ai-box-assets/tasks/{task_id}/workspace/{file_id}.{ext}
 }
 
 /**
@@ -985,12 +989,35 @@ export async function getFileTree(params?: {
 
 /**
  * 下載文件
+ * 修改時間：2026-01-21 11:57 UTC+8 - 優先使用 SeaWeedFS 直接訪問（如果 storage_path 可用）
  */
-export async function downloadFile(fileId: string): Promise<Blob> {
+export async function downloadFile(
+  fileId: string,
+  fileMetadata?: FileMetadata
+): Promise<Blob> {
+  // 如果提供了文件元數據且包含 storage_path（S3 URI），優先使用 SeaWeedFS 直接訪問
+  if (fileMetadata?.storage_path && fileMetadata.storage_path.startsWith('s3://')) {
+    try {
+      const { readFileFromSeaWeedFS } = await import('./seaweedfs');
+      console.log('[downloadFile] 使用 SeaWeedFS 直接訪問:', {
+        fileId,
+        storage_path: fileMetadata.storage_path,
+      });
+      return await readFileFromSeaWeedFS(fileMetadata.storage_path);
+    } catch (error: any) {
+      console.warn(
+        '[downloadFile] SeaWeedFS 直接訪問失敗，回退到 API:',
+        error.message
+      );
+      // 如果 SeaWeedFS 直接訪問失敗，回退到使用 API
+    }
+  }
+
+  // 如果沒有 storage_path 或 SeaWeedFS 訪問失敗，使用 API
   const url = `${API_URL}/files/${fileId}/download`;
   const token = localStorage.getItem('access_token');
 
-  console.log('[downloadFile] 開始下載文件:', { fileId, url, hasToken: !!token });
+  console.log('[downloadFile] 使用 API 下載文件:', { fileId, url, hasToken: !!token });
 
   const response = await fetch(url, {
     method: 'GET',
@@ -1491,6 +1518,25 @@ export async function getFileGraph(
   offset: number = 0
 ): Promise<{ success: boolean; data?: any; message?: string }> {
   return apiGet(`/files/${fileId}/graph?limit=${limit}&offset=${offset}`);
+}
+
+/**
+ * 查找與指定 Point 相似的向量
+ * 修改時間：2026-01-21 13:30 UTC+8 - 添加相似度搜索功能
+ */
+export async function getSimilarVectors(
+  fileId: string,
+  pointId: string,
+  limit: number = 10,
+  scoreThreshold?: number
+): Promise<{ success: boolean; data?: any; message?: string }> {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+  });
+  if (scoreThreshold !== undefined) {
+    params.append('score_threshold', scoreThreshold.toString());
+  }
+  return apiGet(`/files/${fileId}/vectors/${pointId}/similar?${params.toString()}`);
 }
 
 /**
@@ -2276,9 +2322,20 @@ export async function syncTasks(
 
 /**
  * 獲取指定任務
+ * 修改時間：2026-01-22 - 404 時返回 success: false，而不是拋出錯誤
  */
 export async function getUserTask(taskId: string): Promise<{ success: boolean; data?: UserTask; message?: string }> {
-  return apiGet(`/user-tasks/${taskId}`);
+  try {
+    return await apiGet(`/user-tasks/${taskId}`);
+  } catch (error: any) {
+    // 404 表示任務不存在，這是預期情況，不是錯誤
+    if (error.status === 404) {
+      console.debug(`[getUserTask] Task not found (this is expected for new tasks): ${taskId}`);
+      return { success: false, message: 'Task not found' };
+    }
+    // 其他錯誤重新拋出
+    throw error;
+  }
 }
 
 /**
@@ -2338,6 +2395,124 @@ export async function deleteUserTask(taskId: string): Promise<{ success: boolean
       };
     }
     // 其他錯誤繼續拋出
+    throw error;
+  }
+}
+
+/**
+ * 軟刪除用戶任務（移至 Trash）
+ * 修改時間：2026-01-21 - 添加 Soft Delete 機制
+ */
+export async function deleteUserTaskSoft(taskId: string): Promise<{
+  success: boolean;
+  data?: {
+    task_id: string;
+    job_id?: string;
+    status: string;
+    deleted_at?: string;
+    permanent_delete_at?: string;
+  };
+  message?: string;
+}> {
+  try {
+    return await apiPatch<{
+      success: boolean;
+      data: {
+        task_id: string;
+        job_id?: string;
+        status: string;
+        deleted_at?: string;
+        permanent_delete_at?: string;
+      };
+      message: string;
+    }>(`/user-tasks/${taskId}/soft-delete`);
+  } catch (error: any) {
+    console.error('[API] Soft delete task failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * 恢復用戶任務（從 Trash 恢復）
+ * 修改時間：2026-01-21 - 添加恢復功能
+ */
+export async function restoreUserTask(taskId: string): Promise<{
+  success: boolean;
+  data?: {
+    task_id: string;
+    task_status: string;
+    deleted_at: string | null;
+    permanent_delete_at: string | null;
+  };
+  message?: string;
+}> {
+  try {
+    return await apiPatch<{
+      success: boolean;
+      data: {
+        task_id: string;
+        task_status: string;
+        deleted_at: string | null;
+        permanent_delete_at: string | null;
+      };
+      message: string;
+    }>(`/user-tasks/${taskId}/restore`);
+  } catch (error: any) {
+    console.error('[API] Restore task failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * 永久刪除用戶任務（從 Trash 徹底刪除）
+ * 修改時間：2026-01-21 - 添加永久刪除功能
+ */
+export async function permanentDeleteUserTask(taskId: string): Promise<{
+  success: boolean;
+  data?: {
+    task_id: string;
+    message: string;
+  };
+  message?: string;
+}> {
+  try {
+    return await apiDelete<{
+      success: boolean;
+      data: {
+        task_id: string;
+        message: string;
+      };
+      message: string;
+    }>(`/user-tasks/${taskId}/permanent`);
+  } catch (error: any) {
+    console.error('[API] Permanent delete task failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * 獲取 Trash 中的任務列表
+ * 修改時間：2026-01-21 - 添加 Trash 查詢功能
+ */
+export async function listTrashTasks(): Promise<{
+  success: boolean;
+  data?: {
+    tasks: any[];
+    total: number;
+  };
+  message?: string;
+}> {
+  try {
+    return await apiGet<{
+      success: boolean;
+      data: {
+        tasks: any[];
+        total: number;
+      };
+      message: string;
+    }>('/user-tasks?status=trash');
+  } catch (error: any) {
+    console.error('[API] List trash tasks failed:', error);
     throw error;
   }
 }

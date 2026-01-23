@@ -1,17 +1,11 @@
-// 代碼功能說明: 系統服務狀態頁面
-// 創建日期: 2026-01-17 22:45 UTC+8
-// 創建人: Daniel Chung
-// 最後修改日期: 2026-01-18 18:29 UTC+8
-
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, RefreshCw, Settings } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Settings, MonitorPlay, Activity, ExternalLink, X, Maximize2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getServices, checkServiceHealth, ServiceStatus } from '@/lib/api';
 import ServiceStatusCard from '@/components/SystemAdmin/ServiceStatusCard';
 import ServiceLogViewer from '@/components/SystemAdmin/ServiceLogViewer';
 import DashboardModal from '@/components/SystemAdmin/DashboardModal';
 
-// 功能開關：是否使用新的 Prometheus 監控系統
 const USE_NEW_MONITORING = import.meta.env.VITE_USE_NEW_MONITORING === 'true';
 
 const SystemServiceStatus: React.FC = () => {
@@ -25,29 +19,26 @@ const SystemServiceStatus: React.FC = () => {
   const [selectedServiceForDashboard, setSelectedServiceForDashboard] = useState<string | null>(null);
   const [selectedServiceForDetail, setSelectedServiceForDetail] = useState<ServiceStatus | null>(null);
 
-  // 載入服務狀態
+  const [showGrafanaPopup, setShowGrafanaPopup] = useState(false);
+  const [showPrometheusPopup, setShowPrometheusPopup] = useState(false);
+  const [toolsExpanded, setToolsExpanded] = useState(false);
+
   const loadServices = async () => {
     try {
-      // 根據功能開關選擇使用舊系統還是新系統
-      // 後端已經根據 USE_NEW_MONITORING 環境變量自動切換
-      // 前端只需要調用統一的 API 端點即可
       const result = await getServices();
       setServices(result);
     } catch (error) {
       console.error('Failed to load services:', error);
-      // 顯示錯誤提示
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // 初始載入
   useEffect(() => {
     loadServices();
   }, []);
 
-  // 自動刷新 (每 30 秒)
   useEffect(() => {
     if (!autoRefresh) return;
 
@@ -58,18 +49,40 @@ const SystemServiceStatus: React.FC = () => {
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
-  // 手動刷新
   const handleRefresh = () => {
     setRefreshing(true);
     loadServices();
   };
 
-  // 返回上一頁或主頁
+  const toggleToolsExpanded = () => {
+    setToolsExpanded(!toolsExpanded);
+  };
+
+  const openGrafana = () => {
+    setShowGrafanaPopup(true);
+  };
+
+  const openPrometheus = () => {
+    setShowPrometheusPopup(true);
+  };
+
+  const closePopups = () => {
+    setShowGrafanaPopup(false);
+    setShowPrometheusPopup(false);
+  };
+
+  const openGrafanaDirect = () => {
+    window.open('/api/v1/monitoring/grafana/', '_blank');
+  };
+
+  const openPrometheusDirect = () => {
+    window.open('/api/v1/monitoring/prometheus/', '_blank');
+  };
+
   const handleBack = () => {
     navigate('/home');
   };
 
-  // 查看服務詳情
   const handleViewDetail = (serviceName: string) => {
     const service = services.find(s => s.service_name === serviceName);
     if (service) {
@@ -77,27 +90,23 @@ const SystemServiceStatus: React.FC = () => {
     }
   };
 
-  // 查看服務日誌
   const handleViewLogs = (serviceName: string) => {
     setSelectedServiceForLogs(serviceName);
   };
 
-  // 打開 Dashboard
   const handleOpenDashboard = (serviceName: string) => {
     setSelectedServiceForDashboard(serviceName);
   };
 
-  // 手動觸發健康檢查
   const handleCheckHealth = async (serviceName: string) => {
     try {
       await checkServiceHealth(serviceName);
-      await loadServices(); // 重新載入服務狀態
+      await loadServices();
     } catch (error) {
       console.error('Failed to check service health:', error);
     }
   };
 
-  // 計算整體健康狀態
   const calculateOverallHealth = () => {
     if (services.length === 0) return { status: 'unknown', percentage: 0 };
 
@@ -112,7 +121,6 @@ const SystemServiceStatus: React.FC = () => {
 
   const overallHealth = calculateOverallHealth();
 
-  // 獲取整體健康狀態的顏色
   const getOverallHealthColor = () => {
     switch (overallHealth.status) {
       case 'healthy':
@@ -130,6 +138,233 @@ const SystemServiceStatus: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* 浮動監控工具按� */}
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+        <button
+          onClick={toggleToolsExpanded}
+          className="flex items-center space-x-2 bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl rounded-full p-3 transition-all duration-300 border border-gray-200 dark:border-gray-700"
+        >
+          <MonitorPlay size={20} className="text-blue-600 dark:text-blue-400" />
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">監控工具</span>
+        </button>
+
+        {/* 浮動工具面板 */}
+        {toolsExpanded && (
+          <div className="absolute top-full left-0 mt-12 flex flex-col gap-2 bg-white dark:bg-gray-800 shadow-xl rounded-lg p-4 border border-gray-200 dark:border-gray-700 min-w-[200px]">
+
+            {/* Grafana 選項 */}
+            <button
+              onClick={openGrafana}
+              className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors w-full text-left"
+            >
+              <Activity size={18} className="text-orange-500" />
+              <div className="flex-1">
+                <div className="font-semibold text-gray-900 dark:text-white">Grafana</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">儀表板與可視化</div>
+              </div>
+              <ExternalLink size={16} className="text-gray-400" />
+            </button>
+
+            {/* Prometheus 選項 */}
+            <button
+              onClick={openPrometheus}
+              className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors w-full text-left"
+            >
+              <Activity size={18} className="text-blue-600" />
+              <div className="flex-1">
+                <div className="font-semibold text-gray-900 dark:text-white">Prometheus</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">指標查詢與數據存儲</div>
+              </div>
+              <ExternalLink size={16} className="text-gray-400" />
+            </button>
+
+            {/* 分隔線 */}
+            <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+            {/* 使用信息 */}
+            <div className="text-xs text-gray-500 dark:text-gray-500">
+              <div>點擊在浮動視窗中打開</div>
+              <div>或直接訪問：3001 / 9090</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Grafana 彈出視窗 */}
+      {showGrafanaPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[800px] max-h-[90vh] overflow-auto">
+            {/* 視窗標題欄 */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="p-2 bg-orange-500 rounded-lg">
+                <Activity size={20} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Grafana</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">監控儀表板與數據可視化</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGrafanaPopup(false)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* 視窗內容：iframe */}
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  在下方視窗中訪問 Grafana，或
+                </p>
+                <button
+                  onClick={() => {
+                    window.open('/api/v1/monitoring/grafana/', '_blank');
+                    setShowGrafanaPopup(false);
+                  }}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <ExternalLink size={16} />
+                  <span className="font-semibold">在新標籤頁打開</span>
+                </button>
+              </div>
+
+              {/* 調整大小的按鈕 */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    const iframe = document.getElementById('grafana-iframe') as HTMLIFrameElement;
+                    if (iframe) {
+                      if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                      } else {
+                        iframe.requestFullscreen();
+                      }
+                    }
+                  }}
+                  id="grafana-maximize-btn"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="全屏/還原"
+                >
+                  <Maximize2 size={18} className="text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* 直接在當前頁面顯示 Grafana 連接信息 */}
+            <div className="w-full h-[600px] border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+              <div className="text-center">
+                <MonitorPlay className="mx-auto mb-4 text-blue-600" size={64} />
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Grafana 監控儀表板</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  點擊下方按鈕在新的分頁中開啟 Grafana
+                </p>
+                <button
+                  onClick={() => {
+                    window.open('https://gfn.k84.org', '_blank');
+                    setShowGrafanaPopup(false);
+                  }}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                >
+                  開啟 Grafana
+                </button>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-3">
+                  使用預設帳號：admin / admin
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Prometheus 彈出視窗 */}
+      {showPrometheusPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[800px] max-h-[90vh] overflow-auto">
+            {/* 視窗標題欄 */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <Activity size={20} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Prometheus</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">指標查詢與數據存儲</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPrometheusPopup(false)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* 視窗內容：iframe */}
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  在下方視窗中訪問 Prometheus，或
+                </p>
+                <button
+                  onClick={() => {
+                    window.open('https://pmt.k84.org', '_blank');
+                    setShowPrometheusPopup(false);
+                  }}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <ExternalLink size={16} />
+                  <span className="font-semibold">在新標籤頁打開</span>
+                </button>
+              </div>
+
+              {/* 調整大小的按鈕 */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    const iframe = document.getElementById('prometheus-iframe') as HTMLIFrameElement;
+                    if (iframe) {
+                      if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                      } else {
+                        iframe.requestFullscreen();
+                      }
+                    }
+                  }}
+                  id="prometheus-maximize-btn"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="全屏/還原"
+                >
+                  <Maximize2 size={18} className="text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* 直接在當前頁面顯示 Prometheus 連接信息 */}
+            <div className="w-full h-[600px] border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+              <div className="text-center">
+                <Activity className="mx-auto mb-4 text-blue-600" size={64} />
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Prometheus 指標查詢</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  點擊下方按鈕在新的分頁中開啟 Prometheus
+                </p>
+                <button
+                  onClick={() => {
+                    window.open('https://pmt.k84.org', '_blank');
+                    setShowPrometheusPopup(false);
+                  }}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                >
+                  開啟 Prometheus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 頂部導航欄 */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -176,18 +411,18 @@ const SystemServiceStatus: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
 
-        {/* 整體健康狀態 */}
-        <div className="mt-4 flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">整體健康狀態:</span>
-            <span className={`text-lg font-semibold ${getOverallHealthColor()}`}>
-              {overallHealth.percentage}%
-            </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              ({services.filter(s => s.status === 'running' && s.health_status === 'healthy').length} / {services.length})
-            </span>
-          </div>
+      {/* 整體健康狀態 */}
+      <div className="mt-4 flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400">整體健康狀態:</span>
+          <span className={`text-lg font-semibold ${getOverallHealthColor()}`}>
+            {overallHealth.percentage}%
+          </span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            ({services.filter(s => s.status === 'running' && s.health_status === 'healthy').length} / {services.length})
+          </span>
         </div>
       </div>
 
@@ -259,51 +494,58 @@ const SystemServiceStatus: React.FC = () => {
                   <h3 className="text-sm font-medium text-gray-500">服務類型</h3>
                   <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.service_type}</p>
                 </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">狀態</h3>
+                <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.status}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">健康狀態</h3>
+                <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.health_status}</p>
+              </div>
+
+              {selectedServiceForDetail.host && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">狀態</h3>
-                  <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.status}</p>
+                  <h3 className="text-sm font-medium text-gray-500">主機</h3>
+                  <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.host}</p>
                 </div>
+              )}
+
+              {selectedServiceForDetail.port && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">健康狀態</h3>
-                  <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.health_status}</p>
+                  <h3 className="text-sm font-medium text-gray-500">端口</h3>
+                  <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.port}</p>
                 </div>
-                {selectedServiceForDetail.host && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">主機</h3>
-                    <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.host}</p>
-                  </div>
-                )}
-                {selectedServiceForDetail.port && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">端口</h3>
-                    <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.port}</p>
-                  </div>
-                )}
-                {selectedServiceForDetail.pid && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">進程 ID</h3>
-                    <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.pid}</p>
-                  </div>
-                )}
+              )}
+
+              {selectedServiceForDetail.pid && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">檢查間隔</h3>
-                  <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.check_interval}秒</p>
+                  <h3 className="text-sm font-medium text-gray-500">進程 ID</h3>
+                  <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.pid}</p>
                 </div>
+              )}
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">檢查間隔</h3>
+                <p className="mt-1 text-base text-gray-900">{selectedServiceForDetail.check_interval}秒</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">最後檢查時間</h3>
+                <p className="mt-1 text-base text-gray-900">
+                  {selectedServiceForDetail.last_check_at ? new Date(selectedServiceForDetail.last_check_at).toLocaleString('zh-TW') : '-'}
+                </p>
+              </div>
+
+              {selectedServiceForDetail.last_success_at && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">最後檢查時間</h3>
+                  <h3 className="text-sm font-medium text-gray-500">最後成功時間</h3>
                   <p className="mt-1 text-base text-gray-900">
-                    {new Date(selectedServiceForDetail.last_check_at).toLocaleString('zh-TW')}
+                    {new Date(selectedServiceForDetail.last_success_at).toLocaleString('zh-TW')}
                   </p>
                 </div>
-                {selectedServiceForDetail.last_success_at && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">最後成功時間</h3>
-                    <p className="mt-1 text-base text-gray-900">
-                      {new Date(selectedServiceForDetail.last_success_at).toLocaleString('zh-TW')}
-                    </p>
-                  </div>
-                )}
-              </div>
+              )}
 
               {selectedServiceForDetail.metadata && Object.keys(selectedServiceForDetail.metadata).length > 0 && (
                 <div>

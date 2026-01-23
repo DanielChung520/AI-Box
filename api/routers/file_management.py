@@ -27,11 +27,11 @@ from api.core.response import APIResponse
 from database.arangodb import ArangoDBClient
 from database.rq.queue import KG_EXTRACTION_QUEUE, VECTORIZATION_QUEUE, get_task_queue
 from services.api.models.audit_log import AuditAction
-from services.api.models.file_metadata import FileMetadata
+from services.api.models.file_metadata import FileMetadata, FileMetadataUpdate
 from services.api.services.file_metadata_service import FileMetadataService
 from services.api.services.file_permission_service import get_file_permission_service
 from services.api.services.file_tree_sync_service import get_file_tree_sync_service
-from services.api.services.vector_store_service import get_vector_store_service
+from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
 from services.api.utils.file_validator import FileValidator, create_validator_from_config
 from storage.file_storage import FileStorage, create_storage_from_config
 from system.infra.config.config import get_config_section
@@ -222,13 +222,11 @@ async def list_files(
     """
     try:
         # 修改時間：2026-01-06 - 支持管理員查看所有文件
-        # 檢查是否為管理員且明確請求查看所有文件
+        # 修改時間：2026-01-20 - 修復 bug：只有明確傳遞 view_all_files=True 才查看所有文件
+        # 否則，如果未提供 user_id 和 task_id，應該使用當前用戶的 ID
         is_admin = current_user.has_permission(Permission.ALL.value)
-        # 如果明確傳遞了 view_all_files=True，且用戶是管理員，則查看所有文件
-        # 否則，如果未提供 user_id 和 task_id，且用戶是管理員，也視為查看所有文件（向後兼容）
-        view_all_files_flag = (
-            view_all_files and is_admin or (is_admin and user_id is None and task_id is None)
-        )
+        # 只有明確傳遞了 view_all_files=True，且用戶是管理員，才查看所有文件
+        view_all_files_flag = view_all_files and is_admin
 
         if view_all_files_flag:
             # 管理員查看所有文件，不設置 user_id 和 task_id
@@ -960,12 +958,36 @@ async def download_file(
                 raise
 
         # 使用 StreamingResponse 進行流式傳輸
+        # 根據文件類型設置正確的 media_type，對於文本文件添加 charset
+        media_type = "application/octet-stream"
+        content_encoding = None
+
+        # 對於文本類型文件，使用正確的 MIME 類型和 UTF-8 編碼
+        if filename:
+            ext = os.path.splitext(filename)[1].lower()
+            text_types = {
+                ".md": "text/markdown",
+                ".txt": "text/plain",
+                ".json": "application/json",
+                ".html": "text/html",
+                ".htm": "text/html",
+                ".xml": "application/xml",
+                ".csv": "text/csv",
+            }
+            if ext in text_types:
+                media_type = text_types[ext]
+                content_encoding = "utf-8"
+
+        headers = {
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        }
+        if content_encoding:
+            headers["Content-Encoding"] = content_encoding
+
         return StreamingResponse(
             file_stream_generator(),
-            media_type="application/octet-stream",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"',
-            },
+            media_type=media_type,
+            headers=headers,
         )
     except Exception as e:
         logger.error("Failed to download file", file_id=file_id, error=str(e), exc_info=True)
@@ -1014,12 +1036,35 @@ async def preview_file(
             metadata_storage_path=metadata.storage_path,
         )
 
-        # 檢查文件是否存在
-        if not file_path or not os.path.exists(file_path):
+        # 修改時間：2026-01-21 12:08 UTC+8 - 修復 S3 URI 文件檢查和讀取邏輯
+        # 檢查文件是否存在（支持 S3 URI 和本地路徑）
+        if not file_path:
             return APIResponse.error(
                 message="文件不存在",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
+
+        # 判斷是 S3 URI 還是本地路徑
+        is_s3_uri = file_path.startswith("s3://") or file_path.startswith("https://")
+
+        if is_s3_uri:
+            # S3 URI：使用 storage.file_exists() 檢查
+            if not storage.file_exists(
+                file_id=file_id,
+                task_id=metadata.task_id,
+                metadata_storage_path=metadata.storage_path,
+            ):
+                return APIResponse.error(
+                    message="文件不存在",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+        else:
+            # 本地路徑：使用 os.path.exists() 檢查
+            if not os.path.exists(file_path):
+                return APIResponse.error(
+                    message="文件不存在",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
 
         # 只支持文本文件預覽
         text_types = ["text/plain", "text/markdown", "text/csv", "application/json"]
@@ -1031,9 +1076,29 @@ async def preview_file(
 
         # 讀取文件內容（限制大小，避免內存問題）
         max_preview_size = 100 * 1024  # 100KB
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            content = f.read(max_preview_size)
-            is_truncated = os.path.getsize(file_path) > max_preview_size
+
+        if is_s3_uri:
+            # S3 URI：使用 storage.read_file() 讀取
+            file_content = storage.read_file(
+                file_id=file_id,
+                task_id=metadata.task_id,
+                metadata_storage_path=metadata.storage_path,
+            )
+            if not file_content:
+                return APIResponse.error(
+                    message="無法讀取文件內容",
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            # 解碼為字符串（限制大小）
+            content_bytes = file_content[:max_preview_size]
+            content = content_bytes.decode("utf-8", errors="ignore")
+            is_truncated = len(file_content) > max_preview_size
+        else:
+            # 本地路徑：使用 open() 讀取
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read(max_preview_size)
+                is_truncated = os.path.getsize(file_path) > max_preview_size
 
         return APIResponse.success(
             data={
@@ -1480,7 +1545,6 @@ async def move_file(
 
         # 更新元數據中的任務ID（允許設置為 None）
         metadata_service = get_metadata_service()
-        from services.api.models.file_metadata import FileMetadataUpdate
 
         update_data = FileMetadataUpdate(
             task_id=target_task_id,
@@ -1493,6 +1557,52 @@ async def move_file(
             chunk_count=None,  # type: ignore[call-arg]
             vector_count=None,  # type: ignore[call-arg]
             kg_status=None,  # type: ignore[call-arg]
+        )
+        updated_metadata = metadata_service.update(file_id, update_data)
+
+        if updated_metadata is None:
+            return APIResponse.error(
+                message="更新文件元數據失敗",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # 如果有實體文件，需要更新存儲路徑（適用於 LocalStorage）
+        storage_config = get_config_section("storage")
+        storage = create_storage_from_config(storage_config)
+
+        if storage and hasattr(storage, "move_file"):
+            try:
+                old_storage_path = file_metadata.storage_path
+                new_storage_path = storage.move_file(
+                    file_id=file_id,
+                    old_task_id=file_metadata.task_id,
+                    new_task_id=target_task_id,
+                    metadata_storage_path=old_storage_path,
+                )
+                if new_storage_path:
+                    metadata_service.update(
+                        file_id,
+                        FileMetadataUpdate(custom_metadata={"storage_path": new_storage_path}),
+                    )
+                    logger.info(
+                        "File storage path updated",
+                        file_id=file_id,
+                        old_path=old_storage_path,
+                        new_path=new_storage_path,
+                    )
+            except Exception as storage_error:
+                logger.warning(
+                    "Failed to update file storage path",
+                    file_id=file_id,
+                    error=str(storage_error),
+                )
+
+        logger.info(
+            "File moved successfully",
+            file_id=file_id,
+            old_task_id=file_metadata.task_id,
+            new_task_id=target_task_id,
+            user_id=current_user.user_id,
         )
         updated_metadata = metadata_service.update(file_id, update_data)
 
@@ -1568,7 +1678,7 @@ async def delete_file(
 
         # 1. 刪除ChromaDB中的向量數據
         try:
-            vector_store_service = get_vector_store_service()
+            vector_store_service = get_qdrant_vector_store_service()
             vector_store_service.delete_vectors_by_file_id(
                 file_id=file_id, user_id=current_user.user_id
             )
@@ -1952,10 +2062,74 @@ def _ensure_folder_collection() -> None:
         raise RuntimeError("ArangoDB client is not connected")
     if not arangodb_client.db.has_collection(FOLDER_COLLECTION_NAME):
         arangodb_client.db.create_collection(FOLDER_COLLECTION_NAME)
-        # 創建索引
         collection = arangodb_client.db.collection(FOLDER_COLLECTION_NAME)
         collection.add_index({"type": "persistent", "fields": ["task_id"]})
         collection.add_index({"type": "persistent", "fields": ["user_id"]})
+
+
+@router.get("/folders/{folder_id}")
+@audit_log(
+    action=AuditAction.FILE_ACCESS,
+    resource_type="folder",
+    get_resource_id=lambda body: body.get("data", {}).get("folder_id"),
+)
+async def get_folder(
+    folder_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """獲取資料夾信息
+
+    Args:
+        folder_id: 資料夾ID
+        current_user: 當前認證用戶
+
+    Returns:
+        資料夾信息
+    """
+    try:
+        _ensure_folder_collection()
+
+        arangodb_client = get_arangodb_client()
+        if arangodb_client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+
+        collection = arangodb_client.db.collection(FOLDER_COLLECTION_NAME)
+        folder_doc = collection.get(folder_id)
+
+        if folder_doc is None:
+            return APIResponse.error(
+                message="資料夾不存在",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        folder_user_id = folder_doc.get("user_id")
+        if folder_user_id and folder_user_id != current_user.user_id:
+            return APIResponse.error(
+                message="資料夾不存在",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        return APIResponse.success(
+            data={
+                "folder_id": folder_doc.get("folder_id") or folder_doc.get("_key"),
+                "folder_name": folder_doc.get("folder_name"),
+                "task_id": folder_doc.get("task_id"),
+                "user_id": folder_doc.get("user_id"),
+                "parent_folder_id": folder_doc.get("parent_folder_id"),
+                "folder_path": folder_doc.get("folder_path"),
+                "description": folder_doc.get("description"),
+                "custom_metadata": folder_doc.get("custom_metadata", {}),
+                "created_at": folder_doc.get("created_at"),
+                "updated_at": folder_doc.get("updated_at"),
+            },
+            message="資料夾信息獲取成功",
+        )
+    except Exception as e:
+        logger.error("Failed to get folder", folder_id=folder_id, error=str(e), exc_info=True)
+        return APIResponse.error(
+            message=f"獲取資料夾信息失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.post("/folders")
@@ -2467,7 +2641,7 @@ async def delete_folder(
 
                 # 1. 刪除ChromaDB中的向量
                 try:
-                    vector_store_service = get_vector_store_service()
+                    vector_store_service = get_qdrant_vector_store_service()
                     vector_store_service.delete_vectors_by_file_id(
                         file_id=file_id, user_id=current_user.user_id
                     )
@@ -2770,23 +2944,39 @@ async def get_file_vectors(
         # 如果文件元數據存在，就可以查詢向量數據
 
         # 獲取向量資料
-        vector_store_service = get_vector_store_service()
+        vector_store_service = get_qdrant_vector_store_service()
 
-        # 獲取所有向量（不限制數量，因為我們需要統計）
-        all_vectors = vector_store_service.get_vectors_by_file_id(
-            file_id=file_id,
-            user_id=current_user.user_id,
-            limit=None,  # 獲取所有向量以進行統計
-        )
-
-        # 應用分頁
-        total_count = len(all_vectors)
-        paginated_vectors = all_vectors[offset : offset + limit]
-
-        # 獲取統計信息
+        # 修改時間：2026-01-21 12:20 UTC+8 - 先獲取統計信息判斷是否存在向量
         stats = vector_store_service.get_collection_stats(
             file_id=file_id,
             user_id=current_user.user_id,
+        )
+
+        # 如果 collection 不存在或沒有向量，直接返回空結果
+        if stats.get("vector_count", 0) == 0 or stats.get("status") == "error":
+            return APIResponse.success(
+                data={
+                    "file_id": file_id,
+                    "vectors": [],
+                    "total": 0,
+                    "limit": limit,
+                    "offset": offset,
+                    "stats": stats,
+                    "collection_name": stats.get("collection_name"),
+                },
+                message="向量資料查詢成功（無數據）",
+            )
+
+        # 獲取向量數據（不使用向量數據本身，只獲取 id 和 payload 以提升性能）
+        # 修改時間：2026-01-21 12:20 UTC+8 - 不獲取所有向量，使用統計信息計算總數
+        total_count = stats.get("vector_count", 0)
+
+        # 獲取分頁的向量數據
+        paginated_vectors = vector_store_service.get_vectors_by_file_id(
+            file_id=file_id,
+            user_id=current_user.user_id,
+            limit=limit,
+            with_vector=False,  # 不包含向量數據本身（太大），只返回 id 和 payload
         )
 
         logger.info(
@@ -2811,6 +3001,126 @@ async def get_file_vectors(
         logger.error("Failed to get file vectors", file_id=file_id, error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"查詢向量資料失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.get("/{file_id}/vectors/{point_id}/similar")
+async def get_similar_vectors(
+    file_id: str,
+    point_id: str,
+    limit: int = Query(10, ge=1, le=50, description="返回相似向量數量"),
+    score_threshold: Optional[float] = Query(None, ge=0.0, le=1.0, description="相似度閾值"),
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """查找與指定 Point 相似的向量。
+
+    修改時間：2026-01-21 13:30 UTC+8 - 添加相似度搜索功能
+
+    Args:
+        file_id: 文件 ID
+        point_id: Point ID（要查找相似的目標 Point）
+        limit: 返回結果數量
+        score_threshold: 相似度閾值（可選）
+        current_user: 當前認證用戶
+
+    Returns:
+        相似向量列表
+    """
+    try:
+        from services.api.services.qdrant_vector_store_service import (
+            get_qdrant_vector_store_service,
+        )
+
+        vector_store_service = get_qdrant_vector_store_service()
+        collection_name = vector_store_service._get_collection_name(file_id, current_user.user_id)
+
+        # 1. 先獲取目標 point 的向量
+        # 修改時間：2026-01-21 13:35 UTC+8 - 處理 point_id 類型轉換（Qdrant 需要整數或 UUID）
+        # 根據 store_vectors 的實現，point ID 是整數索引（id=i）
+        try:
+            # 嘗試將 point_id 轉換為整數（Qdrant point ID 是整數）
+            try:
+                point_id_for_retrieve = int(point_id)
+            except (ValueError, TypeError):
+                # 如果無法轉換為整數，嘗試作為 UUID
+                import uuid
+
+                try:
+                    # 嘗試解析為 UUID
+                    point_id_for_retrieve = uuid.UUID(point_id)
+                except (ValueError, TypeError):
+                    # 如果都不是，返回錯誤
+                    return APIResponse.error(
+                        message=f"無效的 Point ID 格式: {point_id}。Point ID 必須是整數或 UUID",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            point = vector_store_service.client.retrieve(
+                collection_name=collection_name,
+                ids=[point_id_for_retrieve],
+                with_vectors=True,
+            )
+            if not point or len(point) == 0:
+                return APIResponse.error(
+                    message=f"找不到 Point ID: {point_id}",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+            target_point = point[0]
+            if not target_point.vector:
+                return APIResponse.error(
+                    message=f"Point ID {point_id} 沒有向量數據",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+            target_vector = target_point.vector
+        except Exception as e:
+            logger.error(f"Failed to retrieve point {point_id}", error=str(e))
+            return APIResponse.error(
+                message=f"獲取 Point 失敗: {str(e)}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # 2. 使用目標向量搜索相似的 points（排除自己）
+        # 修改時間：2026-01-21 13:30 UTC+8 - 排除目標 point 本身
+        similar_results = vector_store_service.query_vectors(
+            query_embedding=target_vector,
+            file_id=file_id,
+            user_id=current_user.user_id,
+            limit=limit + 1,  # 多取一個，因為要排除目標 point
+            score_threshold=score_threshold,
+        )
+
+        # 3. 過濾掉目標 point 本身
+        filtered_results = [
+            result for result in similar_results if str(result["id"]) != str(point_id)
+        ][:limit]
+
+        logger.info(
+            "Found similar vectors",
+            file_id=file_id,
+            point_id=point_id,
+            results_count=len(filtered_results),
+        )
+
+        return APIResponse.success(
+            data={
+                "file_id": file_id,
+                "point_id": point_id,
+                "similar_vectors": filtered_results,
+                "total": len(filtered_results),
+            },
+            message="相似向量查詢成功",
+        )
+    except Exception as e:
+        logger.error(
+            "Failed to get similar vectors",
+            file_id=file_id,
+            point_id=point_id,
+            error=str(e),
+            exc_info=True,
+        )
+        return APIResponse.error(
+            message=f"查詢相似向量失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -3328,7 +3638,8 @@ async def get_file_graph(
                     """
                     entities_count_result = list(
                         arangodb_client.db.aql.execute(
-                            entities_count_query, bind_vars={"file_id": file_id}  # type: ignore[arg-type]  # bind_vars 類型兼容
+                            entities_count_query,
+                            bind_vars={"file_id": file_id},  # type: ignore[arg-type]  # bind_vars 類型兼容
                         )
                         if arangodb_client.db.aql
                         else []  # type: ignore[arg-type]  # Cursor 可迭代
@@ -3343,72 +3654,48 @@ async def get_file_graph(
                     """
                     relations_count_result = list(
                         arangodb_client.db.aql.execute(
-                            relations_count_query, bind_vars={"file_id": file_id}  # type: ignore[arg-type]  # bind_vars 類型兼容
+                            relations_count_query,
+                            bind_vars={"file_id": file_id},  # type: ignore[arg-type]  # bind_vars 類型兼容
                         )
                         if arangodb_client.db.aql
                         else []  # type: ignore[arg-type]  # Cursor 可迭代
                     )
                     relations_count = relations_count_result[0] if relations_count_result else 0
 
-                    # 轉換實體為節點格式
+                    # 轉換實體為節點格式並建立映射用於快速查找
                     nodes = []
+                    nodes_map = {}
                     for entity in entities_result:
-                        nodes.append(
-                            {
-                                "id": entity.get("_id", ""),
-                                "name": entity.get("name", ""),
-                                "type": entity.get("type", ""),
-                                "text": entity.get("text", ""),
-                            }
-                        )
+                        node = {
+                            "id": entity.get("_id", ""),
+                            "name": entity.get("name", ""),
+                            "type": entity.get("type", ""),
+                            "text": entity.get("text", ""),
+                        }
+                        nodes.append(node)
+                        nodes_map[node["id"]] = node
 
-                    # 轉換關係為邊格式
+                    # 轉換關係為邊格式並構建三元組
                     edges = []
+                    triples = []
                     for relation in relations_result:
+                        from_id = relation.get("_from", "")
+                        to_id = relation.get("_to", "")
+
                         edges.append(
                             {
                                 "id": relation.get("_id", ""),
-                                "from": relation.get("_from", ""),
-                                "to": relation.get("_to", ""),
+                                "from": from_id,
+                                "to": to_id,
                                 "type": relation.get("type", ""),
                                 "confidence": relation.get("confidence", 0),
                                 "weight": relation.get("weight", 0),
                             }
                         )
 
-                    # 構建三元組（從實體和關係組合）
-                    triples = []
-                    for relation in relations_result:
-                        # 從關係的_from和_to中提取實體信息
-                        from_entity_id = relation.get("_from", "").split("/")[-1]
-                        to_entity_id = relation.get("_to", "").split("/")[-1]
-
-                        # 查找對應的實體（需要查詢所有實體以匹配）
-                        all_entities_query = """
-                        FOR entity IN entities
-                            FILTER entity._key == @from_key OR entity._key == @to_key
-                            RETURN entity
-                        """
-                        matching_entities = list(
-                            arangodb_client.db.aql.execute(
-                                all_entities_query,
-                                bind_vars={
-                                    "from_key": from_entity_id,
-                                    "to_key": to_entity_id,
-                                },  # type: ignore[arg-type]  # bind_vars 類型兼容
-                            )
-                            if arangodb_client.db.aql
-                            else []  # type: ignore[arg-type]  # Cursor 可迭代
-                        )
-
-                        from_entity = next(
-                            (e for e in matching_entities if e.get("_key") == from_entity_id),
-                            None,
-                        )
-                        to_entity = next(
-                            (e for e in matching_entities if e.get("_key") == to_entity_id),
-                            None,
-                        )
+                        # 從 nodes_map 中獲取實體信息以構建三元組（避免重複 AQL 查詢）
+                        from_entity = nodes_map.get(from_id)
+                        to_entity = nodes_map.get(to_id)
 
                         if from_entity and to_entity:
                             triples.append(
@@ -3423,7 +3710,7 @@ async def get_file_graph(
 
                     # 更新統計信息
                     kg_stats = {
-                        "triples_count": len(triples),
+                        "triples_count": relations_count,  # 使用總計而非分頁後的數量
                         "entities_count": entities_count,
                         "relations_count": relations_count,
                         "status": (
@@ -3754,7 +4041,7 @@ async def sync_files(
 
         metadata_service = get_metadata_service()
         storage = get_storage()
-        vector_store_service = get_vector_store_service()
+        vector_store_service = get_qdrant_vector_store_service()
 
         # 獲取要同步的文件列表
         files_to_sync = []

@@ -1,7 +1,7 @@
 # 代碼功能說明: 用戶任務模型
 # 創建日期: 2025-12-08 09:04:21 UTC+8
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
+# 最後修改日期: 2026-01-21
 
 """用戶任務模型 - 定義前端 UI 任務數據結構"""
 
@@ -47,9 +47,20 @@ class UserTaskBase(BaseModel):
     title: str = Field(..., description="任務標題")
     status: str = Field(default="pending", description="任務狀態（pending/in-progress/completed）")
     # 修改時間：2025-12-09 - 添加任務狀態字段（activate/archive），用於控制任務是否在 Sidebar 中顯示
+    # 修改時間：2026-01-21 - 添加 trash 狀態，支援 Soft Delete
     task_status: str = Field(
         default="activate",
-        description="任務顯示狀態（activate/archive），activate 表示顯示，archive 表示歸檔不顯示",
+        description="任務顯示狀態（activate/archive/trash），activate 表示顯示，archive 表示歸檔不顯示，trash 表示已刪除",
+    )
+    # 修改時間：2026-01-21 - 添加 Soft Delete 字段
+    deleted_at: Optional[datetime] = Field(
+        None,
+        description="軟刪除時間（Soft Delete），為空表示未刪除",
+    )
+    # 修改時間：2026-01-21 - 添加預定永久刪除時間
+    permanent_delete_at: Optional[datetime] = Field(
+        None,
+        description="預定永久刪除時間（7 天後自動清理）",
     )
     # 修改時間：2025-12-09 - 添加任務顏色標籤字段（類似 Apple Mac 的顏色標籤）
     label_color: Optional[str] = Field(
@@ -79,7 +90,12 @@ class UserTaskUpdate(BaseModel):
     title: Optional[str] = Field(None, description="任務標題")
     status: Optional[str] = Field(None, description="任務狀態")
     # 修改時間：2025-12-09 - 添加任務狀態字段（activate/archive）
-    task_status: Optional[str] = Field(None, description="任務顯示狀態（activate/archive）")
+    # 修改時間：2026-01-21 - 添加 trash 狀態
+    task_status: Optional[str] = Field(None, description="任務顯示狀態（activate/archive/trash）")
+    # 修改時間：2026-01-21 - 添加 Soft Delete 字段
+    deleted_at: Optional[datetime] = Field(None, description="軟刪除時間")
+    # 修改時間：2026-01-21 - 添加預定永久刪除時間
+    permanent_delete_at: Optional[datetime] = Field(None, description="預定永久刪除時間")
     # 修改時間：2025-12-09 - 添加任務顏色標籤字段
     label_color: Optional[str] = Field(
         None, description="任務顏色標籤（red/orange/yellow/green/blue/purple/gray）"

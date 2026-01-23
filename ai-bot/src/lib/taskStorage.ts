@@ -319,9 +319,12 @@ export function taskExists(taskId: string | number): boolean {
 /**
  * 從後台同步任務數據到 localStorage
  * 修改時間：2025-12-08 09:04:21 UTC+8 - 添加後台同步功能
+ * 修改時間：2026-01-19 - 用戶切換時完全替換任務列表，不再合併
  */
 export async function syncTasksFromBackend(): Promise<{ synced: number; errors: number }> {
   const userId = getCurrentUserId();
+  console.log('[TaskStorage] syncTasksFromBackend() called, userId:', userId);
+
   if (!userId) {
     console.warn('[TaskStorage] Cannot sync tasks: user not logged in');
     return { synced: 0, errors: 0 };
@@ -335,9 +338,13 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
     const limit = 500; // 每次獲取最多 500 個任務（減少以提升性能）
     let hasMore = true;
 
+    console.log('[TaskStorage] Fetching tasks from backend for userId:', userId);
+
     // 循環獲取所有任務，直到沒有更多任務
     while (hasMore) {
       const response = await listUserTasks(true, limit, offset); // include_archived=true, limit, offset
+      console.log('[TaskStorage] listUserTasks response:', response.success, 'tasks count:', response.data?.tasks?.length);
+
       if (!response.success || !response.data) {
         console.error('[TaskStorage] Failed to fetch tasks from backend:', response.message);
         break;
@@ -356,18 +363,34 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
 
     console.log(`[TaskStorage] Fetched ${allTasks.length} tasks from backend (in ${Math.ceil(allTasks.length / limit)} pages)`);
     if (allTasks.length > 0) {
-      console.log('[TaskStorage] First 5 tasks:', allTasks.slice(0, 5).map(t => ({ id: t.task_id, title: t.title, status: t.task_status })));
+      console.log('[TaskStorage] Tasks from backend:', allTasks.map(t => ({ id: t.task_id, title: t.title, user_id: t.user_id })));
+    } else {
+      console.log('[TaskStorage] No tasks returned from backend for user:', userId);
     }
 
     let synced = 0;
     let errors = 0;
+
+    // 修改時間：2026-01-19 - 完全替換任務列表，不合併舊數據
+    // 獲取當前任務列表以便清理不再屬於當前用戶的任務
     const currentTaskList = getTaskList();
-    const updatedTaskList = [...currentTaskList];
+    console.log('[TaskStorage] Current local tasks before sync:', currentTaskList.length, currentTaskList);
+
+    const backendTaskIds = new Set<string>();
+    const newTaskList: (string | number)[] = [];
 
     // 將後台任務轉換為前端格式並保存到 localStorage
     for (const backendTask of allTasks) {
       try {
         const taskId = backendTask.task_id;
+
+        // 修改時間：2026-01-21 12:04 UTC+8 - 跳過 task_id 為 null 或 undefined 的任務
+        if (!taskId || taskId === null || taskId === undefined) {
+          console.warn('[TaskStorage] Skipping task with null/undefined task_id:', backendTask);
+          continue;
+        }
+
+        backendTaskIds.add(String(taskId));
 
         // 修改時間：2025-12-09 - 從 localStorage 讀取現有任務，保留本地的 label_color
         const existingTask = getTask(taskId);
@@ -413,11 +436,8 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
         const taskKey = `${STORAGE_KEY_PREFIX}${frontendTask.id}`;
         localStorage.setItem(taskKey, JSON.stringify(frontendTask));
 
-        // 更新任務列表
-        if (!updatedTaskList.includes(frontendTask.id)) {
-          updatedTaskList.push(frontendTask.id);
-        }
-
+        // 添加到新任務列表
+        newTaskList.push(frontendTask.id);
         synced++;
       } catch (error) {
         console.error('[TaskStorage] Failed to sync task:', backendTask.task_id, error);
@@ -425,12 +445,23 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
       }
     }
 
-    // 批量更新任務列表，提高效能
-    if (synced > 0) {
-      saveTaskList(updatedTaskList);
+    // 修改時間：2026-01-19 - 清理不屬於當前用戶的任務
+    // 刪除那些在 localStorage 中存在但不在後端任務列表中的任務
+    let cleanedCount = 0;
+    for (const oldTaskId of currentTaskList) {
+      if (!backendTaskIds.has(String(oldTaskId))) {
+        // 這個任務不屬於當前用戶，刪除它
+        const taskKey = `${STORAGE_KEY_PREFIX}${oldTaskId}`;
+        localStorage.removeItem(taskKey);
+        cleanedCount++;
+        console.log('[TaskStorage] Removed task not belonging to current user:', oldTaskId);
+      }
     }
 
-    console.log(`[TaskStorage] Synced ${synced} tasks from backend, ${errors} errors`);
+    // 保存新任務列表（只包含後端返回的任務）
+    saveTaskList(newTaskList);
+
+    console.log(`[TaskStorage] Synced ${synced} tasks from backend, ${errors} errors, cleaned ${cleanedCount} old tasks`);
     return { synced, errors };
   } catch (error) {
     console.error('[TaskStorage] Failed to sync tasks from backend:', error);
@@ -484,15 +515,28 @@ export async function syncTasksToBackend(): Promise<{ synced: number; errors: nu
 /**
  * 雙向同步任務數據（從後台獲取並合併本地數據）
  * 修改時間：2025-12-08 09:04:21 UTC+8 - 添加後台同步功能
+ * 修改時間：2026-01-19 - 用戶切換時完全替換任務列表，不再合併
  */
 export async function syncTasksBidirectional(): Promise<{ synced: number; errors: number }> {
   const userId = getCurrentUserId();
+  console.log('[TaskStorage] syncTasksBidirectional() called, userId:', userId);
+
   if (!userId) {
     console.warn('[TaskStorage] Cannot sync tasks: user not logged in');
     return { synced: 0, errors: 0 };
   }
 
   try {
+    // 檢查用戶是否切換
+    const lastUserId = localStorage.getItem('last_sync_user_id');
+    if (lastUserId && lastUserId !== userId) {
+      console.log('[TaskStorage] User changed from', lastUserId, 'to', userId, '- clearing local tasks');
+      // 用戶切換了，清除所有本地任務
+      clearAllLocalTasks();
+    }
+    // 記錄當前用戶
+    localStorage.setItem('last_sync_user_id', userId);
+
     // 1. 先將本地任務同步到後台
     await syncTasksToBackend();
 
@@ -508,6 +552,29 @@ export async function syncTasksBidirectional(): Promise<{ synced: number; errors
   } catch (error) {
     console.error('[TaskStorage] Failed to sync tasks bidirectionally:', error);
     return { synced: 0, errors: 1 };
+  }
+}
+
+/**
+ * 清除所有本地任務數據
+ * 修改時間：2026-01-19 - 添加用戶切換時的清理功能
+ */
+export function clearAllLocalTasks(): void {
+  console.log('[TaskStorage] Starting clearAllLocalTasks...');
+  try {
+    const taskList = getTaskList();
+    console.log('[TaskStorage] Tasks to clear:', taskList.length, taskList);
+
+    // 刪除每個任務的詳細數據
+    for (const taskId of taskList) {
+      const taskKey = `${STORAGE_KEY_PREFIX}${taskId}`;
+      localStorage.removeItem(taskKey);
+    }
+    // 清除任務列表
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('[TaskStorage] All local tasks cleared');
+  } catch (error) {
+    console.error('[TaskStorage] Failed to clear local tasks:', error);
   }
 }
 

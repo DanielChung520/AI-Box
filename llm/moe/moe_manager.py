@@ -29,6 +29,8 @@ from ..failover import LLMFailoverManager
 from ..load_balancer import MultiLLMLoadBalancer
 from ..routing.dynamic import DynamicRouter
 from ..routing.evaluator import RoutingEvaluator
+from .scene_routing import ModelSelectionResult, MoEConfigLoader, get_moe_config_loader
+from .user_preference import get_user_preference
 
 logger = structlog.get_logger(__name__)
 
@@ -110,6 +112,117 @@ class LLMMoEManager:
 
         # 客戶端緩存
         self._client_cache: Dict[LLMProvider, BaseLLMClient] = {}
+
+    def select_model(
+        self,
+        scene: str,
+        user_id: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> ModelSelectionResult:
+        """
+        根據場景選擇模型
+
+        Args:
+            scene: 場景名稱（如 "chat", "knowledge_graph_extraction", "embedding" 等）
+            user_id: 用戶 ID（用於用戶偏好）
+            context: 上下文信息
+
+        Returns:
+            ModelSelectionResult: 模型選擇結果
+        """
+        loader = get_moe_config_loader()
+
+        # 1. 嘗試從環境變量獲取模型
+        env_model = loader.get_model_from_env(scene)
+        if env_model:
+            logger.info(f"Using model from environment for scene {scene}: {env_model}")
+            return ModelSelectionResult(
+                model=env_model,
+                scene=scene,
+                context_size=131072,
+                max_tokens=4096,
+                temperature=0.7,
+                timeout=60,
+                retries=3,
+                rpm=30,
+                concurrency=5,
+                dimension=None,
+                cost_per_1k_input=None,
+                cost_per_1k_output=None,
+                is_user_preference=False,
+                fallback_used=False,
+                original_model=env_model,
+            )
+
+        # 2. 檢查用戶偏好
+        if user_id and loader.is_user_preference_enabled():
+            user_pref = self._get_user_preference(user_id, scene)
+            if user_pref:
+                logger.info(f"Using user preference for scene {scene}, user {user_id}: {user_pref}")
+                # 驗證用戶偏好的模型是否在優先級列表中
+                priority_list = loader.get_priority_list(scene)
+                if any(p.model == user_pref for p in priority_list):
+                    # 找到用戶偏好模型的配置
+                    for p in priority_list:
+                        if p.model == user_pref:
+                            return ModelSelectionResult(
+                                model=user_pref,
+                                scene=scene,
+                                context_size=p.context_size,
+                                max_tokens=p.max_tokens,
+                                temperature=p.temperature,
+                                timeout=p.timeout,
+                                retries=p.retries,
+                                rpm=p.rpm,
+                                concurrency=p.concurrency,
+                                dimension=p.dimension,
+                                cost_per_1k_input=p.cost_per_1k_input,
+                                cost_per_1k_output=p.cost_per_1k_output,
+                                is_user_preference=True,
+                                fallback_used=False,
+                                original_model=user_pref,
+                            )
+
+        # 3. 從優先級列表選擇模型
+        priority_list = loader.get_priority_list(scene)
+        if priority_list:
+            selected = priority_list[0]  # 選擇第一個（最高優先級）
+            logger.info(f"Using default model for scene {scene}: {selected.model}")
+            return ModelSelectionResult(
+                model=selected.model,
+                scene=scene,
+                context_size=selected.context_size,
+                max_tokens=selected.max_tokens,
+                temperature=selected.temperature,
+                timeout=selected.timeout,
+                retries=selected.retries,
+                rpm=selected.rpm,
+                concurrency=selected.concurrency,
+                dimension=selected.dimension,
+                cost_per_1k_input=selected.cost_per_1k_input,
+                cost_per_1k_output=selected.cost_per_1k_output,
+                is_user_preference=False,
+                fallback_used=False,
+                original_model=selected.model,
+            )
+
+        # 4. 如果沒有配置，返回 None
+        logger.warning(f"No model configuration found for scene {scene}")
+        return None
+
+    def _get_user_preference(self, user_id: str, scene: str) -> Optional[str]:
+        """獲取用戶偏好"""
+        return get_user_preference(user_id, scene)
+
+    def get_available_scenes(self) -> List[str]:
+        """獲取所有可用的場景"""
+        loader = get_moe_config_loader()
+        return loader.get_all_scenes()
+
+    def get_scene_config(self, scene: str):
+        """獲取場景配置"""
+        loader = get_moe_config_loader()
+        return loader.get_scene_config(scene)
 
     def get_client(self, provider: LLMProvider, *, api_key: Optional[str] = None) -> BaseLLMClient:
         """
@@ -246,7 +359,13 @@ class LLMMoEManager:
                 model=model,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                **kwargs,
+                # Remove internal tracking parameters that shouldn't be passed to LLM
+                **{
+                    k: v
+                    for k, v in kwargs.items()
+                    if k
+                    not in ("failed_strategy", "failed_provider", "user_id", "file_id", "purpose")
+                },
             )
 
             latency = time.time() - start_time
@@ -848,11 +967,23 @@ class LLMMoEManager:
                     model=model,
                     temperature=temperature,
                     max_tokens=max_tokens,
-                    **kwargs,
+                    # Remove internal tracking parameters that shouldn't be passed to LLM
+                    **{
+                        k: v
+                        for k, v in kwargs.items()
+                        if k
+                        not in (
+                            "failed_strategy",
+                            "failed_provider",
+                            "user_id",
+                            "file_id",
+                            "purpose",
+                        )
+                    },
                 )
 
                 logger.info(
-                    f"Successfully failed over from {failed_provider.value} " f"to {fallback.value}"
+                    f"Successfully failed over from {failed_provider.value} to {fallback.value}"
                 )
 
                 # 標記負載均衡器成功（如果啟用）
@@ -875,7 +1006,7 @@ class LLMMoEManager:
                 continue
 
         # 所有提供商都失敗
-        error_msg = f"All LLM providers failed. " f"Original provider: {failed_provider.value}"
+        error_msg = f"All LLM providers failed. Original provider: {failed_provider.value}"
         if last_exception:
             error_msg += f". Last error: {last_exception}"
         raise Exception(error_msg)
@@ -1007,7 +1138,7 @@ class LLMMoEManager:
                 latency = time.time() - start_time
 
                 logger.info(
-                    f"Successfully failed over from {failed_provider.value} " f"to {fallback.value}"
+                    f"Successfully failed over from {failed_provider.value} to {fallback.value}"
                 )
 
                 # 標記負載均衡器成功（如果啟用）
@@ -1040,12 +1171,13 @@ class LLMMoEManager:
 
                 continue
 
-        # 所有提供商都失敗，最後嘗試本機 gpt-oss:20b（強制使用 localhost:11434）
+        # 所有提供商都失敗，最後嘗試本機 qwen3-next:latest（強制使用 localhost:11434）
+        # 修改時間：2026-01-22 - 使用 qwen3-next:latest 作為默認 fallback 模型
         # 注意：即使原始 provider 是 OLLAMA，也嘗試最終 fallback（可能是其他節點失敗，嘗試本地節點）
         try:
             logger.info(
                 f"All fallback providers failed (original: {failed_provider.value}), "
-                "attempting final fallback to local gpt-oss:20b on localhost:11434"
+                "attempting final fallback to local qwen3-next:latest on localhost:11434"
             )
             # 為最終 fallback 創建只使用 localhost 的 Ollama 客戶端
             from llm.clients.ollama import OllamaClient
@@ -1062,12 +1194,12 @@ class LLMMoEManager:
                 strategy="round_robin",
                 cooldown_seconds=30,
             )
-            client = OllamaClient(router=localhost_router, default_model="gpt-oss:20b")
+            client = OllamaClient(router=localhost_router, default_model="qwen3-next:latest")
             if client.is_available():
                 start_time = time.time()
                 # 對於最終 fallback，如果原始 model 是 ollama:host:port:model_name 格式，
-                # 提取實際的模型名稱；否則使用 gpt-oss:20b
-                fallback_model = "gpt-oss:20b"
+                # 提取實際的模型名稱；否則使用 qwen3-next:latest
+                fallback_model = "qwen3-next:latest"
                 if model and ":" in model:
                     parts = model.split(":")
                     if len(parts) >= 4 and parts[0] == "ollama":
@@ -1075,14 +1207,14 @@ class LLMMoEManager:
 
                 result = await client.chat(
                     messages,
-                    model=fallback_model,  # 使用提取的模型名稱或 gpt-oss:20b
+                    model=fallback_model,  # 使用提取的模型名稱或 qwen3-next:latest
                     temperature=temperature,
                     max_tokens=max_tokens,
                     **kwargs,
                 )
                 latency = time.time() - start_time
 
-                logger.info("Successfully used final fallback to local gpt-oss:20b")
+                logger.info("Successfully used final fallback to local qwen3-next:latest")
 
                 # 標記負載均衡器成功（如果啟用）
                 if self.load_balancer is not None:
@@ -1105,7 +1237,7 @@ class LLMMoEManager:
                 logger.warning("Final fallback: localhost Ollama client is not available")
         except Exception as final_fallback_exc:
             logger.warning(
-                f"Final fallback to local gpt-oss:20b also failed: {final_fallback_exc}",
+                f"Final fallback to local qwen3-next:latest also failed: {final_fallback_exc}",
                 exc_info=True,
             )
             # 記錄最終 fallback 失敗的原因
@@ -1264,7 +1396,7 @@ class LLMMoEManager:
                 latency = time.time() - start_time
 
                 logger.info(
-                    f"Successfully failed over from {failed_provider.value} " f"to {fallback.value}"
+                    f"Successfully failed over from {failed_provider.value} to {fallback.value}"
                 )
 
                 # 標記負載均衡器成功（如果啟用）
@@ -1297,12 +1429,13 @@ class LLMMoEManager:
 
                 continue
 
-        # 所有提供商都失敗，最後嘗試本機 gpt-oss:20b（強制使用 localhost:11434）
+        # 所有提供商都失敗，最後嘗試本機 qwen3-next:latest（強制使用 localhost:11434）
+        # 修改時間：2026-01-22 - 使用 qwen3-next:latest 作為默認 fallback 模型
         # 注意：即使原始 provider 是 OLLAMA，也嘗試最終 fallback（可能是其他節點失敗，嘗試本地節點）
         try:
             logger.info(
                 f"All fallback providers failed (original: {failed_provider.value}), "
-                "attempting final fallback to local gpt-oss:20b on localhost:11434"
+                "attempting final fallback to local qwen3-next:latest on localhost:11434"
             )
             # 為最終 fallback 創建只使用 localhost 的 Ollama 客戶端
             from llm.clients.ollama import OllamaClient
@@ -1319,11 +1452,11 @@ class LLMMoEManager:
                 strategy="round_robin",
                 cooldown_seconds=30,
             )
-            client = OllamaClient(router=localhost_router, default_model="gpt-oss:20b")
+            client = OllamaClient(router=localhost_router, default_model="qwen3-next:latest")
             if client.is_available() and hasattr(client, "chat_stream"):
                 # 對於最終 fallback，如果原始 model 是 ollama:host:port:model_name 格式，
-                # 提取實際的模型名稱；否則使用 gpt-oss:20b
-                fallback_model = "gpt-oss:20b"
+                # 提取實際的模型名稱；否則使用 qwen3-next:latest
+                fallback_model = "qwen3-next:latest"
                 if model and ":" in model:
                     parts = model.split(":")
                     if len(parts) >= 4 and parts[0] == "ollama":
@@ -1341,7 +1474,7 @@ class LLMMoEManager:
                     yield chunk
                 latency = time.time() - start_time
 
-                logger.info("Successfully used final fallback to local gpt-oss:20b")
+                logger.info("Successfully used final fallback to local qwen3-next:latest")
 
                 # 標記負載均衡器成功（如果啟用）
                 if self.load_balancer is not None:
@@ -1365,7 +1498,7 @@ class LLMMoEManager:
                 )
         except Exception as final_fallback_exc:
             logger.warning(
-                f"Final fallback to local gpt-oss:20b also failed: {final_fallback_exc}",
+                f"Final fallback to local qwen3-next:latest also failed: {final_fallback_exc}",
                 exc_info=True,
             )
             # 記錄最終 fallback 失敗的原因
@@ -1405,3 +1538,11 @@ class LLMMoEManager:
             metrics["health_status"] = self.failover_manager.get_provider_health_status()
 
         return metrics
+
+
+# ============================================================================
+# 場景路由擴展 Phase 2
+# ============================================================================
+
+# 場景配置加載器實例
+_moe_config_loader: Optional[MoEConfigLoader] = None

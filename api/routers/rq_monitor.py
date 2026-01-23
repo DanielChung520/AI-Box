@@ -8,7 +8,7 @@
 from typing import Optional
 
 import structlog
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import JSONResponse
 
 from api.core.response import APIResponse
@@ -43,21 +43,22 @@ async def list_queues(
             message="隊列列表獲取成功",
         )
     except Exception as e:
-        logger.error("Failed to list queues", error=str(e))
+        logger.error("批量提交任務失敗", error=str(e))
         return APIResponse.error(
-            message=f"獲取隊列列表失敗: {str(e)}",
+            message=f"批量提交任務失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
-@router.get("/queues/stats")
-async def get_queues_stats(
+@router.post("/bulk-retry-failed")
+async def bulk_retry_failed_tasks(
+    request: Request,
     current_user: User = Depends(get_current_user),
-) -> JSONResponse:
-    """獲取所有隊列的統計信息。
+):
+    """
+    重試所有失敗的任務
 
-    Returns:
-        所有隊列的統計信息
+    此端點用於批量重試指定任務中所有失敗的子任務。
     """
     try:
         stats = get_all_queues_stats()
@@ -162,5 +163,124 @@ async def list_workers(
         logger.error("Failed to list workers", error=str(e))
         return APIResponse.error(
             message=f"獲取 Worker 信息失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.post("/batch-upload")
+async def batch_upload_files(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """批量提交文件處理任務到 Worker 隊列。
+
+    Request Body:
+        {
+            "file_ids": ["file_id_1", "file_id_2", ...],
+            "task_id": "task_id",  // 可選
+            "options": {
+                "rechunk": false,      // 是否重新分塊
+                "vectorize": true,     // 是否向量化
+                "extract_kg": true     // 是否提取知識圖譜
+            }
+        }
+
+    Returns:
+        提交結果
+    """
+    try:
+        body = await request.json()
+        file_ids = body.get("file_ids", [])
+
+        if not file_ids:
+            return APIResponse.error(
+                message="file_ids 列表不能為空",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from database.rq.queue import FILE_PROCESSING_QUEUE, get_task_queue
+        from workers.tasks import process_file_chunking_and_vectorization_task
+
+        if not isinstance(file_ids, list):
+            return APIResponse.error(
+                message="file_ids 必須是陣列",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        import os
+
+        from arango.client import ArangoClient
+
+        arango_host = os.getenv("ARANGODB_HOST", "localhost")
+        arango_port = int(os.getenv("ARANGODB_PORT", "8529"))
+        arango_db = "ai_box_kg"
+        arango_user = os.getenv("ARANGODB_USERNAME", "root")
+        arango_pass = os.getenv("ARANGODB_PASSWORD", "changeme")
+
+        arango_client = ArangoClient(hosts=f"http://{arango_host}:{arango_port}")
+        db = arango_client.db(arango_db, username=arango_user, password=arango_pass)
+
+        results = []
+        queue = get_task_queue(FILE_PROCESSING_QUEUE)
+
+        for file_id in file_ids:
+            try:
+                file_metadata = db.collection("file_metadata").get(file_id)
+
+                if not file_metadata:
+                    results.append(
+                        {
+                            "file_id": file_id,
+                            "status": "error",
+                            "error": "文件元數據不存在",
+                        }
+                    )
+                    continue
+
+                file_path = file_metadata.get("storage_path")
+                file_type = file_metadata.get("file_type")
+
+                job_timeout = 3600
+                job = queue.enqueue(
+                    process_file_chunking_and_vectorization_task,
+                    file_id=file_id,
+                    file_path=file_path,
+                    file_type=file_type,
+                    user_id=current_user.user_id,
+                    job_timeout=job_timeout,
+                )
+
+                results.append(
+                    {
+                        "file_id": file_id,
+                        "status": "queued",
+                        "job_id": job.id,
+                        "queue": FILE_PROCESSING_QUEUE,
+                    }
+                )
+
+            except Exception as e:
+                logger.error("提交任務失敗", file_id=file_id, error=str(e))
+                results.append(
+                    {
+                        "file_id": file_id,
+                        "status": "error",
+                        "error": str(e),
+                    }
+                )
+
+        return APIResponse.success(
+            data={
+                "submitted": len([r for r in results if r["status"] == "queued"]),
+                "failed": len([r for r in results if r["status"] == "error"]),
+                "results": results,
+            },
+            message=f"成功提交 {len([r for r in results if r['status'] == 'queued'])} 個任務",
+        )
+
+    except Exception as e:
+        logger.error("批量提交任務失敗", error=str(e))
+        return APIResponse.error(
+            message=f"批量提交任務失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

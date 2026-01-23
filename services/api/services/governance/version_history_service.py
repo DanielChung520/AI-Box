@@ -159,6 +159,7 @@ class SeaweedFSVersionHistoryService:
                 Key=file_path,
                 Body=content,
                 ContentType="application/json",
+                ContentEncoding="utf-8",
             )
             self.logger.info(
                 "Version created",

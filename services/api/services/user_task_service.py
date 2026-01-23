@@ -1,7 +1,7 @@
 # 代碼功能說明: 用戶任務服務
 # 創建日期: 2025-12-08 09:04:21 UTC+8
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-08 09:14:28 UTC+8
+# 最後修改日期: 2026-01-21 12:04 UTC+8
 
 """用戶任務服務 - 實現 ArangoDB CRUD 操作"""
 
@@ -52,14 +52,22 @@ class UserTaskService:
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
 
-        # 使用 user_id 和 task_id 組合作為 _key，確保唯一性
+        # 修改時間：2026-01-21 - 添加驗證，防止 task_id 為 None 或空字符串
+        if not task.task_id:
+            raise ValueError(
+                f"task_id cannot be None or empty. user_id={task.user_id}, "
+                f"task_id={task.task_id}, title={task.title}"
+            )
+
+        # 使用 user_id 和 task_id 組合作為 _key，確保唯一性（用於兼容性檢查）
         doc_key = f"{task.user_id}_{task.task_id}"
 
         doc = {
             "_key": doc_key,
             "task_id": task.task_id,
             "user_id": task.user_id,
-            "title": task.title,
+            # 修改時間：2026-01-21 - 如果 title 未提供或為空，使用 task_id 作為 title
+            "title": task.title if task.title else task.task_id,
             "status": task.status or "pending",
             # 修改時間：2025-12-09 - 設置 task_status 默認值為 activate
             "task_status": task.task_status or "activate",
@@ -84,10 +92,43 @@ class UserTaskService:
             "updated_at": datetime.utcnow().isoformat(),
         }
 
+        # 使用 task_id 作為 _key（不是 user_id_task_id）
+        doc["_key"] = task.task_id
         collection = self.client.db.collection(COLLECTION_NAME)
-        collection.insert(doc)
-        doc_key = f"{task.user_id}_{task.task_id}"
-        doc = collection.get(doc_key)  # type: ignore[assignment]  # 同步模式下返回 dict | None
+
+        # 修改時間：2026-01-21 - 使用 upsert 防止併發導致的重複創建
+        # 先檢查是否已存在，如果存在則更新，不存在則插入
+        existing_doc = collection.get(task.task_id)
+        if existing_doc:
+            # 任務已存在，記錄警告但不拋出異常（允許冪等操作）
+            self.logger.warning(
+                "task_already_exists_using_existing",
+                task_id=task.task_id,
+                user_id=task.user_id,
+                existing_title=existing_doc.get("title"),
+                note="Task already exists, using existing record",
+            )
+            doc = existing_doc
+        else:
+            # 任務不存在，創建新任務
+            try:
+                collection.insert(doc)
+                doc = collection.get(task.task_id)  # 使用正確的 _key 檢索
+            except Exception as e:
+                # 如果插入失敗（可能是併發導致的），嘗試再次獲取
+                existing_doc = collection.get(task.task_id)
+                if existing_doc:
+                    self.logger.warning(
+                        "task_created_by_concurrent_request",
+                        task_id=task.task_id,
+                        user_id=task.user_id,
+                        error=str(e),
+                        note="Task was created by another concurrent request",
+                    )
+                    doc = existing_doc
+                else:
+                    # 真正的錯誤，重新拋出
+                    raise
 
         # 修改時間：2026-01-06 - 創建任務時自動創建任務工作區和排程任務目錄（添加超時保護）
         # 修改時間：2026-01-06 - 工作區創建改為快速失敗，避免阻塞任務創建
@@ -163,6 +204,7 @@ class UserTaskService:
         """獲取用戶任務
 
         修改時間：2026-01-06 - 添加 build_file_tree 參數，默認不構建 fileTree 以提升性能
+        修改時間：2026-01-21 - 添加用戶 ownership 檢查，防止跨用戶訪問
 
         Args:
             user_id: 用戶 ID
@@ -172,14 +214,39 @@ class UserTaskService:
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
         collection = self.client.db.collection(COLLECTION_NAME)
-        doc_key = f"{user_id}_{task_id}"
-        doc = collection.get(doc_key)  # type: ignore[assignment]  # 同步模式下返回 dict | None
+
+        doc = None
+
+        # 嘗試多種 _key 格式（優先使用 user_id前綴的格式）
+        for doc_key in [f"{user_id}_{task_id}", task_id]:
+            doc = collection.get(doc_key)
+            if doc:
+                break
 
         if doc is None:
             return None
 
         # 確保 doc 是字典類型
         if not isinstance(doc, dict):
+            return None
+
+        # 安全檢查：確保任務屬於當前用戶
+        # 如果找到的文檔的 user_id 與請求的 user_id 不匹配，則拒絕訪問
+        doc_user_id = doc.get("user_id")
+        self.logger.info(
+            "Task ownership check",
+            task_id=task_id,
+            requesting_user=user_id,
+            doc_user_id=doc_user_id,
+            found_key=doc.get("_key") if isinstance(doc, dict) else None,
+        )
+        if doc_user_id and doc_user_id != user_id:
+            self.logger.warning(
+                "Attempted to access task owned by another user",
+                task_id=task_id,
+                requesting_user=user_id,
+                actual_owner=doc_user_id,
+            )
             return None
 
         # 修改時間：2026-01-06 - 只有在明確要求時才構建 fileTree（避免超時）
@@ -246,9 +313,49 @@ class UserTaskService:
 
         tasks = []
         for doc in cursor:
+            # 修改時間：2026-01-21 12:04 UTC+8 - 添加防御性檢查，修復缺失字段的任務
+            # 檢查並修復缺失的必需字段
+            task_id = doc.get("task_id")
+            if not task_id:
+                # 如果 task_id 缺失，嘗試從 _key 提取
+                key = doc.get("_key", "")
+                if "_" in key:
+                    # 如果 _key 是 "user_id_task_id" 格式，提取後面的部分
+                    task_id = key.split("_", 1)[1] if "_" in key else key
+                else:
+                    # 否則使用 _key 作為 task_id
+                    task_id = key
+
+                if task_id:
+                    doc["task_id"] = task_id
+                    self.logger.warning(
+                        "Fixed missing task_id",
+                        _key=key,
+                        extracted_task_id=task_id,
+                        user_id=user_id,
+                    )
+                else:
+                    # 如果無法提取 task_id，跳過這個任務
+                    self.logger.error(
+                        "Task missing task_id and cannot extract from _key",
+                        _key=key,
+                        user_id=user_id,
+                        doc_keys=list(doc.keys()),
+                    )
+                    continue
+
+            # 檢查並修復缺失的時間字段
+            if not doc.get("created_at"):
+                doc["created_at"] = datetime.utcnow().isoformat()
+            if not doc.get("updated_at"):
+                doc["updated_at"] = datetime.utcnow().isoformat()
+
+            # 檢查並修復缺失的 task_status 字段
+            if not doc.get("task_status"):
+                doc["task_status"] = "activate"
+
             # 修改時間：2026-01-06 - 只有在明確要求時才構建 fileTree（列表查詢通常不需要）
             if build_file_tree:
-                task_id = doc.get("task_id")
                 if task_id:
                     try:
                         fileTree = self._build_file_tree_for_task(user_id, task_id)
@@ -261,7 +368,19 @@ class UserTaskService:
                             error=str(e),
                         )
 
-            tasks.append(UserTask(**doc))
+            try:
+                tasks.append(UserTask(**doc))
+            except Exception as e:
+                # 如果 Pydantic 驗證失敗，記錄錯誤並跳過這個任務
+                self.logger.error(
+                    "Failed to parse task document",
+                    _key=doc.get("_key"),
+                    task_id=task_id,
+                    user_id=user_id,
+                    error=str(e),
+                    doc_keys=list(doc.keys()),
+                )
+                continue
 
         return tasks
 
@@ -369,7 +488,8 @@ class UserTaskService:
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
         collection = self.client.db.collection(COLLECTION_NAME)
-        doc_key = f"{user_id}_{task_id}"
+        # 使用 task_id 作為 _key（與 create 方法保持一致）
+        doc_key = task_id
         doc = collection.get(doc_key)
 
         if doc is None:
@@ -399,11 +519,8 @@ class UserTaskService:
                 if hasattr(update.executionConfig, "model_dump")
                 else update.executionConfig
             )
-        if update.fileTree is not None:
-            update_data["fileTree"] = [
-                node.model_dump() if hasattr(node, "model_dump") else node
-                for node in update.fileTree
-            ]
+        # fileTree 不再緩存到任務文檔中，始終從 file_metadata 和 folder_metadata 動態構建
+        # 因此不再處理 update.fileTree
 
         doc.update(update_data)
         collection.update(doc)  # type: ignore[arg-type]  # update 接受 dict
@@ -411,11 +528,12 @@ class UserTaskService:
         return UserTask(**doc)  # type: ignore[arg-type]  # doc 已檢查為 dict
 
     def delete(self, user_id: str, task_id: str) -> bool:
-        """刪除用戶任務"""
+        """刪除用戶任務（永久刪除）"""
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
         collection = self.client.db.collection(COLLECTION_NAME)
-        doc_key = f"{user_id}_{task_id}"
+        # 使用 task_id 作為 _key（與 create 方法保持一致）
+        doc_key = task_id
         doc = collection.get(doc_key)
 
         if doc is None:
@@ -423,6 +541,308 @@ class UserTaskService:
 
         collection.delete(doc_key)
         return True
+
+    def soft_delete(self, user_id: str, task_id: str) -> Dict[str, Any]:
+        """
+        軟刪除用戶任務（移至 Trash）
+
+        修改時間：2026-01-21 - 添加 Soft Delete 機制
+
+        Args:
+            user_id: 用戶 ID
+            task_id: 任務 ID
+
+        Returns:
+            包含 deleted_at 和 permanent_delete_at 的字典
+        """
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+
+        collection = self.client.db.collection(COLLECTION_NAME)
+
+        # 修改時間：2026-01-22 - 使用靈活的任務查找邏輯
+        # 嘗試多種 _key 格式
+        doc = None
+        for key in [f"{user_id}_{task_id}", task_id]:
+            doc = collection.get(key)
+            if doc:
+                break
+
+        if doc is None:
+            return {
+                "success": False,
+                "error": "Task not found",
+                "task_id": task_id,
+            }
+
+        # 確保 doc 是字典類型
+        if not isinstance(doc, dict):
+            return {
+                "success": False,
+                "error": "Task not found",
+                "task_id": task_id,
+            }
+
+        # 確保任務屬於當前用戶
+        doc_user_id = doc.get("user_id")
+        if doc_user_id and doc_user_id != user_id:
+            return {
+                "success": False,
+                "error": "Task not found or access denied",
+                "task_id": task_id,
+            }
+
+        # 計算永久刪除時間（7 天後）
+        from datetime import timedelta
+
+        now = datetime.utcnow()
+        permanent_delete_at = now + timedelta(days=7)
+
+        # 更新任務文檔
+        update_data = {
+            "task_status": "trash",
+            "deleted_at": now.isoformat(),
+            "permanent_delete_at": permanent_delete_at.isoformat(),
+            "updated_at": now.isoformat(),
+        }
+
+        doc.update(update_data)
+        collection.update(doc)
+
+        self.logger.info(
+            "Task soft-deleted",
+            task_id=task_id,
+            user_id=user_id,
+            deleted_at=now.isoformat(),
+            permanent_delete_at=permanent_delete_at.isoformat(),
+        )
+
+        return {
+            "success": True,
+            "task_id": task_id,
+            "task_status": "trash",
+            "deleted_at": now.isoformat(),
+            "permanent_delete_at": permanent_delete_at.isoformat(),
+        }
+
+    def restore(self, user_id: str, task_id: str) -> Dict[str, Any]:
+        """
+        恢復用戶任務（從 Trash 恢復到 activate）
+
+        修改時間：2026-01-21 - 添加恢復功能
+
+        Args:
+            user_id: 用戶 ID
+            task_id: 任務 ID
+
+        Returns:
+            恢復結果字典
+        """
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+
+        collection = self.client.db.collection(COLLECTION_NAME)
+
+        # 修改時間：2026-01-22 - 使用靈活的任務查找邏輯
+        doc = None
+        for key in [f"{user_id}_{task_id}", task_id]:
+            doc = collection.get(key)
+            if doc:
+                break
+
+        if doc is None:
+            return {
+                "success": False,
+                "error": "Task not found",
+                "task_id": task_id,
+            }
+
+        # 確保 doc 是字典類型
+        if not isinstance(doc, dict):
+            return {
+                "success": False,
+                "error": "Task not found",
+                "task_id": task_id,
+            }
+
+        # 確保任務屬於當前用戶
+        doc_user_id = doc.get("user_id")
+        if doc_user_id and doc_user_id != user_id:
+            return {
+                "success": False,
+                "error": "Task not found or access denied",
+                "task_id": task_id,
+            }
+
+        # 檢查任務是否在 Trash 中
+        if doc.get("task_status") != "trash":
+            return {
+                "success": False,
+                "error": "Task is not in trash",
+                "task_id": task_id,
+                "current_status": doc.get("task_status"),
+            }
+
+        now = datetime.utcnow()
+
+        # 更新任務文檔
+        update_data = {
+            "task_status": "activate",
+            "deleted_at": None,
+            "permanent_delete_at": None,
+            "updated_at": now.isoformat(),
+        }
+
+        doc.update(update_data)
+        collection.update(doc)
+
+        self.logger.info(
+            "Task restored from trash",
+            task_id=task_id,
+            user_id=user_id,
+        )
+
+        return {
+            "success": True,
+            "task_id": task_id,
+            "task_status": "activate",
+            "deleted_at": None,
+            "permanent_delete_at": None,
+        }
+
+    def permanent_delete(self, user_id: str, task_id: str) -> Dict[str, Any]:
+        """
+        永久刪除用戶任務（從 Trash 徹底刪除）
+
+        修改時間：2026-01-21 - 添加永久刪除功能
+
+        Args:
+            user_id: 用戶 ID
+            task_id: 任務 ID
+
+        Returns:
+            刪除結果字典
+        """
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+
+        collection = self.client.db.collection(COLLECTION_NAME)
+
+        # 修改時間：2026-01-22 - 使用靈活的任務查找邏輯
+        doc = None
+        for key in [f"{user_id}_{task_id}", task_id]:
+            doc = collection.get(key)
+            if doc:
+                break
+
+        if doc is None:
+            return {
+                "success": False,
+                "error": "Task not found",
+                "task_id": task_id,
+            }
+
+        # 確保 doc 是字典類型
+        if not isinstance(doc, dict):
+            return {
+                "success": False,
+                "error": "Task not found",
+                "task_id": task_id,
+            }
+
+        # 確保任務屬於當前用戶
+        doc_user_id = doc.get("user_id")
+        if doc_user_id and doc_user_id != user_id:
+            return {
+                "success": False,
+                "error": "Task not found or access denied",
+                "task_id": task_id,
+            }
+
+        # 檢查任務是否在 Trash 中
+        if doc.get("task_status") != "trash":
+            return {
+                "success": False,
+                "error": "Task is not in trash",
+                "task_id": task_id,
+                "current_status": doc.get("task_status"),
+            }
+
+        # 永久刪除任務文檔（使用找到的 key）
+        actual_key = doc.get("_key") or f"{user_id}_{task_id}"
+        collection.delete(actual_key)
+
+        self.logger.info(
+            "Task permanently deleted",
+            task_id=task_id,
+            user_id=user_id,
+        )
+
+        return {
+            "success": True,
+            "task_id": task_id,
+            "message": "Task permanently deleted",
+        }
+
+    def list_tasks(
+        self,
+        user_id: str,
+        task_status: Optional[str] = None,
+        include_archived: bool = False,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        """
+        列出用戶任務
+
+        修改時間：2026-01-21 - 添加 Trash 過濾功能
+
+        Args:
+            user_id: 用戶 ID
+            task_status: 任務狀態過濾（activate/archive/trash）
+            include_archived: 是否包含歸檔任務
+            limit: 返回數量限制
+            offset: 偏移量
+
+        Returns:
+            任務列表
+        """
+        if self.client.db is None:
+            raise RuntimeError("ArangoDB client is not connected")
+
+        # 修改時間：2026-01-22 - 使用 bind_vars 避免 ArangoDB 解析錯誤
+        bind_vars = {"user_id": user_id}
+
+        if task_status:
+            bind_vars["task_status"] = task_status
+        elif not include_archived:
+            # 默認只返回 activate 和 trash 狀態的任務
+            # 這種情況下需要特殊處理，因為無法使用簡單的 bind_var
+            pass
+
+        query = f"""
+        FOR doc IN {COLLECTION_NAME}
+        FILTER doc.user_id == @user_id
+        """
+
+        if task_status:
+            query += " && doc.task_status == @task_status"
+        elif not include_archived:
+            query += ' && (doc.task_status == "activate" OR doc.task_status == "trash")'
+
+        query += """
+        SORT doc.created_at DESC
+        LIMIT @offset, @limit
+        RETURN doc
+        """
+
+        bind_vars["offset"] = offset
+        bind_vars["limit"] = limit
+
+        cursor = self.client.db.aql.execute(query, bind_vars=bind_vars)
+        tasks = list(cursor)
+
+        return tasks
 
     def sync_tasks(self, user_id: str, tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -496,8 +916,7 @@ class UserTaskService:
                             if hasattr(execution_config, "model_dump")
                             else execution_config
                         )
-                    if "fileTree" in task_data:
-                        update_dict["fileTree"] = task_data.get("fileTree")
+                    # fileTree 不再緩存到任務文檔中，因此不處理 fileTree 更新
 
                     if len(update_dict) > 1:  # 除了 updated_at 之外還有其他更新
                         existing_doc.update(update_dict)
@@ -505,6 +924,7 @@ class UserTaskService:
                         updated += 1
                 else:
                     # 創建新任務
+                    # fileTree 不再緩存到任務文檔中，因此不傳遞 fileTree
                     create = UserTaskCreate(
                         task_id=task_id,
                         user_id=user_id,
@@ -514,7 +934,7 @@ class UserTaskService:
                         dueDate=task_data.get("dueDate"),
                         messages=task_data.get("messages"),
                         executionConfig=execution_config,  # 使用處理後的 executionConfig
-                        fileTree=task_data.get("fileTree"),
+                        fileTree=[],  # 空 fileTree，始終從 file_metadata 動態構建
                     )
                     self.create(create)
                     created += 1

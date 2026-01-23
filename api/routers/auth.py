@@ -218,7 +218,7 @@ async def login(
         username=user.username,
     )
 
-    return APIResponse.success(
+    response = APIResponse.success(
         data={
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -226,6 +226,17 @@ async def login(
         },
         message="Login successful",
     )
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=False,  # 開發環境設為 False，生產環境應為 True
+        samesite="lax",
+        max_age=86400,  # 24 小時
+    )
+
+    return response
 
 
 @router.post("/refresh", response_model=RefreshTokenResponse)

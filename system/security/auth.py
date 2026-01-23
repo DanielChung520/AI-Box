@@ -166,9 +166,16 @@ async def authenticate_request(request: Request) -> Optional[User]:
     # 如果提供了 token，始終嘗試從 token 中解析用戶信息
     if token:
         # 嘗試 JWT 認證（即使 JWT 被禁用，也嘗試解析）
+        logger.info(
+            "Token provided, attempting verification",
+            path=request.url.path,
+            method=request.method,
+            token_length=len(token),
+            token_preview=token[:20] + "..." if len(token) > 20 else token,
+        )
         user = await verify_jwt_token(token)
         if user:
-            logger.debug(
+            logger.info(
                 "User authenticated via JWT token",
                 user_id=user.user_id,
                 path=request.url.path,
@@ -199,15 +206,16 @@ async def authenticate_request(request: Request) -> Optional[User]:
             method=request.method,
             has_token=bool(token),
         )
-        # 返回一個臨時用戶（用於測試，但不會使用 dev_user）
+        # 返回 systemAdmin 用戶（用於測試），而不是 unauthenticated
+        # 這確保測試時創建的任務正確歸屬於 systemAdmin
         return User(
-            user_id="unauthenticated",
-            username="unauthenticated",
-            email=None,
-            roles=[],
-            permissions=[],
+            user_id="systemAdmin",
+            username="systemAdmin",
+            email="system@ai-box.internal",
+            roles=["system_admin"],
+            permissions=["*"],
             is_active=True,
-            metadata={"bypass_auth": True},
+            metadata={"bypass_auth": True, "is_test_user": True},
         )
 
     # 正式測試環境：認證失敗返回 None

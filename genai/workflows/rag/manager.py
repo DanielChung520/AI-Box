@@ -1,9 +1,18 @@
-# 代碼功能說明: Retrieval Manager 實現
+# 代碼功能說明: Retrieval Manager 實現（⚠️ 已廢棄）
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2026-01-20
+#
+# ⚠️ 警告: 此模組已於 2026-01-20 廢棄
+#    請使用 Qdrant 向量存儲服務：
+#    - from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
+#
+# 遷移指南: docs/系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md
 
-"""Retrieval Manager - 實現 Hybrid RAG 檢索管理"""
+"""Retrieval Manager - 實現 Hybrid RAG 管理
+
+⚠️  此模組已廢棄，請使用 Qdrant 向量存儲服務
+"""
 
 import logging
 from enum import Enum
@@ -12,6 +21,13 @@ from typing import Any, Dict, List, Optional
 from database.chromadb.client import ChromaDBClient
 
 logger = logging.getLogger(__name__)
+
+# 記錄廢棄警告
+logger.warning(
+    "RETRIEVAL_MANAGER_DEPRECATED",
+    message="RetrievalManager 已廢棄，請遷移到 Qdrant",
+    migration_guide="docs/系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md",
+)
 
 # AAM 整合（可選）
 try:

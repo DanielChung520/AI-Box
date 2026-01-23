@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件上傳路由
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-04 23:36 (UTC+8)
+# 最後修改日期: 2026-01-23 01:33 UTC+8
 
 """文件上傳路由 - 提供文件上傳、驗證和存儲功能"""
 
@@ -29,9 +29,9 @@ from services.api.services.embedding_service import get_embedding_service
 from services.api.services.file_metadata_service import FileMetadataService
 from services.api.services.file_permission_service import get_file_permission_service
 from services.api.services.kg_extraction_service import get_kg_extraction_service
+from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
 from services.api.services.task_workspace_service import get_task_workspace_service
 from services.api.services.user_task_service import get_user_task_service
-from services.api.services.vector_store_service import get_vector_store_service
 from services.api.utils.file_validator import FileValidator, create_validator_from_config
 from storage.file_storage import FileStorage, create_storage_from_config
 from system.infra.config.config import get_config_section
@@ -195,7 +195,9 @@ async def create_blank_markdown(
     task_service = get_user_task_service()
     existing_task = task_service.get(user_id=current_user.user_id, task_id=task_id)
     if existing_task is None:
-        task_title = os.path.splitext((body.filename or "新任務").strip() or "新任務")[0]
+        # 修改時間：2026-01-21 - 後台/系統任務：使用 task_id 作為任務標題
+        # 對於 blank-md 端點，task_id 是必填的，因此直接使用 task_id 作為標題
+        task_title = task_id
         try:
             task_service.create(
                 UserTaskCreate(
@@ -336,6 +338,7 @@ def _update_processing_status(
     vectorization: Optional[Dict[str, Any]] = None,
     storage: Optional[Dict[str, Any]] = None,
     kg_extraction: Optional[Dict[str, Any]] = None,
+    dual_track: Optional[Dict[str, Any]] = None,
     overall_status: Optional[str] = None,
     overall_progress: Optional[int] = None,
     message: Optional[str] = None,
@@ -388,6 +391,10 @@ def _update_processing_status(
             if "kg_extraction" not in status_data:
                 status_data["kg_extraction"] = {}
             status_data["kg_extraction"].update(kg_extraction)
+        if dual_track is not None:
+            if "dual_track" not in status_data:
+                status_data["dual_track"] = {}
+            status_data["dual_track"].update(dual_track)
         if overall_status is not None:
             status_data["status"] = overall_status
         if overall_progress is not None:
@@ -404,43 +411,45 @@ def _update_processing_status(
 
         # 2. 同時更新 ArangoDB（用於持久化和審計）
         try:
-            from services.api.models.upload_status import ProcessingStatusUpdate
+            from services.api.models.upload_status import (
+                ProcessingStatusCreate,
+                ProcessingStatusUpdate,
+            )
             from services.api.services.upload_status_service import get_upload_status_service
 
             upload_status_service = get_upload_status_service()
 
             # 檢查是否已存在記錄
             existing_status = upload_status_service.get_processing_status(file_id)
-
-            # 構建更新對象
-            update = ProcessingStatusUpdate(
-                overall_status=status_data.get("status"),
-                overall_progress=status_data.get("progress"),
-                message=status_data.get("message"),
-                chunking=status_data.get("chunking"),
-                vectorization=status_data.get("vectorization"),
-                storage=status_data.get("storage"),
-                kg_extraction=status_data.get("kg_extraction"),
-            )
-
             if existing_status:
                 # 更新現有記錄
+                update = ProcessingStatusUpdate(
+                    overall_status=status_data.get("status"),
+                    overall_progress=status_data.get("progress"),
+                    message=status_data.get("message"),
+                    chunking=status_data.get("chunking"),
+                    vectorization=status_data.get("vectorization"),
+                    storage=status_data.get("storage"),
+                    kg_extraction=status_data.get("kg_extraction"),
+                    dual_track=status_data.get("dual_track"),
+                )
                 upload_status_service.update_processing_status(file_id, update)
             else:
                 # 創建新記錄
-                from services.api.models.upload_status import ProcessingStatusCreate
-
                 create = ProcessingStatusCreate(
                     file_id=file_id,
                     overall_status=status_data.get("status", "pending"),
                     overall_progress=status_data.get("progress", 0),
                     message=status_data.get("message"),
+                    chunking=status_data.get("chunking"),
+                    vectorization=status_data.get("vectorization"),
+                    storage=status_data.get("storage"),
+                    kg_extraction=status_data.get("kg_extraction"),
+                    dual_track=status_data.get("dual_track"),
                 )
                 upload_status_service.create_processing_status(create)
-                # 如果創建後需要更新階段狀態
-                if chunking or vectorization or storage or kg_extraction:
-                    upload_status_service.update_processing_status(file_id, update)
 
+            logger.debug("Processing status updated in ArangoDB", file_id=file_id)
         except Exception as arango_error:
             # ArangoDB 更新失敗不應影響 Redis 更新，記錄警告即可
             logger.warning(
@@ -448,6 +457,34 @@ def _update_processing_status(
                 file_id=file_id,
                 error=str(arango_error),
             )
+
+        # 3. 同步更新 file_metadata.status（當處理完成時）
+        if overall_status in ("completed", "failed", "partial_completed"):
+            try:
+                from services.api.models.file_metadata import FileMetadataUpdate
+                from services.api.services.file_metadata_service import get_metadata_service
+
+                metadata_service = get_metadata_service()
+                metadata_service.update(
+                    file_id,
+                    FileMetadataUpdate(
+                        status=overall_status,
+                        chunk_count=status_data.get("chunking", {}).get("chunk_count"),
+                        vector_count=status_data.get("vectorization", {}).get("vector_count"),
+                        kg_status=status_data.get("kg_extraction", {}).get("status"),
+                    ),
+                )
+                logger.debug(
+                    "file_metadata.status updated",
+                    file_id=file_id,
+                    status=overall_status,
+                )
+            except Exception as metadata_error:
+                logger.error(
+                    "Failed to update file_metadata status",
+                    file_id=file_id,
+                    error=str(metadata_error),
+                )
 
     except Exception as e:
         logger.warning(
@@ -462,9 +499,11 @@ async def _generate_file_summary_for_metadata(
     file_name: str,
     full_text: str,
     user_id: str,
-) -> Optional[str]:
+) -> Optional[Dict[str, Any]]:
     """
-    為文件生成摘要，用於後續 Ontology 選擇和知識圖譜提取
+    生成文件摘要（符合 Prompt A 語意摘要員規格）
+
+    為整份文件生成一個強大的「全局錨點」，防止後續切割後斷章取義。
 
     Args:
         file_id: 文件 ID
@@ -473,81 +512,83 @@ async def _generate_file_summary_for_metadata(
         user_id: 用戶 ID
 
     Returns:
-        文件摘要 JSON 字符串，格式：
+        結構化摘要字典，格式：
         {
-            "domain": "領域名稱",
-            "summary": "核心主題摘要",
-            "key_concepts": ["概念1", "概念2", ...],
-            "application_scenarios": ["場景1", "場景2", ...]
+            "theme": "核心主題",
+            "structure_outline": [
+                {"chapter": "章節名稱", "core_logic": "核心邏輯"}
+            ],
+            "key_terms": ["術語1", "術語2", ...],
+            "target_audience": "技術員/投資人/一般用戶"
         }
         如果生成失敗，返回 None
     """
-    try:
-        from llm.moe.moe_manager import LLMMoEManager
+    import re
 
-        # 限制文本長度（避免超過 LLM context window）
-        # 使用較大的長度限制以獲得更準確的摘要
-        max_text_length = 50000  # 根據 LLM 能力調整
+    from llm.moe.moe_manager import LLMMoEManager
+
+    try:
+        max_text_length = 50000
         text_for_summary = full_text[:max_text_length]
         if len(full_text) > max_text_length:
             text_for_summary += f"\n\n[文檔被截斷，總長度: {len(full_text)} 字符]"
 
-        prompt = f"""請分析以下文件的領域和主題，生成簡潔的摘要和理解。
+        prompt = f"""你現在是一名專業的文件架構分析師。請閱讀這份文件，並完成以下任務：
 
-文件名：{file_name}
+1. **主題定義**：用一句話概括這份文件的核心主題（例如：國琿機械熱解爐操作手冊）
+2. **結構大綱**：列出文件主要章節與對應的核心邏輯
+3. **關鍵術語**：提取 5-10 個貫穿全文的核心技術術語
+4. **目標受眾**：判斷此文件是給技術員、投資人還是一般用戶看的
 
 文件內容（前 {len(text_for_summary)} 字符）：
 {text_for_summary}
 
-請提供：
-1. 文件的主要領域（例如：食品產業、製造業、能源、企業管理、行政等）
-2. 文件的核心主題和內容（100字以內）
-3. 文件涉及的專業術語和關鍵概念（10-15個）
-4. 文件的應用場景（例如：生產報告、技術文檔、政策文件等）
-
 請以 JSON 格式返回：
 {{
-    "domain": "領域名稱",
-    "summary": "核心主題摘要",
-    "key_concepts": ["概念1", "概念2", ...],
-    "application_scenarios": ["場景1", "場景2", ...]
+    "theme": "核心主題",
+    "structure_outline": [
+        {{"chapter": "章節名稱", "core_logic": "核心邏輯"}}
+    ],
+    "key_terms": ["術語1", "術語2", ...],
+    "target_audience": "技術員/投資人/一般用戶"
 }}"""
 
         moe = LLMMoEManager()
         result = await moe.generate(
             prompt,
-            temperature=0.3,  # 降低隨機性，提高穩定性
-            max_tokens=800,
+            scene="semantic_understanding",
+            temperature=0.3,
+            max_tokens=1000,
             user_id=user_id,
             file_id=file_id,
-            purpose="file_summary",
         )
 
         summary_text = result.get("text") or result.get("content", "")
 
-        # 嘗試解析 JSON
-        import re
-
-        try:
-            json_match = re.search(r"\{[\s\S]*\}", summary_text)
-            if json_match:
-                summary_text = json_match.group(0)
-            # 驗證 JSON 格式
-            json.loads(summary_text)
+        json_match = re.search(r"\{[\s\S]*\}", summary_text)
+        if json_match:
+            summary_json = json.loads(json_match.group(0))
             logger.info(
-                "文件摘要生成成功",
+                f"文件摘要生成成功: theme={summary_json.get('theme', 'N/A')}",
                 file_id=file_id,
-                summary_length=len(summary_text),
+                key_terms_count=len(summary_json.get("key_terms", [])),
             )
-            return summary_text
-        except json.JSONDecodeError:
-            logger.warning(
-                "文件摘要 JSON 解析失敗，使用原始文本",
-                file_id=file_id,
-                summary_preview=summary_text[:200],
-            )
-            return summary_text
+            return summary_json
 
+        logger.warning(
+            "文件摘要 JSON 解析失敗，無法提取結構化摘要",
+            file_id=file_id,
+            summary_preview=summary_text[:200],
+        )
+        return None
+
+    except json.JSONDecodeError as e:
+        logger.warning(
+            "文件摘要 JSON 格式錯誤",
+            file_id=file_id,
+            error=str(e),
+        )
+        return None
     except Exception as e:
         logger.error(
             "生成文件摘要失敗",
@@ -746,7 +787,8 @@ async def process_file_chunking_and_vectorization(
                     logger.info(
                         "文件摘要已生成並保存",
                         file_id=file_id,
-                        summary_length=len(file_summary),
+                        summary_theme=file_summary.get("theme", "N/A"),
+                        key_terms_count=len(file_summary.get("key_terms", [])),
                     )
             except Exception as e:
                 logger.warning(
@@ -882,7 +924,7 @@ async def process_file_chunking_and_vectorization(
                 overall_progress=90,
             )
 
-            vector_store_service = get_vector_store_service()
+            vector_store_service = get_qdrant_vector_store_service()
 
             # 為圖片文件添加圖片路徑到元數據
             if is_image_file and chunks:
@@ -1010,8 +1052,11 @@ async def process_file_chunking_and_vectorization(
                         # 讀取剛寫入的 processing status 取得 remaining_chunks
                         redis_client = get_redis_client()
                         status_key = f"processing:status:{file_id}"
-                        status_raw = redis_client.get(status_key)  # type: ignore[arg-type]  # 同步 Redis，返回 Optional[str]
-                        status_data = json.loads(status_raw) if status_raw else {}  # type: ignore[arg-type]  # status_raw 已檢查不為 None，且 decode_responses=True 返回 str
+                        status_raw = redis_client.get(status_key)
+                        if status_raw:
+                            status_data = json.loads(status_raw)
+                        else:
+                            status_data = {}
                         remaining_chunks = (status_data.get("kg_extraction") or {}).get(
                             "remaining_chunks"
                         ) or []
@@ -1058,7 +1103,18 @@ async def process_file_chunking_and_vectorization(
                             file_id=file_id,
                             error=str(e),
                         )
-                    kg_extraction_success = True
+                    # 檢查是否有剩餘分塊需要續跑
+                    redis_client = get_redis_client()
+                    status_key = f"processing:status:{file_id}"
+                    status_raw = redis_client.get(status_key)
+                    status_data = json.loads(status_raw) if status_raw else {}
+                    remaining_chunks = (status_data.get("kg_extraction") or {}).get(
+                        "remaining_chunks"
+                    ) or []
+                    if remaining_chunks:
+                        kg_extraction_success = False  # 還有剩餘分塊，未完全完成
+                    else:
+                        kg_extraction_success = True  # 完全完成
                 except Exception as e:
                     logger.error(
                         "知識圖譜提取失敗（不影響向量化）",
@@ -1288,7 +1344,7 @@ async def process_vectorization_only(
         )
 
         # ========== 階段2: 清理舊向量（重新生成時）==========
-        vector_store_service = get_vector_store_service()
+        vector_store_service = get_qdrant_vector_store_service()
         try:
             # 檢查是否存在舊向量
             existing_stats = vector_store_service.get_collection_stats(file_id, user_id)
@@ -1462,7 +1518,7 @@ async def _reconstruct_chunks_from_vectors(
         chunks 列表，如果沒有向量數據則返回 None
     """
     try:
-        vector_store_service = get_vector_store_service()
+        vector_store_service = get_qdrant_vector_store_service()
 
         # 獲取所有向量
         vectors = vector_store_service.get_vectors_by_file_id(
@@ -1477,13 +1533,14 @@ async def _reconstruct_chunks_from_vectors(
         # 從向量重構 chunks
         chunks = []
         for vector in vectors:
+            payload = vector.get("payload", {})
             chunk = {
-                "text": vector.get("document", ""),
+                "text": payload.get("chunk_text", ""),
                 "file_id": file_id,
             }
 
-            # 從 metadata 提取信息
-            metadata = vector.get("metadata", {})
+            # 從 payload 提取信息
+            metadata = payload
             if metadata:
                 chunk["chunk_index"] = metadata.get("chunk_index", 0)
                 chunk["content_type"] = metadata.get("content_type", "text")
@@ -1491,7 +1548,20 @@ async def _reconstruct_chunks_from_vectors(
                 # 保留其他元數據
                 chunk_metadata = {}
                 for key, value in metadata.items():
-                    if key not in ["chunk_index", "content_type", "file_id", "user_id"]:
+                    if key not in [
+                        "chunk_index",
+                        "content_type",
+                        "file_id",
+                        "user_id",
+                        "chunk_text",
+                    ]:
+                        if isinstance(value, str) and (
+                            value.startswith("{") or value.startswith("[")
+                        ):
+                            try:
+                                value = json.loads(value)
+                            except (json.JSONDecodeError, ValueError):
+                                pass
                         chunk_metadata[key] = value
 
                 if chunk_metadata:
@@ -1606,6 +1676,7 @@ async def process_kg_extraction(
                     "mode": options.get("mode", "all_chunks"),
                     "job_id": current_job_id,
                 },
+                overall_status="processing",  # 明確設置為 processing，因為還有剩餘分塊
                 overall_progress=95,
             )
         else:
@@ -1958,7 +2029,6 @@ async def process_kg_extraction_only(
             try:
                 from rq import get_current_job
 
-                from database.redis import get_redis_client
                 from database.rq.queue import KG_EXTRACTION_QUEUE, get_task_queue
                 from workers.tasks import process_kg_extraction_only_task
 
@@ -2015,6 +2085,11 @@ async def process_kg_extraction_only(
         # 更新最終狀態為 completed（如果所有階段都完成）
         _update_processing_status(
             file_id=file_id,
+            kg_extraction={
+                "status": "completed",
+                "progress": 100,
+                "message": "知識圖譜提取完成",
+            },
             overall_status="completed",
             overall_progress=100,
             message="圖譜提取處理完成",
@@ -2042,7 +2117,7 @@ async def process_kg_extraction_only(
         raise
 
 
-@router.post("/upload")
+@router.post("/v2/upload")
 @audit_log(
     action=AuditAction.FILE_UPLOAD,
     resource_type="file",
@@ -2105,53 +2180,57 @@ async def upload_files(
     final_folder_id: Optional[str] = target_folder_id
 
     if task_id:
-        # 提供了 task_id，檢查任務是否存在
+        # 提供了 task_id，檢查任務是否存在且屬於當前用戶
         existing_task = task_service.get(
             user_id=current_user.user_id,
             task_id=task_id,
         )
 
         if existing_task is None:
-            # 任務不存在，自動創建新任務及任務工作區
+            # 任務不存在或屬於其他用戶，生成新的 UUID 任務 ID
+            # 修改時間：2026-01-21 - 使用 UUID 避免任務 ID 衝突
+            new_task_id = str(uuid.uuid4())
+
             # 使用第一個文件名（不含擴展名）作為任務標題
             if files and len(files) > 0:
                 first_filename = files[0].filename or "新任務"
-                # 移除文件擴展名作為任務名稱
                 task_title = os.path.splitext(first_filename)[0] or "新任務"
             else:
-                task_title = "新任務"
+                task_title = task_id  # 如果沒有文件名，使用提供的 task_id 作為標題
 
             logger.info(
-                "任務不存在，自動創建新任務及任務工作區",
-                task_id=task_id,
+                "提供的 task_id 不可用，自動創建新任務（使用 UUID）",
+                original_task_id=task_id,
+                new_task_id=new_task_id,
                 user_id=current_user.user_id,
                 task_title=task_title,
             )
+
             try:
                 # 創建新任務（任務工作區會自動創建）
                 task_service.create(
                     UserTaskCreate(
-                        task_id=task_id,
+                        task_id=new_task_id,
                         user_id=current_user.user_id,
                         title=task_title,
                         status="pending",
                         messages=[],
                         fileTree=[],
-                        label_color=None,  # type: ignore[call-arg]  # label_color 有默認值
-                        dueDate=None,  # type: ignore[call-arg]  # dueDate 有默認值
+                        label_color=None,
+                        dueDate=None,
                     )
                 )
-                final_task_id = task_id
+                final_task_id = new_task_id
                 logger.info(
-                    "新任務及任務工作區創建成功",
-                    task_id=task_id,
+                    "新任務創建成功",
+                    task_id=new_task_id,
                     user_id=current_user.user_id,
                     task_title=task_title,
                 )
             except Exception as e:
                 logger.error(
-                    "自動創建任務失敗",
-                    task_id=task_id,
+                    "創建任務失敗",
+                    task_id=new_task_id,
                     user_id=current_user.user_id,
                     error=str(e),
                     exc_info=True,
@@ -2161,10 +2240,10 @@ async def upload_files(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
         else:
-            # 任務已存在，直接使用該任務的任務工作區
+            # 任務已存在且屬於當前用戶，直接使用該任務
             final_task_id = task_id
             logger.debug(
-                "任務已存在，使用現有任務工作區",
+                "任務已存在，使用現有任務",
                 task_id=task_id,
                 user_id=current_user.user_id,
             )
@@ -2172,7 +2251,7 @@ async def upload_files(
         # 檢查任務文件訪問權限
         permission_service.check_task_file_access(
             user=current_user,
-            task_id=task_id,
+            task_id=final_task_id,
             required_permission=Permission.FILE_UPLOAD.value,
         )
     else:
@@ -2338,13 +2417,24 @@ async def upload_files(
                     vector_count=None,  # type: ignore[call-arg]
                     kg_status=None,  # type: ignore[call-arg]
                 )
+                logger.info(
+                    "創建文件元數據",
+                    file_id=file_id,
+                    filename=sanitized_filename,
+                    task_id=final_task_id,
+                    user_id=current_user.user_id,
+                )
                 metadata_service.create(metadata_create)
+                logger.info("文件元數據創建成功", file_id=file_id)
             except Exception as e:
-                logger.warning(
+                logger.error(
                     "元數據創建失敗（文件已上傳）",
                     file_id=file_id,
                     error=str(e),
+                    exc_info=True,
                 )
+                # 重新拋出異常，讓上傳失敗
+                raise
 
             # 構建結果
             result = {
@@ -2487,6 +2577,9 @@ async def upload_files(
         )
     else:
         # 所有文件成功
+        # fileTree 不再緩存到任務文檔中，因此不需要更新
+        # 前端需要 fileTree 時會從 /api/v1/files/tree API 動態獲取
+
         return APIResponse.success(
             data=response_data,
             message=f"所有文件上傳成功（{len(results)} 個文件）",
@@ -3170,7 +3263,7 @@ async def delete_file(
 
         # 1. 刪除ChromaDB中的向量
         try:
-            vector_store_service = get_vector_store_service()
+            vector_store_service = get_qdrant_vector_store_service()
             vector_store_service.delete_vectors_by_file_id(
                 file_id=file_id, user_id=current_user.user_id
             )

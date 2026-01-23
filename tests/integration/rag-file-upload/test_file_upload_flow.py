@@ -49,7 +49,8 @@ def test_upload_file_complete_flow(client, sample_txt_file):
     filename, content, content_type = sample_txt_file
 
     files = {"files": (filename, BytesIO(content), content_type)}
-    response = client.post("/api/v1/files/upload", files=files)
+    # task_id 是必填參數
+    response = client.post("/api/v1/files/upload?task_id=test_task_123", files=files)
 
     assert response.status_code == 200
     data = response.json()
@@ -85,7 +86,7 @@ def test_upload_multiple_files_flow(client, sample_txt_file, sample_pdf_file):
         ),
     ]
 
-    response = client.post("/api/v1/files/upload", files=files)
+    response = client.post("/api/v1/files/upload?task_id=test_task_123", files=files)
 
     assert response.status_code == 200
     data = response.json()
@@ -107,7 +108,7 @@ def test_upload_file_with_metadata(client, sample_txt_file):
     filename, content, content_type = sample_txt_file
 
     files = {"files": (filename, BytesIO(content), content_type)}
-    response = client.post("/api/v1/files/upload", files=files)
+    response = client.post("/api/v1/files/upload?task_id=test_task_123", files=files)
 
     assert response.status_code == 200
     data = response.json()
@@ -128,7 +129,7 @@ def test_upload_file_validation(client):
     content = b"test content"
     files = {"files": ("test.exe", BytesIO(content), "application/x-msdownload")}
 
-    response = client.post("/api/v1/files/upload", files=files)
+    response = client.post("/api/v1/files/upload?task_id=test_task_123", files=files)
 
     # 應該返回錯誤或部分成功
     assert response.status_code in [200, 400]

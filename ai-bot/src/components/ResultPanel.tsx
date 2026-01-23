@@ -286,7 +286,7 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
     setSelectedFile(fileId);
     // 保存 fileName，用於文件預覽時顯示正確的文件名
     setSelectedFileName(fileName || null);
-    
+
     // 嘗試從 fileTreeData 中獲取完整的文件元數據
     let fileMetadata: any = null;
     if (fileTreeData?.data?.tree) {
@@ -298,7 +298,7 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
         }
       }
     }
-    
+
     // 如果沒有找到，嘗試從 fileTree prop 中構建基本元數據
     if (!fileMetadata && fileTree) {
       const fileNode = fileTree.find((node) => node.id === fileId);
@@ -310,16 +310,37 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
         };
       }
     }
-    
-    // 如果還是沒有，使用基本信息構建元數據
+
+    // 如果還是沒有，使用基本信息構建元數據（修改時間：2026-01-21 12:55 UTC+8 - 確保總是構建元數據，避免使用 FileViewer）
     if (!fileMetadata) {
+      // 根據文件名推斷文件類型
+      const lowerFileName = (fileName || fileId).toLowerCase();
+      let inferredFileType = 'unknown';
+      if (lowerFileName.endsWith('.md') || lowerFileName.endsWith('.markdown')) {
+        inferredFileType = 'text/markdown';
+      } else if (lowerFileName.endsWith('.pdf')) {
+        inferredFileType = 'application/pdf';
+      } else if (lowerFileName.endsWith('.docx')) {
+        inferredFileType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      } else if (lowerFileName.endsWith('.doc')) {
+        inferredFileType = 'application/msword';
+      } else if (lowerFileName.endsWith('.xlsx')) {
+        inferredFileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      } else if (lowerFileName.endsWith('.xls')) {
+        inferredFileType = 'application/vnd.ms-excel';
+      }
+
       fileMetadata = {
         file_id: fileId,
         filename: fileName || fileId,
-        file_type: fileName?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'unknown',
+        file_type: inferredFileType,
+        file_size: 0, // 未知大小
+        tags: [],
+        upload_time: new Date().toISOString(),
       };
     }
-    
+
+    console.log('[ResultPanel] Setting selectedFileMetadata:', fileMetadata);
     setSelectedFileMetadata(fileMetadata);
     setShowFilePreview(true);
     setActiveTab('preview');
@@ -885,12 +906,22 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
             );
           }
 
-          // 如果有完整的文件元數據，使用 FilePreview（支持向量和图谱查看）
-          // 否則使用 FileViewer（僅顯示文件內容）
-          if (selectedFileMetadata) {
+          // 修改時間：2026-01-21 12:55 UTC+8 - 總是使用 FilePreview（支持向量和图谱查看）
+          // 如果沒有元數據，構建基本元數據
+          const fileMetadataToUse = selectedFileMetadata || (selectedFile ? {
+            file_id: selectedFile,
+            filename: displayFileName || selectedFile,
+            file_type: displayFileName?.toLowerCase().endsWith('.md') ? 'text/markdown' : 'unknown',
+            file_size: 0,
+            tags: [],
+            upload_time: new Date().toISOString(),
+          } : null);
+
+          if (fileMetadataToUse) {
+            console.log('[ResultPanel] Using FilePreview with metadata:', fileMetadataToUse);
             return (
               <FilePreview
-                file={selectedFileMetadata}
+                file={fileMetadataToUse}
                 isOpen={showFilePreview}
                 onClose={() => {
                   setShowFilePreview(false);
@@ -900,8 +931,9 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
               />
             );
           }
-          
-          // 向後兼容：如果沒有元數據，使用 FileViewer
+
+          // 向後兼容：如果無法構建元數據，使用 FileViewer（僅顯示文件內容）
+          console.log('[ResultPanel] Falling back to FileViewer (no metadata available)');
           return (
           <FileViewer
             fileUrl={getFileUrl(selectedFile)}

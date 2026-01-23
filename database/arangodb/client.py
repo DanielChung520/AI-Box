@@ -8,17 +8,21 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import structlog
 from arango import ArangoClient
 from arango.database import StandardDatabase
 from arango.http import DefaultHTTPClient
+from dotenv import load_dotenv
 from tenacity import Retrying, stop_after_attempt, wait_exponential
 
 from .settings import ArangoDBSettings, load_arangodb_settings
 
 logger = structlog.get_logger(__name__)
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / ".env")
 
 
 class ArangoDBClient:
@@ -243,9 +247,7 @@ class ArangoDBClient:
                 results = list(cursor)  # type: ignore[arg-type]
             else:
                 results = cursor if isinstance(cursor, list) else []
-            cursor_count = (
-                cursor.count() if hasattr(cursor, "count") and count else None
-            )  # type: ignore[union-attr]
+            cursor_count = cursor.count() if hasattr(cursor, "count") and count else None  # type: ignore[union-attr]
             self.logger.debug(
                 "aql_executed",
                 rows=len(results),

@@ -1220,12 +1220,10 @@ export default function ChatInput({
         },
       };
 
-      // 先創建任務，確保任務ID已生成並保存到後台
-      // 使用 await 確保任務創建完成後再上傳文件
+      // 先創建任務，確保任務ID已生成並保存到後端
       try {
         await onTaskCreate(createdTask);
-        // 等待任務保存完成（給後台同步一些時間）
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // saveTask 現在會等待後端同步完成，不需要額外等待
         finalTaskId = String(newTaskId);
       } catch (error) {
         console.error('[ChatInput] Failed to create task:', error);
@@ -1260,7 +1258,7 @@ export default function ChatInput({
       if (onTaskCreate) {
         try {
           await onTaskCreate(newTask);
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // saveTask 現在會等待後端同步完成，不需要額外等待
           finalTaskId = String(newTaskId);
         } catch (error) {
           console.error('[ChatInput] Failed to create task:', error);

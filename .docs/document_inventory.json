@@ -1,0 +1,2344 @@
+{
+  "generated_at": "2026-01-20T22:06:12.903547",
+  "total_documents": 333,
+  "by_category": {
+    "03-開發指南": 105,
+    "01-系統架構": 177,
+    "05-測試報告": 5,
+    "04-運維文檔": 3,
+    "99-歷史歸檔": 43
+  },
+  "all_documents": [
+    {
+      "path": "开发进度/组件开发状态对比.md",
+      "category": "03-開發指南",
+      "filename": "组件开发状态对比.md",
+      "size": 5815,
+      "mtime": "2025-12-25T10:25:18.250249"
+    },
+    {
+      "path": "开发进度/问题诊断-HCI查询无响应.md",
+      "category": "03-開發指南",
+      "filename": "问题诊断-HCI查询无响应.md",
+      "size": 6284,
+      "mtime": "2025-12-31T16:30:30.258869"
+    },
+    {
+      "path": "开发进度/架构对比分析-ChatGPT优化流程.md",
+      "category": "03-開發指南",
+      "filename": "架构对比分析-ChatGPT优化流程.md",
+      "size": 9321,
+      "mtime": "2025-12-31T16:30:30.258708"
+    },
+    {
+      "path": "开发进度/方案2实施报告_NER模型参数优化.md",
+      "category": "03-開發指南",
+      "filename": "方案2实施报告_NER模型参数优化.md",
+      "size": 5492,
+      "mtime": "2026-01-03T23:44:25.328300"
+    },
+    {
+      "path": "开发进度/MCP系统概况.md",
+      "category": "03-開發指南",
+      "filename": "MCP系统概况.md",
+      "size": 13551,
+      "mtime": "2025-12-31T16:30:30.258537"
+    },
+    {
+      "path": "开发进度/问题诊断-时间查询应该使用datetime工具.md",
+      "category": "03-開發指南",
+      "filename": "问题诊断-时间查询应该使用datetime工具.md",
+      "size": 4377,
+      "mtime": "2025-12-31T16:30:30.258952"
+    },
+    {
+      "path": "开发进度/混合策略實施總結.md",
+      "category": "03-開發指南",
+      "filename": "混合策略實施總結.md",
+      "size": 6320,
+      "mtime": "2026-01-05T13:40:23.414441"
+    },
+    {
+      "path": "开发进度/README.md",
+      "category": "03-開發指南",
+      "filename": "README.md",
+      "size": 4580,
+      "mtime": "2025-12-25T10:25:18.470766"
+    },
+    {
+      "path": "开发进度/系统意图分析与决策流程分析.md",
+      "category": "03-開發指南",
+      "filename": "系统意图分析与决策流程分析.md",
+      "size": 32348,
+      "mtime": "2025-12-31T16:30:30.258789"
+    },
+    {
+      "path": "开发进度/文件创建流程追踪.md",
+      "category": "03-開發指南",
+      "filename": "文件创建流程追踪.md",
+      "size": 11497,
+      "mtime": "2026-01-07T14:11:31.423843"
+    },
+    {
+      "path": "开发进度/问题诊断-股價查询应该fallback到WebSearch.md",
+      "category": "03-開發指南",
+      "filename": "问题诊断-股價查询应该fallback到WebSearch.md",
+      "size": 4824,
+      "mtime": "2025-12-31T16:30:30.259032"
+    },
+    {
+      "path": "开发进度/架构实现说明-Layer0路由逻辑.md",
+      "category": "03-開發指南",
+      "filename": "架构实现说明-Layer0路由逻辑.md",
+      "size": 4190,
+      "mtime": "2025-12-31T16:30:30.258613"
+    },
+    {
+      "path": "开发进度/MCP工具系统增强完成报告.md",
+      "category": "03-開發指南",
+      "filename": "MCP工具系统增强完成报告.md",
+      "size": 6119,
+      "mtime": "2025-12-31T16:30:30.258440"
+    },
+    {
+      "path": "开发进度/时间工具调用与时区配置追踪.md",
+      "category": "03-開發指南",
+      "filename": "时间工具调用与时区配置追踪.md",
+      "size": 16875,
+      "mtime": "2026-01-07T14:11:31.369172"
+    },
+    {
+      "path": "开发进度/任务分析流程追踪.md",
+      "category": "03-開發指南",
+      "filename": "任务分析流程追踪.md",
+      "size": 7252,
+      "mtime": "2025-12-30T21:00:35.063735"
+    },
+    {
+      "path": "开发进度/测试计划.md",
+      "category": "03-開發指南",
+      "filename": "测试计划.md",
+      "size": 2804,
+      "mtime": "2025-12-25T10:25:18.266752"
+    },
+    {
+      "path": "问题分析/ERR_1579错误分析与解决方案.md",
+      "category": "01-系統架構",
+      "filename": "ERR_1579错误分析与解决方案.md",
+      "size": 9201,
+      "mtime": "2026-01-03T08:26:19.980930"
+    },
+    {
+      "path": "问题分析/ERR_1579修复与数据重新生成完整报告.md",
+      "category": "01-系統架構",
+      "filename": "ERR_1579修复与数据重新生成完整报告.md",
+      "size": 9019,
+      "mtime": "2026-01-03T09:41:12.207439"
+    },
+    {
+      "path": "问题分析/實體匹配問題分析.md",
+      "category": "01-系統架構",
+      "filename": "實體匹配問題分析.md",
+      "size": 6119,
+      "mtime": "2026-01-05T13:32:39.230767"
+    },
+    {
+      "path": "系统设计文档/安全架构说明.md",
+      "category": "01-系統架構",
+      "filename": "安全架构说明.md",
+      "size": 18342,
+      "mtime": "2025-12-24T19:16:56.581640"
+    },
+    {
+      "path": "系统设计文档/架构风险评估报告.md",
+      "category": "01-系統架構",
+      "filename": "架构风险评估报告.md",
+      "size": 16726,
+      "mtime": "2025-12-25T11:48:20.735692"
+    },
+    {
+      "path": "系统设计文档/配置优先级逻辑分析.md",
+      "category": "01-系統架構",
+      "filename": "配置优先级逻辑分析.md",
+      "size": 4187,
+      "mtime": "2026-01-04T09:28:37.243364"
+    },
+    {
+      "path": "系统设计文档/代碼管制表.md",
+      "category": "01-系統架構",
+      "filename": "代碼管制表.md",
+      "size": 135197,
+      "mtime": "2025-12-29T20:27:15.175517"
+    },
+    {
+      "path": "系统设计文档/统一服务指南.md",
+      "category": "01-系統架構",
+      "filename": "统一服务指南.md",
+      "size": 3059,
+      "mtime": "2025-12-25T10:23:54.993382"
+    },
+    {
+      "path": "系统设计文档/配置逻辑和Prompt模板确认报告.md",
+      "category": "01-系統架構",
+      "filename": "配置逻辑和Prompt模板确认报告.md",
+      "size": 9295,
+      "mtime": "2026-01-04T09:28:37.243366"
+    },
+    {
+      "path": "系统设计文档/README.md",
+      "category": "01-系統架構",
+      "filename": "README.md",
+      "size": 18850,
+      "mtime": "2026-01-13T21:15:03.673427"
+    },
+    {
+      "path": "系统设计文档/目录结构说明.md",
+      "category": "01-系統架構",
+      "filename": "目录结构说明.md",
+      "size": 49350,
+      "mtime": "2025-12-29T20:27:00.408249"
+    },
+    {
+      "path": "系统设计文档/任务队列系统指南.md",
+      "category": "01-系統架構",
+      "filename": "任务队列系统指南.md",
+      "size": 23759,
+      "mtime": "2025-12-24T19:16:56.581928"
+    },
+    {
+      "path": "系统设计文档/开发环境设置指南.md",
+      "category": "01-系統架構",
+      "filename": "开发环境设置指南.md",
+      "size": 6476,
+      "mtime": "2025-12-29T20:27:10.484999"
+    },
+    {
+      "path": "系统设计文档/系统价值与独特性.md",
+      "category": "01-系統架構",
+      "filename": "系统价值与独特性.md",
+      "size": 13902,
+      "mtime": "2025-12-25T10:25:18.456686"
+    },
+    {
+      "path": "系统设计文档/项目结构说明.md",
+      "category": "01-系統架構",
+      "filename": "项目结构说明.md",
+      "size": 10529,
+      "mtime": "2025-12-24T19:16:56.581051"
+    },
+    {
+      "path": "系统设计文档/仪表板使用指南.md",
+      "category": "01-系統架構",
+      "filename": "仪表板使用指南.md",
+      "size": 2840,
+      "mtime": "2025-12-25T10:21:58.305596"
+    },
+    {
+      "path": "测试报告/API启动循环导入问题修复报告.md",
+      "category": "05-測試報告",
+      "filename": "API启动循环导入问题修复报告.md",
+      "size": 5484,
+      "mtime": "2026-01-12T15:37:15.531779"
+    },
+    {
+      "path": "测试报告/阶段六-回归测试报告.md",
+      "category": "05-測試報告",
+      "filename": "阶段六-回归测试报告.md",
+      "size": 2952,
+      "mtime": "2026-01-12T15:05:54.411196"
+    },
+    {
+      "path": "测试报告/阶段六-集成测试报告.md",
+      "category": "05-測試報告",
+      "filename": "阶段六-集成测试报告.md",
+      "size": 2334,
+      "mtime": "2026-01-12T15:05:30.860833"
+    },
+    {
+      "path": "测试报告/v4测试前准备检查报告.md",
+      "category": "05-測試報告",
+      "filename": "v4测试前准备检查报告.md",
+      "size": 8835,
+      "mtime": "2026-01-12T15:29:07.007566"
+    },
+    {
+      "path": "测试报告/阶段六-性能测试报告.md",
+      "category": "05-測試報告",
+      "filename": "阶段六-性能测试报告.md",
+      "size": 2656,
+      "mtime": "2026-01-12T15:05:43.470333"
+    },
+    {
+      "path": "宣傳文檔/AI-Box系统宣传文档.md",
+      "category": "01-系統架構",
+      "filename": "AI-Box系统宣传文档.md",
+      "size": 16139,
+      "mtime": "2026-01-19T14:51:43.530290"
+    },
+    {
+      "path": "宣傳文檔/AI产品宣传网页规划.md",
+      "category": "01-系統架構",
+      "filename": "AI产品宣传网页规划.md",
+      "size": 53502,
+      "mtime": "2026-01-19T15:06:54.962514"
+    },
+    {
+      "path": "宣傳文檔/產品宣傳簡介.md",
+      "category": "01-系統架構",
+      "filename": "產品宣傳簡介.md",
+      "size": 14133,
+      "mtime": "2026-01-19T14:02:54.315701"
+    },
+    {
+      "path": "运维文档/task-analyzer-deployment-guide.md",
+      "category": "04-運維文檔",
+      "filename": "task-analyzer-deployment-guide.md",
+      "size": 6816,
+      "mtime": "2026-01-13T13:33:46.093165"
+    },
+    {
+      "path": "运维文档/文件編輯-Agent-v2-故障排查.md",
+      "category": "04-運維文檔",
+      "filename": "文件編輯-Agent-v2-故障排查.md",
+      "size": 9377,
+      "mtime": "2026-01-12T11:41:52.448458"
+    },
+    {
+      "path": "运维文档/文件編輯-Agent-v2-部署指南.md",
+      "category": "04-運維文檔",
+      "filename": "文件編輯-Agent-v2-部署指南.md",
+      "size": 7964,
+      "mtime": "2026-01-11T16:07:16.073160"
+    },
+    {
+      "path": "開發過程文件/階段二測試數據清理報告.md",
+      "category": "03-開發指南",
+      "filename": "階段二測試數據清理報告.md",
+      "size": 5496,
+      "mtime": "2026-01-02T16:02:17.949258"
+    },
+    {
+      "path": "開發過程文件/恢復歸檔任務指南.md",
+      "category": "03-開發指南",
+      "filename": "恢復歸檔任務指南.md",
+      "size": 4486,
+      "mtime": "2025-12-24T19:16:56.581514"
+    },
+    {
+      "path": "開發過程文件/重構日誌.md",
+      "category": "03-開發指南",
+      "filename": "重構日誌.md",
+      "size": 16026,
+      "mtime": "2025-12-24T19:16:56.581331"
+    },
+    {
+      "path": "開發過程文件/用戶任務故障排查指南.md",
+      "category": "03-開發指南",
+      "filename": "用戶任務故障排查指南.md",
+      "size": 7404,
+      "mtime": "2025-12-24T19:16:56.582250"
+    },
+    {
+      "path": "開發過程文件/文件存儲配置檢查報告.md",
+      "category": "03-開發指南",
+      "filename": "文件存儲配置檢查報告.md",
+      "size": 5775,
+      "mtime": "2026-01-02T15:54:44.555299"
+    },
+    {
+      "path": "開發過程文件/文件授權管理實施計劃.md",
+      "category": "03-開發指南",
+      "filename": "文件授權管理實施計劃.md",
+      "size": 34757,
+      "mtime": "2026-01-02T18:48:57.234453"
+    },
+    {
+      "path": "開發過程文件/目錄重構計劃.md",
+      "category": "03-開發指南",
+      "filename": "目錄重構計劃.md",
+      "size": 21197,
+      "mtime": "2025-12-24T19:16:56.577990"
+    },
+    {
+      "path": "開發過程文件/Worker啟動指南.md",
+      "category": "03-開發指南",
+      "filename": "Worker啟動指南.md",
+      "size": 6450,
+      "mtime": "2025-12-24T19:16:56.582428"
+    },
+    {
+      "path": "開發過程文件/重複功能檢查報告.md",
+      "category": "03-開發指南",
+      "filename": "重複功能檢查報告.md",
+      "size": 5490,
+      "mtime": "2025-12-24T19:16:56.584402"
+    },
+    {
+      "path": "開發過程文件/Docker環境配置檢查報告.md",
+      "category": "03-開發指南",
+      "filename": "Docker環境配置檢查報告.md",
+      "size": 8538,
+      "mtime": "2025-12-24T19:16:56.578415"
+    },
+    {
+      "path": "開發過程文件/項目控制表.md",
+      "category": "03-開發指南",
+      "filename": "項目控制表.md",
+      "size": 54163,
+      "mtime": "2025-12-24T19:16:56.580860"
+    },
+    {
+      "path": "开发过程文件/项目文件整理总结_2026-01-05.md",
+      "category": "01-系統架構",
+      "filename": "项目文件整理总结_2026-01-05.md",
+      "size": 8828,
+      "mtime": "2026-01-05T00:27:08.395481"
+    },
+    {
+      "path": "开发过程文件/项目整理说明.md",
+      "category": "01-系統架構",
+      "filename": "项目整理说明.md",
+      "size": 9354,
+      "mtime": "2026-01-05T00:19:02.271539"
+    },
+    {
+      "path": "api/task-analyzer-api.md",
+      "category": "01-系統架構",
+      "filename": "task-analyzer-api.md",
+      "size": 9244,
+      "mtime": "2026-01-13T13:33:46.091933"
+    },
+    {
+      "path": "api/orchestrator-api.md",
+      "category": "01-系統架構",
+      "filename": "orchestrator-api.md",
+      "size": 4126,
+      "mtime": "2026-01-13T13:33:46.091772"
+    },
+    {
+      "path": "api/document-editing-agent-v2-api.md",
+      "category": "01-系統架構",
+      "filename": "document-editing-agent-v2-api.md",
+      "size": 14789,
+      "mtime": "2026-01-11T16:04:28.649317"
+    },
+    {
+      "path": "開發規範/pyproject.toml配置說明.md",
+      "category": "01-系統架構",
+      "filename": "pyproject.toml配置說明.md",
+      "size": 8424,
+      "mtime": "2025-12-24T19:16:56.609250"
+    },
+    {
+      "path": "開發規範/AI編寫代碼規範指南.md",
+      "category": "01-系統架構",
+      "filename": "AI編寫代碼規範指南.md",
+      "size": 7937,
+      "mtime": "2025-12-24T19:16:56.608352"
+    },
+    {
+      "path": "開發規範/代碼質量問題分析與解決方案.md",
+      "category": "01-系統架構",
+      "filename": "代碼質量問題分析與解決方案.md",
+      "size": 10190,
+      "mtime": "2025-12-24T19:16:56.609428"
+    },
+    {
+      "path": "開發規範/mypy錯誤處理策略.md",
+      "category": "01-系統架構",
+      "filename": "mypy錯誤處理策略.md",
+      "size": 6307,
+      "mtime": "2025-12-24T19:16:56.608943"
+    },
+    {
+      "path": "開發規範/YAML文件修復報告.md",
+      "category": "01-系統架構",
+      "filename": "YAML文件修復報告.md",
+      "size": 3663,
+      "mtime": "2025-12-24T19:16:56.608654"
+    },
+    {
+      "path": "開發規範/最終提交指南.md",
+      "category": "01-系統架構",
+      "filename": "最終提交指南.md",
+      "size": 3753,
+      "mtime": "2025-12-24T19:16:56.609926"
+    },
+    {
+      "path": "開發規範/配置調整總結.md",
+      "category": "01-系統架構",
+      "filename": "配置調整總結.md",
+      "size": 3062,
+      "mtime": "2025-12-24T19:16:56.610173"
+    },
+    {
+      "path": "開發規範/提交優化指南.md",
+      "category": "01-系統架構",
+      "filename": "提交優化指南.md",
+      "size": 4565,
+      "mtime": "2025-12-24T19:16:56.577559"
+    },
+    {
+      "path": "開發規範/check-yaml錯誤修復說明.md",
+      "category": "01-系統架構",
+      "filename": "check-yaml錯誤修復說明.md",
+      "size": 3376,
+      "mtime": "2025-12-24T19:16:56.608763"
+    },
+    {
+      "path": "開發規範/修復完成報告.md",
+      "category": "01-系統架構",
+      "filename": "修復完成報告.md",
+      "size": 4122,
+      "mtime": "2025-12-24T19:16:56.609627"
+    },
+    {
+      "path": "開發規範/Git分支策略.md",
+      "category": "01-系統架構",
+      "filename": "Git分支策略.md",
+      "size": 1862,
+      "mtime": "2025-12-24T19:16:56.577360"
+    },
+    {
+      "path": "開發規範/刪除文件時pre-commit檢查說明.md",
+      "category": "01-系統架構",
+      "filename": "刪除文件時pre-commit檢查說明.md",
+      "size": 4598,
+      "mtime": "2025-12-24T19:16:56.609825"
+    },
+    {
+      "path": "開發規範/DevSecOps開發指南.md",
+      "category": "01-系統架構",
+      "filename": "DevSecOps開發指南.md",
+      "size": 5021,
+      "mtime": "2026-01-13T13:33:46.093283"
+    },
+    {
+      "path": "開發規範/推送至GitHub指南.md",
+      "category": "01-系統架構",
+      "filename": "推送至GitHub指南.md",
+      "size": 3242,
+      "mtime": "2025-12-24T19:16:56.581194"
+    },
+    {
+      "path": "開發規範/FastAPI啟動錯誤修復報告.md",
+      "category": "01-系統架構",
+      "filename": "FastAPI啟動錯誤修復報告.md",
+      "size": 4976,
+      "mtime": "2025-12-24T19:16:56.608559"
+    },
+    {
+      "path": "開發規範/自動修正機制說明.md",
+      "category": "01-系統架構",
+      "filename": "自動修正機制說明.md",
+      "size": 8255,
+      "mtime": "2025-12-24T19:16:56.610082"
+    },
+    {
+      "path": "開發規範/GitHub設置指南.md",
+      "category": "01-系統架構",
+      "filename": "GitHub設置指南.md",
+      "size": 3060,
+      "mtime": "2025-12-24T19:16:56.581804"
+    },
+    {
+      "path": "開發規範/mypy高優先級錯誤修復進度.md",
+      "category": "01-系統架構",
+      "filename": "mypy高優先級錯誤修復進度.md",
+      "size": 30712,
+      "mtime": "2025-12-24T19:16:56.609069"
+    },
+    {
+      "path": "用户指南/文件編輯-Agent-v2-使用指南.md",
+      "category": "01-系統架構",
+      "filename": "文件編輯-Agent-v2-使用指南.md",
+      "size": 7962,
+      "mtime": "2026-01-11T16:06:11.252610"
+    },
+    {
+      "path": "用户指南/文件編輯-Agent-v2-最佳實踐.md",
+      "category": "01-系統架構",
+      "filename": "文件編輯-Agent-v2-最佳實踐.md",
+      "size": 6862,
+      "mtime": "2026-01-11T16:06:37.273989"
+    },
+    {
+      "path": "用户指南/task-analyzer-user-guide.md",
+      "category": "01-系統架構",
+      "filename": "task-analyzer-user-guide.md",
+      "size": 3498,
+      "mtime": "2026-01-12T15:04:55.596459"
+    },
+    {
+      "path": "備份與歸檔/start_services脚本更新说明.md",
+      "category": "99-歷史歸檔",
+      "filename": "start_services脚本更新说明.md",
+      "size": 5137,
+      "mtime": "2026-01-01T12:53:26.405983"
+    },
+    {
+      "path": "備份與歸檔/Cloudflare-手动操作清单.md",
+      "category": "99-歷史歸檔",
+      "filename": "Cloudflare-手动操作清单.md",
+      "size": 15343,
+      "mtime": "2025-12-31T16:30:30.259212"
+    },
+    {
+      "path": "備份與歸檔/Cloudflare-生产环境迁移指南.md",
+      "category": "99-歷史歸檔",
+      "filename": "Cloudflare-生产环境迁移指南.md",
+      "size": 14921,
+      "mtime": "2025-12-31T16:30:30.259286"
+    },
+    {
+      "path": "備份與歸檔/AI編寫代碼規範指南.md",
+      "category": "99-歷史歸檔",
+      "filename": "AI編寫代碼規範指南.md",
+      "size": 7937,
+      "mtime": "2025-12-19T22:24:06.510510"
+    },
+    {
+      "path": "備份與歸檔/SeaweedFS部署完成報告.md",
+      "category": "99-歷史歸檔",
+      "filename": "SeaweedFS部署完成報告.md",
+      "size": 8015,
+      "mtime": "2025-12-29T22:41:55.468609"
+    },
+    {
+      "path": "備份與歸檔/DataLake數據遷移指南.md",
+      "category": "99-歷史歸檔",
+      "filename": "DataLake數據遷移指南.md",
+      "size": 3956,
+      "mtime": "2025-12-29T20:27:15.192578"
+    },
+    {
+      "path": "備份與歸檔/上傳的功能架構說明-v3.0.md",
+      "category": "99-歷史歸檔",
+      "filename": "上傳的功能架構說明-v3.0.md",
+      "size": 106305,
+      "mtime": "2026-01-20T11:46:42.437423"
+    },
+    {
+      "path": "備份與歸檔/文件遷移指南.md",
+      "category": "99-歷史歸檔",
+      "filename": "文件遷移指南.md",
+      "size": 6109,
+      "mtime": "2025-12-29T20:27:14.809568"
+    },
+    {
+      "path": "備份與歸檔/mypy錯誤處理策略.md",
+      "category": "99-歷史歸檔",
+      "filename": "mypy錯誤處理策略.md",
+      "size": 6307,
+      "mtime": "2025-12-19T22:24:06.537088"
+    },
+    {
+      "path": "備份與歸檔/登录API问题修复报告.md",
+      "category": "99-歷史歸檔",
+      "filename": "登录API问题修复报告.md",
+      "size": 6447,
+      "mtime": "2026-01-01T12:53:26.405972"
+    },
+    {
+      "path": "備份與歸檔/ruff-mypy錯誤報告.md",
+      "category": "99-歷史歸檔",
+      "filename": "ruff-mypy錯誤報告.md",
+      "size": 10229,
+      "mtime": "2025-12-19T22:24:06.574324"
+    },
+    {
+      "path": "備份與歸檔/修復完成報告.md",
+      "category": "99-歷史歸檔",
+      "filename": "修復完成報告.md",
+      "size": 4122,
+      "mtime": "2025-12-19T22:24:06.510138"
+    },
+    {
+      "path": "備份與歸檔/為什麼還有很多錯誤.md",
+      "category": "99-歷史歸檔",
+      "filename": "為什麼還有很多錯誤.md",
+      "size": 7949,
+      "mtime": "2025-12-19T22:24:06.519755"
+    },
+    {
+      "path": "備份與歸檔/genai-document-editing-mvp_dbce30de.plan.md",
+      "category": "99-歷史歸檔",
+      "filename": "genai-document-editing-mvp_dbce30de.plan.md",
+      "size": 5478,
+      "mtime": "2025-12-24T19:16:56.578645"
+    },
+    {
+      "path": "備份與歸檔/意圖及任務分析討論稿.md",
+      "category": "99-歷史歸檔",
+      "filename": "意圖及任務分析討論稿.md",
+      "size": 23193,
+      "mtime": "2025-12-30T21:00:34.981349"
+    },
+    {
+      "path": "備份與歸檔/文件引用檢查報告.md",
+      "category": "99-歷史歸檔",
+      "filename": "文件引用檢查報告.md",
+      "size": 2872,
+      "mtime": "2025-12-25T20:47:36.285536"
+    },
+    {
+      "path": "備份與歸檔/系统部署检查报告.md",
+      "category": "99-歷史歸檔",
+      "filename": "系统部署检查报告.md",
+      "size": 10678,
+      "mtime": "2026-01-01T12:53:26.394296"
+    },
+    {
+      "path": "備份與歸檔/Docker服务状态报告.md",
+      "category": "99-歷史歸檔",
+      "filename": "Docker服务状态报告.md",
+      "size": 6402,
+      "mtime": "2025-12-29T22:41:55.468453"
+    },
+    {
+      "path": "備份與歸檔/mypy錯誤分析與配置調整.md",
+      "category": "99-歷史歸檔",
+      "filename": "mypy錯誤分析與配置調整.md",
+      "size": 8634,
+      "mtime": "2025-12-19T22:24:06.558608"
+    },
+    {
+      "path": "備份與歸檔/IEE編輯器可行性分析報告.md",
+      "category": "99-歷史歸檔",
+      "filename": "IEE編輯器可行性分析報告.md",
+      "size": 11157,
+      "mtime": "2025-12-24T19:16:56.579316"
+    },
+    {
+      "path": "備份與歸檔/mypy配置調整完成報告.md",
+      "category": "99-歷史歸檔",
+      "filename": "mypy配置調整完成報告.md",
+      "size": 6006,
+      "mtime": "2025-12-19T22:24:06.530279"
+    },
+    {
+      "path": "備份與歸檔/mypy高優先級錯誤修復進度.md",
+      "category": "99-歷史歸檔",
+      "filename": "mypy高優先級錯誤修復進度.md",
+      "size": 30712,
+      "mtime": "2025-12-19T22:24:06.546922"
+    },
+    {
+      "path": "系统设计文档/IEE前端系統/IEE前端系统.md",
+      "category": "01-系統架構",
+      "filename": "IEE前端系统.md",
+      "size": 3997,
+      "mtime": "2026-01-13T21:15:49.168626"
+    },
+    {
+      "path": "系统设计文档/IEE前端系統/前端代理展示區設計規格計劃書.md",
+      "category": "01-系統架構",
+      "filename": "前端代理展示區設計規格計劃書.md",
+      "size": 49741,
+      "mtime": "2026-01-14T16:47:36.457870"
+    },
+    {
+      "path": "系统设计文档/核心组件/Gemini模型名称问题分析.md",
+      "category": "01-系統架構",
+      "filename": "Gemini模型名称问题分析.md",
+      "size": 4098,
+      "mtime": "2026-01-04T01:03:54.164550"
+    },
+    {
+      "path": "系统设计文档/核心组件/README.md",
+      "category": "01-系統架構",
+      "filename": "README.md",
+      "size": 2758,
+      "mtime": "2026-01-20T02:48:03.559378"
+    },
+    {
+      "path": "系统设计文档/核心组件/MoE系统.md",
+      "category": "01-系統架構",
+      "filename": "MoE系统.md",
+      "size": 4768,
+      "mtime": "2026-01-18T20:40:41.594827"
+    },
+    {
+      "path": "系统设计文档/核心组件/日志存储格式说明.md",
+      "category": "01-系統架構",
+      "filename": "日志存储格式说明.md",
+      "size": 8059,
+      "mtime": "2025-12-29T20:27:15.188330"
+    },
+    {
+      "path": "系统设计文档/核心组件/Personal-Data-RoLA.md",
+      "category": "01-系統架構",
+      "filename": "Personal-Data-RoLA.md",
+      "size": 1534,
+      "mtime": "2025-12-25T10:25:18.409344"
+    },
+    {
+      "path": "系统设计文档/核心组件/LLM模型列表.md",
+      "category": "01-系統架構",
+      "filename": "LLM模型列表.md",
+      "size": 22083,
+      "mtime": "2026-01-15T01:16:48.544477"
+    },
+    {
+      "path": "系统设计文档/核心组件/前端助理管理系統.md",
+      "category": "01-系統架構",
+      "filename": "前端助理管理系統.md",
+      "size": 16380,
+      "mtime": "2026-01-13T21:15:04.687525"
+    },
+    {
+      "path": "系统设计文档/核心组件/AAM系统.md",
+      "category": "01-系統架構",
+      "filename": "AAM系统.md",
+      "size": 13494,
+      "mtime": "2026-01-01T20:46:17.630323"
+    },
+    {
+      "path": "系统设计文档/tools/System-Config-存储位置说明.md",
+      "category": "01-系統架構",
+      "filename": "System-Config-存储位置说明.md",
+      "size": 9558,
+      "mtime": "2025-12-30T21:00:28.022611"
+    },
+    {
+      "path": "系统设计文档/tools/工具註冊清單說明.md",
+      "category": "01-系統架構",
+      "filename": "工具註冊清單說明.md",
+      "size": 14657,
+      "mtime": "2025-12-30T21:00:35.010720"
+    },
+    {
+      "path": "系统设计文档/tools/工具使用指南.md",
+      "category": "01-系統架構",
+      "filename": "工具使用指南.md",
+      "size": 15924,
+      "mtime": "2025-12-30T21:00:34.987762"
+    },
+    {
+      "path": "系统设计文档/tools/工具API文档.md",
+      "category": "01-系統架構",
+      "filename": "工具API文档.md",
+      "size": 28272,
+      "mtime": "2025-12-30T21:00:35.048865"
+    },
+    {
+      "path": "系统设计文档/tools/ArangoDB-Web-UI-访问指南.md",
+      "category": "01-系統架構",
+      "filename": "ArangoDB-Web-UI-访问指南.md",
+      "size": 4670,
+      "mtime": "2025-12-25T10:22:00.052807"
+    },
+    {
+      "path": "系统设计文档/tools/Web搜索工具ArangoDB注册说明.md",
+      "category": "01-系統架構",
+      "filename": "Web搜索工具ArangoDB注册说明.md",
+      "size": 8211,
+      "mtime": "2025-12-30T21:00:35.069889"
+    },
+    {
+      "path": "系统设计文档/tools/Web搜索工具环境变量配置说明.md",
+      "category": "01-系統架構",
+      "filename": "Web搜索工具环境变量配置说明.md",
+      "size": 4633,
+      "mtime": "2025-12-30T21:00:34.963152"
+    },
+    {
+      "path": "系统设计文档/tools/Web搜索工具实现说明.md",
+      "category": "01-系統架構",
+      "filename": "Web搜索工具实现说明.md",
+      "size": 7455,
+      "mtime": "2025-12-30T21:00:34.977881"
+    },
+    {
+      "path": "系统设计文档/tools/工具組開發規格.md",
+      "category": "01-系統架構",
+      "filename": "工具組開發規格.md",
+      "size": 30534,
+      "mtime": "2025-12-30T21:00:34.993818"
+    },
+    {
+      "path": "系统设计文档/tools/工具組需求分析.md",
+      "category": "01-系統架構",
+      "filename": "工具組需求分析.md",
+      "size": 15345,
+      "mtime": "2025-12-30T21:00:35.010952"
+    },
+    {
+      "path": "系统设计文档/datasets/arangodb-kg-schema.md",
+      "category": "01-系統架構",
+      "filename": "arangodb-kg-schema.md",
+      "size": 3440,
+      "mtime": "2025-12-25T10:25:18.218696"
+    },
+    {
+      "path": "系统设计文档/datasets/arangodb-data-structure.md",
+      "category": "01-系統架構",
+      "filename": "arangodb-data-structure.md",
+      "size": 13914,
+      "mtime": "2025-12-24T19:16:56.583179"
+    },
+    {
+      "path": "系统设计文档/參考文件/AAM-(AI-Augmented-Memory).md",
+      "category": "01-系統架構",
+      "filename": "AAM-(AI-Augmented-Memory).md",
+      "size": 43213,
+      "mtime": "2025-12-25T20:48:21.885644"
+    },
+    {
+      "path": "系统设计文档/參考文件/AI-Box系统资产鉴价报告.md",
+      "category": "01-系統架構",
+      "filename": "AI-Box系统资产鉴价报告.md",
+      "size": 19322,
+      "mtime": "2025-12-25T11:48:20.724484"
+    },
+    {
+      "path": "系统设计文档/API文档/文件編輯API.md",
+      "category": "01-系統架構",
+      "filename": "文件編輯API.md",
+      "size": 8045,
+      "mtime": "2026-01-07T14:11:21.919650"
+    },
+    {
+      "path": "系统设计文档/API文档/治理API文档.md",
+      "category": "01-系統架構",
+      "filename": "治理API文档.md",
+      "size": 10553,
+      "mtime": "2025-12-29T20:27:14.718363"
+    },
+    {
+      "path": "系统设计文档/核心组件/語義與任務分析/AI-Box語義與任務v4重構計劃.md",
+      "category": "01-系統架構",
+      "filename": "AI-Box語義與任務v4重構計劃.md",
+      "size": 23222,
+      "mtime": "2026-01-12T15:08:33.579629"
+    },
+    {
+      "path": "系统设计文档/核心组件/語義與任務分析/AI-Box 語義與任務工程-設計說明書-v4.md",
+      "category": "01-系統架構",
+      "filename": "AI-Box 語義與任務工程-設計說明書-v4.md",
+      "size": 40999,
+      "mtime": "2026-01-13T10:26:27.595921"
+    },
+    {
+      "path": "系统设计文档/核心组件/語義與任務分析/文件編輯Agent語義路由測試計劃-v4.md",
+      "category": "01-系統架構",
+      "filename": "文件編輯Agent語義路由測試計劃-v4.md",
+      "size": 41855,
+      "mtime": "2026-01-13T09:31:16.199402"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/第三方MCP服务配置指南.md",
+      "category": "01-系統架構",
+      "filename": "第三方MCP服务配置指南.md",
+      "size": 19857,
+      "mtime": "2026-01-14T16:47:36.392946"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/Cloudflare第三方MCP服務最終部署狀態.md",
+      "category": "01-系統架構",
+      "filename": "Cloudflare第三方MCP服務最終部署狀態.md",
+      "size": 9521,
+      "mtime": "2026-01-14T16:47:36.441688"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/Cloudflare-MCP-Gateway-设置指南.md",
+      "category": "01-系統架構",
+      "filename": "Cloudflare-MCP-Gateway-设置指南.md",
+      "size": 50886,
+      "mtime": "2026-01-14T16:47:36.408290"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/README.md",
+      "category": "01-系統架構",
+      "filename": "README.md",
+      "size": 9378,
+      "mtime": "2026-01-18T20:40:41.581767"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/Cloudflare第三方MCP服務落地執行報告.md",
+      "category": "01-系統架構",
+      "filename": "Cloudflare第三方MCP服務落地執行報告.md",
+      "size": 12224,
+      "mtime": "2026-01-14T16:47:36.269619"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/Cloudflare第三方MCP服務落地計劃.md",
+      "category": "01-系統架構",
+      "filename": "Cloudflare第三方MCP服務落地計劃.md",
+      "size": 13297,
+      "mtime": "2026-01-14T16:47:36.296511"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/MCP工具.md",
+      "category": "01-系統架構",
+      "filename": "MCP工具.md",
+      "size": 53136,
+      "mtime": "2026-01-14T16:47:36.364037"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/Agent-工具-CloudflareMCP註冊指南.md",
+      "category": "01-系統架構",
+      "filename": "Agent-工具-CloudflareMCP註冊指南.md",
+      "size": 35743,
+      "mtime": "2026-01-18T20:40:41.607538"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Datalake-測試數據初始化指南.md",
+      "category": "01-系統架構",
+      "filename": "Datalake-測試數據初始化指南.md",
+      "size": 6148,
+      "mtime": "2026-01-13T20:44:26.516315"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Data-Agent-規格書.md",
+      "category": "01-系統架構",
+      "filename": "Data-Agent-規格書.md",
+      "size": 71447,
+      "mtime": "2026-01-13T20:44:26.575329"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Router-LLM-Prompt-和模型信息.md",
+      "category": "01-系統架構",
+      "filename": "Router-LLM-Prompt-和模型信息.md",
+      "size": 13011,
+      "mtime": "2026-01-13T13:33:46.092173"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/模擬-Datalake-規劃書.md",
+      "category": "01-系統架構",
+      "filename": "模擬-Datalake-規劃書.md",
+      "size": 21448,
+      "mtime": "2026-01-13T20:44:26.543983"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/System-Config-Agent-規格書.md",
+      "category": "01-系統架構",
+      "filename": "System-Config-Agent-規格書.md",
+      "size": 61353,
+      "mtime": "2025-12-24T19:16:56.576462"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/System-Agent-Registry-實施總結.md",
+      "category": "01-系統架構",
+      "filename": "System-Agent-Registry-實施總結.md",
+      "size": 9787,
+      "mtime": "2026-01-12T11:41:52.436386"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Agent_Orchestration_White_Paper.md",
+      "category": "01-系統架構",
+      "filename": "Agent_Orchestration_White_Paper.md",
+      "size": 47595,
+      "mtime": "2026-01-12T11:41:45.400256"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/庫管員-Agent-註冊配置指南.md",
+      "category": "01-系統架構",
+      "filename": "庫管員-Agent-註冊配置指南.md",
+      "size": 10706,
+      "mtime": "2026-01-14T16:49:33.996493"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/System-Agent-註冊清冊.md",
+      "category": "01-系統架構",
+      "filename": "System-Agent-註冊清冊.md",
+      "size": 27098,
+      "mtime": "2026-01-13T10:34:25.447339"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Agent-註冊-規格書.md",
+      "category": "01-系統架構",
+      "filename": "Agent-註冊-規格書.md",
+      "size": 31559,
+      "mtime": "2026-01-18T20:40:41.597864"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Agent-Platform-v4-升級計劃書.md",
+      "category": "01-系統架構",
+      "filename": "Agent-Platform-v4-升級計劃書.md",
+      "size": 50514,
+      "mtime": "2026-01-13T13:33:46.092030"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Security-Agent-規格書.md",
+      "category": "01-系統架構",
+      "filename": "Security-Agent-規格書.md",
+      "size": 29021,
+      "mtime": "2025-12-24T19:16:56.576269"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/AI-Box-Agent-架構規格書.md",
+      "category": "01-系統架構",
+      "filename": "AI-Box-Agent-架構規格書.md",
+      "size": 60439,
+      "mtime": "2026-01-13T13:33:56.545888"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Agent-Platform.md",
+      "category": "01-系統架構",
+      "filename": "Agent-Platform.md",
+      "size": 56246,
+      "mtime": "2026-01-13T13:33:15.094440"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/庫管員-Agent-Cloudflare-註冊配置指南.md",
+      "category": "01-系統架構",
+      "filename": "庫管員-Agent-Cloudflare-註冊配置指南.md",
+      "size": 42831,
+      "mtime": "2026-01-14T16:49:33.796845"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Orchestrator-協調層規格書.md",
+      "category": "01-系統架構",
+      "filename": "Orchestrator-協調層規格書.md",
+      "size": 57321,
+      "mtime": "2026-01-13T13:33:46.092101"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/庫管員-Agent-規格書.md",
+      "category": "01-系統架構",
+      "filename": "庫管員-Agent-規格書.md",
+      "size": 59425,
+      "mtime": "2026-01-13T20:44:26.565147"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/Agent-開發規範.md",
+      "category": "01-系統架構",
+      "filename": "Agent-開發規範.md",
+      "size": 22348,
+      "mtime": "2026-01-13T13:33:14.941649"
+    },
+    {
+      "path": "系统设计文档/核心组件/Agent平台/AGENT_LIFECYCLE.md",
+      "category": "01-系統架構",
+      "filename": "AGENT_LIFECYCLE.md",
+      "size": 9749,
+      "mtime": "2025-12-24T19:16:56.573402"
+    },
+    {
+      "path": "系统设计文档/核心组件/IEE對話式開發文件編輯/文件編輯-Agent-模組設計-v2.md",
+      "category": "01-系統架構",
+      "filename": "文件編輯-Agent-模組設計-v2.md",
+      "size": 13539,
+      "mtime": "2026-01-11T16:05:24.071073"
+    },
+    {
+      "path": "系统设计文档/核心组件/IEE對話式開發文件編輯/文檔整理完成報告.md",
+      "category": "01-系統架構",
+      "filename": "文檔整理完成報告.md",
+      "size": 5381,
+      "mtime": "2026-01-12T11:41:52.835447"
+    },
+    {
+      "path": "系统设计文档/核心组件/IEE對話式開發文件編輯/文件編輯-Agent-v2-重構計劃書.md",
+      "category": "01-系統架構",
+      "filename": "文件編輯-Agent-v2-重構計劃書.md",
+      "size": 56704,
+      "mtime": "2026-01-13T13:33:46.093045"
+    },
+    {
+      "path": "系统设计文档/核心组件/IEE對話式開發文件編輯/README.md",
+      "category": "01-系統架構",
+      "filename": "README.md",
+      "size": 6810,
+      "mtime": "2026-01-13T13:33:46.092882"
+    },
+    {
+      "path": "系统设计文档/核心组件/IEE對話式開發文件編輯/重構計劃書-完整Agent實現說明.md",
+      "category": "01-系統架構",
+      "filename": "重構計劃書-完整Agent實現說明.md",
+      "size": 6565,
+      "mtime": "2026-01-12T11:41:52.401385"
+    },
+    {
+      "path": "系统设计文档/核心组件/IEE對話式開發文件編輯/文件編輯-Agent-系統規格書-v2.0.md",
+      "category": "01-系統架構",
+      "filename": "文件編輯-Agent-系統規格書-v2.0.md",
+      "size": 26709,
+      "mtime": "2026-01-12T11:41:52.597317"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/Ontology_使用说明_再生能源_城市廢棄物熱裂解.md",
+      "category": "01-系統架構",
+      "filename": "Ontology_使用说明_再生能源_城市廢棄物熱裂解.md",
+      "size": 6694,
+      "mtime": "2026-01-03T23:05:12.691278"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/GraphRAG_模型参数配置建议.md",
+      "category": "01-系統架構",
+      "filename": "GraphRAG_模型参数配置建议.md",
+      "size": 7372,
+      "mtime": "2026-01-20T10:59:04.268806"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/文件授權管理方案.md",
+      "category": "01-系統架構",
+      "filename": "文件授權管理方案.md",
+      "size": 17145,
+      "mtime": "2026-01-02T16:36:08.556300"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/向量化與圖譜提取獨立執行優化報告.md",
+      "category": "01-系統架構",
+      "filename": "向量化與圖譜提取獨立執行優化報告.md",
+      "size": 11222,
+      "mtime": "2026-01-02T15:42:37.170847"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/HybridRAG权重配置使用说明.md",
+      "category": "01-系統架構",
+      "filename": "HybridRAG权重配置使用说明.md",
+      "size": 8221,
+      "mtime": "2026-01-05T12:56:35.656181"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/向量索引功能說明.md",
+      "category": "01-系統架構",
+      "filename": "向量索引功能說明.md",
+      "size": 5927,
+      "mtime": "2026-01-05T13:26:54.572838"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/上傳的功能架構說明-v4.0.md",
+      "category": "01-系統架構",
+      "filename": "上傳的功能架構說明-v4.0.md",
+      "size": 16799,
+      "mtime": "2026-01-20T21:51:28.522808"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/HybridRAG权重配置CRUD示例.md",
+      "category": "01-系統架構",
+      "filename": "HybridRAG权重配置CRUD示例.md",
+      "size": 10201,
+      "mtime": "2026-01-05T12:56:35.656183"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/知识图谱系统.md",
+      "category": "01-系統架構",
+      "filename": "知识图谱系统.md",
+      "size": 6067,
+      "mtime": "2026-01-01T20:46:17.623708"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/ROLLBACK_PLAN.md",
+      "category": "01-系統架構",
+      "filename": "ROLLBACK_PLAN.md",
+      "size": 4142,
+      "mtime": "2026-01-20T12:42:40.698770"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/批量文件上傳流程優化方案.md",
+      "category": "01-系統架構",
+      "filename": "批量文件上傳流程優化方案.md",
+      "size": 13711,
+      "mtime": "2026-01-02T15:28:17.852358"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/Ontology_导入ArangoDB_完成报告.md",
+      "category": "01-系統架構",
+      "filename": "Ontology_导入ArangoDB_完成报告.md",
+      "size": 6901,
+      "mtime": "2026-01-03T23:06:57.110626"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/SystemDoc文件上传测试计划-v4.md",
+      "category": "01-系統架構",
+      "filename": "SystemDoc文件上传测试计划-v4.md",
+      "size": 19912,
+      "mtime": "2026-01-20T16:14:04.135633"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/SystemDoc文件上传测试记录-v3.1.md",
+      "category": "01-系統架構",
+      "filename": "SystemDoc文件上传测试记录-v3.1.md",
+      "size": 6309,
+      "mtime": "2026-01-20T10:15:19.474398"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md",
+      "category": "01-系統架構",
+      "filename": "CHROMADB_TO_QDRANT_MIGRATION.md",
+      "size": 7456,
+      "mtime": "2026-01-20T12:42:18.188929"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/HybridRAG查询处理示例.md",
+      "category": "01-系統架構",
+      "filename": "HybridRAG查询处理示例.md",
+      "size": 13443,
+      "mtime": "2026-01-05T11:13:10.118706"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/Ontology_使用说明_生質能源氣化熱解.md",
+      "category": "01-系統架構",
+      "filename": "Ontology_使用说明_生質能源氣化熱解.md",
+      "size": 10417,
+      "mtime": "2026-01-03T23:49:38.648623"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/文件上傳向量圖譜化測試計劃.md",
+      "category": "01-系統架構",
+      "filename": "文件上傳向量圖譜化測試計劃.md",
+      "size": 22291,
+      "mtime": "2026-01-02T18:51:25.599648"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/GraphRAG_Prompt优化评估与建议.md",
+      "category": "01-系統架構",
+      "filename": "GraphRAG_Prompt优化评估与建议.md",
+      "size": 9883,
+      "mtime": "2026-01-03T22:37:04.988290"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/强化RAG系统.md",
+      "category": "01-系統架構",
+      "filename": "强化RAG系统.md",
+      "size": 5945,
+      "mtime": "2026-01-01T20:46:17.623773"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/VectorDB.md",
+      "category": "01-系統架構",
+      "filename": "VectorDB.md",
+      "size": 15999,
+      "mtime": "2026-01-20T13:53:30.897765"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/Ontology系统.md",
+      "category": "01-系統架構",
+      "filename": "Ontology系统.md",
+      "size": 16208,
+      "mtime": "2026-01-05T10:40:19.818951"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/HybridRAG权重配置测试说明.md",
+      "category": "01-系統架構",
+      "filename": "HybridRAG权重配置测试说明.md",
+      "size": 7225,
+      "mtime": "2026-01-05T13:01:38.330567"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/HybridRAG查询测试说明.md",
+      "category": "01-系統架構",
+      "filename": "HybridRAG查询测试说明.md",
+      "size": 5622,
+      "mtime": "2026-01-05T13:01:38.330587"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/HybridRAG問題定位與解決方案.md",
+      "category": "01-系統架構",
+      "filename": "HybridRAG問題定位與解決方案.md",
+      "size": 7047,
+      "mtime": "2026-01-20T21:53:45.472143"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/向量與圖檢索混合查詢邏輯.md",
+      "category": "01-系統架構",
+      "filename": "向量與圖檢索混合查詢邏輯.md",
+      "size": 30473,
+      "mtime": "2026-01-05T11:05:06.651837"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/文件儲存與任務關聯說明.md",
+      "category": "01-系統架構",
+      "filename": "文件儲存與任務關聯說明.md",
+      "size": 5553,
+      "mtime": "2026-01-06T09:53:00.296737"
+    },
+    {
+      "path": "系统设计文档/核心组件/文件上傳向量圖譜/Ontology选择策略-优先级降级fallback实现说明.md",
+      "category": "01-系統架構",
+      "filename": "Ontology选择策略-优先级降级fallback实现说明.md",
+      "size": 10245,
+      "mtime": "2026-01-01T20:39:32.193598"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/系统监控迁移-阶段1完成报告.md",
+      "category": "01-系統架構",
+      "filename": "系统监控迁移-阶段1完成报告.md",
+      "size": 6580,
+      "mtime": "2026-01-18T20:40:41.625100"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/ConfigMetadata-配置元數據機制規格書.md",
+      "category": "01-系統架構",
+      "filename": "ConfigMetadata-配置元數據機制規格書.md",
+      "size": 59701,
+      "mtime": "2026-01-20T19:04:05.839093"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/系统监控迁移指南.md",
+      "category": "01-系統架構",
+      "filename": "系统监控迁移指南.md",
+      "size": 8115,
+      "mtime": "2026-01-18T20:40:41.702129"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/配置初始化测试指南.md",
+      "category": "01-系統架構",
+      "filename": "配置初始化测试指南.md",
+      "size": 7692,
+      "mtime": "2026-01-01T13:07:20.600376"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/系统监控架构技术规格书.md",
+      "category": "01-系統架構",
+      "filename": "系统监控架构技术规格书.md",
+      "size": 24302,
+      "mtime": "2026-01-18T20:40:41.645625"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/SystemAdmin-与-SystemAgent-架构设计规格书.md",
+      "category": "01-系統架構",
+      "filename": "SystemAdmin-与-SystemAgent-架构设计规格书.md",
+      "size": 3712,
+      "mtime": "2026-01-06T08:58:28.900397"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/模型場景調用參數配置實施工計劃書.md",
+      "category": "01-系統架構",
+      "filename": "模型場景調用參數配置實施工計劃書.md",
+      "size": 18519,
+      "mtime": "2026-01-20T18:35:46.644707"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/旧监控系统代码清理说明.md",
+      "category": "01-系統架構",
+      "filename": "旧监控系统代码清理说明.md",
+      "size": 6283,
+      "mtime": "2026-01-18T20:40:41.623213"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/SeaweedFS使用指南.md",
+      "category": "01-系統架構",
+      "filename": "SeaweedFS使用指南.md",
+      "size": 14380,
+      "mtime": "2026-01-13T20:44:26.528075"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/部署架构-参数策略符合性检核.md",
+      "category": "01-系統架構",
+      "filename": "部署架构-参数策略符合性检核.md",
+      "size": 13449,
+      "mtime": "2026-01-01T13:14:42.204721"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/部署架构.md",
+      "category": "01-系統架構",
+      "filename": "部署架构.md",
+      "size": 29791,
+      "mtime": "2026-01-14T16:47:36.365459"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/阶段4完成报告.md",
+      "category": "01-系統架構",
+      "filename": "阶段4完成报告.md",
+      "size": 9194,
+      "mtime": "2026-01-18T20:40:41.716687"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/用戶個人中心功能規格書.md",
+      "category": "01-系統架構",
+      "filename": "用戶個人中心功能規格書.md",
+      "size": 29666,
+      "mtime": "2026-01-18T20:40:41.678097"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/MCP第三方服務配置管理.md",
+      "category": "01-系統架構",
+      "filename": "MCP第三方服務配置管理.md",
+      "size": 19357,
+      "mtime": "2026-01-14T16:47:36.284249"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/README.md",
+      "category": "01-系統架構",
+      "filename": "README.md",
+      "size": 2700,
+      "mtime": "2026-01-17T16:47:37.103184"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/阶段3完成报告.md",
+      "category": "01-系統架構",
+      "filename": "阶段3完成报告.md",
+      "size": 6676,
+      "mtime": "2026-01-18T20:40:41.607960"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/模型場景調用參數配置規格書.md",
+      "category": "01-系統架構",
+      "filename": "模型場景調用參數配置規格書.md",
+      "size": 17504,
+      "mtime": "2026-01-20T17:37:26.945524"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/系统监控迁移实施计划书.md",
+      "category": "01-系統架構",
+      "filename": "系统监控迁移实施计划书.md",
+      "size": 36415,
+      "mtime": "2026-01-18T20:40:41.675176"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/System-Agent-Registry-說明.md",
+      "category": "01-系統架構",
+      "filename": "System-Agent-Registry-說明.md",
+      "size": 9934,
+      "mtime": "2026-01-12T11:41:52.494774"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/系统监控迁移-阶段2完成报告.md",
+      "category": "01-系統架構",
+      "filename": "系统监控迁移-阶段2完成报告.md",
+      "size": 10414,
+      "mtime": "2026-01-18T20:40:41.605128"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/第三階段前端界面開發完成總結.md",
+      "category": "01-系統架構",
+      "filename": "第三階段前端界面開發完成總結.md",
+      "size": 9530,
+      "mtime": "2026-01-18T20:40:41.589998"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/MCP第三方服務配置管理-快速參考.md",
+      "category": "01-系統架構",
+      "filename": "MCP第三方服務配置管理-快速參考.md",
+      "size": 4864,
+      "mtime": "2026-01-14T16:47:30.584257"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/系統管理功能開發計劃.md",
+      "category": "01-系統架構",
+      "filename": "系統管理功能開發計劃.md",
+      "size": 82375,
+      "mtime": "2026-01-18T20:40:41.686867"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/系统监控迁移项目总结.md",
+      "category": "01-系統架構",
+      "filename": "系统监控迁移项目总结.md",
+      "size": 11178,
+      "mtime": "2026-01-18T20:40:41.641701"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/负载均衡器API文档.md",
+      "category": "01-系統架構",
+      "filename": "负载均衡器API文档.md",
+      "size": 2512,
+      "mtime": "2025-12-25T10:21:51.848202"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/AI-Box-SSO集成指南.md",
+      "category": "01-系統架構",
+      "filename": "AI-Box-SSO集成指南.md",
+      "size": 6713,
+      "mtime": "2026-01-18T22:15:41.723337"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/SystemAdmin-數據庫權限檢查報告.md",
+      "category": "01-系統架構",
+      "filename": "SystemAdmin-數據庫權限檢查報告.md",
+      "size": 7569,
+      "mtime": "2026-01-06T09:46:14.494107"
+    },
+    {
+      "path": "系统设计文档/核心组件/系統管理/AI-Box-SSO實現總結.md",
+      "category": "01-系統架構",
+      "filename": "AI-Box-SSO實現總結.md",
+      "size": 8322,
+      "mtime": "2026-01-18T22:18:01.131203"
+    },
+    {
+      "path": "系统设计文档/核心组件/存儲架構/生成式AI链式处理系统.md",
+      "category": "01-系統架構",
+      "filename": "生成式AI链式处理系统.md",
+      "size": 1678,
+      "mtime": "2026-01-01T20:46:17.638802"
+    },
+    {
+      "path": "系统设计文档/核心组件/存儲架構/SeaweedFS双服务架构说明.md",
+      "category": "01-系統架構",
+      "filename": "SeaweedFS双服务架构说明.md",
+      "size": 4336,
+      "mtime": "2026-01-01T12:53:26.401841"
+    },
+    {
+      "path": "系统设计文档/核心组件/存儲架構/存储架构.md",
+      "category": "01-系統架構",
+      "filename": "存储架构.md",
+      "size": 15597,
+      "mtime": "2026-01-20T10:42:07.027267"
+    },
+    {
+      "path": "系统设计文档/核心组件/存儲架構/SeaweedFS启动服务说明.md",
+      "category": "01-系統架構",
+      "filename": "SeaweedFS启动服务说明.md",
+      "size": 11401,
+      "mtime": "2025-12-29T22:41:55.468556"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/參考&歸檔文件/開發環境部署狀態報告.md",
+      "category": "01-系統架構",
+      "filename": "開發環境部署狀態報告.md",
+      "size": 10853,
+      "mtime": "2026-01-14T16:47:36.375896"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/參考&歸檔文件/HCI-MCP-Market-架構評估報告.md",
+      "category": "01-系統架構",
+      "filename": "HCI-MCP-Market-架構評估報告.md",
+      "size": 27587,
+      "mtime": "2026-01-14T16:47:36.371175"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/參考&歸檔文件/Gateway-測試指南.md",
+      "category": "01-系統架構",
+      "filename": "Gateway-測試指南.md",
+      "size": 8150,
+      "mtime": "2026-01-14T16:47:36.321482"
+    },
+    {
+      "path": "系统设计文档/核心组件/MCP工具/參考&歸檔文件/README.md",
+      "category": "01-系統架構",
+      "filename": "README.md",
+      "size": 1528,
+      "mtime": "2026-01-14T10:14:36.987165"
+    },
+    {
+      "path": "系统设计文档/核心组件/IEE對話式開發文件編輯/GenAI 任務式聊天/文件編輯操作.md",
+      "category": "01-系統架構",
+      "filename": "文件編輯操作.md",
+      "size": 8721,
+      "mtime": "2025-12-24T19:16:56.578935"
+    },
+    {
+      "path": "系统设计文档/核心组件/IEE對話式開發文件編輯/GenAI 任務式聊天/genai-pipeline-overview.md",
+      "category": "01-系統架構",
+      "filename": "genai-pipeline-overview.md",
+      "size": 18850,
+      "mtime": "2025-12-24T19:16:56.578763"
+    },
+    {
+      "path": "系统设计文档/核心组件/存儲架構/資料存儲架構重構/資料存儲架構重構分析與計劃.md",
+      "category": "01-系統架構",
+      "filename": "資料存儲架構重構分析與計劃.md",
+      "size": 71044,
+      "mtime": "2025-12-29T21:51:16.322546"
+    },
+    {
+      "path": "開發過程文件/migrations/LLM模型遷移到ArangoDB遷移計劃.md",
+      "category": "03-開發指南",
+      "filename": "LLM模型遷移到ArangoDB遷移計劃.md",
+      "size": 11978,
+      "mtime": "2025-12-24T19:16:56.591439"
+    },
+    {
+      "path": "開發過程文件/第三次整改/系統整改計劃.md",
+      "category": "03-開發指南",
+      "filename": "系統整改計劃.md",
+      "size": 55295,
+      "mtime": "2025-12-24T19:16:56.608112"
+    },
+    {
+      "path": "開發過程文件/第三次整改/系統整改完成總結報告.md",
+      "category": "03-開發指南",
+      "filename": "系統整改完成總結報告.md",
+      "size": 15001,
+      "mtime": "2025-12-24T19:16:56.607955"
+    },
+    {
+      "path": "開發過程文件/第三次整改/測試覆蓋率改進執行報告.md",
+      "category": "03-開發指南",
+      "filename": "測試覆蓋率改進執行報告.md",
+      "size": 6695,
+      "mtime": "2025-12-24T19:16:56.607510"
+    },
+    {
+      "path": "開發過程文件/第三次整改/測試覆蓋率改進最終報告.md",
+      "category": "03-開發指南",
+      "filename": "測試覆蓋率改進最終報告.md",
+      "size": 5873,
+      "mtime": "2025-12-24T19:16:56.607714"
+    },
+    {
+      "path": "開發過程文件/第三次整改/測試覆蓋率改進計劃.md",
+      "category": "03-開發指南",
+      "filename": "測試覆蓋率改進計劃.md",
+      "size": 14903,
+      "mtime": "2025-12-24T19:16:56.607835"
+    },
+    {
+      "path": "開發過程文件/progress/WORK_CONTROL_GUIDE.md",
+      "category": "03-開發指南",
+      "filename": "WORK_CONTROL_GUIDE.md",
+      "size": 3335,
+      "mtime": "2025-12-25T10:22:02.028279"
+    },
+    {
+      "path": "開發過程文件/workflows/hybrid_mode.md",
+      "category": "03-開發指南",
+      "filename": "hybrid_mode.md",
+      "size": 7790,
+      "mtime": "2025-12-24T19:09:14.710197"
+    },
+    {
+      "path": "開發過程文件/monitoring/README.md",
+      "category": "03-開發指南",
+      "filename": "README.md",
+      "size": 1950,
+      "mtime": "2025-12-24T19:16:56.591596"
+    },
+    {
+      "path": "開發過程文件/performance/chromadb-optimization.md",
+      "category": "03-開發指南",
+      "filename": "chromadb-optimization.md",
+      "size": 8031,
+      "mtime": "2025-12-24T19:16:56.592188"
+    },
+    {
+      "path": "開發過程文件/performance/PERFORMANCE_VERIFICATION.md",
+      "category": "03-開發指南",
+      "filename": "PERFORMANCE_VERIFICATION.md",
+      "size": 6116,
+      "mtime": "2025-12-24T19:16:56.591933"
+    },
+    {
+      "path": "開發過程文件/performance/ollama-load-test.md",
+      "category": "03-開發指南",
+      "filename": "ollama-load-test.md",
+      "size": 1454,
+      "mtime": "2025-12-24T19:09:14.699675"
+    },
+    {
+      "path": "開發過程文件/IEE開發計劃/IEE開發主計劃.md",
+      "category": "03-開發指南",
+      "filename": "IEE開發主計劃.md",
+      "size": 26779,
+      "mtime": "2025-12-25T20:45:34.307379"
+    },
+    {
+      "path": "開發過程文件/IEE開發計劃/Phase4_文件處理增強.md",
+      "category": "03-開發指南",
+      "filename": "Phase4_文件處理增強.md",
+      "size": 10495,
+      "mtime": "2025-12-25T20:43:41.134690"
+    },
+    {
+      "path": "開發過程文件/IEE開發計劃/Phase2_AI編輯協議.md",
+      "category": "03-開發指南",
+      "filename": "Phase2_AI編輯協議.md",
+      "size": 17970,
+      "mtime": "2025-12-25T20:43:41.122225"
+    },
+    {
+      "path": "開發過程文件/IEE開發計劃/Phase6_高級功能.md",
+      "category": "03-開發指南",
+      "filename": "Phase6_高級功能.md",
+      "size": 11403,
+      "mtime": "2025-12-25T20:43:41.146722"
+    },
+    {
+      "path": "開發過程文件/IEE開發計劃/Phase5_審查與提交.md",
+      "category": "03-開發指南",
+      "filename": "Phase5_審查與提交.md",
+      "size": 12305,
+      "mtime": "2025-12-25T20:43:41.140744"
+    },
+    {
+      "path": "開發過程文件/IEE開發計劃/Phase1_核心編輯器.md",
+      "category": "03-開發指南",
+      "filename": "Phase1_核心編輯器.md",
+      "size": 18191,
+      "mtime": "2025-12-25T20:45:34.308816"
+    },
+    {
+      "path": "開發過程文件/IEE開發計劃/Phase3_視覺化與交互.md",
+      "category": "03-開發指南",
+      "filename": "Phase3_視覺化與交互.md",
+      "size": 11109,
+      "mtime": "2025-12-25T20:43:41.128644"
+    },
+    {
+      "path": "開發過程文件/progress/phase3/WORKFLOW_ENGINE_VALIDATION.md",
+      "category": "03-開發指南",
+      "filename": "WORKFLOW_ENGINE_VALIDATION.md",
+      "size": 1575,
+      "mtime": "2025-12-24T19:16:56.600771"
+    },
+    {
+      "path": "開發過程文件/progress/phase1/IMPLEMENTATION_STATUS.md",
+      "category": "03-開發指南",
+      "filename": "IMPLEMENTATION_STATUS.md",
+      "size": 8692,
+      "mtime": "2025-12-24T19:16:56.599735"
+    },
+    {
+      "path": "開發過程文件/progress/phase1/PHASE1_COMPLETION_REPORT.md",
+      "category": "03-開發指南",
+      "filename": "PHASE1_COMPLETION_REPORT.md",
+      "size": 4977,
+      "mtime": "2025-12-24T19:16:56.600005"
+    },
+    {
+      "path": "開發過程文件/progress/phase1/階段一實施總結.md",
+      "category": "03-開發指南",
+      "filename": "階段一實施總結.md",
+      "size": 6702,
+      "mtime": "2025-12-24T19:16:56.592410"
+    },
+    {
+      "path": "開發過程文件/progress/phase1/README.md",
+      "category": "03-開發指南",
+      "filename": "README.md",
+      "size": 3564,
+      "mtime": "2025-12-24T19:16:56.600178"
+    },
+    {
+      "path": "開發過程文件/progress/phase1/templates/weekly-report-template.md",
+      "category": "03-開發指南",
+      "filename": "weekly-report-template.md",
+      "size": 4766,
+      "mtime": "2025-12-24T19:16:56.600598"
+    },
+    {
+      "path": "開發過程文件/progress/phase1/templates/milestone-report-template.md",
+      "category": "03-開發指南",
+      "filename": "milestone-report-template.md",
+      "size": 8681,
+      "mtime": "2025-12-24T19:09:14.709647"
+    },
+    {
+      "path": "開發過程文件/progress/phase1/templates/daily-report-template.md",
+      "category": "03-開發指南",
+      "filename": "daily-report-template.md",
+      "size": 2345,
+      "mtime": "2025-12-24T19:16:56.600345"
+    },
+    {
+      "path": "開發過程文件/progress/phase1/reports/daily/day-01.md",
+      "category": "03-開發指南",
+      "filename": "day-01.md",
+      "size": 4407,
+      "mtime": "2025-12-24T19:09:14.709302"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/wbs-phase4-file-management.md",
+      "category": "03-開發指南",
+      "filename": "wbs-phase4-file-management.md",
+      "size": 9611,
+      "mtime": "2025-12-24T19:16:56.597217"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/wbs-phase5-security-hardening.md",
+      "category": "03-開發指南",
+      "filename": "wbs-phase5-security-hardening.md",
+      "size": 6119,
+      "mtime": "2025-12-24T19:16:56.597373"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/file-upload-security-governance-review.md",
+      "category": "03-開發指南",
+      "filename": "file-upload-security-governance-review.md",
+      "size": 9911,
+      "mtime": "2025-12-24T19:16:56.596304"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/wbs-phase1-file-upload.md",
+      "category": "03-開發指南",
+      "filename": "wbs-phase1-file-upload.md",
+      "size": 7965,
+      "mtime": "2025-12-24T19:16:56.596697"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/wbs-phase3-integration-test.md",
+      "category": "03-開發指南",
+      "filename": "wbs-phase3-integration-test.md",
+      "size": 12448,
+      "mtime": "2025-12-24T19:16:56.597087"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/file-upload-implement-plan.md",
+      "category": "03-開發指南",
+      "filename": "file-upload-implement-plan.md",
+      "size": 16767,
+      "mtime": "2025-12-24T19:16:56.596153"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/test-execution-report.md",
+      "category": "03-開發指南",
+      "filename": "test-execution-report.md",
+      "size": 2983,
+      "mtime": "2025-12-24T19:16:56.596381"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/wbs-phase2a-chunk-vectorization.md",
+      "category": "03-開發指南",
+      "filename": "wbs-phase2a-chunk-vectorization.md",
+      "size": 10778,
+      "mtime": "2025-12-24T19:16:56.596844"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/wbs-phase2b-kg-extraction.md",
+      "category": "03-開發指南",
+      "filename": "wbs-phase2b-kg-extraction.md",
+      "size": 10189,
+      "mtime": "2025-12-24T19:16:56.596976"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/wbs-phase0-security-prep.md",
+      "category": "03-開發指南",
+      "filename": "wbs-phase0-security-prep.md",
+      "size": 7957,
+      "mtime": "2025-12-24T19:16:56.596537"
+    },
+    {
+      "path": "開發過程文件/plans/rag-file-upload/wbs-phase6-ai-governance.md",
+      "category": "03-開發指南",
+      "filename": "wbs-phase6-ai-governance.md",
+      "size": 6812,
+      "mtime": "2025-12-24T19:16:56.597530"
+    },
+    {
+      "path": "開發過程文件/plans/phase4/wbs-4-data-processing.md",
+      "category": "03-開發指南",
+      "filename": "wbs-4-data-processing.md",
+      "size": 36857,
+      "mtime": "2025-12-24T19:16:56.594670"
+    },
+    {
+      "path": "開發過程文件/plans/phase4/wbs-4.4-aam-integration.md",
+      "category": "03-開發指南",
+      "filename": "wbs-4.4-aam-integration.md",
+      "size": 10708,
+      "mtime": "2025-12-24T19:16:56.595331"
+    },
+    {
+      "path": "開發過程文件/plans/phase4/wbs-4.2-text-analysis.md",
+      "category": "03-開發指南",
+      "filename": "wbs-4.2-text-analysis.md",
+      "size": 12235,
+      "mtime": "2025-12-24T19:16:56.595010"
+    },
+    {
+      "path": "開發過程文件/plans/phase4/wbs-4.1-file-processing.md",
+      "category": "03-開發指南",
+      "filename": "wbs-4.1-file-processing.md",
+      "size": 9785,
+      "mtime": "2025-12-24T19:16:56.594843"
+    },
+    {
+      "path": "開發過程文件/plans/phase4/wbs-4.3-context-management.md",
+      "category": "03-開發指南",
+      "filename": "wbs-4.3-context-management.md",
+      "size": 9230,
+      "mtime": "2025-12-24T19:16:56.595169"
+    },
+    {
+      "path": "開發過程文件/plans/phase3/wbs-3.3-autogen.md",
+      "category": "03-開發指南",
+      "filename": "wbs-3.3-autogen.md",
+      "size": 3620,
+      "mtime": "2025-12-24T19:16:56.594415"
+    },
+    {
+      "path": "開發過程文件/plans/phase3/wbs-3.1-langchain-graph.md",
+      "category": "03-開發指南",
+      "filename": "wbs-3.1-langchain-graph.md",
+      "size": 4258,
+      "mtime": "2025-12-24T19:16:56.594192"
+    },
+    {
+      "path": "開發過程文件/plans/phase3/wbs-3.4-hybrid-mode.md",
+      "category": "03-開發指南",
+      "filename": "wbs-3.4-hybrid-mode.md",
+      "size": 3990,
+      "mtime": "2025-12-24T19:16:56.594521"
+    },
+    {
+      "path": "開發過程文件/plans/phase3/wbs-3.2-crewai.md",
+      "category": "03-開發指南",
+      "filename": "wbs-3.2-crewai.md",
+      "size": 3954,
+      "mtime": "2025-12-24T19:16:56.594308"
+    },
+    {
+      "path": "開發過程文件/plans/phase5/wbs-5.1-LLM-Router實現計劃.md",
+      "category": "03-開發指南",
+      "filename": "wbs-5.1-LLM-Router實現計劃.md",
+      "size": 8887,
+      "mtime": "2025-12-24T19:16:56.595494"
+    },
+    {
+      "path": "開發過程文件/plans/phase5/wbs-5.3-負載均衡實現計劃.md",
+      "category": "03-開發指南",
+      "filename": "wbs-5.3-負載均衡實現計劃.md",
+      "size": 9302,
+      "mtime": "2025-12-24T19:16:56.595847"
+    },
+    {
+      "path": "開發過程文件/plans/phase5/wbs-5.2-多LLM整合計劃.md",
+      "category": "03-開發指南",
+      "filename": "wbs-5.2-多LLM整合計劃.md",
+      "size": 10003,
+      "mtime": "2025-12-24T19:16:56.595668"
+    },
+    {
+      "path": "開發過程文件/plans/phase5/wbs-5.4-故障轉移實現計劃.md",
+      "category": "03-開發指南",
+      "filename": "wbs-5.4-故障轉移實現計劃.md",
+      "size": 8918,
+      "mtime": "2025-12-24T19:16:56.596023"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/重構風險評估報告.md",
+      "category": "03-開發指南",
+      "filename": "重構風險評估報告.md",
+      "size": 8771,
+      "mtime": "2025-12-24T19:16:56.599314"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/文件操作功能實現計劃.md",
+      "category": "03-開發指南",
+      "filename": "文件操作功能實現計劃.md",
+      "size": 17100,
+      "mtime": "2025-12-24T19:16:56.599127"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/文件操作功能WBS計劃.md",
+      "category": "03-開發指南",
+      "filename": "文件操作功能WBS計劃.md",
+      "size": 6195,
+      "mtime": "2025-12-24T19:16:56.598983"
+    },
+    {
+      "path": "開發過程文件/plans/phase1/wbs-1.3-chromadb.md",
+      "category": "03-開發指南",
+      "filename": "wbs-1.3-chromadb.md",
+      "size": 2100,
+      "mtime": "2025-12-24T19:16:56.593680"
+    },
+    {
+      "path": "開發過程文件/plans/phase1/wbs-1.1-fastapi-service.md",
+      "category": "03-開發指南",
+      "filename": "wbs-1.1-fastapi-service.md",
+      "size": 2520,
+      "mtime": "2025-12-24T19:16:56.593451"
+    },
+    {
+      "path": "開發過程文件/plans/phase1/wbs-1.2-mcp-platform.md",
+      "category": "03-開發指南",
+      "filename": "wbs-1.2-mcp-platform.md",
+      "size": 2179,
+      "mtime": "2025-12-24T19:16:56.593569"
+    },
+    {
+      "path": "開發過程文件/plans/phase1/wbs-1.6-security-module.md",
+      "category": "03-開發指南",
+      "filename": "wbs-1.6-security-module.md",
+      "size": 2660,
+      "mtime": "2025-12-24T19:16:56.594002"
+    },
+    {
+      "path": "開發過程文件/plans/phase1/wbs-1.5-ollama-llm.md",
+      "category": "03-開發指南",
+      "filename": "wbs-1.5-ollama-llm.md",
+      "size": 2361,
+      "mtime": "2025-12-24T19:16:56.593892"
+    },
+    {
+      "path": "開發過程文件/plans/phase1/wbs-1.4-arangodb.md",
+      "category": "03-開發指南",
+      "filename": "wbs-1.4-arangodb.md",
+      "size": 2029,
+      "mtime": "2025-12-24T19:16:56.593788"
+    },
+    {
+      "path": "開發過程文件/plans/genai/GENAI_MASTER_PLAN.md",
+      "category": "03-開發指南",
+      "filename": "GENAI_MASTER_PLAN.md",
+      "size": 11317,
+      "mtime": "2025-12-24T19:16:56.592616"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/WBS/WBS-S4-批量操作功能.md",
+      "category": "03-開發指南",
+      "filename": "WBS-S4-批量操作功能.md",
+      "size": 5468,
+      "mtime": "2025-12-24T19:16:56.598272"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/WBS/WBS-S6-文件庫相關功能.md",
+      "category": "03-開發指南",
+      "filename": "WBS-S6-文件庫相關功能.md",
+      "size": 6486,
+      "mtime": "2025-12-24T19:16:56.598521"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/WBS/WBS-S7-快捷鍵實現.md",
+      "category": "03-開發指南",
+      "filename": "WBS-S7-快捷鍵實現.md",
+      "size": 6138,
+      "mtime": "2025-12-24T19:16:56.598701"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/WBS/WBS-S3-前端狀態管理.md",
+      "category": "03-開發指南",
+      "filename": "WBS-S3-前端狀態管理.md",
+      "size": 5923,
+      "mtime": "2025-12-24T19:16:56.598119"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/WBS/WBS-S1-文件操作核心功能.md",
+      "category": "03-開發指南",
+      "filename": "WBS-S1-文件操作核心功能.md",
+      "size": 9804,
+      "mtime": "2025-12-24T19:16:56.597804"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/WBS/WBS-S2-資料夾操作功能.md",
+      "category": "03-開發指南",
+      "filename": "WBS-S2-資料夾操作功能.md",
+      "size": 8063,
+      "mtime": "2025-12-24T19:16:56.597963"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/WBS/WBS-S5-AI相關功能.md",
+      "category": "03-開發指南",
+      "filename": "WBS-S5-AI相關功能.md",
+      "size": 3552,
+      "mtime": "2025-12-24T19:16:56.598351"
+    },
+    {
+      "path": "開發過程文件/plans/文件操作功能實施計劃/WBS/WBS-S0-目錄結構準備.md",
+      "category": "03-開發指南",
+      "filename": "WBS-S0-目錄結構準備.md",
+      "size": 1443,
+      "mtime": "2025-12-24T19:16:56.597658"
+    },
+    {
+      "path": "開發過程文件/plans/genai/WBS/WBS-G4-長期記憶MVP（AAM-RAG）.md",
+      "category": "03-開發指南",
+      "filename": "WBS-G4-長期記憶MVP（AAM-RAG）.md",
+      "size": 999,
+      "mtime": "2025-12-24T19:16:56.593099"
+    },
+    {
+      "path": "開發過程文件/plans/genai/WBS/WBS-G3-短期上下文（Session-ContextWindow）.md",
+      "category": "03-開發指南",
+      "filename": "WBS-G3-短期上下文（Session-ContextWindow）.md",
+      "size": 857,
+      "mtime": "2025-12-24T19:16:56.593016"
+    },
+    {
+      "path": "開發過程文件/plans/genai/WBS/WBS-G6-安全與權限（Consent-RBAC）.md",
+      "category": "03-開發指南",
+      "filename": "WBS-G6-安全與權限（Consent-RBAC）.md",
+      "size": 669,
+      "mtime": "2025-12-24T19:16:56.593260"
+    },
+    {
+      "path": "開發過程文件/plans/genai/WBS/WBS-G2-MoE-Auto-路由接入與偏好策略.md",
+      "category": "03-開發指南",
+      "filename": "WBS-G2-MoE-Auto-路由接入與偏好策略.md",
+      "size": 1096,
+      "mtime": "2025-12-24T19:16:56.592941"
+    },
+    {
+      "path": "開發過程文件/plans/genai/WBS/WBS-G1-前端輸入框與模型選擇（Auto-收藏）.md",
+      "category": "03-開發指南",
+      "filename": "WBS-G1-前端輸入框與模型選擇（Auto-收藏）.md",
+      "size": 1803,
+      "mtime": "2025-12-24T19:16:56.592854"
+    },
+    {
+      "path": "開發過程文件/plans/genai/WBS/WBS-G0-基礎盤點與介面對齊.md",
+      "category": "03-開發指南",
+      "filename": "WBS-G0-基礎盤點與介面對齊.md",
+      "size": 1329,
+      "mtime": "2025-12-24T19:16:56.592763"
+    },
+    {
+      "path": "開發過程文件/plans/genai/WBS/WBS-G5-觀測性與評測（Routing-Memory）.md",
+      "category": "03-開發指南",
+      "filename": "WBS-G5-觀測性與評測（Routing-Memory）.md",
+      "size": 743,
+      "mtime": "2025-12-24T19:16:56.593182"
+    },
+    {
+      "path": "開發過程文件/plans/genai/WBS/WBS-G7-代理調用（下一迭代）.md",
+      "category": "03-開發指南",
+      "filename": "WBS-G7-代理調用（下一迭代）.md",
+      "size": 1069,
+      "mtime": "2025-12-24T19:16:56.593337"
+    },
+    {
+      "path": "weekly reports/其他/代碼管制表.md",
+      "category": "01-系統架構",
+      "filename": "代碼管制表.md",
+      "size": 135197,
+      "mtime": "2025-12-29T20:27:15.175627"
+    },
+    {
+      "path": "weekly reports/2026W02/本週工作報告_20260114_165341.md",
+      "category": "01-系統架構",
+      "filename": "本週工作報告_20260114_165341.md",
+      "size": 15256,
+      "mtime": "2026-01-14T16:56:12.984521"
+    },
+    {
+      "path": "weekly reports/2026W01/本週工作報告_20260106_121353.md",
+      "category": "01-系統架構",
+      "filename": "本週工作報告_20260106_121353.md",
+      "size": 13350,
+      "mtime": "2026-01-08T22:21:40.097197"
+    },
+    {
+      "path": "備份與歸檔/architecture/orchestrator-usage.md",
+      "category": "99-歷史歸檔",
+      "filename": "orchestrator-usage.md",
+      "size": 6564,
+      "mtime": "2025-12-24T19:16:56.583038"
+    },
+    {
+      "path": "備份與歸檔/architecture/factory-interface-spec.md",
+      "category": "99-歷史歸檔",
+      "filename": "factory-interface-spec.md",
+      "size": 3581,
+      "mtime": "2025-12-24T19:16:56.582567"
+    },
+    {
+      "path": "備份與歸檔/architecture/llm-routing-architecture.md",
+      "category": "99-歷史歸檔",
+      "filename": "llm-routing-architecture.md",
+      "size": 6349,
+      "mtime": "2025-12-24T19:16:56.582809"
+    },
+    {
+      "path": "備份與歸檔/deployment/ollama-connection-test.md",
+      "category": "99-歷史歸檔",
+      "filename": "ollama-connection-test.md",
+      "size": 4167,
+      "mtime": "2025-12-24T19:16:56.583801"
+    },
+    {
+      "path": "備份與歸檔/deployment/arangodb-deployment.md",
+      "category": "99-歷史歸檔",
+      "filename": "arangodb-deployment.md",
+      "size": 5451,
+      "mtime": "2025-12-24T19:16:56.583429"
+    },
+    {
+      "path": "備份與歸檔/deployment/security-development-mode.md",
+      "category": "99-歷史歸檔",
+      "filename": "security-development-mode.md",
+      "size": 5714,
+      "mtime": "2025-12-24T19:16:56.584177"
+    },
+    {
+      "path": "備份與歸檔/deployment/chromadb-deployment.md",
+      "category": "99-歷史歸檔",
+      "filename": "chromadb-deployment.md",
+      "size": 2192,
+      "mtime": "2025-12-24T19:16:56.583576"
+    },
+    {
+      "path": "備份與歸檔/deployment/ollama-health-report.md",
+      "category": "99-歷史歸檔",
+      "filename": "ollama-health-report.md",
+      "size": 1188,
+      "mtime": "2025-12-24T19:16:56.583940"
+    },
+    {
+      "path": "備份與歸檔/deployment/ollama-deployment.md",
+      "category": "99-歷史歸檔",
+      "filename": "ollama-deployment.md",
+      "size": 4213,
+      "mtime": "2025-12-24T19:09:14.681529"
+    },
+    {
+      "path": "備份與歸檔/Agent Platform/ICON_LIBRARY_USAGE_GUIDE.md",
+      "category": "99-歷史歸檔",
+      "filename": "ICON_LIBRARY_USAGE_GUIDE.md",
+      "size": 6096,
+      "mtime": "2025-12-24T19:16:56.574438"
+    },
+    {
+      "path": "備份與歸檔/Agent Platform/檢核設計檢討報告.md",
+      "category": "99-歷史歸檔",
+      "filename": "檢核設計檢討報告.md",
+      "size": 19711,
+      "mtime": "2025-12-24T19:16:56.577142"
+    },
+    {
+      "path": "備份與歸檔/工具/工具開發計劃管控表.md",
+      "category": "99-歷史歸檔",
+      "filename": "工具開發計劃管控表.md",
+      "size": 25100,
+      "mtime": "2025-12-30T21:00:35.058954"
+    },
+    {
+      "path": "備份與歸檔/工具/時間服務設計說明.md",
+      "category": "99-歷史歸檔",
+      "filename": "時間服務設計說明.md",
+      "size": 6649,
+      "mtime": "2025-12-30T21:00:34.961810"
+    },
+    {
+      "path": "備份與歸檔/工具/工具開發最新狀態說明.md",
+      "category": "99-歷史歸檔",
+      "filename": "工具開發最新狀態說明.md",
+      "size": 8605,
+      "mtime": "2025-12-30T21:00:35.012011"
+    },
+    {
+      "path": "備份與歸檔/Agent Platform/Tools/LogService-規格書.md",
+      "category": "99-歷史歸檔",
+      "filename": "LogService-規格書.md",
+      "size": 35170,
+      "mtime": "2025-12-24T19:16:56.576825"
+    },
+    {
+      "path": "備份與歸檔/Agent Platform/SecretRule/SECRET_ID_ACQUISITION_GUIDE.md",
+      "category": "99-歷史歸檔",
+      "filename": "SECRET_ID_ACQUISITION_GUIDE.md",
+      "size": 8237,
+      "mtime": "2025-12-24T19:16:56.576120"
+    },
+    {
+      "path": "備份與歸檔/Agent Platform/SecretRule/SECRET_ACQUISITION_GUIDE.md",
+      "category": "99-歷史歸檔",
+      "filename": "SECRET_ACQUISITION_GUIDE.md",
+      "size": 4216,
+      "mtime": "2025-12-24T19:16:56.575932"
+    },
+    {
+      "path": "備份與歸檔/Agent Platform/Migration/PHASE2_SECRET_MANAGEMENT.md",
+      "category": "99-歷史歸檔",
+      "filename": "PHASE2_SECRET_MANAGEMENT.md",
+      "size": 502,
+      "mtime": "2025-12-24T19:16:56.575439"
+    },
+    {
+      "path": "備份與歸檔/Agent Platform/Migration/PHASE10_COMPLETION_REPORT.md",
+      "category": "99-歷史歸檔",
+      "filename": "PHASE10_COMPLETION_REPORT.md",
+      "size": 3129,
+      "mtime": "2025-12-24T19:16:56.575310"
+    },
+    {
+      "path": "備份與歸檔/Agent Platform/Migration/MIGRATION_GUIDE.md",
+      "category": "99-歷史歸檔",
+      "filename": "MIGRATION_GUIDE.md",
+      "size": 5907,
+      "mtime": "2025-12-24T19:16:56.574682"
+    },
+    {
+      "path": "備份與歸檔/Agent Platform/Migration/MIGRATION_PLAN_AGENT_ARCHITECTURE.md",
+      "category": "99-歷史歸檔",
+      "filename": "MIGRATION_PLAN_AGENT_ARCHITECTURE.md",
+      "size": 26403,
+      "mtime": "2025-12-24T19:16:56.574823"
+    }
+  ]
+}

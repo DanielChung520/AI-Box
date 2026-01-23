@@ -111,6 +111,37 @@ class FileStorage(ABC):
         """
         pass
 
+    def move_file(
+        self,
+        file_id: str,
+        old_task_id: Optional[str],
+        new_task_id: str,
+        metadata_storage_path: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        移動文件到新的任務工作區（更新存儲路徑）
+
+        預設實現：直接返回新路徑，不移動實體文件（由 S3 等雲存儲處理）
+
+        Args:
+            file_id: 文件 ID
+            old_task_id: 舊任務 ID
+            new_task_id: 新任務 ID
+            metadata_storage_path: 元數據中記錄的存儲路徑
+
+        Returns:
+            新的存儲路徑，如果移動失敗則返回 None
+        """
+        new_path = self._get_file_path(file_id, None, new_task_id)
+        logger.info(
+            "File storage path calculated for move",
+            file_id=file_id,
+            old_task_id=old_task_id,
+            new_task_id=new_task_id,
+            new_path=str(new_path),
+        )
+        return str(new_path)
+
     @staticmethod
     def generate_file_id() -> str:
         """
@@ -447,6 +478,65 @@ class LocalFileStorage(FileStorage):
             文件是否存在
         """
         return self.get_file_path(file_id, task_id, metadata_storage_path) is not None
+
+    def move_file(
+        self,
+        file_id: str,
+        old_task_id: Optional[str],
+        new_task_id: str,
+        metadata_storage_path: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        移動文件到新的任務工作區
+
+        修改時間：2026-01-21 - 實現本地文件移動
+
+        Args:
+            file_id: 文件 ID
+            old_task_id: 舊任務 ID
+            new_task_id: 新任務 ID
+            metadata_storage_path: 元數據中記錄的存儲路徑（優先使用）
+
+        Returns:
+            新的存儲路徑，如果移動失敗則返回 None
+        """
+        old_path = self.get_file_path(file_id, old_task_id, metadata_storage_path)
+        if old_path is None:
+            self.logger.warning("File not found for move", file_id=file_id, old_task_id=old_task_id)
+            return None
+
+        new_path = self._get_file_path(file_id, None, new_task_id)
+
+        try:
+            if old_path != str(new_path):
+                new_path.parent.mkdir(parents=True, exist_ok=True)
+                if old_path.exists():
+                    import shutil
+
+                    shutil.move(str(old_path), str(new_path))
+                    self.logger.info(
+                        "File moved successfully",
+                        file_id=file_id,
+                        old_path=str(old_path),
+                        new_path=str(new_path),
+                    )
+                else:
+                    self.logger.warning(
+                        "File does not exist, cannot move",
+                        file_id=file_id,
+                        old_path=str(old_path),
+                    )
+                    return None
+            return str(new_path)
+        except Exception as e:
+            self.logger.error(
+                "Failed to move file",
+                file_id=file_id,
+                old_path=str(old_path),
+                new_path=str(new_path),
+                error=str(e),
+            )
+            return None
 
 
 # 預留雲存儲接口（未來擴展）

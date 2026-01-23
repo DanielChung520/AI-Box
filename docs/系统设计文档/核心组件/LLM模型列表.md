@@ -1,9 +1,9 @@
 # LLM 模型列表
 
-**版本**: 1.1
+**版本**: 1.2
 **創建日期**: 2025-12-20
 **創建人**: Daniel Chung
-**最後修改日期**: 2026-01-27
+**最後修改日期**: 2026-01-22
 
 ---
 
@@ -69,6 +69,115 @@
 ### 動態發現模型 (Discovered Models)
 
 這些模型通過查詢配置的 Ollama 服務器節點自動發現，格式為：`ollama:{host}:{port}:{model_name}`
+
+---
+
+## 🤖 Auto 模式（自動選擇）
+
+### 模型選擇邏輯
+
+當用戶選擇「自動」模式時，系統按以下優先級選擇模型：
+
+1. **收藏模型優先**（未來迭代）
+   - 如果用戶有收藏的模型，會在收藏列表中優先選擇
+   - 目前收藏功能已實現，模型調用邏輯待後續迭代開發
+
+2. **任務分類路由**（當前實現）
+   - 使用 `TaskClassifier` 對用戶輸入進行分類
+   - 根據任務類型（QUERY, EXECUTION, REVIEW, PLANNING, COMPLEX）選擇最佳模型
+   - 任務分類結果包含 `task_type`, `confidence`, `reasoning` 字段
+
+3. **Provider 允許列表**
+   - 根據 `policy_gate.get_allowed_providers()` 獲取允許的 Provider
+   - 過濾不允許的 Provider
+
+4. **故障轉移**
+   - 如果首選 Provider 失敗，自動切換到備用 Provider
+   - 最終 fallback 到本地 Ollama
+
+### 實現位置
+
+- **任務分類**: `agents/task_analyzer/classifier.py`
+- **路由邏輯**: `api/routers/chat.py` (Auto 模式分支)
+- **故障轉移**: `llm/moe/failover.py`
+
+---
+
+## 🛡️ 錯誤處理與用戶友好消息
+
+### 錯誤翻譯機制
+
+系統將技術性錯誤轉換為用戶友好的錯誤消息，避免暴露內部實現細節。
+
+### 錯誤類型與翻譯
+
+| 錯誤類型 | 錯誤代碼 | 用戶看到的消息 |
+|---------|---------|--------------|
+| API Key 無效 | `API_INVALID` | 哎呀，發生了一些小狀況！🔐 API 授權出現問題，請通知管理員（錯誤代碼：API_INVALID）😅 |
+| 網路錯誤 | `NETWORK_ERROR` | 哎呀，發生了一些小狀況！🌐 網路連線有點不穩，請稍後再試或通知管理員（錯誤代碼：NETWORK_ERROR）😅 |
+| 超出限制 | `LIMIT_EXCEEDED` | 哎呀，發生了一些小狀況！😓 AI 模型服務超出使用限制，請通知管理員（錯誤代碼：LIMIT_EXCEEDED）😅 |
+| 服務不可用 | `SERVICE_UNAVAILABLE` | 哎呀，發生了一些小狀況！🔧 AI 服務正在休息中，請稍後再試或通知管理員（錯誤代碼：SERVICE_UNAVAILABLE）😅 |
+| 模型不存在 | `MODEL_NOT_FOUND` | 哎呀，發生了一些小狀況！🤔 指定的 AI 模型不存在，請通知管理員（錯誤代碼：MODEL_NOT_FOUND）😅 |
+| 模型不在允許列表 | `MODEL_NOT_ALLOWED` | 哎呀，發生了一些小狀況！🤷 您選擇的 AI 模型超出使用限制或未被管理員允許，請嘗試其他模型（錯誤代碼：MODEL_NOT_ALLOWED）😅 |
+| 內容被過濾 | `CONTENT_FILTERED` | 哎呀，發生了一些小狀況！🛡️ 您的請求被安全過濾攔截，請調整問題內容後再試（錯誤代碼：CONTENT_FILTERED）😅 |
+| 上下文過長 | `CONTEXT_TOO_LONG` | 哎呀，發生了一些小狀況！📝 對話內容太長了，請嘗試縮短對話或開啟新對話（錯誤代碼：CONTEXT_TOO_LONG）😅 |
+| 其他錯誤 | 原始代碼 | 哎呀，發生了一些小狀況，我感到很抱歉！請通知管理員（錯誤代碼：XXX）😅 |
+
+### 實現位置
+
+- **錯誤翻譯函數**: `api/routers/chat.py` → `translate_error_to_user_message()`
+- **錯誤關鍵詞匹配**: 包含 API Key、網路、超出限制、服務不可用等關鍵詞
+- **前端錯誤顯示**: `ai-bot/src/pages/Home.tsx` - 移除 "Chat failed:" 前綴
+
+### 注意事項
+
+- 錯誤消息包含 Emoji 和調皮的結尾（😅），提升用戶體驗
+- 錯誤代碼便於管理員追蹤問題
+- 原始錯誤會記錄到日誌，不會暴露給用戶
+
+---
+
+## 🔄 Fallback 模型（最終備用）
+
+### 默認 Fallback 模型
+
+當所有 Provider 都失敗時，系統會嘗試使用本地 Ollama 的 **qwen3-next:latest** 作為最終 fallback：
+
+| 場景 | Fallback 模型 | 位置 |
+|------|--------------|------|
+| 非流式生成 (`_failover_generate`) | `qwen3-next:latest` | `llm/moe/moe_manager.py` |
+| 流式生成 (`_failover_chat_stream`) | `qwen3-next:latest` | `llm/moe/moe_manager.py` |
+
+### Fallback 順序
+
+1. 雲端 Provider（根據配置）
+   - Gemini → Qwen → ChatGPT
+2. 本地 Ollama（最終 fallback）
+   - localhost:11434 → qwen3-next:latest
+
+### 實現位置
+
+- `llm/moe/moe_manager.py` - `LAST_RESORT_MODEL = "qwen3-next:latest"`
+
+---
+
+## ⚠️ 已知 Bug 修復
+
+### TaskClassificationResult 屬性名稱（2026-01-22）
+
+**問題**: 錯誤使用 `task_classification.type` 導致 `'TaskClassificationResult' object has no attribute 'type'`
+
+**修復**: 正確屬性名稱為 `task_classification.task_type`
+
+**修復位置**: `api/routers/chat.py`
+
+```python
+# 錯誤
+task_classification.type.value
+
+# 正確
+task_classification.task_type.value
+```
 
 ---
 
@@ -448,6 +557,14 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 
 ## 🔄 更新記錄
 
+### 2026-01-22
+
+- ✅ **Auto 模式文檔**：添加 Auto 模式模型選擇邏輯說明
+- ✅ **錯誤處理文檔**：添加用戶友好錯誤消息機制（包含 Emoji）
+- ✅ **Fallback 模型**：更新默認 Fallback 模型為 `qwen3-next:latest`
+- ✅ **Bug 修復**：記錄 `task_classification.type` → `task_classification.task_type` 修復
+- ✅ **前端優化**：移除 "Chat failed:" 前綴
+
 ### 2026-01-27
 
 - ✅ **重要更新**：前端模型選擇列表現在只顯示已激活的模型
@@ -474,9 +591,10 @@ Ollama 模型會根據配置的服務器節點自動發現。模型 ID 格式為
 
 - [LLM模型遷移到ArangoDB遷移計劃](./migrations/LLM模型遷移到ArangoDB遷移計劃.md)
 - [API 文檔](../api/routers/llm_models.py)
+- [MoE 系統文檔](./MoE系统.md)
 
 ---
 
-**文檔版本**: 1.2
-**最後更新**: 2026-01-27
+**文檔版本**: 1.3
+**最後更新**: 2026-01-22
 **維護者**: Daniel Chung

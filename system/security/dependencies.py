@@ -52,11 +52,13 @@ async def get_current_user(request: Request) -> User:
     # 修改時間：2025-01-27 - 添加日誌記錄以便調試
     if user:
         # 如果成功解析到用戶信息，使用該用戶
-        logger.debug(
+        logger.info(
             "User authenticated from token",
             user_id=user.user_id,
             username=user.username,
             has_token=True,
+            path=request.url.path,
+            method=request.method,
         )
         return user
 
@@ -70,29 +72,42 @@ async def get_current_user(request: Request) -> User:
             "Token provided but authentication failed",
             token_length=len(token),
             should_bypass_auth=settings.should_bypass_auth,
+            path=request.url.path,
+            method=request.method,
         )
     else:
         logger.debug("No token provided", should_bypass_auth=settings.should_bypass_auth)
 
     # 修改時間：2025-01-27 - 正式測試：移除 dev_user fallback
-    # 只有在 SECURITY_ENABLED=false 時才允許繞過認證
+    # 只有在 SECURITY_ENABLED=false 且沒有提供 token 時才允許繞過認證
     if settings.should_bypass_auth:
-        # 只有在安全功能完全禁用時才允許繞過
-        logger.warning(
-            "Security is disabled, allowing unauthenticated access",
-            should_bypass_auth=True,
-        )
-        # 返回一個臨時用戶（用於測試，但不會使用 dev_user）
-        # 注意：這應該只在安全功能完全禁用時使用
-        return User(
-            user_id="unauthenticated",
-            username="unauthenticated",
-            email=None,
-            roles=[],
-            permissions=[],
-            is_active=True,
-            metadata={"bypass_auth": True},
-        )
+        if token:
+            # 提供了 token 但認證失敗，記錄警告並要求重新登錄
+            logger.warning(
+                "Token provided but verification failed, security bypass disabled for authenticated requests",
+                should_bypass_auth=True,
+                has_token=bool(token),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token verification failed. Please log in again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        else:
+            # 沒有提供 token，安全功能已禁用，返回 systemAdmin 用戶
+            logger.warning(
+                "Security is disabled, allowing unauthenticated access",
+                should_bypass_auth=True,
+            )
+            return User(
+                user_id="systemAdmin",
+                username="systemAdmin",
+                email="system@ai-box.internal",
+                roles=["system_admin"],
+                permissions=["*"],
+                is_active=True,
+                metadata={"bypass_auth": True, "is_test_user": True},
+            )
 
     # 正式測試環境：要求真實認證，認證失敗則拋出異常
     user = await authenticate_request(request)

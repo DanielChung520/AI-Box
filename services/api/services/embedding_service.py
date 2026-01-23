@@ -8,11 +8,16 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
-from typing import Callable, Dict, List, Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
 import httpx
 import structlog
+
+if TYPE_CHECKING:
+    pass
 
 logger = structlog.get_logger(__name__)
 
@@ -39,11 +44,23 @@ class EmbeddingService:
     # 向量維度到模型的映射表
     # 可以通過環境變量 EMBEDDING_DIMENSION_MODEL_MAP 配置（JSON 格式）
     DIMENSION_MODEL_MAP: Dict[int, str] = {
-        384: "nomic-embed-text:latest",  # 某些版本可能返回 384 維
-        768: "nomic-embed-text:latest",  # 實際測試返回 768 維
-        1024: "quentinz/bge-large-zh-v1.5:latest",  # 該模型實際返回 1024 維
-        # 可以添加更多映射
+        384: "nomic-embed-text:latest",
+        768: "nomic-embed-text:latest",
+        1024: "quentinz/bge-large-zh-v1.5:latest",
     }
+
+    # 語言到嵌入模型的映射表
+    # 中文使用專用模型，英文使用通用模型
+    LANGUAGE_MODEL_MAP: Dict[str, str] = {
+        "zh": "quentinz/bge-large-zh-v1.5:latest",
+        "en": "nomic-embed-text:latest",
+        "ja": "qwen3-embedding:latest",
+        "ko": "qwen3-embedding:latest",
+        "default": "nomic-embed-text:latest",
+    }
+
+    # 中文字符正則表達式（用於簡單語言檢測）
+    CHINESE_PATTERN = r"[\u4e00-\u9fff]"
 
     # 類級別全局 Semaphore（所有實例共享）
     _global_semaphore: Optional[asyncio.Semaphore] = None
@@ -57,6 +74,44 @@ class EmbeddingService:
         if cls._lock is None:
             cls._lock = asyncio.Lock()
         return cls._lock
+
+    @staticmethod
+    def detect_language(text: str) -> str:
+        """
+        檢測文本語言（使用簡單的启发式方法）
+
+        檢測邏輯：
+        1. 如果文本中包含中文字符，則判定為中文 (zh)
+        2. 否則返回 default（使用通用模型）
+
+        Args:
+            text: 待檢測的文本
+
+        Returns:
+            語言代碼: 'zh' (中文), 'en' (英文), 或 'default'
+        """
+        import re
+
+        if not text:
+            return "default"
+
+        if re.search(EmbeddingService.CHINESE_PATTERN, text):
+            return "zh"
+
+        return "default"
+
+    @classmethod
+    def get_model_for_language(cls, language: str) -> str:
+        """
+        根據語言獲取最適合的嵌入模型
+
+        Args:
+            language: 語言代碼 ('zh', 'en', 'ja', 'ko', 'default')
+
+        Returns:
+            嵌入模型名稱
+        """
+        return cls.LANGUAGE_MODEL_MAP.get(language, cls.LANGUAGE_MODEL_MAP["default"])
 
     def __init__(
         self,
@@ -78,57 +133,42 @@ class EmbeddingService:
             timeout: 請求超時時間（秒）
             concurrency_limit: 並發限制（同時進行的請求數，默認為 batch_size * 2）
         """
-        # 直接读取配置文件
-        import json
-        from pathlib import Path
+        # MoE 場景名稱
+        self._moe_scene = "embedding"
+        self._moe_model_config = None
 
-        # 计算配置文件路径（从项目根目录）
+        # 優先使用 MoE 配置
+        moe_model = self._get_moe_model_config()
+        if moe_model:
+            self.model = moe_model.model
+            self.timeout = moe_model.timeout
+            self._moe_model_config = moe_model
+            logger.info(
+                "embedding_using_moe_config",
+                model=self.model,
+                scene=self._moe_scene,
+                timeout=self.timeout,
+            )
+            # 從配置載入 URL
+            config = self._load_config()
+            self.ollama_url = (
+                ollama_url
+                or os.getenv("OLLAMA_URL")
+                or config.get("ollama_url")
+                or "http://localhost:11434"
+            )
+        else:
+            # 向後兼容：使用原有配置
+            self._init_model_from_config(ollama_url, model, timeout)
 
-        current_file = Path(__file__).resolve()
-        # 向上查找直到找到项目根目录（有 config 目录）
-        config_path = None
-        for parent in [current_file.parent] + list(current_file.parents):
-            potential_config = parent / "config" / "config.json"
-            if potential_config.exists():
-                config_path = potential_config
-                break
-        if not config_path:
-            # 如果找不到，使用相对路径（从项目根目录）
-            project_root = Path(__file__).parent.parent.parent.parent.parent
-            config_path = project_root / "config" / "config.json"
-        config = {}
-        if config_path.exists():
-            with open(config_path, "r", encoding="utf-8") as f:
-                full_config = json.load(f)
-                config = full_config.get("embedding", {})
-                # 如果 embedding 不存在，从 services.ollama 读取
-                if not config and "services" in full_config:
-                    ollama_config = full_config["services"].get("ollama", {})
-                    if ollama_config:
-                        config = {
-                            "ollama_url": f"http://{ollama_config.get('host', 'localhost')}:{ollama_config.get('port', 11434)}",
-                            "model": ollama_config.get("embedding_model", "nomic-embed-text"),
-                        }
-        self.ollama_url = (
-            ollama_url
-            or os.getenv("OLLAMA_URL")
-            or config.get("ollama_url")
-            or "http://localhost:11434"
-        )
-        self.model = (
-            model
-            or os.getenv("OLLAMA_EMBEDDING_MODEL")
-            or config.get("model")
-            or "nomic-embed-text"
-        )
+        # 讀取其他配置
+        config = self._load_config()
+
         # 支持環境變量 EMBEDDING_BATCH_SIZE
         env_batch_size = os.getenv("EMBEDDING_BATCH_SIZE")
-        config_batch_size = (
-            int(env_batch_size) if env_batch_size else config.get("batch_size", 10)  # type: ignore[arg-type]  # env_batch_size 已檢查不為 None
-        )
+        config_batch_size = int(env_batch_size) if env_batch_size else config.get("batch_size", 10)
         self.batch_size = batch_size or config_batch_size
         self.max_retries = max_retries or config.get("max_retries", 3)
-        self.timeout = timeout or config.get("timeout", 60.0)
 
         # 並發限制：允許同時進行的請求數
         config_concurrency = config.get("concurrency_limit")
@@ -143,7 +183,8 @@ class EmbeddingService:
         # 智能調整 batch_size：確保 batch_size 不超過 concurrency_limit
         # 避免批次內並發超過全局限制
         if self.batch_size > self.concurrency_limit:
-            logger.warning(
+            # 修改時間：2026-01-22 - 改為 info 級別，因為這是預期的自動調整行為
+            logger.info(
                 "batch_size exceeds concurrency_limit, adjusting batch_size",
                 original_batch_size=self.batch_size,
                 concurrency_limit=self.concurrency_limit,
@@ -180,6 +221,70 @@ class EmbeddingService:
             global_semaphore_initialized=EmbeddingService._global_semaphore is not None,
             global_concurrency_limit=EmbeddingService._global_concurrency_limit,
         )
+
+    def _get_moe_model_config(self):
+        """從 MoE 獲取模型配置"""
+        from llm.moe.moe_manager import LLMMoEManager
+
+        try:
+            moe_manager = LLMMoEManager()
+            result = moe_manager.select_model(self._moe_scene)
+            if result:
+                return result
+        except Exception as e:
+            logger.debug(
+                "failed_to_get_moe_model_config",
+                scene=self._moe_scene,
+                error=str(e),
+                message="從 MoE 獲取模型配置失敗，使用向後兼容方式",
+            )
+        return None
+
+    def _load_config(self) -> Dict:
+        """載入配置文件"""
+        current_file = Path(__file__).resolve()
+        config_path = None
+        for parent in [current_file.parent] + list(current_file.parents):
+            potential_config = parent / "config" / "config.json"
+            if potential_config.exists():
+                config_path = potential_config
+                break
+        if not config_path:
+            project_root = Path(__file__).parent.parent.parent.parent.parent
+            config_path = project_root / "config" / "config.json"
+        config = {}
+        if config_path.exists():
+            with open(config_path, "r", encoding="utf-8") as f:
+                full_config = json.load(f)
+                config = full_config.get("embedding", {})
+                if not config and "services" in full_config:
+                    ollama_config = full_config["services"].get("ollama", {})
+                    if ollama_config:
+                        config = {
+                            "ollama_url": f"http://{ollama_config.get('host', 'localhost')}:{ollama_config.get('port', 11434)}",
+                            "model": ollama_config.get("embedding_model", "nomic-embed-text"),
+                        }
+        return config
+
+    def _init_model_from_config(
+        self, ollama_url: Optional[str], model: Optional[str], timeout: float
+    ):
+        """從配置文件初始化模型（向後兼容）"""
+        config = self._load_config()
+
+        self.ollama_url = (
+            ollama_url
+            or os.getenv("OLLAMA_URL")
+            or config.get("ollama_url")
+            or "http://localhost:11434"
+        )
+        self.model = (
+            model
+            or os.getenv("OLLAMA_EMBEDDING_MODEL")
+            or config.get("model")
+            or "nomic-embed-text"
+        )
+        self.timeout = timeout or config.get("timeout", 60.0)
 
     def _load_dimension_model_map(self) -> None:
         """

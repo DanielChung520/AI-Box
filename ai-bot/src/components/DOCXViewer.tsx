@@ -2,20 +2,22 @@
  * 代碼功能說明: DOCX 文件預覽組件
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-01-27
+ * 最後修改日期: 2026-01-21 11:57 UTC+8
  */
 
 import { useState, useEffect } from 'react';
 import mammoth from 'mammoth';
 import { Loader2, FileText } from 'lucide-react';
-import { downloadFile } from '../lib/api';
+import { downloadFile, FileMetadata } from '../lib/api';
 
 interface DOCXViewerProps {
   fileId: string;
   fileName: string;
+  fileMetadata?: FileMetadata; // 文件元數據（包含 storage_path，用於 SeaWeedFS 直接訪問）
+  showHeader?: boolean; // 是否顯示 Header（默認 true）
 }
 
-export default function DOCXViewer({ fileId, fileName }: DOCXViewerProps) {
+export default function DOCXViewer({ fileId, fileName, fileMetadata, showHeader = true }: DOCXViewerProps) {
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,8 @@ export default function DOCXViewer({ fileId, fileName }: DOCXViewerProps) {
         console.log('[DOCXViewer] 開始加載文件:', fileId);
 
         // 使用 downloadFile API 函數（自動處理認證）
-        const blob = await downloadFile(fileId);
+        // 如果提供了 fileMetadata 且包含 storage_path，優先使用 SeaWeedFS 直接訪問
+        const blob = await downloadFile(fileId, fileMetadata);
         console.log('[DOCXViewer] 文件下載成功，大小:', blob.size, 'bytes');
 
         if (blob.size === 0) {
@@ -91,12 +94,14 @@ export default function DOCXViewer({ fileId, fileName }: DOCXViewerProps) {
   return (
     <div className="p-4 h-full flex flex-col theme-transition">
       {/* 文件標題欄 */}
+      {showHeader && (
       <div className="flex items-center justify-between mb-4 pb-2 border-b border-primary">
         <div className="flex items-center">
           <i className="fa-solid fa-file-word text-blue-400 mr-2"></i>
           <span className="font-medium text-primary">{fileName}</span>
         </div>
       </div>
+      )}
 
       {/* 內容區域 */}
       <div className="flex-1 overflow-auto bg-white dark:bg-gray-900 p-6">

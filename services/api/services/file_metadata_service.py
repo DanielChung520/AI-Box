@@ -189,18 +189,43 @@ class FileMetadataService:
                     chunk_count=existing.get("chunk_count"),  # type: ignore[arg-type]
                     vector_count=existing.get("vector_count"),  # type: ignore[arg-type]
                     kg_status=existing.get("kg_status"),  # type: ignore[arg-type]
-                    access_control=FileAccessControl(**existing["access_control"]) if existing.get("access_control") else None,  # type: ignore[arg-type]
+                    access_control=FileAccessControl(**existing["access_control"])
+                    if existing.get("access_control")
+                    else None,  # type: ignore[arg-type]
                     data_classification=existing.get("data_classification"),  # type: ignore[arg-type]
                     sensitivity_labels=existing.get("sensitivity_labels", []),  # type: ignore[arg-type]
-                    upload_time=datetime.fromisoformat(existing.get("upload_time", datetime.utcnow().isoformat())),  # type: ignore[arg-type]
-                    created_at=datetime.fromisoformat(existing["created_at"]) if existing.get("created_at") else None,  # type: ignore[arg-type]
-                    updated_at=datetime.fromisoformat(existing["updated_at"]) if existing.get("updated_at") else None,  # type: ignore[arg-type]
+                    upload_time=datetime.fromisoformat(
+                        existing.get("upload_time", datetime.utcnow().isoformat())
+                    ),  # type: ignore[arg-type]
+                    created_at=datetime.fromisoformat(existing["created_at"])
+                    if existing.get("created_at")
+                    else None,  # type: ignore[arg-type]
+                    updated_at=datetime.fromisoformat(existing["updated_at"])
+                    if existing.get("updated_at")
+                    else None,  # type: ignore[arg-type]
                 )
-        except Exception:
+        except Exception as e:
             # 文件不存在，繼續創建
-            pass
+            self.logger.debug(
+                "File does not exist, will create new", file_id=metadata.file_id, error=str(e)
+            )
 
-        collection.insert(doc)
+        self.logger.info(
+            "Inserting metadata document", file_id=metadata.file_id, collection=COLLECTION_NAME
+        )
+        try:
+            result = collection.insert(doc)
+            self.logger.info(
+                "Metadata document inserted successfully", file_id=metadata.file_id, result=result
+            )
+        except Exception as e:
+            self.logger.error(
+                "Failed to insert metadata document",
+                file_id=metadata.file_id,
+                error=str(e),
+                exc_info=True,
+            )
+            raise
 
         # 確保所有必需字段都存在且類型正確
         return FileMetadata(
@@ -220,10 +245,14 @@ class FileMetadataService:
             chunk_count=doc.get("chunk_count"),  # type: ignore[arg-type]  # Optional
             vector_count=doc.get("vector_count"),  # type: ignore[arg-type]  # Optional
             kg_status=doc.get("kg_status"),  # type: ignore[arg-type]  # Optional
-            access_control=FileAccessControl(**doc["access_control"]) if doc.get("access_control") else None,  # type: ignore[arg-type]  # Optional
+            access_control=FileAccessControl(**doc["access_control"])
+            if doc.get("access_control")
+            else None,  # type: ignore[arg-type]  # Optional
             data_classification=doc.get("data_classification"),  # type: ignore[arg-type]  # Optional
             sensitivity_labels=doc.get("sensitivity_labels", []),  # type: ignore[arg-type]  # 有默認值
-            upload_time=datetime.fromisoformat(doc.get("upload_time", datetime.utcnow().isoformat())),  # type: ignore[arg-type]  # 已確保存在
+            upload_time=datetime.fromisoformat(
+                doc.get("upload_time", datetime.utcnow().isoformat())
+            ),  # type: ignore[arg-type]  # 已確保存在
             created_at=datetime.fromisoformat(doc["created_at"]) if doc.get("created_at") else None,  # type: ignore[arg-type]  # Optional
             updated_at=datetime.fromisoformat(doc["updated_at"]) if doc.get("updated_at") else None,  # type: ignore[arg-type]  # Optional
         )

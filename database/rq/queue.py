@@ -21,6 +21,7 @@ FILE_PROCESSING_QUEUE = "file_processing"  # 文件處理隊列（分塊+向量�
 VECTORIZATION_QUEUE = "vectorization"  # 向量化專用隊列
 KG_EXTRACTION_QUEUE = "kg_extraction"  # 知識圖譜提取專用隊列
 GENAI_CHAT_QUEUE = "genai_chat"  # GenAI Chat 非同步請求（長任務/Agent）
+TASK_DELETION_QUEUE = "task_deletion"  # 任務刪除專用隊列
 
 # 全局隊列實例（懶加載）
 _queues: dict[str, Queue] = {}

@@ -1,7 +1,7 @@
 # 代碼功能說明: Gemini 客戶端實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-29
+# 最後修改日期: 2025-01-22
 
 """Gemini 客戶端實現，整合 Google Gemini API。"""
 
@@ -65,7 +65,7 @@ class GeminiClient(BaseLLMClient):
         # 從配置讀取其他參數
         config = get_config_section("llm", "gemini", default={}) or {}
         if default_model is None:
-            default_model = config.get("default_model", "gemini-pro")
+            default_model = config.get("default_model", "gemini-3-pro-preview")
         if timeout is None:
             timeout = float(config.get("timeout", 60.0))
 
@@ -120,7 +120,10 @@ class GeminiClient(BaseLLMClient):
                 generation_config["temperature"] = temperature
             if max_tokens is not None:
                 generation_config["max_output_tokens"] = max_tokens
-            generation_config.update(kwargs)
+            # 過濾掉不相關的 kwarg（如 model_id）
+            for k, v in kwargs.items():
+                if k not in ("model", "model_id"):
+                    generation_config[k] = v
 
             # 生成內容
             response: GenerateContentResponse = await gen_model.generate_content_async(
@@ -187,7 +190,10 @@ class GeminiClient(BaseLLMClient):
                 generation_config["temperature"] = temperature
             if max_tokens is not None:
                 generation_config["max_output_tokens"] = max_tokens
-            generation_config.update(kwargs)
+            # 過濾掉不相關的 kwarg（如 model_id）
+            for k, v in kwargs.items():
+                if k not in ("model", "model_id"):
+                    generation_config[k] = v
 
             # 轉換消息格式為 Gemini 格式
             # Gemini 使用 parts 格式，但我們可以簡化為純文本

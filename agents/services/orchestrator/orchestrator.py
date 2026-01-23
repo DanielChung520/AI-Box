@@ -1334,7 +1334,7 @@ class AgentOrchestrator:
 配置操作上下文：
 - 操作類型：{action}
 - 配置範圍：{scope}
-- 配置層級：{level or '未指定'}"""
+- 配置層級：{level or "未指定"}"""
 
         elif result_type == "log_query" and intent:
             if isinstance(intent, dict):
@@ -1344,8 +1344,8 @@ class AgentOrchestrator:
                 prompt += f"""
 
 日誌查詢上下文：
-- 日誌類型：{log_type or '未指定'}
-- 時間範圍：{start_time or '未指定'} 至 {end_time or '未指定'}"""
+- 日誌類型：{log_type or "未指定"}
+- 時間範圍：{start_time or "未指定"} 至 {end_time or "未指定"}"""
 
         prompt += "\n\n請將上述技術性結果轉換為友好的自然語言響應。"
 
@@ -1394,7 +1394,7 @@ class AgentOrchestrator:
             # 簡單展示結果
             return f"執行指令「{original_instruction}」完成。結果：{str(agent_result)[:200]}"
 
-    async def _get_config_definition(self, scope: str) -> Optional[Dict[str, Any]]:
+    def _get_config_definition(self, scope: str) -> Optional[Dict[str, Any]]:
         """
         獲取配置定義（只從內存緩存讀取）
 
@@ -1411,6 +1411,7 @@ class AgentOrchestrator:
         - JSON 文件是唯一數據源
         - 啟動時應該已經加載所有定義到內存
         - 如果內存緩存沒有，說明 JSON 文件缺失（系統配置錯誤）
+        - 不再從 ArangoDB 讀取備用，避免讀到舊數據
         """
         definition_loader = self._get_definition_loader()
         if definition_loader is None:
@@ -1470,7 +1471,7 @@ class AgentOrchestrator:
         if not scope:
             return ValidationResult(valid=False, reason="scope is required")
 
-        definition = await self._get_config_definition(scope)
+        definition = self._get_config_definition(scope)
         if not definition:
             return ValidationResult(
                 valid=False,

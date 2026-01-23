@@ -6,7 +6,7 @@
 """用戶任務管理路由 - 提供任務 CRUD 和同步功能"""
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import structlog
 from fastapi import APIRouter, Body, Depends, Query, status
@@ -17,9 +17,11 @@ from api.core.response import APIResponse
 from api.routers.file_management import get_arangodb_client
 from services.api.models.audit_log import AuditAction
 from services.api.models.user_task import UserTaskCreate, UserTaskUpdate
+from services.api.services.deletion_rollback_manager import DeletionRollbackManager
 from services.api.services.file_metadata_service import get_metadata_service
+from services.api.services.folder_metadata_service import get_folder_metadata_service
+from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
 from services.api.services.user_task_service import get_user_task_service
-from services.api.services.vector_store_service import get_vector_store_service
 from storage.file_storage import create_storage_from_config
 from system.infra.config.config import get_config_section
 from system.security.audit_decorator import audit_log
@@ -47,14 +49,19 @@ async def list_user_tasks(
     limit: int = Query(100, ge=1, le=1000, description="返回數量限制"),
     offset: int = Query(0, ge=0, description="偏移量"),
     include_archived: bool = Query(False, description="是否包含歸檔的任務"),
+    # 修改時間：2026-01-21 - 添加 task_status 參數，支援查詢 Trash 中的任務
+    task_status: Optional[str] = Query(None, description="任務狀態過濾（activate/archive/trash）"),
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """列出當前用戶的所有任務
+
+    修改時間：2026-01-21 - 添加 task_status 參數支援 Trash 查詢
 
     Args:
         limit: 返回數量限制
         offset: 偏移量
         include_archived: 是否包含歸檔的任務（默認 False，只顯示激活的任務）
+        task_status: 任務狀態過濾（activate/archive/trash），為空則返回激活任務
         current_user: 當前認證用戶
 
     Returns:
@@ -65,7 +72,17 @@ async def list_user_tasks(
         # 系統管理員的任務只能由系統管理員自己查看
         # 修改時間：2026-01-06 - 優化性能，不構建 fileTree
         service = get_user_task_service()
-        if current_user.user_id == "systemAdmin":
+
+        # 修改時間：2026-01-21 - 使用 service.list_tasks 進行查詢
+        if task_status:
+            # 根據指定的 task_status 查詢
+            tasks = service.list_tasks(
+                user_id=current_user.user_id,
+                task_status=task_status,
+                limit=limit,
+                offset=offset,
+            )
+        elif current_user.user_id == "systemAdmin":
             # 系統管理員可以查看自己的任務
             tasks = service.list(
                 user_id=current_user.user_id,
@@ -93,7 +110,10 @@ async def list_user_tasks(
 
         # 修改時間：2025-12-12 - 添加 include_archived 參數，允許查詢歸檔任務
         # 修改時間：2025-12-09 - 只返回 task_status 為 activate 的任務（或未設置 task_status 的任務，兼容舊數據）
-        if include_archived:
+        # 修改時間：2026-01-21 - 如果指定了 task_status，則不進行額外過濾
+        if task_status:
+            filtered_tasks = tasks
+        elif include_archived:
             # 包含所有任務（包括歸檔的）
             filtered_tasks = tasks
         else:
@@ -108,7 +128,10 @@ async def list_user_tasks(
 
         return APIResponse.success(
             data={
-                "tasks": [task.model_dump(mode="json") for task in filtered_tasks],
+                "tasks": [
+                    task.model_dump(mode="json") if hasattr(task, "model_dump") else task
+                    for task in filtered_tasks
+                ],
                 "total": len(filtered_tasks),
             },
             message="Tasks retrieved successfully",
@@ -444,16 +467,72 @@ async def delete_user_task(
     """
     try:
         service = get_user_task_service()
+        arangodb_client = get_arangodb_client()
 
-        # 修改時間：2025-12-08 14:20:00 UTC+8 - 先獲取任務信息，以便記錄操作日誌
-        task = service.get(user_id=current_user.user_id, task_id=task_id)
-        if not task:
+        if arangodb_client.db is None:
+            return APIResponse.error(
+                message="ArangoDB 未連接",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # 修改時間：2026-01-21 - 使用靈活的任務查找邏輯
+        # 嘗試多種 _key 格式
+        collection = arangodb_client.db.collection("user_tasks")
+        doc = None
+
+        for doc_key in [f"{current_user.user_id}_{task_id}", task_id]:
+            doc = collection.get(doc_key)
+            if doc:
+                break
+
+        if doc is None:
             return APIResponse.error(
                 message="Task not found",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        task_title = task.title if hasattr(task, "title") else task_id
+        # 確保 doc 是字典類型
+        if not isinstance(doc, dict):
+            return APIResponse.error(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 安全檢查：確保任務屬於當前用戶
+        doc_user_id = doc.get("user_id")
+        if doc_user_id and doc_user_id != current_user.user_id:
+            logger.warning(
+                "Attempted to delete task owned by another user",
+                task_id=task_id,
+                requesting_user=current_user.user_id,
+                actual_owner=doc_user_id,
+            )
+            return APIResponse.error(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 從文檔構建 UserTask 對象
+        task = service.get(user_id=current_user.user_id, task_id=task_id)
+        if not task:
+            # 如果 service.get 返回 None，但文檔存在且屬於當前用戶，直接使用文檔
+            logger.info(
+                "Task found directly from ArangoDB",
+                task_id=task_id,
+                user_id=current_user.user_id,
+            )
+            # 從文檔構建基本任務信息
+            task_title = doc.get("title", task_id)
+            task_created_at = doc.get("created_at")
+            task_updated_at = doc.get("updated_at")
+        else:
+            task_title = task.title if hasattr(task, "title") else task_id
+            task_created_at = (
+                task.created_at if hasattr(task, "created_at") and task.created_at else None
+            )
+            task_updated_at = (
+                task.updated_at if hasattr(task, "updated_at") and task.updated_at else None
+            )
         # 處理時間字段（可能是 datetime 對象或字符串）
         task_created_at = None
         if hasattr(task, "created_at") and task.created_at:
@@ -488,95 +567,65 @@ async def delete_user_task(
         deletion_results: Dict[str, Any] = {
             "task_deleted": False,
             "files_deleted": 0,
-            "folders_deleted": 0,  # 修改時間：2025-12-09 - 添加資料夾刪除計數
+            "folders_deleted": 0,
             "vectors_deleted": 0,
             "kg_deleted": False,
             "errors": [],
         }
 
-        # 1. 刪除任務下的所有文件（包括向量、圖譜、元數據、實體文件）
-        vector_store_service = get_vector_store_service()
+        # 使用回滾管理器進行刪除
+        vector_store_service = get_qdrant_vector_store_service()
         arangodb_client = get_arangodb_client()
         storage_config = get_config_section("storage")
         storage = create_storage_from_config(storage_config)
+        folder_service = get_folder_metadata_service()
 
+        rollback_manager = DeletionRollbackManager(
+            task_id=task_id,
+            user_id=current_user.user_id,
+            vector_store_service=vector_store_service,
+            file_metadata_service=file_metadata_service,
+            folder_metadata_service=folder_service,
+            storage=storage,
+            arangodb_client=arangodb_client,
+        )
+
+        # 1. 刪除任務下的所有文件
         for file_metadata in task_files:
             file_id = file_metadata.file_id
+            storage_path = getattr(file_metadata, "storage_path", None)
+
             try:
-                # 1.1 刪除 ChromaDB 中的向量數據
-                try:
-                    vector_store_service.delete_vectors_by_file_id(
-                        file_id=file_id, user_id=current_user.user_id
-                    )
+                # 1.1 刪除向量數據（帶重試和回滾追蹤）
+                success, error = rollback_manager.delete_vector_with_rollback(file_id, storage_path)
+                if success:
                     deletion_results["vectors_deleted"] += 1
-                    logger.info("向量數據刪除成功", file_id=file_id, task_id=task_id)
-                except Exception as e:
-                    error_msg = f"刪除向量數據失敗: {str(e)}"
-                    deletion_results["errors"].append(error_msg)
-                    logger.warning(error_msg, file_id=file_id, task_id=task_id, error=str(e))
 
-                # 1.2 刪除知識圖譜關聯（從 ArangoDB 中刪除與該文件相關的實體和關係）
-                if arangodb_client.db is not None and arangodb_client.db.aql is not None:
-                    entities_collection = "entities"
-                    relations_collection = "relations"
-
-                    if arangodb_client.db.has_collection(entities_collection):
-                        try:
-                            aql_query_entities = """
-                            FOR entity IN entities
-                                FILTER entity.file_id == @file_id OR @file_id IN entity.file_ids
-                                REMOVE entity IN entities
-                            """
-                            arangodb_client.db.aql.execute(
-                                aql_query_entities, bind_vars={"file_id": file_id}
-                            )
-                        except Exception as e:
-                            logger.warning("刪除實體時出錯", file_id=file_id, error=str(e))
-
-                    if arangodb_client.db.has_collection(relations_collection):
-                        try:
-                            aql_query_relations = """
-                            FOR relation IN relations
-                                FILTER relation.file_id == @file_id OR @file_id IN relation.file_ids
-                                REMOVE relation IN relations
-                            """
-                            arangodb_client.db.aql.execute(
-                                aql_query_relations, bind_vars={"file_id": file_id}
-                            )
-                        except Exception as e:
-                            logger.warning("刪除關係時出錯", file_id=file_id, error=str(e))
-
+                # 1.2 刪除知識圖譜實體
+                success, error = rollback_manager.delete_kg_entities_with_rollback(file_id)
+                if success:
                     deletion_results["kg_deleted"] = True
-                    logger.info("知識圖譜關聯刪除成功", file_id=file_id, task_id=task_id)
 
-                # 1.3 刪除文件元數據（從 ArangoDB）
-                try:
-                    file_metadata_service.delete(file_id)
-                    logger.info("文件元數據刪除成功", file_id=file_id, task_id=task_id)
-                except Exception as e:
-                    error_msg = f"刪除文件元數據失敗: {str(e)}"
-                    deletion_results["errors"].append(error_msg)
-                    logger.warning(error_msg, file_id=file_id, task_id=task_id, error=str(e))
+                # 1.3 刪除知識圖譜關係
+                success, error = rollback_manager.delete_kg_relations_with_rollback(file_id)
+                if success and not deletion_results["kg_deleted"]:
+                    deletion_results["kg_deleted"] = True
 
-                # 1.4 刪除實體文件（從文件系統）
-                try:
-                    storage.delete_file(file_id)
-                    logger.info("實體文件刪除成功", file_id=file_id, task_id=task_id)
-                except Exception as e:
-                    error_msg = f"刪除實體文件失敗: {str(e)}"
-                    deletion_results["errors"].append(error_msg)
-                    logger.warning(error_msg, file_id=file_id, task_id=task_id, error=str(e))
+                # 1.4 刪除文件元數據
+                success, error = rollback_manager.delete_metadata_with_rollback(file_id)
+
+                # 1.5 刪除實體文件
+                success, error = rollback_manager.delete_file_with_rollback(file_id, storage_path)
 
                 deletion_results["files_deleted"] += 1
 
-                # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄文件刪除操作日誌
+                # 記錄文件刪除日誌
                 try:
                     from services.api.services.operation_log_service import (
                         get_operation_log_service,
                     )
 
                     operation_log_service = get_operation_log_service()
-                    # 處理文件時間字段
                     file_created_at = None
                     if hasattr(file_metadata, "created_at") and file_metadata.created_at:
                         if isinstance(file_metadata.created_at, datetime):
@@ -614,76 +663,39 @@ async def delete_user_task(
                         deleted_at=datetime.utcnow().isoformat() + "Z",
                         notes=f"任務刪除時自動刪除，任務ID: {task_id}",
                     )
-                except Exception as e:
-                    logger.warning("記錄文件刪除操作日誌失敗", file_id=file_id, error=str(e))
+                except Exception as log_error:
+                    logger.warning("記錄文件刪除操作日誌失敗", file_id=file_id, error=str(log_error))
 
             except Exception as e:
                 error_msg = f"刪除文件 {file_id} 時出錯: {str(e)}"
                 deletion_results["errors"].append(error_msg)
                 logger.error(
-                    error_msg,
-                    file_id=file_id,
-                    task_id=task_id,
-                    error=str(e),
-                    exc_info=True,
+                    error_msg, file_id=file_id, task_id=task_id, error=str(e), exc_info=True
                 )
 
-        # 修改時間：2025-12-09 - 刪除任務下的所有資料夾
-        if arangodb_client.db is not None:
-            try:
-                from api.routers.file_management import FOLDER_COLLECTION_NAME
+        # 2. 刪除任務下的所有資料夾
+        try:
+            folders = folder_service.list(task_id=task_id)
+            for folder in folders:
+                folder_id = folder.get("folder_id") or folder.get("_key")
+                if folder_id:
+                    rollback_manager.delete_folder_with_rollback(folder_id)
+                    deletion_results["folders_deleted"] += 1
+        except Exception as e:
+            error_msg = f"刪除任務資料夾時出錯: {str(e)}"
+            deletion_results["errors"].append(error_msg)
+            logger.warning(error_msg, task_id=task_id, error=str(e))
 
-                folder_collection = arangodb_client.db.collection(FOLDER_COLLECTION_NAME)
-
-                # 查詢任務下的所有資料夾
-                aql_query = """
-                FOR folder IN folder_metadata
-                    FILTER folder.task_id == @task_id
-                    RETURN folder._key
-                """
-                cursor = arangodb_client.db.aql.execute(
-                    aql_query,
-                    bind_vars={"task_id": task_id},
-                )
-                folder_ids = list(cursor) if cursor else []  # type: ignore[arg-type]  # cursor 可能為 None
-
-                # 刪除所有資料夾
-                for folder_id in folder_ids:
-                    try:
-                        folder_collection.delete(folder_id)
-                        deletion_results["folders_deleted"] += 1
-                        logger.info("資料夾刪除成功", folder_id=folder_id, task_id=task_id)
-                    except Exception as e:
-                        error_msg = f"刪除資料夾 {folder_id} 失敗: {str(e)}"
-                        deletion_results["errors"].append(error_msg)
-                        logger.warning(
-                            error_msg,
-                            folder_id=folder_id,
-                            task_id=task_id,
-                            error=str(e),
-                        )
-
-                logger.info(
-                    "任務資料夾刪除完成",
-                    task_id=task_id,
-                    folders_deleted=deletion_results["folders_deleted"],
-                )
-            except Exception as e:
-                error_msg = f"刪除任務資料夾時出錯: {str(e)}"
-                deletion_results["errors"].append(error_msg)
-                logger.warning(error_msg, task_id=task_id, error=str(e))
-
-        # 2. 刪除任務本身（從 ArangoDB）
-        success = service.delete(user_id=current_user.user_id, task_id=task_id)
+        # 3. 刪除任務本身
+        success, error = rollback_manager.delete_task_with_rollback(task_id)
         if success:
             deletion_results["task_deleted"] = True
 
-            # 修改時間：2025-12-08 14:20:00 UTC+8 - 記錄任務刪除操作日誌
+            # 記錄任務刪除日誌
             try:
                 from services.api.services.operation_log_service import get_operation_log_service
 
                 operation_log_service = get_operation_log_service()
-                # 處理任務時間字段
                 task_created_at_str = None
                 if task_created_at:
                     if isinstance(task_created_at, datetime):
@@ -720,6 +732,25 @@ async def delete_user_task(
             except Exception as e:
                 logger.warning("記錄任務刪除操作日誌失敗", task_id=task_id, error=str(e))
 
+        # 完成事務並獲取回滾報告
+        transaction = rollback_manager.complete()
+        rollback_report = rollback_manager.get_rollback_report()
+
+        # 如果有失敗的操作，添加到 errors
+        for op in rollback_report["failed_operations"]:
+            error_msg = f"刪除 {op['operation_type']} 失敗 (file_id={op['file_id']}): {op.get('error', 'Unknown error')}"
+            if error_msg not in deletion_results["errors"]:
+                deletion_results["errors"].append(error_msg)
+
+        # 生成回滾報告摘要
+        rollback_summary = {
+            "status": transaction.status,
+            "total_operations": rollback_report["total_operations"],
+            "success_count": rollback_report["success_count"],
+            "failed_count": rollback_report["failed_count"],
+            "recommendations": rollback_report["recommendations"],
+        }
+
         if not success:
             return APIResponse.error(
                 message="Task not found",
@@ -739,6 +770,7 @@ async def delete_user_task(
             data={
                 "deleted": True,
                 "deletion_results": deletion_results,
+                "rollback_summary": rollback_summary,
             },
             message=f"Task deleted successfully. Deleted {deletion_results['files_deleted']} files and {deletion_results['folders_deleted']} folders.",
         )
@@ -1051,5 +1083,502 @@ async def migrate_task(
         logger.error("遷移任務失敗", error=str(e), exc_info=True)
         return APIResponse.error(
             message=f"遷移失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+class FixUserIdRequest(BaseModel):
+    """修復用戶 ID 請求"""
+
+    old_user_id: str = Field(..., description="舊的 user_id")
+    new_user_id: str = Field(..., description="新的 user_id")
+    dry_run: bool = Field(True, description="是否僅預覽，不實際執行")
+
+
+@router.post("/fix-user-id", name="fix_user_id")
+async def fix_user_id(
+    request: FixUserIdRequest,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """批量修復任務的 user_id
+
+    將所有屬於 old_user_id 的任務改為 new_user_id。
+    這是一個管理員操作，用於修復歷史數據問題。
+
+    Args:
+        request: 修復請求
+        current_user: 當前認證用戶
+
+    Returns:
+        修復結果
+    """
+    # 只有系統管理員可以執行此操作
+    if current_user.user_id != "systemAdmin":
+        return APIResponse.error(
+            message="只有系統管理員可以執行此操作",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        arangodb_client = get_arangodb_client()
+
+        if arangodb_client.db is None:
+            return APIResponse.error(
+                message="ArangoDB 未連接",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        collection = arangodb_client.db.collection("user_tasks")
+
+        # 查找所有屬於 old_user_id 的任務
+        aql_query = """
+        FOR task IN user_tasks
+            FILTER task.user_id == @old_user_id
+            RETURN task
+        """
+        cursor = arangodb_client.db.aql.execute(
+            aql_query, bind_vars={"old_user_id": request.old_user_id}
+        )
+        tasks = list(cursor)
+
+        total_tasks = len(tasks)
+        logger.info(
+            "fix_user_id_start",
+            old_user_id=request.old_user_id,
+            new_user_id=request.new_user_id,
+            total_tasks=total_tasks,
+            dry_run=request.dry_run,
+        )
+
+        if total_tasks == 0:
+            return APIResponse.success(
+                data={
+                    "dry_run": request.dry_run,
+                    "total_tasks": 0,
+                    "fixed_tasks": 0,
+                    "skipped_tasks": 0,
+                },
+                message=f"沒有找到屬於 {request.old_user_id} 的任務",
+            )
+
+        # 預覽模式
+        if request.dry_run:
+            # 顯示前 10 個任務
+            sample_tasks = [
+                {
+                    "task_id": task.get("task_id"),
+                    "title": task.get("title", "")[:30],
+                }
+                for task in tasks[:10]
+            ]
+            return APIResponse.success(
+                data={
+                    "dry_run": True,
+                    "total_tasks": total_tasks,
+                    "fixed_tasks": 0,
+                    "skipped_tasks": 0,
+                    "sample_tasks": sample_tasks,
+                },
+                message=f"預覽：找到 {total_tasks} 個任務，添加 --apply 參數來實際執行修復",
+            )
+
+        # 執行修復
+        fixed_count = 0
+        skipped_count = 0
+        for task in tasks:
+            task_id = task.get("task_id")
+            old_key = f"{request.old_user_id}_{task_id}"
+            new_key = f"{request.new_user_id}_{task_id}"
+
+            # 檢查目標是否已存在
+            existing = collection.get(new_key)
+            if existing:
+                skipped_count += 1
+                logger.info(
+                    "任務已存在，跳過",
+                    task_id=task_id,
+                    new_user_id=request.new_user_id,
+                )
+                continue
+
+            try:
+                # 更新 user_id
+                collection.update_match({"_key": old_key}, {"user_id": request.new_user_id})
+                fixed_count += 1
+                logger.info(
+                    "已修復任務",
+                    task_id=task_id,
+                    old_user_id=request.old_user_id,
+                    new_user_id=request.new_user_id,
+                )
+            except Exception as e:
+                logger.error(
+                    "修復任務失敗",
+                    task_id=task_id,
+                    error=str(e),
+                )
+
+        return APIResponse.success(
+            data={
+                "dry_run": False,
+                "total_tasks": total_tasks,
+                "fixed_tasks": fixed_count,
+                "skipped_tasks": skipped_count,
+            },
+            message=f"修復完成：{fixed_count} 個任務已修復，{skipped_count} 個任務已存在",
+        )
+
+    except Exception as e:
+        logger.error("修復用戶 ID 失敗", error=str(e), exc_info=True)
+        return APIResponse.error(
+            message=f"修復失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.delete("/{task_id}/async", name="delete_user_task_async")
+@audit_log(
+    action=AuditAction.FILE_DELETE,
+    resource_type="task",
+    get_resource_id=lambda response: None,
+)
+async def delete_user_task_async(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """異步刪除用戶任務（多數據源清理）
+
+    將任務刪除加入 RQ 隊列異步執行，立即返回 job_id。
+    前端可通過 /api/v1/user-tasks/jobs/{job_id} 查詢進度。
+
+    Args:
+        task_id: 任務 ID
+        current_user: 當前認證用戶
+
+    Returns:
+        包含 job_id 的刪除任務信息
+    """
+    try:
+        from services.api.tasks.task_deletion import enqueue_task_deletion
+
+        arangodb_client = get_arangodb_client()
+
+        if arangodb_client.db is None:
+            return APIResponse.error(
+                message="ArangoDB 未連接",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # 檢查任務是否存在且屬於當前用戶
+        collection = arangodb_client.db.collection("user_tasks")
+        doc = None
+
+        for doc_key in [f"{current_user.user_id}_{task_id}", task_id]:
+            doc = collection.get(doc_key)
+            if doc:
+                break
+
+        if doc is None:
+            return APIResponse.error(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 確保任務屬於當前用戶
+        doc_user_id = doc.get("user_id")
+        if doc_user_id and doc_user_id != current_user.user_id:
+            return APIResponse.error(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 將刪除任務加入 RQ 隊列
+        job_id = enqueue_task_deletion(
+            task_id=task_id,
+            user_id=current_user.user_id,
+        )
+
+        logger.info(
+            "Task deletion job enqueued",
+            task_id=task_id,
+            user_id=current_user.user_id,
+            job_id=job_id,
+        )
+
+        return APIResponse.success(
+            data={
+                "job_id": job_id,
+                "task_id": task_id,
+                "status": "queued",
+                "message": "任務刪除已加入隊列，請通過 /api/v1/user-tasks/jobs/{job_id} 查詢進度",
+            },
+            message="任務刪除已提交",
+        )
+
+    except Exception as e:
+        logger.error(
+            "Failed to enqueue task deletion", error=str(e), task_id=task_id, exc_info=True
+        )
+        return APIResponse.error(
+            message=f"提交刪除任務失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.get("/jobs/{job_id}", name="get_job_status")
+async def get_job_status(
+    job_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """查詢異步任務狀態
+
+    Args:
+        job_id: 任務 ID（RQ job_id）
+        current_user: 當前認證用戶
+
+    Returns:
+        任務狀態信息
+    """
+    try:
+        from database.rq.queue import TASK_DELETION_QUEUE, get_task_queue
+
+        queue = get_task_queue(TASK_DELETION_QUEUE)
+        job = queue.fetch_job(job_id)
+
+        if job is None:
+            return APIResponse.error(
+                message="Job not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 獲取任務結果
+        result = job.get_result()
+        job_status = job.get_status()
+
+        response_data = {
+            "job_id": job_id,
+            "status": job_status,
+            "started_at": job.enqueued_at.isoformat() if job.enqueued_at else None,
+            "ended_at": job.ended_at.isoformat() if job.ended_at else None,
+        }
+
+        # 根據狀態返回不同信息
+        if job_status == "finished":
+            response_data["data"] = result
+            if result and result.get("status") == "completed":
+                response_data[
+                    "message"
+                ] = f"任務刪除完成。已刪除 {result.get('files_deleted', 0)} 個文件，{result.get('folders_deleted', 0)} 個資料夾。"
+            elif result and result.get("status") == "partially_completed":
+                response_data[
+                    "message"
+                ] = f"任務部分刪除完成。刪除了 {result.get('files_deleted', 0)} 個文件，{result.get('folders_deleted', 0)} 個資料夾。"
+            else:
+                response_data["message"] = "任務刪除完成"
+        elif job_status == "failed":
+            response_data["message"] = "任務刪除失敗"
+            if result:
+                response_data["errors"] = result.get("errors", [])
+        elif job_status in ["started", "queued"]:
+            response_data["message"] = "任務正在處理中..."
+        else:
+            response_data["message"] = f"任務狀態: {job_status}"
+
+        return APIResponse.success(data=response_data, message=response_data["message"])
+
+    except Exception as e:
+        logger.error("Failed to get job status", job_id=job_id, error=str(e), exc_info=True)
+        return APIResponse.error(
+            message=f"查詢任務狀態失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.patch("/{task_id}/soft-delete", name="soft_delete_task")
+@audit_log(
+    action=AuditAction.TASK_DELETE,
+    resource_type="task",
+    get_resource_id=lambda response: None,
+)
+async def soft_delete_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """軟刪除用戶任務（移至 Trash）
+
+    修改時間：2026-01-21 - 添加 Soft Delete 機制
+
+    將任務的 task_status 改為 "trash"，並設置 deleted_at 和 permanent_delete_at。
+    任務將在 7 天後自動永久刪除，或用戶可以提前恢復或永久刪除。
+
+    Args:
+        task_id: 任務 ID
+        current_user: 當前認證用戶
+
+    Returns:
+        軟刪除結果
+    """
+    try:
+        service = get_user_task_service()
+
+        result = service.soft_delete(
+            user_id=current_user.user_id,
+            task_id=task_id,
+        )
+
+        if not result.get("success"):
+            return APIResponse.error(
+                message=result.get("error", "Soft delete failed"),
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        logger.info(
+            "Task soft-deleted",
+            task_id=task_id,
+            user_id=current_user.user_id,
+            deleted_at=result.get("deleted_at"),
+            permanent_delete_at=result.get("permanent_delete_at"),
+        )
+
+        return APIResponse.success(
+            data=result,
+            message="任務已移至 Trash，將在 7 天後永久刪除",
+        )
+
+    except Exception as e:
+        logger.error(
+            "Failed to soft delete task",
+            task_id=task_id,
+            user_id=current_user.user_id,
+            error=str(e),
+            exc_info=True,
+        )
+        return APIResponse.error(
+            message=f"軟刪除任務失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.patch("/{task_id}/restore", name="restore_task")
+@audit_log(
+    action=AuditAction.TASK_UPDATE,
+    resource_type="task",
+    get_resource_id=lambda response: None,
+)
+async def restore_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """恢復用戶任務（從 Trash 恢復）
+
+    修改時間：2026-01-21 - 添加恢復功能
+
+    將 Trash 中的任務恢復到正常狀態（task_status = "activate"），
+    並清除 deleted_at 和 permanent_delete_at。
+
+    Args:
+        task_id: 任務 ID
+        current_user: 當前認證用戶
+
+    Returns:
+        恢復結果
+    """
+    try:
+        service = get_user_task_service()
+
+        result = service.restore(
+            user_id=current_user.user_id,
+            task_id=task_id,
+        )
+
+        if not result.get("success"):
+            return APIResponse.error(
+                message=result.get("error", "Restore failed"),
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        logger.info(
+            "Task restored from trash",
+            task_id=task_id,
+            user_id=current_user.user_id,
+        )
+
+        return APIResponse.success(
+            data=result,
+            message="任務已恢復",
+        )
+
+    except Exception as e:
+        logger.error(
+            "Failed to restore task",
+            task_id=task_id,
+            user_id=current_user.user_id,
+            error=str(e),
+            exc_info=True,
+        )
+        return APIResponse.error(
+            message=f"恢復任務失敗: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.delete("/{task_id}/permanent", name="permanent_delete_task")
+@audit_log(
+    action=AuditAction.TASK_DELETE,
+    resource_type="task",
+    get_resource_id=lambda response: None,
+)
+async def permanent_delete_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """永久刪除用戶任務（從 Trash 徹底刪除）
+
+    修改時間：2026-01-21 - 添加永久刪除功能
+
+    從 Trash 中徹底刪除任務（不可恢復）。
+
+    Args:
+        task_id: 任務 ID
+        current_user: 當前認證用戶
+
+    Returns:
+        刪除結果
+    """
+    try:
+        service = get_user_task_service()
+
+        result = service.permanent_delete(
+            user_id=current_user.user_id,
+            task_id=task_id,
+        )
+
+        if not result.get("success"):
+            return APIResponse.error(
+                message=result.get("error", "Permanent delete failed"),
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        logger.info(
+            "Task permanently deleted",
+            task_id=task_id,
+            user_id=current_user.user_id,
+        )
+
+        return APIResponse.success(
+            data=result,
+            message="任務已永久刪除",
+        )
+
+    except Exception as e:
+        logger.error(
+            "Failed to permanently delete task",
+            task_id=task_id,
+            user_id=current_user.user_id,
+            error=str(e),
+            exc_info=True,
+        )
+        return APIResponse.error(
+            message=f"永久刪除任務失敗: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

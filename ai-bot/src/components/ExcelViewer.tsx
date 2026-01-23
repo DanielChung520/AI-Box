@@ -2,17 +2,19 @@
  * 代碼功能說明: Excel (XLSX) 文件預覽組件
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-01-27
+ * 最後修改日期: 2026-01-21 11:57 UTC+8
  */
 
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { Loader2, FileSpreadsheet } from 'lucide-react';
-import { downloadFile } from '../lib/api';
+import { downloadFile, FileMetadata } from '../lib/api';
 
 interface ExcelViewerProps {
   fileId: string;
   fileName: string;
+  fileMetadata?: FileMetadata; // 文件元數據（包含 storage_path，用於 SeaWeedFS 直接訪問）
+  showHeader?: boolean; // 是否顯示 Header（默認 true）
 }
 
 interface SheetData {
@@ -20,7 +22,7 @@ interface SheetData {
   data: any[][];
 }
 
-export default function ExcelViewer({ fileId, fileName }: ExcelViewerProps) {
+export default function ExcelViewer({ fileId, fileName, fileMetadata, showHeader = true }: ExcelViewerProps) {
   const [sheets, setSheets] = useState<SheetData[]>([]);
   const [activeSheetIndex, setActiveSheetIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,7 +37,8 @@ export default function ExcelViewer({ fileId, fileName }: ExcelViewerProps) {
         console.log('[ExcelViewer] 開始加載文件:', fileId);
 
         // 使用 downloadFile API 函數（自動處理認證）
-        const blob = await downloadFile(fileId);
+        // 如果提供了 fileMetadata 且包含 storage_path，優先使用 SeaWeedFS 直接訪問
+        const blob = await downloadFile(fileId, fileMetadata);
         console.log('[ExcelViewer] 文件下載成功，大小:', blob.size, 'bytes');
 
         if (blob.size === 0) {
@@ -113,6 +116,7 @@ export default function ExcelViewer({ fileId, fileName }: ExcelViewerProps) {
   return (
     <div className="p-4 h-full flex flex-col theme-transition">
       {/* 文件標題欄和工作表切換 */}
+      {showHeader && (
       <div className="flex items-center justify-between mb-4 pb-2 border-b border-primary">
         <div className="flex items-center gap-4">
           <div className="flex items-center">
@@ -145,6 +149,7 @@ export default function ExcelViewer({ fileId, fileName }: ExcelViewerProps) {
           </div>
         )}
       </div>
+      )}
 
       {/* 內容區域 */}
       <div className="flex-1 overflow-auto bg-white dark:bg-gray-900">

@@ -1,7 +1,7 @@
 # 代碼功能說明: RQ Worker Service 管理模組
 # 創建日期: 2025-12-12
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-31
+# 最後修改日期: 2026-01-21 04:39 UTC+8
 
 """RQ Worker Service 管理模組 - 提供 Worker 的啟動、監控、重啟等功能"""
 
@@ -147,6 +147,46 @@ class WorkerService:
             logger.error("檢查依賴時發生錯誤", error=str(e))
             return False
 
+    def _cleanup_old_worker_registry(self) -> None:
+        """
+        清理 Redis 中同名的舊 Worker 註冊信息
+
+        修改時間：2026-01-21 - 修復 Worker 重啟時的註冊衝突問題
+        當 Worker 異常退出時，Redis 中的註冊信息可能沒有被正確清理，
+        導致新 Worker 無法註冊。在啟動新 Worker 前先清理舊的註冊信息。
+        """
+        try:
+            from database.redis import get_redis_client
+
+            redis_client = get_redis_client()
+
+            # 清理同名的 worker 註冊鍵
+            worker_key = f"rq:worker:{self.worker_name}"
+            birth_key = f"{worker_key}:birth"
+
+            # 檢查並刪除 worker 註冊信息
+            if redis_client.exists(worker_key):
+                logger.info(
+                    "發現舊的 Worker 註冊信息，正在清理",
+                    worker_name=self.worker_name,
+                    worker_key=worker_key,
+                )
+                redis_client.delete(worker_key)
+
+            # 檢查並刪除 birth 鍵
+            if redis_client.exists(birth_key):
+                redis_client.delete(birth_key)
+
+            logger.debug("Worker 註冊信息清理完成", worker_name=self.worker_name)
+
+        except Exception as e:
+            # 清理失敗不應該阻止 Worker 啟動，只記錄警告
+            logger.warning(
+                "清理舊 Worker 註冊信息時發生錯誤，將繼續啟動",
+                worker_name=self.worker_name,
+                error=str(e),
+            )
+
     def start(self) -> bool:
         """
         啟動 Worker
@@ -160,6 +200,10 @@ class WorkerService:
 
         if not self._check_dependencies():
             return False
+
+        # 修改時間：2026-01-21 - 在啟動前清理舊的 Worker 註冊信息
+        # 避免因舊註冊信息導致新 Worker 無法啟動的問題
+        self._cleanup_old_worker_registry()
 
         try:
             # 構建 RQ Worker 命令

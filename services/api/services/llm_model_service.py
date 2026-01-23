@@ -382,17 +382,17 @@ class LLMModelService:
                         # 只顯示 gpt-oss:120b-cloud 相關模型，其他 Ollama 模型暫時不顯示（但不代表禁用）
                         # 支持多種格式：gpt-oss:120b-cloud, gpt-oss:120b-cloud:latest, gpt-oss:120b 等
                         model_name_lower = model_name.lower()
-                        if "gpt-oss" in model_name_lower and (
-                            "120b" in model_name_lower or "120" in model_name_lower
-                        ):
-                            # 匹配 gpt-oss:120b-cloud 相關模型
-                            pass
-                        elif "gpt-oss:120b-cloud" in model_name_lower:
-                            # 完全匹配 gpt-oss:120b-cloud
-                            pass
-                        else:
-                            # 其他模型不顯示
-                            continue
+                        # if "gpt-oss" in model_name_lower and (
+                        #     "120b" in model_name_lower or "120" in model_name_lower
+                        # ):
+                        #     # 匹配 gpt-oss:120b-cloud 相關模型
+                        #     pass
+                        # elif "gpt-oss:120b-cloud" in model_name_lower:
+                        #     # 完全匹配 gpt-oss:120b-cloud
+                        #     pass
+                        # else:
+                        #     # 其他模型不顯示
+                        #     continue
 
                         # 構建唯一的 model_id（包含節點信息）
                         model_id = f"ollama:{node.host}:{node.port}:{model_name}"

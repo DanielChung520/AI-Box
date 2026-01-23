@@ -20,6 +20,7 @@ from agents.services.protocol.base import (
     AgentServiceStatus,
 )
 from agents.task_analyzer.models import ConfigIntent
+from services.api.core.config import get_definition_loader
 from services.api.core.log.log_service import LogService, get_log_service
 from services.api.models.change_proposal import ChangeProposalCreate
 from services.api.models.config import ConfigCreate, ConfigUpdate
@@ -48,8 +49,20 @@ class SystemConfigAgent(AgentServiceProtocol):
         self._inspection_service = ConfigInspectionService()
         self._logger = logger
 
+        self._definition_loader = None
+
         # 延遲初始化變更提案服務（可選）
         self._change_proposal_service: Optional[Any] = None
+
+    def _get_definition_loader(self):
+        """獲取 DefinitionLoader 實例（懶加載，避免循環導入）"""
+        if self._definition_loader is None:
+            try:
+                self._definition_loader = get_definition_loader()
+            except ImportError as e:
+                self._logger.warning(f"Failed to import DefinitionLoader: {e}")
+                return None
+        return self._definition_loader
 
     async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
         """
@@ -430,7 +443,9 @@ class SystemConfigAgent(AgentServiceProtocol):
             collection_name = (
                 "system_configs"
                 if intent.level == "system"
-                else "tenant_configs" if intent.level == "tenant" else "user_configs"
+                else "tenant_configs"
+                if intent.level == "tenant"
+                else "user_configs"
             )
             aql_query = f"""
 UPDATE {{_key: '{config_id}'}}
@@ -903,6 +918,9 @@ RETURN NEW
         """
         檢查收斂規則（tenant 配置不能擴權）
 
+        從 DefinitionLoader 讀取 JSON 定義中的 convergence_rules，
+        只檢查定義中指定的字段。
+
         Args:
             intent: 配置操作意圖
             tenant_config_data: 租戶配置數據
@@ -912,86 +930,115 @@ RETURN NEW
         """
         violations = []
 
-        try:
-            # 獲取 system 配置
-            system_config = self._config_service.get_config(intent.scope, tenant_id=None)
-            if not system_config:
-                # 如果沒有 system 配置，無法驗證收斂規則
-                return ComplianceCheckResult(  # type: ignore[call-arg]  # 字段都有默認值
-                    valid=True,
-                    reason="No system config found, skipping convergence check",
+        # 1. 從 DefinitionLoader 讀取配置定義
+        definition_loader = self._get_definition_loader()
+        definition = None
+        convergence_rules = {}
+
+        if definition_loader:
+            definition = definition_loader.get_definition(intent.scope)
+            if definition:
+                convergence_rules = definition.get("convergence_rules", {})
+                self._logger.info(
+                    "Loaded convergence rules from DefinitionLoader",
+                    scope=intent.scope,
+                    rules=list(convergence_rules.keys()),
                 )
+            else:
+                self._logger.warning(
+                    "Config definition not found in DefinitionLoader",
+                    scope=intent.scope,
+                )
+        else:
+            self._logger.warning("DefinitionLoader not available, using default validation")
 
-            system_data = system_config.config_data
+        # 2. 獲取 system 配置
+        system_config = self._config_service.get_config(intent.scope, tenant_id=None)
+        if not system_config:
+            return ComplianceCheckResult(  # type: ignore[call-arg]  # 字段都有默認值
+                valid=True,
+                reason="No system config found, skipping convergence check",
+            )
 
-            # 使用 ConfigStoreService 的驗證方法
-            # 注意：這裡需要訪問私有方法，但我們可以實現自己的驗證邏輯
-            def _normalize_provider(value: str) -> str:
-                """標準化 provider 名稱"""
-                return str(value).strip().lower()
+        system_data = system_config.config_data
 
-            def _pattern_is_subset_of_any(pattern: str, supersets: list) -> bool:
-                """判斷 pattern 是否不會擴權"""
-                p = str(pattern).strip().lower()
-                if not p:
-                    return False
-                for s in supersets:
-                    sp = str(s).strip().lower()
-                    if not sp:
-                        continue
-                    if sp == "*":
-                        return True
-                    if sp.endswith("*"):
-                        if p.startswith(sp[:-1]):
-                            return True
-                    else:
-                        if p == sp:
-                            return True
+        def _normalize_provider(value: str) -> str:
+            """標準化 provider 名稱"""
+            return str(value).strip().lower()
+
+        def _pattern_is_subset_of_any(pattern: str, supersets: list) -> bool:
+            """判斷 pattern 是否不會擴權"""
+            p = str(pattern).strip().lower()
+            if not p:
                 return False
+            for s in supersets:
+                sp = str(s).strip().lower()
+                if not sp:
+                    continue
+                if sp == "*":
+                    return True
+                if sp.endswith("*"):
+                    if p.startswith(sp[:-1]):
+                        return True
+                else:
+                    if p == sp:
+                        return True
+            return False
 
-            # 檢查 allowed_providers
-            sys_providers = set(
-                _normalize_provider(p) for p in system_data.get("allowed_providers", [])
-            )
-            tenant_providers = set(
-                _normalize_provider(p) for p in tenant_config_data.get("allowed_providers", [])
-            )
-            if tenant_providers - sys_providers:
-                diff = tenant_providers - sys_providers
-                violations.append(
-                    f"Tenant allowed_providers contains providers not in system config: {', '.join(diff)}"
+        # 3. 根據 convergence_rules 定義進行檢查
+        must_subset_fields = convergence_rules.get("must_subset_of_parent", [])
+        must_not_exceed_fields = convergence_rules.get("must_not_exceed_system_max", [])
+
+        # 檢查 allowed_providers（如果定義中指定）
+        if "allowed_providers" in must_subset_fields or not convergence_rules:
+            if "allowed_providers" in tenant_config_data:
+                sys_providers = set(
+                    _normalize_provider(p) for p in system_data.get("allowed_providers", [])
                 )
+                tenant_providers = set(
+                    _normalize_provider(p) for p in tenant_config_data.get("allowed_providers", [])
+                )
+                if tenant_providers - sys_providers:
+                    diff = tenant_providers - sys_providers
+                    violations.append(
+                        f"Tenant allowed_providers contains providers not in system config: {', '.join(diff)}"
+                    )
 
-            # 檢查 allowed_models
-            sys_models = system_data.get("allowed_models", {})
-            tenant_models = tenant_config_data.get("allowed_models", {})
-            if isinstance(sys_models, dict) and isinstance(tenant_models, dict):
-                for prov, patterns in tenant_models.items():
-                    prov_key = _normalize_provider(prov)
-                    sys_patterns = sys_models.get(prov_key, [])
-                    tenant_patterns_list = patterns if isinstance(patterns, list) else []
-                    for pattern in tenant_patterns_list:
-                        if not _pattern_is_subset_of_any(str(pattern), sys_patterns):
-                            violations.append(
-                                f"Tenant model pattern '{pattern}' for provider '{prov}' is not allowed by system config"
-                            )
+        # 檢查 allowed_models（如果定義中指定）
+        if "allowed_models" in must_subset_fields or not convergence_rules:
+            if "allowed_models" in tenant_config_data:
+                sys_models = system_data.get("allowed_models", {})
+                tenant_models = tenant_config_data.get("allowed_models", {})
+                if isinstance(sys_models, dict) and isinstance(tenant_models, dict):
+                    for prov, patterns in tenant_models.items():
+                        prov_key = _normalize_provider(prov)
+                        sys_patterns = sys_models.get(prov_key, [])
+                        tenant_patterns_list = patterns if isinstance(patterns, list) else []
+                        for pattern in tenant_patterns_list:
+                            if not _pattern_is_subset_of_any(str(pattern), sys_patterns):
+                                violations.append(
+                                    f"Tenant model pattern '{pattern}' for provider '{prov}' is not allowed by system config"
+                                )
 
-            valid = len(violations) == 0
-            reason = "; ".join(violations) if violations else None
+        # 檢查 rate_limit（如果定義中指定）
+        if "rate_limit" in must_not_exceed_fields or not convergence_rules:
+            if "rate_limit" in tenant_config_data:
+                tenant_rate = tenant_config_data.get("rate_limit")
+                system_rate = system_data.get("rate_limit")
+                if tenant_rate is not None and system_rate is not None:
+                    if tenant_rate > system_rate:
+                        violations.append(
+                            f"Tenant rate_limit ({tenant_rate}) exceeds system maximum ({system_rate})"
+                        )
 
-            return ComplianceCheckResult(  # type: ignore[call-arg]  # 字段都有默認值
-                valid=valid,
-                reason=reason,
-                convergence_violations=violations,
-            )
+        valid = len(violations) == 0
+        reason = "; ".join(violations) if violations else None
 
-        except Exception as e:
-            self._logger.error(f"Convergence rule check failed: {e}", exc_info=True)
-            return ComplianceCheckResult(  # type: ignore[call-arg]  # 字段都有默認值
-                valid=False,
-                reason=f"Error checking convergence rules: {str(e)}",
-                convergence_violations=[f"Check error: {str(e)}"],
-            )
+        return ComplianceCheckResult(  # type: ignore[call-arg]  # 字段都有默認值
+            valid=valid,
+            reason=reason,
+            convergence_violations=violations,
+        )
 
     async def _check_business_rules(
         self, intent: ConfigIntent, config_data: Dict[str, Any]

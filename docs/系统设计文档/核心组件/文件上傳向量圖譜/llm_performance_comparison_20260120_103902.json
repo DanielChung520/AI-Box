@@ -1,0 +1,108 @@
+{
+  "test_time": "2026-01-20T10:39:02",
+  "test_text_length": 1935,
+  "models": [
+    "gpt-oss:120b-cloud",
+    "glm-4.7:cloud",
+    "glm-4.6:cloud",
+    "qwen3-next:latest",
+    "mistral-nemo:12b"
+  ],
+  "results": [
+    {
+      "model": "gpt-oss:120b-cloud",
+      "success": true,
+      "error": null,
+      "elapsed_time": 29.74,
+      "entities_count": 77,
+      "relations_count": 77
+    },
+    {
+      "model": "glm-4.7:cloud",
+      "success": true,
+      "error": null,
+      "elapsed_time": 106.22,
+      "entities_count": 65,
+      "relations_count": 63
+    },
+    {
+      "model": "glm-4.6:cloud",
+      "success": true,
+      "error": null,
+      "elapsed_time": 57.02,
+      "entities_count": 95,
+      "relations_count": 93
+    },
+    {
+      "model": "qwen3-next:latest",
+      "success": false,
+      "error": "Timeout after 300.0s",
+      "elapsed_time": 300.0,
+      "entities_count": 0,
+      "relations_count": 0
+    },
+    {
+      "model": "mistral-nemo:12b",
+      "success": true,
+      "error": null,
+      "elapsed_time": 93.8,
+      "entities_count": 55,
+      "relations_count": 53
+    }
+  ],
+  "statistics": {
+    "gpt-oss:120b-cloud": {
+      "success_rate": 100.0,
+      "avg_time": 29.74,
+      "total_time": 29.74,
+      "avg_entities": 77.0,
+      "total_entities": 77,
+      "avg_relations": 77.0,
+      "total_relations": 77
+    },
+    "glm-4.7:cloud": {
+      "success_rate": 100.0,
+      "avg_time": 106.22,
+      "total_time": 106.22,
+      "avg_entities": 65.0,
+      "total_entities": 65,
+      "avg_relations": 63.0,
+      "total_relations": 63
+    },
+    "glm-4.6:cloud": {
+      "success_rate": 100.0,
+      "avg_time": 57.02,
+      "total_time": 57.02,
+      "avg_entities": 95.0,
+      "total_entities": 95,
+      "avg_relations": 93.0,
+      "total_relations": 93
+    },
+    "qwen3-next:latest": {
+      "success_rate": 0.0,
+      "avg_time": 300.0,
+      "total_time": 300.0,
+      "avg_entities": 0.0,
+      "total_entities": 0,
+      "avg_relations": 0.0,
+      "total_relations": 0
+    },
+    "mistral-nemo:12b": {
+      "success_rate": 100.0,
+      "avg_time": 93.8,
+      "total_time": 93.8,
+      "avg_entities": 55.0,
+      "total_entities": 55,
+      "avg_relations": 53.0,
+      "total_relations": 53
+    }
+  },
+  "scores": {
+    "gpt-oss:120b-cloud": 89.2,
+    "glm-4.6:cloud": 80.9,
+    "glm-4.7:cloud": 52.0,
+    "mistral-nemo:12b": 47.1,
+    "qwen3-next:latest": 4.0
+  },
+  "recommended_model": "gpt-oss:120b-cloud"
+}

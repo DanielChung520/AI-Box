@@ -1,7 +1,7 @@
 # 代碼功能說明: ChromaDB 客戶端封裝
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25 21:25 (UTC+8)
+# 最後修改日期: 2026-01-22 22:16 UTC+8
 
 """ChromaDB 客戶端封裝，提供連接管理和基礎操作"""
 
@@ -80,25 +80,52 @@ class ChromaDBClient:
         if self.mode == "http":
             if not self.host:
                 raise ChromaDBConnectionError("Host is required for HTTP mode")
-            return HttpClient(
-                host=self.host,
-                port=self.port or 8000,
-                settings=Settings(
-                    anonymized_telemetry=False,
-                    allow_reset=True,
-                ),
-            )
+            # 修復 ChromaDB 1.10.0+ tenant 問題：明確指定 tenant 為空字符串
+            try:
+                return HttpClient(
+                    host=self.host,
+                    port=self.port or 8000,
+                    tenant="",  # 明確指定 tenant 為空字符串，避免 default_tenant 錯誤
+                    database="",  # 明確指定 database 為空字符串
+                    settings=Settings(
+                        anonymized_telemetry=False,
+                        allow_reset=True,
+                    ),
+                )
+            except TypeError:
+                # 如果 HttpClient 不支持 tenant/database 參數（舊版本），使用原方式
+                return HttpClient(
+                    host=self.host,
+                    port=self.port or 8000,
+                    settings=Settings(
+                        anonymized_telemetry=False,
+                        allow_reset=True,
+                    ),
+                )
         if self.mode == "persistent":
             if not self.persist_directory:
                 raise ChromaDBConnectionError("Persist directory is required for persistent mode")
             os.makedirs(self.persist_directory, exist_ok=True)
-            return PersistentClient(
-                path=self.persist_directory,
-                settings=Settings(
-                    anonymized_telemetry=False,
-                    allow_reset=True,
-                ),
-            )
+            # 修復 ChromaDB 1.10.0+ tenant 問題：明確指定 tenant 為空字符串
+            try:
+                return PersistentClient(
+                    path=self.persist_directory,
+                    tenant="",  # 明確指定 tenant 為空字符串，避免 default_tenant 錯誤
+                    database="",  # 明確指定 database 為空字符串
+                    settings=Settings(
+                        anonymized_telemetry=False,
+                        allow_reset=True,
+                    ),
+                )
+            except TypeError:
+                # 如果 PersistentClient 不支持 tenant/database 參數（舊版本），使用原方式
+                return PersistentClient(
+                    path=self.persist_directory,
+                    settings=Settings(
+                        anonymized_telemetry=False,
+                        allow_reset=True,
+                    ),
+                )
         raise ValueError(f"Unsupported mode: {self.mode}")
 
     def _acquire_client(self) -> Any:  # type: ignore[valid-type]

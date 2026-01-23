@@ -1,7 +1,7 @@
 # 代碼功能說明: 增量重新索引服務
 # 創建日期: 2025-12-20
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-20
+# 最後修改日期: 2026-01-22 22:33 UTC+8
 
 """增量重新索引服務 - 檢測修改的 chunks 並重新索引"""
 
@@ -12,7 +12,7 @@ import structlog
 
 from services.api.processors.chunk_processor import ChunkProcessor, ChunkStrategy
 from services.api.services.embedding_service import get_embedding_service
-from services.api.services.vector_store_service import get_vector_store_service
+from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
 
 logger = structlog.get_logger(__name__)
 
@@ -33,7 +33,8 @@ class IncrementalReindexService:
 
     def __init__(self) -> None:
         """初始化服務"""
-        self.vector_store_service = get_vector_store_service()
+        # 修改時間：2026-01-22 - 遷移到 Qdrant 向量存儲服務
+        self.vector_store_service = get_qdrant_vector_store_service()
         self.embedding_service = get_embedding_service()
         self.chunk_processor = ChunkProcessor(
             strategy=ChunkStrategy.AST_DRIVEN, min_tokens=500, max_tokens=1000
@@ -97,9 +98,7 @@ class IncrementalReindexService:
             ]
 
             if not chunks_to_reindex:
-                logger.warning(
-                    f"文件 {file_id} 檢測到受影響的 chunks，但新 chunks 中找不到對應的索引"
-                )
+                logger.warning(f"文件 {file_id} 檢測到受影響的 chunks，但新 chunks 中找不到對應的索引")
                 return {
                     "reindexed_chunks": 0,
                     "total_chunks": len(existing_vectors),

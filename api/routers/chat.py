@@ -50,7 +50,6 @@ from services.api.services.genai_chat_request_store_service import (
 )
 from services.api.services.genai_config_resolver_service import get_genai_config_resolver_service
 from services.api.services.genai_metrics_service import get_genai_metrics_service
-from services.api.services.genai_model_registry_service import get_genai_model_registry_service
 from services.api.services.genai_policy_gate_service import get_genai_policy_gate_service
 from services.api.services.genai_trace_store_service import (
     GenAITraceEvent,
@@ -138,6 +137,201 @@ def get_streaming_chunk_size() -> int:
 
     # 默認值
     return 50
+
+
+# ============================================================================
+# 錯誤翻譯：將技術錯誤轉換為用戶友好的錯誤消息
+# ============================================================================
+
+
+def translate_error_to_user_message(
+    error: Exception,
+    error_code: str = "UNKNOWN",
+) -> tuple[str, str, str]:
+    """
+    將技術錯誤翻譯為用戶友好的錯誤消息
+
+    Args:
+        error: 原始錯誤
+        error_code: 錯誤代碼
+
+    Returns:
+        (user_friendly_message, error_code, log_message)
+    """
+    error_str = str(error).lower()
+    original_error = str(error)
+
+    # 1. API Key 無效或授權錯誤
+    if any(
+        keyword in error_str
+        for keyword in [
+            "api key",
+            "apikey",
+            "unauthorized",
+            "401",
+            "permission_denied",
+            "authentication",
+            "auth failed",
+            "invalid credentials",
+            "access denied",
+            "does not have permission",
+            "forbidden",
+        ]
+    ):
+        return (
+            "哎呀，發生了一些小狀況！🔐 API 授權出現問題，請通知管理員（錯誤代碼：API_INVALID）😅",
+            "API_INVALID",
+            f"API Key 或授權無效: {original_error}",
+        )
+
+    # 2. 網路錯誤
+    if any(
+        keyword in error_str
+        for keyword in [
+            "connection",
+            "network",
+            "timeout",
+            "econnreset",
+            "econnrefused",
+            "enetunreach",
+            "socket",
+            "dns",
+            "failed to fetch",
+            "network error",
+            "请求超时",
+            "超时",
+            "連線失敗",
+            "網路錯誤",
+        ]
+    ):
+        return (
+            "哎呀，發生了一些小狀況！🌐 網路連線有點不穩，請稍後再試或通知管理員（錯誤代碼：NETWORK_ERROR）😅",
+            "NETWORK_ERROR",
+            f"網路錯誤: {original_error}",
+        )
+
+    # 3. 超出限制（Rate Limit / Quota）
+    if any(
+        keyword in error_str
+        for keyword in [
+            "rate limit",
+            "quota",
+            "too many",
+            "429",
+            "rate_limit_exceeded",
+            "exceeded",
+            "limit exceeded",
+            "token limit",
+            "context length",
+            "max tokens",
+            "rate limit exceeded",
+            "請求次數超限",
+        ]
+    ):
+        return (
+            "哎呀，發生了一些小狀況！😓 AI 模型服務超出使用限制，請通知管理員（錯誤代碼：LIMIT_EXCEEDED）😅",
+            "LIMIT_EXCEEDED",
+            f"超出限制: {original_error}",
+        )
+
+    # 4. 服務不可用
+    if any(
+        keyword in error_str
+        for keyword in [
+            "service unavailable",
+            "503",
+            "server error",
+            "500",
+            "internal error",
+            "down for maintenance",
+            "temporarily unavailable",
+            "服務不可用",
+            "維護中",
+        ]
+    ):
+        return (
+            "哎呀，發生了一些小狀況！🔧 AI 服務正在休息中，請稍後再試或通知管理員（錯誤代碼：SERVICE_UNAVAILABLE）😅",
+            "SERVICE_UNAVAILABLE",
+            f"服務不可用: {original_error}",
+        )
+
+    # 5. 模型不存在
+    if any(
+        keyword in error_str
+        for keyword in [
+            "model not found",
+            "model does not exist",
+            "404",
+            "unknown model",
+            "model_not_found",
+        ]
+    ):
+        return (
+            "哎呀，發生了一些小狀況！🤔 指定的 AI 模型不存在，請通知管理員（錯誤代碼：MODEL_NOT_FOUND）😅",
+            "MODEL_NOT_FOUND",
+            f"模型不存在: {original_error}",
+        )
+
+    # 6. 模型不在政策允許列表中
+    if any(
+        keyword in error_str
+        for keyword in [
+            "not allowed by policy",
+            "model not allowed",
+            "policy violation",
+            "not permitted",
+            "access denied to model",
+            "not in allowed list",
+        ]
+    ):
+        return (
+            "哎呀，發生了一些小狀況！🤷 您選擇的 AI 模型超出使用限制或未被管理員允許，請嘗試其他模型（錯誤代碼：MODEL_NOT_ALLOWED）😅",
+            "MODEL_NOT_ALLOWED",
+            f"模型不在政策允許列表中: {original_error}",
+        )
+
+    # 7. 內容安全過濾
+    if any(
+        keyword in error_str
+        for keyword in [
+            "content filter",
+            "safety filter",
+            "blocked",
+            "harmful",
+            "敏感內容",
+            "內容過濾",
+            "安全檢查",
+        ]
+    ):
+        return (
+            "哎呀，發生了一些小狀況！🛡️ 您的請求被安全過濾攔截，請調整問題內容後再試（錯誤代碼：CONTENT_FILTERED）😅",
+            "CONTENT_FILTERED",
+            f"內容被過濾: {original_error}",
+        )
+
+    # 8. 上下文過長
+    if any(
+        keyword in error_str
+        for keyword in [
+            "context length",
+            "too long",
+            "context_window",
+            "上下文過長",
+            "輸入內容過長",
+        ]
+    ):
+        return (
+            "哎呀，發生了一些小狀況！📝 對話內容太長了，請嘗試縮短對話或開啟新對話（錯誤代碼：CONTEXT_TOO_LONG）😅",
+            "CONTEXT_TOO_LONG",
+            f"上下文過長: {original_error}",
+        )
+
+    # 默認友好錯誤
+    return (
+        f"哎呀，發生了一些小狀況，我感到很抱歉！請通知管理員（錯誤代碼：{error_code}）😅",
+        error_code,
+        f"未處理的錯誤: {original_error}",
+    )
 
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -3142,7 +3336,7 @@ async def chat_product_stream(
                 logger.info(
                     "task_analysis_completed",
                     request_id=request_id,
-                    task_type=task_classification.type.value if task_classification else None,
+                    task_type=task_classification.task_type.value if task_classification else None,
                     confidence=task_classification.confidence if task_classification else None,
                     reasoning=(
                         task_classification.reasoning[:200]
@@ -3154,7 +3348,7 @@ async def chat_product_stream(
                 # 添加 print 调试输出
                 print("\n[DEBUG] Task Analysis Result:")
                 print(
-                    f"  Type: {task_classification.type.value if task_classification else 'None'}"
+                    f"  Type: {task_classification.task_type.value if task_classification else 'None'}"
                 )
                 print(
                     f"  Confidence: {task_classification.confidence if task_classification else 'None'}"
@@ -3193,7 +3387,12 @@ async def chat_product_stream(
                         tenant_id=tenant_id,
                         user_id=current_user.user_id,
                     )
-                    yield f"data: {json.dumps({'type': 'error', 'data': {'error': f'Model {selected_model_id} is not allowed by policy'}})}\n\n"
+                    # 使用錯誤翻譯函數
+                    user_msg, error_code, _ = translate_error_to_user_message(
+                        Exception(f"Model {selected_model_id} is not allowed by policy"),
+                        "MODEL_NOT_ALLOWED",
+                    )
+                    yield f"data: {json.dumps({'type': 'error', 'data': {'error': user_msg, 'error_code': error_code}})}\n\n"
                     return
 
                 # 獲取 API keys（指定的 provider）
@@ -3249,7 +3448,9 @@ async def chat_product_stream(
                     provider=provider.value if provider else None,
                     model=model,
                     model_selector_mode=model_selector.mode,
-                    task_classification=task_classification.type if task_classification else None,
+                    task_classification=task_classification.task_type
+                    if task_classification
+                    else None,
                     tenant_id=tenant_id,
                     user_id=current_user.user_id,
                 )
@@ -3282,7 +3483,14 @@ async def chat_product_stream(
                     content_length=len(full_content),
                     exc_info=True,
                 )
-                yield f"data: {json.dumps({'type': 'error', 'data': {'error': str(stream_exc)}})}\n\n"
+                # 使用錯誤翻譯函數轉換為友好消息
+                user_msg, error_code, log_msg = translate_error_to_user_message(
+                    stream_exc, "CHAT_STREAM_ERROR"
+                )
+                logger.warning(
+                    "chat_error_translated", original_error=str(stream_exc), user_message=user_msg
+                )
+                yield f"data: {json.dumps({'type': 'error', 'data': {'error': user_msg, 'error_code': error_code}})}\n\n"
                 return
 
             # 發送結束消息
@@ -3730,9 +3938,14 @@ async def chat_product(
             provider = _infer_provider_from_model_id(selected_model_id)
             # G6：manual/favorite allowlist gate
             if not policy_gate.is_model_allowed(provider.value, selected_model_id):
+                # 使用錯誤翻譯函數
+                user_msg, error_code, _ = translate_error_to_user_message(
+                    Exception(f"Model {selected_model_id} is not allowed by policy"),
+                    "MODEL_NOT_ALLOWED",
+                )
                 return APIResponse.error(
-                    message="Model is not allowed by policy",
-                    error_code="MODEL_NOT_ALLOWED",
+                    message=user_msg,
+                    error_code=error_code,
                     details={
                         "provider": provider.value,
                         "model_id": selected_model_id,
@@ -3887,9 +4100,14 @@ async def chat_product(
             trace_store.add_event(failed_event)
             metrics.record_final_event(failed_event)
 
+            # 使用錯誤翻譯
+            user_friendly_msg, translated_code, _ = translate_error_to_user_message(
+                Exception(message), error_code
+            )
+
             return APIResponse.error(
-                message=message,
-                error_code=error_code,
+                message=user_friendly_msg,
+                error_code=translated_code,
                 details=detail,
                 status_code=exc.status_code,
             )
@@ -3903,6 +4121,12 @@ async def chat_product(
             task_id=task_id,
             request_id=request_id,
         )
+
+        # 使用錯誤翻譯
+        user_friendly_msg, error_code, log_msg = translate_error_to_user_message(
+            Exception(str(detail)), "CHAT_HTTP_ERROR"
+        )
+
         failed_event = GenAITraceEvent(
             event="chat.failed",
             request_id=request_id,
@@ -3910,8 +4134,8 @@ async def chat_product(
             task_id=task_id,
             user_id=current_user.user_id,
             status="error",
-            error_code="CHAT_HTTP_ERROR",
-            error_message=str(detail),
+            error_code=error_code,
+            error_message=log_msg,
             total_latency_ms=total_latency_ms,
             memory_hit_count=observability.memory_hit_count,
             memory_sources=observability.memory_sources,
@@ -3921,8 +4145,8 @@ async def chat_product(
         trace_store.add_event(failed_event)
         metrics.record_final_event(failed_event)
         return APIResponse.error(
-            message=str(detail),
-            error_code="CHAT_HTTP_ERROR",
+            message=user_friendly_msg,
+            error_code=error_code,
             status_code=exc.status_code,
         )
     except Exception as exc:  # noqa: BLE001
@@ -3936,6 +4160,17 @@ async def chat_product(
             request_id=request_id,
         )
 
+        # 使用錯誤翻譯函數轉換為友好消息
+        user_friendly_msg, error_code, log_msg = translate_error_to_user_message(
+            exc, "CHAT_PRODUCT_FAILED"
+        )
+        logger.warning(
+            "chat_error_translated",
+            original_error=str(exc),
+            user_message=user_friendly_msg,
+            error_code=error_code,
+        )
+
         failed_event = GenAITraceEvent(
             event="chat.failed",
             request_id=request_id,
@@ -3943,8 +4178,8 @@ async def chat_product(
             task_id=task_id,
             user_id=current_user.user_id,
             status="error",
-            error_code="CHAT_PRODUCT_FAILED",
-            error_message=str(exc),
+            error_code=error_code,
+            error_message=log_msg,
             total_latency_ms=total_latency_ms,
             memory_hit_count=observability.memory_hit_count,
             memory_sources=observability.memory_sources,
@@ -3955,8 +4190,8 @@ async def chat_product(
         metrics.record_final_event(failed_event)
 
         return APIResponse.error(
-            message=f"Chat failed: {exc}",
-            error_code="CHAT_PRODUCT_FAILED",
+            message=user_friendly_msg,
+            error_code=error_code,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -4215,134 +4450,6 @@ async def get_chat_observability_recent(
     return APIResponse.success(
         data={"events": items, "user_id": current_user.user_id},
         message="Recent chat observability events retrieved",
-    )
-
-
-@router.get("/models", status_code=status.HTTP_200_OK)
-async def list_available_models(
-    refresh: bool = False,
-    include_disallowed: bool = False,
-    tenant_id: str = Depends(get_current_tenant_id),
-    current_user: User = Depends(get_current_user),
-) -> JSONResponse:
-    """
-    產品級模型清單（JSON）。
-
-    - config: genai.model_registry.models
-    - ollama: (可選) /api/tags 動態發現（genai.model_registry.enable_ollama_discovery）
-    - 預設會套用 genai.policy allowlist 過濾
-    """
-    registry = get_genai_model_registry_service()
-    config_resolver = get_genai_config_resolver_service()
-    policy_gate = config_resolver.get_effective_policy_gate(
-        tenant_id=tenant_id,
-        user_id=current_user.user_id,
-    )
-
-    items = await registry.list_models(refresh=refresh)
-    logger.debug(
-        "models_before_policy_filter",
-        count=len(items),
-        providers=[m.get("provider") for m in items[:10]],  # 只记录前10个
-    )
-
-    if not include_disallowed:
-        items = [
-            m
-            for m in items
-            if policy_gate.is_model_allowed(
-                str(m.get("provider") or ""),
-                str(m.get("model_id") or ""),
-            )
-        ]
-        logger.debug(
-            "models_after_policy_filter",
-            count=len(items),
-            providers=[m.get("provider") for m in items[:10]],
-        )
-
-    # 過濾掉未激活的模型（只返回已配置 API key 或 Ollama 模型）
-    try:
-        # 使用 config_resolver 檢查 API key（支持全局、租戶、用戶三級配置）
-        # 緩存每個 provider 的 API key 狀態
-        provider_status_cache: Dict[str, bool] = {}
-
-        active_items = []
-        for m in items:
-            provider = str(m.get("provider") or "").lower()
-            model_id = str(m.get("model_id") or "")
-
-            # Auto 模型和 Ollama 模型默認可用
-            if provider in ("auto", "ollama"):
-                active_items.append(m)
-                continue
-
-            # 對於需要 API key 的 provider，檢查是否已配置（檢查全局、租戶、用戶三級配置）
-            if provider not in provider_status_cache:
-                # 使用 config_resolver 檢查 API key（優先級：用戶 > 租戶）
-                api_key = config_resolver.resolve_api_key(
-                    tenant_id=tenant_id,
-                    user_id=current_user.user_id,
-                    provider=provider,
-                )
-                # 如果沒有找到 API key，也檢查全局配置（llm_provider_config_service）
-                if not api_key:
-                    try:
-                        from services.api.models.llm_model import LLMProvider
-                        from services.api.services.llm_provider_config_service import (
-                            get_llm_provider_config_service,
-                        )
-
-                        global_config_service = get_llm_provider_config_service()
-                        provider_enum = LLMProvider(provider)
-                        status_obj = global_config_service.get_status(provider_enum)
-                        has_global_key = status_obj.has_api_key if status_obj else False
-                        provider_status_cache[provider] = has_global_key
-                        if not has_global_key:
-                            logger.debug(
-                                "model_not_active_no_api_key",
-                                provider=provider,
-                                model_id=model_id,
-                                tenant_id=tenant_id,
-                                user_id=current_user.user_id,
-                            )
-                    except (ValueError, Exception) as e:
-                        # Provider 不存在或檢查失敗，視為未激活
-                        provider_status_cache[provider] = False
-                        logger.debug(
-                            "model_not_active_provider_error",
-                            provider=provider,
-                            model_id=model_id,
-                            error=str(e),
-                        )
-                else:
-                    # 找到了 API key（來自用戶或租戶配置）
-                    provider_status_cache[provider] = True
-                    logger.debug(
-                        "model_active_api_key_found",
-                        provider=provider,
-                        model_id=model_id,
-                        source="tenant_or_user",
-                    )
-
-            # 只有已配置 API key 的 provider 的模型才返回
-            if provider_status_cache.get(provider, False):
-                active_items.append(m)
-
-        items = active_items
-        logger.debug(
-            "models_after_active_filter",
-            count=len(items),
-            providers=[m.get("provider") for m in items[:10]],
-            provider_status=provider_status_cache,
-        )
-    except Exception as e:
-        logger.warning("active_status_check_failed", error=str(e))
-        # 如果檢查失敗，返回所有模型（保持向後兼容）
-
-    return APIResponse.success(
-        data={"models": items, "user_id": current_user.user_id},
-        message="Model list retrieved",
     )
 
 

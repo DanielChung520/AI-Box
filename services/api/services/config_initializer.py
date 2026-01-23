@@ -94,11 +94,21 @@ def initialize_system_configs(force: bool = False) -> Dict[str, bool]:
                 continue
 
             # 創建或更新配置
+            category_map = {
+                "file_processing": "business",
+                "chunk_processing": "business",
+                "streaming": "performance",
+                "kg_extraction": "feature_flag",
+                "worker": "performance",
+                "cache": "performance",
+                "features": "feature_flag",
+            }
             config_create = ConfigCreate(
                 scope=scope,
+                category=category_map.get(scope, "business"),
                 config_data=config_data,
                 metadata={"initialized": True, "source": "system_defaults"},
-                tenant_id=None,  # 系統級配置
+                tenant_id=None,
             )
 
             config_service.save_config(config_create, tenant_id=None, changed_by="system")

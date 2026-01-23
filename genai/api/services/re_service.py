@@ -1,15 +1,14 @@
 # 代碼功能說明: RE 關係抽取服務
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-04
+# 最後修改日期: 2026-01-23 00:55 UTC+8
 
 """RE 關係抽取服務 - 支持 transformers 和 Ollama 模型"""
 
 import json
+import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
-
-import structlog
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from genai.api.models.ner_models import Entity
 from genai.api.models.re_models import Relation, RelationEntity
@@ -18,7 +17,10 @@ from llm.clients.gemini import GeminiClient
 from llm.clients.ollama import OllamaClient, get_ollama_client
 from system.infra.config.config import get_config_section
 
-logger = structlog.get_logger(__name__)
+if TYPE_CHECKING:
+    pass
+
+logger = logging.getLogger(__name__)
 
 # 標準關係類型定義
 STANDARD_RELATION_TYPES = {
@@ -78,13 +80,15 @@ class TransformersREModel(BaseREModel):
             if self.enable_gpu:
                 self._model = self._model.cuda()
 
-            logger.info("transformers_re_model_loaded", model=self.model_name)
+            logger.info(f"transformers_re_model_loaded: model={self.model_name}")
         except ImportError:
-            logger.warning("transformers_not_installed", model=self.model_name)
+            logger.warning(f"transformers_not_installed: model={self.model_name}")
             self._model = None
             self._tokenizer = None
         except Exception as e:
-            logger.error("transformers_re_model_load_failed", error=str(e), model=self.model_name)
+            logger.error(
+                f"transformers_re_model_load_failed: model={self.model_name}, error={str(e)}"
+            )
             self._model = None
             self._tokenizer = None
 
@@ -139,25 +143,35 @@ class OllamaREModel(BaseREModel):
     def __init__(self, model_name: str = "qwen3-coder:30b", client: Optional[OllamaClient] = None):
         self.model_name = model_name
         self.client = client or get_ollama_client()
-        self._prompt_template = """你是一個專業的知識圖譜構建助手。請從以下文本中抽取實體之間的關係。
+        self._prompt_template = """## 任務
+從以下文本中抽取實體之間的關係，構建知識圖譜。
 
-重要規則：
-1. 僅返回一個 JSON 數組。
-2. 不要解釋你的答案。
-3. 識別 API 文檔中的邏輯關係，例如：
+## 重要規則（必須嚴格遵守）
+1. **只返回一個 JSON 數組**，不要返回任何其他內容
+2. 不要添加 markdown 代碼塊標記（如 ```json）
+3. 不要用額外的對象包裹數組（例如不要返回 {{"relations": [...]}} 或 {{"results": [...]}}）
+4. 不要解釋你的答案
+5. 識別 API 文檔中的邏輯關係，例如：
    - API 端點 BELONGS_TO 模塊
    - 參數 PART_OF API
    - 錯誤碼 RETURNED_BY API
    - 實體 HAS_PROPERTY 屬性
-4. 忽略純 JSON 示例數據，專注於描述性文本中的關係。
-5. 嚴格遵守以下 JSON 格式。
+6. 忽略純 JSON 示例數據，專注於描述性文本中的關係
 
-文本內容：
+## 文本內容
 {text}
 
 {entities_section}
 
-預期的 JSON 格式示例：
+## 必須返回的 JSON 格式
+直接返回一個 JSON 數組，每個元素包含：
+- subject: 實體對象，格式為 {{"text": "實體名稱", "label": "實體類型"}}
+- relation: 關係類型
+- object: 實體對象，格式為 {{"text": "實體名稱", "label": "實體類型"}}
+- confidence: 置信度（0-1之間的浮點數）
+- context: 關係所在的上下文描述
+
+## 正確示例
 [
   {{
     "subject": {{"text": "GET /api/v1/users", "label": "API_ENDPOINT"}},
@@ -166,7 +180,12 @@ class OllamaREModel(BaseREModel):
     "confidence": 0.95,
     "context": "如果用戶不存在，接口將返回 404"
   }}
-]"""
+]
+
+## 錯誤示例（不要這樣返回）
+{{"relations": [...]}}           <!-- 錯誤：被額外對象包裹 -->
+{{"subject": {{...}}, "relation": "...", "object": {{...}}}}  <!-- 錯誤：不是數組，是單個對象 -->
+```json [...] ```           <!-- 錯誤：包含 markdown 代碼塊 -->"""
 
     def is_available(self) -> bool:
         """檢查 Ollama 模型是否可用"""
@@ -239,10 +258,9 @@ class OllamaREModel(BaseREModel):
                 if not isinstance(relations_data, list):
                     # 修改時間：2025-12-12 - 記錄實際返回內容以便調試
                     logger.error(
-                        "ollama_re_invalid_format",
-                        model=self.model_name,
-                        response_type=type(relations_data).__name__,
-                        response_preview=str(relations_data)[:500],
+                        f"ollama_re_invalid_format: model={self.model_name}, "
+                        f"response_type={type(relations_data).__name__}, "
+                        f"response_preview={str(relations_data)[:500]}"
                     )
                     # 如果返回的是字典，嘗試轉換為列表
                     if isinstance(relations_data, dict):
@@ -260,9 +278,8 @@ class OllamaREModel(BaseREModel):
                             if key in relations_data and isinstance(relations_data[key], list):
                                 relations_data = relations_data[key]
                                 logger.info(
-                                    "ollama_re_format_converted",
-                                    converted_key=key,
-                                    relations_count=len(relations_data),
+                                    f"ollama_re_format_converted: converted_key={key}, "
+                                    f"relations_count={len(relations_data)}"
                                 )
                                 break
                         else:
@@ -276,9 +293,7 @@ class OllamaREModel(BaseREModel):
                                 # 將單個關係對象轉換為列表
                                 relations_data = [relations_data]
                                 logger.info(
-                                    "ollama_re_format_converted",
-                                    converted_key="single_relation_object",
-                                    relations_count=1,
+                                    "ollama_re_format_converted: converted_key=single_relation_object, relations_count=1"
                                 )
                             else:
                                 # 如果沒有找到列表鍵且不是單個關係對象，返回空列表
@@ -332,39 +347,56 @@ class OllamaREModel(BaseREModel):
 
                 return relations
             except json.JSONDecodeError as e:
-                logger.error("ollama_re_json_parse_failed", error=str(e), response=result_text)
+                logger.error(f"ollama_re_json_parse_failed: error={str(e)}, response={result_text}")
                 return []
         except Exception as e:
-            logger.error("ollama_re_extraction_failed", error=str(e), model=self.model_name)
+            logger.error(f"ollama_re_extraction_failed: model={self.model_name}, error={str(e)}")
             return []
 
 
 class GeminiREModel(BaseREModel):
     """Gemini RE 模型實現"""
 
-    def __init__(self, model_name: str = "gemini-pro", client: Optional[GeminiClient] = None):
+    def __init__(
+        self, model_name: str = "gemini-pro-latest", client: Optional[GeminiClient] = None
+    ):
         self.model_name = model_name
         self.client: Optional[GeminiClient] = None
         try:
             self.client = client or GeminiClient()
         except (ImportError, ValueError) as e:
             # Gemini 不可用（缺少依赖或 API key），设置为 None
-            logger.warning("gemini_re_client_unavailable", error=str(e))
+            logger.warning(f"gemini_re_client_unavailable: error={str(e)}")
             self.client = None
-        self._prompt_template = """請從以下文本中抽取實體之間的關係，並以 JSON 格式返回結果。
+        self._prompt_template = """## 任務
+從以下文本中抽取實體之間的關係，構建知識圖譜。
 
-文本：{text}
+## 重要規則（必須嚴格遵守）
+1. **只返回一個 JSON 數組**，不要返回任何其他內容
+2. 不要添加 markdown 代碼塊標記（如 ```json）
+3. 不要用額外的對象包裹數組（例如不要返回 {{"relations": [...]}} 或 {{"results": [...]}}）
+4. 不要解釋你的答案
+5. 識別文本中的邏輯關係，例如：
+   - API 端點 BELONGS_TO 模塊
+   - 參數 PART_OF API
+   - 錯誤碼 RETURNED_BY API
+   - 實體 HAS_PROPERTY 屬性
+6. 忽略純 JSON 示例數據，專注於描述性文本中的關係
+
+## 文本
+{text}
 
 {entities_section}
 
-請返回 JSON 格式，包含以下字段：
-- subject: 主體實體（包含 text 和 label）
-- relation: 關係類型（LOCATED_IN, WORKS_FOR, PART_OF, RELATED_TO, OCCURS_AT 等）
-- object: 客體實體（包含 text 和 label）
+## 必須返回的 JSON 格式
+直接返回一個 JSON 數組，每個元素包含：
+- subject: 實體對象，格式為 {{"text": "實體名稱", "label": "實體類型"}}
+- relation: 關係類型
+- object: 實體對象，格式為 {{"text": "實體名稱", "label": "實體類型"}}
 - confidence: 置信度（0-1之間的浮點數）
-- context: 關係出現的上下文
+- context: 關係所在的上下文描述
 
-返回格式示例：
+## 正確示例
 [
   {{
     "subject": {{"text": "張三", "label": "PERSON"}},
@@ -373,7 +405,12 @@ class GeminiREModel(BaseREModel):
     "confidence": 0.88,
     "context": "張三在微軟公司工作"
   }}
-]"""
+]
+
+## 錯誤示例（不要這樣返回）
+{{"relations": [...]}}           <!-- 錯誤：被額外對象包裹 -->
+{{"subject": {{...}}, "relation": "...", "object": {{...}}}}  <!-- 錯誤：不是數組，是單個對象 -->
+```json [...] ```           <!-- 錯誤：包含 markdown 代碼塊 -->"""
 
     def is_available(self) -> bool:
         """檢查 Gemini 模型是否可用"""
@@ -422,7 +459,7 @@ class GeminiREModel(BaseREModel):
             )
 
             if response is None:
-                logger.error("gemini_re_no_response", model=self.model_name)
+                logger.error(f"gemini_re_no_response: model={self.model_name}")
                 return []
 
             # 新接口返回 {"text": "...", "content": "...", "model": "..."}
@@ -438,7 +475,7 @@ class GeminiREModel(BaseREModel):
                 relations_data = json.loads(result_text)
 
                 if not isinstance(relations_data, list):
-                    logger.error("gemini_re_invalid_format", model=self.model_name)
+                    logger.error(f"gemini_re_invalid_format: model={self.model_name}")
                     return []
 
                 relations = []
@@ -455,13 +492,17 @@ class GeminiREModel(BaseREModel):
                     relations.append(
                         Relation(
                             subject=RelationEntity(
-                                text=subject_data.get("text", ""),
-                                label=subject_data.get("label", "UNKNOWN"),
+                                text=subject_data.get("text") or subject_data.get("name") or "",
+                                label=subject_data.get("label")
+                                or subject_data.get("type")
+                                or "UNKNOWN",
                             ),
                             relation=item.get("relation", "RELATED_TO"),
                             object=RelationEntity(
-                                text=object_data.get("text", ""),
-                                label=object_data.get("label", "UNKNOWN"),
+                                text=object_data.get("text") or object_data.get("name") or "",
+                                label=object_data.get("label")
+                                or object_data.get("type")
+                                or "UNKNOWN",
                             ),
                             confidence=float(item.get("confidence", 0.5)),
                             context=item.get("context", text),
@@ -470,10 +511,10 @@ class GeminiREModel(BaseREModel):
 
                 return relations
             except json.JSONDecodeError as e:
-                logger.error("gemini_re_json_parse_failed", error=str(e), response=result_text)
+                logger.error(f"gemini_re_json_parse_failed: error={str(e)}, response={result_text}")
                 return []
         except Exception as e:
-            logger.error("gemini_re_extraction_failed", error=str(e), model=self.model_name)
+            logger.error(f"gemini_re_extraction_failed: model={self.model_name}, error={str(e)}")
             return []
 
 
@@ -482,7 +523,56 @@ class REService:
 
     def __init__(self, ner_service: Optional[NERService] = None):
         self.config = get_config_section("text_analysis", "re", default={}) or {}
-        # 優先使用本地模型（Ollama），只有在無法達成時才使用外部 provider
+
+        # MoE 場景名稱
+        self._moe_scene = "knowledge_graph_extraction"
+        self._moe_model_config = None
+
+        # 優先使用 MoE 配置
+        moe_model = self._get_moe_model_config()
+        if moe_model:
+            self.model_name = moe_model.model
+            self.model_type = "ollama"  # MoE 返回的模型都是 Ollama 格式
+            self._moe_model_config = moe_model
+            logger.info(
+                f"re_using_moe_config: model={self.model_name}, scene={self._moe_scene}, "
+                f"temperature={moe_model.temperature}, timeout={moe_model.timeout}"
+            )
+        else:
+            # 向後兼容：使用原有配置
+            self._init_model_from_config()
+
+        # Fallback 順序：本地模型優先，外部 provider 作為最後備選
+        self.fallback_model = self.config.get("fallback_model", "gemini:gemini-pro-latest")
+        self.max_relation_length = self.config.get("max_relation_length", 128)
+        self.enable_gpu = self.config.get("enable_gpu", False)
+
+        # NER 服務（用於自動實體識別）
+        self.ner_service = ner_service or NERService()
+
+        # 初始化模型
+        self._primary_model: Optional[BaseREModel] = None
+        self._fallback_model: Optional[BaseREModel] = None
+        self._init_models()
+
+    def _get_moe_model_config(self):
+        """從 MoE 獲取模型配置"""
+        from llm.moe.moe_manager import LLMMoEManager
+
+        try:
+            moe_manager = LLMMoEManager()
+            result = moe_manager.select_model(self._moe_scene)
+            if result:
+                return result
+        except Exception as e:
+            logger.debug(
+                f"failed_to_get_moe_model_config: scene={self._moe_scene}, error={str(e)}, "
+                "message=從 MoE 獲取模型配置失敗，使用向後兼容方式"
+            )
+        return None
+
+    def _init_model_from_config(self):
+        """從配置文件初始化模型（向後兼容）"""
         import os
 
         # 優先級1: 從 ArangoDB system_configs 讀取 model_type 和 model_name
@@ -498,21 +588,18 @@ class REService:
                 model_name = kg_config.config_data.get("re_model")
                 if model_type:
                     logger.debug(
-                        "re_model_type_from_system_configs",
-                        model_type=model_type,
-                        message="從 ArangoDB system_configs 讀取 RE model_type 配置",
+                        f"re_model_type_from_system_configs: model_type={model_type}, "
+                        "message=從 ArangoDB system_configs 讀取 RE model_type 配置"
                     )
                 if model_name:
                     logger.debug(
-                        "re_model_from_system_configs",
-                        model=model_name,
-                        message="從 ArangoDB system_configs 讀取 RE 模型配置",
+                        f"re_model_from_system_configs: model={model_name}, "
+                        "message=從 ArangoDB system_configs 讀取 RE 模型配置"
                     )
         except Exception as e:
             logger.debug(
-                "failed_to_load_re_model_from_system_configs",
-                error=str(e),
-                message="從 ArangoDB 讀取 RE 模型配置失敗，使用向後兼容方式",
+                f"failed_to_load_re_model_from_system_configs: error={str(e)}, "
+                "message=從 ArangoDB 讀取 RE 模型配置失敗，使用向後兼容方式"
             )
 
         # 優先級2: 從環境變量讀取 model_type（允許覆蓋 ArangoDB 配置）
@@ -526,26 +613,19 @@ class REService:
         self.model_type = model_type or "ollama"
 
         # 優先級4: 從環境變量讀取（只在 model_type 匹配時覆蓋）
-        # 注意：OLLAMA_RE_MODEL 只在 model_type=ollama 時使用
-        # 對於其他 model_type（如 gemini），應該使用對應的環境變量或 ArangoDB 配置
         if self.model_type == "ollama":
             env_model_name = os.getenv("OLLAMA_RE_MODEL") or os.getenv("OLLAMA_NER_MODEL")
             if env_model_name:
                 model_name = env_model_name
                 logger.debug(
-                    "re_model_from_env",
-                    model=model_name,
-                    message="從環境變量讀取 RE 模型配置（覆蓋）",
+                    f"re_model_from_env: model={model_name}, " "message=從環境變量讀取 RE 模型配置（覆蓋）"
                 )
-        # 對於 gemini，可以從 GEMINI_RE_MODEL 環境變量讀取（如果設置）
         elif self.model_type == "gemini":
             env_model_name = os.getenv("GEMINI_RE_MODEL")
             if env_model_name:
                 model_name = env_model_name
                 logger.debug(
-                    "re_model_from_env",
-                    model=model_name,
-                    message="從環境變量讀取 RE 模型配置（覆蓋）",
+                    f"re_model_from_env: model={model_name}, " "message=從環境變量讀取 RE 模型配置（覆蓋）"
                 )
 
         # 優先級5: 從 config.json 讀取（向後兼容）
@@ -553,9 +633,8 @@ class REService:
             model_name = self.config.get("model_name")
             if model_name:
                 logger.debug(
-                    "re_model_from_config_json",
-                    model=model_name,
-                    message="從 config.json 讀取 RE 模型配置",
+                    f"re_model_from_config_json: model={model_name}, "
+                    "message=從 config.json 讀取 RE 模型配置"
                 )
 
         # 優先級6: 使用硬編碼默認值
@@ -564,19 +643,6 @@ class REService:
 
         # 設置 model_name 屬性
         self.model_name = model_name
-
-        # Fallback 順序：本地模型優先，外部 provider 作為最後備選
-        self.fallback_model = self.config.get("fallback_model", "gemini:gemini-pro")
-        self.max_relation_length = self.config.get("max_relation_length", 128)
-        self.enable_gpu = self.config.get("enable_gpu", False)
-
-        # NER 服務（用於自動實體識別）
-        self.ner_service = ner_service or NERService()
-
-        # 初始化模型
-        self._primary_model: Optional[BaseREModel] = None
-        self._fallback_model: Optional[BaseREModel] = None
-        self._init_models()
 
     def _init_models(self):
         """初始化主模型和備選模型"""
@@ -596,7 +662,7 @@ class REService:
                 model_name = model_name.split(":", 1)[1]
             self._primary_model = GeminiREModel(model_name=model_name)
         else:
-            logger.warning("unknown_re_model_type", model_type=self.model_type)
+            logger.warning(f"unknown_re_model_type: model_type={self.model_type}")
             self._primary_model = None
 
         # 初始化備選模型
@@ -642,7 +708,7 @@ class REService:
             return model
 
         if self._fallback_model and self._fallback_model.is_available():
-            logger.info("using_fallback_re_model", requested=requested_type)
+            logger.info(f"using_fallback_re_model: requested={requested_type}")
             return self._fallback_model
 
         return None
@@ -694,10 +760,10 @@ class REService:
         results = []
         for text in texts:
             try:
-                relations = await self.extract_relations(text, None, model_type)
+                relations = await self.extract_relations(text, model_type=model_type)
                 results.append(relations)
             except Exception as e:
-                logger.error("re_batch_extraction_failed", error=str(e), text=text[:50])
+                logger.error(f"re_batch_extraction_failed: error={str(e)}, text={text[:50]}")
                 results.append([])
 
         return results

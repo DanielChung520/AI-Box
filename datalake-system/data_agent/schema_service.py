@@ -109,6 +109,7 @@ class SchemaService:
                 Key=key,
                 Body=json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8"),
                 ContentType="application/json",
+                ContentEncoding="utf-8",
             )
 
             self._logger.info(

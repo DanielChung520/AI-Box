@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useContext } from 'react';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AgentCard from './AgentCard';
 import AssistantCard from './AssistantCard';
 import ChatInput from './ChatInput';
@@ -78,6 +78,7 @@ import { isSystemAdmin } from '../lib/userUtils';
   }
 
   export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, onModelSelect, onMessageSend, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete, isPreviewMode = false, isLoadingAI = false }: ChatAreaProps) {
+    const location = useLocation();
     const navigate = useNavigate();
     const { currentUser } = useContext(AuthContext);
     // 使用統一的系統管理員檢查函數
@@ -419,9 +420,15 @@ import { isSystemAdmin } from '../lib/userUtils';
     <div className="flex-1 flex flex-col h-full bg-primary theme-transition">
        {/* 聊天区域头部 */}
       <div className="p-4 border-b border-primary flex items-center justify-between">
-        <h2 className="text-base font-bold text-primary">
-          {selectedTask ? `${t('chat.task')}${selectedTask.title}` : t('chat.title')}
-        </h2>
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <h2 className="text-base font-bold text-primary flex-shrink-0">
+            {selectedTask ? `${t('chat.task')}${selectedTask.title}` : t('chat.title')}
+          </h2>
+          {/* 修改時間：2026-01-21 12:45 UTC+8 - 顯示當前頁面 URL */}
+          <span className="text-xs text-tertiary font-mono truncate flex-1 min-w-0" title={window.location.href}>
+            {window.location.origin}{location.pathname}{location.hash}
+          </span>
+        </div>
          <div className="flex items-center space-x-2">
           <button
             onClick={() => setShowSearchModal(true)}

@@ -2,29 +2,254 @@
  * 代碼功能說明: Markdown 文件預覽組件 - 支持流式編輯實時預覽
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2026-01-06
+ * 最後修改日期: 2026-01-21 12:30 UTC+8
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Markdown from 'markdown-to-jsx';
 import MermaidRenderer from './MermaidRenderer';
 import { useLanguage } from '../contexts/languageContext';
-import { FileText, Database, Network, Download, RefreshCw, Loader2 } from 'lucide-react';
+import { FileText, Database, Network, Download, RefreshCw, Loader2, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { getFileVectors, getFileGraph, getProcessingStatus, getKgChunkStatus, downloadFile, regenerateFileData } from '../lib/api';
 import KnowledgeGraphViewer from './KnowledgeGraphViewer';
 import { SearchReplacePatch } from '../hooks/useStreamingEdit';
+
+// 修改時間：2026-01-21 12:30 UTC+8 - Vector Viewer 內容組件（類似 Qdrant Dashboard 的格式）
+interface VectorViewerContentProps {
+  vectorData: any;
+  fileId?: string;
+}
+
+function VectorViewerContent({ vectorData, fileId }: VectorViewerContentProps) {
+  // 修改時間：2026-01-21 12:35 UTC+8 - 處理 vectorData 為 null 的情況
+  if (!vectorData) {
+    return (
+      <div className="p-4 flex items-center justify-center h-full">
+        <div className="text-center text-tertiary theme-transition">
+          <Database className="w-16 h-16 mx-auto mb-4 opacity-50" />
+          <p>正在加載向量數據...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const vectorCount = vectorData?.stats?.vector_count || vectorData?.total || vectorData?.vectors?.length || 0;
+  const collectionName = vectorData?.stats?.collection_name;
+  const collectionStatus = vectorData?.stats?.status;
+
+  // Qdrant Dashboard URL（可選，用於跳轉）
+  const qdrantDashboardUrl = collectionName
+    ? `http://localhost:6333/dashboard#/collections/${collectionName}`
+    : null;
+
+  return (
+    <div className="p-4 flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-900">
+      {/* Collection Info（類似 Qdrant Dashboard 的 Info 面板） */}
+      <div className="mb-4 flex-shrink-0 border-b border-primary pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-primary theme-transition">Collection Info</h3>
+          {qdrantDashboardUrl && (
+            <a
+              href={qdrantDashboardUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              title="在 Qdrant Dashboard 中打開"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>打開 Dashboard</span>
+            </a>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-tertiary p-3 rounded border border-primary theme-transition">
+            <div className="text-xs text-tertiary theme-transition mb-1">Collection Name</div>
+            <div className="text-sm font-mono text-primary theme-transition truncate" title={collectionName}>
+              {collectionName || '-'}
+            </div>
+          </div>
+          <div className="bg-tertiary p-3 rounded border border-primary theme-transition">
+            <div className="text-xs text-tertiary theme-transition mb-1">Points Count</div>
+            <div className="text-xl font-bold text-primary theme-transition">{vectorCount.toLocaleString()}</div>
+          </div>
+          <div className="bg-tertiary p-3 rounded border border-primary theme-transition">
+            <div className="text-xs text-tertiary theme-transition mb-1">Status</div>
+            <div className="text-sm text-primary theme-transition capitalize">
+              {collectionStatus || 'unknown'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Points 列表（類似 Qdrant Dashboard 的 Points 面板） */}
+      {vectorData?.vectors && vectorData.vectors.length > 0 ? (
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between mb-3 flex-shrink-0">
+            <h3 className="text-lg font-semibold text-primary theme-transition">
+              Points（顯示 {vectorData.vectors.length} / {vectorData.total || vectorCount}）
+            </h3>
+          </div>
+          <div className="flex-1 overflow-auto min-h-0 space-y-2">
+            {vectorData.vectors.map((point: any, index: number) => (
+              <VectorPointCard key={point.id || index} point={point} index={index} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-tertiary theme-transition">
+          <div className="text-center">
+            <Database className="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <p>沒有找到 Points</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 修改時間：2026-01-21 12:30 UTC+8 - Vector Point 卡片組件（類似 Qdrant Dashboard 的 Open panel）
+interface VectorPointCardProps {
+  point: any;
+  index: number;
+}
+
+function VectorPointCard({ point, index }: VectorPointCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const pointId = point.id || point._id || `point_${index}`;
+  const payload = point.payload || {};
+  const vector = point.vector;
+
+  // 從 payload 提取常見字段
+  const chunkText = payload.chunk_text || payload.text || payload.document || '';
+  const chunkIndex = payload.chunk_index !== undefined ? payload.chunk_index : payload.index;
+  const fileId = payload.file_id;
+  const taskId = payload.task_id;
+
+  return (
+    <div className="bg-tertiary border border-primary rounded-lg overflow-hidden theme-transition">
+      {/* Point Header（可點擊展開/收起） */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-hover theme-transition text-left"
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-tertiary theme-transition flex-shrink-0" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-tertiary theme-transition flex-shrink-0" />
+          )}
+          <div className="font-mono text-sm text-primary theme-transition truncate">
+            ID: {pointId}
+          </div>
+          {chunkIndex !== undefined && (
+            <div className="text-xs text-tertiary theme-transition flex-shrink-0">
+              Chunk #{chunkIndex}
+            </div>
+          )}
+        </div>
+        {vector && (
+          <div className="text-xs text-tertiary theme-transition flex-shrink-0 ml-2">
+            Vector: {Array.isArray(vector) ? vector.length : 'N/A'} dims
+          </div>
+        )}
+      </button>
+
+      {/* Point Details（展開時顯示） */}
+      {isExpanded && (
+        <div className="px-4 pb-4 border-t border-primary bg-secondary theme-transition">
+          {/* Payload 信息 */}
+          <div className="mt-3 space-y-3">
+            {/* Chunk Text（如果有） */}
+            {chunkText && (
+              <div>
+                <div className="text-xs font-semibold text-tertiary theme-transition mb-1">
+                  Chunk Text
+                </div>
+                <div className="bg-tertiary p-3 rounded border border-primary theme-transition">
+                  <pre className="whitespace-pre-wrap text-sm text-primary theme-transition max-h-60 overflow-auto">
+                    {chunkText}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* Metadata 信息 */}
+            <div>
+              <div className="text-xs font-semibold text-tertiary theme-transition mb-1">
+                Payload
+              </div>
+              <div className="bg-tertiary p-3 rounded border border-primary theme-transition">
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {fileId && (
+                    <div>
+                      <span className="text-tertiary theme-transition">file_id:</span>{' '}
+                      <span className="font-mono text-primary theme-transition">{fileId}</span>
+                    </div>
+                  )}
+                  {taskId && (
+                    <div>
+                      <span className="text-tertiary theme-transition">task_id:</span>{' '}
+                      <span className="font-mono text-primary theme-transition">{taskId}</span>
+                    </div>
+                  )}
+                  {chunkIndex !== undefined && (
+                    <div>
+                      <span className="text-tertiary theme-transition">chunk_index:</span>{' '}
+                      <span className="font-mono text-primary theme-transition">{chunkIndex}</span>
+                    </div>
+                  )}
+                </div>
+                {/* 完整的 Payload JSON（可折疊） */}
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                    查看完整 Payload JSON
+                  </summary>
+                  <pre className="mt-2 p-2 bg-secondary rounded text-xs overflow-auto max-h-40 theme-transition">
+                    {JSON.stringify(payload, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            </div>
+
+            {/* Vector 信息（如果有） */}
+            {vector && Array.isArray(vector) && (
+              <div>
+                <div className="text-xs font-semibold text-tertiary theme-transition mb-1">
+                  Vector ({vector.length} dimensions)
+                </div>
+                <div className="bg-tertiary p-3 rounded border border-primary theme-transition">
+                  <details>
+                    <summary className="cursor-pointer text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                      查看向量數據（前 10 維度 + ...）
+                    </summary>
+                    <pre className="mt-2 text-xs text-tertiary font-mono overflow-auto max-h-40 theme-transition">
+                      {JSON.stringify(vector.slice(0, 10), null, 2)}
+                      {vector.length > 10 && `\n... (${vector.length - 10} more dimensions)`}
+                    </pre>
+                  </details>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface MarkdownViewerProps {
   content: string;
   fileName: string;
   fileId?: string; // 文件 ID，用於獲取向量和圖譜數據
   patches?: SearchReplacePatch[]; // 流式編輯 patches（可選）
+  showHeader?: boolean; // 是否顯示 Header（默認 true）
 }
 
 type PreviewMode = 'text' | 'vector' | 'graph';
 
-export default function MarkdownViewer({ content, fileName, fileId, patches = [] }: MarkdownViewerProps) {
+export default function MarkdownViewer({ content, fileName, fileId, patches = [], showHeader = true }: MarkdownViewerProps) {
   const { t } = useLanguage();
   const [mode, setMode] = useState<PreviewMode>('text'); // 默認為文件模式
   const [markdownParts, setMarkdownParts] = useState<Array<{type: 'text' | 'mermaid', content: string}>>([]);
@@ -45,24 +270,14 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
 
   /**
    * 應用 Search-and-Replace patches 到內容
-   * 修改時間：2026-01-06 - 添加流式編輯支持和性能優化
+   * 修改時間：2026-01-21 12:10 UTC+8 - 修復無限重渲染：將 setState 從 useMemo 中移除
    */
   const applyPatches = useMemo(() => {
     if (!patches || patches.length === 0) {
-      setIsApplyingPatches(false);
       return content;
     }
 
-    // 性能優化：大文件處理警告
-    const fileSizeMB = new Blob([content]).size / (1024 * 1024);
-    if (fileSizeMB > 5) {
-      setIsApplyingPatches(true);
-      // 使用 setTimeout 確保 UI 更新
-      setTimeout(() => setIsApplyingPatches(false), 100);
-    }
-
     let modifiedContent = content;
-    const appliedRanges: Array<{ start: number; end: number; type: 'added' | 'removed' }> = [];
 
     // 從後往前應用 patches，避免位置偏移問題
     const sortedPatches = [...patches].sort((a, b) => {
@@ -74,29 +289,34 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
     for (const patch of sortedPatches) {
       const searchIndex = modifiedContent.indexOf(patch.search_block);
       if (searchIndex !== -1) {
-        // 記錄刪除範圍
-        appliedRanges.push({
-          start: searchIndex,
-          end: searchIndex + patch.search_block.length,
-          type: 'removed',
-        });
-
         // 應用替換
         modifiedContent =
           modifiedContent.slice(0, searchIndex) +
           patch.replace_block +
           modifiedContent.slice(searchIndex + patch.search_block.length);
-
-        // 記錄新增範圍
-        appliedRanges.push({
-          start: searchIndex,
-          end: searchIndex + patch.replace_block.length,
-          type: 'added',
-        });
       }
     }
 
     return modifiedContent;
+  }, [content, patches]);
+
+  // 修改時間：2026-01-21 12:10 UTC+8 - 在 useEffect 中處理 setState，避免無限重渲染
+  useEffect(() => {
+    if (!patches || patches.length === 0) {
+      setIsApplyingPatches(false);
+      return;
+    }
+
+    // 性能優化：大文件處理警告
+    const fileSizeMB = new Blob([content]).size / (1024 * 1024);
+    if (fileSizeMB > 5) {
+      setIsApplyingPatches(true);
+      // 使用 setTimeout 確保 UI 更新
+      const timer = setTimeout(() => setIsApplyingPatches(false), 100);
+      return () => clearTimeout(timer);
+    } else {
+      setIsApplyingPatches(false);
+    }
   }, [content, patches]);
 
   /**
@@ -423,7 +643,10 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
         case 'vector':
           const vectorResponse = await getFileVectors(fileId, 100, 0);
           if (vectorResponse.success && vectorResponse.data) {
+            console.log('[MarkdownViewer] Vector data loaded:', vectorResponse.data);
             setVectorData(vectorResponse.data);
+          } else {
+            console.warn('[MarkdownViewer] Failed to load vector data:', vectorResponse);
           }
           break;
         case 'graph':
@@ -449,6 +672,13 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
       loadDataForMode(newMode);
     }
   };
+
+  // 修改時間：2026-01-21 12:35 UTC+8 - 當切換到向量模式且數據可用但未加載時，自動加載
+  useEffect(() => {
+    if (mode === 'vector' && vectorAvailable && !vectorData && !loading && fileId) {
+      loadDataForMode('vector');
+    }
+  }, [mode, vectorAvailable, vectorData, loading, fileId]);
 
   // 解析Markdown内容，识别普通文本和mermaid代码块
   // 修改時間：2026-01-06 - 使用應用了 patches 的內容
@@ -662,6 +892,7 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
   return (
     <div className="p-4 h-full flex flex-col theme-transition">
       {/* 文件标题栏 */}
+      {showHeader && (
       <div className="flex items-center justify-between mb-4 pb-2 border-b border-primary gap-4">
         <div className="flex items-center flex-shrink min-w-0 max-w-[40%]">
           <i className="fa-solid fa-file-lines text-blue-400 mr-2"></i>
@@ -745,6 +976,7 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
           )}
         </div>
       </div>
+      )}
 
       {/* 內容區域 */}
       <div className="flex-1 overflow-y-auto text-sm markdown-content" ref={contentRef}>
@@ -899,86 +1131,10 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
                     )}
                   </div>
                 ) : (
-                  <div className="p-4 flex flex-col flex-1 min-h-0">
-                    <div className="mb-4 flex-shrink-0">
-                      <h3 className="text-lg font-semibold mb-2 text-primary theme-transition">向量數據統計</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-tertiary p-3 rounded theme-transition">
-                          <div className="text-sm text-tertiary theme-transition">向量數量</div>
-                          <div className="text-2xl font-bold text-primary theme-transition">{vectorData?.stats?.vector_count || vectorData?.total || vectorData?.vectors?.length || 0}</div>
-                        </div>
-                        {vectorData?.stats?.dimension && (
-                          <div className="bg-tertiary p-3 rounded theme-transition">
-                            <div className="text-sm text-tertiary theme-transition">向量維度</div>
-                            <div className="text-2xl font-bold text-primary theme-transition">{vectorData.stats.dimension.toLocaleString()}</div>
-                          </div>
-                        )}
-                        {vectorData?.stats?.collection_name && (
-                          <div className="bg-tertiary p-3 rounded theme-transition">
-                            <div className="text-sm text-tertiary theme-transition">集合名稱</div>
-                            <div className="text-sm font-mono truncate text-primary theme-transition">{vectorData.stats.collection_name}</div>
-                          </div>
-                        )}
-                        {vectorData?.stats?.total_chars && (
-                          <div className="bg-tertiary p-3 rounded theme-transition">
-                            <div className="text-sm text-tertiary theme-transition">總字符數</div>
-                            <div className="text-xl font-bold text-primary theme-transition">{vectorData.stats.total_chars.toLocaleString()}</div>
-                          </div>
-                        )}
-                        {vectorData?.stats?.avg_chars_per_chunk && (
-                          <div className="bg-tertiary p-3 rounded theme-transition">
-                            <div className="text-sm text-tertiary theme-transition">平均字符數/塊</div>
-                            <div className="text-xl font-bold text-primary theme-transition">{vectorData.stats.avg_chars_per_chunk.toLocaleString()}</div>
-                          </div>
-                        )}
-                        {vectorData?.stats?.total_words && (
-                          <div className="bg-tertiary p-3 rounded theme-transition">
-                            <div className="text-sm text-tertiary theme-transition">總詞數</div>
-                            <div className="text-xl font-bold text-primary theme-transition">{vectorData.stats.total_words.toLocaleString()}</div>
-                          </div>
-                        )}
-                        {vectorData?.stats?.avg_words_per_chunk && (
-                          <div className="bg-tertiary p-3 rounded theme-transition">
-                            <div className="text-sm text-tertiary theme-transition">平均詞數/塊</div>
-                            <div className="text-xl font-bold text-primary theme-transition">{vectorData.stats.avg_words_per_chunk.toLocaleString()}</div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {vectorData?.vectors && vectorData.vectors.length > 0 && (
-                      <div className="flex flex-col flex-1 min-h-0">
-                        <h3 className="text-lg font-semibold mb-2 text-primary theme-transition">向量列表（顯示前 {vectorData.vectors.length} 個，共 {vectorData.total || vectorData.vectors.length} 個）</h3>
-                        <div className="space-y-2 flex-1 overflow-auto min-h-0">
-                          {vectorData.vectors.map((vector: any, index: number) => (
-                            <div key={index} className="bg-tertiary p-3 rounded theme-transition">
-                              <div className="text-sm font-mono text-tertiary mb-1 theme-transition">
-                                ID: {vector.id || vector._id || `vector_${index}`}
-                              </div>
-                              {vector.metadata && (
-                                <div className="text-xs text-tertiary mb-2 theme-transition">
-                                  <div className="font-semibold mb-1">元数据:</div>
-                                  {JSON.stringify(vector.metadata, null, 2)}
-                                </div>
-                              )}
-                              {vector.document && (
-                                <div className="text-sm text-tertiary mt-2 mb-2 p-2 bg-secondary rounded border theme-transition">
-                                  <div className="font-semibold mb-1">文档内容:</div>
-                                  <pre className="whitespace-pre-wrap text-xs max-h-40 overflow-auto">
-                                    {vector.document}
-                                  </pre>
-                                </div>
-                              )}
-                              {vector.embedding && (
-                                <div className="text-xs text-tertiary opacity-75 mt-1 theme-transition">
-                                  向量維度: {vector.embedding.length}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <VectorViewerContent
+                    vectorData={vectorData}
+                    fileId={fileId}
+                  />
                 )}
               </>
             )}

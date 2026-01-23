@@ -2,7 +2,7 @@
  * 代碼功能說明: 文件樹組件
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-21
+ * 最後修改日期: 2026-01-23 00:07 UTC+8
  *
  * 功能說明:
  * - 顯示按 task_id 組織的文件目錄結構
@@ -116,10 +116,20 @@ function mergeDraftsIntoFileTree(
   const next = cloneFileNodes(fileTree);
 
   const seen = new Set<string>();
-  const visit = (nodes: FileNode[]) => {
+  const seenInFolder = new Map<string, Set<string>>(); // folderId -> Set of filenames
+
+  const visit = (nodes: FileNode[], folderId: string = 'root') => {
+    if (!seenInFolder.has(folderId)) {
+      seenInFolder.set(folderId, new Set<string>());
+    }
+    const folderFiles = seenInFolder.get(folderId)!;
+
     nodes.forEach((n) => {
       seen.add(n.id);
-      if (n.children) visit(n.children);
+      if (n.type === 'file') {
+        folderFiles.add(n.name.trim());
+      }
+      if (n.children) visit(n.children, n.id);
     });
   };
   visit(next);
@@ -130,6 +140,8 @@ function mergeDraftsIntoFileTree(
       const fid = String((d as any)?.file_id || '').trim();
       const name = String((d as any)?.filename || '').trim();
       if (!fid || !name) continue;
+
+      // 如果 ID 已經看過，跳過
       if (seen.has(fid)) continue;
 
       const node: FileNode = { id: fid, name, type: 'file' };
@@ -138,15 +150,34 @@ function mergeDraftsIntoFileTree(
       if (containerKey.endsWith('_workspace')) candidates.push(containerKey.replace('_workspace', ''));
       if (containerKey.endsWith('_scheduled')) candidates.push(containerKey.replace('_scheduled', ''));
 
+      // 檢查候選資料夾中是否已有同名檔案
+      let isDuplicateName = false;
+      for (const folderId of candidates) {
+        if (seenInFolder.get(folderId)?.has(name)) {
+          isDuplicateName = true;
+          break;
+        }
+      }
+      if (isDuplicateName) {
+        console.log('[FileTree] Skipping draft because file with same name exists in folder', { name, containerKey });
+        continue;
+      }
+
       let inserted = false;
       for (const key of candidates) {
         if (key && tryInsertFileIntoFolder(next, key, node)) {
           inserted = true;
+          // 更新 seenInFolder
+          if (!seenInFolder.has(key)) seenInFolder.set(key, new Set());
+          seenInFolder.get(key)!.add(name);
           break;
         }
       }
       if (!inserted) {
         next.push(node);
+        // 更新 root 的 seenInFolder
+        if (!seenInFolder.has('root')) seenInFolder.set('root', new Set());
+        seenInFolder.get('root')!.add(name);
       }
       seen.add(fid);
     }
@@ -2602,7 +2633,7 @@ export default function FileTree({
       <div className="p-4 text-sm text-tertiary text-center theme-transition">
         暫無文件
         <br />
-        <span className="text-xs text-muted theme-transition">開始輸入或上傳文件後將顯示文件目錄</span>
+            <span className="text-xs text-muted theme-transition">開始輸入或上傳文件後將顯示任務文件區</span>
       </div>
     );
   }
@@ -2619,15 +2650,26 @@ export default function FileTree({
               ? buildTreeDataFromFileTree(mergedFileTreeForRender)
               : null));
 
+  // 將 treeData 轉換為 FileNode[] 格式以供渲染
+  const fileNodesFromTreeData = useMemo(() => {
+    if (!renderTreeData) return [];
+    return convertTreeDataToFileTree(renderTreeData);
+  }, [renderTreeData, convertTreeDataToFileTree]);
+
+  // 將草稿合併到從 treeData 轉換來的 fileNodes 中
+  const finalFileTreeForRender = useMemo(() => {
+    return mergeDraftsIntoFileTree(fileNodesFromTreeData, draftFilesByContainerKey) || [];
+  }, [fileNodesFromTreeData, draftFilesByContainerKey]);
+
   // 如果有 renderTreeData，渲染文件樹
   if (renderTreeData?.data) {
-    const fileTreeHash = mergedFileTreeForRender
-      ? mergedFileTreeForRender.map(f => `${f.id}:${f.name}`).sort().join('|')
+    const fileTreeHash = finalFileTreeForRender
+      ? finalFileTreeForRender.map(f => `${f.id}:${f.name}`).sort().join('|')
       : 'api-tree';
     console.log('[FileTree] Rendering tree', {
       taskId,
       from: treeData ? 'api' : 'prop',
-      fileTreeLength: mergedFileTreeForRender?.length,
+      fileTreeLength: finalFileTreeForRender?.length,
       treeKeys: Object.keys(renderTreeData.data.tree || {}),
       foldersCount: Object.keys(renderTreeData.data.folders || {}).length,
       fileTreeHash,
@@ -2727,30 +2769,30 @@ export default function FileTree({
       <>
         <div className="h-full overflow-y-auto">
           <div className="p-4 border-b border-primary theme-transition">
-            <h3 className="text-sm font-semibold text-primary mb-1 theme-transition">文件目錄</h3>
+            <h3 className="text-sm font-semibold text-primary mb-1 theme-transition">任務文件區/</h3>
             <p className="text-xs text-tertiary theme-transition">
-              本地任務文件
+              任務工作區
             </p>
           </div>
           {(() => {
-            const safeFileTree = mergedFileTreeForRender ?? (fileTree ?? []);
+            const safeFileTree = finalFileTreeForRender;
             const hash = safeFileTree.map(f => `${f.id}:${f.name}`).sort().join('|');
             return (
-          <div
-            className="p-2"
-            key={`filetree-content-${taskId || 'no-task'}-${hash}`}
-          >
-            {safeFileTree.map((node, index) => (
-              <div key={`filetree-node-${node.id}-${index}-${safeFileTree.length}`}>
-                {renderFileNode(node, 0)}
+              <div
+                className="p-2"
+                key={`filetree-content-${taskId || 'no-task'}-${hash}`}
+              >
+                {safeFileTree.map((node, index) => (
+                  <div key={`filetree-node-${node.id}-${index}-${safeFileTree.length}`}>
+                    {renderFileNode(node, 0)}
+                  </div>
+                ))}
+                {safeFileTree.length === 0 && (
+                  <div className="p-4 text-sm text-tertiary text-center theme-transition">
+                    暫無文件
+                  </div>
+                )}
               </div>
-            ))}
-            {safeFileTree.length === 0 && (
-              <div className="p-4 text-sm text-tertiary text-center theme-transition">
-                暫無文件
-              </div>
-            )}
-          </div>
             );
           })()}
         </div>
@@ -2778,7 +2820,7 @@ export default function FileTree({
               onClick={() => handleMenuAction('move')}
             >
               <i className="fa-solid fa-folder-open w-4"></i>
-              <span>移動文件目錄</span>
+              <span>移動文件</span>
             </button>
             <button
               className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
@@ -3281,7 +3323,24 @@ export default function FileTree({
       const drafts = (draftFilesByContainerKey && (draftFilesByContainerKey as any)[containerKey])
         ? (draftFilesByContainerKey as any)[containerKey]
         : [];
-      return [...(Array.isArray(apiFiles) ? apiFiles : []), ...(Array.isArray(drafts) ? drafts : [])];
+
+      // 合併並按名稱/ID去重
+      const merged = [...(Array.isArray(apiFiles) ? apiFiles : [])];
+      const seenIds = new Set(merged.map(f => f.file_id || f.id));
+      const seenNames = new Set(merged.map(f => f.filename || f.name));
+
+      if (Array.isArray(drafts)) {
+        for (const d of drafts) {
+          const fid = d.file_id || d.id;
+          const name = d.filename || d.name;
+          if (!seenIds.has(fid) && !seenNames.has(name)) {
+            merged.push(d);
+            seenIds.add(fid);
+            seenNames.add(name);
+          }
+        }
+      }
+      return merged;
     },
     [tree, draftFilesByContainerKey]
   );

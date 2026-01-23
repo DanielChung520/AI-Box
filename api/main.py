@@ -1,7 +1,7 @@
 # 代碼功能說明: FastAPI 應用主入口
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-17 18:07 UTC+8
+# 最後修改日期: 2026-01-23 00:06 UTC+8
 # ruff: noqa: E402
 
 """FastAPI 應用主入口文件"""
@@ -41,70 +41,69 @@ except ImportError:
 from types import ModuleType
 from typing import Optional
 
+# OAuth2 和監控代理路由
+oauth2_router: Optional[ModuleType] = None
+monitoring_proxy_router: Optional[ModuleType] = None
+
+try:
+    from api.routers import oauth2_router
+
+    logging.info("OAuth2 SSO router imported successfully")
+except ImportError as e:
+    logging.warning(f"OAuth2 SSO router import failed: {e}")
+    oauth2_router = None
+
+try:
+    from api.routers import monitoring_proxy_router
+
+    logging.info("Monitoring proxy router imported successfully")
+except ImportError as e:
+    logging.warning(f"Monitoring proxy router import failed: {e}")
+    monitoring_proxy_router = None
+
+from api.core.version import API_PREFIX, get_version_info
 from api.routers import (
+    agent_auth,
     agent_catalog,
     agent_category,
     agent_display_config,
     agent_files,
     agent_registration,
     agent_registry,
+    agent_secret,
     agents,
     alert_webhook,
     audit_log,
     auth,
     chat,
     chromadb,
-    chunk_processing,
+    config_definitions,
     data_consent,
-    data_quality,
-    docs_editing,
-    document_editing_v2,
     execution,
-    file_audit,
-    file_lookup,
     file_management,
     file_metadata,
     file_upload,
-    genai_tenant_config,
-    genai_user_config,
     health,
-    kg_builder,
-    kg_query,
-    llm,
     llm_models,
     mcp,
-    model_usage,
-    modular_documents,
-    ner,
+    moe,
+    moe_metrics,
     orchestrator,
     planning,
     prometheus_compat,
-    re,
     reports,
     review,
     rq_monitor,
-    rt,
     security_group,
     service_alert,
     service_monitor,
     system_admin,
     system_config,
     task_analyzer,
-    tools_registry,
-    triple_extraction,
     user_account,
     user_sessions,
     user_tasks,
-    workflows,
 )
-
-governance: Optional[ModuleType] = None
-try:
-    from api.routers import governance  # type: ignore[no-redef]
-except ImportError:
-    pass
-from api.core.version import API_PREFIX, get_version_info
-from api.routers import agent_auth, agent_secret
 
 # 修改時間：2025-12-08 12:30:00 UTC+8 - 使用統一的日誌配置模組
 from system.logging_config import setup_fastapi_logging
@@ -217,6 +216,15 @@ app = FastAPI(
     ],
 )
 
+# OAuth2 和監控代理路由
+if oauth2_router:
+    app.include_router(oauth2_router.router, prefix=API_PREFIX, tags=["OAuth2 SSO"])
+    logger.info("OAuth2 SSO router registered")
+
+if monitoring_proxy_router:
+    app.include_router(monitoring_proxy_router.router, tags=["Monitoring Proxy"])
+    logger.info("Monitoring proxy router registered")
+
 # 添加中間件（順序很重要：Request ID -> Security -> Logging -> Error Handler -> CORS）
 app.add_middleware(RequestIDMiddleware)
 
@@ -267,20 +275,20 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
     # 使用 print 確保錯誤信息一定會輸出（输出到 stdout，uvicorn 会捕获）
     error_summary = f"""
-{'='*80}
+{"=" * 80}
 ❌ RequestValidationError: {request.method} {request.url.path}
-{'='*80}
+{"=" * 80}
 Request body preview: {body_str}
 Validation errors ({len(error_details)}):"""
 
     for i, error in enumerate(error_details, 1):
         error_summary += f"""
-  {i}. Location: {error.get('loc')}
-     Type: {error.get('type')}
-     Message: {error.get('msg')}
-     Input: {error.get('input')}"""
+  {i}. Location: {error.get("loc")}
+     Type: {error.get("type")}
+     Message: {error.get("msg")}
+     Input: {error.get("input")}"""
 
-    error_summary += f"\n{'='*80}\n"
+    error_summary += f"\n{'=' * 80}\n"
 
     print(error_summary)
 
@@ -336,6 +344,7 @@ app.include_router(security_group.router, prefix=API_PREFIX, tags=["Security Gro
 app.include_router(system_config.router, prefix=API_PREFIX, tags=["System Config"])
 app.include_router(user_account.router, prefix=API_PREFIX, tags=["User Account"])
 app.include_router(user_sessions.router, prefix=API_PREFIX, tags=["User Session"])
+app.include_router(user_tasks.router, prefix=API_PREFIX, tags=["User Tasks"])
 
 
 # 添加版本信息端點
@@ -357,6 +366,16 @@ app.include_router(agent_catalog.router, prefix=API_PREFIX, tags=["Agent Catalog
 app.include_router(agent_category.router, prefix=API_PREFIX, tags=["Agent Categories"])
 app.include_router(agent_display_config.router, prefix=API_PREFIX, tags=["Agent Display Config"])
 app.include_router(agent_auth.router, prefix=API_PREFIX, tags=["Agent Authentication"])
+
+# OAuth2 SSO 路由
+if oauth2_router:
+    app.include_router(oauth2_router.router, prefix=API_PREFIX, tags=["OAuth2 SSO"])
+    logger.info("OAuth2 SSO router registered")
+
+# 監控代理路由
+if monitoring_proxy_router:
+    app.include_router(monitoring_proxy_router.router, prefix=API_PREFIX, tags=["Monitoring Proxy"])
+    logger.info("Monitoring proxy router registered")
 app.include_router(agent_secret.router, prefix=API_PREFIX, tags=["Agent Secret"])
 app.include_router(task_analyzer.router, prefix=API_PREFIX, tags=["Task Analyzer"])
 # Agent 註冊申請路由（公開路由 + 管理員路由）
@@ -370,86 +389,22 @@ app.include_router(execution.router, prefix=API_PREFIX, tags=["Execution Agent"]
 app.include_router(review.router, prefix=API_PREFIX, tags=["Review Agent"])
 app.include_router(mcp.router, prefix=API_PREFIX, tags=["MCP"])
 app.include_router(chromadb.router, prefix=API_PREFIX, tags=["ChromaDB"])
-app.include_router(llm.router, prefix=API_PREFIX, tags=["LLM"])
-# 修改時間：2025-12-13 17:28:02 (UTC+8) - 註冊產品級 Chat 入口
-app.include_router(chat.router, prefix=API_PREFIX, tags=["Chat"])
-app.include_router(docs_editing.router, prefix=API_PREFIX, tags=["Docs Editing"])
-app.include_router(document_editing_v2.router, tags=["Document Editing Agent v2.0"])  # 路由已包含完整前綴
-app.include_router(modular_documents.router, prefix=API_PREFIX, tags=["Modular Documents"])
-app.include_router(file_lookup.router, prefix=API_PREFIX, tags=["File Lookup"])
-try:
-    from api.routers import editing_session
 
-    app.include_router(editing_session.router, prefix=API_PREFIX, tags=["Editing Session"])
-    logger.info("Editing Session 路由已註冊")
-except ImportError as e:
-    logger.warning(f"Editing Session 路由未註冊（模組不可用）: {e}")
-
-try:
-    from api.routers import streaming
-
-    app.include_router(streaming.router, prefix=API_PREFIX, tags=["Streaming"])
-    logger.info("Streaming 路由已註冊")
-except ImportError as e:
-    logger.warning(f"Streaming 路由未註冊（模組不可用）: {e}")
-
-# LLM Models 路由
-try:
-    app.include_router(llm_models.router, prefix=API_PREFIX, tags=["LLM Models"])
-    logger.info("LLM Models 路由已註冊")
-except ImportError as e:
-    logger.warning(f"LLM Models 路由未註冊（模組不可用）: {e}")
-app.include_router(genai_tenant_config.router, prefix=API_PREFIX, tags=["GenAI Tenant Config"])
-app.include_router(genai_user_config.router, prefix=API_PREFIX, tags=["GenAI User Config"])
-
-# 檔案系統轉結構遷移新增的路由
-try:
-    from services.api.routers import config, ontology
-
-    app.include_router(ontology.router, prefix=API_PREFIX, tags=["Ontology"])
-    app.include_router(config.router, prefix=API_PREFIX, tags=["Config"])
-    logger.info("Ontology and Config 路由已註冊")
-except ImportError as e:
-    logger.warning(f"Ontology/Config 路由未註冊（模組不可用）: {e}")
-
-# WBS-4: AI 治理與合規路由
-try:
-    from services.api.routers import compliance
-
-    app.include_router(compliance.router, prefix=API_PREFIX, tags=["Compliance"])
-    logger.info("Compliance 路由已註冊")
-except ImportError as e:
-    logger.warning(f"Compliance 路由未註冊（模組不可用）: {e}")
-# 條件性註冊 CrewAI 路由
-if CREWAI_AVAILABLE and crewai is not None and crewai_tasks is not None:
-    app.include_router(crewai.router, prefix=API_PREFIX, tags=["CrewAI"])
-    app.include_router(crewai_tasks.router, prefix=API_PREFIX, tags=["CrewAI"])
-    logger.info("CrewAI 路由已註冊")
-else:
-    logger.warning("CrewAI 路由未註冊（模組不可用）")
-# 注意：file_management.router 必須在 file_upload.router 之前註冊
-# 因為 file_management 包含 /tree 路由，需要優先匹配，避免被 file_upload 的 /{file_id} 路由匹配
-app.include_router(file_management.router, prefix=API_PREFIX, tags=["File Management"])
-app.include_router(user_tasks.router, prefix=API_PREFIX, tags=["User Tasks"])
-app.include_router(file_upload.router, prefix=API_PREFIX, tags=["File Upload"])
-app.include_router(file_audit.router, prefix=API_PREFIX, tags=["File Audit"])
-app.include_router(rq_monitor.router, prefix=API_PREFIX, tags=["RQ Monitor"])
-app.include_router(chunk_processing.router, prefix=API_PREFIX, tags=["Chunk Processing"])
+# 監控代理路由
+if monitoring_proxy_router:
+    app.include_router(monitoring_proxy_router.router, prefix=API_PREFIX, tags=["Monitoring Proxy"])
+    logger.info("Monitoring proxy router registered")
 app.include_router(file_metadata.router, prefix=API_PREFIX, tags=["File Metadata"])
-app.include_router(model_usage.router, prefix=API_PREFIX, tags=["Model Usage"])
-app.include_router(data_quality.router, prefix=API_PREFIX, tags=["Data Quality"])
-app.include_router(tools_registry.router, prefix=API_PREFIX, tags=["Tools Registry"])
-if governance:
-    app.include_router(governance.router, prefix=API_PREFIX, tags=["AI Governance"])
-app.include_router(ner.router, prefix=API_PREFIX, tags=["NER"])
-app.include_router(re.router, prefix=API_PREFIX, tags=["RE"])
-app.include_router(rt.router, prefix=API_PREFIX, tags=["RT"])
-app.include_router(triple_extraction.router, prefix=API_PREFIX, tags=["Triple Extraction"])
-app.include_router(kg_builder.router, prefix=API_PREFIX, tags=["Knowledge Graph Builder"])
-app.include_router(kg_query.router, prefix=API_PREFIX, tags=["Knowledge Graph Query"])
-app.include_router(workflows.router, prefix=API_PREFIX, tags=["Workflows"])
+app.include_router(file_management.router, prefix=API_PREFIX, tags=["File Management"])
+app.include_router(file_upload.router, prefix=API_PREFIX, tags=["File Upload"])
 app.include_router(agent_files.router, prefix=API_PREFIX, tags=["Agent Files"])
 app.include_router(reports.router, prefix=API_PREFIX, tags=["Reports"])
+app.include_router(chat.router, prefix=API_PREFIX, tags=["Chat"])
+app.include_router(config_definitions.router, prefix=API_PREFIX, tags=["Config Definitions"])
+app.include_router(llm_models.router, prefix=API_PREFIX, tags=["LLM Models"])
+app.include_router(moe.router, prefix=API_PREFIX, tags=["MoE"])
+app.include_router(moe_metrics.router, prefix=API_PREFIX, tags=["MoE Metrics"])
+app.include_router(rq_monitor.router, prefix=API_PREFIX, tags=["RQ Monitor"])
 
 
 @app.on_event("startup")
@@ -457,17 +412,13 @@ async def startup_event():
     """應用啟動事件"""
     logger.info(f"AI Box API Gateway starting up... Version: {version_info['version']}")
 
-    # 加載配置定義（Phase 1: ConfigMetadata）
+    # 初始化配置元數據系統（Phase 10: ConfigMetadata）
     try:
-        from services.api.core.config import get_definition_loader
+        from services.api.core.config import initialize_config_system
 
-        loader = get_definition_loader()
-        definitions = loader.load_all()
-        logger.info(
-            f"Config definitions loaded: {len(definitions)} scopes - {list(definitions.keys())}"
-        )
+        initialize_config_system()
     except Exception as e:
-        logger.error(f"Failed to load config definitions: {e}")
+        logger.error(f"Failed to initialize config metadata system: {e}")
 
     # 初始化並註冊內建 Agent（需要註冊到 Registry 以便 Agent Discovery 發現）
     try:
@@ -575,6 +526,15 @@ async def startup_event():
         logger.info("Time service initialized")
     except Exception as e:
         logger.warning(f"Failed to initialize time service: {e}")
+
+    # 初始化配置元數據系統（DefinitionLoader）
+    try:
+        from services.api.core.config import initialize_config_system
+
+        initialize_config_system()
+        logger.info("Config metadata system initialized")
+    except Exception as e:
+        logger.warning(f"Failed to initialize config metadata system: {e}")
 
     # 啟動系統資源指標收集後台任務（Prometheus 監控）
     if PROMETHEUS_AVAILABLE:

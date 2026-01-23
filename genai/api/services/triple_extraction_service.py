@@ -1,13 +1,12 @@
 # 代碼功能說明: 三元組提取服務
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-04
+# 最後修改日期: 2026-01-23 01:33 UTC+8
 
 """三元組提取服務 - 整合 NER、RE、RT 服務實現三元組提取"""
 
+import logging
 from typing import Any, Dict, List, Optional, Set, Tuple
-
-import structlog
 
 from genai.api.models.ner_models import Entity
 from genai.api.models.re_models import Relation
@@ -19,7 +18,7 @@ from genai.api.services.rt_service import STANDARD_RELATION_TYPES as RT_STANDARD
 from genai.api.services.rt_service import RTService
 from services.api.services.config_store_service import get_config_store_service
 
-logger = structlog.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class TripleExtractionService:
@@ -107,15 +106,6 @@ class TripleExtractionService:
     ) -> List[Triple]:
         """
         提取三元組
-
-        Args:
-            text: 待提取的文本
-            entities: 預先識別的實體列表（可選）
-            enable_ner: 是否啟用NER（如果entities為None）
-            ontology_rules: Ontology規則（可選，如果為None則允許LLM自由提取）
-
-        Returns:
-            提取的三元組列表
         """
         # 如果ontology_rules為None，使用自由提取模式（不施加Ontology約束）
         if ontology_rules is None:
@@ -149,9 +139,7 @@ class TripleExtractionService:
 
             # 3. 移除控制字符（保留換行符和制表符）
             text = "".join(
-                c
-                for c in text
-                if unicodedata.category(c)[0] != "C" or c in ["\n", "\t", "\r"]
+                c for c in text if unicodedata.category(c)[0] != "C" or c in ["\n", "\t", "\r"]
             )
             return text
 
@@ -166,10 +154,8 @@ class TripleExtractionService:
                 normalized_text, ontology_rules=ontology_rules
             )
             logger.info(
-                "NER_extraction_completed",
-                entity_count=len(entities) if entities else 0,
-                text_preview=normalized_text[:100],  # 使用規範化後的文本
-                ontology_used=ontology_rules is not None,
+                f"NER_extraction_completed: entity_count={len(entities) if entities else 0}, "
+                f"text_preview={normalized_text[:100]}, ontology_used={ontology_rules is not None}"
             )
         elif entities is None:
             entities = []
@@ -185,19 +171,14 @@ class TripleExtractionService:
                 )
         except Exception as e:
             logger.warning(
-                "failed_to_read_insufficient_entities_threshold",
-                error=str(e),
-                message="無法讀取 insufficient_entities_threshold 配置，使用默認值 1",
+                f"failed_to_read_insufficient_entities_threshold: error={str(e)}, "
+                "message=無法讀取 insufficient_entities_threshold 配置，使用默認值 1"
             )
 
         if len(entities) < insufficient_entities_threshold:
             logger.info(
-                "insufficient_entities",
-                text=normalized_text[:50],
-                text_preview=normalized_text[:200],  # 添加更長的預覽
-                entity_count=len(entities),
-                threshold=insufficient_entities_threshold,
-                ontology_used=ontology_rules is not None,
+                f"insufficient_entities: entity_count={len(entities)}, "
+                f"threshold={insufficient_entities_threshold}, text_preview={normalized_text[:100]}"
             )
             return []
 
@@ -208,15 +189,15 @@ class TripleExtractionService:
             normalized_text, entities, ontology_rules=ontology_rules
         )
         logger.info(
-            "RE_extraction_completed",
-            relation_count=len(relations) if relations else 0,
-            entity_count=len(entities),
-            text_preview=normalized_text[:100],  # 使用規範化後的文本
-            ontology_used=ontology_rules is not None,
+            f"RE_extraction_completed: relation_count={len(relations) if relations else 0}, "
+            f"entity_count={len(entities)}, text_preview={normalized_text[:100]}, "
+            f"ontology_used={ontology_rules is not None}"
         )
 
         if not relations:
-            logger.info("no_relations_found", text=normalized_text[:50], entity_count=len(entities), ontology_used=ontology_rules is not None)
+            logger.info(
+                f"no_relations_found: entity_count={len(entities)}, ontology_used={ontology_rules is not None}"
+            )
             return []
 
         # 步驟 3: RT（關係分類）
@@ -267,11 +248,9 @@ class TripleExtractionService:
                 rt_requests, ontology_rules=ontology_rules
             )
             logger.info(
-                "RT_classification_completed",
-                rt_request_count=len(rt_requests),
-                batch_result_count=len(batch_results) if batch_results else 0,
-                relation_count=len(relations),
-                ontology_used=ontology_rules is not None,
+                f"RT_classification_completed: rt_request_count={len(rt_requests)}, "
+                f"batch_result_count={len(batch_results) if batch_results else 0}, "
+                f"relation_count={len(relations)}, ontology_used={ontology_rules is not None}"
             )
             for req_i, idx in enumerate(rt_request_index_map):
                 relation_types = batch_results[req_i] if req_i < len(batch_results) else []
@@ -290,11 +269,8 @@ class TripleExtractionService:
 
         # 步驟 4: 構建三元組
         logger.info(
-            "Building_triples",
-            relation_count=len(relations),
-            relation_type_count=sum(len(types) for types in per_relation_types),
-            entity_count=len(entities),
-            ontology_used=ontology_rules is not None,
+            f"Building_triples: relation_count={len(relations)}, entity_count={len(entities)}, "
+            f"ontology_used={ontology_rules is not None}"
         )
         unmatched_subjects = []
         unmatched_objects = []
@@ -326,11 +302,8 @@ class TripleExtractionService:
                         if entity.text == relation.subject.text:
                             subject_entity = entity
                             logger.debug(
-                                "entity_label_mismatch_fallback",
-                                entity_text=entity.text,
-                                entity_label=entity.label,
-                                relation_subject_label=relation.subject.label,
-                                message="使用模糊匹配（text 相同但 label 不同）",
+                                f"entity_label_mismatch_fallback: entity_text={entity.text}, "
+                                f"entity_label={entity.label}, relation_subject_label={relation.subject.label}"
                             )
                             break
 
@@ -339,11 +312,8 @@ class TripleExtractionService:
                         if entity.text == relation.object.text:
                             object_entity = entity
                             logger.debug(
-                                "entity_label_mismatch_fallback",
-                                entity_text=entity.text,
-                                entity_label=entity.label,
-                                relation_object_label=relation.object.label,
-                                message="使用模糊匹配（text 相同但 label 不同）",
+                                f"entity_label_mismatch_fallback: entity_text={entity.text}, "
+                                f"entity_label={entity.label}, relation_object_label={relation.object.label}"
                             )
                             break
 
@@ -351,10 +321,17 @@ class TripleExtractionService:
                 if not subject_entity:
                     # 使用 relation.subject 的信息創建臨時實體
                     from genai.api.models.ner_models import Entity as EntityModel
+
                     # 嘗試在原始文本中找到實體位置
                     subject_text = relation.subject.text
-                    subject_start = normalized_text.find(subject_text) if subject_text in normalized_text else 0
-                    subject_end = subject_start + len(subject_text) if subject_start >= 0 else len(subject_text)
+                    subject_start = (
+                        normalized_text.find(subject_text) if subject_text in normalized_text else 0
+                    )
+                    subject_end = (
+                        subject_start + len(subject_text)
+                        if subject_start >= 0
+                        else len(subject_text)
+                    )
                     subject_entity = EntityModel(
                         text=subject_text,
                         label=relation.subject.label,
@@ -363,10 +340,8 @@ class TripleExtractionService:
                         confidence=relation.confidence if hasattr(relation, "confidence") else 0.5,
                     )
                     logger.debug(
-                        "entity_created_from_relation",
-                        entity_text=subject_entity.text,
-                        entity_label=subject_entity.label,
-                        message="從關係中創建臨時實體（未在 NER 中找到）",
+                        f"entity_created_from_relation: entity_text={subject_entity.text}, "
+                        f"entity_label={subject_entity.label}"
                     )
                     unmatched_subjects.append(
                         f"{relation.subject.text} ({relation.subject.label}) [創建自關係]"
@@ -375,10 +350,15 @@ class TripleExtractionService:
                 if not object_entity:
                     # 使用 relation.object 的信息創建臨時實體
                     from genai.api.models.ner_models import Entity as EntityModel
+
                     # 嘗試在原始文本中找到實體位置
                     object_text = relation.object.text
-                    object_start = normalized_text.find(object_text) if object_text in normalized_text else 0
-                    object_end = object_start + len(object_text) if object_start >= 0 else len(object_text)
+                    object_start = (
+                        normalized_text.find(object_text) if object_text in normalized_text else 0
+                    )
+                    object_end = (
+                        object_start + len(object_text) if object_start >= 0 else len(object_text)
+                    )
                     object_entity = EntityModel(
                         text=object_text,
                         label=relation.object.label,
@@ -387,10 +367,8 @@ class TripleExtractionService:
                         confidence=relation.confidence if hasattr(relation, "confidence") else 0.5,
                     )
                     logger.debug(
-                        "entity_created_from_relation",
-                        entity_text=object_entity.text,
-                        entity_label=object_entity.label,
-                        message="從關係中創建臨時實體（未在 NER 中找到）",
+                        f"entity_created_from_relation: entity_text={object_entity.text}, "
+                        f"entity_label={object_entity.label}"
                     )
                     unmatched_objects.append(
                         f"{relation.object.text} ({relation.object.label}) [創建自關係]"
@@ -427,24 +405,17 @@ class TripleExtractionService:
         # 記錄未匹配的實體
         if unmatched_subjects or unmatched_objects:
             logger.warning(
-                "unmatched_entities_in_relations",
-                unmatched_subject_count=len(set(unmatched_subjects)),
-                unmatched_object_count=len(set(unmatched_objects)),
-                sample_unmatched_subjects=list(set(unmatched_subjects))[:5],
-                sample_unmatched_objects=list(set(unmatched_objects))[:5],
-                available_entities=[f"{e.text} ({e.label})" for e in entities],
-                message="關係中的 subject/object 實體未在 NER 實體列表中找到匹配",
+                f"unmatched_entities_in_relations: unmatched_subject_count={len(set(unmatched_subjects))}, "
+                f"unmatched_object_count={len(set(unmatched_objects))}"
             )
 
         # 步驟 5: 去重
         triples = self._deduplicate_triples(triples)
         logger.info(
-            "Triple_extraction_completed",
-            triple_count=len(triples),
-            entity_count=len(entities),
-            relation_count=len(relations),
-            ontology_used=ontology_rules is not None,
+            f"Triple_extraction_completed: triple_count={len(triples)}, entity_count={len(entities)}, "
+            f"relation_count={len(relations)}, ontology_used={ontology_rules is not None}"
         )
+        return triples
         return triples
 
     async def extract_triples_batch(self, texts: List[str]) -> List[List[Triple]]:

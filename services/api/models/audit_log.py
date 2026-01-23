@@ -23,6 +23,12 @@ class AuditAction(str, Enum):
     FILE_DELETE = "file_delete"  # 文件刪除
     DATA_PROCESS = "data_process"  # 數據處理
 
+    # 任務操作
+    TASK_CREATE = "task_create"  # 任務創建
+    TASK_VIEW = "task_view"  # 任務訪問
+    TASK_UPDATE = "task_update"  # 任務更新
+    TASK_DELETE = "task_delete"  # 任務刪除
+
     # Ontology 操作（WBS-4.1.1）
     ONTOLOGY_CREATE = "ontology_create"  # Ontology 創建
     ONTOLOGY_READ = "ontology_read"  # Ontology 讀取

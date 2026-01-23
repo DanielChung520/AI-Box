@@ -3,7 +3,7 @@
 **版本**：2.0
 **創建日期**：2025-12-20
 **創建人**：Daniel Chung
-**最後修改日期**：2025-01-27
+**最後修改日期**：2026-01-20
 
 > **📋 相關文檔**：
 >
@@ -1542,24 +1542,83 @@ async def validate_config_value(
 
 ---
 
-## 9. 總結
+## 9. Phase 10 擴展：ConfigMetadata 完善（2026-01-20）
 
-### 9.1 核心優勢
+### 9.1 新增功能
+
+#### 9.1.1 Orchestrator 同步優化
+
+- 將 `_get_config_definition()` 改為同步方法
+- 避免不必要的 async/await 開銷
+
+#### 9.1.2 SystemConfigAgent 整合
+
+- 新增 `_definition_loader` 屬性
+- 新增 `_get_definition_loader()` 懶加載方法
+- 修改 `_check_convergence_rules()` 使用 DefinitionLoader
+- 從 JSON 定義讀取 `convergence_rules`
+
+#### 9.1.3 新增 MoE 場景配置定義
+
+- 新增 `moe.scene_config.json` 定義檔
+- 定義 6 個 MoE 場景的配置約束：
+  - `chat` - 對話場景
+  - `semantic_understanding` - 語義理解
+  - `task_analysis` - 任務分析
+  - `orchestrator` - 協調器
+  - `embedding` - 向量化
+  - `knowledge_graph_extraction` - 知識圖譜提取
+
+#### 9.1.4 啟動載入機制
+
+- 新增 `initialize_config_system()` 函數
+- 在 API 啟動時自動載入所有定義檔
+
+### 9.2 API Endpoints
+
+| Method | Endpoint | 功能 |
+|--------|----------|------|
+| GET | `/api/v1/config/definitions` | 列出所有配置定義 |
+| GET | `/api/v1/config/definitions/{scope}` | 取得特定配置定義 |
+| POST | `/api/v1/config/definitions/{scope}/validate` | 驗證配置是否符合定義 |
+
+### 9.3 新增檔案
+
+| 檔案 | 說明 |
+|------|------|
+| `services/api/core/config/definitions/moe.scene_config.json` | MoE 場景配置定義 |
+| `api/routers/config_definitions.py` | Config Definitions API 路由 |
+
+### 9.4 修改檔案
+
+| 檔案 | 修改內容 |
+|------|----------|
+| `services/api/core/config/__init__.py` | 新增 `initialize_config_system()` |
+| `api/main.py` | 註冊 router，調用 `initialize_config_system()` |
+| `agents/services/orchestrator/orchestrator.py` | `_get_config_definition()` 改為同步 |
+| `agents/builtin/system_config_agent/agent.py` | 整合 DefinitionLoader |
+
+---
+
+## 10. 總結
+
+### 10.1 核心優勢
 
 1. **硬性約束**：不能只靠 Prompt，必須給 AI 一套硬性約束
 2. **雙層防護**：Orchestrator 預檢 + Agent 深檢，雙重保障
 3. **自動化驗證**：程式碼層級的驗證，確保 AI 無法設置非法值
 4. **高擴展性**：未來新增任何業務 Agent，只需提供 Schema 即可
 
-### 9.2 技術亮點
+### 10.2 技術亮點
 
 - ✅ 配置元數據機制（JSON 文件作為唯一數據源）
 - ✅ 雙層驗證機制（預檢 + 深檢）
 - ✅ Agent Registry Schema 設計（可選，從 JSON 文件生成）
 - ✅ 動態提示與強制驗證
 - ✅ Python 驗證函數（從內存緩存讀取定義）
+- ✅ Phase 10 擴展：DefinitionLoader 整合、MoE 場景定義、Config Definitions API
 
-### 9.3 設計理念實現
+### 10.3 設計理念實現
 
 **「未來系統的面貌」**：
 
@@ -1569,8 +1628,8 @@ async def validate_config_value(
 
 ---
 
-**文檔版本**：2.0
-**最後更新**：2025-01-27
+**文檔版本**：2.1
+**最後更新**：2026-01-20
 **維護者**：Daniel Chung
 
 ---

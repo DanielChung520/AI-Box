@@ -7,6 +7,7 @@
 
 from typing import Optional
 
+import structlog
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi import status as http_status
 from fastapi.responses import FileResponse, JSONResponse
@@ -14,6 +15,10 @@ from fastapi.responses import FileResponse, JSONResponse
 from agents.services.file_service.agent_file_service import get_agent_file_service
 from agents.services.file_service.models import FileType
 from api.core.response import APIResponse
+from services.api.models.file_metadata import FileMetadataCreate
+from services.api.services.file_metadata_service import get_metadata_service
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
@@ -59,6 +64,39 @@ async def upload_agent_file(
             task_id=task_id,
             file_type=parsed_file_type,
         )
+
+        try:
+            metadata_service = get_metadata_service()
+            metadata_create = FileMetadataCreate(
+                file_id=file_info.file_id,
+                filename=file_info.filename,
+                file_type=file_info.file_type.value if file_info.file_type else "other",
+                file_size=file_info.file_size,
+                user_id=agent_id,
+                task_id=task_id,
+                folder_id=f"{task_id}_workspace",
+                storage_path=file_info.file_path,
+                description=f"Agent file uploaded by {agent_id}",
+                status="uploaded",
+                processing_status=None,
+                chunk_count=None,
+                vector_count=None,
+                kg_status=None,
+            )
+            metadata_service.create(metadata_create)
+            logger.info(
+                "File metadata created successfully",
+                file_id=file_info.file_id,
+                filename=file_info.filename,
+                task_id=task_id,
+            )
+        except Exception as metadata_error:
+            logger.error(
+                "Failed to create file metadata (file was uploaded successfully)",
+                file_id=file_info.file_id,
+                error=str(metadata_error),
+                exc_info=True,
+            )
 
         return APIResponse.success(
             data=file_info.model_dump(mode="json"),
