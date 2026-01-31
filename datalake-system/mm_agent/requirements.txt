@@ -1,0 +1,30 @@
+# MM-Agent Requirements
+# 創建日期: 2026-01-31
+
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+
+# MCP Server
+mcp>=1.0.0
+
+# AI-Box Agent Platform
+agents>=1.0.0
+
+# LLM - Ollama
+langchain-ollama>=0.1.0
+langchain-core>=0.2.0
+langchain>=0.2.0
+
+# 數據庫客戶端
+qdrant-client>=1.9.0
+arango-driver>=7.5.0
+
+# HTTP Client
+httpx>=0.26.0
+
+# 測試
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+httpx>=0.26.0
