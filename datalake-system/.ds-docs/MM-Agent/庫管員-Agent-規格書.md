@@ -801,3 +801,126 @@ datalake-system/
 └── frontend/
     └── api_server.py         # API 接口 + 正面表列
 ```
+
+---
+
+## 13. 功能清單
+
+### 13.1 已實現功能 ✅
+
+| 功能模組 | 功能項目 | 狀態 | 代碼位置 | 說明 |
+|---------|---------|------|---------|------|
+| **轉譯引擎** | | ✅ 完成 | `translator.py` | |
+| | tlf19 交易類別轉譯 | ✅ | line 45-62 | 101/102/201/202/301 |
+| | 時間表達式轉譯 | ✅ | line 64-74 | 上月/最近N天 |
+| | 料號提取 | ✅ | line 76-91 | RM05-008, ABC-123 |
+| | 數量提取 | ✅ | line 93-117 | 數字+單位 |
+| | 倉庫提取 | ✅ | line 119-151 | W01-W05 |
+| **正面表列** | | ✅ 完成 | `positive_list.py` | |
+| | 關鍵詞白名單 | ✅ | line 20-38 | 25+ 關鍵詞 |
+| | Clarification 消息 | ✅ | line 28-31 | 澄清提示 |
+| | 檢查 API | ✅ | line 43-47 | check() 方法 |
+| **LangChain 對話鏈** | | ✅ 完成 | `chain/mm_agent_chain.py` | |
+| | Ollama LLM 整合 | ✅ | line 55-63 | glm-4.7:cloud |
+| | L4 正面表列檢查 | ✅ | line 111-117 | |
+| | L2 專業轉譯 | ✅ | line 119-121 | |
+| | L1 意圖分析 | ✅ | line 123-131 | purchase/sales |
+| | 回覆生成 | ✅ | line 133-150 | 繁體中文 |
+| **API 端點** | | ✅ 完成 | `main.py` | |
+| | `/api/v1/mm-agent/chat` | ✅ | line 196-217 | 對話接口 |
+| | `/api/v1/mm-agent/translate` | ✅ | line 220-229 | 轉譯接口 |
+| | `/api/v1/mm-agent/check` | ✅ | line 232-241 | 檢查接口 |
+| | `/health` | ✅ | line 106-117 | 健康檢查 |
+| | `/capabilities` | ✅ | line 120-129 | 能力列表 |
+| | `/mcp` | ✅ | line 60-95 | MCP 通信 |
+| **MCP Server** | | ✅ 完成 | `mcp_server.py` | |
+| | mm_execute_task | ✅ | line 75-112 | 任務執行工具 |
+| **Agent 協議** | | ✅ 完成 | `agent.py` | |
+| | execute() | ✅ | line 104-208 | 任務執行 |
+| | health_check() | ✅ | line 398-404 | 健康檢查 |
+| | get_capabilities() | ✅ | line 406-420 | 能力列表 |
+| **數據模型** | | ✅ 完成 | `models.py` | |
+| | SemanticAnalysisResult | ✅ | | 語義分析結果 |
+| | Responsibility | ✅ | | 職責定義 |
+| | WarehouseAgentResponse | ✅ | | Agent 響應 |
+| | TranslationResult | ✅ | translator.py | 轉譯結果 |
+| **依賴配置** | | ✅ 完成 | `requirements.txt` | |
+| | LangChain | ✅ | | Ollama 整合 |
+| | MCP | ✅ | | MCP Server |
+| | Pydantic | ✅ | | 數據驗證 |
+| **文檔** | | ✅ 完成 | `庫管員-Agent-規格書.md` | v4.0 |
+
+### 13.2 待開發功能 ⏳
+
+| 功能模組 | 功能項目 | 優先級 | 說明 |
+|---------|---------|--------|------|
+| **DataLake 查詢** | | 高 | |
+| | 庫存餘額查詢 | ⏳ | img_file 查詢 |
+| | 交易歷史查詢 | ⏳ | tlf_file 查詢 |
+| | 採購單查詢 | ⏳ | pmm/pmn/rvb 查詢 |
+| | 訂單查詢 | ⏳ | coptc/coptd 查詢 |
+| **Qdrant 整合** | | 中 | |
+| | 意圖模板匹配 | ⏳ | data_agent_intents |
+| | RAG 回退機制 | ⏳ | 複雜查詢處理 |
+| **ArangoDB 整合** | | 低 | |
+| | 實體關係查詢 | ⏳ | mm_agent_entities |
+| | 業務規則知識 | ⏳ | business_rules |
+| **多輪對話** | | 中 | |
+| | 對話歷史管理 | ⏳ | Context Manager |
+| | 指代消解 | ⏳ | 上下文理解 |
+| **前端集成** | | 高 | |
+| | 8503 NLP 頁面集成 | ⏳ | API 調用 |
+| | 錯誤處理 | ⏳ | 異常回覆 |
+| | Loading 狀態 | ⏳ | 載入提示 |
+| **測試** | | 高 | |
+| | 單元測試 | ⏳ | pytest |
+| | 整合測試 | ⏳ | 100 場景 |
+| | 性能測試 | ⏳ | 響應時間 < 2s |
+| **部署** | | 中 | |
+| | Dockerfile | ⏳ | 容器化 |
+| | docker-compose | ⏳ | 多服務編排 |
+| | 監控告警 | ⏳ | 健康檢查 |
+
+### 13.3 功能優先級
+
+```
+高優先級 (P0) ──────────────────────────────────────────────────
+├─ DataLake 查詢 (庫存/交易/採購/訂單)
+├─ 8503 前端集成
+└─ API 端點測試
+
+中優先級 (P1) ──────────────────────────────────────────────────
+├─ Qdrant 意圖匹配
+├─ LangChain Tool 調用
+└─ 多輪對話
+
+低優先級 (P2) ──────────────────────────────────────────────────
+├─ ArangoDB 實體關係
+├─ 容器化部署
+└─ 監控告警
+```
+
+### 13.4 代碼對照表
+
+| 功能 | 代碼檔案 | 行數 | 狀態 |
+|------|---------|------|------|
+| 轉譯引擎 | `translator.py` | ~170 | ✅ |
+| 正面表列 | `positive_list.py` | ~100 | ✅ |
+| LangChain 對話鏈 | `chain/mm_agent_chain.py` | ~160 | ✅ |
+| API 端點 | `main.py` | ~220 | ✅ |
+| MCP Server | `mcp_server.py` | ~113 | ✅ |
+| Agent 協議 | `agent.py` | ~421 | ✅ |
+| 數據模型 | `models.py` | ~99 | ✅ |
+| 依賴配置 | `requirements.txt` | ~25 | ✅ |
+| 規格文檔 | `庫管員-Agent-規格書.md` | ~804+ | ✅ |
+| 庫存查詢 | `services/stock_service.py` | ~93 | ⏳ 待整合 |
+| 交易查詢 | `services/semantic_analyzer.py` | ~282 | ⏳ 待強化 |
+| 缺料分析 | `services/shortage_analyzer.py` | ~112 | ⏳ 待整合 |
+| 採購服務 | `services/purchase_service.py` | ~113 | ⏳ 待整合 |
+
+---
+
+## 14. 參考文檔
+
+- [Agent-開發規範.md](../../../../../../docs/系统设计文档/核心组件/Agent平台/Agent-開發規範.md)
+- [庫管員-Agent-規格書-v3](庫管員-Agent-規格書-v3.md)
