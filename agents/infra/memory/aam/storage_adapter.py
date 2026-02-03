@@ -119,7 +119,15 @@ class RedisAdapter(BaseStorageAdapter):
 
 
 class ChromaDBAdapter(BaseStorageAdapter):
-    """ChromaDB 存儲適配器（用於長期記憶向量存儲）"""
+    """
+    ⚠️ DEPRECATED 棄用警告 ⚠️
+    此適配器已棄用，請使用 QdrantAdapter 替代。
+    原因: 系統已遷移到 Qdrant 作為主要向量資料庫。
+    遷移日期: 2026-02-02
+    替代方案: 請使用 agents.infra.memory.aam.qdrant_adapter.QdrantAdapter
+
+    ChromaDB 存儲適配器（用於長期記憶向量存儲）
+    """
 
     def __init__(
         self,

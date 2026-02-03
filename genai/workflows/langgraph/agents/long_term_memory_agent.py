@@ -137,7 +137,7 @@ def create_long_term_memory_agent_config() -> NodeConfig:
         description="長期記憶Agent - 負責長期記憶的維護、修剪和索引優化",
         max_retries=1,
         timeout=30.0,
-        required_inputs=["user_id"]
+        required_inputs=["user_id"],
         optional_inputs=["memory_management", "messages"],
         output_keys=["long_term_memory_optimization", "memory_health_summary"],
     )

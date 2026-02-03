@@ -1,0 +1,146 @@
+{
+    "type": "major",
+    "name": "Material_Inventory_Control",
+    "version": "1.0",
+    "default_version": true,
+    "ontology_name": "Material_Inventory_Control_Major_Ontology",
+    "description": "物料庫存與控管專業本體論，定義庫存狀態、異動規則、盤點、批次、效期與安全庫存等專業概念。適用於庫存分析、異動追蹤、RAG 查詢與決策推斷。",
+    "author": "Daniel Chung",
+    "last_modified": "2026-01-25",
+  
+    "inherits_from": [
+      "5W1H_Base_Ontology_OWL",
+      "Material_Management_Domain_Ontology"
+    ],
+  
+    "tags": ["Inventory", "MaterialControl", "Stock", "KA"],
+    "use_cases": [
+      "庫存狀態查詢",
+      "安全庫存與補貨判斷",
+      "物料異動原因分析",
+      "批次與效期追蹤",
+      "盤點差異分析"
+    ],
+  
+    "entity_classes": [
+      {
+        "name": "Stock_Level",
+        "base_class": "Concept",
+        "description": "庫存水位，描述物料在特定時間點的數量狀態。"
+      },
+      {
+        "name": "Stock_Status",
+        "base_class": "Concept",
+        "description": "庫存狀態，如可用、保留、凍結、報廢。"
+      },
+      {
+        "name": "Safety_Stock",
+        "base_class": "Concept",
+        "description": "安全庫存量，用於避免供應中斷。"
+      },
+      {
+        "name": "Reorder_Point",
+        "base_class": "Concept",
+        "description": "再訂購點，當庫存低於此值時需觸發補貨。"
+      },
+      {
+        "name": "Stock_Movement_Type",
+        "base_class": "Concept",
+        "description": "庫存異動類型，如入庫、出庫、調撥、盤點調整。"
+      },
+      {
+        "name": "Stock_Movement_Reason",
+        "base_class": "Concept",
+        "description": "庫存異動原因，如生產領料、銷售出貨、報廢。"
+      },
+      {
+        "name": "Inventory_Check",
+        "base_class": "Event",
+        "description": "盤點事件，用於核對實體庫存與系統紀錄。"
+      },
+      {
+        "name": "Inventory_Discrepancy",
+        "base_class": "Concept",
+        "description": "盤點差異，描述實際庫存與帳面庫存的落差。"
+      },
+      {
+        "name": "Expiration_Date",
+        "base_class": "Concept",
+        "description": "效期，用於管理有保存期限的物料。"
+      },
+      {
+        "name": "Batch_Trace_Record",
+        "base_class": "Document",
+        "description": "批次追蹤紀錄，串聯來源、庫存與去向。"
+      }
+    ],
+  
+    "object_properties": [
+      {
+        "name": "has_stock_level",
+        "description": "物料目前的庫存水位。",
+        "domain": ["Material"],
+        "range": ["Stock_Level"]
+      },
+      {
+        "name": "has_stock_status",
+        "description": "物料目前的庫存狀態。",
+        "domain": ["Inventory_Record"],
+        "range": ["Stock_Status"]
+      },
+      {
+        "name": "defined_by_safety_stock",
+        "description": "物料所設定的安全庫存。",
+        "domain": ["Material"],
+        "range": ["Safety_Stock"]
+      },
+      {
+        "name": "triggers_reorder_point",
+        "description": "庫存低於再訂購點。",
+        "domain": ["Stock_Level"],
+        "range": ["Reorder_Point"]
+      },
+      {
+        "name": "has_movement_type",
+        "description": "庫存異動的類型。",
+        "domain": ["Material_Movement"],
+        "range": ["Stock_Movement_Type"]
+      },
+      {
+        "name": "has_movement_reason",
+        "description": "庫存異動的原因。",
+        "domain": ["Material_Movement"],
+        "range": ["Stock_Movement_Reason"]
+      },
+      {
+        "name": "results_in_discrepancy",
+        "description": "盤點導致的差異。",
+        "domain": ["Inventory_Check"],
+        "range": ["Inventory_Discrepancy"]
+      },
+      {
+        "name": "tracked_with_expiration",
+        "description": "物料受效期管理。",
+        "domain": ["Material", "Batch_Lot"],
+        "range": ["Expiration_Date"]
+      },
+      {
+        "name": "has_batch_trace",
+        "description": "批次追蹤紀錄。",
+        "domain": ["Batch_Lot"],
+        "range": ["Batch_Trace_Record"]
+      }
+    ],
+  
+    "metadata": {
+      "domain": "Material_Management",
+      "major_owner": "KA-Agent",
+      "data_classification": "INTERNAL",
+      "intended_usage": [
+        "RAG 檢索重排序",
+        "KG 三元組抽取",
+        "庫存推斷與決策輔助"
+      ]
+    }
+  }
+  

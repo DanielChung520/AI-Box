@@ -59,6 +59,9 @@ class AuditAction(str, Enum):
     USER_UPDATE = "user_update"  # 用戶更新
     USER_DELETE = "user_delete"  # 用戶刪除
     SYSTEM_ACTION = "system_action"  # 系統操作（服務檢查等）
+    # 知識資產與檢索（KA-Agent）
+    KNOWLEDGE_ASSET_CREATED = "knowledge_asset_created"  # 知識資產上架
+    ACCESS_DENIED = "access_denied"  # 存取拒絕（如檢索權限不足）
 
 
 class AuditLog(BaseModel):

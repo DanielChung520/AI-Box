@@ -1,7 +1,7 @@
 # 代碼功能說明: LLM 客戶端工廠實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-30
+# 最後修改日期: 2026-01-24 23:30 UTC+8
 
 """LLM 客戶端工廠，根據 LLMProvider 創建對應客戶端，支持單例模式和資源訪問控制。"""
 
@@ -134,6 +134,13 @@ class ResourceControlledLLMClient(BaseLLMClient):
     def is_available(self) -> bool:
         """檢查客戶端是否可用"""
         return self._client.is_available()
+
+    async def verify_connectivity(self) -> tuple[bool, str]:
+        """驗證連通性（帶權限檢查）"""
+        provider_name = self._client.provider_name
+        if not self._check_access(provider_name):
+            return False, f"Agent '{self._agent_id}' 無權訪問提供商 '{provider_name}'"
+        return await self._client.verify_connectivity()
 
 
 class LLMClientFactory:

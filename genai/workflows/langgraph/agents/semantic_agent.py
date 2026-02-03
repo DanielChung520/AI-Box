@@ -88,7 +88,7 @@ class SemanticAgent(BaseAgentNode):
 
             return NodeResult.success(
                 data={
-                    "semantic_analysis": semantic_result.__dict__,
+                    "semantic_analysis": semantic_result.__dict__
                     if hasattr(semantic_result, "__dict__")
                     else semantic_result,
                     "analysis_summary": self._create_analysis_summary(semantic_result),
@@ -98,18 +98,19 @@ class SemanticAgent(BaseAgentNode):
 
         except Exception as e:
             logger.error(f"SemanticAgent execution error: {e}", exc_info=True)
-            return NodeResult.failure(f"Semantic analysis error: {str(e)}",
+            return NodeResult.failure(f"Semantic analysis error: {str(e)}")
+
     def _get_latest_user_message(self, state: AIBoxState) -> Optional[str]:
-        """獲取最新的用戶消息""",
+        """獲取最新的用戶消息"""
         for message in reversed(state.messages):
             if message.role == "user":
-                return message.content,
+                return message.content
         return None
 
     async def _analyze_semantic(self, message: str, state: AIBoxState) -> Optional[Any]:
-        "
+        """
         執行語義分析
-        """,
+        """
         try:
             # 嘗試使用 RouterLLM
             if self.router_llm:
@@ -149,39 +150,39 @@ class SemanticAgent(BaseAgentNode):
 
         # 檢測主題
         if any(
-            word in message_lower,
+            word in message_lower
             for word in ["document", "file", "pdf", "doc", "文件", "文檔", "檔案"]
         ):
             topics.append("document")
         if any(
-            word in message_lower,
+            word in message_lower
             for word in ["code", "programming", "develop", "程式", "代碼", "開發"]
         ):
             topics.append("programming")
         if any(
-            word in message_lower,
+            word in message_lower
             for word in ["system", "architecture", "design", "系統", "架構", "設計"]
         ):
             topics.append("system_design")
         if any(
-            word in message_lower,
+            word in message_lower
             for word in ["agent", "task", "workflow", "代理", "任務", "工作流"]
         ):
             topics.append("agent_orchestration")
 
         # 檢測動作信號
         if any(
-            word in message_lower,
+            word in message_lower
             for word in ["create", "make", "build", "generate", "建立", "創建", "生成", "製作"]
         ):
             action_signals.append("create")
         if any(
-            word in message_lower,
+            word in message_lower
             for word in ["analyze", "review", "check", "分析", "檢查", "審查", "評核", "解釋"]
         ):
             action_signals.append("analyze")
         if any(
-            word in message_lower,
+            word in message_lower
             for word in ["modify", "edit", "update", "修改", "編輯", "更新", "更正"]
         ):
             action_signals.append("modify")
@@ -192,11 +193,11 @@ class SemanticAgent(BaseAgentNode):
 
         # 檢測模態
         if (
-            "?" in message,
-            or "嗎" in message,
-            or "呢" in message,
+            "?" in message
+            or "嗎" in message
+            or "呢" in message
             or any(
-                word in message_lower,
+                word in message_lower
                 for word in [
                     "what",
                     "how",
@@ -211,16 +212,16 @@ class SemanticAgent(BaseAgentNode):
                 ]
             )
         ):
-            modality = "question",
+            modality = "question"
         elif any(word in message_lower for word in ["do this", "execute", "run", "執行", "跑"]):
-            modality = "command",
+            modality = "command"
         elif len(message) > 50:
-            modality = "instruction",
+            modality = "instruction"
         else:
             modality = "conversation"
 
         return SemanticUnderstandingOutputLocal(
-            topics=topics if topics else ["general"]
+            topics=topics if topics else ["general"],
             entities=entities,
             action_signals=action_signals,
             modality=modality,
@@ -232,30 +233,30 @@ class SemanticAgent(BaseAgentNode):
         # 根據語義分析結果決定下一步
         if (
             semantic_result.modality in ["command", "instruction"]
-            or len(semantic_result.action_signals) > 0,
+            or len(semantic_result.action_signals) > 0
         ):
-            return "intent_analysis",
+            return "intent_analysis"
         elif semantic_result.certainty < 0.4:
-            return "clarification",
+            return "clarification"
         elif state.input_type == "assistant":
-            return "capability_matching",
+            return "capability_matching"
         else:
             if "document" in semantic_result.topics and semantic_result.modality == "question":
-                return "intent_analysis",
+                return "intent_analysis"
             return "simple_response"
 
     def _create_analysis_summary(self, semantic_result: Any) -> Dict[str, Any]:
-        """創建分析摘要""",
+        """創建分析摘要"""
         return {
             "topics": semantic_result.topics,
             "modality": semantic_result.modality,
             "action_signals": semantic_result.action_signals,
             "certainty": semantic_result.certainty,
             "entity_count": len(semantic_result.entities),
-            "complexity": "high",
-            if len(semantic_result.topics) > 2,
-            else "mid",
-            if semantic_result.action_signals,
+            "complexity": "high"
+            if len(semantic_result.topics) > 2
+            else "mid"
+            if semantic_result.action_signals
             else "low",
         }
 

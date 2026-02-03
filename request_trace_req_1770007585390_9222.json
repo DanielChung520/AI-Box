@@ -1,0 +1,118 @@
+{
+  "request_id": "req_1770007585390_9222",
+  "session_id": "sess_1770007585390",
+  "task_id": "task_1770007585390",
+  "user": "systemAdmin",
+  "model": "Ollama 4",
+  "agent": "MM-Agent",
+  "user_input": "能將採購流程用mermaid 幫我根據TIPTOP的入庫流程嗎？",
+  "total_latency_ms": 11406.8,
+  "stages": [
+    {
+      "stage": "前端輸入處理",
+      "start_ms": 0.0,
+      "end_ms": 18.78,
+      "duration_ms": 18.78,
+      "details": "解析用戶輸入 '能將採購流程用mermaid 幫我根據TIPTOP的入庫流程...'，構建請求體"
+    },
+    {
+      "stage": "前端API請求發送",
+      "start_ms": 18.78,
+      "end_ms": 60.24,
+      "duration_ms": 41.46,
+      "details": "發送 POST /api/v1/chat 請求"
+    },
+    {
+      "stage": "API Gateway 路由",
+      "start_ms": 60.24,
+      "end_ms": 66.63,
+      "duration_ms": 6.39,
+      "details": "FastAPI路由匹配，请求重定向到 /chat 端点"
+    },
+    {
+      "stage": "認證授權檢查",
+      "start_ms": 66.63,
+      "end_ms": 88.67,
+      "duration_ms": 22.04,
+      "details": "JWT Token驗證，用戶: systemAdmin，權限檢查"
+    },
+    {
+      "stage": "上下文管理",
+      "start_ms": 88.67,
+      "end_ms": 109.33,
+      "duration_ms": 20.65,
+      "details": "獲取會話上下文 sess_1770007585390，消息窗口裁剪"
+    },
+    {
+      "stage": "記憶檢索",
+      "start_ms": 109.33,
+      "end_ms": 164.67,
+      "duration_ms": 55.34,
+      "details": "長期記憶檢索，向量相似度搜索 (ChromaDB/ArangoDB)"
+    },
+    {
+      "stage": "任務分類",
+      "start_ms": 164.67,
+      "end_ms": 342.47,
+      "duration_ms": 177.8,
+      "details": "TaskAnalyzer意圖分類: 識別為 'MM-Agent' 任務"
+    },
+    {
+      "stage": "MoE 路由選擇",
+      "start_ms": 342.47,
+      "end_ms": 405.51,
+      "duration_ms": 63.03,
+      "details": "MoE Manager選擇模型: Ollama 4"
+    },
+    {
+      "stage": "LLM 提供商調用",
+      "start_ms": 405.51,
+      "end_ms": 420.06,
+      "duration_ms": 14.55,
+      "details": "準備 Ollama 4 API請求，設置超時和重試"
+    },
+    {
+      "stage": "Ollama 模型推理",
+      "start_ms": 420.06,
+      "end_ms": 8762.51,
+      "duration_ms": 8342.45,
+      "details": "Ollama Ollama 4 模型推理: '能將採購流程用mermaid 幫我根據TIPTOP的入庫流程...' → Mermaid流程圖"
+    },
+    {
+      "stage": "Agent 分發",
+      "start_ms": 8762.51,
+      "end_ms": 8832.77,
+      "duration_ms": 70.26,
+      "details": "分發到 MM-Agent Agent，協議轉換"
+    },
+    {
+      "stage": "MM-Agent 執行",
+      "start_ms": 8832.77,
+      "end_ms": 11275.65,
+      "duration_ms": 2442.88,
+      "details": "MM-Agent執行 TIPTOP 入庫流程分析，生成 Mermaid 代碼"
+    },
+    {
+      "stage": "響應格式化",
+      "start_ms": 11275.65,
+      "end_ms": 11320.73,
+      "duration_ms": 45.08,
+      "details": "序列化響應，Markdown + Mermaid 渲染"
+    },
+    {
+      "stage": "流式響應傳輸",
+      "start_ms": 11320.73,
+      "end_ms": 11346.76,
+      "duration_ms": 26.03,
+      "details": "SSE 流式傳輸 Mermaid 代碼塊"
+    },
+    {
+      "stage": "前端渲染顯示",
+      "start_ms": 11346.76,
+      "end_ms": 11406.8,
+      "duration_ms": 60.04,
+      "details": "React渲染組件，Mermaid流程圖顯示"
+    }
+  ],
+  "timestamp": "2026-02-02T12:46:25.390782"
+}

@@ -95,7 +95,7 @@ class ClarificationAgent(BaseAgentNode):
             clarification_message=message,
             unclear_aspects=unclear_aspects,
             suggested_questions=["我想分析這份文件", "我想修改這份文件"],
-            context_provided={"certainty": certainty}
+            context_provided={"certainty": certainty},
             reasoning=f"Based on low certainty score: {certainty}",
         )
 

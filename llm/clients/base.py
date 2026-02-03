@@ -105,3 +105,12 @@ class BaseLLMClient(ABC):
             如果可用返回 True，否則返回 False
         """
         return True
+
+    async def verify_connectivity(self) -> tuple[bool, str]:
+        """
+        驗證與 LLM Provider 的連通性（包括 API Key 有效性）。
+
+        Returns:
+            (是否成功, 消息)
+        """
+        return True, "連通性正常"

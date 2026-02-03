@@ -1,7 +1,7 @@
 # 代碼功能說明: ChatGLM 客戶端實現
 # 創建日期: 2025-12-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-30
+# 最後修改日期: 2026-01-24 23:38 UTC+8
 
 """ChatGLM 客戶端實現，整合智譜 AI ChatGLM API。"""
 
@@ -43,6 +43,7 @@ class ChatGLMClient(BaseLLMClient):
         base_url: Optional[str] = None,
         default_model: Optional[str] = None,
         timeout: Optional[float] = None,
+        **kwargs: Any,
     ):
         """
         初始化 ChatGLM 客戶端。
@@ -52,6 +53,7 @@ class ChatGLMClient(BaseLLMClient):
             base_url: API 基礎 URL（可選，默認使用智譜 AI 端點）
             default_model: 默認模型名稱
             timeout: 請求超時時間（秒，可選，從配置讀取）
+            **kwargs: 其他參數（兼容性保留）
         """
         if AsyncOpenAI is None:
             raise ImportError(
@@ -319,3 +321,17 @@ class ChatGLMClient(BaseLLMClient):
         except Exception as e:
             logger.error(f"ChatGLM embeddings error: {e}", exc_info=True)
             raise ChatGLMClientError(f"Failed to generate embeddings: {e}") from e
+
+    async def verify_connectivity(self) -> tuple[bool, str]:
+        """
+        驗證與 ChatGLM API 的連通性。
+        Returns:
+            (是否成功, 消息)
+        """
+        try:
+            # ChatGLM 是 OpenAI 兼容的，可以嘗試獲取模型列表
+            await self._client.models.list()
+            return True, "連通性正常"
+        except Exception as exc:
+            logger.error(f"ChatGLM connectivity check failed: {exc}")
+            return False, f"連通性驗證失敗: {str(exc)}"

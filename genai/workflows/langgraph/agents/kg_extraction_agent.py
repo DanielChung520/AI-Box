@@ -105,7 +105,7 @@ class KGExtractionAgent(BaseAgentNode):
     ) -> Optional[KGExtractionResult]:
         """執行實際的圖譜提取"""
         return KGExtractionResult(
-            files_processed=len(files)
+            files_processed=len(files),
             entities_extracted=0,
             relations_extracted=0,
             knowledge_graph_nodes=0,
@@ -128,7 +128,7 @@ def create_kg_extraction_agent_config() -> NodeConfig:
         description="知識圖譜提取Agent - 負責從非結構化文件中提取實體、關係並構建圖譜",
         max_retries=1,
         timeout=600.0,
-        required_inputs=["user_id"]
+        required_inputs=["user_id"],
         optional_inputs=["file_upload", "messages"],
         output_keys=["kg_summary"]
     )

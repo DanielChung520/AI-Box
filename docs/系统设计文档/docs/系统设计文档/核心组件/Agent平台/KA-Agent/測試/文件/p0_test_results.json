@@ -1,0 +1,176 @@
+{
+  "test_time": "2026-01-28T16:38:42.127755",
+  "summary": {
+    "total": 4,
+    "passed": 3,
+    "failed": 0,
+    "error": 0,
+    "skipped": 1,
+    "pass_rate": 75.0
+  },
+  "results": [
+    {
+      "test_id": "KA-TEST-001",
+      "name": "Chat API",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "您的知識庫（即用戶上傳並已向量化的文件）共有 **5 個知識資產文件**。",
+          "session_id": "test_KA-TEST-001_1769589416",
+          "task_id": "test_task_KA-TEST-001_1769589416",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 2854.7070026397705,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "c3454d35-cca3-4d79-b358-7804ed079cfe",
+            "session_id": "test_KA-TEST-001_1769589416",
+            "task_id": "test_task_KA-TEST-001_1769589416",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null
+        }
+      },
+      "error": null,
+      "duration": 11.11937689781189,
+      "timestamp": "2026-01-28T16:37:07.722787"
+    },
+    {
+      "test_id": "KA-TEST-005",
+      "name": "Chat API",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "**知識庫文件總數**：5 個  \n\n經過向量檢索與簡易文本比對，以下文件中含有「API」或「接口」相關內容：\n\n| 序號 | 文件標題（或主要文件名） | 主要內容關鍵字 |\n|------|--------------------------|---------------|\n| 1 | **KA‑Agent 規格書** | API 定義、接口說明、參數表 |\n| 2 | **Knowledge Asset 版本號規範** | 版本號 API、接口版本控制 |\n| 3 | **Knowledge Service Layer Specification (KSLS)** | API 接口、服務層規格、資料格式 |\n| 4 | **編碼示例**（示例代碼） | 代碼中使用的 API 呼叫、接口參數 |\n| 5 | **其他參考文件**（如 mermaid 流程圖） | 圖中展示的接口流程、API 參數 |\n\n> **備註**  \n> - 以上表格基於目前檢索到的 5 個知識資產文件所進行的簡易關鍵字比對。  \n> - 若需要更詳細的段落或索引位置，可進一步開啟相應文件進行全文搜索。",
+          "session_id": "test_KA-TEST-005_1769589427",
+          "task_id": "test_task_KA-TEST-005_1769589427",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 21342.097759246826,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "af18be6e-8869-44f1-aa2c-4e8463169db6",
+            "session_id": "test_KA-TEST-005_1769589427",
+            "task_id": "test_task_KA-TEST-005_1769589427",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null
+        }
+      },
+      "error": null,
+      "duration": 48.85640072822571,
+      "timestamp": "2026-01-28T16:37:56.579371"
+    },
+    {
+      "test_id": "KA-TEST-006",
+      "name": "Chat API",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "**知識圖譜（Knowledge Graph）**  \n是一種將實體（如人、地點、物品、概念等）以及它們之間的關係以圖形化方式表示的知識庫。  \n在圖譜中，每個實體都對應一個節點，實體之間的語義關係（例如「屬於」、「位於」、「創建者」等）則以帶標籤的邊連結節點。這種結構使得資料能夠被機器理解、查詢和推理，廣泛應用於搜索引擎、問答系統、推薦系統、智能助手等場景。\n\n**核心特性**  \n1. **可擴充性**：隨著新資訊加入，節點與邊可以輕易擴增。  \n2. **語義化**：使用語義網（Semantic Web）或本體（Ontology）來定義實體與關係的意義。  \n3. **多模態融合**：可結合文字、圖片、影片等多種資料來源，形成跨媒體的知識網。  \n4. **推理能力**：透過圖的結構與規則，系統能自動推導新的關係或檢索隱含資訊。  \n\n**典型應用**  \n- **搜尋引擎**：Google Knowledge Graph 能直接在搜尋結果中展示關鍵概念、實體屬性。  \n- **語音助手**：Apple Siri、Amazon Alexa 透過知識圖譜快速回答事實性問題。  \n- **企業內部決策**：整合客戶、產品、供應商等資料，形成商業關係網，協助策略分析。  \n\n---\n\n### 您的知識庫狀態  \n- **已檢索到 5 個知識資產文件**。  \n- 這些文件涵蓋「狀態轉換流程」「編碼範例」「格式說明」等主題，可進一步探索與知識圖譜相關的內容。  \n\n如果您想深入了解如何將這些文件中的資訊結構化為知識圖譜，或需要具體範例，請隨時告訴我！",
+          "session_id": "test_KA-TEST-006_1769589476",
+          "task_id": "test_task_KA-TEST-006_1769589476",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 13376.53398513794,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "1fab7bdf-c0d6-4155-8ff9-260ac9ce8a80",
+            "session_id": "test_KA-TEST-006_1769589476",
+            "task_id": "test_task_KA-TEST-006_1769589476",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null
+        }
+      },
+      "error": null,
+      "duration": 45.548097133636475,
+      "timestamp": "2026-01-28T16:38:42.127622"
+    },
+    {
+      "test_id": "KA-TEST-016",
+      "name": "空查詢處理",
+      "status": "skipped",
+      "response": null,
+      "error": "空查詢通常在前端被攔截",
+      "duration": 0.0,
+      "timestamp": "2026-01-28T16:38:42.127660"
+    }
+  ],
+  "analyses": [
+    {
+      "test_id": "KA-TEST-001",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "您的知識庫（即用戶上傳並已向量化的文件）共有 **5 個知識資產文件**。",
+      "found_keywords": [
+        "文件",
+        "知識庫",
+        "個"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-005",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "**知識庫文件總數**：5 個  \n\n經過向量檢索與簡易文本比對，以下文件中含有「API」或「接口」相關內容：\n\n| 序號 | 文件標題（或主要文件名） | 主要內容關鍵字 |\n|------|--------------------------|---------------|\n| 1 | **KA‑Agent 規格書** | API 定義、接口說明、參數表 |\n| 2 | **Knowledge Asset 版本號規範** | 版本號 API、接口版本控制 |\n| 3 | **Knowledge Service Layer Specification (KSLS)** | API 接口、服務層規格、資料格式 |\n| 4 | **編碼示例**（示例代碼） | 代碼中使用的 API 呼叫、接口參數 |\n| 5 | **其他參考文件**（如 mermaid 流程圖） | 圖中展示的接口流程、API 參數 |\n\n> **備註**  \n> - 以上表格基於目前檢索到的 5 個知識資產文件所進行的簡易關鍵字比對。  \n> - 若需要更詳細的段落或索引位置，可進一步開啟相應文件進行全文搜索。",
+      "found_keywords": [
+        "API",
+        "接口",
+        "文件"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-006",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "**知識圖譜（Knowledge Graph）**  \n是一種將實體（如人、地點、物品、概念等）以及它們之間的關係以圖形化方式表示的知識庫。  \n在圖譜中，每個實體都對應一個節點，實體之間的語義關係（例如「屬於」、「位於」、「創建者」等）則以帶標籤的邊連結節點。這種結構使得資料能夠被機器理解、查詢和推理，廣泛應用於搜索引擎、問答系統、推薦系統、智能助手等場景。\n\n**核心特性**  \n1. **可擴充性**：隨著新資訊加入，節點與邊可以輕易擴增。  \n2. **語義化**：使用語義網（Semantic Web）或本體（Ontology）來定義實體與關係的意義。  \n3. **多模態融合**：可結合文字、圖片、影片等多種資料來源，形成跨媒體的知識網。  \n4. **推理能力**：透過圖的結構與規則，系統能自動推導新的關係或檢索隱含資訊。  \n\n**典型應用**  \n- **搜尋引擎**：Google Knowledge Graph 能直接在搜尋結果中展示關鍵概念、實體屬性。  \n- **語音助手**：Apple Siri、Amazon Alexa 透過知識圖譜快速回答事實性問題。  \n- **企業內部決策**：整合客戶、產品、供應商等資料，形成商業關係網，協助策略分析。  \n\n---\n\n### 您的知識庫狀態  \n- **已檢索到 5 個知識資產文件**。  \n- 這些文件涵蓋「狀態轉換流程」「編碼範例」「格式說明」等主題，可進一步探索與知識圖譜相關的內容。  \n\n如果您想深入了解如何將這些文件中的資訊結構化為知識圖譜，或需要具體範例，請隨時告訴我！",
+      "found_keywords": [
+        "知識圖譜",
+        "knowledge graph"
+      ],
+      "found_refusal_keywords": []
+    }
+  ]
+}

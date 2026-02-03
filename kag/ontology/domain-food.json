@@ -1,7 +1,7 @@
 {
     "ontology_name": "Food_Domain_Ontology",
     "version": "1.0",
-    "inherits_from": "5W1H_Base_Ontology_OWL",
+    "inherits_from": ["5W1H_Base_Ontology_OWL"],
     "description": "食品領域本體論，定義食品生產、加工、流通、消費等相關的核心概念。適用於食品產業、食品安全、食品營養、食品加工、餐飲管理等場景。",
     "last_modified": "2026-01-04",
     "author": "Daniel Chung",

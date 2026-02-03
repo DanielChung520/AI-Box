@@ -181,13 +181,17 @@ class FileTreeSyncService:
 
     def sync_file_tree(self, user_id: str, task_id: str) -> Dict[str, Any]:
         """
-        構建並同步文件樹到 user_tasks 集合
+        構建並同步文件樹（暫時禁用 user_tasks 自動創建）
 
         Returns:
             同步結果（包含版本與哈希）
         """
         if self.client.db is None:
             raise RuntimeError("ArangoDB client is not connected")
+
+        # 修改時間：2026-01-27 - 暫時禁用 user_tasks 自動創建，避免重複記錄問題
+        # 問題：每次調用都會在 user_tasks 中創建記錄，導致前端刷新時數據重複
+        # TODO: 徹底重構 user_tasks 的創建邏輯，避免重複記錄
 
         tree, folders_info = self.build_file_tree(user_id, task_id)
 
@@ -196,39 +200,62 @@ class FileTreeSyncService:
         # serialized_tree = json.dumps(tree, sort_keys=True, ensure_ascii=False)
         # tree_hash = hashlib.sha256(serialized_tree.encode("utf-8")).hexdigest()
 
-        user_task_collection = self.client.db.collection("user_tasks")
-        task_doc_key = f"{user_id}_{task_id}"
-        task_doc = user_task_collection.get(task_doc_key)
+        # 修改時間：2026-01-27 - 暫時註釋掉 user_tasks 相關代碼
+        # user_task_collection = self.client.db.collection("user_tasks")
+        # task_doc_key = f"{user_id}_{task_id}"
+        # task_doc = user_task_collection.get(task_doc_key)
 
-        version = 1
-        if task_doc and isinstance(task_doc.get("fileTreeVersion"), int):
-            version = task_doc["fileTreeVersion"] + 1
+        # version = 1
+        # if task_doc and isinstance(task_doc.get("fileTreeVersion"), int):
+        #     version = task_doc["fileTreeVersion"] + 1
 
-        # 修改時間：2025-12-09 - 構建完整的 fileTree 結構（包含資料夾和文件）
+        # 修改時間：2025-12-09 - 構建完整的 fileTree 構構（包含資料夾和文件）
         # 使用 user_task_service 的 _build_file_tree_for_task 方法構建完整的文件樹
-        from services.api.services.user_task_service import get_user_task_service
+        # from services.api.services.user_task_service import get_user_task_service
 
-        user_task_service = get_user_task_service()
-        complete_file_tree = user_task_service._build_file_tree_for_task(user_id, task_id)
+        # user_task_service = get_user_task_service()
+        # complete_file_tree = user_task_service._build_file_tree_for_task(user_id, task_id)
 
-        # 重新計算哈希值（基於完整的文件樹）
-        serialized_complete_tree = json.dumps(
-            complete_file_tree, sort_keys=True, ensure_ascii=False
-        )
-        complete_tree_hash = hashlib.sha256(serialized_complete_tree.encode("utf-8")).hexdigest()
+        # # 重新計算哈希值（基於完整的文件樹）
+        # serialized_complete_tree = json.dumps(
+        #     complete_file_tree, sort_keys=True, ensure_ascii=False
+        # )
+        # complete_tree_hash = hashlib.sha256(serialized_complete_tree.encode("utf-8")).hexdigest()
 
-        updated_doc = task_doc or {}
-        updated_doc.update(
-            {
-                "_key": task_doc_key,
-                "task_id": task_id,
-                "user_id": user_id,
-                "fileTree": complete_file_tree,  # 使用完整的文件樹結構（包含資料夾）
-                "fileTreeVersion": version,
-                "fileTreeUpdatedAt": datetime.utcnow().isoformat(),
-                "fileTreeHash": complete_tree_hash,  # 使用完整文件樹的哈希值
-            }
-        )
+        # updated_doc = task_doc or {}
+        # updated_doc.update(
+        #     {
+        #         "_key": task_doc_key,
+        #         "task_id": task_id,
+        #         "user_id": user_id,
+        #         "fileTree": complete_file_tree,  # 使用完整的文件樹構建（包含資料夾和文件）
+        #         "fileTreeVersion": version,
+        #         "fileTreeUpdatedAt": datetime.utcnow().isoformat(),
+        #         "fileTreeHash": complete_tree_hash,  # 使用完整文件樹的哈希值
+        #     }
+        # )
+
+        # persisted = True
+        # if task_doc is None:
+        #     persisted = False
+        #     logger.warning(
+        #         "User task not found when syncing file tree, skip persistence",
+        #         task_id=task_id,
+        #         user_id=user_id,
+        #     )
+        # else:
+        #     user_task_collection.update(updated_doc)  # type: ignore[arg-type] # update 接受 dict
+
+        return {
+            "task_id": task_id,
+            "user_id": user_id,
+            # "fileTreeVersion": version,
+            # "fileTreeHash": complete_tree_hash, # 使用完整文件樹的哈希值
+            # "fileTree": complete_file_tree,  # 返回完整的文件樹（包含資料夾和文件）
+            "folders": folders_info,
+            "tree": tree,  # 保留舊格式的 tree（用於兼容）
+            # "persisted": persisted,
+        }
 
         persisted = True
         if task_doc is None:

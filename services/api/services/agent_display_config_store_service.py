@@ -300,6 +300,8 @@ class AgentDisplayConfigStoreService:
         """
         獲取完整的展示配置（分類 + 代理）
 
+        優化：使用單次查詢獲取所有 agents，避免 N+1 查詢問題
+
         Args:
             tenant_id: 租戶 ID（可選，None 表示系統級）
             include_inactive: 是否包含未啟用的配置
@@ -316,28 +318,75 @@ class AgentDisplayConfigStoreService:
                 ]
             }
         """
+        if self._client.db is None or self._client.db.aql is None:
+            raise RuntimeError("AQL is not available")
+
+        # 獲取所有 categories（1 次查詢）
         categories = self.get_categories(tenant_id=tenant_id, include_inactive=include_inactive)
-        result_categories = []
+        
+        # 優化：一次性獲取所有 agents（1 次查詢），避免 N+1 問題
+        aql = """
+        FOR doc IN agent_display_configs
+        FILTER doc.config_type == @config_type
+        AND doc.tenant_id == @tenant_id
+        AND (@include_inactive OR doc.is_active == true)
+        RETURN doc
+        """
+        bind_vars = {
+            "config_type": "agent",
+            "tenant_id": tenant_id,
+            "include_inactive": include_inactive,
+        }
 
-        for category in categories:
-            agents = self.get_agents_by_category(
-                category_id=category.id, tenant_id=tenant_id, include_inactive=include_inactive
-            )
-            result_categories.append(
-                {
-                    "id": category.id,
-                    "name": category.name.model_dump(),
-                    "description": (
-                        category.description.model_dump() if category.description else None
-                    ),
-                    "icon": category.icon,
-                    "display_order": category.display_order,
-                    "is_visible": category.is_visible,
-                    "agents": [agent.model_dump() for agent in agents],
-                }
-            )
+        try:
+            # 執行單次查詢獲取所有 agents
+            cursor = self._client.db.aql.execute(aql, bind_vars=bind_vars)
+            all_agents = []
+            for doc in cursor:
+                if doc.get("agent_config"):
+                    agent = AgentConfig(**doc["agent_config"])
+                    all_agents.append(agent)
 
-        return {"categories": result_categories}
+            # 按 category_id 分組 agents
+            agents_by_category: Dict[str, List[AgentConfig]] = {}
+            for agent in all_agents:
+                category_id = agent.category_id
+                if category_id not in agents_by_category:
+                    agents_by_category[category_id] = []
+                agents_by_category[category_id].append(agent)
+
+            # 對每個 category 的 agents 按 display_order 排序
+            for category_id in agents_by_category:
+                agents_by_category[category_id].sort(key=lambda x: x.display_order)
+
+            # 構建結果
+            result_categories = []
+            for category in categories:
+                agents = agents_by_category.get(category.id, [])
+                result_categories.append(
+                    {
+                        "id": category.id,
+                        "name": category.name.model_dump(),
+                        "description": (
+                            category.description.model_dump() if category.description else None
+                        ),
+                        "icon": category.icon,
+                        "display_order": category.display_order,
+                        "is_visible": category.is_visible,
+                        "agents": [agent.model_dump() for agent in agents],
+                    }
+                )
+
+            return {"categories": result_categories}
+        except Exception as exc:
+            self._logger.error(
+                "get_all_display_config_failed",
+                tenant_id=tenant_id,
+                include_inactive=include_inactive,
+                error=str(exc),
+                exc_info=True,
+            )
+            raise
 
     def create_category(
         self,

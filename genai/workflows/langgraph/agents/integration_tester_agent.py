@@ -103,8 +103,8 @@ def create_integration_tester_agent_config() -> NodeConfig:
         description="集成測試Agent - 負責驗證多個Agent間的協作邏輯和數據一致性",
         max_retries=1,
         timeout=60.0,
-        required_inputs=["user_id"]
-        optional_inputs=["messages"]
+        required_inputs=["user_id"],
+        optional_inputs=["messages"],
         output_keys=["integration_testing", "test_summary"],
     )
 

@@ -1,0 +1,101 @@
+{
+  "frontend_model_simplification": {
+    "enabled": true,
+    "description": "簡化前端模型列表，統一為 SmartQ 品牌形象",
+    "model_mapping": {
+      "chatgpt": {
+        "id": "chatgpt-latest",
+        "name": "ChatGPT",
+        "provider": "openai",
+        "icon": "fa-robot",
+        "color": "text-green-400",
+        "description": "OpenAI 最新 ChatGPT 模型",
+        "backend_model": "gpt-oss:120b-cloud"
+      },
+      "gemini": {
+        "id": "gemini-latest",
+        "name": "Gemini",
+        "provider": "google",
+        "icon": "fa-gem",
+        "color": "text-blue-400",
+        "description": "Google 最新 Gemini 模型",
+        "backend_model": "gemini-2.0-flash"
+      },
+      "grok": {
+        "id": "grok-latest",
+        "name": "Grok",
+        "provider": "xai",
+        "icon": "fa-bolt",
+        "color": "text-yellow-400",
+        "description": "xAI Grok 模型",
+        "backend_model": "grok-2"
+      },
+      "ollama": {
+        "id": "ollama-local",
+        "name": "Ollama",
+        "provider": "ollama",
+        "icon": "fa-server",
+        "color": "text-purple-400",
+        "description": "本地部署模型",
+        "backend_model": "gpt-oss:120b"
+      },
+      "smartq-hci": {
+        "id": "smartq-hci",
+        "name": "SmartQ-HCI",
+        "provider": "smartq",
+        "icon": "fa-microchip",
+        "color": "text-orange-400",
+        "description": "智能融合模型 (Human-Computer Interface)",
+        "backend_model": "auto",
+        "moe_routing": {
+          "enabled": true,
+          "scene": "chat",
+          "fallback_strategy": "performance"
+        }
+      }
+    },
+    "auto_model": {
+      "id": "auto",
+      "name": "Auto",
+      "provider": "auto",
+      "icon": "fa-magic",
+      "color": "text-purple-400",
+      "description": "自動選擇最佳模型"
+    }
+  },
+  "backend_routing": {
+    "smartq-hci_config": {
+      "primary_models": [
+        "gpt-oss:120b-cloud",
+        "glm-4.7:cloud",
+        "qwen3-next:latest"
+      ],
+      "fallback_models": [
+        "llama3.2:latest",
+        "glm-4.6:cloud"
+      ],
+      "selection_criteria": {
+        "performance_weight": 0.4,
+        "cost_weight": 0.3,
+        "availability_weight": 0.3
+      },
+      "scene_mapping": {
+        "chat": [
+          "gpt-oss:120b-cloud",
+          "glm-4.7:cloud"
+        ],
+        "semantic_understanding": [
+          "glm-4.7:cloud",
+          "gpt-oss:120b-cloud"
+        ],
+        "task_analysis": [
+          "qwen3-coder:30b",
+          "gpt-oss:120b-cloud"
+        ],
+        "embedding": [
+          "nomic-embed-text:latest"
+        ]
+      }
+    }
+  }
+}

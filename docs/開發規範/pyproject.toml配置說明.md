@@ -146,8 +146,7 @@ exclude = [
     "tests/.*/rag-file-upload/.*",
     "docs/.*/rag-file-upload/.*",
     "backup/.*",                     # 備份目錄
-    "venv/.*",                       # 虛擬環境
-    ".venv/.*",
+    "venv/.*",                       # 虛擬環境（專案統一使用 venv）
     "build/.*",                      # 構建目錄
     "dist/.*",                       # 分發目錄
     "__pycache__/.*",                # Python 緩存

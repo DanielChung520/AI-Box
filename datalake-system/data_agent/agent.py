@@ -24,11 +24,13 @@ from agents.services.protocol.base import (
     AgentServiceStatus,
 )
 
+from .config_manager import get_config
 from .datalake_service import DatalakeService
 from .dictionary_service import DictionaryService
 from .models import DataAgentRequest, DataAgentResponse
 from .query_gateway import QueryGatewayService
 from .schema_service import SchemaService
+from .structured_query_builder import StructuredQueryBuilder
 from .text_to_sql import TextToSQLService
 
 logger = logging.getLogger(__name__)
@@ -62,6 +64,10 @@ class DataAgent(AgentServiceProtocol):
             dictionary_service: 數據字典服務（可選，如果不提供則自動創建）
             schema_service: Schema 服務（可選，如果不提供則自動創建）
         """
+        # 讀取配置
+        config = get_config()
+        logger.info(f"Data-Agent 初始化，使用配置: llm_models={config.get_llm_models()[:2]}...")
+
         self._text_to_sql_service = text_to_sql_service or TextToSQLService()
         self._query_gateway_service = query_gateway_service or QueryGatewayService()
         self._datalake_service = datalake_service or DatalakeService()
@@ -104,6 +110,10 @@ class DataAgent(AgentServiceProtocol):
                 result = await self._handle_create_schema(data_request)
             elif action == "validate_data":
                 result = await self._handle_validate_data(data_request)
+            elif action == "execute_sql_on_datalake":
+                result = await self._handle_execute_sql_on_datalake(data_request)
+            elif action == "execute_structured_query":
+                result = await self._handle_execute_structured_query(data_request)
             else:
                 result = DataAgentResponse(
                     success=False,
@@ -139,6 +149,8 @@ class DataAgent(AgentServiceProtocol):
                 error="natural_language is required for text_to_sql action",
             )
 
+        self._logger.info(f"Text-to-SQL 請求開始: {request.natural_language[:100]}...")
+
         try:
             # 調用 Text-to-SQL 服務
             result = await self._text_to_sql_service.convert(
@@ -146,7 +158,36 @@ class DataAgent(AgentServiceProtocol):
                 database_type=request.database_type or "postgresql",
                 schema_info=request.schema_info,
                 context={"user_id": request.user_id, "tenant_id": request.tenant_id},
+                intent_analysis=request.intent_analysis,  # 傳遞意圖分析
             )
+
+            self._logger.info(f"Text-to-SQL 轉換完成，置信度: {result.get('confidence', 0):.2f}")
+
+            # 前置授權檢查：攔截數據修改操作（企業級 AI 要求）
+            sql_query = result.get("sql_query", "")
+            if sql_query:
+                sql_upper = sql_query.upper()
+                dangerous_operations = [
+                    "INSERT",
+                    "UPDATE",
+                    "DELETE",
+                    "DROP",
+                    "TRUNCATE",
+                    "ALTER",
+                    "CREATE TABLE",
+                    "CREATE INDEX",
+                ]
+                for operation in dangerous_operations:
+                    if operation in sql_upper:
+                        self._logger.warning(
+                            f"前置異常：檢測到未授權操作: {operation}，回報前置異常"
+                        )
+                        return DataAgentResponse(
+                            success=False,
+                            action="text_to_sql",
+                            error="未被授權做資料查詢以外的變更操作",
+                            result={"sql_query": sql_query, "error_type": "authorization_denied"},
+                        )
 
             return DataAgentResponse(
                 success=True,
@@ -155,7 +196,7 @@ class DataAgent(AgentServiceProtocol):
             )
 
         except Exception as e:
-            self._logger.error(f"Text-to-SQL conversion failed: {e}")
+            self._logger.error(f"Text-to-SQL conversion failed: {e}", exc_info=True)
             return DataAgentResponse(
                 success=False,
                 action="text_to_sql",
@@ -221,11 +262,13 @@ class DataAgent(AgentServiceProtocol):
                 tenant_id=request.tenant_id,
             )
 
+            # API 總是返回 success=True（除非有異常）
+            # 驗證結果在 result.valid 中
             return DataAgentResponse(
-                success=validation["valid"],
+                success=True,
                 action="validate_query",
                 result=validation,
-                error=None if validation["valid"] else validation.get("error"),
+                error=None,
             )
 
         except Exception as e:
@@ -434,6 +477,35 @@ class DataAgent(AgentServiceProtocol):
                 error=str(e),
             )
 
+    async def _handle_execute_sql_on_datalake(self, request: DataAgentRequest) -> DataAgentResponse:
+        """處理 Datalake 上 SQL 查詢請求"""
+        if not request.sql_query_datalake:
+            return DataAgentResponse(
+                success=False,
+                action="execute_sql_on_datalake",
+                error="sql_query_datalake is required for execute_sql_on_datalake action",
+            )
+
+        self._logger.info(f"SQL 查詢（Datalake）開始: {request.sql_query_datalake[:100]}...")
+
+        try:
+            result = await self._datalake_service.query_sql(
+                sql_query=request.sql_query_datalake, max_rows=request.max_rows or 10
+            )
+
+            return DataAgentResponse(
+                success=True,
+                action="execute_sql_on_datalake",
+                result=result,
+            )
+        except Exception as e:
+            self._logger.error(f"SQL query (Datalake) failed: {e}")
+            return DataAgentResponse(
+                success=False,
+                action="execute_sql_on_datalake",
+                error=str(e),
+            )
+
     async def _handle_validate_data(self, request: DataAgentRequest) -> DataAgentResponse:
         """處理數據驗證請求"""
         if not request.schema_id:
@@ -476,6 +548,73 @@ class DataAgent(AgentServiceProtocol):
             return DataAgentResponse(
                 success=False,
                 action="validate_data",
+                error=str(e),
+            )
+
+    async def _handle_execute_structured_query(
+        self, request: DataAgentRequest
+    ) -> DataAgentResponse:
+        """處理結構化查詢請求（由 MM-Agent 提供的結構化參數）"""
+        if not request.structured_query:
+            return DataAgentResponse(
+                success=False,
+                action="execute_structured_query",
+                error="structured_query is required for execute_structured_query action",
+            )
+
+        try:
+            self._logger.info(f"結構化查詢請求: {request.structured_query}")
+
+            # 1. 構建 SQL 查詢
+            build_result = StructuredQueryBuilder.build_query(request.structured_query)
+
+            if not build_result.get("success"):
+                return DataAgentResponse(
+                    success=False,
+                    action="execute_structured_query",
+                    error=build_result.get("error", "構建查詢失敗"),
+                )
+
+            sql_query = build_result["sql"]
+            explanation = build_result["explanation"]
+
+            self._logger.info(f"生成的 SQL: {sql_query[:100]}...")
+
+            # 2. 執行查詢
+            query_result = await self._datalake_service.query_sql(
+                sql_query=sql_query,
+                max_rows=request.max_rows or 50,
+            )
+
+            if not query_result.get("success"):
+                return DataAgentResponse(
+                    success=False,
+                    action="execute_structured_query",
+                    error=query_result.get("error", "查詢執行失敗"),
+                    result={
+                        "sql_query": sql_query,
+                        "explanation": explanation,
+                    },
+                )
+
+            # 3. 返回結果
+            return DataAgentResponse(
+                success=True,
+                action="execute_structured_query",
+                result={
+                    "sql_query": sql_query,
+                    "explanation": explanation,
+                    "rows": query_result.get("rows", []),
+                    "row_count": query_result.get("row_count", 0),
+                    "structured_query": request.structured_query,
+                },
+            )
+
+        except Exception as e:
+            self._logger.error(f"Execute structured query failed: {e}")
+            return DataAgentResponse(
+                success=False,
+                action="execute_structured_query",
                 error=str(e),
             )
 

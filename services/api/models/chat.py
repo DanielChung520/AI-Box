@@ -121,3 +121,7 @@ class ChatResponse(BaseModel):
     routing: RoutingInfo = Field(..., description="路由結果")
     observability: Optional[ObservabilityInfo] = Field(None, description="觀測欄位")
     actions: Optional[List[Dict[str, Any]]] = Field(None, description="（可選）動作列表，例如 file_created")
+    content_status: Optional[str] = Field(
+        None,
+        description="內容狀態：ok | not_found。not_found 表示檢索/知識庫無相關內容，供前端或 Orchestrator 補全客氣回應",
+    )

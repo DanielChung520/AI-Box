@@ -1,9 +1,9 @@
-# 代碼功能說明: 向量存儲服務（ChromaDB）
+# 代碼功能說明: 向量存儲服務（Qdrant）
 # 創建日期: 2025-12-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-08
+# 最後修改日期: 2026-01-28
 
-"""向量存儲服務 - 使用 ChromaDB 存儲決策語義向量（符合 GRO 規範）"""
+"""向量存儲服務 - 使用 Qdrant 存儲決策語義向量（符合 GRO 規範）"""
 
 import logging
 from typing import Any, Dict, List, Optional, Union
@@ -25,12 +25,14 @@ class RoutingVectorStore:
         self._embedding_service = None
 
     def _get_vector_store_service(self):
-        """獲取向量存儲服務（懶加載）"""
+        """獲取向量存儲服務（懶加載，使用 Qdrant）"""
         if self._vector_store_service is None:
             try:
-                from services.api.services.vector_store_service import get_vector_store_service
+                from services.api.services.qdrant_vector_store_service import (
+                    get_qdrant_vector_store_service,
+                )
 
-                self._vector_store_service = get_vector_store_service()
+                self._vector_store_service = get_qdrant_vector_store_service()
             except Exception as e:
                 logger.warning(f"Failed to initialize Vector Store Service: {e}")
                 self._vector_store_service = None
@@ -67,13 +69,8 @@ class RoutingVectorStore:
                 logger.warning("Vector store or embedding service not available")
                 return False
 
-            # 生成 embedding
-            embeddings = await embedding_service.embed_texts([semantic])
-            if not embeddings or len(embeddings) == 0:
-                logger.warning("Failed to generate embedding")
-                return False
-
-            embedding = embeddings[0]
+            # 生成 embedding（使用 Qdrant API）
+            embedding = await embedding_service.generate_embedding(text=semantic)
 
             # 準備 metadata（符合 GRO 規範）
             if isinstance(decision_log, GroDecisionLog):
@@ -125,8 +122,7 @@ class RoutingVectorStore:
                     ),
                 }
 
-            # 獲取或創建 Collection（使用固定的 file_id）
-            vector_service.get_or_create_collection(file_id=ROUTING_MEMORY_FILE_ID, user_id=None)
+            # Qdrant 會自動創建 collection，不需要顯式調用
 
             # 準備 chunks 和 embeddings（使用 store_vectors API）
             chunks = [
@@ -181,15 +177,10 @@ class RoutingVectorStore:
                 logger.warning("Vector store or embedding service not available")
                 return []
 
-            # 生成查詢 embedding
-            query_embeddings = await embedding_service.embed_texts([query])
-            if not query_embeddings or len(query_embeddings) == 0:
-                logger.warning("Failed to generate query embedding")
-                return []
+            # 生成查詢 embedding（使用 Qdrant API）
+            query_embedding = await embedding_service.generate_embedding(text=query)
 
-            query_embedding = query_embeddings[0]
-
-            # 構建 where 過濾條件（ChromaDB 格式）
+            # 構建 where 過濾條件（Qdrant 格式，已从 ChromaDB 迁移）
             where_clause = None
             if filters:
                 where_clause = {}
@@ -212,18 +203,19 @@ class RoutingVectorStore:
                 if not where_clause:
                     where_clause = None
 
-            # 查詢相似向量
+            # 查詢相似向量（使用 Qdrant API）
             results = vector_service.query_vectors(
                 query_embedding=query_embedding,
                 file_id=ROUTING_MEMORY_FILE_ID,
                 user_id=None,
-                n_results=top_k,
+                limit=top_k,
             )
 
-            # 轉換結果格式
+            # 轉換結果格式（兼容 Qdrant 的 payload）
             similar_decisions: List[Dict[str, Any]] = []
             for result in results:
-                metadata = result.get("metadata", {})
+                # Qdrant 使用 payload（已从 ChromaDB 迁移）
+                metadata = result.get("payload", result.get("metadata", {}))
                 # 構建 decision_id 或 react_id + iteration
                 if "react_id" in metadata and "iteration" in metadata:
                     decision_id = f"{metadata['react_id']}_{metadata['iteration']}"
@@ -235,7 +227,9 @@ class RoutingVectorStore:
                         "decision_id": decision_id,
                         "react_id": metadata.get("react_id"),
                         "iteration": metadata.get("iteration"),
-                        "distance": result.get("distance", 0.0),
+                        "distance": 1.0 - result.get("score", 0.0)
+                        if "score" in result
+                        else result.get("distance", 0.0),
                         "metadata": metadata,
                         "document": result.get("document", ""),
                     }

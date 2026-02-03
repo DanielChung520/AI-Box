@@ -21,7 +21,7 @@ function getPlugins() {
         // 排除 SVG 文件（太大，使用 runtime caching）
         globIgnores: ["**/*.svg"],
         // 增加文件大小限制（用于 JS 文件）
-        maximumFileSizeToCacheInBytes: 20 * 1024 * 1024, // 20 MB
+        maximumFileSizeToCacheInBytes: 30 * 1024 * 1024, // 30 MB
         runtimeCaching: [
           {
             // SVG 文件使用 runtime caching
@@ -144,7 +144,9 @@ export default defineConfig(({ mode }) => {
       // 允许的主机名列表（用于防止 DNS 重绑定攻击）
       // 当通过代理访问（如 Cloudflare Tunnel）时，需要明确允许代理域名
       allowedHosts: [
-        'iee.k84.org',      // 代理域名
+        'iee.k84.org',
+        '192.168.10.131', 
+        'iee.sunlyc.com',     // 代理域名
         'localhost',        // 本地开发
         '127.0.0.1',        // 本地 IP
         '.localhost',       // localhost 子域名

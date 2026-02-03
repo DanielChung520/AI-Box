@@ -3,7 +3,7 @@
 **代碼功能說明**: System Agent 註冊清冊 - 記錄所有已在 System Agent Registry 中註冊的內建 Agent 的詳細信息
 **創建日期**: 2026-01-13
 **創建人**: Daniel Chung
-**最後修改日期**: 2026-01-13
+**最後修改日期**: 2026-01-28 07:31 UTC+8
 
 ---
 
@@ -34,12 +34,13 @@
 | `xls-to-pdf` | Excel to PDF Agent (v2.0) | document_conversion | 2.0.0 | ✅ 啟用 | document_conversion |
 | `pdf-to-md` | PDF to Markdown Agent (v2.0) | document_conversion | 2.0.0 | ✅ 啟用 | document_conversion |
 | `security-manager-agent` | Security Manager Agent | security_audit | 1.0.0 | ✅ 啟用 | system_support |
+| `ka-agent` | Knowledge Architect Agent (v1.5) | knowledge_service | 1.5.0 | ✅ 啟用 | knowledge_service |
 | `registry-manager-agent` | Registry Manager Agent | registry_management | 1.0.0 | ⚠️ 未註冊 | system_support |
 | `orchestrator-manager-agent` | Orchestrator Manager Agent | orchestrator_management | 1.0.0 | ⚠️ 未註冊 | system_support |
 | `storage-manager-agent` | Storage Manager Agent | storage_management | 1.0.0 | ⚠️ 未註冊 | system_support |
 | `system-config-agent` | System Config Agent | system_config | 1.0.0 | ⚠️ 未註冊 | system_support |
 
-**總計**：11 個 Agent（其中 1 個已停用，6 個已註冊並啟用，4 個已初始化但未註冊）
+**總計**：12 個 Agent（其中 1 個已停用，7 個已註冊並啟用，4 個已初始化但未註冊）
 
 ---
 
@@ -654,7 +655,119 @@ AI 驅動的存儲管理服務，提供智能存儲策略和數據管理功能�
 
 ---
 
-### 11. system-config-agent ✅
+### 11. ka-agent ✅
+
+**Agent ID**: `ka-agent`  
+**Agent 名稱**: Knowledge Architect Agent (v1.5)  
+**Agent 類型**: `knowledge_service`  
+**版本**: `1.5.0`  
+**狀態**: ✅ **啟用** (`is_active=True`, `status="online"`)
+
+#### 代碼位置
+
+- **主類**: `agents/builtin/ka_agent/agent.py` → `KnowledgeArchitectAgent`
+- **註冊代碼**: `agents/builtin/__init__.py` (第 678-696 行)
+- **核心組件**:
+  - `agents/builtin/ka_agent/models.py` - 數據模型
+  - `agents/builtin/ka_agent/storage_adapter.py` - 存儲適配器
+  - `agents/builtin/knowledge_ontology_agent/agent.py` - 知識圖譜 Agent（協作）
+
+#### 功能說明
+
+知識資產總建築師，負責知識資產化、生命週期管理與混合檢索。
+
+**核心能力**：
+- `knowledge.query`: 知識查詢能力
+- `ka.lifecycle`: 知識資產生命週期管理
+- `ka.list`: 知識資產列表查詢
+- `ka.retrieve`: 知識資產檢索
+
+**主要功能**：
+1. **知識資產上架**：將文件轉換為知識資產，生成 KNW-Code 和 Metadata
+2. **混合檢索**：提供向量檢索 + 圖譜檢索的混合檢索服務
+3. **知識資產管理**：管理知識資產的生命週期（Draft → Active → Deprecated → Archived）
+4. **版本管理**：支持知識資產的版本控制和版本關聯
+5. **Ontology 對齊**：自動對齊 Domain 和 Major Ontology
+
+**檢索策略**（根據 KA-Agent 作業規範）：
+- **Domain 過濾**：快速縮小候選知識範圍
+- **Major 過濾**：在 Domain 範圍內進一步精準定位
+- **Base 向量檢索**：在精選 Major 範圍內查找最相關知識原子（Qdrant）
+- **圖譜/Ontology 查詢**：結合知識結構進行推理（ArangoDB）
+- **語義重排序**：整合向量檢索 + 圖譜查詢結果，生成最終答案
+
+#### 功能觸發時機
+
+**觸發條件**：
+1. 用戶查詢包含知識相關關鍵詞（"知識", "查詢", "檢索", "搜索", "上架", "知識資產"等）
+2. 任務類型為 `knowledge_service` 或 `retrieval`
+3. Decision Engine 匹配到 `knowledge_service` 類型的 Capability
+4. 需要進行知識資產管理操作時（上架、更版、生命週期變更）
+
+**典型場景**：
+- **檢索場景**：
+  - "我想知道陳經理領導的團隊去年有哪些核心專案？"
+  - "查詢物料入庫流程規範"
+  - "搜索供應商評估相關知識"
+- **管理場景**：
+  - "上架新的知識文件"
+  - "更新知識資產版本"
+  - "查詢知識資產列表"
+
+#### 必要說明
+
+1. **輸入參數**：
+   - `query`: 查詢文本（檢索場景）
+   - `file_id`: 文件 ID（上架場景）
+   - `domain`: Domain 分類（可選，用於過濾）
+   - `major`: Major 分類（可選，用於過濾）
+   - `query_type`: 查詢類型（`vector`, `graph`, `hybrid`）
+
+2. **輸出格式**：
+   - `KAResponse`: 包含檢索結果列表（`results`），每個結果包含：
+     - `content`: 知識內容
+     - `ka_id`: 知識資產 ID
+     - `version`: 版本號
+     - `confidence_hint`: 相關度分數
+     - `source`: 來源（`vector` 或 `graph`）
+
+3. **依賴服務**：
+   - **Qdrant**：向量檢索服務
+   - **ArangoDB**：圖譜查詢和知識資產元數據存儲
+   - **EmbeddingService**：查詢向量生成
+   - **NERService**：實體識別（圖譜檢索）
+   - **KGBuilderService**：知識圖譜構建和查詢
+   - **KnowledgeOntologyAgent**：圖譜查詢協作
+   - **PolicyService**：權限檢查
+   - **AuditLogService**：審計日誌
+
+4. **檢索流程**（根據 KA-Agent 作業規範 4.2 節）：
+   - 語義解析 & Intent 判斷
+   - Domain 過濾（使用 Metadata 中 `domain` 欄位）
+   - Major 過濾（使用 Metadata 中 `major` 欄位）
+   - Base 向量檢索（Qdrant）
+   - 圖譜/Ontology 查詢（ArangoDB）
+   - 語義重排序 & RAG Pipeline
+   - 結果回傳給 Agent
+
+5. **知識資產編碼**：
+   - **KNW-Code 格式**：`KNW-{DOMAIN}-{TYPE}-{SUBDOMAIN}-{OBJECT}-{SCOPE}-v{MAJOR.MINOR}`
+   - **範例**：`KNW-ENERGY-SPEC-PYROLYSIS-REACTOR-SYSTEM-v1.0`
+   - **Metadata 欄位**：`KNW_Code`, `Domain`, `Major`, `Base`, `Version`, `Provenance`, `International_Classification`
+
+6. **權限與安全**：
+   - 所有檢索操作必須通過 `PolicyService.check_permission()` 權限檢查
+   - 所有上架操作必須記錄審計日誌
+   - 支持 ACL 權限檢查（向量檢索時）
+
+7. **相關文檔**：
+   - [KA-Agent 作業規範](../KA-Agent/知識庫/KA-Agent作業規範.md)
+   - [KA-Agent 規格書](../KA-Agent/KA-Agent-規格書.md)
+   - [Knowledge Asset 版本號規範](../KA-Agent/知識庫/Knowledge-Asset-版本號規範.md)
+
+---
+
+### 12. system-config-agent ✅
 
 **Agent ID**: `system-config-agent`  
 **Agent 名稱**: System Config Agent  
@@ -741,13 +854,14 @@ AI 驅動的存儲管理服務，提供智能存儲策略和數據管理功能�
 |------|-----------|-----------|
 | **document_editing** | 3 | md-editor, xls-editor, document-editing-agent (已停用) |
 | **document_conversion** | 3 | md-to-pdf, xls-to-pdf, pdf-to-md |
+| **knowledge_service** | 1 | ka-agent |
 | **system_support** | 5 | security-manager-agent, registry-manager-agent, orchestrator-manager-agent, storage-manager-agent, system-config-agent |
 
 ### 按狀態分類
 
 | 狀態 | Agent 數量 | Agent 列表 |
 |------|-----------|-----------|
-| ✅ **已註冊並啟用** | 6 | md-editor, xls-editor, md-to-pdf, xls-to-pdf, pdf-to-md, security-manager-agent |
+| ✅ **已註冊並啟用** | 7 | md-editor, xls-editor, md-to-pdf, xls-to-pdf, pdf-to-md, security-manager-agent, ka-agent |
 | ⚠️ **已停用** | 1 | document-editing-agent |
 | ⚠️ **已初始化但未註冊** | 4 | registry-manager-agent, orchestrator-manager-agent, storage-manager-agent, system-config-agent |
 
@@ -811,5 +925,5 @@ Decision Engine 在選擇 Agent 時的優先級：
 
 ---
 
-**最後更新日期**: 2026-01-13  
+**最後更新日期**: 2026-01-28 07:31 UTC+8  
 **維護人**: Daniel Chung

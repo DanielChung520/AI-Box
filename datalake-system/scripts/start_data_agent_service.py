@@ -25,9 +25,28 @@ sys.path.insert(0, str(DATALAKE_SYSTEM_DIR))
 
 from dotenv import load_dotenv
 
-# 加載環境變數（使用絕對路徑）
-env_path = AI_BOX_ROOT / ".env"
-load_dotenv(dotenv_path=env_path)
+# 加載環境變數（使用 data_agent 專屬配置）
+# 優先加載 data_agent/.env，如果不存在則使用 AI-Box/.env
+agent_env_path = DATALAKE_SYSTEM_DIR / "data_agent" / ".env"
+box_env_path = AI_BOX_ROOT / ".env"
+
+if agent_env_path.exists():
+    env_path = agent_env_path
+    load_dotenv(dotenv_path=env_path)
+    print(f"✅ 已加載 Data-Agent 專屬環境配置: {env_path}")
+else:
+    env_path = box_env_path
+    load_dotenv(dotenv_path=env_path)
+    print(f"⚠️ Data-Agent 專屬配置不存在，使用 AI-Box 配置: {env_path}")
+
+# 清除 Ollama 設定的緩存，確保環境變數生效
+try:
+    from api.core.settings import get_ollama_settings
+
+    get_ollama_settings.cache_clear()
+    print("✅ 已清除 Ollama 設定緩存")
+except Exception as e:
+    print(f"⚠️ 清除 Ollama 設定緩存失敗: {e}")
 
 import uvicorn
 from data_agent.agent import DataAgent

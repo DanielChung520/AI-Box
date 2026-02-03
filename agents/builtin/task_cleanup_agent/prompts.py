@@ -72,7 +72,7 @@ class CleanupPrompts:
     "recommendation": "是否建議清理的建議"
 }}
 
-只返回 JSON，不要有其他內容。"
+只返回 JSON，不要有其他內容。"""
     # ========== 計劃階段 Prompt ==========
     @staticmethod
     def generate_plan(
@@ -91,7 +91,7 @@ class CleanupPrompts:
         """
         task_scope = f"任務 {task_id}" if task_id else f"用戶 {user_id} 的所有數據"
 
-        return f"""基於以下分析結果，請生成清理計劃：
+        return f"""基於以下分析結果,請生成清理計劃:
 
 ## 清理範圍
 - 用戶: {user_id}
@@ -109,7 +109,7 @@ class CleanupPrompts:
 - 分析: {analysis.get("analysis", "")}
 - 建議: {analysis.get("recommendation", "")}
 
-請生成清理計劃，返回 JSON 格式：
+請生成清理計劃,返回 JSON 格式:
 {{
     "steps": [
         "步驟1: 刪除 ArangoDB 中的 X 個任務記錄",
@@ -121,7 +121,7 @@ class CleanupPrompts:
     "warnings": ["警告1", "警告2"]
 }}
 
-只返回 JSON，不要有其他內容。"
+只返回 JSON,不要有其他內容。"""
     # ========== 驗證階段 Prompt ==========
     @staticmethod
     def verify(
@@ -163,7 +163,7 @@ class CleanupPrompts:
     "suggestions": ["建議1", "建議2"]
 }}
 
-只返回 JSON，不要有其他內容。"
+只返回 JSON，不要有其他內容。"""
 # 便捷函數
 def analyze_prompt(user_id: str, task_id: str | None, stats: Dict[str, int]) -> str:
     return CleanupPrompts.analyze(user_id, task_id, stats)

@@ -1,9 +1,8 @@
 # 代碼功能說明: SeaweedFS Docker Compose 配置（AI-Box 服務）
 # 創建日期: 2025-12-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-29
-
-version: "3.8"
+# 最後修改日期: 2026-01-29
+# 說明: 移除 version（Docker Compose v2 已棄用）；Filer 改掛載 config/seaweedfs 提供 s3.json
 
 services:
   # SeaweedFS Master 節點
@@ -36,6 +35,8 @@ services:
   seaweedfs-filer:
     image: chrislusf/seaweedfs:latest
     container_name: seaweedfs-ai-box-filer
+    # 修改時間：2026-01-28 - 恢復使用 -s3.config 參數（文件已存在，需要配置才能看到 buckets）
+    # 修改時間：2026-01-28 - 添加 filer 數據持久化 volume，避免刪除容器時丟失元數據
     command: "filer -master=seaweedfs-master:9333 -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json"
     ports:
       - "8888:8888" # Filer API
@@ -49,7 +50,8 @@ services:
       - SEAWEEDFS_S3_ACCESS_KEY=${AI_BOX_SEAWEEDFS_S3_ACCESS_KEY:-admin}
       - SEAWEEDFS_S3_SECRET_KEY=${AI_BOX_SEAWEEDFS_S3_SECRET_KEY:-admin123}
     volumes:
-      - seaweedfs-ai-box-s3-config:/etc/seaweedfs
+      - ./config/seaweedfs:/etc/seaweedfs:ro  # s3.json 須存在，否則 Filer 會崩潰
+      - seaweedfs-ai-box-filer-data:/data  # 持久化 Filer 元數據（filerldb2）
     restart: unless-stopped
 
 networks:
@@ -59,4 +61,4 @@ networks:
 volumes:
   seaweedfs-master-data:
   seaweedfs-volume-data:
-  seaweedfs-ai-box-s3-config:
+  seaweedfs-ai-box-filer-data:  # Filer 元數據持久化存儲

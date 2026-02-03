@@ -1,7 +1,7 @@
 # 代碼功能說明: Agent Orchestrator 數據模型
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-21
+# 最後修改日期: 2026-01-28 10:30:00 UTC+8
 
 """Agent Orchestrator 數據模型定義
 
@@ -77,3 +77,35 @@ class ValidationResult(BaseModel):
 
     valid: bool = Field(..., description="驗證是否通過")
     reason: Optional[str] = Field(None, description="驗證失敗的原因（如果驗證失敗）")
+
+
+class TodoItem(BaseModel):
+    """Todo 項目模型
+
+    用於任務規劃和編排的單個 todo 項目。
+    """
+
+    todo_id: str = Field(..., description="Todo ID")
+    description: str = Field(..., description="Todo 描述")
+    agent_id: Optional[str] = Field(None, description="負責的 Agent ID")
+    capability: Optional[str] = Field(None, description="所需能力")
+    priority: int = Field(default=0, description="優先級（數字越大優先級越高）")
+    depends_on: List[str] = Field(default_factory=list, description="依賴的 Todo ID 列表")
+    estimated_duration: Optional[int] = Field(None, description="預估執行時間（秒）")
+    status: str = Field(default="pending", description="狀態：pending, in_progress, completed, failed")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
+
+
+class TaskPlan(BaseModel):
+    """任務計劃模型
+
+    包含完整任務分解後的 todo 列表和執行計劃。
+    """
+
+    plan_id: str = Field(..., description="計劃 ID")
+    instruction: str = Field(..., description="原始指令")
+    todos: List[TodoItem] = Field(default_factory=list, description="Todo 列表（已排序）")
+    total_estimated_duration: Optional[int] = Field(None, description="總預估執行時間（秒）")
+    reasoning: Optional[str] = Field(None, description="規劃理由")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="創建時間")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")

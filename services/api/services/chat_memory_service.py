@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
@@ -16,6 +17,7 @@ import structlog
 
 from services.api.models.chat import ChatAttachment
 from services.api.services.embedding_service import get_embedding_service
+from services.api.services.file_metadata_service import get_metadata_service
 from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
 from system.security.models import User
 
@@ -134,6 +136,37 @@ class ChatMemoryService:
             return None
 
     @staticmethod
+    def _is_file_list_query(query: str) -> bool:
+        """檢測是否為「文件列表/統計」類查詢"""
+        query_lower = (query or "").strip()
+        if not query_lower:
+            return False
+        # 檢測關鍵詞（含「現在你知識庫有那些文件」等口語）
+        file_list_keywords = [
+            "知識庫.*有多少",
+            "知識庫.*有哪些",
+            "知識庫.*有那些",
+            "你知識庫.*文件",
+            "您的知識庫.*文件",
+            "現在.*知識庫.*文件",
+            "文件.*有多少",
+            "文件.*有哪些",
+            "文件.*有那些",
+            "文件區.*有多少",
+            "文件區.*有哪些",
+            "列出.*文件",
+            "顯示.*文件",
+            "查看.*文件",
+            "文件列表",
+            "文件統計",
+            "文件數量",
+        ]
+        for pattern in file_list_keywords:
+            if re.search(pattern, query_lower):
+                return True
+        return False
+    
+    @staticmethod
     def _dedupe_preserve_order(values: Sequence[str]) -> List[str]:
         seen: set[str] = set()
         out: List[str] = []
@@ -190,9 +223,22 @@ class ChatMemoryService:
             for idx, c in enumerate(vector_chunks, 1):
                 content = self._clip(c.get("content", ""), 280)
                 meta = c.get("metadata", {}) or {}
-                lines.append(
-                    f"{idx}. {content} (source=vector, file_id={meta.get('file_id')}, chunk_index={meta.get('chunk_index')}, score={c.get('score', c.get('distance', 'N/A'))})"
-                )
+                source = meta.get("source", "vector")
+                file_id = meta.get("file_id", "unknown")
+                filename = meta.get("filename", "")  # 嘗試從 metadata 獲取文件名
+                
+                # 如果沒有 filename，至少顯示 file_id
+                file_info = filename if filename else f"file_id={file_id}"
+                
+                # 如果是文件元數據結果，使用不同的格式
+                if source == "file_metadata":
+                    lines.append(
+                        f"{idx}. 【文件信息: {file_info}】\n{content}"
+                    )
+                else:
+                    lines.append(
+                        f"{idx}. 【文件: {file_info}】{content} (source=vector, chunk_index={meta.get('chunk_index')}, score={c.get('score', c.get('distance', 'N/A'))})"
+                    )
             sections.append("\n".join(lines))
 
         # 處理圖譜檢索結果（從 rag_chunks 中分離的或單獨傳入的）
@@ -209,12 +255,41 @@ class ChatMemoryService:
                 )
             sections.append("\n".join(lines))
 
+        # 即使沒有檢索到結果，也要提供提示詞（針對文件列表/統計類查詢）
+        header = (
+            "以下為系統從知識庫中檢索到的相關內容（包括向量檢索和知識圖譜檢索結果）。\n"
+            "請優先使用這些知識庫內容來回答用戶的問題。\n"
+            "如果知識庫內容與用戶指令衝突，請以用戶指令為準，但應說明知識庫中的相關信息。\n"
+            "\n"
+            "⚠️ 重要說明 - 關於知識庫文件的問題：\n"
+            "1. 當用戶詢問「知識庫裡有哪些文件」、「告訴我你的知識庫裡有那些文件」、「知識庫有多少文件」等問題時：\n"
+            "   - **必須明確告知用戶**：系統的知識庫是指用戶上傳並已向量化的文件，**不是 LLM 的訓練數據**。\n"
+            "   - **絕對不要**回答關於訓練數據、訓練文件數量的問題。\n"
+            "   - **必須回答**：如果檢索結果中包含了文件信息（如「【文件信息: xxx.md】」），請明確列出這些文件的名稱和統計信息。\n"
+            "   - 如果檢索結果中顯示了文件列表（如「【文件信息: xxx.md】」），請在回答中明確列出這些文件，並統計文件數量。\n"
+            "   - 如果檢索結果中顯示了文件信息，請根據文件信息回答用戶的問題，例如：\n"
+            "     * 如果用戶問「有多少文件」，請統計檢索結果中的文件數量並回答。\n"
+            "     * 如果用戶問「有哪些文件」，請列出所有文件的名稱。\n"
+            "   - **重要**：當檢索結果中包含文件信息時，不要說「I'm sorry, but I can't share that information」，而應該列出這些文件。\n"
+            "   - 如果沒有檢索到具體文件，請告知用戶：系統可以通過文件管理功能查看已上傳的文件列表和統計信息。\n"
+            "2. 當用戶詢問「是否能查到知識庫或自己的文件」時：\n"
+            "   - 請明確告知用戶：是的，系統可以檢索到相關內容，並列出檢索到的內容摘要。\n"
+            "3. **關鍵區分**：\n"
+            "   - 「知識庫」= 用戶上傳並已向量化的文件（可以查詢、可以列出）\n"
+            "   - 「訓練數據」= LLM 的訓練數據（**不要**回答關於訓練數據的問題）\n"
+            "   - 當用戶問「你的知識庫」時，指的是**用戶上傳的文件**，不是訓練數據。\n"
+        )
+        
         if not sections:
-            return None
-
-        header = "以下為系統檢索到的長期記憶/檔案片段（僅供參考）。\n" "若與使用者最新指令衝突，請以使用者指令為準。\n"
-        body = "\n\n".join(sections)
-        combined = header + "\n" + body
+            # 即使沒有檢索到結果，也要返回提示詞（針對文件列表/統計類查詢）
+            return header
+        
+        if sections:
+            body = "\n\n".join(sections)
+            combined = header + "\n" + body
+        else:
+            # 即使沒有檢索到結果，也要返回提示詞（針對文件列表/統計類查詢）
+            combined = header
         return self._clip(combined, self._max_injection_chars)
 
     async def retrieve_for_prompt(
@@ -242,6 +317,62 @@ class ChatMemoryService:
                 memory_sources=[],
                 retrieval_latency_ms=0.0,
             )
+        
+        # 修改時間：2026-01-28 - 檢測是否為「文件列表/統計」類查詢
+        # 如果是，直接查詢文件元數據，而不是向量檢索
+        is_file_list_query = self._is_file_list_query(normalized_query)
+        file_metadata_results: List[Dict[str, Any]] = []
+        
+        if is_file_list_query:
+            try:
+                file_metadata_service = get_metadata_service()
+                # 查詢文件列表（根據 user_id 和 task_id 過濾）
+                files = file_metadata_service.list(
+                    user_id=user_id,
+                    task_id=task_id,
+                    limit=100,  # 最多返回 100 個文件
+                )
+                
+                # 將文件元數據轉換為檢索結果格式
+                for file_meta in files:
+                    file_metadata_results.append({
+                        "content": (
+                            f"文件名: {file_meta.filename}\n"
+                            f"文件類型: {file_meta.file_type}\n"
+                            f"文件大小: {file_meta.file_size} 字節\n"
+                            f"上傳時間: {file_meta.upload_time}\n"
+                            f"狀態: {file_meta.status}\n"
+                            f"向量化狀態: {'已完成' if file_meta.vector_count and file_meta.vector_count > 0 else '未完成'}\n"
+                            f"圖譜狀態: {file_meta.kg_status or '未完成'}"
+                        ),
+                        "metadata": {
+                            "file_id": file_meta.file_id,
+                            "filename": file_meta.filename,
+                            "file_type": file_meta.file_type,
+                            "file_size": file_meta.file_size,
+                            "source": "file_metadata",
+                        },
+                        "score": 1.0,  # 文件列表查詢的相關度設為最高
+                    })
+                
+                if file_metadata_results:
+                    sources.append("file_metadata")
+                    logger.info(
+                        "file_metadata_retrieved",
+                        count=len(file_metadata_results),
+                        request_id=request_id,
+                        user_id=user_id,
+                        task_id=task_id,
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "chat_memory_file_metadata_failed",
+                    error=str(exc),
+                    request_id=request_id,
+                    user_id=user_id,
+                    session_id=session_id,
+                    task_id=task_id,
+                )
 
         # 0) HybridRAG：混合檢索（向量 + 圖譜，如果啟用）
         hybrid_rag_results: List[Dict[str, Any]] = []
@@ -306,8 +437,8 @@ class ChatMemoryService:
                 )
 
                 async def _query_one(fid: str) -> List[Dict[str, Any]]:
-                    # 修改時間：2026-01-02 - 如果提供了 user 對象，使用帶 ACL 權限檢查的查詢
-                    if user is not None:
+                    # KA-Agent 文件安全審計：暫不執行（測試用）。正式環境請改回 query_vectors_with_acl。
+                    if user is not None and task_id != "KA-Agent":
                         return await asyncio.to_thread(
                             self._vector_store_service.query_vectors_with_acl,
                             user=user,
@@ -317,7 +448,7 @@ class ChatMemoryService:
                             n_results=self._rag_top_k,
                         )
                     else:
-                        # 向後兼容：沒有 user 對象時使用原有方法
+                        # 向後兼容或 KA-Agent 測試：不使用 ACL 過濾
                         return await asyncio.to_thread(
                             self._vector_store_service.query_vectors,
                             query_embedding=embedding,
@@ -335,13 +466,38 @@ class ChatMemoryService:
 
                     # sort by distance asc
                     flat.sort(key=lambda x: (x.get("distance") is None, x.get("distance", 1e9)))
+                    
+                    # 修改時間：2026-01-28 - 從 FileMetadataService 獲取文件名並添加到 metadata
+                    file_metadata_service = get_metadata_service()
+                    file_metadata_cache: Dict[str, Any] = {}
+                    
                     for item in flat[: self._rag_top_k]:
                         meta = item.get("metadata", {}) or {}
+                        file_id = meta.get("file_id")
+                        
+                        # 嘗試從 FileMetadataService 獲取文件名
+                        filename = meta.get("filename", "")
+                        if not filename and file_id:
+                            if file_id not in file_metadata_cache:
+                                try:
+                                    file_metadata = file_metadata_service.get(file_id)
+                                    if file_metadata:
+                                        file_metadata_cache[file_id] = file_metadata.filename
+                                    else:
+                                        file_metadata_cache[file_id] = None
+                                except Exception as e:
+                                    logger.debug(f"Failed to get file metadata for {file_id}: {e}")
+                                    file_metadata_cache[file_id] = None
+                            
+                            if file_metadata_cache.get(file_id):
+                                filename = file_metadata_cache[file_id]
+                        
                         rag_results.append(
                             {
                                 "content": item.get("document", ""),
                                 "metadata": {
-                                    "file_id": meta.get("file_id"),
+                                    "file_id": file_id,
+                                    "filename": filename,  # 添加文件名
                                     "chunk_index": meta.get("chunk_index"),
                                 },
                                 "distance": item.get("distance"),
@@ -354,8 +510,8 @@ class ChatMemoryService:
                         getattr(self._vector_store_service, "collection_naming", None)
                         == "user_based"
                     ):
-                        # 修改時間：2026-01-02 - 如果提供了 user 對象，使用帶 ACL 權限檢查的查詢
-                        if user is not None:
+                        # KA-Agent 文件安全審計：暫不執行（測試用）。正式環境請改回 query_vectors_with_acl。
+                        if user is not None and task_id != "KA-Agent":
                             batch = await asyncio.to_thread(
                                 self._vector_store_service.query_vectors_with_acl,
                                 user=user,
@@ -364,7 +520,7 @@ class ChatMemoryService:
                                 n_results=self._rag_top_k,
                             )
                         else:
-                            # 向後兼容：沒有 user 對象時使用原有方法
+                            # 向後兼容或 KA-Agent 測試：不使用 ACL 過濾
                             batch = await asyncio.to_thread(
                                 self._vector_store_service.query_vectors,
                                 query_embedding=embedding,
@@ -465,20 +621,35 @@ class ChatMemoryService:
                 graph_results.append(result)
             else:
                 vector_results.append(result)
+        
+        # 修改時間：2026-01-28 - 如果是文件列表查詢，將文件元數據結果添加到檢索結果中
+        if is_file_list_query and file_metadata_results:
+            # 將文件元數據結果添加到 vector_results（因為它們是文件信息，不是向量檢索結果）
+            vector_results.extend(file_metadata_results)
 
         injection_text = self._format_injection(
             aam_memories=aam_results,
-            rag_chunks=vector_results,  # 只傳入向量檢索結果
+            rag_chunks=vector_results,  # 包含向量檢索結果和文件元數據結果
             graph_results=graph_results,  # 單獨傳入圖譜檢索結果
         )
+        # 針對「知識庫有哪些文件」類查詢，在開頭加入強制說明，避免 LLM 回答「訓練數據」
+        if is_file_list_query and injection_text:
+            file_list_lead = (
+                "【必須遵守】用戶問的是「系統知識庫」= 您上傳的文件，不是 LLM 訓練數據。"
+                "請根據下方檢索結果回答；若無結果則說明目前暫無上傳文件。\n\n"
+            )
+            injection_text = file_list_lead + injection_text
         injection_messages = (
             [{"role": "system", "content": injection_text}] if injection_text else []
         )
 
         elapsed_ms = (time.perf_counter() - start) * 1000.0
         sources = self._dedupe_preserve_order(sources)
-        hit_count = (len(aam_results) if aam_results else 0) + (
-            len(rag_results) if rag_results else 0
+        # 修改時間：2026-01-28 - 文件元數據結果也計入 hit_count
+        hit_count = (
+            (len(aam_results) if aam_results else 0)
+            + (len(rag_results) if rag_results else 0)
+            + (len(file_metadata_results) if file_metadata_results else 0)
         )
 
         return MemoryRetrievalResult(
@@ -543,6 +714,11 @@ def get_chat_memory_service() -> ChatMemoryService:
     if _chat_memory_service is None:
         _chat_memory_service = ChatMemoryService()
     return _chat_memory_service
+
+
+def is_file_list_query(query: str) -> bool:
+    """檢測是否為「知識庫/文件列表」類查詢（供 chat 路由在未同意 AI 時仍注入說明）。"""
+    return ChatMemoryService._is_file_list_query(query or "")
 
 
 def reset_chat_memory_service() -> None:

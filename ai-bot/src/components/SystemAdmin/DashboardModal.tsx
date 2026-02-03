@@ -1,10 +1,11 @@
 // 代碼功能說明: Dashboard 浮動視窗組件
 // 創建日期: 2026-01-17 22:40 UTC+8
 // 創建人: Daniel Chung
-// 最後修改日期: 2026-01-17 22:40 UTC+8
+// 最後修改日期: 2026-01-25
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X, Maximize2, Minimize2, ExternalLink } from 'lucide-react';
+import { API_URL } from '@/lib/api';
 
 interface DashboardModalProps {
   serviceName: string;
@@ -14,22 +15,25 @@ interface DashboardModalProps {
 const DashboardModal: React.FC<DashboardModalProps> = ({ serviceName, onClose }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // 根據服務名稱獲取 Dashboard URL
-  const getDashboardUrl = () => {
+  // 根據服務名稱獲取 Dashboard URL。RQ 改走 API 代理（避免直連 9181 靜態資源 404），並附 token 供 iframe 認證
+  const { dashboardUrl, displayUrl } = useMemo(() => {
     const serviceLower = serviceName.toLowerCase();
-
     if (serviceLower === 'arangodb') {
-      return 'http://localhost:8529';
-    } else if (serviceLower === 'rq') {
-      return 'http://localhost:9181';
-    } else if (serviceLower === 'seaweedfs') {
-      return 'http://localhost:9333'; // SeaweedFS Master UI
+      const u = 'http://localhost:8529';
+      return { dashboardUrl: u, displayUrl: u };
     }
-
-    return '';
-  };
-
-  const dashboardUrl = getDashboardUrl();
+    if (serviceLower === 'rq') {
+      const base = `${API_URL}/admin/services/dashboards/rq`;
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      const u = token ? `${base}?token=${encodeURIComponent(token)}` : base;
+      return { dashboardUrl: u, displayUrl: base };
+    }
+    if (serviceLower === 'seaweedfs') {
+      const u = 'http://localhost:9333';
+      return { dashboardUrl: u, displayUrl: u };
+    }
+    return { dashboardUrl: '', displayUrl: '' };
+  }, [serviceName]);
 
   // 切換全屏
   const toggleFullscreen = () => {
@@ -75,7 +79,7 @@ const DashboardModal: React.FC<DashboardModalProps> = ({ serviceName, onClose })
               {serviceName} Dashboard
             </h2>
             <span className="text-sm text-gray-500">
-              {dashboardUrl}
+              {displayUrl}
             </span>
           </div>
           <div className="flex items-center space-x-2">

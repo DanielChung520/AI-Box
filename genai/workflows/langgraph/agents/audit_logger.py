@@ -145,7 +145,7 @@ class AuditLogger(BaseAgentNode):
         except Exception as e:
             logger.error(f"Failed to log audit events: {e}")
             return AuditResult(
-                logs_created=len(audit_events)
+                logs_created=len(audit_events),
                 logs_stored=False,
                 compliance_check_passed=True,
                 retention_policy_applied=False,

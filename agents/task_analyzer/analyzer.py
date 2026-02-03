@@ -1,7 +1,7 @@
 # 代碼功能說明: Task Analyzer 核心邏輯實現（4 層漸進式路由架構）
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-14 22:35 UTC+8
+# 最後修改日期: 2026-02-01 UTC+8
 
 """Task Analyzer 核心實現 - 整合任務分析、分類、路由和工作流選擇"""
 
@@ -158,6 +158,31 @@ class TaskAnalyzer:
             # 當前保留是為了向後兼容，但優先使用 v4.0 流程
 
             # ============================================
+            # Layer 0/1: Fast Answer Path（快速回答路徑）- 2026-02-01 新增
+            # ============================================
+            # 修改時間：2026-02-01 - 啟用 _try_direct_answer 快速路徑
+            # 修改時間：2026-02-01 - 用戶選擇 manual/favorite 時跳過 _try_direct_answer
+            # 原因：_try_direct_answer 使用 OpenAI/Gemini，會忽略用戶選擇的 Ollama
+            # 用戶明確選擇模型時，應直接走 L1-L4，最終使用用戶選擇的模型
+            model_selector = (request.context or {}).get("model_selector") or {}
+            selector_mode = model_selector.get("mode", "auto")
+            skip_direct_answer = selector_mode in ("manual", "favorite")
+
+            if not skip_direct_answer:
+                direct_answer_result = await self._try_direct_answer(request, task_id)
+                if direct_answer_result is not None:
+                    logger.info(
+                        f"Layer 0/1: Direct answer path - task_id={task_id}, "
+                        f"skipping L1-L4 for fast response"
+                    )
+                    return direct_answer_result
+            else:
+                logger.info(
+                    f"Layer 0/1: Skipping _try_direct_answer - user selected model "
+                    f"(mode={selector_mode}), respecting user choice"
+                )
+
+            # ============================================
             # L1: Semantic Understanding Layer（語義理解層）- v4.0
             # ============================================
             try:
@@ -188,6 +213,34 @@ class TaskAnalyzer:
 
                 semantic_output = SAFE_FALLBACK_SEMANTIC
                 logger.warning("L1: Using fallback semantic output due to error")
+
+            # ============================================
+            # L1.5: Knowledge Signal Mapping Layer（知識信號映射層）- v4.0 新增
+            # ============================================
+            # 修改時間：2026-01-28 - 新增 Knowledge Signal Mapper 中介層
+            # 定位：語義觀測結果 → 治理事件判斷（純規則、可審計、不可漂移）
+            knowledge_signal = None
+            try:
+                from agents.task_analyzer.knowledge_signal_mapper import (
+                    get_knowledge_signal_mapper,
+                )
+
+                mapper = get_knowledge_signal_mapper()
+                knowledge_signal = mapper.map(semantic_output)
+
+                logger.info(
+                    f"L1.5: Knowledge Signal mapped: is_knowledge_event={knowledge_signal.is_knowledge_event}, "
+                    f"knowledge_type={knowledge_signal.knowledge_type}, "
+                    f"stability={knowledge_signal.stability_estimate}, "
+                    f"reuse_potential={knowledge_signal.reuse_potential:.2f}, "
+                    f"reason_codes={knowledge_signal.reason_codes}"
+                )
+            except Exception as e:
+                logger.warning(f"L1.5: Knowledge Signal mapping failed: {e}", exc_info=True)
+                # 失敗時創建空的 Knowledge Signal
+                from agents.task_analyzer.knowledge_signal_mapper import KnowledgeSignal
+
+                knowledge_signal = KnowledgeSignal()
 
             # ============================================
             # L2: Intent & Task Abstraction Layer（意圖與任務抽象層）- v4.0
@@ -666,6 +719,10 @@ class TaskAnalyzer:
             enhanced_context = (request.context or {}).copy()
             enhanced_context["task"] = request.task
             enhanced_context["query"] = request.task
+            # 修改時間：2026-01-28 - 傳遞 Knowledge Signal 到 Capability Matcher
+            enhanced_context["knowledge_signal"] = (
+                knowledge_signal.to_dict() if knowledge_signal else None
+            )
             # 使用增強後的 context 進行能力匹配
             agent_candidates = await self.capability_matcher.match_agents(
                 router_output, enhanced_context
@@ -783,9 +840,7 @@ class TaskAnalyzer:
                 "router_decision": (
                     router_output.model_dump()
                     if hasattr(router_output, "model_dump")
-                    else router_output.dict()
-                    if hasattr(router_output, "dict")
-                    else router_output
+                    else router_output.dict() if hasattr(router_output, "dict") else router_output
                 ),
                 "decision_result": (
                     decision_result.model_dump()
@@ -921,22 +976,12 @@ class TaskAnalyzer:
                 f"execution_success={execution_record.execution_success if execution_record else 'N/A'}"
             )
 
-            # 構建並返回結果
-            result = TaskAnalysisResult(
-                f"type={classification.task_type.value}, "
-                f"workflow={workflow_selection.workflow_type.value}, "
-                f"llm={llm_routing.provider.value}, "
-                f"requires_agent={requires_agent}"
-            )
-
             # 將 intent 添加到 analysis_details 中
             if intent:
                 analysis_details["intent"] = (
                     intent.model_dump()
                     if hasattr(intent, "model_dump")
-                    else intent.dict()
-                    if hasattr(intent, "dict")
-                    else intent
+                    else intent.dict() if hasattr(intent, "dict") else intent
                 )
 
             # 如果是 ConfigIntent，提取澄清信息並添加到分析詳情中
@@ -948,6 +993,7 @@ class TaskAnalyzer:
                 if "system_config_agent" not in suggested_agents:
                     suggested_agents.insert(0, "system_config_agent")
 
+            # 構建並返回結果
             result = TaskAnalysisResult(
                 task_id=task_id,
                 task_type=classification.task_type,
@@ -1075,6 +1121,7 @@ class TaskAnalyzer:
         # 定義動作關鍵詞（僅用於快速過濾明顯的系統行動，不應過度使用）
         # 修改時間：2026-01-06 - 移除文件生成關鍵詞檢查，改由 Router LLM 進行語義判斷
         # 修改時間：2026-01-27 - 添加庫存、物料相關關鍵詞，確保庫存查詢進入 Agent 調用流程
+        # 修改時間：2026-02-01 - 添加文件/編輯相關關鍵詞，避免誤走快速路徑
         action_keywords = [
             "幫我",
             "幫",
@@ -1090,7 +1137,6 @@ class TaskAnalyzer:
             "查看",
             "檢視",  # 庫存查詢常用動詞
             "庫存",
-            "庫存",
             "料號",
             "品名",
             "庫存量",  # 庫存相關名詞
@@ -1099,6 +1145,21 @@ class TaskAnalyzer:
             "warehouse",
             "part",
             "material",  # 英文關鍵詞
+            # 文件/編輯相關（避免 factoid 誤判）
+            "創建",
+            "產生",
+            "寫",
+            "生成",
+            "建立",
+            "製作",
+            "編輯",
+            "修改",
+            "更新",
+            "刪除",
+            "添加",
+            "替換",
+            "重寫",
+            "格式化",
         ]
 
         # 1. 檢查是否有明顯的副作用關鍵詞（需要系統行動）
@@ -1111,11 +1172,11 @@ class TaskAnalyzer:
         if any(keyword in task_lower for keyword in tool_indicators):
             return False  # 需要工具，進入 Layer 2/3 進行語義分析
 
-        # 3. 長度檢查（必須在工具檢查之後）
+        # 3. 長度檢查（必須在工具檢查之後）- 極短查詢可嘗試直接回答
         if len(task_lower) < 10:
             return True
 
-        # 4. Factoid / Definition 模式
+        # 4. Factoid / Definition 模式（明確的定義類問題）
         factoid_patterns = [
             r"什麼是\s*\w+",  # "什麼是 DevSecOps?"
             r"什麼叫\s*\w+",
@@ -1129,7 +1190,9 @@ class TaskAnalyzer:
         if any(re.match(pattern, task_lower) for pattern in factoid_patterns):
             return True
 
-        return True  # 默認：嘗試直接回答
+        # 5. 默認：嘗試直接回答（_try_direct_answer 內 LLM 會二次檢查）
+        # 修改時間：2026-02-01 - 已添加 file/edit 關鍵詞，明顯需 Agent 的查詢會在上方返回 False
+        return True
 
     async def _try_direct_answer(
         self, request: TaskAnalysisRequest, task_id: str
@@ -1170,13 +1233,14 @@ class TaskAnalyzer:
             memory_service = get_chat_memory_service()
             user_id = request.context.get("user_id", "system") if request.context else "system"
             session_id = request.context.get("session_id", task_id) if request.context else task_id
+            req_id = request.context.get("request_id", task_id) if request.context else task_id
 
             # 检索内部知识库（向量检索 + 知识图谱）
             memory_result = await memory_service.retrieve_for_prompt(
                 user_id=user_id,
                 session_id=session_id,
                 task_id=task_id,
-                request_id=task_id,
+                request_id=req_id,
                 query=request.task,
                 attachments=None,  # Layer 1 不处理附件
             )
@@ -2240,7 +2304,9 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
             intent_type="execution",  # 明確選擇 Agent 通常是執行任務
             complexity="mid",  # 默認中等複雜度
             needs_agent=True,  # 明確需要 Agent
-            needs_tools=bool(agent_info and agent_info.capabilities),  # 如果 Agent 有能力，則需要工具
+            needs_tools=bool(
+                agent_info and agent_info.capabilities
+            ),  # 如果 Agent 有能力，則需要工具
             determinism_required=False,  # 默認不需要確定性
             risk_level="low",  # 默認低風險
             confidence=1.0,  # 用戶明確選擇 = 100% 置信度

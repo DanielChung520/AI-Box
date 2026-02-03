@@ -1,0 +1,28 @@
+{
+  "agent_id": "ka_agent",
+  "name": "Knowledge Architect Agent",
+  "version": "1.5.0",
+  "model_routing": {
+    "planning_chain": [
+      "gpt-oss:120b-cloud",
+      "gpt-oss:20b",
+      "qwen3-next:latest"
+    ],
+    "temperature": 0.2,
+    "max_tokens": 4096
+  },
+  "features": {
+    "require_confirmation_for_management": true,
+    "security_audit_enabled": true,
+    "auto_versioning": true
+  },
+  "storage": {
+    "seaweedfs_endpoint": "http://localhost:8334",
+    "asset_bucket": "knowledge-assets",
+    "metadata_collection": "knowledge_assets"
+  },
+  "collaboration": {
+    "graph_expert": "knowledge_ontology_agent",
+    "vector_service": "qdrant_vector_store_service"
+  }
+}

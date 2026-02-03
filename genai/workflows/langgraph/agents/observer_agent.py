@@ -122,8 +122,8 @@ def create_observer_agent_config() -> NodeConfig:
         description="觀察者Agent - 負責全局狀態監控、異常檢測和執行反饋",
         max_retries=1,
         timeout=15.0,
-        required_inputs=["user_id"]
-        optional_inputs=["messages"]
+        required_inputs=["user_id"],
+        optional_inputs=["messages"],
         output_keys=["system_observation", "observation_summary"],
     )
 

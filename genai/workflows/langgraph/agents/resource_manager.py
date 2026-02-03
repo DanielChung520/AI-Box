@@ -127,9 +127,9 @@ class ResourceManager(BaseAgentNode):
             return ResourceAllocationResult(
                 resource_checks_passed=True,
                 agent_resources_allocated=agent_resources,
-                tool_resources_allocated=[]
+                tool_resources_allocated=[],
                 model_resources_allocated=[{"model_id": "default", "status": "allocated"}],
-                storage_resources_allocated=[]
+                storage_resources_allocated=[],
                 allocation_confidence=1.0,
                 reasoning="Successfully allocated all required resources.",
             )
@@ -163,7 +163,7 @@ def create_resource_manager_config() -> NodeConfig:
         description="資源管理Agent - 負責核心組件、工具和模型的資源可用性檢查和預分配",
         max_retries=1,
         timeout=30.0,
-        required_inputs=["user_id"]
+        required_inputs=["user_id"],
         optional_inputs=["capability_analysis", "messages"],
         output_keys=["resource_allocation", "resource_summary"],
     )

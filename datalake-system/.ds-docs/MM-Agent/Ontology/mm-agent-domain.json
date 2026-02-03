@@ -1,0 +1,163 @@
+{
+    "type": "domain",
+    "name": "Material_Management",
+    "version": "1.0",
+    "default_version": true,
+    "ontology_name": "Material_Management_Domain_Ontology",
+    "description": "物料管理知識領域本體論，定義物料主檔、庫存、採購、入出庫、批次、供應商與審計等核心概念。適用於企業物料管理系統、ERP 知識上架、RAG 檢索與決策支援場景。",
+    "author": "Daniel Chung",
+    "last_modified": "2026-01-25",
+    "inherits_from": ["5W1H_Base_Ontology_OWL"],
+    "compatible_domains": ["Knowledge_Assets", "Business_Process"],
+    "tags": ["MaterialManagement", "Inventory", "Procurement", "ERP", "KA"],
+    "use_cases": [
+      "物料主檔知識管理",
+      "庫存與批次追蹤",
+      "採購與供應商知識檢索",
+      "物料異動審計",
+      "RAG 輔助物料決策"
+    ],
+  
+    "entity_classes": [
+      {
+        "name": "Material",
+        "base_class": "Concept",
+        "description": "物料主體，包含原料、半成品、成品、備品、耗材等。"
+      },
+      {
+        "name": "Material_Master_Data",
+        "base_class": "Document",
+        "description": "物料主檔資料，定義料號、規格、單位、分類、有效狀態等。"
+      },
+      {
+        "name": "Inventory_Record",
+        "base_class": "Concept",
+        "description": "庫存紀錄，描述物料在特定時間與地點的數量與狀態。"
+      },
+      {
+        "name": "Batch_Lot",
+        "base_class": "Concept",
+        "description": "批次或批號，用於追蹤物料來源、效期與品質。"
+      },
+      {
+        "name": "Warehouse_Location",
+        "base_class": "Concept",
+        "description": "倉庫或庫位位置，用於物料存放與盤點。"
+      },
+      {
+        "name": "Supplier",
+        "base_class": "Agent",
+        "description": "供應商實體，提供物料或相關服務。"
+      },
+      {
+        "name": "Purchase_Record",
+        "base_class": "Document",
+        "description": "採購紀錄，包含採購單、到貨紀錄與驗收資訊。"
+      },
+      {
+        "name": "Material_Movement",
+        "base_class": "Event",
+        "description": "物料異動事件，如入庫、出庫、調撥、報廢。"
+      },
+      {
+        "name": "Material_Classification",
+        "base_class": "Concept",
+        "description": "物料分類體系，如原料類、製程類、備品類等。"
+      },
+      {
+        "name": "Material_Metadata",
+        "base_class": "Metadata",
+        "description": "物料知識的元數據，包含 Domain、Major、料號、批次、版本、來源等。"
+      },
+      {
+        "name": "Material_KNW_Code",
+        "base_class": "Concept",
+        "description": "物料知識專用 KNW-Code，用於唯一識別物料相關知識資產。"
+      },
+      {
+        "name": "Material_Security_Policy",
+        "base_class": "Concept",
+        "description": "物料知識存取的安全與權限策略。"
+      },
+      {
+        "name": "Material_Audit_Log",
+        "base_class": "Document",
+        "description": "物料相關操作與異動的審計日誌。"
+      }
+    ],
+  
+    "object_properties": [
+      {
+        "name": "has_master_data",
+        "description": "物料對應的主檔資料。",
+        "domain": ["Material"],
+        "range": ["Material_Master_Data"]
+      },
+      {
+        "name": "classified_as",
+        "description": "物料所屬的分類。",
+        "domain": ["Material"],
+        "range": ["Material_Classification"]
+      },
+      {
+        "name": "stored_at",
+        "description": "物料存放的位置。",
+        "domain": ["Inventory_Record"],
+        "range": ["Warehouse_Location"]
+      },
+      {
+        "name": "tracked_by_batch",
+        "description": "物料以批次方式追蹤。",
+        "domain": ["Material", "Inventory_Record"],
+        "range": ["Batch_Lot"]
+      },
+      {
+        "name": "supplied_by",
+        "description": "物料的供應商。",
+        "domain": ["Material", "Purchase_Record"],
+        "range": ["Supplier"]
+      },
+      {
+        "name": "records_inventory",
+        "description": "庫存紀錄對應的物料。",
+        "domain": ["Inventory_Record"],
+        "range": ["Material"]
+      },
+      {
+        "name": "records_movement",
+        "description": "記錄物料異動事件。",
+        "domain": ["Material_Movement"],
+        "range": ["Material"]
+      },
+      {
+        "name": "generates_metadata",
+        "description": "為物料知識生成 Metadata。",
+        "domain": ["Material", "Material_Master_Data"],
+        "range": ["Material_Metadata"]
+      },
+      {
+        "name": "identified_by_knw_code",
+        "description": "物料知識的唯一識別碼。",
+        "domain": ["Material", "Material_Metadata"],
+        "range": ["Material_KNW_Code"]
+      },
+      {
+        "name": "applies_security_policy",
+        "description": "套用物料知識的安全策略。",
+        "domain": ["Material", "Material_Master_Data"],
+        "range": ["Material_Security_Policy"]
+      },
+      {
+        "name": "records_audit",
+        "description": "記錄物料相關操作的審計日誌。",
+        "domain": ["Material", "Material_Movement"],
+        "range": ["Material_Audit_Log"]
+      }
+    ],
+  
+    "metadata": {
+      "domain_owner": "KA-Agent",
+      "data_classification": "INTERNAL"
+    }
+  }
+  

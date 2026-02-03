@@ -8,7 +8,10 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from database.chromadb.client import ChromaDBClient
 
 try:
     import redis  # type: ignore[import-untyped]  # noqa: F401
@@ -19,7 +22,16 @@ except ImportError:
     logging.warning("Redis not available, using in-memory storage")
 
 from agents.services.resource_controller import get_resource_controller
-from database.chromadb.client import ChromaDBClient
+
+CHROMADB_AVAILABLE = False
+
+try:
+    from database.chromadb.client import ChromaDBClient  # type: ignore[import-not-found]
+
+    CHROMADB_AVAILABLE = True
+except ImportError:
+    ChromaDBClient = None  # type: ignore[assignment]
+    logging.warning("ChromaDB not available, long-term memory will be disabled")
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +42,7 @@ class MemoryManager:
     def __init__(
         self,
         redis_client: Optional[Any] = None,
-        chromadb_client: Optional[ChromaDBClient] = None,
+        chromadb_client: Optional[Any] = None,
         short_term_ttl: int = 3600,  # 1小時
     ):
         """

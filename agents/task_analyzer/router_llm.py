@@ -1,7 +1,7 @@
 # 代碼功能說明: Router LLM 工程級實現
 # 創建日期: 2025-12-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-13
+# 最後修改日期: 2026-02-01 UTC+8
 
 """Router LLM 工程級實現 - 固定 System Prompt、完整 Schema 驗證、失敗保護機制"""
 
@@ -15,8 +15,9 @@ from llm.clients.factory import LLMClientFactory
 
 logger = logging.getLogger(__name__)
 
-# 意圖分析默認模型（根據測試結果選擇最優模型）
-# 測試結果（2026-01-09）：gpt-oss:120b-cloud 表現最優（100% 正確率，2.56s 平均耗時）
+# 意圖分析默認模型
+# 修改時間：2026-02-01 - 改用 qwen3:32b 提升效率（本地推理 ~1s vs 雲端 120B ~2.5s）
+# 可透過環境變數 ROUTER_LLM_MODEL 覆蓋（如 gpt-oss:120b-cloud 用於高準確度場景）
 #
 # 【重要架構說明】
 # 任務分析和語義理解（L1-L2層級）始終使用本地模型（Ollama），不受前端選擇的模型影響。
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 # 3. 最終輸出生成
 #
 # 這是多模型架構的核心設計：不同的工作使用不同的模型。
-ROUTER_LLM_DEFAULT_MODEL = "gpt-oss:120b-cloud"
+ROUTER_LLM_DEFAULT_MODEL = "qwen3:32b"
 
 # 固定 System Prompt（v4 更新：純語義理解，不產生 intent）
 ROUTER_SYSTEM_PROMPT = """You are a semantic understanding engine inside an enterprise GenAI system.
@@ -364,9 +365,14 @@ Legacy Classification Guidelines (Transition Period - Keep for compatibility):
    - true if task requires:
      * Multi-step planning, coordination, or complex workflow
      * File/document operations (creating, editing, generating documents) - requires appropriate file editing agents (md-editor, xls-editor, md-to-pdf, xls-to-pdf, pdf-to-md)
+     * Knowledge base queries (querying, searching, listing knowledge assets) - requires KA-Agent (ka-agent) for knowledge retrieval and management
      * Agent-specific capabilities that cannot be handled by simple tools
    - false for simple queries that can be answered directly or with a single tool
    - CRITICAL: File editing tasks (creating, editing, generating documents) ALWAYS require needs_agent=true
+   - CRITICAL: Knowledge base queries (e.g., "知識庫有多少文件", "查詢知識資產", "列出知識庫文件") ALWAYS require needs_agent=true
+     * Examples: "告訴我你的知識庫有多少文件" → needs_agent=true (requires KA-Agent to query file metadata)
+     * Examples: "查詢知識庫中的相關內容" → needs_agent=true (requires KA-Agent for knowledge retrieval)
+     * Examples: "列出知識資產" → needs_agent=true (requires KA-Agent to list knowledge assets)
      * Explicit examples: "編輯文件", "產生文件", "生成報告", "創建文檔" → needs_agent=true
      * Implicit examples (MUST also have needs_agent=true):
        - "幫我在文件中加入..." → needs_agent=true (adding content to file)
@@ -475,7 +481,9 @@ Return ONLY valid JSON following the RouterDecision schema."""
                 # 確保 session_context 不是 None
                 if router_input.session_context is None:
                     router_input.session_context = {}
-                router_input.session_context["similar_decisions"] = similar_decisions[:3]  # 最多 3 個
+                router_input.session_context["similar_decisions"] = similar_decisions[
+                    :3
+                ]  # 最多 3 個
             # 構建 Prompt
             user_prompt = self._build_user_prompt(router_input)
 

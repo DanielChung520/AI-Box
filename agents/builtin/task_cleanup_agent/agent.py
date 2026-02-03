@@ -43,7 +43,8 @@ class TaskCleanupAgent:
         self.audit_logger = AOGAAuditLogger()
 
     async def handle_request(self, intent: str, params: Dict[str, Any]) -> CleanupResponse:
-        "
+        """
+
         處理清理請求
         """
         user_id = params.get("user_id")
@@ -75,7 +76,7 @@ class TaskCleanupAgent:
 
         except Exception as e:
             logger.error(f"TaskCleanupAgent 執行失敗: {e}", exc_info=True)
-            return CleanupResponse(success=False, message=f"執行過程中出錯: {str(e)}",
+            return CleanupResponse(success=False, message=f"執行過程中出錯: {str(e)}")
     async def _handle_analyze(
         self, user_id: str, task_id: Optional[str], actor: str,
     ) -> CleanupResponse:
@@ -175,7 +176,7 @@ class TaskCleanupAgent:
     async def _handle_cleanup_governed(
         self, user_id: str, task_id: Optional[str], actor: str, approval_token: Optional[str]
     ) -> CleanupResponse:
-        """受治理的執行流程"""
+        """受治理的執行流程"""""
         # 1. 重新掃描以確保數據狀態一致
         stats = self.service.scan_data(user_id, task_id)
         analysis_data = await self.llm_service.analyze(user_id, task_id, stats)

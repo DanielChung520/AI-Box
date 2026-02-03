@@ -21,7 +21,7 @@ class ModelConfig:
     context_size: int = 131072
     max_tokens: int = 4096
     temperature: float = 0.7
-    timeout: int = 60
+    timeout: int = 90  # 調高預設以降低 EMPTY_RESPONSE（原 60）
     retries: int = 3
     rpm: int = 30
     concurrency: int = 5
@@ -37,7 +37,7 @@ class ModelConfig:
             context_size=data.get("context_size", 131072),
             max_tokens=data.get("max_tokens", 4096),
             temperature=data.get("temperature", 0.7),
-            timeout=data.get("timeout", 60),
+            timeout=data.get("timeout", 90),
             retries=data.get("retries", 3),
             rpm=data.get("rpm", 30),
             concurrency=data.get("concurrency", 5),

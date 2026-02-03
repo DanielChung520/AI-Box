@@ -100,8 +100,8 @@ def create_production_readiness_agent_config() -> NodeConfig:
         description="生產就緒Agent - 負責在任務進入生產環境前進行最後的安全、效能與穩定性檢查",
         max_retries=1,
         timeout=30.0,
-        required_inputs=["user_id"]
-        optional_inputs=["messages"]
+        required_inputs=["user_id"],
+        optional_inputs=["messages"],
         output_keys=["production_readiness", "readiness_summary"],
     )
 

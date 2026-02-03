@@ -16,11 +16,22 @@ const STORAGE_KEY_PREFIX = 'ai-box-task-';
 // 修改時間：2025-12-09 - 添加收藏夾存儲鍵
 const FAVORITES_STORAGE_KEY = 'ai-box-favorites';
 
+/** 保存任務的選項 */
+export interface SaveTaskOptions {
+  /** 是否為新任務（跳過 getUserTask 檢查，直接創建，避免 404） */
+  isNewTask?: boolean;
+}
+
 /**
  * 保存任務數據到 localStorage 並同步到後台
  * 修改時間：2025-12-08 09:04:21 UTC+8 - 添加後台同步功能
+ * 修改時間：2026-01-31 - 添加 isNewTask 選項，新任務跳過 getUserTask 檢查避免 404
  */
-export async function saveTask(task: Task, syncToBackend: boolean = true): Promise<void> {
+export async function saveTask(
+  task: Task,
+  syncToBackend: boolean = true,
+  options?: SaveTaskOptions
+): Promise<void> {
   try {
     const taskKey = `${STORAGE_KEY_PREFIX}${task.id}`;
     localStorage.setItem(taskKey, JSON.stringify(task));
@@ -55,6 +66,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
             status: task.status || 'pending',
             task_status: task.task_status || 'activate', // 默認值為 activate
             label_color: task.label_color || null, // 修改時間：2025-12-09 - 包含 label_color
+            is_agent_task: task.is_agent_task ?? false, // 修改時間：2026-01-27 - 包含 is_agent_task，取消標記時須持久化 false
             dueDate: task.dueDate,
             // 修改時間：2026-01-06 - 記錄時間戳
             // 如果是新任務（沒有 created_at），設置創建時間和更新時間為當前時間
@@ -67,14 +79,17 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
           };
 
           // 修改時間：2026-01-06 - 改進任務保存邏輯：先檢查任務是否存在，再決定創建或更新
-          // 使用 getUserTask 檢查任務是否存在，避免 404/409 錯誤
+          // 修改時間：2026-01-31 - 新任務（isNewTask）跳過 getUserTask 檢查，直接創建，避免 404
           let syncResult: any = null;
           let lastError: any = null;
-          let isNewTask: boolean = false; // 記錄是創建還是更新
+          let isNewTask: boolean = options?.isNewTask ?? false; // 記錄是創建還是更新
 
           try {
-            // 先嘗試獲取任務，檢查是否存在
-            const existingTask = await getUserTask(String(task.id));
+            // 新任務直接創建，跳過 getUserTask 檢查（避免不必要的 404）
+            let existingTask: { success: boolean; data?: any } = { success: false };
+            if (!options?.isNewTask) {
+              existingTask = await getUserTask(String(task.id));
+            }
 
             if (existingTask.success && existingTask.data) {
               // 任務存在，執行更新
@@ -88,6 +103,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
                   status: task.status,
                   task_status: task.task_status || 'activate',
                   label_color: task.label_color || null,
+                  is_agent_task: task.is_agent_task ?? false, // 修改時間：2026-01-27 - 取消標記時須持久化 false
                   dueDate: task.dueDate,
                   updated_at: now, // 修改時間：2026-01-06 - 更新時記錄更新時間
                   messages: task.messages,
@@ -121,6 +137,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
                       status: task.status,
                       task_status: task.task_status || 'activate',
                       label_color: task.label_color || null,
+                      is_agent_task: task.is_agent_task ?? false, // 修改時間：2026-01-27 - 取消標記時須持久化 false
                       dueDate: task.dueDate,
                       updated_at: now, // 修改時間：2026-01-06 - 更新時記錄更新時間
                       messages: task.messages,
@@ -157,6 +174,7 @@ export async function saveTask(task: Task, syncToBackend: boolean = true): Promi
                     status: task.status,
                     task_status: task.task_status || 'activate',
                     label_color: task.label_color || null,
+                    is_agent_task: task.is_agent_task ?? false, // 修改時間：2026-01-27 - 取消標記時須持久化 false
                     dueDate: task.dueDate,
                     updated_at: now, // 修改時間：2026-01-06 - 更新時記錄更新時間
                     messages: task.messages,
@@ -410,6 +428,10 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
           label_color: backendTask.label_color !== undefined && backendTask.label_color !== null
             ? backendTask.label_color
             : existingTask?.label_color,
+          // 修改時間：2026-01-27 - 優先使用後端的 is_agent_task，取消 Agent 標記後須同步到本地
+          is_agent_task: backendTask.is_agent_task === true || backendTask.is_agent_task === false
+            ? backendTask.is_agent_task
+            : (existingTask?.is_agent_task ?? false),
           dueDate: backendTask.dueDate || '',
           // 修改時間：2026-01-06 - 從後端同步創建時間和更新時間
           // 後端返回的可能是 datetime 對象或字符串，統一轉換為 ISO 8601 字符串
@@ -486,12 +508,15 @@ export async function syncTasksToBackend(): Promise<{ synced: number; errors: nu
       return { synced: 0, errors: 0 };
     }
 
-    // 轉換為後台格式
+    // 轉換為後台格式（修改時間：2026-01-27 - 包含 task_status、label_color、is_agent_task，取消標記時須持久化 false）
     const tasksToSync = localTasks.map(task => ({
       id: task.id,
       task_id: String(task.id),
       title: task.title,
       status: task.status,
+      task_status: task.task_status || 'activate',
+      label_color: task.label_color ?? null,
+      is_agent_task: task.is_agent_task ?? false,
       dueDate: task.dueDate,
       messages: task.messages,
       executionConfig: task.executionConfig,
@@ -516,6 +541,7 @@ export async function syncTasksToBackend(): Promise<{ synced: number; errors: nu
  * 雙向同步任務數據（從後台獲取並合併本地數據）
  * 修改時間：2025-12-08 09:04:21 UTC+8 - 添加後台同步功能
  * 修改時間：2026-01-19 - 用戶切換時完全替換任務列表，不再合併
+ * 修改時間：2026-01-28 - 改為單向同步（只從後端獲取），避免重複創建問題
  */
 export async function syncTasksBidirectional(): Promise<{ synced: number; errors: number }> {
   const userId = getCurrentUserId();
@@ -537,10 +563,11 @@ export async function syncTasksBidirectional(): Promise<{ synced: number; errors
     // 記錄當前用戶
     localStorage.setItem('last_sync_user_id', userId);
 
-    // 1. 先將本地任務同步到後台
-    await syncTasksToBackend();
-
-    // 2. 然後從後台獲取最新數據（包含其他設備的任務）
+    // 修改時間：2026-01-28 - 改為只從後端同步，不上傳本地任務
+    // 這樣可以避免：
+    // 1. 本地測試任務重複創建到後端
+    // 2. 已刪除的任務從本地恢復到後端
+    // 後端是唯一的數據源，前端只是緩存
     const result = await syncTasksFromBackend();
 
     // 3. 觸發任務更新事件，通知 UI 刷新

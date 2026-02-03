@@ -101,7 +101,8 @@ class Translator:
     def extract_part_number(self, text: str) -> Optional[str]:
         """提取料號"""
         patterns = [
-            r"([A-Z]{2,4}-\d{2,6})",  # ABC-123
+            r"([A-Z]{2,4}-?\d{2,6}(?:-\d{2,6})?)",  # ABC-123 或 RM05-008 或 ABC-456-789
+            r"([A-Z]{2,4}\d{2,6}(?:-\d{2,6})?)",  # RM05008 或 RM05008-009
             r"料號[：:\s]*([A-Z0-9-]+)",  # 料號：ABC-123
             r"品號[：:\s]*([A-Z0-9-]+)",  # 品號：ABC-123
         ]
@@ -115,7 +116,7 @@ class Translator:
         """提取數量"""
         patterns = [
             r"(\d+)\s*(?:個|件|PCS|pcs|kg|KG|公斤)",
-            r"(\d+)\s*(?:合計|總計|共)",
+            r"(?:合計|總計|共)\s*(\d+)",
             r"共\s*(\d+)",
         ]
         for pattern in patterns:
@@ -136,13 +137,16 @@ class Translator:
             "不良品倉": "W04",
             "回收倉": "W05",
         }
-        for name, warehouse in warehouse_map.items():
-            if name in text:
+        # 按長度降序排列，確保更長的名稱先被匹配
+        sorted_warehouses = sorted(warehouse_map.items(), key=lambda x: len(x[0]), reverse=True)
+        for name, warehouse in sorted_warehouses:
+            if name == text or text.endswith(name):
                 return warehouse
 
         patterns = [
             r"[倉](W\d{2})",
             r"(W\d{2})[倉]",
+            r"(W\d{2})",  # 單獨的倉庫代碼
         ]
         for pattern in patterns:
             match = re.search(pattern, text)

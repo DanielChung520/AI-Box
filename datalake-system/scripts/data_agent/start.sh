@@ -9,7 +9,6 @@ set -e
 # 獲取腳本目錄
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATALAKE_SYSTEM_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-AI_BOX_ROOT="$(cd "$DATALAKE_SYSTEM_DIR/.." && pwd)"
 
 # 日誌目錄
 LOG_DIR="$DATALAKE_SYSTEM_DIR/logs"
@@ -35,6 +34,11 @@ fi
 
 # 進入 datalake-system 目錄
 cd "$DATALAKE_SYSTEM_DIR"
+
+# 激活 datalake-system/venv（獨立示範系統統一虛擬環境）
+if [ -f "$DATALAKE_SYSTEM_DIR/venv/bin/activate" ]; then
+    source "$DATALAKE_SYSTEM_DIR/venv/bin/activate"
+fi
 
 # 檢查 Python 環境
 if ! command -v python3 &> /dev/null; then
@@ -63,10 +67,17 @@ if ! python3 -c "import boto3" 2>/dev/null; then
     exit 1
 fi
 
+# 檢查 pandas 依賴（用於 Datalake 查詢結果處理）
+if ! python3 -c "import pandas" 2>/dev/null; then
+    echo "❌ 錯誤: 缺少必要的 Python 依賴 (pandas)"
+    echo "   請運行: cd $DATALAKE_SYSTEM_DIR && pip install -r requirements.txt"
+    exit 1
+fi
+
 # 啟動服務
 echo "🚀 啟動 Data Agent 服務 (Datalake System)..."
 echo "   Datalake System 目錄: $DATALAKE_SYSTEM_DIR"
-echo "   AI-Box 根目錄: $AI_BOX_ROOT"
+echo "   虛擬環境: $DATALAKE_SYSTEM_DIR/venv (若存在)"
 echo "   日誌文件: $LOG_FILE"
 echo "   錯誤日誌: $ERROR_LOG_FILE"
 echo "   PID 文件: $PID_FILE"

@@ -93,6 +93,17 @@
                 "食品法規文件"
             ],
             "file_path": "kag/ontology/domain-food.json"
+        },
+        {
+            "file_name": "ka-agent-domain.json",
+            "ontology_name": "KA_Agent_Domain_Ontology",
+            "version": "1.0",
+            "type": "domain",
+            "description": "KA-Agent 知識資產管理領域本體論，定義知識上架、更新、檢索、安全、審計等核心概念與流程。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL"],
+            "tags": ["KA", "知識資產", "知識管理", "KSLS", "KA-Agent", "向量", "圖譜", "RAG"],
+            "use_cases": ["知識上架與管理", "向量化與語義檢索", "知識圖譜抽取", "安全審計與權限控制", "版本管理與更新"],
+            "file_path": "kag/ontology/ka-agent-domain.json"
         }
     ],
     "major_ontologies": [
@@ -197,6 +208,18 @@
                 "配方標準化"
             ],
             "file_path": "kag/ontology/major-prepared-food.json"
+        },
+        {
+            "file_name": "ka-agent-major.json",
+            "ontology_name": "KA_Agent_Major_Ontology",
+            "version": "1.0",
+            "type": "major",
+            "description": "KA-Agent 專業本體論，定義知識資產管理領域下的細分模組、流程與服務。",
+            "inherits_from": ["5W1H_Base_Ontology_OWL", "KA_Agent_Domain_Ontology"],
+            "compatible_domains": ["ka-agent-domain.json"],
+            "tags": ["KA-Agent", "知識上架", "向量化", "圖譜抽取", "RAG", "版本管理", "審計", "BPA"],
+            "use_cases": ["知識上架流程", "向量化與圖譜抽取", "RAG Pipeline", "版本管理與審計", "BPA 集成"],
+            "file_path": "kag/ontology/ka-agent-major.json"
         }
     ],
     "selection_guide": {
@@ -237,6 +260,10 @@
             "major-prepared-food.json": {
                 "recommended_domain": "domain-food.json",
                 "reason": "預製菜屬於食品領域，專注於食品預先製作和保存技術"
+            },
+            "ka-agent-major.json": {
+                "recommended_domain": "ka-agent-domain.json",
+                "reason": "KA-Agent 專業本體屬於知識資產管理領域"
             }
         }
     },
@@ -296,7 +323,16 @@
             "HACCP": ["major-prepared-food.json"],
             "批量生產": ["major-prepared-food.json"],
             "急速冷卻": ["major-prepared-food.json"],
-            "焯水": ["major-prepared-food.json"]
+            "焯水": ["major-prepared-food.json"],
+            "KA-Agent": ["ka-agent-domain.json", "ka-agent-major.json"],
+            "知識資產": ["ka-agent-domain.json", "ka-agent-major.json"],
+            "KSLS": ["ka-agent-domain.json", "ka-agent-major.json"],
+            "知識管理": ["ka-agent-domain.json", "major-notioneditor.json"],
+            "知識上架": ["ka-agent-major.json"],
+            "規範": ["ka-agent-domain.json", "ka-agent-major.json"],
+            "版本號": ["ka-agent-major.json"],
+            "架構": ["ka-agent-domain.json"],
+            "白皮書": ["ka-agent-domain.json"]
         },
         "by_document_type": {
             "財務報表": {
@@ -358,6 +394,14 @@
             "冷鏈物流文檔": {
                 "domain": ["domain-food.json"],
                 "major": ["major-prepared-food.json"]
+            },
+            "KA-Agent 知識庫文檔": {
+                "domain": ["ka-agent-domain.json"],
+                "major": ["ka-agent-major.json"]
+            },
+            "知識資產規範文檔": {
+                "domain": ["ka-agent-domain.json"],
+                "major": ["ka-agent-major.json"]
             }
         }
     }

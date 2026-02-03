@@ -188,7 +188,7 @@ class IntentAgent(BaseAgentNode):
         for message in reversed(state.messages):
             if message.role == "user":
                 return message.content
-        return "
+        return ""
     def _determine_next_layer(self, intent_result: IntentAnalysisResult, state: AIBoxState) -> str:
         if intent_result.intent_name in [
             "system_design",

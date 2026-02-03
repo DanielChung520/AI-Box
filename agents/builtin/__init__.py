@@ -142,6 +142,15 @@ def initialize_builtin_agents() -> Dict[str, AgentServiceProtocol]:
     except Exception as e:
         logger.warning(f"Failed to initialize PDF to Markdown Agent: {e}", exc_info=True)
 
+    # Knowledge Architect Agent (ka-agent)
+    try:
+        from .ka_agent.agent import KnowledgeArchitectAgent
+
+        _builtin_agents["ka_agent"] = KnowledgeArchitectAgent()
+        logger.info("Knowledge Architect Agent initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to initialize Knowledge Architect Agent: {e}", exc_info=True)
+
     logger.info(
         f"Initialized {len(_builtin_agents)} builtin agents: {list(_builtin_agents.keys())}"
     )
@@ -163,7 +172,19 @@ def _register_agent_helper(
 ):
     """注册 Agent 的辅助函数"""
     agent = agents_dict.get(agent_key)
-    if agent and hasattr(agent, "agent_id"):
+    # 修改時間：2026-01-28 - 支持沒有 agent_id 屬性的 Agent（使用傳入的 agent_id）
+    # 修改時間：2026-01-28 - 添加實例檢查和驗證日誌
+    if not agent:
+        logger.error(
+            f"Agent '{agent_key}' not found in agents_dict. Cannot register {agent_id} ({name})."
+        )
+        return
+
+    logger.info(
+        f"Registering {name} ({agent_id}) with instance: {type(agent).__name__}"
+    )
+
+    if agent:
         try:
             capabilities = default_capabilities.copy()
             if hasattr(agent, "get_capabilities"):
@@ -242,6 +263,19 @@ def _register_agent_helper(
                 if agent_info:
                     agent_info.status = AgentStatus.ONLINE
                     logger.info(f"{name} ({agent_id}) registered successfully (status: ONLINE)")
+
+                    # 驗證實例是否被存儲
+                    stored_instance = registry.get_agent(agent_id)
+                    if stored_instance:
+                        logger.info(
+                            f"✅ {name} ({agent_id}) instance stored successfully: "
+                            f"{type(stored_instance).__name__}"
+                        )
+                    else:
+                        logger.warning(
+                            f"⚠️ {name} ({agent_id}) registered but instance not found in registry. "
+                            f"This may cause 'instance not found' errors."
+                        )
                 else:
                     logger.warning(f"{name} ({agent_id}) registered but not found in registry")
             else:
@@ -661,6 +695,36 @@ def _do_register_all_agents(
         ],
         version="2.0.0",
         category="document_conversion",
+        registry=registry,
+        system_agent_store=get_system_agent_registry_store_service(),
+        agents_dict=_builtin_agents,
+    )
+
+    # Knowledge Architect Agent (ka-agent)
+    # 修改時間：2026-01-28 - 添加診斷日誌
+    ka_agent = agents_dict.get("ka_agent")
+    if ka_agent:
+        logger.info(
+            f"✅ KA-Agent instance found: {type(ka_agent).__name__}, "
+            f"agent_id={ka_agent.agent_id if hasattr(ka_agent, 'agent_id') else 'N/A'}"
+        )
+    else:
+        logger.error("❌ KA-Agent instance not found in agents_dict!")
+
+    _register_agent_helper(
+        agent_key="ka_agent",
+        agent_id="ka-agent",
+        agent_type="knowledge_service",
+        name="Knowledge Architect Agent (v1.5)",
+        description="知識資產總建築師，負責知識資產化、生命週期管理與混合檢索",
+        default_capabilities=[
+            "knowledge.query",
+            "ka.lifecycle",
+            "ka.list",
+            "ka.retrieve",
+        ],
+        version="1.5.0",
+        category="knowledge_service",
         registry=registry,
         system_agent_store=get_system_agent_registry_store_service(),
         agents_dict=_builtin_agents,

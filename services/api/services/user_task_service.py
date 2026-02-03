@@ -1,7 +1,7 @@
 # 代碼功能說明: 用戶任務服務
 # 創建日期: 2025-12-08 09:04:21 UTC+8
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-21 12:04 UTC+8
+# 最後修改日期: 2026-01-24 23:48 UTC+8
 
 """用戶任務服務 - 實現 ArangoDB CRUD 操作"""
 
@@ -73,6 +73,8 @@ class UserTaskService:
             "task_status": task.task_status or "activate",
             # 修改時間：2025-12-09 - 保存 label_color
             "label_color": task.label_color,
+            # 修改時間：2026-01-27 - 保存 is_agent_task
+            "is_agent_task": task.is_agent_task if task.is_agent_task is not None else False,
             "dueDate": task.dueDate,
             "messages": [
                 msg.model_dump() if hasattr(msg, "model_dump") else msg
@@ -96,9 +98,11 @@ class UserTaskService:
         doc["_key"] = task.task_id
         collection = self.client.db.collection(COLLECTION_NAME)
 
-        # 修改時間：2026-01-21 - 使用 upsert 防止併發導致的重複創建
+        # 修改時間：2026-01-28 - 使用 upsert 防止併發導致的重複創建
+        # 修改時間：2026-01-28 - 只有新創建的任務才創建工作區目錄，避免重複創建
         # 先檢查是否已存在，如果存在則更新，不存在則插入
         existing_doc = collection.get(task.task_id)
+        is_new_task = False
         if existing_doc:
             # 任務已存在，記錄警告但不拋出異常（允許冪等操作）
             self.logger.warning(
@@ -106,7 +110,7 @@ class UserTaskService:
                 task_id=task.task_id,
                 user_id=task.user_id,
                 existing_title=existing_doc.get("title"),
-                note="Task already exists, using existing record",
+                note="Task already exists, using existing record (workspace not created)",
             )
             doc = existing_doc
         else:
@@ -114,6 +118,7 @@ class UserTaskService:
             try:
                 collection.insert(doc)
                 doc = collection.get(task.task_id)  # 使用正確的 _key 檢索
+                is_new_task = True  # 標記為新創建的任務
             except Exception as e:
                 # 如果插入失敗（可能是併發導致的），嘗試再次獲取
                 existing_doc = collection.get(task.task_id)
@@ -123,77 +128,86 @@ class UserTaskService:
                         task_id=task.task_id,
                         user_id=task.user_id,
                         error=str(e),
-                        note="Task was created by another concurrent request",
+                        note="Task was created by another concurrent request (workspace not created)",
                     )
                     doc = existing_doc
+                    is_new_task = False
                 else:
                     # 真正的錯誤，重新拋出
                     raise
 
+        # 修改時間：2026-01-28 - 只有新創建的任務才創建工作區目錄，避免重複創建
         # 修改時間：2026-01-06 - 創建任務時自動創建任務工作區和排程任務目錄（添加超時保護）
         # 修改時間：2026-01-06 - 工作區創建改為快速失敗，避免阻塞任務創建
-        try:
-            import time
+        if is_new_task:
+            try:
+                import time
 
-            workspace_start_time = time.time()
+                workspace_start_time = time.time()
 
-            workspace_service = get_task_workspace_service()
-            # 創建任務工作區（添加超時保護，最多等待2秒）
-            if task.user_id:
-                try:
-                    workspace_service.create_workspace(
-                        task_id=task.task_id,
-                        user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
-                    )
-                except Exception as workspace_error:
+                workspace_service = get_task_workspace_service()
+                # 創建任務工作區（添加超時保護，最多等待2秒）
+                if task.user_id:
+                    try:
+                        workspace_service.create_workspace(
+                            task_id=task.task_id,
+                            user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
+                        )
+                    except Exception as workspace_error:
+                        self.logger.warning(
+                            "create_workspace_failed",
+                            task_id=task.task_id,
+                            user_id=task.user_id,
+                            error=str(workspace_error),
+                            note="Workspace creation failed, but task creation continues",
+                        )
+
+                # 創建排程任務目錄（為後續功能預留，添加超時保護）
+                if task.user_id:
+                    try:
+                        workspace_service.create_scheduled_folder(
+                            task_id=task.task_id,
+                            user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
+                        )
+                    except Exception as scheduled_error:
+                        self.logger.warning(
+                            "create_scheduled_folder_failed",
+                            task_id=task.task_id,
+                            user_id=task.user_id,
+                            error=str(scheduled_error),
+                            note="Scheduled folder creation failed, but task creation continues",
+                        )
+
+                workspace_elapsed_time = time.time() - workspace_start_time
+                if workspace_elapsed_time > 1.0:  # 如果超過1秒，記錄警告
                     self.logger.warning(
-                        "create_workspace_failed",
+                        "workspace_creation_slow",
                         task_id=task.task_id,
-                        user_id=task.user_id,
-                        error=str(workspace_error),
-                        note="Workspace creation failed, but task creation continues",
+                        elapsed_time=workspace_elapsed_time,
+                        note=f"Workspace creation took {workspace_elapsed_time:.2f} seconds",
                     )
 
-            # 創建排程任務目錄（為後續功能預留，添加超時保護）
-            if task.user_id:
-                try:
-                    workspace_service.create_scheduled_folder(
-                        task_id=task.task_id,
-                        user_id=task.user_id,  # type: ignore[arg-type]  # 已檢查不為 None
-                    )
-                except Exception as scheduled_error:
-                    self.logger.warning(
-                        "create_scheduled_folder_failed",
-                        task_id=task.task_id,
-                        user_id=task.user_id,
-                        error=str(scheduled_error),
-                        note="Scheduled folder creation failed, but task creation continues",
-                    )
-
-            workspace_elapsed_time = time.time() - workspace_start_time
-            if workspace_elapsed_time > 1.0:  # 如果超過1秒，記錄警告
-                self.logger.warning(
-                    "workspace_creation_slow",
+                self.logger.info(
+                    "任務工作區和排程任務目錄創建成功",
                     task_id=task.task_id,
+                    user_id=task.user_id,
                     elapsed_time=workspace_elapsed_time,
-                    note=f"Workspace creation took {workspace_elapsed_time:.2f} seconds",
                 )
-
-            self.logger.info(
-                "任務工作區和排程任務目錄創建成功",
+            except Exception as e:
+                self.logger.error(
+                    "創建任務工作區失敗",
+                    task_id=task.task_id,
+                    user_id=task.user_id,
+                    error=str(e),
+                    exc_info=True,
+                )
+                # 工作區創建失敗不影響任務創建，但記錄錯誤
+        else:
+            self.logger.debug(
+                "跳過工作區創建（任務已存在）",
                 task_id=task.task_id,
                 user_id=task.user_id,
-                elapsed_time=workspace_elapsed_time,
             )
-        except Exception as e:
-            self.logger.error(
-                "創建任務工作區失敗",
-                task_id=task.task_id,
-                user_id=task.user_id,
-                error=str(e),
-                exc_info=True,
-            )
-            # 工作區創建失敗不影響任務創建，但記錄錯誤
 
         # 確保 doc 是字典類型
         if doc is None or not isinstance(doc, dict):
@@ -253,7 +267,6 @@ class UserTaskService:
         # 如果前端需要 fileTree，應該單獨調用 /api/v1/files/tree API
         if build_file_tree:
             doc_task_id: Optional[str] = doc.get("task_id")  # type: ignore[assignment]  # doc.get 返回 Any | None
-            doc_user_id: Optional[str] = doc.get("user_id")  # type: ignore[assignment]  # doc.get 返回 Any | None
             if doc_task_id and doc_user_id:
                 try:
                     # 修改時間：2026-01-06 - 添加性能監控
@@ -507,6 +520,9 @@ class UserTaskService:
         # 修改時間：2025-12-09 - 支持更新 label_color
         if update.label_color is not None:
             update_data["label_color"] = update.label_color
+        # 修改時間：2026-01-27 - 支持更新 is_agent_task（須顯式持久化 False，取消 Agent 標記時用）
+        if update.is_agent_task is not None:
+            update_data["is_agent_task"] = update.is_agent_task
         if update.dueDate is not None:
             update_data["dueDate"] = update.dueDate
         if update.messages is not None:
@@ -811,7 +827,7 @@ class UserTaskService:
             raise RuntimeError("ArangoDB client is not connected")
 
         # 修改時間：2026-01-22 - 使用 bind_vars 避免 ArangoDB 解析錯誤
-        bind_vars = {"user_id": user_id}
+        bind_vars: Dict[str, Any] = {"user_id": user_id}
 
         if task_status:
             bind_vars["task_status"] = task_status
@@ -906,6 +922,9 @@ class UserTaskService:
                         update_dict["task_status"] = task_data.get("task_status")
                     if "label_color" in task_data:
                         update_dict["label_color"] = task_data.get("label_color")
+                    # 修改時間：2026-01-27 - 支持更新 is_agent_task（須顯式持久化 False，取消 Agent 標記時用）
+                    if "is_agent_task" in task_data:
+                        update_dict["is_agent_task"] = task_data.get("is_agent_task")
                     if "dueDate" in task_data:
                         update_dict["dueDate"] = task_data.get("dueDate")
                     if "messages" in task_data:
@@ -919,6 +938,7 @@ class UserTaskService:
                     # fileTree 不再緩存到任務文檔中，因此不處理 fileTree 更新
 
                     if len(update_dict) > 1:  # 除了 updated_at 之外還有其他更新
+                        # 使用與 update() 方法相同的模式：先獲取文檔，然後更新
                         existing_doc.update(update_dict)
                         collection.update(existing_doc)
                         updated += 1

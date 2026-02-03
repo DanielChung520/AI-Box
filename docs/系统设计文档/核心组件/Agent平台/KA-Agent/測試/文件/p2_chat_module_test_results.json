@@ -1,0 +1,324 @@
+{
+  "test_time": "2026-01-28T20:28:38.805546",
+  "test_priority": "P2",
+  "chat_endpoint": "/api/v2/chat",
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "pass_rate": 100.0
+  },
+  "results": [
+    {
+      "test_id": "KA-TEST-004",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "**最近上傳的知識資產文件總數**：5 個\n\n以下是最近上傳並已向量化的文件（即知識庫文件）：\n\n| # | 文件名稱（或主題） | 主要內容概覽 |\n|---|----------------|------------|\n| 1 | **物料入庫流程** | 針對「物料入庫流程」的示例說明，包含流程概念、關鍵步驟與實作細節。 |\n| 2 | **上架作業流程** | 詳列知識上架的六大步驟：收集來源、向量化、Base 抽取、版本管理等。 |\n| 3 | **Metadata 欄位定義** | 針對 Knowledge Asset (KA) 的 metadata 欄位說明，對應 Ontology 層級。 |\n| 4 | **KA‑Agent 作業手冊模板 (KSLS 工程版)** | 提供作業手冊模板，涵蓋上架步驟、檢索策略、版本管理、審計與安全規範等。 |\n| 5 | **編碼示例** | 以能源領域低溫熱解反應器為例，示範編碼規範與實作。 |\n\n> **說明**：上述 5 個文件皆為您上傳且已經向量化的知識資產，可直接在知識庫中查詢、列舉或進行統計。若您需要更詳細的內容或其他資訊，隨時告訴我！",
+          "session_id": "test_KA-TEST-004_1769603109",
+          "task_id": "task_KA-TEST-004_1769603109",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 14772.990942001343,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "6734f50b-343d-4b8c-8f1d-213fe9b32e44",
+            "session_id": "test_KA-TEST-004_1769603109",
+            "task_id": "task_KA-TEST-004_1769603109",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 19.588572025299072,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:25:29.280001"
+    },
+    {
+      "test_id": "KA-TEST-009",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "**根據檢索結果，我們共找到 5 個知識資產文件。**  \n以下文件均與「開發」相關（工程實作、規範、流程等），且在檢索片段中未提及「API」：\n\n| # | 文件名稱 | 主要內容（摘錄） |\n|---|----------|----------------|\n| 1 | **Knowledge Service Layer Specification (KSLS)** | 「本文件定義 Knowledge Service Layer(KSL) 的工程級系統規格, 用以支援 Agent‑Oriented 企…」 |\n| 2 | **KA‑Agent 作業規範 (Standard Operating Procedure)** | 「本文作為作業手冊工程導向，直接對應 KSLS，包含：<br>• 上架步驟<br>• Metadata 欄位定義<br>• 檢索策略<br>• 版本管理<br>• Ontology 演化<br>• 審計與安全規範」 |\n| 3 | **KA‑Agent 作業手冊模板 (KSLS 工程版)** | 「## 1️⃣ 上架作業流程…」以及其他針對工程導向的步驟與指導。 |\n| 4 | **KA‑Agent 版本管理規範** | 「對齊系統：KA‑Agent 規格書 v1.5.x, KSLS v1.0；文檔版本 v1.3；最後更新 2026‑01‑25 …」 |\n| 5 | **KA‑Agent Metadata 欄位定義** | 「每個 Knowledge Asset(KA) 或上架的文件, metadata 可以包含：<br>• `KNW_Code` – 系統唯一索引<br>• `Domain` – 領域分類…」 |\n\n> **說明**  \n> - 以上 5 個文件皆為使用者上傳並已向量化的知識資產文件。  \n> - 目前檢索片段中並未出現「API」字樣，故符合「不要 API 相關」的條件。  \n> - 若需要更詳細內容，請直接檢索或查看完整文件。",
+          "session_id": "test_KA-TEST-009_1769603129",
+          "task_id": "task_KA-TEST-009_1769603129",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 20339.627981185913,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "8c10cdfb-d5b9-41c8-992c-7424386f229b",
+            "session_id": "test_KA-TEST-009_1769603129",
+            "task_id": "task_KA-TEST-009_1769603129",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 46.57313895225525,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:26:15.853281"
+    },
+    {
+      "test_id": "KA-TEST-012",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "本次未產生回覆，請重試或換一種問法。",
+          "session_id": "test_KA-TEST-012_1769603175",
+          "task_id": "task_KA-TEST-012_1769603175",
+          "routing": {
+            "provider": "qwen",
+            "model": "qwen-turbo",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 2325.1028060913086,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "6eaec8e7-9a42-4620-ae94-8231554df6be",
+            "session_id": "test_KA-TEST-012_1769603175",
+            "task_id": "task_KA-TEST-012_1769603175",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": "not_found"
+        }
+      },
+      "error": null,
+      "duration": 19.21226406097412,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:26:35.065706"
+    },
+    {
+      "test_id": "KA-TEST-014",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "本次未產生回覆，請重試或換一種問法。",
+          "session_id": "test_KA-TEST-014_1769603195",
+          "task_id": "task_KA-TEST-014_1769603195",
+          "routing": {
+            "provider": "qwen",
+            "model": "qwen-turbo",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 1536.8502140045166,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "01abc871-4dc8-42ce-b0b8-105e90d09d9d",
+            "session_id": "test_KA-TEST-014_1769603195",
+            "task_id": "task_KA-TEST-014_1769603195",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": "not_found"
+        }
+      },
+      "error": null,
+      "duration": 20.8164222240448,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:26:55.882268"
+    },
+    {
+      "test_id": "KA-TEST-015",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "根據檢索結果，我們已經找到 **5 個知識資產文件**。  \n這些文件中，並沒有直接顯示「PDF 格式」或「系統設計」的關鍵字。以下是目前能夠辨識到的文件概覽（依照檢索片段所呈現的標題或主題）：\n\n| 序號 | 可能的文件主題（由檢索片段推斷） |\n|------|-----------------------------------|\n| 1 | 置信度 0.76：與 Knowledge Asset 相關的元資料說明 |\n| 2 | 置信度 0.73：**Knowledge Service Layer Specification (KSLS)** – 與工程層級系統規格相關 |\n| 3 | 置信度 0.72：與 **KA‑Agent 規格書**、版本號規範、KSLS 的參考文檔 |\n| 4 | 置信度 0.71：與 **Semantic Versioning 2.0.0**、**KA‑Agent 規格書 v1.4.1**、KSLS 的參考文檔 |\n| 5 | 置信度 0.70：**KA‑Agent 作業規範 (Standard Operating Procedure)** – 文件狀態、版本、更新時間等 |\n\n目前尚無具體證據表明上述任何一份文件已轉成 PDF，亦未顯示「系統設計」的內容。若您能提供更具體的關鍵字（例如文件名稱、作者、發布日期等），或確認您要尋找的是「系統設計」相關的 PDF，我可以再進一步協助定位。",
+          "session_id": "test_KA-TEST-015_1769603215",
+          "task_id": "task_KA-TEST-015_1769603215",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 16372.038841247559,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "6aff1168-b8c4-47fb-8760-efa02e4c5e93",
+            "session_id": "test_KA-TEST-015_1769603215",
+            "task_id": "task_KA-TEST-015_1769603215",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 38.30501890182495,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:27:34.187470"
+    },
+    {
+      "test_id": "KA-TEST-018",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "【知識庫文件總數】  \n- 找到 **5 個知識資產文件**。  \n\n以下為與您查詢主題「分布式系統高可用性、負載均衡、數據一致性、多數據中心同步、網絡延遲與故障恢復」相關的內容摘要（僅基於檢索結果）：\n\n| 文件序號 | 相關片段 | 主要內容 |\n|--------|--------|---------|\n| 1 | “核心理念:用最少層級解決全局分類與精細知識抽象問題，避免過深層次造成維護困難。” | 這一章節說明了在設計分布式架構時，採用最小層級（Domain → Major → Base）可降低複雜度，進而提升系統的可維護性與可擴充性，與高可用性設計息息相關。 |\n| 2 | “Domain → Major → Base 分層過濾；先大範圍篩選再細粒度檢索, 提高速度與精準度。” | 描述了分層過濾機制，可用於在多數據中心間同步資料時，先篩選主要域，再進一步細化查詢，減少跨網路延遲與不必要的資料傳輸。 |\n| 3 | “Metadata + 向量混合檢索；Metadata 篩選降低候選數量, 向量檢索精確語義匹配。” | 這個混合檢索模型可協助在多數據中心同步時，先用元資料（如版本、來源等）篩選，再使用向量相似度精確匹配，保證資料一致性並降低網路負載。 |\n| 4 | “Graph / Ontology 推理” | 透過圖式/本體推理，可在不同數據中心之間執行一致性驗證與衝突解決，並支援故障恢復時的自動重建。 |\n| 5 | “BPA 的定位：可維持自身私有知識庫；可選擇性使用 Knowledge Service；可同時參照多個知識來源。” | BPA（Business Process Agent）架構允許每個節點擁有私有知識庫，同時能調用共用服務，這種分散式知識管理方式有助於提升整體系統的高可用性與容錯性。 |\n\n**綜合建議**  \n- **高可用性 & 負載均衡**：採用多節點集群與分層過濾（Domain → Major → Base）可降低單點失效風險，同時通過元資料過濾與向量檢索分散查詢負載。  \n- **數據一致性**：利用本體推理與元資料版本管理，確保跨數據中心同步時的資料一致性與衝突解決。  \n- **多數據中心同步**：先在 Domain 層級篩選必要資料，再在 Major/Base 層級細化傳輸，可有效降低網路延遲。  \n- **故障恢復機制**：BPA 能保持私有知識庫並自動切換至備援節點，配合元資料版本控制可快速恢復一致狀態。  \n\n若需更深入的技術細節，請告訴我，我將進一步擷取與此主題相關的內容。",
+          "session_id": "test_KA-TEST-018_1769603254",
+          "task_id": "task_KA-TEST-018_1769603254",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 25052.175045013428,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "0deec7fb-f5a3-46e6-ace4-922851ae57a1",
+            "session_id": "test_KA-TEST-018_1769603254",
+            "task_id": "task_KA-TEST-018_1769603254",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 64.6174840927124,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:28:38.805185"
+    }
+  ],
+  "analyses": [
+    {
+      "test_id": "KA-TEST-004",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "**最近上傳的知識資產文件總數**：5 個\n\n以下是最近上傳並已向量化的文件（即知識庫文件）：\n\n| # | 文件名稱（或主題） | 主要內容概覽 |\n|---|----------------|------------|\n| 1 | **物料入庫流程** | 針對「物料入庫流程」的示例說明，包含流程概念、關鍵步驟與實作細節。 |\n| 2 | **上架作業流程** | 詳列知識上架的六大步驟：收集來源、向量化、Base 抽取、版本管理等。 |\n| 3 | **Metadata 欄位定義** | 針對 Knowledge Asset (KA) 的 metadata 欄位說明，對應 Ontology 層級。 |\n| 4 | **KA‑Agent 作業手冊模板 (KSLS 工程版)** | 提供作業手冊模板，涵蓋上架步驟、檢索策略、版本管理、審計與安全規範等。 |\n| 5 | **編碼示例** | 以能源領域低溫熱解反應器為例，示範編碼規範與實作。 |\n\n> **說明**：上述 5 個文件皆為您上傳且已經向量化的知識資產，可直接在知識庫中查詢、列舉或進行統計。若您需要更詳細的內容或其他資訊，隨時告訴我！",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "最近",
+        "上傳",
+        "文件"
+      ]
+    },
+    {
+      "test_id": "KA-TEST-009",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "**根據檢索結果，我們共找到 5 個知識資產文件。**  \n以下文件均與「開發」相關（工程實作、規範、流程等），且在檢索片段中未提及「API」：\n\n| # | 文件名稱 | 主要內容（摘錄） |\n|---|----------|----------------|\n| 1 | **Knowledge Service Layer Specification (KSLS)** | 「本文件定義 Knowledge Service Layer(KSL) 的工程級系統規格, 用以支援 Agent‑Oriented 企…」 |\n| 2 | **KA‑Agent 作業規範 (Standard Operating Procedure)** | 「本文作為作業手冊工程導向，直接對應 KSLS，包含：<br>• 上架步驟<br>• Metadata 欄位定義<br>• 檢索策略<br>• 版本管理<br>• Ontology 演化<br>• 審計與安全規範」 |\n| 3 | **KA‑Agent 作業手冊模板 (KSLS 工程版)** | 「## 1️⃣ 上架作業流程…」以及其他針對工程導向的步驟與指導。 |\n| 4 | **KA‑Agent 版本管理規範** | 「對齊系統：KA‑Agent 規格書 v1.5.x, KSLS v1.0；文檔版本 v1.3；最後更新 2026‑01‑25 …」 |\n| 5 | **KA‑Agent Metadata 欄位定義** | 「每個 Knowledge Asset(KA) 或上架的文件, metadata 可以包含：<br>• `KNW_Code` – 系統唯一索引<br>• `Domain` – 領域分類…」 |\n\n> **說明**  \n> - 以上 5 個文件皆為使用者上傳並已向量化的知識資產文件。  \n> - 目前檢索片段中並未出現「API」字樣，故符合「不要 API 相關」的條件。  \n> - 若需要更詳細內容，請直接檢索或查看完整文件。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "開發",
+        "文檔"
+      ]
+    },
+    {
+      "test_id": "KA-TEST-012",
+      "status": "passed",
+      "has_expected_keywords": false,
+      "has_refusal_keywords": false,
+      "response_text": "本次未產生回覆，請重試或換一種問法。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-014",
+      "status": "passed",
+      "has_expected_keywords": false,
+      "has_refusal_keywords": false,
+      "response_text": "本次未產生回覆，請重試或換一種問法。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-015",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "根據檢索結果，我們已經找到 **5 個知識資產文件**。  \n這些文件中，並沒有直接顯示「PDF 格式」或「系統設計」的關鍵字。以下是目前能夠辨識到的文件概覽（依照檢索片段所呈現的標題或主題）：\n\n| 序號 | 可能的文件主題（由檢索片段推斷） |\n|------|-----------------------------------|\n| 1 | 置信度 0.76：與 Knowledge Asset 相關的元資料說明 |\n| 2 | 置信度 0.73：**Knowledge Service Layer Specification (KSLS)** – 與工程層級系統規格相關 |\n| 3 | 置信度 0.72：與 **KA‑Agent 規格書**、版本號規範、KSLS 的參考文檔 |\n| 4 | 置信度 0.71：與 **Semantic Versioning 2.0.0**、**KA‑Agent 規格書 v1.4.1**、KSLS 的參考文檔 |\n| 5 | 置信度 0.70：**KA‑Agent 作業規範 (Standard Operating Procedure)** – 文件狀態、版本、更新時間等 |\n\n目前尚無具體證據表明上述任何一份文件已轉成 PDF，亦未顯示「系統設計」的內容。若您能提供更具體的關鍵字（例如文件名稱、作者、發布日期等），或確認您要尋找的是「系統設計」相關的 PDF，我可以再進一步協助定位。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "PDF",
+        "系統設計",
+        "文檔"
+      ]
+    },
+    {
+      "test_id": "KA-TEST-018",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "【知識庫文件總數】  \n- 找到 **5 個知識資產文件**。  \n\n以下為與您查詢主題「分布式系統高可用性、負載均衡、數據一致性、多數據中心同步、網絡延遲與故障恢復」相關的內容摘要（僅基於檢索結果）：\n\n| 文件序號 | 相關片段 | 主要內容 |\n|--------|--------|---------|\n| 1 | “核心理念:用最少層級解決全局分類與精細知識抽象問題，避免過深層次造成維護困難。” | 這一章節說明了在設計分布式架構時，採用最小層級（Domain → Major → Base）可降低複雜度，進而提升系統的可維護性與可擴充性，與高可用性設計息息相關。 |\n| 2 | “Domain → Major → Base 分層過濾；先大範圍篩選再細粒度檢索, 提高速度與精準度。” | 描述了分層過濾機制，可用於在多數據中心間同步資料時，先篩選主要域，再進一步細化查詢，減少跨網路延遲與不必要的資料傳輸。 |\n| 3 | “Metadata + 向量混合檢索；Metadata 篩選降低候選數量, 向量檢索精確語義匹配。” | 這個混合檢索模型可協助在多數據中心同步時，先用元資料（如版本、來源等）篩選，再使用向量相似度精確匹配，保證資料一致性並降低網路負載。 |\n| 4 | “Graph / Ontology 推理” | 透過圖式/本體推理，可在不同數據中心之間執行一致性驗證與衝突解決，並支援故障恢復時的自動重建。 |\n| 5 | “BPA 的定位：可維持自身私有知識庫；可選擇性使用 Knowledge Service；可同時參照多個知識來源。” | BPA（Business Process Agent）架構允許每個節點擁有私有知識庫，同時能調用共用服務，這種分散式知識管理方式有助於提升整體系統的高可用性與容錯性。 |\n\n**綜合建議**  \n- **高可用性 & 負載均衡**：採用多節點集群與分層過濾（Domain → Major → Base）可降低單點失效風險，同時通過元資料過濾與向量檢索分散查詢負載。  \n- **數據一致性**：利用本體推理與元資料版本管理，確保跨數據中心同步時的資料一致性與衝突解決。  \n- **多數據中心同步**：先在 Domain 層級篩選必要資料，再在 Major/Base 層級細化傳輸，可有效降低網路延遲。  \n- **故障恢復機制**：BPA 能保持私有知識庫並自動切換至備援節點，配合元資料版本控制可快速恢復一致狀態。  \n\n若需更深入的技術細節，請告訴我，我將進一步擷取與此主題相關的內容。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "分布式",
+        "高可用",
+        "負載均衡"
+      ]
+    }
+  ]
+}

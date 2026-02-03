@@ -1,7 +1,7 @@
 # 代碼功能說明: Grok 客戶端實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-29
+# 最後修改日期: 2026-01-24 23:38 UTC+8
 
 """Grok 客戶端實現，整合 xAI Grok API。"""
 
@@ -36,6 +36,7 @@ class GrokClient(BaseLLMClient):
         base_url: Optional[str] = None,
         default_model: Optional[str] = None,
         timeout: Optional[float] = None,
+        **kwargs: Any,
     ):
         """
         初始化 Grok 客戶端。
@@ -45,6 +46,7 @@ class GrokClient(BaseLLMClient):
             base_url: API 基礎 URL（可選）
             default_model: 默認模型名稱
             timeout: 請求超時時間（秒，可選，從配置讀取）
+            **kwargs: 其他參數（兼容性保留）
         """
         if httpx is None:
             raise ImportError("httpx is not installed. Please install it with: pip install httpx")
@@ -63,6 +65,11 @@ class GrokClient(BaseLLMClient):
         config = get_config_section("llm", "grok", default={}) or {}
         if base_url is None:
             base_url = config.get("base_url", "https://api.x.ai/v1")
+            
+        # 確保 base_url 以 / 結尾，以便 httpx 正確拼接相對路徑
+        if not base_url.endswith("/"):
+            base_url += "/"
+            
         if default_model is None:
             default_model = config.get("default_model", "grok-beta")
         if timeout is None:
@@ -133,7 +140,7 @@ class GrokClient(BaseLLMClient):
                 payload["max_tokens"] = max_tokens
             payload.update(kwargs)
 
-            response = await self._client.post("/chat/completions", json=payload)
+            response = await self._client.post("chat/completions", json=payload)
             response.raise_for_status()
             data = response.json()
 
@@ -210,7 +217,7 @@ class GrokClient(BaseLLMClient):
                 payload["max_tokens"] = max_tokens
             payload.update(kwargs)
 
-            response = await self._client.post("/chat/completions", json=payload)
+            response = await self._client.post("chat/completions", json=payload)
             response.raise_for_status()
             data = response.json()
 
@@ -305,3 +312,21 @@ class GrokClient(BaseLLMClient):
             如果可用返回 True，否則返回 False
         """
         return self._client is not None and self.api_key is not None
+
+    async def verify_connectivity(self) -> tuple[bool, str]:
+        """
+        驗證與 Grok API 的連通性。
+
+        Returns:
+            (是否成功, 消息)
+        """
+        try:
+            # Grok 是 OpenAI 兼容的，可以嘗試獲取模型列表
+            if self._client is None:
+                return False, "客戶端未初始化"
+            response = await self._client.get("models")
+            response.raise_for_status()
+            return True, "連通性正常"
+        except Exception as exc:
+            logger.error(f"Grok connectivity check failed: {exc}")
+            return False, f"連通性驗證失敗: {str(exc)}"

@@ -111,8 +111,8 @@ def create_performance_optimizer_agent_config() -> NodeConfig:
         description="性能優化Agent - 負責監控節點執行性能並應用自動優化策略",
         max_retries=1,
         timeout=20.0,
-        required_inputs=["user_id"]
-        optional_inputs=["messages"]
+        required_inputs=["user_id"],
+        optional_inputs=["messages"],
         output_keys=["performance_optimization", "optimization_summary"],
     )
 

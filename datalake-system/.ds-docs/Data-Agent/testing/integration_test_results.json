@@ -1,0 +1,257 @@
+[
+  {
+    "test_name": "W01 各料號的庫存",
+    "natural_language": "W01 各料號的庫存",
+    "steps": {
+      "step1_intent_analysis": {
+        "status": "completed",
+        "intent": {
+          "intent_type": "query_inventory",
+          "description": "查詢W01 各料號的庫存",
+          "table": "img_file",
+          "aggregation": "SUM",
+          "group_by": "img01",
+          "filters": "img02 = 'W01'"
+        },
+        "prompt": "用戶查詢：「W01 各料號的庫存」\n\n意圖分析：\n- 意圖類型：query_inventory\n- 描述：查詢W01 各料號的庫存\n- 資料表：img_file\n- 聚合方式：SUM（計算總和）\n- 分組欄位：img01（按料號分組）\n- 篩選條件：img02 = 'W01'（限定 W01 倉庫）\n\n輸出要求：請根據以上意圖生成對應的 PostgreSQL SQL 語句。"
+      },
+      "step2_query_type": {
+        "status": "completed",
+        "decision_type": "pass-to-llm",
+        "decision_reason": "需要 LLM 根據意圖生成 SQL 語句",
+        "action": "text_to_sql"
+      },
+      "step3_llm_sql": {
+        "status": "completed",
+        "sql_query": "SELECT material_number, quantity FROM inventory WHERE warehouse_code = $1 GROUP BY material_number",
+        "confidence": 0.8999999999999999,
+        "duration_sec": 0.0,
+        "llm_result": {
+          "task_id": "dashboard_query_20260131141739",
+          "status": "completed",
+          "result": {
+            "success": true,
+            "action": "text_to_sql",
+            "result": {
+              "sql_query": "SELECT material_number, quantity FROM inventory WHERE warehouse_code = $1 GROUP BY material_number",
+              "parameters": [
+                "param_1"
+              ],
+              "confidence": 0.8999999999999999,
+              "explanation": "將自然語言查詢「W01 各料號的庫存」轉換為 SQL: SELECT material_number, quantity FROM inventory WHERE warehouse_code = $1 GROUP BY material_number...",
+              "warnings": []
+            },
+            "error": null,
+            "metadata": null
+          },
+          "error": null,
+          "metadata": {
+            "source": "tiptop_dashboard",
+            "timestamp": "2026-01-31T14:17:39.178393"
+          }
+        }
+      },
+      "step4_execute_sql": {
+        "status": "completed",
+        "row_count": 0,
+        "duration_sec": 0.018873929977416992,
+        "exec_result": {
+          "task_id": "dashboard_query_20260131141825",
+          "status": "completed",
+          "result": {
+            "success": true,
+            "action": "execute_sql_on_datalake",
+            "result": {
+              "success": false,
+              "error": "不支援的表名: inventory"
+            },
+            "error": null,
+            "metadata": null
+          },
+          "error": null,
+          "metadata": {
+            "source": "tiptop_dashboard",
+            "timestamp": "2026-01-31T14:18:25.319979"
+          }
+        }
+      },
+      "step5_show_results": {
+        "status": "completed",
+        "row_count": 0,
+        "has_data": false
+      }
+    },
+    "success": true,
+    "errors": []
+  },
+  {
+    "test_name": "查詢 W01 原料倉有多少庫存",
+    "natural_language": "查詢 W01 原料倉有多少庫存",
+    "steps": {
+      "step1_intent_analysis": {
+        "status": "completed",
+        "intent": {
+          "intent_type": "query_inventory",
+          "description": "查詢查詢 W01 原料倉有多少庫存",
+          "table": "img_file",
+          "aggregation": "SUM",
+          "group_by": "img01",
+          "filters": "img02 = 'W01'"
+        },
+        "prompt": "用戶查詢：「查詢 W01 原料倉有多少庫存」\n\n意圖分析：\n- 意圖類型：query_inventory\n- 描述：查詢查詢 W01 原料倉有多少庫存\n- 資料表：img_file\n- 聚合方式：SUM（計算總和）\n- 分組欄位：img01（按料號分組）\n- 篩選條件：img02 = 'W01'（限定 W01 倉庫）\n\n輸出要求：請根據以上意圖生成對應的 PostgreSQL SQL 語句。"
+      },
+      "step2_query_type": {
+        "status": "completed",
+        "decision_type": "pass-to-llm",
+        "decision_reason": "需要 LLM 根據意圖生成 SQL 語句",
+        "action": "text_to_sql"
+      },
+      "step3_llm_sql": {
+        "status": "completed",
+        "sql_query": "SELECT quantity FROM inventory WHERE warehouse_id = $1",
+        "confidence": 0.8999999999999999,
+        "duration_sec": 0.0,
+        "llm_result": {
+          "task_id": "dashboard_query_20260131141825",
+          "status": "completed",
+          "result": {
+            "success": true,
+            "action": "text_to_sql",
+            "result": {
+              "sql_query": "SELECT quantity FROM inventory WHERE warehouse_id = $1",
+              "parameters": [
+                "param_1"
+              ],
+              "confidence": 0.8999999999999999,
+              "explanation": "將自然語言查詢「查詢 W01 原料倉有多少庫存」轉換為 SQL: SELECT quantity FROM inventory WHERE warehouse_id = $1...",
+              "warnings": []
+            },
+            "error": null,
+            "metadata": null
+          },
+          "error": null,
+          "metadata": {
+            "source": "tiptop_dashboard",
+            "timestamp": "2026-01-31T14:18:25.338932"
+          }
+        }
+      },
+      "step4_execute_sql": {
+        "status": "completed",
+        "row_count": 0,
+        "duration_sec": 0.017782211303710938,
+        "exec_result": {
+          "task_id": "dashboard_query_20260131141851",
+          "status": "completed",
+          "result": {
+            "success": true,
+            "action": "execute_sql_on_datalake",
+            "result": {
+              "success": false,
+              "error": "不支援的表名: inventory"
+            },
+            "error": null,
+            "metadata": null
+          },
+          "error": null,
+          "metadata": {
+            "source": "tiptop_dashboard",
+            "timestamp": "2026-01-31T14:18:51.234964"
+          }
+        }
+      },
+      "step5_show_results": {
+        "status": "completed",
+        "row_count": 0,
+        "has_data": false
+      }
+    },
+    "success": true,
+    "errors": []
+  },
+  {
+    "test_name": "計算 10-0001 的總庫存量",
+    "natural_language": "計算 10-0001 的總庫存量",
+    "steps": {
+      "step1_intent_analysis": {
+        "status": "completed",
+        "intent": {
+          "intent_type": "query_inventory",
+          "description": "查詢計算 10-0001 的總庫存量",
+          "table": "img_file",
+          "aggregation": "SUM",
+          "group_by": null,
+          "filters": "img01 = '10-0001'"
+        },
+        "prompt": "用戶查詢：「計算 10-0001 的總庫存量」\n\n意圖分析：\n- 意圖類型：query_inventory\n- 描述：查詢計算 10-0001 的總庫存量\n- 資料表：img_file\n- 聚合方式：SUM（計算總和）\n- 分組欄位：無（按料號分組）\n- 篩選條件：img01 = '10-0001'（限定 W01 倉庫）\n\n輸出要求：請根據以上意圖生成對應的 PostgreSQL SQL 語句。"
+      },
+      "step2_query_type": {
+        "status": "completed",
+        "decision_type": "pass-to-llm",
+        "decision_reason": "需要 LLM 根據意圖生成 SQL 語句",
+        "action": "text_to_sql"
+      },
+      "step3_llm_sql": {
+        "status": "completed",
+        "sql_query": "SELECT SUM(quantity) FROM inventory WHERE product_code = $1",
+        "confidence": 0.8999999999999999,
+        "duration_sec": 0.0,
+        "llm_result": {
+          "task_id": "dashboard_query_20260131141851",
+          "status": "completed",
+          "result": {
+            "success": true,
+            "action": "text_to_sql",
+            "result": {
+              "sql_query": "SELECT SUM(quantity) FROM inventory WHERE product_code = $1",
+              "parameters": [
+                "param_1"
+              ],
+              "confidence": 0.8999999999999999,
+              "explanation": "將自然語言查詢「計算 10-0001 的總庫存量」轉換為 SQL: SELECT SUM(quantity) FROM inventory WHERE product_code = $1...",
+              "warnings": []
+            },
+            "error": null,
+            "metadata": null
+          },
+          "error": null,
+          "metadata": {
+            "source": "tiptop_dashboard",
+            "timestamp": "2026-01-31T14:18:51.252819"
+          }
+        }
+      },
+      "step4_execute_sql": {
+        "status": "completed",
+        "row_count": 0,
+        "duration_sec": 0.018641233444213867,
+        "exec_result": {
+          "task_id": "dashboard_query_20260131141931",
+          "status": "completed",
+          "result": {
+            "success": true,
+            "action": "execute_sql_on_datalake",
+            "result": {
+              "success": false,
+              "error": "不支援的表名: inventory"
+            },
+            "error": null,
+            "metadata": null
+          },
+          "error": null,
+          "metadata": {
+            "source": "tiptop_dashboard",
+            "timestamp": "2026-01-31T14:19:31.403716"
+          }
+        }
+      },
+      "step5_show_results": {
+        "status": "completed",
+        "row_count": 0,
+        "has_data": false
+      }
+    },
+    "success": true,
+    "errors": []
+  }
+]

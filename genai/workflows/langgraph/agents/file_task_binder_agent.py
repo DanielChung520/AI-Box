@@ -74,8 +74,8 @@ class FileTaskBinderAgent(BaseAgentNode):
                     "files_registered": binding_result.files_registered,
                     "permissions_synced": binding_result.permissions_synced,
                 },
-                1.0,
-                if binding_result.permissions_synced and binding_result.task_context_updated,
+                1.0
+                if binding_result.permissions_synced and binding_result.task_context_updated
                 else 0.7,
             )
 
@@ -116,7 +116,7 @@ class FileTaskBinderAgent(BaseAgentNode):
                 files_registered=1,
                 permissions_synced=True,
                 task_context_updated=True,
-                binding_summary={"status": "all_files_bound"}
+                binding_summary={"status": "all_files_bound"},
                 reasoning="Successfully bound task files to workspace.",
             )
         except Exception as e:
@@ -137,7 +137,7 @@ def create_file_task_binder_agent_config() -> NodeConfig:
         max_retries=1,
         timeout=30.0,
         required_inputs=["user_id", "workspace_management"],
-        optional_inputs=["messages"]
+        optional_inputs=["messages"],
         output_keys=["file_task_binding", "binding_summary"],
     )
 

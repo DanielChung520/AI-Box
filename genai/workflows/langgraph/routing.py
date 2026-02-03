@@ -89,7 +89,7 @@ class RouteDecision:
         target_node: str,
         confidence: float = 1.0,
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None ,
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         self.target_node = target_node
         self.confidence = confidence
@@ -190,7 +190,7 @@ class ConditionalRouter:
             for rule in self.rules:
                 decision = rule.evaluate(state, self.cache)
                 if decision:
-                    self.logger.info(f"Route decision: {decision.target_node} (rule: {rule.name}")
+                    self.logger.info(f"Route decision: {decision.target_node} (rule: {rule.name})")
                     return decision
 
             self.logger.warning("No route rule matched for current state")
@@ -217,7 +217,7 @@ class InputTypeCondition(BaseCondition):
         self.target_type = target_type
 
     def evaluate(self, state: AIBoxState) -> ConditionResult:
-        result = state.input_type == self.target_type,
+        result = state.input_type == self.target_type
         return ConditionResult(
             condition_name=self.name,
             result=result,
@@ -297,12 +297,12 @@ class CapabilityCondition(BaseCondition):
 
     def evaluate(self, state: AIBoxState) -> ConditionResult:
         matching_caps = [
-            cap,
-            for cap in state.capability_match,
+            cap
+            for cap in state.capability_match
             if cap.name == self.required_capability and cap.available
         ]
 
-        result = len(matching_caps) >= self.min_count,
+        result = len(matching_caps) >= self.min_count
         return ConditionResult(
             condition_name=self.name,
             result=result,
@@ -333,19 +333,19 @@ class MessageCountCondition(BaseCondition):
 # 路由規則工廠
 class RouteRuleFactory:
     """路由規則工廠"""
-    @staticmethod,
+    @staticmethod
     def create_free_chat_rule() -> RouteRule:
-        """創建自由對話路由規則""",
+        """創建自由對話路由規則"""
         return RouteRule(
             name="free_chat",
-            conditions=[InputTypeCondition("free")]
+            conditions=[InputTypeCondition("free")],
             target_node="SimpleLLMNode",
             priority=10,
         )
 
-    @staticmethod,
+    @staticmethod
     def create_assistant_rule() -> RouteRule:
-        """創建助理路由規則""",
+        """創建助理路由規則"""
         return RouteRule(
             name="assistant_mode",
             conditions=[
@@ -357,9 +357,9 @@ class RouteRuleFactory:
             priority=9,
         )
 
-    @staticmethod,
+    @staticmethod
     def create_agent_rule() -> RouteRule:
-        """創建代理路由規則""",
+        """創建代理路由規則"""
         return RouteRule(
             name="agent_mode",
             conditions=[
@@ -372,9 +372,9 @@ class RouteRuleFactory:
             priority=8,
         )
 
-    @staticmethod,
+    @staticmethod
     def create_complex_task_rule() -> RouteRule:
-        """創建複雜任務路由規則""",
+        """創建複雜任務路由規則"""
         return RouteRule(
             name="complex_task",
             conditions=[
@@ -392,8 +392,8 @@ _conditional_router = None
 
 
 def get_conditional_router() -> ConditionalRouter:
-    """獲取條件路由器實例""",
-    global _conditional_router,
+    """獲取條件路由器實例"""
+    global _conditional_router
     if _conditional_router is None:
         _conditional_router = ConditionalRouter()
 

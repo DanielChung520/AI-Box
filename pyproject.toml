@@ -26,7 +26,6 @@ exclude = [
     ".ruff_cache",
     ".svn",
     ".tox",
-    ".venv",
     "__pypackages__",
     "_build",
     "buck-out",
@@ -179,7 +178,6 @@ exclude = [
     "docs/.*/rag-file-upload/.*",
     "backup/.*",
     "venv/.*",
-    ".venv/.*",
     "build/.*",
     "dist/.*",
     "__pycache__/.*",
@@ -222,7 +220,6 @@ extend-exclude = '''
   | \.mypy_cache
   | \.ruff_cache
   | \.tox
-  | \.venv
   | venv
   | _build
   | buck-out
@@ -238,6 +235,6 @@ extend-exclude = '''
 # 排除 datalake-system 測試目錄，避免模塊重複問題
 module = [
     "datalake-system.tests.*",
-    "datalake-system.tests.warehouse_manager_agent.*",
+    "datalake-system.tests.mm_agent.*",
 ]
 ignore_errors = true

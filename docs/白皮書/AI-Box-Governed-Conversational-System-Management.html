@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Box Governed Conversational System Management</title>
+    
+    <!-- Mermaid.js -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            logLevel: 'debug'
+        });
+    </script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #24292e;
+            background-color: #ffffff;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #1a1a1a;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+            margin-top: 1.5em;
+        }
+        code {
+            background-color: rgba(27,31,35,0.05);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+        }
+        pre {
+            background-color: #f6f8fa;
+            padding: 16px;
+            border-radius: 6px;
+            overflow: auto;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .mermaid {
+            text-align: center;
+            margin: 20px 0;
+        }
+        blockquote {
+            border-left: 4px solid #dfe2e5;
+            color: #6a737d;
+            padding-left: 16px;
+            margin-left: 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+        table th, table td {
+            border: 1px solid #dfe2e5;
+            padding: 8px 12px;
+        }
+        table tr:nth-child(2n) {
+            background-color: #f6f8fa;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="ai-box-governed-conversational-system-management">AI-Box
+Governed Conversational System Management</h1>
+<h2 id="whitepaper-draft-v1.2">Whitepaper (Draft v1.2)</h2>
+<hr />
+<h2 id="executive-summary">1. Executive Summary</h2>
+<p>As enterprise systems increasingly adopt conversational AI and
+agentic architectures, a critical challenge emerges: <strong>how to
+safely, audibly, and governably allow AI-driven interactions to
+influence real system operations</strong>.</p>
+<p>This whitepaper proposes a <strong>Governed Conversational System
+Management Architecture</strong> for AI-Box, where natural language
+interactions are elevated to first-class system change requests, while
+<strong>decision-making, execution, and risk ownership remain strictly
+separated</strong>.</p>
+<p>The core design principle is simple but powerful:</p>
+<blockquote>
+<p><em>The System Agent reasons, but never executes.</em></p>
+</blockquote>
+<p>All side-effecting operations are delegated to constrained execution
+mechanisms under explicit approval and full auditability.</p>
+<h3 id="key-benefits">Key Benefits</h3>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 59%" />
+</colgroup>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Security</strong></td>
+<td>Zero-execution privilege for reasoning agents eliminates AI-driven
+attacks</td>
+</tr>
+<tr>
+<td><strong>Compliance</strong></td>
+<td>Built-in audit trails satisfy regulatory requirements (EU AI Act,
+ISO 27001)</td>
+</tr>
+<tr>
+<td><strong>Accountability</strong></td>
+<td>Clear human ownership of or all destructive critical operations</td>
+</tr>
+<tr>
+<td><strong>Auditability</strong></td>
+<td>Immutable logs enable post-incident forensics and compliance
+reporting</td>
+</tr>
+<tr>
+<td><strong>Flexibility</strong></td>
+<td>Execution layer is replaceable without changing orchestration
+logic</td>
+</tr>
+</tbody>
+</table>
+<h3 id="target-environments">Target Environments</h3>
+<ul>
+<li>Critical infrastructure (power grids, water systems,
+transportation)</li>
+<li>Enterprise IT and ERP systems (SAP, Oracle, Microsoft Dynamics)</li>
+<li>Financial and operational platforms (banking core, trading
+systems)</li>
+<li>Healthcare information systems (EMR, pharmacy management)</li>
+<li>Cloud infrastructure control planes (Kubernetes, Terraform)</li>
+</ul>
+<p>In these environments, <strong>“AI directly executes” is unacceptable
+by design</strong>.</p>
+<hr />
+<h2 id="problem-statement">2. Problem Statement</h2>
+<h3 id="the-current-state-of-enterprise-ai">2.1 The Current State of
+Enterprise AI</h3>
+<p>Most contemporary agentic systems tightly couple:</p>
+<ul>
+<li><strong>Intent understanding</strong> - Parsing natural language
+requests</li>
+<li><strong>Reasoning</strong> - Planning and decision-making</li>
+<li><strong>Decision-making</strong> - Determining what to do</li>
+<li><strong>System execution</strong> - Performing actual state
+changes</li>
+</ul>
+<p>This coupling is convenient for demos but dangerous in
+production.</p>
+<h3 id="risks-of-coupled-architecture">2.2 Risks of Coupled
+Architecture</h3>
+<pre class="mermaid"><code>graph LR
+    subgraph Trust_Boundary [Same Trust Boundary]
+        User[User Input] --&gt; Intent[Intent Parser]
+        Intent --&gt; Reason[Reason &amp; Plan]
+        Reason --&gt; Execute[Execute System]
+    end
+    style Trust_Boundary stroke-dasharray: 5 5</code></pre>
+<p><strong>Enterprise Risks:</strong></p>
+<table>
+<colgroup>
+<col style="width: 41%" />
+<col style="width: 36%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr>
+<th>Risk Category</th>
+<th>Description</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Uncontrolled Destruction</strong></td>
+<td>AI can delete databases, terminate services, or modify
+configurations without oversight</td>
+<td>Catastrophic data loss, service outage</td>
+</tr>
+<tr>
+<td><strong>Audit Gaps</strong></td>
+<td>No record of AI reasoning process or execution justification</td>
+<td>Non-compliance, inability to reconstruct incidents</td>
+</tr>
+<tr>
+<td><strong>Accountability Blur</strong></td>
+<td>Unclear who owns AI decisions - the model, the prompter, or the
+deployer?</td>
+<td>Legal liability, regulatory penalties</td>
+</tr>
+<tr>
+<td><strong>Regulatory Violation</strong></td>
+<td>Most compliance frameworks require human approval for system
+changes</td>
+<td>Fines, license revocation</td>
+</tr>
+<tr>
+<td><strong>Credential Accumulation</strong></td>
+<td>Agents accumulate permissions over time, expanding attack
+surface</td>
+<td>Security breach escalation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="industry-gap">2.3 Industry Gap</h3>
+<p>Current market solutions fall into two extremes:</p>
+<table>
+<colgroup>
+<col style="width: 52%" />
+<col style="width: 47%" />
+</colgroup>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Problem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Autonomous Agents</strong> (AutoGPT, LangChain Agents)</td>
+<td>No governance, full execution privilege</td>
+</tr>
+<tr>
+<td><strong>Static Rule Engines</strong> (Traditional ITSM)</td>
+<td>No conversational interface, rigid workflows</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The Gap:</strong> No solution combines natural language
+interfaces with governed execution.</p>
+<h3 id="the-ai-box-response">2.4 The AI-Box Response</h3>
+<p>AI-Box addresses this gap with <strong>Agent-Orchestrated Governance
+Architecture (AOGA)</strong>, which:</p>
+<ol type="1">
+<li>Elevates natural language to a first-class system change request
+format</li>
+<li>Separates reasoning (untrusted) from execution (controlled)</li>
+<li>Embeds human approval as a mandatory checkpoint for risky
+operations</li>
+<li>Records every intent, decision, and outcome for auditability</li>
+</ol>
+<hr />
+<h2 id="design-principles">3. Design Principles</h2>
+<h3 id="separation-of-concerns">3.1 Separation of Concerns</h3>
+<p>The architecture enforces strict separation between:</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 42%" />
+<col style="width: 37%" />
+</colgroup>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Responsibility</th>
+<th>Trust Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Orchestration (Reasoning &amp; Governance)</strong></td>
+<td>Intent analysis, risk evaluation, plan generation</td>
+<td>AI-powered, untrusted by default</td>
+</tr>
+<tr>
+<td><strong>Execution (State Mutation)</strong></td>
+<td>Performing actual system changes</td>
+<td>Deterministic, verified, minimal privilege</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid"><code>graph TD
+    User[User Input&lt;br/&gt;Natural Language] --&gt; Orchestrator[Orchestrator&lt;br/&gt;Reasoning]
+    Orchestrator --&gt; Execute[Execute&lt;br/&gt;Action]
+
+    subgraph Governance [Governance &amp; Audit]
+        Audit[Audit Log]
+        Approval[Approval Check]
+    end
+
+    Orchestrator &lt;--&gt; Approval
+    Orchestrator &lt;--&gt; Audit
+    Execute -.-&gt; Approval
+    Audit -.-&gt; User</code></pre>
+<h3 id="least-privilege-principle">3.2 Least Privilege Principle</h3>
+<p><strong>Implementation:</strong></p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 39%" />
+<col style="width: 34%" />
+</colgroup>
+<thead>
+<tr>
+<th>Component</th>
+<th>Permission Level</th>
+<th>Justification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System Agent Orchestrator</td>
+<td><strong>ZERO</strong> direct execution</td>
+<td>AI can reason but cannot touch systems</td>
+</tr>
+<tr>
+<td>Execution Functions</td>
+<td>Minimal scoped permission</td>
+<td>Only what’s needed for specific task</td>
+</tr>
+<tr>
+<td>Execution Agents</td>
+<td>Tool-restricted, ephemeral</td>
+<td>No long-term memory, limited capabilities</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example:</strong></p>
+<pre><code># Cleanup Agent permissions
+{
+  &quot;can_read&quot;: [&quot;user_tasks&quot;, &quot;file_metadata&quot;],
+  &quot;can_delete&quot;: [&quot;user_tasks&quot;],
+  &quot;can_delete_conditions&quot;: [&quot;status=pending&quot;, &quot;status=failed&quot;],
+  &quot;cannot_delete&quot;: [&quot;active_tasks&quot;, &quot;completed_tasks_after=2024-01-01&quot;]
+}</code></pre>
+<h3 id="human-in-the-loop-sovereignty">3.3 Human-in-the-Loop
+Sovereignty</h3>
+<table>
+<colgroup>
+<col style="width: 53%" />
+<col style="width: 46%" />
+</colgroup>
+<thead>
+<tr>
+<th>Operation Type</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Read-only queries</strong></td>
+<td>Automatic approval</td>
+</tr>
+<tr>
+<td><strong>Low-risk modifications</strong> (e.g., renaming,
+tagging)</td>
+<td>Automatic or simplified approval</td>
+</tr>
+<tr>
+<td><strong>High-risk operations</strong> (e.g., deletion,
+deployment)</td>
+<td>Explicit human approval required</td>
+</tr>
+<tr>
+<td><strong>Irreversible destructive actions</strong></td>
+<td>Multi-factor human approval</td>
+</tr>
+</tbody>
+</table>
+<h3 id="full-auditability">3.4 Full Auditability</h3>
+<p><strong>Audit Log Requirements:</strong></p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">audit_record</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">id</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;audit-uuid-v4&quot;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">timestamp</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;2024-01-23T10:30:00Z&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">actor</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;system_admin@company.com&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">action_type</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;task_cleanup&quot;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">intent</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Clean up pending tasks for user daniel@test.com&quot;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">  # Reasoning Layer</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">reasoning</span><span class="kw">:</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">model</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;qwen3-coder:30b&quot;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">analysis</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Data scale is small, only 1 task record found...&quot;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">risk_level</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;low&quot;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">plan_steps</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">&quot;Delete 1 task record from ArangoDB&quot;</span><span class="kw">]</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="at">  </span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co">  # Approval Layer</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">approval</span><span class="kw">:</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">required</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">approver</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;daniel@test.com&quot;</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">approved_at</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;2024-01-23T10:31:00Z&quot;</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">approval_mode</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;implicit&quot;</span><span class="co">  # or &quot;explicit&quot;</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="co">  # Execution Layer</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">execution</span><span class="kw">:</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">mode</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;function&quot;</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">function</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;cleanup_service.execute_cleanup&quot;</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">result</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;success&quot;</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">deleted_count</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="at">  </span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="co">  # Compliance</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">compliance_tags</span><span class="kw">:</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;EU_AI_ACT_ARTICLE_14&quot;</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;ISO_27001_A.12.4.1&quot;</span></span></code></pre></div>
+<hr />
+<h2 id="core-architectural-components">4. Core Architectural
+Components</h2>
+<h3 id="system-agent-orchestrator-control-plane">4.1 System Agent
+Orchestrator (Control Plane)</h3>
+<p>The System Agent Orchestrator acts as a <strong>governance-aware
+control plane</strong>.</p>
+<p><strong>Responsibilities:</strong></p>
+<table>
+<colgroup>
+<col style="width: 53%" />
+<col style="width: 46%" />
+</colgroup>
+<thead>
+<tr>
+<th>Responsibility</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Identity Verification</strong></td>
+<td>Verify user identity through authentication system</td>
+</tr>
+<tr>
+<td><strong>Role &amp; Authorization</strong></td>
+<td>Check user’s permission scope for requested action</td>
+</tr>
+<tr>
+<td><strong>Intent Analysis</strong></td>
+<td>Parse natural language into structured intent</td>
+</tr>
+<tr>
+<td><strong>Capability Discovery</strong></td>
+<td>Identify available execution functions and agents</td>
+</tr>
+<tr>
+<td><strong>Risk Evaluation</strong></td>
+<td>Assess risk level based on target, action, and context</td>
+</tr>
+<tr>
+<td><strong>Plan Generation</strong></td>
+<td>Generate structured execution plan with steps</td>
+</tr>
+<tr>
+<td><strong>Approval Coordination</strong></td>
+<td>Request and track human approvals</td>
+</tr>
+<tr>
+<td><strong>Response Generation</strong></td>
+<td>Synthesize natural language response with results</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Explicitly Excluded Responsibilities:</strong></p>
+<table>
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr>
+<th>Exclusion</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Direct database access</td>
+<td>Prevents data exfiltration by AI</td>
+</tr>
+<tr>
+<td>Direct infrastructure control</td>
+<td>Prevents unauthorized infrastructure changes</td>
+</tr>
+<tr>
+<td>State mutation</td>
+<td>All mutations through execution layer</td>
+</tr>
+<tr>
+<td>Credential storage</td>
+<td>Credentials managed by dedicated security layer</td>
+</tr>
+</tbody>
+</table>
+<h3 id="execution-abstraction-layer">4.2 Execution Abstraction
+Layer</h3>
+<p>All system mutations occur strictly within this layer.</p>
+<p><strong>Two Execution Forms:</strong></p>
+<h4 id="a.-deterministic-execution-functions">A. Deterministic Execution
+Functions</h4>
+<table>
+<thead>
+<tr>
+<th>Characteristic</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stateless</td>
+<td>No internal state between invocations</td>
+</tr>
+<tr>
+<td>Deterministic</td>
+<td>Same input always produces same output</td>
+</tr>
+<tr>
+<td>Testable</td>
+<td>Can be unit tested in isolation</td>
+</tr>
+<tr>
+<td>Sandboxable</td>
+<td>Can run in isolated environment</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Typical Use Cases:</strong></p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: Delete Task Function</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> delete_task(task_id: <span class="bu">str</span>, user_id: <span class="bu">str</span>) <span class="op">-&gt;</span> ExecutionResult:</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Delete a task with all associated data.</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">        task_id: The task to delete</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">        user_id: Requester for audit</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">        ExecutionResult with deletion status</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1. Verify task exists and belongs to user</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    task <span class="op">=</span> <span class="cf">await</span> get_task(task_id)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> task:</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ExecutionResult(success<span class="op">=</span><span class="va">False</span>, error<span class="op">=</span><span class="st">&quot;Task not found&quot;</span>)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2. Check preconditions</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> task.status <span class="op">==</span> <span class="st">&quot;active&quot;</span>:</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ExecutionResult(</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>            success<span class="op">=</span><span class="va">False</span>, </span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>            error<span class="op">=</span><span class="st">&quot;Cannot delete active task&quot;</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3. Delete associated data (atomic transaction)</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="cf">with</span> db.transaction():</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">await</span> delete_entities_by_task(task_id)</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">await</span> delete_file_metadata_by_task(task_id)</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">await</span> delete_task_record(task_id)</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 4. Return result</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ExecutionResult(</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>        success<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>        deleted_items<span class="op">=</span>{</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;entities&quot;</span>: deleted_entity_count,</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;file_metadata&quot;</span>: deleted_file_count,</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;task&quot;</span>: <span class="dv">1</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div>
+<h4 id="b.-constrained-execution-agents">B. Constrained Execution
+Agents</h4>
+<table>
+<thead>
+<tr>
+<th>Characteristic</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reasoning</td>
+<td>Limited to conditional logic and verification</td>
+</tr>
+<tr>
+<td>Tools</td>
+<td>Restricted to predefined tool set</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>No long-term memory, ephemeral lifecycle</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Single task, limited duration</td>
+</tr>
+</tbody>
+</table>
+<p><strong>When to Use:</strong></p>
+<ul>
+<li>Multi-step verification required</li>
+<li>Conditional execution paths</li>
+<li>Context-dependent decision making</li>
+</ul>
+<p><strong>Example: Constrained Cleanup Agent</strong></p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ConstrainedCleanupAgent:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Ephemeral agent for cleanup operations.&quot;&quot;&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, user_id: <span class="bu">str</span>, task_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>):</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.user_id <span class="op">=</span> user_id</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.task_id <span class="op">=</span> task_id</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.tools <span class="op">=</span> [</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;scan_user_tasks&quot;</span>,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;delete_task_record&quot;</span>,</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;delete_file_metadata&quot;</span>,</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;delete_entities&quot;</span>,</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;query_qdrant_collections&quot;</span>,</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;delete_qdrant_collection&quot;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.max_steps <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.created_at <span class="op">=</span> datetime.utcnow()</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="kw">def</span> execute(<span class="va">self</span>, plan: ExecutionPlan) <span class="op">-&gt;</span> AgentResult:</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">&quot;&quot;&quot;Execute cleanup plan within constraints.&quot;&quot;&quot;</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        steps_executed <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> step <span class="kw">in</span> plan.steps:</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> steps_executed <span class="op">&gt;=</span> <span class="va">self</span>.max_steps:</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> AgentResult(</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>                    success<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>                    error<span class="op">=</span><span class="st">&quot;Maximum steps exceeded&quot;</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Verify tool is allowed</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> step.tool <span class="kw">not</span> <span class="kw">in</span> <span class="va">self</span>.tools:</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> AgentResult(</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>                    success<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>                    error<span class="op">=</span><span class="ss">f&quot;Tool not allowed: </span><span class="sc">{</span>step<span class="sc">.</span>tool<span class="sc">}</span><span class="ss">&quot;</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Execute step</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>            result <span class="op">=</span> <span class="cf">await</span> <span class="va">self</span>._execute_step(step)</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> result.success:</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> AgentResult(</span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>                    success<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>                    error<span class="op">=</span><span class="ss">f&quot;Step failed: </span><span class="sc">{</span>result<span class="sc">.</span>error<span class="sc">}</span><span class="ss">&quot;</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>            steps_executed <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> AgentResult(success<span class="op">=</span><span class="va">True</span>, steps<span class="op">=</span>steps_executed)</span></code></pre></div>
+<h3 id="human-system-administrator">4.3 Human System Administrator</h3>
+<p>The administrator represents the <strong>ultimate decision
+authority</strong>.</p>
+<p><strong>Responsibilities:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Responsibility</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Plan Review</strong></td>
+<td>Review execution plans generated by orchestrator</td>
+</tr>
+<tr>
+<td><strong>Risk Assessment</strong></td>
+<td>Evaluate risk summaries and recommendations</td>
+</tr>
+<tr>
+<td><strong>Approval/Rejection</strong></td>
+<td>Approve or reject execution requests</td>
+</tr>
+<tr>
+<td><strong>Override</strong></td>
+<td>Ability to stop or rollback in-progress operations</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interaction Modes:</strong></p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 44%" />
+<col style="width: 34%" />
+</colgroup>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Explicit Approval</strong></td>
+<td>Administrator actively approves/rejects</td>
+<td>High-risk operations</td>
+</tr>
+<tr>
+<td><strong>Implicit Approval</strong></td>
+<td>Pre-approved patterns execute automatically</td>
+<td>Low-risk, high-frequency operations</td>
+</tr>
+<tr>
+<td><strong>Emergency Override</strong></td>
+<td>Administrator can terminate execution</td>
+<td>Incident response</td>
+</tr>
+</tbody>
+</table>
+<h3 id="audit-compliance-layer">4.4 Audit &amp; Compliance Layer</h3>
+<p>A dedicated subsystem ensuring:</p>
+<table>
+<colgroup>
+<col style="width: 44%" />
+<col style="width: 55%" />
+</colgroup>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Immutable Logging</strong></td>
+<td>Append-only storage with cryptographic hashing</td>
+</tr>
+<tr>
+<td><strong>Traceability</strong></td>
+<td>Full request/response correlation</td>
+</tr>
+<tr>
+<td><strong>Compliance Readiness</strong></td>
+<td>Pre-tagged records matching regulatory requirements</td>
+</tr>
+<tr>
+<td><strong>Post-Incident Forensics</strong></td>
+<td>Queryable audit trail with full context</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Audit Storage Schema:</strong></p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AuditRecord(BaseModel):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    record_id: <span class="bu">str</span> <span class="op">=</span> Field(..., description<span class="op">=</span><span class="st">&quot;Unique audit record ID&quot;</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    timestamp: datetime <span class="op">=</span> Field(..., description<span class="op">=</span><span class="st">&quot;ISO 8601 timestamp&quot;</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Who</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    actor_id: <span class="bu">str</span> <span class="op">=</span> Field(..., description<span class="op">=</span><span class="st">&quot;User or system ID&quot;</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    actor_type: Literal[<span class="st">&quot;human&quot;</span>, <span class="st">&quot;system&quot;</span>, <span class="st">&quot;agent&quot;</span>] <span class="op">=</span> Field(...)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    session_id: Optional[<span class="bu">str</span>] <span class="op">=</span> Field(<span class="va">None</span>, description<span class="op">=</span><span class="st">&quot;Session context&quot;</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># What</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    action_type: <span class="bu">str</span> <span class="op">=</span> Field(..., description<span class="op">=</span><span class="st">&quot;Action category&quot;</span>)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    target_resource: <span class="bu">str</span> <span class="op">=</span> Field(..., description<span class="op">=</span><span class="st">&quot;Affected resource&quot;</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    intent_text: <span class="bu">str</span> <span class="op">=</span> Field(..., description<span class="op">=</span><span class="st">&quot;Original natural language request&quot;</span>)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Reasoning (AI)</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    reasoning_model: Optional[<span class="bu">str</span>] <span class="op">=</span> Field(<span class="va">None</span>, description<span class="op">=</span><span class="st">&quot;LLM used&quot;</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    reasoning_output: Optional[<span class="bu">str</span>] <span class="op">=</span> Field(<span class="va">None</span>, description<span class="op">=</span><span class="st">&quot;AI analysis summary&quot;</span>)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    risk_level: Optional[RiskLevel] <span class="op">=</span> Field(<span class="va">None</span>, description<span class="op">=</span><span class="st">&quot;AI-assessed risk&quot;</span>)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Approval</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    approval_required: <span class="bu">bool</span> <span class="op">=</span> Field(..., description<span class="op">=</span><span class="st">&quot;Was approval required?&quot;</span>)</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    approver_id: Optional[<span class="bu">str</span>] <span class="op">=</span> Field(<span class="va">None</span>, description<span class="op">=</span><span class="st">&quot;Who approved&quot;</span>)</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    approval_timestamp: Optional[datetime] <span class="op">=</span> Field(<span class="va">None</span>, description<span class="op">=</span><span class="st">&quot;When approved&quot;</span>)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    approval_mode: Optional[Literal[<span class="st">&quot;explicit&quot;</span>, <span class="st">&quot;implicit&quot;</span>]] <span class="op">=</span> Field(<span class="va">None</span>)</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Execution</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    execution_mode: Literal[<span class="st">&quot;function&quot;</span>, <span class="st">&quot;agent&quot;</span>] <span class="op">=</span> Field(...)</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    execution_function: Optional[<span class="bu">str</span>] <span class="op">=</span> Field(<span class="va">None</span>, description<span class="op">=</span><span class="st">&quot;Function or agent used&quot;</span>)</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    execution_result: ExecutionResult <span class="op">=</span> Field(..., description<span class="op">=</span><span class="st">&quot;Result object&quot;</span>)</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compliance</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    compliance_tags: List[<span class="bu">str</span>] <span class="op">=</span> Field(default_factory<span class="op">=</span><span class="bu">list</span>)</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    retention_policy: <span class="bu">str</span> <span class="op">=</span> Field(default<span class="op">=</span><span class="st">&quot;7_years&quot;</span>)</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Hash for integrity</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>    content_hash: <span class="bu">str</span> <span class="op">=</span> Field(..., description<span class="op">=</span><span class="st">&quot;SHA-256 of all above fields&quot;</span>)</span></code></pre></div>
+<hr />
+<h2 id="high-level-architecture">5. High-Level Architecture</h2>
+<h3 id="system-context-diagram">5.1 System Context Diagram</h3>
+<pre class="mermaid"><code>flowchart TB
+    subgraph External
+        U[User / Operator]
+        EXT[External Systems]
+    end
+
+    subgraph AI_Box_Governance
+        SA[System Agent Orchestrator]
+        AUD[Audit &amp; Compliance]
+        POL[Policy Engine]
+    end
+
+    subgraph Execution_Plane
+        FUNC[Execution Functions]
+        AGENT[Ephemeral Agents]
+    end
+
+    subgraph Infrastructure
+        DB[(Databases)]
+        CLOUD[Cloud Resources]
+        APP[Applications]
+    end
+
+    U --&gt;|Natural Language Request| SA
+    SA --&gt;|Risk Assessment| POL
+    SA --&gt;|Approval Request| U
+    SA --&gt;|Audit Records| AUD
+
+    POL --&gt;|Policy Decision| SA
+
+    FUNC --&gt;|Execute| DB
+    FUNC --&gt;|Execute| CLOUD
+    AGENT --&gt;|Execute| APP
+
+    FUNC --&gt;|Execution Log| AUD
+    AGENT --&gt;|Execution Log| AUD</code></pre>
+<h3 id="data-flow">5.2 Data Flow</h3>
+<pre class="mermaid"><code>graph TD
+    Start([User Input]) --&gt; IDP[Identity Provider]
+    Auth[Authentication] -.-&gt; IDP
+    IDP --&gt; Orchestrator[System Agent Orchestrator&lt;br/&gt;1. Intent Classification&lt;br/&gt;2. Parameter Extraction&lt;br/&gt;3. Risk Assessment&lt;br/&gt;4. Plan Generation&lt;br/&gt;5. Response Synthesis]
+
+    Orchestrator --&gt; RiskLow{Risk = LOW}
+    Orchestrator --&gt; RiskHigh{Risk = HIGH}
+
+    RiskLow --&gt;|Auto-Execute| ExecLayer
+    RiskHigh --&gt;|Request Approval| Admin[Human Admin&lt;br/&gt;Approve / Reject]
+    Admin --&gt;|Approved| ExecLayer
+
+    subgraph Execution [Execution &amp; Audit]
+        ExecLayer[Execution Abstraction Layer&lt;br/&gt;- Validate Plan&lt;br/&gt;- Apply Policy&lt;br/&gt;- Execute Operation&lt;br/&gt;- Return Result]
+        AuditLayer[Audit &amp; Compliance Layer&lt;br/&gt;- Record Audit Trail&lt;br/&gt;- Hash for Integrity&lt;br/&gt;- Tag for Compliance]
+    end
+
+    ExecLayer --&gt; AuditLayer
+    AuditLayer --&gt; Response([Response to User&lt;br/&gt;- Confirmation&lt;br/&gt;- Result Summary&lt;br/&gt;- Audit Reference])</code></pre>
+<h3 id="risk-classification-framework">5.3 Risk Classification
+Framework</h3>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 20%" />
+<col style="width: 18%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr>
+<th>Risk Level</th>
+<th>Criteria</th>
+<th>Example</th>
+<th>Approval Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CRITICAL</strong></td>
+<td>Irreversible, affects production, data destruction</td>
+<td>“Delete production database”</td>
+<td>Multi-factor + Time-window</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td>System configuration, deployment, multiple resources</td>
+<td>“Deploy new service version”</td>
+<td>Explicit approval</td>
+</tr>
+<tr>
+<td><strong>MEDIUM</strong></td>
+<td>User-owned resources, non-critical operations</td>
+<td>“Clean up my test tasks”</td>
+<td>Implicit or simplified</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td>Read-only, informational queries</td>
+<td>“Show me task statistics”</td>
+<td>Automatic</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Risk Scoring Algorithm:</strong></p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calculate_risk_score(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    action_type: <span class="bu">str</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    target_scope: <span class="bu">str</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    reversibility: <span class="bu">bool</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    affected_systems: List[<span class="bu">str</span>]</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> RiskLevel:</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Calculate risk level based on multiple factors.&quot;&quot;&quot;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    score <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Factor 1: Action Type</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    action_risk <span class="op">=</span> {</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;delete&quot;</span>: <span class="dv">40</span>,</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;deploy&quot;</span>: <span class="dv">30</span>,</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;modify&quot;</span>: <span class="dv">25</span>,</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;create&quot;</span>: <span class="dv">15</span>,</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;read&quot;</span>: <span class="dv">5</span>,</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;query&quot;</span>: <span class="dv">0</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    score <span class="op">+=</span> action_risk.get(action_type, <span class="dv">20</span>)</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Factor 2: Scope</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    scope_risk <span class="op">=</span> {</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;production&quot;</span>: <span class="dv">30</span>,</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;staging&quot;</span>: <span class="dv">20</span>,</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;development&quot;</span>: <span class="dv">10</span>,</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;user_own&quot;</span>: <span class="dv">5</span>,</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;user_other&quot;</span>: <span class="dv">15</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>    score <span class="op">+=</span> scope_risk.get(target_scope, <span class="dv">10</span>)</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Factor 3: Reversibility</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>    score <span class="op">+=</span> <span class="dv">20</span> <span class="cf">if</span> <span class="kw">not</span> reversibility <span class="cf">else</span> <span class="dv">0</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Factor 4: Affected Systems</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>    system_multiplier <span class="op">=</span> <span class="bu">min</span>(<span class="bu">len</span>(affected_systems) <span class="op">*</span> <span class="dv">5</span>, <span class="dv">25</span>)</span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>    score <span class="op">+=</span> system_multiplier</span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Determine level</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> score <span class="op">&gt;=</span> <span class="dv">70</span>:</span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">&quot;CRITICAL&quot;</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> score <span class="op">&gt;=</span> <span class="dv">50</span>:</span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">&quot;HIGH&quot;</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> score <span class="op">&gt;=</span> <span class="dv">25</span>:</span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">&quot;MEDIUM&quot;</span></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">&quot;LOW&quot;</span></span></code></pre></div>
+<hr />
+<h2 id="governed-execution-flow-example">6. Governed Execution Flow
+Example</h2>
+<h3 id="scenario-task-data-removal-request">Scenario: Task Data Removal
+Request</h3>
+<p><strong>User Input:</strong></p>
+<blockquote>
+<p>“Please clean up all pending tasks for user daniel@test.com”</p>
+</blockquote>
+<hr />
+<h3 id="step-1-identity-intent-analysis">Step 1: Identity &amp; Intent
+Analysis</h3>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Orchestrator processing</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>analysis_result <span class="op">=</span> <span class="cf">await</span> orchestrator.analyze(</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    user_id<span class="op">=</span><span class="st">&quot;daniel@test.com&quot;</span>,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    request<span class="op">=</span><span class="st">&quot;Please clean up all pending tasks for user daniel@test.com&quot;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Analysis output</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;intent&quot;</span>: <span class="st">&quot;cleanup_user_tasks&quot;</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;entities&quot;</span>: {</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;target_user&quot;</span>: <span class="st">&quot;daniel@test.com&quot;</span>,</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;task_scope&quot;</span>: <span class="st">&quot;pending_tasks&quot;</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;parameters&quot;</span>: {</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;user_id&quot;</span>: <span class="st">&quot;daniel@test.com&quot;</span>,</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;status_filter&quot;</span>: <span class="st">&quot;pending&quot;</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="step-2-risk-impact-assessment">Step 2: Risk &amp; Impact
+Assessment</h3>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Orchestrator risk evaluation</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>risk_assessment <span class="op">=</span> <span class="cf">await</span> orchestrator.evaluate_risk(</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    intent<span class="op">=</span><span class="st">&quot;cleanup_user_tasks&quot;</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    parameters<span class="op">=</span>{</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;user_id&quot;</span>: <span class="st">&quot;daniel@test.com&quot;</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;status_filter&quot;</span>: <span class="st">&quot;pending&quot;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Risk assessment output</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;risk_level&quot;</span>: <span class="st">&quot;MEDIUM&quot;</span>,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;risk_factors&quot;</span>: [</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        {</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;factor&quot;</span>: <span class="st">&quot;data_deletion&quot;</span>,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;impact&quot;</span>: <span class="st">&quot;permanent removal of task records&quot;</span>,</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;mitigation&quot;</span>: <span class="st">&quot;backup before deletion&quot;</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        {</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;factor&quot;</span>: <span class="st">&quot;cascade_delete&quot;</span>,</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;impact&quot;</span>: <span class="st">&quot;entities and relations will be deleted&quot;</span>,</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;mitigation&quot;</span>: <span class="st">&quot;verify dependency graph&quot;</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;reversible&quot;</span>: false,</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;affected_resources&quot;</span>: {</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;user_tasks&quot;</span>: <span class="dv">1</span>,</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;entities&quot;</span>: <span class="dv">0</span>,</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;relations&quot;</span>: <span class="dv">0</span>,</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;file_metadata&quot;</span>: <span class="dv">0</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="step-3-execution-plan-generation">Step 3: Execution Plan
+Generation</h3>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">execution_plan</span><span class="kw">:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">intent</span><span class="kw">:</span><span class="at"> cleanup_user_tasks</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">target</span><span class="kw">:</span><span class="at"> daniel@test.com</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">risk_level</span><span class="kw">:</span><span class="at"> MEDIUM</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">requires_human_approval</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="co">  # Implicit approval for user-owned data</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">reversible</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">execution_mode</span><span class="kw">:</span><span class="at"> function</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">steps</span><span class="kw">:</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> scan_user_tasks</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">function</span><span class="kw">:</span><span class="at"> cleanup_service.scan_data</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">parameters</span><span class="kw">:</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">user_id</span><span class="kw">:</span><span class="at"> daniel@test.com</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">task_id</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> delete_tasks</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">function</span><span class="kw">:</span><span class="at"> cleanup_service.delete_tasks</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">parameters</span><span class="kw">:</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">user_id</span><span class="kw">:</span><span class="at"> daniel@test.com</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">task_id</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">status_filter</span><span class="kw">:</span><span class="at"> pending</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> cleanup_related_entities</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">function</span><span class="kw">:</span><span class="at"> cleanup_service.delete_entities</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">parameters</span><span class="kw">:</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">user_id</span><span class="kw">:</span><span class="at"> daniel@test.com</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">cascade</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> verify_cleanup</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">function</span><span class="kw">:</span><span class="at"> cleanup_service.verify</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">parameters</span><span class="kw">:</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">user_id</span><span class="kw">:</span><span class="at"> daniel@test.com</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">original_count</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a><span class="at">  </span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">policy_constraints</span><span class="kw">:</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;Only delete pending tasks&quot;</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;Preserve completed tasks&quot;</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;Backup entities before deletion&quot;</span></span></code></pre></div>
+<hr />
+<h3 id="step-4-human-approval-if-required">Step 4: Human Approval (if
+required)</h3>
+<p>For this MEDIUM risk request, implicit approval is sufficient:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Approval decision</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>approval <span class="op">=</span> ApprovalDecision(</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    required<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    reason<span class="op">=</span><span class="st">&quot;User is cleaning up their own pending tasks&quot;</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    mode<span class="op">=</span><span class="st">&quot;implicit&quot;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<p>For HIGH/CRITICAL risk:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">approval_request</span><span class="kw">:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">request_id</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;approval-req-uuid&quot;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">to</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;admin@company.com&quot;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">subject</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;High-Risk Operation Requires Approval&quot;</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="fu">  body</span><span class="kw">: </span><span class="ch">|</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    User daniel@test.com has requested:</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    Operation: Delete 5 completed tasks</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    Risk Level: HIGH</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    Impact: Permanently remove 5 tasks and associated data</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    Please review and approve or reject.</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    Execution Plan:</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    - Delete 5 task records</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    - Delete associated entities (23)</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    - Delete associated relations (45)</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">options</span><span class="kw">:</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> approve</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">approve_with_conditions</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Backup before delete&quot;</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">reject</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Provide reason&quot;</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> request_more_info</span></span></code></pre></div>
+<hr />
+<h3 id="step-5-controlled-execution">Step 5: Controlled Execution</h3>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Execution through abstraction layer</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> execute_approved_plan(plan: ExecutionPlan, approval: ApprovalDecision):</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Execute the approved plan under constraints.&quot;&quot;&quot;</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verify approval</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> plan.requires_approval <span class="kw">and</span> <span class="kw">not</span> approval.approved:</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> ExecutionError(<span class="st">&quot;Plan not approved&quot;</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Apply policy constraints</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    constrained_plan <span class="op">=</span> apply_policy_constraints(plan)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Execute each step</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    results <span class="op">=</span> []</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> step <span class="kw">in</span> constrained_plan.steps:</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Verify step is still valid</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> step.is_valid():</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span> ExecutionError(<span class="ss">f&quot;Step invalid: </span><span class="sc">{</span>step<span class="sc">.</span>name<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Execute step</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> <span class="cf">await</span> execute_function(step.function, step.parameters)</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>        results.append(result)</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Check for failures</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> result.status <span class="op">==</span> <span class="st">&quot;failed&quot;</span>:</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">await</span> trigger_rollback(results)</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span> ExecutionError(<span class="ss">f&quot;Step failed: </span><span class="sc">{</span>result<span class="sc">.</span>error<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ExecutionSummary(steps<span class="op">=</span>results)</span></code></pre></div>
+<hr />
+<h3 id="step-6-audit-recording">Step 6: Audit Recording</h3>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Complete audit record</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>audit_record <span class="op">=</span> AuditRecord(</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    record_id<span class="op">=</span><span class="st">&quot;audit-&quot;</span> <span class="op">+</span> <span class="bu">str</span>(uuid.uuid4()),</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    timestamp<span class="op">=</span>datetime.utcnow().isoformat(),</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    actor_id<span class="op">=</span><span class="st">&quot;daniel@test.com&quot;</span>,</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    actor_type<span class="op">=</span><span class="st">&quot;human&quot;</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    action_type<span class="op">=</span><span class="st">&quot;task_cleanup&quot;</span>,</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    target_resource<span class="op">=</span><span class="st">&quot;user_tasks&quot;</span>,</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    intent_text<span class="op">=</span><span class="st">&quot;Please clean up all pending tasks for user daniel@test.com&quot;</span>,</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    reasoning_model<span class="op">=</span><span class="st">&quot;qwen3-coder:30b&quot;</span>,</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    reasoning_output<span class="op">=</span><span class="st">&quot;Data scale is small, only 1 pending task...&quot;</span>,</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    risk_level<span class="op">=</span><span class="st">&quot;MEDIUM&quot;</span>,</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    approval_required<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    approval_mode<span class="op">=</span><span class="st">&quot;implicit&quot;</span>,</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>    execution_mode<span class="op">=</span><span class="st">&quot;function&quot;</span>,</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>    execution_function<span class="op">=</span><span class="st">&quot;cleanup_service.execute&quot;</span>,</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>    execution_result<span class="op">=</span>ExecutionResult(</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>        success<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>        deleted<span class="op">=</span>{</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;user_tasks&quot;</span>: <span class="dv">1</span>,</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;entities&quot;</span>: <span class="dv">0</span>,</span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;relations&quot;</span>: <span class="dv">0</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>    compliance_tags<span class="op">=</span>[<span class="st">&quot;EU_AI_ACT_ARTICLE_14&quot;</span>, <span class="st">&quot;ISO_27001_A.12.4.1&quot;</span>],</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>    content_hash<span class="op">=</span>calculate_hash(audit_record)</span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Store in audit system</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a><span class="cf">await</span> audit_store.append(audit_record)</span></code></pre></div>
+<hr />
+<h2 id="sequence-diagram">7. Sequence Diagram</h2>
+<pre class="mermaid"><code>sequenceDiagram
+    participant U as User
+    participant SA as System Agent Orchestrator
+    participant POL as Policy Engine
+    participant ADM as Administrator
+    participant EX as Execution Layer
+    participant AUD as Audit Log
+
+    U-&gt;&gt;SA: &quot;Clean up pending tasks for daniel@test.com&quot;
+
+    Note over SA: Intent Analysis
+    SA-&gt;&gt;SA: Classify intent as &quot;cleanup_user_tasks&quot;
+    SA-&gt;&gt;SA: Extract parameters
+
+    Note over SA: Risk Assessment
+    SA-&gt;&gt;POL: Evaluate risk level
+    POL--&gt;&gt;SA: Risk level: MEDIUM
+
+    alt Risk = HIGH/CRITICAL
+        SA-&gt;&gt;ADM: Request approval with plan
+        ADM-&gt;&gt;SA: Approve/Reject
+    else Risk = LOW/MEDIUM
+        Note over SA: Auto-approved (user&#39;s own data)
+    end
+
+    SA-&gt;&gt;SA: Generate execution plan
+
+    SA-&gt;&gt;EX: Dispatch execution plan
+    EX-&gt;&gt;EX: Execute constrained operations
+
+    EX-&gt;&gt;AUD: Record execution log
+
+    SA-&gt;&gt;AUD: Record reasoning &amp; decision log
+
+    SA-&gt;&gt;U: Return result with audit reference</code></pre>
+<hr />
+<h2 id="implementation-guide">8. Implementation Guide</h2>
+<h3 id="integration-points">8.1 Integration Points</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Integration Method</th>
+<th>Protocol</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AI-Box Core</strong></td>
+<td>Direct function call</td>
+<td>Python async</td>
+</tr>
+<tr>
+<td><strong>MCP Enterprise Center</strong></td>
+<td>MCP Protocol</td>
+<td>JSON-RPC 2.0</td>
+</tr>
+<tr>
+<td><strong>User Interface</strong></td>
+<td>REST API + WebSocket</td>
+<td>HTTP/WebSocket</td>
+</tr>
+<tr>
+<td><strong>Authentication</strong></td>
+<td>OAuth 2.0 / OIDC</td>
+<td>JWT</td>
+</tr>
+<tr>
+<td><strong>Audit Storage</strong></td>
+<td>Write-ahead log</td>
+<td>gRPC</td>
+</tr>
+</tbody>
+</table>
+<h3 id="api-specifications">8.2 API Specifications</h3>
+<h4 id="orchestrator-api">Orchestrator API</h4>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">openapi</span><span class="kw">:</span><span class="at"> </span><span class="fl">3.0.0</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">info</span><span class="kw">:</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">title</span><span class="kw">:</span><span class="at"> System Agent Orchestrator API</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="fl">1.0.0</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">description</span><span class="kw">:</span><span class="at"> API for governed conversational system management</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="fu">paths</span><span class="kw">:</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">/api/v1/execute</span><span class="kw">:</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">post</span><span class="kw">:</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">summary</span><span class="kw">:</span><span class="at"> Execute a natural language request</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">requestBody</span><span class="kw">:</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">content</span><span class="kw">:</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">application/json</span><span class="kw">:</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">schema</span><span class="kw">:</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">$ref</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;#/components/schemas/ExecutionRequest&#39;</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">responses</span><span class="kw">:</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">&#39;200&#39;</span><span class="kw">:</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Execution result</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">content</span><span class="kw">:</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">application/json</span><span class="kw">:</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">schema</span><span class="kw">:</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a><span class="at">                </span><span class="fu">$ref</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;#/components/schemas/ExecutionResponse&#39;</span></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">/api/v1/analyze</span><span class="kw">:</span></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">post</span><span class="kw">:</span></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">summary</span><span class="kw">:</span><span class="at"> Analyze a request without execution</span></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">requestBody</span><span class="kw">:</span></span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">content</span><span class="kw">:</span></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">application/json</span><span class="kw">:</span></span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">schema</span><span class="kw">:</span></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">$ref</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;#/components/schemas/AnalysisRequest&#39;</span></span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">responses</span><span class="kw">:</span></span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">&#39;200&#39;</span><span class="kw">:</span></span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Analysis result with risk assessment</span></span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">content</span><span class="kw">:</span></span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">application/json</span><span class="kw">:</span></span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">schema</span><span class="kw">:</span></span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a><span class="at">                </span><span class="fu">$ref</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;#/components/schemas/AnalysisResponse&#39;</span></span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">/api/v1/approve</span><span class="kw">:</span></span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">post</span><span class="kw">:</span></span>
+<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">summary</span><span class="kw">:</span><span class="at"> Approve a pending execution request</span></span>
+<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">requestBody</span><span class="kw">:</span></span>
+<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">content</span><span class="kw">:</span></span>
+<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">application/json</span><span class="kw">:</span></span>
+<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">schema</span><span class="kw">:</span></span>
+<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">$ref</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;#/components/schemas/ApprovalRequest&#39;</span></span>
+<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">responses</span><span class="kw">:</span></span>
+<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">&#39;200&#39;</span><span class="kw">:</span></span>
+<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Approval result</span></span>
+<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a><span class="fu">components</span><span class="kw">:</span></span>
+<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">schemas</span><span class="kw">:</span></span>
+<span id="cb19-54"><a href="#cb19-54" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ExecutionRequest</span><span class="kw">:</span></span>
+<span id="cb19-55"><a href="#cb19-55" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span>
+<span id="cb19-56"><a href="#cb19-56" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">required</span><span class="kw">:</span></span>
+<span id="cb19-57"><a href="#cb19-57" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> user_id</span></span>
+<span id="cb19-58"><a href="#cb19-58" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> request</span></span>
+<span id="cb19-59"><a href="#cb19-59" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">properties</span><span class="kw">:</span></span>
+<span id="cb19-60"><a href="#cb19-60" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">user_id</span><span class="kw">:</span></span>
+<span id="cb19-61"><a href="#cb19-61" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-62"><a href="#cb19-62" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">description</span><span class="kw">:</span><span class="at"> User ID for authorization</span></span>
+<span id="cb19-63"><a href="#cb19-63" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">request</span><span class="kw">:</span></span>
+<span id="cb19-64"><a href="#cb19-64" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-65"><a href="#cb19-65" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Natural language request</span></span>
+<span id="cb19-66"><a href="#cb19-66" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">context</span><span class="kw">:</span></span>
+<span id="cb19-67"><a href="#cb19-67" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span>
+<span id="cb19-68"><a href="#cb19-68" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Optional context information</span></span>
+<span id="cb19-69"><a href="#cb19-69" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">auto_approve</span><span class="kw">:</span></span>
+<span id="cb19-70"><a href="#cb19-70" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> boolean</span></span>
+<span id="cb19-71"><a href="#cb19-71" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">default</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb19-72"><a href="#cb19-72" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Allow auto-approval for low-risk operations</span></span>
+<span id="cb19-73"><a href="#cb19-73" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb19-74"><a href="#cb19-74" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ExecutionResponse</span><span class="kw">:</span></span>
+<span id="cb19-75"><a href="#cb19-75" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span>
+<span id="cb19-76"><a href="#cb19-76" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">properties</span><span class="kw">:</span></span>
+<span id="cb19-77"><a href="#cb19-77" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">success</span><span class="kw">:</span></span>
+<span id="cb19-78"><a href="#cb19-78" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> boolean</span></span>
+<span id="cb19-79"><a href="#cb19-79" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">execution_id</span><span class="kw">:</span></span>
+<span id="cb19-80"><a href="#cb19-80" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-81"><a href="#cb19-81" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">status</span><span class="kw">:</span></span>
+<span id="cb19-82"><a href="#cb19-82" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-83"><a href="#cb19-83" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">enum</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">pending</span><span class="kw">,</span><span class="at"> approved</span><span class="kw">,</span><span class="at"> executing</span><span class="kw">,</span><span class="at"> completed</span><span class="kw">,</span><span class="at"> failed</span><span class="kw">]</span></span>
+<span id="cb19-84"><a href="#cb19-84" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">result</span><span class="kw">:</span></span>
+<span id="cb19-85"><a href="#cb19-85" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span>
+<span id="cb19-86"><a href="#cb19-86" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">audit_reference</span><span class="kw">:</span></span>
+<span id="cb19-87"><a href="#cb19-87" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-88"><a href="#cb19-88" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">next_action</span><span class="kw">:</span></span>
+<span id="cb19-89"><a href="#cb19-89" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-90"><a href="#cb19-90" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Next required action (e.g., &quot;await_approval&quot;)</span></span>
+<span id="cb19-91"><a href="#cb19-91" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb19-92"><a href="#cb19-92" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">AnalysisRequest</span><span class="kw">:</span></span>
+<span id="cb19-93"><a href="#cb19-93" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span>
+<span id="cb19-94"><a href="#cb19-94" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">required</span><span class="kw">:</span></span>
+<span id="cb19-95"><a href="#cb19-95" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> user_id</span></span>
+<span id="cb19-96"><a href="#cb19-96" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> request</span></span>
+<span id="cb19-97"><a href="#cb19-97" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">properties</span><span class="kw">:</span></span>
+<span id="cb19-98"><a href="#cb19-98" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">user_id</span><span class="kw">:</span></span>
+<span id="cb19-99"><a href="#cb19-99" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-100"><a href="#cb19-100" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">request</span><span class="kw">:</span></span>
+<span id="cb19-101"><a href="#cb19-101" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-102"><a href="#cb19-102" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb19-103"><a href="#cb19-103" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">AnalysisResponse</span><span class="kw">:</span></span>
+<span id="cb19-104"><a href="#cb19-104" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span>
+<span id="cb19-105"><a href="#cb19-105" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">properties</span><span class="kw">:</span></span>
+<span id="cb19-106"><a href="#cb19-106" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">intent</span><span class="kw">:</span></span>
+<span id="cb19-107"><a href="#cb19-107" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-108"><a href="#cb19-108" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">entities</span><span class="kw">:</span></span>
+<span id="cb19-109"><a href="#cb19-109" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span>
+<span id="cb19-110"><a href="#cb19-110" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">risk_level</span><span class="kw">:</span></span>
+<span id="cb19-111"><a href="#cb19-111" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> string</span></span>
+<span id="cb19-112"><a href="#cb19-112" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">enum</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">LOW</span><span class="kw">,</span><span class="at"> MEDIUM</span><span class="kw">,</span><span class="at"> HIGH</span><span class="kw">,</span><span class="at"> CRITICAL</span><span class="kw">]</span></span>
+<span id="cb19-113"><a href="#cb19-113" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">risk_factors</span><span class="kw">:</span></span>
+<span id="cb19-114"><a href="#cb19-114" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> array</span></span>
+<span id="cb19-115"><a href="#cb19-115" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">items</span><span class="kw">:</span></span>
+<span id="cb19-116"><a href="#cb19-116" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span>
+<span id="cb19-117"><a href="#cb19-117" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">estimated_impact</span><span class="kw">:</span></span>
+<span id="cb19-118"><a href="#cb19-118" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span>
+<span id="cb19-119"><a href="#cb19-119" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">requires_approval</span><span class="kw">:</span></span>
+<span id="cb19-120"><a href="#cb19-120" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> boolean</span></span>
+<span id="cb19-121"><a href="#cb19-121" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">suggested_plan</span><span class="kw">:</span></span>
+<span id="cb19-122"><a href="#cb19-122" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">type</span><span class="kw">:</span><span class="at"> object</span></span></code></pre></div>
+<h3 id="execution-function-interface">8.3 Execution Function
+Interface</h3>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> abc <span class="im">import</span> ABC, abstractmethod</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Any, Dict, Optional</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pydantic <span class="im">import</span> BaseModel</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> enum <span class="im">import</span> Enum</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ExecutionStatus(<span class="bu">str</span>, Enum):</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    PENDING <span class="op">=</span> <span class="st">&quot;pending&quot;</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    RUNNING <span class="op">=</span> <span class="st">&quot;running&quot;</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    COMPLETED <span class="op">=</span> <span class="st">&quot;completed&quot;</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    FAILED <span class="op">=</span> <span class="st">&quot;failed&quot;</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    ROLLED_BACK <span class="op">=</span> <span class="st">&quot;rolled_back&quot;</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ExecutionResult(BaseModel):</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    success: <span class="bu">bool</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    status: ExecutionStatus</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    data: Optional[Dict[<span class="bu">str</span>, Any]] <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>    error: Optional[<span class="bu">str</span>] <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    rollback_available: <span class="bu">bool</span> <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BaseExecutionFunction(ABC):</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Base class for all execution functions.&quot;&quot;&quot;</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    function_name: <span class="bu">str</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    description: <span class="bu">str</span></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">@abstractmethod</span></span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="kw">def</span> execute(</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>,</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>        parameters: Dict[<span class="bu">str</span>, Any],</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>        context: Dict[<span class="bu">str</span>, Any]</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>    ) <span class="op">-&gt;</span> ExecutionResult:</span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>        <span class="co">&quot;&quot;&quot;Execute the function.</span></span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a><span class="co">        Args:</span></span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a><span class="co">            parameters: Function-specific parameters</span></span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a><span class="co">            context: Execution context (user_id, audit_id, etc.)</span></span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a><span class="co">            </span></span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a><span class="co">            ExecutionResult with success status and data</span></span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a><span class="co">        &quot;&quot;&quot;</span></span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">pass</span></span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">@abstractmethod</span></span>
+<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="kw">def</span> validate(</span>
+<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>,</span>
+<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>        parameters: Dict[<span class="bu">str</span>, Any],</span>
+<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a>        context: Dict[<span class="bu">str</span>, Any]</span>
+<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a>    ) <span class="op">-&gt;</span> <span class="bu">tuple</span>[<span class="bu">bool</span>, Optional[<span class="bu">str</span>]]:</span>
+<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>        <span class="co">&quot;&quot;&quot;Validate parameters before execution.</span></span>
+<span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
+<span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
+<span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a><span class="co">            (is_valid, error_message)</span></span>
+<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a><span class="co">        &quot;&quot;&quot;</span></span>
+<span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a>        <span class="cf">pass</span></span>
+<span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-56"><a href="#cb20-56" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="kw">def</span> rollback(</span>
+<span id="cb20-57"><a href="#cb20-57" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>,</span>
+<span id="cb20-58"><a href="#cb20-58" aria-hidden="true" tabindex="-1"></a>        parameters: Dict[<span class="bu">str</span>, Any],</span>
+<span id="cb20-59"><a href="#cb20-59" aria-hidden="true" tabindex="-1"></a>        context: Dict[<span class="bu">str</span>, Any]</span>
+<span id="cb20-60"><a href="#cb20-60" aria-hidden="true" tabindex="-1"></a>    ) <span class="op">-&gt;</span> ExecutionResult:</span>
+<span id="cb20-61"><a href="#cb20-61" aria-hidden="true" tabindex="-1"></a>        <span class="co">&quot;&quot;&quot;Optional rollback implementation.&quot;&quot;&quot;</span></span>
+<span id="cb20-62"><a href="#cb20-62" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ExecutionResult(</span>
+<span id="cb20-63"><a href="#cb20-63" aria-hidden="true" tabindex="-1"></a>            success<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb20-64"><a href="#cb20-64" aria-hidden="true" tabindex="-1"></a>            status<span class="op">=</span>ExecutionStatus.FAILED,</span>
+<span id="cb20-65"><a href="#cb20-65" aria-hidden="true" tabindex="-1"></a>            error<span class="op">=</span><span class="st">&quot;Rollback not implemented&quot;</span></span>
+<span id="cb20-66"><a href="#cb20-66" aria-hidden="true" tabindex="-1"></a>        )</span></code></pre></div>
+<h3 id="policy-configuration">8.4 Policy Configuration</h3>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># policy_config.yaml</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">policies</span><span class="kw">:</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co">  # Default policies for all users</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">defaults</span><span class="kw">:</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">auto_approve_low_risk</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">require_approval_high_risk</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">require_approval_critical</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="co">    # Risk thresholds</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">low_risk_max_impact</span><span class="kw">:</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> read_operations</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> query_operations</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">medium_risk_actions</span><span class="kw">:</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> create_user_owned</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> modify_user_owned</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> cleanup_user_owned</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">high_risk_actions</span><span class="kw">:</span></span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> delete_any</span></span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> deploy_any</span></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> modify_system_config</span></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">critical_risk_actions</span><span class="kw">:</span></span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> delete_production</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> modify_security</span></span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> modify_billing</span></span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a><span class="co">  # User-specific overrides</span></span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">users</span><span class="kw">:</span></span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">admin@company.com</span><span class="kw">:</span></span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">auto_approve_high_risk</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">can_execute_critical</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">daniel@test.com</span><span class="kw">:</span></span>
+<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">can_cleanup_own_tasks</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">max_cleanup_per_day</span><span class="kw">:</span><span class="at"> </span><span class="dv">10</span></span>
+<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a><span class="co">  # Resource-specific policies</span></span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">resources</span><span class="kw">:</span></span>
+<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">production</span><span class="kw">:</span></span>
+<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">require_approval</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">require_multi_approval</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">backup_required</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">user_data</span><span class="kw">:</span></span>
+<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">owner_can_delete</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">require_approval</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div>
+<hr />
+<h2 id="relationship-to-existing-paradigms">9. Relationship to Existing
+Paradigms</h2>
+<p>The proposed architecture aligns with proven enterprise patterns:</p>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 64%" />
+</colgroup>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>AOGA Equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cloud Control Plane vs Data Plane</strong></td>
+<td>Orchestrator (Control) vs Execution Layer (Data)</td>
+</tr>
+<tr>
+<td><strong>GitOps Controller vs Apply Engine</strong></td>
+<td>Plan Generator vs Executor</td>
+</tr>
+<tr>
+<td><strong>Financial Risk Engine vs Core Ledger</strong></td>
+<td>Risk Evaluator vs Transaction System</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The novelty lies in:</strong></p>
+<ol type="1">
+<li><strong>Conversational intent as the declarative layer</strong>
+<ul>
+<li>Natural language replaces YAML/JSON as the primary input format</li>
+<li>System translates intent into structured plans</li>
+</ul></li>
+<li><strong>Agent-based governance rather than static rule
+systems</strong>
+<ul>
+<li>LLM-powered risk assessment and planning</li>
+<li>Dynamic policy evaluation based on context</li>
+<li>Adaptive approval workflows</li>
+</ul></li>
+</ol>
+<hr />
+<h2 id="alignment-with-ai-box-mcp-agent-architecture">10. Alignment with
+AI-Box / MCP / Agent Architecture</h2>
+<h3 id="mapping-to-ai-box-components">10.1 Mapping to AI-Box
+Components</h3>
+<table>
+<thead>
+<tr>
+<th>Concept in Whitepaper</th>
+<th>AI-Box / MCP Mapping</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System Agent Orchestrator</td>
+<td>AI-Box Core System Agent</td>
+</tr>
+<tr>
+<td>Control Plane</td>
+<td>MCP Enterprise Center</td>
+</tr>
+<tr>
+<td>Execution Abstraction Layer</td>
+<td>Function Executors / Sub-Agents</td>
+</tr>
+<tr>
+<td>Execution Plan</td>
+<td>MCP Action Contract</td>
+</tr>
+<tr>
+<td>Audit &amp; Compliance</td>
+<td>AI-Box Immutable Log / Event Store</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mcp-integration-flow">10.2 MCP Integration Flow</h3>
+<pre class="mermaid"><code>flowchart LR
+    A[User / AI Assistant]
+    B[AI-Box System Agent Orchestrator]
+    C[MCP Enterprise Center]
+    D[Execution Functions / Sub-Agents]
+    E[Enterprise Systems]
+
+    A --&gt; B
+    B --&gt;|Intent + Plan| C
+    C --&gt;|Policy Check| C
+    C --&gt;|Authorized Dispatch| D
+    D --&gt; E
+    D --&gt;|Audit| B
+    C --&gt;|Audit| B</code></pre>
+<p><strong>Key Integration Points:</strong></p>
+<ol type="1">
+<li><strong>MCP as Policy Choke Point</strong>
+<ul>
+<li>All execution requests pass through MCP</li>
+<li>MCP enforces policy constraints</li>
+<li>MCP logs all decisions</li>
+</ul></li>
+<li><strong>AI-Box as Orchestration Layer</strong>
+<ul>
+<li>Intent understanding and planning</li>
+<li>Risk assessment</li>
+<li>Response generation</li>
+</ul></li>
+<li><strong>Execution as Replaceable Layer</strong>
+<ul>
+<li>Functions and agents can be updated without changing
+orchestration</li>
+<li>Clear interface contracts</li>
+</ul></li>
+</ol>
+<hr />
+<h2 id="threat-model-failure-modes">11. Threat Model &amp; Failure
+Modes</h2>
+<h3 id="threat-model-overview">11.1 Threat Model Overview</h3>
+<p>The architecture explicitly assumes:</p>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 63%" />
+</colgroup>
+<thead>
+<tr>
+<th>Assumption</th>
+<th>Mitigation Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI models can hallucinate</td>
+<td>Reasoning treated as untrusted input</td>
+</tr>
+<tr>
+<td>Prompts can be malicious or ambiguous</td>
+<td>Structured execution plans with validation</td>
+</tr>
+<tr>
+<td>Internal users can make mistakes</td>
+<td>Approval checkpoints for risky operations</td>
+</tr>
+<tr>
+<td>Credentials can be compromised</td>
+<td>Minimal privilege, short-lived tokens</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Core Principle:</strong> <em>AI reasoning is untrusted by
+default.</em></p>
+<h3 id="key-threat-categories">11.2 Key Threat Categories</h3>
+<h4 id="t1.-prompt-injection-instruction-manipulation">T1. Prompt
+Injection &amp; Instruction Manipulation</h4>
+<table>
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr>
+<th>Threat</th>
+<th>Malicious or accidental prompts attempt to coerce unsafe
+execution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Example</td>
+<td>“Delete all tasks (ignore previous instructions)”</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mitigations:</strong></p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Structured intent parsing (not free-text execution)</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>parsed_intent <span class="op">=</span> intent_parser.parse(user_request)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> parsed_intent.is_structured():</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Response(error<span class="op">=</span><span class="st">&quot;Could not parse intent&quot;</span>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. All actions require structured plan</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>execution_plan <span class="op">=</span> plan_generator.generate(parsed_intent)</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step <span class="kw">in</span> execution_plan.steps:</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> plan_validator.is_safe_step(step):</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> Response(error<span class="op">=</span><span class="st">&quot;Unsafe action detected&quot;</span>)</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Zero execution privilege for reasoning agent</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>orchestrator_has_no_database_access()</span></code></pre></div>
+<hr />
+<h4 id="t2.-excessive-authority-accumulation">T2. Excessive Authority
+Accumulation</h4>
+<table>
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr>
+<th>Threat</th>
+<th>Agents accumulate permissions over time, becoming de facto
+operators</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Example</td>
+<td>Agent requests “more access to complete task” and gains persistent
+permissions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mitigations:</strong></p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Zero-execution privilege by design</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Orchestrator:</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.can_execute <span class="op">=</span> <span class="va">False</span>  <span class="co"># Explicitly zero</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Ephemeral agents with scoped tools</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> EphemeralAgent:</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, task_id: <span class="bu">str</span>):</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.available_tools <span class="op">=</span> [<span class="st">&quot;scan&quot;</span>, <span class="st">&quot;delete_task&quot;</span>]  <span class="co"># Limited</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.max_lifetime <span class="op">=</span> <span class="st">&quot;5_minutes&quot;</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.memory <span class="op">=</span> {}  <span class="co"># No persistence</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Permission requests require human approval</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> request_additional_permission(requested_permission):</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="cf">await</span> human_approval_workflow(</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>        requester<span class="op">=</span><span class="st">&quot;agent&quot;</span>,</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>        requested<span class="op">=</span>requested_permission,</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>        justification<span class="op">=</span><span class="st">&quot;Required for task completion&quot;</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div>
+<hr />
+<h4 id="t3.-silent-destructive-actions">T3. Silent Destructive
+Actions</h4>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr>
+<th>Threat</th>
+<th>Irreversible changes occur without human awareness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Example</td>
+<td>“Cleanup” operation deletes production data without
+notification</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mitigations:</strong></p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Risk classification before any action</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>risk <span class="op">=</span> assess_risk(action)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> risk <span class="op">&gt;=</span> RiskLevel.HIGH:</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> request_approval(risk)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Mandatory notification</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> execute_delete_operation(task_id: <span class="bu">str</span>):</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Notify before execution</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> notification_service.send(</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>        to<span class="op">=</span><span class="st">&quot;admin@company.com&quot;</span>,</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>        subject<span class="op">=</span><span class="st">&quot;Destructive Operation Pending&quot;</span>,</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>        body<span class="op">=</span><span class="st">&quot;Task deletion will occur in 5 minutes&quot;</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Wait for acknowledgment or timeout</span></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> asyncio.sleep(<span class="dv">300</span>)</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Then execute</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="cf">await</span> delete_task(task_id)</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Audit logging of all operations</span></span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>audit.record(</span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>    actor<span class="op">=</span><span class="st">&quot;system&quot;</span>,</span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>    action<span class="op">=</span><span class="st">&quot;delete_task&quot;</span>,</span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>    target<span class="op">=</span>task_id,</span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>    risk_level<span class="op">=</span><span class="st">&quot;HIGH&quot;</span>,</span>
+<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>    notification_sent<span class="op">=</span><span class="va">True</span></span>
+<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<hr />
+<h4 id="t4.-audit-log-tampering">T4. Audit Log Tampering</h4>
+<table>
+<thead>
+<tr>
+<th>Threat</th>
+<th>System actions cannot be reconstructed post-incident</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Example</td>
+<td>Attacker modifies audit logs to cover tracks</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mitigations:</strong></p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Append-only storage with WORM semantics</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>audit_db <span class="op">=</span> ImmutableDatabase(</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    mode<span class="op">=</span><span class="st">&quot;append_only&quot;</span>,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    retention_policy<span class="op">=</span><span class="st">&quot;7_years&quot;</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Cryptographic hashing for integrity</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hashlib</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> create_audit_record(data: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Add timestamp and sequence number</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>    record <span class="op">=</span> {</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">**</span>data,</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;sequence&quot;</span>: audit_db.get_next_sequence(),</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;timestamp&quot;</span>: datetime.utcnow().isoformat()</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Calculate hash of content</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>    content <span class="op">=</span> json.dumps(record, sort_keys<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>    record[<span class="st">&quot;content_hash&quot;</span>] <span class="op">=</span> hashlib.sha256(content.encode()).hexdigest()</span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Store</span></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>    audit_db.append(record)</span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> record</span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Separation of reasoning logs and execution logs</span></span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>reasoning_log <span class="op">=</span> <span class="st">&quot;ImmutableLog_Reasoning&quot;</span></span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>execution_log <span class="op">=</span> <span class="st">&quot;ImmutableLog_Execution&quot;</span></span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Even if one is compromised, the other provides context</span></span></code></pre></div>
+<hr />
+<h3 id="failure-modes-and-safe-degradation">11.3 Failure Modes and Safe
+Degradation</h3>
+<table>
+<colgroup>
+<col style="width: 29%" />
+<col style="width: 35%" />
+<col style="width: 35%" />
+</colgroup>
+<thead>
+<tr>
+<th>Failure Mode</th>
+<th>System Behavior</th>
+<th>User Experience</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Orchestrator failure</strong></td>
+<td>No execution possible</td>
+<td>“Service temporarily unavailable”</td>
+</tr>
+<tr>
+<td><strong>MCP policy outage</strong></td>
+<td>Execution blocked</td>
+<td>“Policy check failed - retry later”</td>
+</tr>
+<tr>
+<td><strong>Execution agent crash</strong></td>
+<td>Operation aborted safely</td>
+<td>“Operation failed - no changes made”</td>
+</tr>
+<tr>
+<td><strong>Audit subsystem failure</strong></td>
+<td>System enters read-only mode</td>
+<td>“Write operations suspended”</td>
+</tr>
+<tr>
+<td><strong>LLM service unavailable</strong></td>
+<td>Fallback to rule-based analysis</td>
+<td>“Using simplified analysis”</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design Philosophy:</strong> <em>Fail-closed over
+fail-open.</em></p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: Fail-closed implementation</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> execute_with_fail_closed(plan: ExecutionPlan):</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Attempt execution</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> <span class="cf">await</span> execute_plan(plan)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> result</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Any failure -&gt; fail closed</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>        logger.error(<span class="ss">f&quot;Execution failed: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ExecutionResult(</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>            success<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>            status<span class="op">=</span>ExecutionStatus.FAILED,</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>            error<span class="op">=</span><span class="bu">str</span>(e),</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>            changes_made<span class="op">=</span><span class="va">False</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>        )</span></code></pre></div>
+<hr />
+<h2 id="strategic-value">12. Strategic Value</h2>
+<h3 id="why-this-matters-globally">12.1 Why This Matters Globally</h3>
+<p>As AI systems move from advisory roles into operational domains,
+governments and enterprises face a common dilemma:</p>
+<blockquote>
+<p><em>How do we benefit from AI reasoning without surrendering
+control?</em></p>
+</blockquote>
+<p>This architecture provides a concrete answer:</p>
+<ol type="1">
+<li><strong>Trust Through Transparency</strong>
+<ul>
+<li>Every AI decision is auditable</li>
+<li>Human approval for risky operations</li>
+<li>Clear accountability boundaries</li>
+</ul></li>
+<li><strong>Compliance by Design</strong>
+<ul>
+<li>Built-in regulatory alignment</li>
+<li>Automated compliance reporting</li>
+<li>Audit-ready architecture</li>
+</ul></li>
+<li><strong>Scalable Governance</strong>
+<ul>
+<li>Policy-as-code</li>
+<li>Automated risk assessment</li>
+<li>Consistent enforcement</li>
+</ul></li>
+</ol>
+<h3 id="regulatory-alignment">12.2 Regulatory Alignment</h3>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 44%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr>
+<th>Regulation</th>
+<th>Relevant Requirements</th>
+<th>AOGA Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EU AI Act</strong></td>
+<td>Human oversight for high-risk AI</td>
+<td>Mandatory approval for critical actions</td>
+</tr>
+<tr>
+<td><strong>ISO 27001</strong></td>
+<td>Access control, audit logging</td>
+<td>RBAC, immutable audit logs</td>
+</tr>
+<tr>
+<td><strong>SOC 2</strong></td>
+<td>Change management, monitoring</td>
+<td>Approval workflows, full audit trail</td>
+</tr>
+<tr>
+<td><strong>GDPR</strong></td>
+<td>Data deletion, accountability</td>
+<td>Execution logging, deletion confirmation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="enterprise-ai-at-scale">12.3 Enterprise AI at Scale</h3>
+<p>For large organizations, the future of AI is not chatbots, but:</p>
+<table>
+<thead>
+<tr>
+<th>Current State</th>
+<th>Future State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ticket-based workflows</td>
+<td>Conversational interfaces</td>
+</tr>
+<tr>
+<td>Manual change approval</td>
+<td>AI-assisted risk assessment</td>
+</tr>
+<tr>
+<td>Static policies</td>
+<td>Dynamic policy evaluation</td>
+</tr>
+<tr>
+<td>siloed systems</td>
+<td>Unified conversational control plane</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This architecture enables:</strong></p>
+<ul>
+<li><strong>Safe delegation</strong> to AI for routine operations</li>
+<li><strong>Gradual automation</strong> starting with low-risk
+tasks</li>
+<li><strong>Human sovereignty</strong> over critical systems</li>
+<li><strong>Regulatory compliance</strong> built into operations</li>
+</ul>
+<h3 id="strategic-differentiation">12.4 Strategic Differentiation</h3>
+<p>Most enterprise AI platforms focus on:</p>
+<table>
+<thead>
+<tr>
+<th>Common Focus</th>
+<th>AI-Box Differentiation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model performance</td>
+<td>Governance first</td>
+</tr>
+<tr>
+<td>Tool integration</td>
+<td>Compliance ready</td>
+</tr>
+<tr>
+<td>Response speed</td>
+<td>Audit complete</td>
+</tr>
+<tr>
+<td>Conversation quality</td>
+<td>Accountability clear</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Market Positioning:</strong></p>
+<blockquote>
+<p><em>AI-Box: Where enterprise AI meets governance. Trust, but
+verify.</em></p>
+</blockquote>
+<hr />
+<h2 id="conclusion">13. Conclusion</h2>
+<p>AI-Box demonstrates that conversational AI does not require
+relinquishing control.</p>
+<p>By elevating AI to a <strong>governed orchestration role</strong>,
+enterprises gain:</p>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 59%" />
+</colgroup>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Expressive Power</strong></td>
+<td>Natural language interfaces for system management</td>
+</tr>
+<tr>
+<td><strong>Safety</strong></td>
+<td>Zero-execution privilege for reasoning agents</td>
+</tr>
+<tr>
+<td><strong>Accountability</strong></td>
+<td>Clear human ownership of all operations</td>
+</tr>
+<tr>
+<td><strong>Compliance</strong></td>
+<td>Built-in audit trails and policy enforcement</td>
+</tr>
+<tr>
+<td><strong>Flexibility</strong></td>
+<td>Replaceable execution layer</td>
+</tr>
+</tbody>
+</table>
+<p>This architecture enables AI to participate responsibly in system
+management without becoming an unchecked actor.</p>
+<hr />
+<h2 id="appendix-a-public-article-draft">Appendix A: Public Article
+Draft</h2>
+<p><h3
+id="agent-orchestrated-governance-architecture-aoga">Agent-Orchestrated
+Governance Architecture (AOGA)</h3></p>
+<p><strong>Reframing Enterprise AI: From Autonomous Agents to Governed
+Participation</strong></p>
+<hr />
+<h3 id="abstract">Abstract</h3>
+<p>As agentic AI systems rapidly evolve, much of the industry narrative
+centers on autonomy, tool use, and self-directed execution. While these
+capabilities are impressive, they introduce fundamental risks when
+applied to enterprise and critical systems.</p>
+<p>This article proposes <strong>Agent-Orchestrated Governance
+Architecture (AOGA)</strong>, a design paradigm that deliberately
+separates AI reasoning from system execution. AOGA reframes agents not
+as operators, but as <strong>governed participants within a
+human-sovereign control plane</strong>.</p>
+<p>Rather than asking how autonomous AI should be, AOGA asks a different
+question:</p>
+<blockquote>
+<p><em>How can AI participate in decision-making without being trusted
+to act unchecked?</em></p>
+</blockquote>
+<hr />
+<h3 id="the-enterprise-ai-paradox">1. The Enterprise AI Paradox</h3>
+<p>Enterprises today face a paradox.</p>
+<p>On one hand: - AI models are increasingly capable of reasoning,
+planning, and synthesizing complex information.</p>
+<p>On the other hand: - Enterprises are legally, operationally, and
+ethically constrained from delegating authority to opaque systems.</p>
+<p>The prevailing response has been hesitation. AI is allowed to advise,
+summarize, and recommend, but rarely to touch core systems.</p>
+<p><strong>This is not a failure of AI capability. It is a failure of
+architecture.</strong></p>
+<hr />
+<h3 id="why-autonomous-agents-are-the-wrong-default">2. Why Autonomous
+Agents Are the Wrong Default</h3>
+<p>Much of the current agent discourse assumes a flawed equivalence:</p>
+<blockquote>
+<p><em>If an agent can reason, it should be allowed to execute.</em></p>
+</blockquote>
+<p>In enterprise contexts, this assumption collapses under scrutiny.</p>
+<p><strong>The Four Risks of Autonomous Execution:</strong></p>
+<ol type="1">
+<li><strong>Ambiguous Accountability</strong> - Who owns the AI’s
+decisions?</li>
+<li><strong>Regulatory Non-Compliance</strong> - Many frameworks require
+human approval</li>
+<li><strong>Irreversible Operational Risk</strong> - One bad prompt can
+cause catastrophe</li>
+<li><strong>Post-Incident Reconstruction</strong> - Without logs, what
+happened?</li>
+</ol>
+<p>Human organizations do not operate this way. Decision-making and
+execution have always been separated through checks, approvals, and
+governance layers.</p>
+<p><strong>AI systems should be no different.</strong></p>
+<hr />
+<h3 id="introducing-aoga-agent-orchestrated-governance-architecture">3.
+Introducing AOGA: Agent-Orchestrated Governance Architecture</h3>
+<p><strong>AOGA</strong> is an architectural pattern that positions AI
+agents as <strong>orchestrators of intent</strong>, not executors of
+action.</p>
+<p>At its core lies a simple rule:</p>
+<blockquote>
+<p><em>Any component capable of free-form reasoning must not possess
+execution authority.</em></p>
+</blockquote>
+<p>This principle aligns AI systems with decades of proven enterprise
+governance patterns.</p>
+<hr />
+<h3 id="the-control-plane-model-for-ai">4. The Control Plane Model for
+AI</h3>
+<p>AOGA borrows from established infrastructure paradigms:</p>
+<ul>
+<li><strong>Cloud control planes</strong> - Separate API management from
+data plane</li>
+<li><strong>GitOps controllers</strong> - Separate policy from
+apply</li>
+<li><strong>Financial risk engines</strong> - Separate risk assessment
+from trading</li>
+</ul>
+<p>In all these systems: - Reasoning and policy evaluation occur
+upstream - Execution occurs downstream - All actions are auditable</p>
+<p><strong>AOGA applies the same discipline to conversational
+AI.</strong></p>
+<hr />
+<h3 id="core-components-of-aoga">5. Core Components of AOGA</h3>
+<h4 id="system-agent-orchestrator">5.1 System Agent Orchestrator</h4>
+<p>The System Agent Orchestrator: - Interprets natural language intent -
+Evaluates policy and risk - Discovers system capabilities - Generates
+structured execution plans</p>
+<p><strong>Crucially, it never executes system changes.</strong></p>
+<h4 id="execution-abstraction-layer-1">5.2 Execution Abstraction
+Layer</h4>
+<p>All system mutations occur within constrained execution mechanisms: -
+Deterministic functions (testable, sandboxable) - Ephemeral,
+tool-restricted execution agents</p>
+<p>These components are designed to be replaceable, testable, and
+auditable.</p>
+<h4 id="human-in-the-loop-governance">5.3 Human-in-the-Loop
+Governance</h4>
+<p>AOGA treats human oversight not as a fallback, but as a first-class
+design element.</p>
+<p>High-risk actions require explicit human approval, ensuring clear
+ownership and accountability.</p>
+<hr />
+<h3 id="conversational-interfaces-as-declarative-control">6.
+Conversational Interfaces as Declarative Control</h3>
+<p>AOGA does not treat conversation as an execution channel.</p>
+<p>Instead, conversation becomes a <strong>declarative
+interface</strong> for expressing intent.</p>
+<p>Just as YAML declares desired state in GitOps, natural language
+declares desired outcomes in AOGA.</p>
+<p><strong>The system determines whether and how that intent may be
+realized.</strong></p>
+<hr />
+<h3 id="failure-is-inevitable.-architecture-must-assume-it.">7. Failure
+Is Inevitable. Architecture Must Assume It.</h3>
+<p>AOGA is designed with pessimism toward AI correctness.</p>
+<p>It assumes: - Models hallucinate - Prompts can be adversarial -
+Internal users make mistakes</p>
+<p>Therefore, AI reasoning is treated as <strong>untrusted
+input</strong>.</p>
+<p><strong>The system is designed to fail closed, not open.</strong></p>
+<hr />
+<h3 id="trust-is-the-real-bottleneck-of-enterprise-ai">8. Trust Is the
+Real Bottleneck of Enterprise AI</h3>
+<p>The future of enterprise AI adoption will not be limited by model
+intelligence.</p>
+<p><strong>It will be limited by trust.</strong></p>
+<p>Organizations will not deploy AI into critical systems unless they
+can: - Explain decisions - Audit actions - Assign responsibility -
+Enforce policy boundaries</p>
+<p>AOGA directly addresses these requirements.</p>
+<hr />
+<h3 id="from-automation-to-participation">9. From Automation to
+Participation</h3>
+<p>AOGA represents a shift in mindset.</p>
+<p>AI is no longer framed as an autonomous actor, but as a participant
+in a governed system.</p>
+<p>This shift enables: - Gradual automation - Safe delegation -
+Regulatory alignment</p>
+<p>It allows enterprises to move forward without surrendering
+control.</p>
+<hr />
+<h3 id="why-aoga-matters-now">10. Why AOGA Matters Now</h3>
+<p>As regulatory scrutiny increases and AI systems grow more capable,
+architectures that blur decision and execution will become
+liabilities.</p>
+<p>AOGA offers a path forward: - AI reasoning without unchecked power -
+Conversational interfaces without hidden side effects - Automation
+without abdication</p>
+<hr />
+<h3 id="conclusion-1">Conclusion</h3>
+<p>Agent-Orchestrated Governance Architecture is not an attempt to limit
+AI.</p>
+<p><strong>It is an attempt to make AI deployable where it actually
+matters.</strong></p>
+<p>By separating reasoning from execution and embedding governance into
+the architecture itself, AOGA enables enterprises to finally trust AI as
+a partner rather than fear it as a risk.</p>
+<hr />
+<p><em>End of Public Article Draft</em></p>
+<hr />
+<h2 id="appendix-b-quick-start-guide">Appendix B: Quick Start Guide</h2>
+<h3 id="b.1-deploying-aoga-components">B.1 Deploying AOGA
+Components</h3>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Deploy Orchestrator</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="ex">kubectl</span> apply <span class="at">-f</span> orchestrator-deployment.yaml</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Deploy Execution Functions</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="ex">kubectl</span> apply <span class="at">-f</span> execution-functions-deployment.yaml</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Deploy Audit Layer</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="ex">kubectl</span> apply <span class="at">-f</span> audit-deployment.yaml</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Configure Policies</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a><span class="ex">kubectl</span> apply <span class="at">-f</span> policy-config.yaml</span></code></pre></div>
+<h3 id="b.2-configuration-example">B.2 Configuration Example</h3>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># aoga-config.yaml</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span><span class="kw">:</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">name</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;AI-Box AOGA&quot;</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;1.0.0&quot;</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="fu">orchestrator</span><span class="kw">:</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">model</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;qwen3-coder:30b&quot;</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">max_retries</span><span class="kw">:</span><span class="at"> </span><span class="dv">3</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">timeout_seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">60</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="fu">execution</span><span class="kw">:</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">default_mode</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;function&quot;</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">allowed_functions</span><span class="kw">:</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;cleanup_user_tasks&quot;</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;deploy_service&quot;</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;query_status&quot;</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">max_execution_time</span><span class="kw">:</span><span class="at"> </span><span class="dv">300</span></span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a><span class="fu">approval</span><span class="kw">:</span></span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">auto_approve_low_risk</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">require_approval_high_risk</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">require_approval_critical</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb29-23"><a href="#cb29-23" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">approval_timeout</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span>
+<span id="cb29-24"><a href="#cb29-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-25"><a href="#cb29-25" aria-hidden="true" tabindex="-1"></a><span class="fu">audit</span><span class="kw">:</span></span>
+<span id="cb29-26"><a href="#cb29-26" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb29-27"><a href="#cb29-27" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">retention_days</span><span class="kw">:</span><span class="at"> </span><span class="dv">2555</span><span class="co">  # 7 years</span></span>
+<span id="cb29-28"><a href="#cb29-28" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hash_algorithm</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;sha256&quot;</span></span></code></pre></div>
+<h3 id="b.3-testing-checklist">B.3 Testing Checklist</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Orchestrator correctly parses
+intent</label></li>
+<li><label><input type="checkbox" />Risk assessment matches expected
+levels</label></li>
+<li><label><input type="checkbox" />Approval workflow triggers for
+high-risk actions</label></li>
+<li><label><input type="checkbox" />Execution functions operate within
+constraints</label></li>
+<li><label><input type="checkbox" />Audit records are
+immutable</label></li>
+<li><label><input type="checkbox" />Rollback works
+correctly</label></li>
+<li><label><input type="checkbox" />Fail-closed behavior
+confirmed</label></li>
+</ul>
+<hr />
+<p><em>Document Version: 1.2</em> <em>Last Updated: 2026-01-23</em>
+<em>Authors: AI-Box Development Team</em></p>
+</body>
+</html>

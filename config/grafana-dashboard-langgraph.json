@@ -1,0 +1,135 @@
+# 代碼功能說明: Grafana 儀表板配置 - LangGraph 工作流監控
+# 創建日期: 2026-01-24
+# 創建人: Daniel Chung
+# 最後修改日期: 2026-01-24
+
+{
+  "dashboard": {
+    "id": null,
+    "title": "AI-Box LangGraph Workflow Monitoring",
+    "tags": ["ai-box", "langgraph", "workflows"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Workflow Execution Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(langgraph_workflow_total{status=\"completed\"}[5m])) / sum(rate(langgraph_workflow_total[5m])) * 100",
+            "legendFormat": "Success Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Active Workflows",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "langgraph_workflows_active",
+            "legendFormat": "Active Workflows"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Workflow Execution Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(langgraph_workflow_duration_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(langgraph_workflow_duration_bucket[5m]))",
+            "legendFormat": "Median"
+          }
+        ],
+        "yAxes": [
+          {
+            "unit": "seconds"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Agent Performance by Layer",
+        "type": "barchart",
+        "targets": [
+          {
+            "expr": "sum(rate(langgraph_agent_calls_total[5m])) by (layer)",
+            "legendFormat": "{{layer}}"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Error Rate by Agent",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "sum(rate(langgraph_agent_errors_total[5m])) by (agent_name) / sum(rate(langgraph_agent_calls_total[5m])) by (agent_name) * 100",
+            "legendFormat": "{{agent_name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Resource Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(process_resident_memory_bytes[5m])",
+            "legendFormat": "Memory Usage"
+          },
+          {
+            "expr": "rate(process_cpu_user_seconds_total[5m])",
+            "legendFormat": "CPU Usage"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Workflow Stages Timeline",
+        "type": "status-history",
+        "targets": [
+          {
+            "expr": "langgraph_workflow_stage_duration",
+            "legendFormat": "{{stage}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Top Slow Workflows",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, max_over_time(langgraph_workflow_duration[1h]))",
+            "legendFormat": "{{workflow_id}}"
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "timepicker": {},
+    "templating": {
+      "list": []
+    }
+  }
+}

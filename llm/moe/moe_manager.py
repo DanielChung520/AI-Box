@@ -142,7 +142,7 @@ class LLMMoEManager:
                 context_size=131072,
                 max_tokens=4096,
                 temperature=0.7,
-                timeout=60,
+                timeout=90,
                 retries=3,
                 rpm=30,
                 concurrency=5,

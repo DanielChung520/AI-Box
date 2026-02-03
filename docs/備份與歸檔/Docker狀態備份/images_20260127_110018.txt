@@ -1,0 +1,15 @@
+REPOSITORY                          TAG        IMAGE ID       CREATED        SIZE
+prom/alertmanager                   latest     286ad8838533   2 weeks ago    111MB
+prom/prometheus                     latest     1f0f50f06aca   2 weeks ago    465MB
+chrislusf/seaweedfs                 latest     7c3c52277acd   4 weeks ago    267MB
+qdrant/qdrant                       latest     0425e3e03e7f   5 weeks ago    284MB
+arangodb                            3.12       9dde57a0f67e   5 weeks ago    823MB
+grafana/grafana                     latest     2175aaa91c96   5 weeks ago    932MB
+alpine                              latest     865b95f46d98   5 weeks ago    13.6MB
+oliver006/redis_exporter            latest     bac9872da2b4   2 months ago   13.6MB
+chromadb/chroma                     latest     111a6bd768be   2 months ago   789MB
+redis                               7-alpine   ee64a64eaab6   2 months ago   61.4MB
+prom/node-exporter                  latest     3ac34ce007ac   3 months ago   39.5MB
+hello-world                         latest     f7931603f70e   5 months ago   16.9kB
+arangodb/arangodb                   latest     258323b83ed5   9 months ago   685MB
+quay.io/oauth2-proxy/oauth2-proxy   v7.5.1     3c6012940d3c   2 years ago    50.7MB

@@ -1,0 +1,164 @@
+{
+    "type": "domain",
+    "name": "KA_Agent_Domain",
+    "version": "1.0",
+    "default_version": true,
+    "ontology_name": "KA_Agent_Domain_Ontology",
+    "description": "KA-Agent 知識資產管理領域本體論，定義知識上架、更新、檢索、安全、審計等核心概念與流程。適用於知識資產管理系統、KA-Agent 服務、RAG Pipeline、向量存儲與知識圖譜操作等場景。",
+    "author": "Daniel Chung",
+    "last_modified": "2026-01-25",
+    "inherits_from": ["5W1H_Base_Ontology_OWL"],
+    "compatible_domains": [],
+    "tags": ["KA", "KnowledgeManagement", "VectorStore", "GraphDB", "Ontology"],
+    "use_cases": [
+      "知識上架與管理",
+      "向量化與語義檢索",
+      "知識圖譜抽取",
+      "安全審計與權限控制",
+      "版本管理與更新"
+    ],
+    "entity_classes": [
+      {
+        "name": "Knowledge_Asset",
+        "base_class": "Concept",
+        "description": "知識資產，包含文件、文檔、數據庫條目、API 文檔等。"
+      },
+      {
+        "name": "Vector_Store",
+        "base_class": "Concept",
+        "description": "向量存儲系統，如 Qdrant、ChromaDB，用於存儲嵌入向量與檢索。"
+      },
+      {
+        "name": "Graph_Database",
+        "base_class": "Concept",
+        "description": "圖數據庫系統，如 ArangoDB，用於存儲實體與關係。"
+      },
+      {
+        "name": "Ontology_System",
+        "base_class": "Concept",
+        "description": "本體管理系統，定義 Base / Domain / Major 層級的概念與關係。"
+      },
+      {
+        "name": "KA_Agent",
+        "base_class": "Agent",
+        "description": "Knowledge Assets Agent，負責知識上架、更新、檢索、審計與版本管理。"
+      },
+      {
+        "name": "BPA_Agent",
+        "base_class": "Agent",
+        "description": "Business Process Agent，使用 KA-Agent 提供的知識資源進行業務流程處理。"
+      },
+      {
+        "name": "File_Storage",
+        "base_class": "Concept",
+        "description": "文件存儲系統，如 S3、SeaweedFS，用於存儲原始文檔與資料。"
+      },
+      {
+        "name": "Metadata",
+        "base_class": "Concept",
+        "description": "知識資產的元數據，包含 Domain、Major、Base、Version、Provenance、KNW-Code、國際標準分類等信息。"
+      },
+      {
+        "name": "KNW_Code",
+        "base_class": "Concept",
+        "description": "知識資產唯一編碼，結合 Domain / Major / Base / Version，用於索引與檢索。"
+      },
+      {
+        "name": "Version_Control",
+        "base_class": "Concept",
+        "description": "知識版本管理，包括原子知識追蹤與更新歷史。"
+      },
+      {
+        "name": "Security_Policy",
+        "base_class": "Concept",
+        "description": "安全策略，包括權限控制、授權驗證、審計日誌等。"
+      },
+      {
+        "name": "RAG_Pipeline",
+        "base_class": "Process",
+        "description": "檢索增強生成流程，結合向量檢索與知識圖譜查詢，對 Agent 提供答案。"
+      },
+      {
+        "name": "Embedding_Service",
+        "base_class": "AI_Service",
+        "description": "向量嵌入服務，用於文本或文檔向量化。"
+      },
+      {
+        "name": "KG_Extraction_Service",
+        "base_class": "AI_Service",
+        "description": "知識圖譜抽取服務，生成實體與關係。"
+      },
+      {
+        "name": "Audit_Log",
+        "base_class": "Document",
+        "description": "審計日誌，記錄知識存取、更新及操作事件。"
+      }
+    ],
+    "object_properties": [
+      {
+        "name": "manages_asset",
+        "description": "KA-Agent 管理的知識資產。",
+        "domain": ["KA_Agent"],
+        "range": ["Knowledge_Asset"]
+      },
+      {
+        "name": "stores_in_vector_store",
+        "description": "知識資產存儲在向量庫中。",
+        "domain": ["Knowledge_Asset", "Embedding_Service"],
+        "range": ["Vector_Store"]
+      },
+      {
+        "name": "stores_in_graph_db",
+        "description": "知識資產或三元組存儲於圖數據庫。",
+        "domain": ["Knowledge_Asset", "KG_Extraction_Service"],
+        "range": ["Graph_Database"]
+      },
+      {
+        "name": "uses_ontology",
+        "description": "知識資產對應的 Domain / Base / Major Ontology。",
+        "domain": ["Knowledge_Asset", "KA_Agent"],
+        "range": ["Ontology_System"]
+      },
+      {
+        "name": "generates_metadata",
+        "description": "從知識資產生成 Metadata。",
+        "domain": ["KA_Agent", "Knowledge_Asset"],
+        "range": ["Metadata"]
+      },
+      {
+        "name": "applies_security_policy",
+        "description": "應用安全策略保護知識資產存取。",
+        "domain": ["KA_Agent", "Knowledge_Asset"],
+        "range": ["Security_Policy"]
+      },
+      {
+        "name": "provides_to_bpa",
+        "description": "將知識資產提供給 BPA Agent 使用。",
+        "domain": ["KA_Agent"],
+        "range": ["BPA_Agent"]
+      },
+      {
+        "name": "tracks_version",
+        "description": "追蹤知識資產版本。",
+        "domain": ["KA_Agent", "Knowledge_Asset"],
+        "range": ["Version_Control"]
+      },
+      {
+        "name": "records_audit",
+        "description": "將操作事件記錄到審計日誌。",
+        "domain": ["KA_Agent", "Knowledge_Asset"],
+        "range": ["Audit_Log"]
+      },
+      {
+        "name": "supports_rag_pipeline",
+        "description": "知識資產可被 RAG Pipeline 使用。",
+        "domain": ["Knowledge_Asset", "Vector_Store", "Graph_Database"],
+        "range": ["RAG_Pipeline"]
+      }
+    ],
+    "metadata": {
+      "domain_owner": "KA-Agent",
+      "data_classification": "INTERNAL"
+    }
+  }
+  

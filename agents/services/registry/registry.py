@@ -97,11 +97,12 @@ class AgentRegistry:
                         )
                         return False
 
-            # 如果是內部 Agent 但未提供實例，記錄警告
+            # 如果是內部 Agent 但未提供實例，記錄錯誤
+            # 修改時間：2026-01-28 - 將警告改為錯誤，因為內部 Agent 必須提供實例
             if request.endpoints.is_internal and not instance:
-                self._logger.warning(
+                self._logger.error(
                     f"Internal agent '{request.agent_id}' registered without instance. "
-                    f"Instance should be provided for direct access."
+                    f"Instance is required for internal agents. Registration may fail."
                 )
 
             # 檢查是否為 System Agent（從 System Agent Registry 查詢）
@@ -140,9 +141,19 @@ class AgentRegistry:
             self._agents[request.agent_id] = agent_info
 
             # 如果是內部 Agent 且提供了實例，存儲實例
-            if request.endpoints.is_internal and instance:
-                self._agent_instances[request.agent_id] = instance
-                self._logger.debug(f"Stored agent instance for internal agent '{request.agent_id}'")
+            # 修改時間：2026-01-28 - 添加驗證日誌
+            if request.endpoints.is_internal:
+                if instance:
+                    self._agent_instances[request.agent_id] = instance
+                    self._logger.info(
+                        f"✅ Stored agent instance for internal agent '{request.agent_id}': "
+                        f"{type(instance).__name__}"
+                    )
+                else:
+                    self._logger.error(
+                        f"❌ Internal agent '{request.agent_id}' registered without instance! "
+                        f"Instance is required for internal agents."
+                    )
 
             # 持久化存儲（如果有）
             if self._storage:
@@ -236,9 +247,7 @@ class AgentRegistry:
                 self.get_all_agents()
             except Exception as exc:  # noqa: BLE001
                 self._logger.warning(
-                    "get_agent_info_autoload_failed",
-                    agent_id=agent_id,
-                    error=str(exc),
+                    f"get_agent_info_autoload_failed: agent_id={agent_id}, error={str(exc)}",
                     exc_info=True,
                 )
 
@@ -374,12 +383,23 @@ class AgentRegistry:
 
         # 內部 Agent：返回實例
         if agent_info.endpoints.is_internal:
+            # 修改時間：2026-01-28 - 添加詳細診斷日誌
+            self._logger.info(
+                f"🔍 [get_agent] Internal agent '{agent_id}': "
+                f"is_internal={agent_info.endpoints.is_internal}, "
+                f"_agent_instances keys={list(self._agent_instances.keys())}, "
+                f"agent_id in instances={agent_id in self._agent_instances}"
+            )
             instance = self._agent_instances.get(agent_id)
             if instance:
+                self._logger.info(
+                    f"✅ [get_agent] Found agent instance for '{agent_id}': {type(instance).__name__}"
+                )
                 return instance
             else:
-                self._logger.warning(
-                    f"Internal agent '{agent_id}' instance not found. "
+                self._logger.error(
+                    f"❌ [get_agent] Internal agent '{agent_id}' instance not found. "
+                    f"Available instances: {list(self._agent_instances.keys())}. "
                     f"Agent may not have been registered with an instance."
                 )
                 return None
@@ -489,11 +509,20 @@ class AgentRegistry:
                 system_agent_type = agent_type if agent_type else None
                 system_agent_status = status.value if status else None
 
+                self._logger.info(
+                    f"🔍 Loading system agents: agent_type={system_agent_type}, "
+                    f"status={system_agent_status}, is_active=True"
+                )
+
                 # 從 System Agent Registry Store 加載 System Agents
                 system_agents = system_agent_store.list_system_agents(
                     agent_type=system_agent_type,
                     status=system_agent_status,
                     is_active=True,
+                )
+
+                self._logger.info(
+                    f"📦 System Agent Store returned {len(system_agents)} agents from database"
                 )
 
                 # 將 System Agents 轉換為 AgentRegistryInfo
@@ -518,6 +547,25 @@ class AgentRegistry:
                     elif sys_agent.status == "maintenance":
                         agent_status = AgentStatus.MAINTENANCE
 
+                    # 修改時間：2026-01-28 - System Agent Registry 中的 agent 且 is_active=true 都是內部 Agent
+                    # 只要 system_agent_registry 有資料，而且是 is_active = true 都屬於有效內建 agent（內部 Agent）
+                    is_internal = sys_agent.is_active if hasattr(sys_agent, "is_active") else True
+
+                    # 修復時間：2026-01-28 - 設置 registered_at 和 last_heartbeat，避免被 _filter_by_health() 過濾
+                    # 從數據庫加載的 System Agent 應該被視為健康的
+                    from datetime import datetime
+
+                    now = datetime.now()
+                    # 如果數據庫中有 created_at，使用它；否則使用當前時間
+                    registered_at = now
+                    if hasattr(sys_agent, "created_at") and sys_agent.created_at:
+                        try:
+                            from dateutil import parser
+
+                            registered_at = parser.parse(sys_agent.created_at)
+                        except Exception:
+                            registered_at = now
+
                     agent_info = AgentRegistryInfo(
                         agent_id=sys_agent.agent_id,
                         agent_type=sys_agent.agent_type,
@@ -529,7 +577,7 @@ class AgentRegistry:
                             http=None,
                             mcp=None,
                             protocol=AgentServiceProtocolType.HTTP,
-                            is_internal=True,
+                            is_internal=is_internal,
                         ),
                         metadata=AgentMetadata(
                             version=sys_agent.version,
@@ -539,23 +587,45 @@ class AgentRegistry:
                         ),
                         permissions=AgentPermissionConfig(),
                         is_system_agent=True,
+                        registered_at=registered_at,  # 設置註冊時間
+                        last_heartbeat=now,  # 設置心跳時間為當前時間，避免被健康檢查過濾
                     )
+                    # 修復時間：2026-01-28 - 將 system agent 加入 self._agents 字典
+                    self._agents[sys_agent.agent_id] = agent_info
                     agents.append(agent_info)
-                    self._logger.debug(
-                        f"Loaded system agent from store: {sys_agent.agent_id} "
-                        f"(type: {sys_agent.agent_type}, status: {sys_agent.status})"
+                    self._logger.info(
+                        f"✅ Loaded system agent from store: {sys_agent.agent_id} "
+                        f"(type: {sys_agent.agent_type}, status: {sys_agent.status}, "
+                        f"is_active: {sys_agent.is_active if hasattr(sys_agent, 'is_active') else 'N/A'})"
                     )
             except Exception as e:
-                self._logger.warning(f"Failed to load system agents from store: {e}", exc_info=True)
+                self._logger.error(
+                    f"❌ Failed to load system agents from store: {e}",
+                    exc_info=True,
+                )
+                # 不要吞掉異常，至少記錄詳細錯誤
+                import traceback
+
+                self._logger.error(f"Full traceback: {traceback.format_exc()}")
         else:
             # 默認過濾 System Agents（僅系統內部調用時才包括）
             agents = [a for a in agents if not a.is_system_agent]
 
         if agent_type:
+            before_filter = len(agents)
             agents = [a for a in agents if a.agent_type == agent_type]
+            self._logger.debug(
+                f"Filtered by agent_type={agent_type}: {before_filter} -> {len(agents)}"
+            )
         if status:
+            before_filter = len(agents)
             agents = [a for a in agents if a.status == status]
+            self._logger.debug(
+                f"Filtered by status={status.value if hasattr(status, 'value') else status}: "
+                f"{before_filter} -> {len(agents)}"
+            )
 
+        self._logger.info(f"📊 list_agents() returning {len(agents)} agents")
         return agents
 
     def update_agent_status(self, agent_id: str, status: AgentStatus) -> bool:
@@ -653,6 +723,26 @@ class AgentRegistry:
                             sys_agent.metadata.get("endpoints", {}) if sys_agent.metadata else {}
                         )
 
+                        # 修改時間：2026-01-28 - System Agent Registry 中的 agent 且 is_active=true 都是內部 Agent
+                        # 只要 system_agent_registry 有資料，而且是 is_active = true 都屬於有效內建 agent（內部 Agent）
+                        is_internal = sys_agent.is_active if hasattr(sys_agent, "is_active") else True
+                        metadata = sys_agent.metadata or {}
+                        endpoints_dict = metadata.get("endpoints", {}) if metadata else {}
+
+                        # 修復時間：2026-01-28 - 設置 registered_at 和 last_heartbeat，避免被 _filter_by_health() 過濾
+                        from datetime import datetime
+
+                        now = datetime.now()
+                        # 如果數據庫中有 created_at，使用它；否則使用當前時間
+                        registered_at = now
+                        if hasattr(sys_agent, "created_at") and sys_agent.created_at:
+                            try:
+                                from dateutil import parser
+
+                                registered_at = parser.parse(sys_agent.created_at)
+                            except Exception:
+                                registered_at = now
+
                         agent_info = AgentRegistryInfo(
                             agent_id=sys_agent.agent_id,
                             agent_type=sys_agent.agent_type,
@@ -668,11 +758,7 @@ class AgentRegistry:
                                     if endpoints_dict and endpoints_dict.get("mcp")
                                     else AgentServiceProtocolType.HTTP
                                 ),
-                                is_internal=(
-                                    endpoints_dict.get("is_internal", False)
-                                    if endpoints_dict
-                                    else False
-                                ),
+                                is_internal=is_internal,
                             ),
                             metadata=AgentMetadata(
                                 version=sys_agent.version,
@@ -682,6 +768,8 @@ class AgentRegistry:
                             ),
                             permissions=AgentPermissionConfig(),
                             is_system_agent=True,
+                            registered_at=registered_at,  # 設置註冊時間
+                            last_heartbeat=now,  # 設置心跳時間為當前時間，避免被健康檢查過濾
                         )
                         self._agents[sys_agent.agent_id] = agent_info
                         self._logger.debug(

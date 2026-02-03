@@ -1,0 +1,488 @@
+{
+  "test_time": "2026-01-28T20:17:38.397904",
+  "test_target": "新 Chat Module 模塊化架構 (api/routers/chat_module/)",
+  "test_priority": "P1",
+  "chat_module_enabled": true,
+  "chat_endpoint": "/api/v2/chat",
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0,
+    "error": 0,
+    "skipped": 0,
+    "pass_rate": 100.0
+  },
+  "results": [
+    {
+      "test_id": "KA-TEST-002",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "在目前的知識庫中，已上傳並向量化的檔案總數為 **5 個**。  \n若您需要更進一步查看每一份檔案的標題或其他元資料，請告知，我將協助您取得相關資訊。",
+          "session_id": "test_KA-TEST-002_1769602397",
+          "task_id": "test_task_KA-TEST-002_1769602397",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 6523.474931716919,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "282948f4-1c3c-467a-b895-0f51cb52ad86",
+            "session_id": "test_KA-TEST-002_1769602397",
+            "task_id": "test_task_KA-TEST-002_1769602397",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 11.516886711120605,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:13:29.178001"
+    },
+    {
+      "test_id": "KA-TEST-003",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "知識庫中目前有 **5 個 PDF 文件**。",
+          "session_id": "test_KA-TEST-003_1769602409",
+          "task_id": "test_task_KA-TEST-003_1769602409",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 3853.616714477539,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "3cb059dd-5cf3-4848-bcf5-e62e8101202d",
+            "session_id": "test_KA-TEST-003_1769602409",
+            "task_id": "test_task_KA-TEST-003_1769602409",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 9.157782077789307,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:13:38.335938"
+    },
+    {
+      "test_id": "KA-TEST-007",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "以下是我們知識庫中與「系統架構」相關的內容與文件概覽（共 5 個知識資產文件）：\n\n|  #  |  文件標題/主題 |  主要內容概覽 |  相關片段 |\n|-----|----------------|--------------|----------|\n| 1 | **物料入庫流程** | 描述物料入庫的業務流程與系統架構圖，示範如何將流程映射至 ERP 與倉儲系統。 | 「示例：假設上架一個『物料入庫流程』知識…」 |\n| 2 | **能源領域低溫熱解反應器操作規格** | 以能源領域為例，提供操作規格與系統架構的編碼建議。 | 「編碼示例：假設我們要上架一個能源領域的低溫熱解反應器操作規格，建議編碼…」 |\n| 3 | **系統狀態轉換流程** | 針對系統狀態機與轉換流程進行說明，展示如何設計可擴充的狀態轉換。 | 「狀態轉換流程：…」 |\n| 4 | **編碼範例** | 以程式碼片段說明如何編寫符合業務需求的系統程式。 | 「編碼範例：…」 |\n| 5 | **其他相關文件** | 含多個與系統設計、流程管理、規範制定等相關的片段。 | 片段 5-10（未詳列） |\n\n---\n\n## 針對「系統架構」的核心訊息\n\n1. **架構圖與流程圖**  \n   - 物料入庫流程文件提供了完整的業務流程圖與系統互動關係，說明了 ERP、倉儲管理系統（WMS）與條碼掃描設備之間的數據流。\n\n2. **規格與編碼標準**  \n   - 能源領域低溫熱解反應器的操作規格文件展示了如何以編碼方式把業務規範映射到系統資料模型，並提供範例（如 `KNW-Code` 標準）以確保資料一致性。\n\n3. **狀態轉換設計**  \n   - 狀態轉換流程文件說明了從「待入庫」到「已入庫」的多階段狀態機設計，並討論了事件觸發與資料驗證機制。\n\n4. **程式碼實踐**  \n   - 編碼範例文件提供實際程式碼（Java/Python/SQL）示範，展示如何在系統層面實現上述流程與狀態轉換。\n\n5. **元資料標準**  \n   - 所有文件均使用一致的元資料欄位（如 `KNW_Code`, `Domain`, `Major` 等），方便在系統中搜尋、引用與版本管理。\n\n---\n\n## 建議進一步行動\n\n- **下載完整文件**：若需要更詳細的圖表與程式碼，請告訴我您希望下載哪一份文件，我會提供完整內容。\n- **進行案例分析**：若想探討特定業務場景（如物料管理、能源設備管理）的系統架構設計，我可以協助擬定案例流程圖或建議改進點。\n- **元資料統計**：若需要對知識庫中的元資料做統計（例如各 Domain 的分佈），也可告知，我將幫您生成報表。\n\n如需進一步的協助，請隨時告訴我！",
+          "session_id": "test_KA-TEST-007_1769602418",
+          "task_id": "test_task_KA-TEST-007_1769602418",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 19607.667207717896,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "d148945a-850c-4438-afa1-76b792c85390",
+            "session_id": "test_KA-TEST-007_1769602418",
+            "task_id": "test_task_KA-TEST-007_1769602418",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 57.55694007873535,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:14:35.893038"
+    },
+    {
+      "test_id": "KA-TEST-008",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "本次未產生回覆，請重試或換一種問法。",
+          "session_id": "test_KA-TEST-008_1769602475",
+          "task_id": "test_task_KA-TEST-008_1769602475",
+          "routing": {
+            "provider": "qwen",
+            "model": "qwen-turbo",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 1862.7510070800781,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "8cd0c607-4ecc-4a4b-9e04-40fb2b48f184",
+            "session_id": "test_KA-TEST-008_1769602475",
+            "task_id": "test_task_KA-TEST-008_1769602475",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": "not_found"
+        }
+      },
+      "error": null,
+      "duration": 24.63126516342163,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:15:00.524451"
+    },
+    {
+      "test_id": "KA-TEST-010",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "在「技術文檔」中，我已根據檢索結果找到了以下與「數據庫」相關的資訊（共 10 個相關片段），這些片段來自 5 個已上架的 Knowledge Asset (KA) 文件。以下為每個片段的簡短說明，並在必要時提供原文摘錄以協助您快速定位所需內容。\n\n| 片段編號 | 所屬 KA 檔名（含版本） | 摘錄 |\n|---------|------------------------|------|\n| 1 | **Knowledge Asset**（版 1.0） | “每個 Knowledge Asset(KA) 或上架的文件, metadata 可以包含：... `Domain`：領域分類，例如『物料管理』『能源』…”。此處未直接提到「數據庫」但說明了「Domain」層級，若您尋找關於數據庫的領域可在此分類下進行檢索。 |\n| 2 | **Knowledge Asset**（版 1.0） | “# Knowledge Service Layer Specification (KSLS) – Engineering‑Oriented Architecture & Capability Specification”<br>“本文件定義 Knowledge Service Layer(KSL) 的工程級系統規格，用以支援 Agent‑Oriented 企…”。在 KSLS 的「實作範例」部分有提及「資料庫設計」與「資料庫連線配置」。 |\n| 3 | **Knowledge Asset**（版 1.1） | “參考文檔 – 1. KA‑Agent 規格書、2. Knowledge Asset 版本號規範、3. Knowledge Service Layer Specification (KSLS)”。在 KSLS 章節第 7‑1 節討論「資料庫遷移與備援」，提到使用 PostgreSQL / MySQL。 |\n| 4 | **Knowledge Asset**（版 1.1） | “參考文檔 – 14. 參考文檔 – Semantic Versioning 2.0.0、KA‑Agent 規格書 v1.4.1、Knowledge Service Layer Specification (KSLS)”。此處在 KSLS 的「版本控制」節中說明「資料庫版本同步」的做法。 |\n| 5 | **Knowledge Asset**（版 1.0） | “Metadata 中的國際分類結構”。雖未直接提到「數據庫」，但此片段提供了「Domain」分類的國際化標準，您可利用此標準對「資料庫」相關 Domain 進行更精細化的分類。 |\n| 6 | **Knowledge Asset**（版 1.0） | “# Knowledge Service Layer Specification (KSLS) – Engineering‑Oriented Architecture & Capability Specification”。在「系統架構」章節第 4‑2 節明確列出「資料庫層」的責任與接口。 |\n| 7 | **Knowledge Asset**（版 1.1） | “參考文檔 – Semantic Versioning 2.0.0、KA‑Agent 規格書 v1.4.1”。在「版本號規範」章節 2‑3 討論「資料庫 schema 版本管理」的策略。 |\n| 8 | **Knowledge Asset**（版 1.0） | “# Knowledge Service Layer Specification (KSLS) – Engineering‑Oriented Architecture & Capability Specification”。在「安全性」章節第 5‑3 節闡述「資料庫加密」的最佳實踐。 |\n| 9 | **Knowledge Asset**（版 1.0） | “每個 Knowledge Asset(KA) 或上架的文件, metadata 可以包含：... `KNW_Code`：系統唯一索引(Domain + Major + Base 簡化標識 + 版本)”。此處說明「KNW_Code」可用於標識與資料庫相關的知識資產。 |\n|10 | **Knowledge Asset**（版 1.1） | “Knowledge Service Layer Specification (KSLS)”。在「性能優化」章節第 6‑2 節介紹「資料庫索引」與「查詢優化」技巧。 |\n\n### 主要結論\n- **文件總數**：共 5 個 Knowledge Asset 文件已被上架並可查詢。  \n- **相關主題**：在 KSLS（Knowledge Service Layer Specification）文檔中，資料庫（Database）相關內容主要集中於以下章節：  \n  - 系統架構 → 資料庫層（第 4‑2 章）  \n  - 系統安全 → 資料庫加密（第 5‑3 章）  \n  - 版本管理 → 資料庫 schema 版本（第 2‑3 章）  \n  - 性能優化 → 資料庫索引與查詢優化（第 6‑2 章）  \n  - 參考文檔 → 指向 KA‑Agent 規格書與 Semantic Versioning 的說明，均涉及資料庫設計與版本控制的細節。\n\n若您需要進一步查閱某一章節的完整內容，請告知具體章節或關鍵字，我將協助您定位。",
+          "session_id": "test_KA-TEST-010_1769602500",
+          "task_id": "test_task_KA-TEST-010_1769602500",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 25616.46008491516,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "f029a34b-310d-453b-9894-2c9e7e9cbf71",
+            "session_id": "test_KA-TEST-010_1769602500",
+            "task_id": "test_task_KA-TEST-010_1769602500",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 56.21607184410095,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:15:56.740703"
+    },
+    {
+      "test_id": "KA-TEST-011",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "根據目前檢索到的 5 個知識資產文件，並沒有發現任何文件中專門包含「用戶手冊」的內容。雖然文件中有「作業手冊」相關說明（例如「KA‑Agent 作業手冊模板」與「作業手冊工程導向」等），但並未見「用戶手冊」的專題或章節。若您需要更具體的「用戶手冊」資料，可能需要再進一步上傳或搜尋相關文件。",
+          "session_id": "test_KA-TEST-011_1769602556",
+          "task_id": "test_task_KA-TEST-011_1769602556",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 8208.513021469116,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "b2122600-64b9-421c-a64b-480ec6c0466f",
+            "session_id": "test_KA-TEST-011_1769602556",
+            "task_id": "test_task_KA-TEST-011_1769602556",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 21.646077871322632,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:16:18.386920"
+    },
+    {
+      "test_id": "KA-TEST-013",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "**根據目前的知識庫檢索結果（共找到 5 個知識資產文件），在這些文件中未檢索到「API」相關的內容。**  \n\n若需要更進一步的檢索或查看具體段落，請告知我進一步的搜尋需求。",
+          "session_id": "test_KA-TEST-013_1769602578",
+          "task_id": "test_task_KA-TEST-013_1769602578",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 6732.0051193237305,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "42ff15c4-a937-41b3-ae8c-6d61f1658c19",
+            "session_id": "test_KA-TEST-013_1769602578",
+            "task_id": "test_task_KA-TEST-013_1769602578",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 36.7212610244751,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:16:55.108394"
+    },
+    {
+      "test_id": "KA-TEST-017",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "根據目前的檢索結果，我們的知識庫中共有 **5 個知識資產文件**。  \n\n經過關鍵字搜尋「量子計算」後，**在這5份文件中未檢索到任何與「量子計算」相關的內容**。如果您有其他關鍵字或想進一步篩選，歡迎再告訴我！",
+          "session_id": "test_KA-TEST-017_1769602615",
+          "task_id": "test_task_KA-TEST-017_1769602615",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 8837.16368675232,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "5ae7b38f-884f-46e0-b7d8-6450fc9eedb8",
+            "session_id": "test_KA-TEST-017_1769602615",
+            "task_id": "test_task_KA-TEST-017_1769602615",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": null
+        }
+      },
+      "error": null,
+      "duration": 36.38536715507507,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:17:31.494284"
+    },
+    {
+      "test_id": "KA-TEST-020",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "本次未產生回覆，請重試或換一種問法。",
+          "session_id": "test_KA-TEST-020_1769602651",
+          "task_id": "test_task_KA-TEST-020_1769602651",
+          "routing": {
+            "provider": "qwen",
+            "model": "qwen-turbo",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 4333.775043487549,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "0ca9b251-82e7-464c-8148-bbc310ba9e39",
+            "session_id": "test_KA-TEST-020_1769602651",
+            "task_id": "test_task_KA-TEST-020_1769602651",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null,
+          "content_status": "not_found"
+        }
+      },
+      "error": null,
+      "duration": 6.903382062911987,
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "timestamp": "2026-01-28T20:17:38.397766"
+    }
+  ],
+  "analyses": [
+    {
+      "test_id": "KA-TEST-002",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "在目前的知識庫中，已上傳並向量化的檔案總數為 **5 個**。  \n若您需要更進一步查看每一份檔案的標題或其他元資料，請告知，我將協助您取得相關資訊。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "知識庫"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-003",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "知識庫中目前有 **5 個 PDF 文件**。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "PDF",
+        "文件",
+        "個"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-007",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "以下是我們知識庫中與「系統架構」相關的內容與文件概覽（共 5 個知識資產文件）：\n\n|  #  |  文件標題/主題 |  主要內容概覽 |  相關片段 |\n|-----|----------------|--------------|----------|\n| 1 | **物料入庫流程** | 描述物料入庫的業務流程與系統架構圖，示範如何將流程映射至 ERP 與倉儲系統。 | 「示例：假設上架一個『物料入庫流程』知識…」 |\n| 2 | **能源領域低溫熱解反應器操作規格** | 以能源領域為例，提供操作規格與系統架構的編碼建議。 | 「編碼示例：假設我們要上架一個能源領域的低溫熱解反應器操作規格，建議編碼…」 |\n| 3 | **系統狀態轉換流程** | 針對系統狀態機與轉換流程進行說明，展示如何設計可擴充的狀態轉換。 | 「狀態轉換流程：…」 |\n| 4 | **編碼範例** | 以程式碼片段說明如何編寫符合業務需求的系統程式。 | 「編碼範例：…」 |\n| 5 | **其他相關文件** | 含多個與系統設計、流程管理、規範制定等相關的片段。 | 片段 5-10（未詳列） |\n\n---\n\n## 針對「系統架構」的核心訊息\n\n1. **架構圖與流程圖**  \n   - 物料入庫流程文件提供了完整的業務流程圖與系統互動關係，說明了 ERP、倉儲管理系統（WMS）與條碼掃描設備之間的數據流。\n\n2. **規格與編碼標準**  \n   - 能源領域低溫熱解反應器的操作規格文件展示了如何以編碼方式把業務規範映射到系統資料模型，並提供範例（如 `KNW-Code` 標準）以確保資料一致性。\n\n3. **狀態轉換設計**  \n   - 狀態轉換流程文件說明了從「待入庫」到「已入庫」的多階段狀態機設計，並討論了事件觸發與資料驗證機制。\n\n4. **程式碼實踐**  \n   - 編碼範例文件提供實際程式碼（Java/Python/SQL）示範，展示如何在系統層面實現上述流程與狀態轉換。\n\n5. **元資料標準**  \n   - 所有文件均使用一致的元資料欄位（如 `KNW_Code`, `Domain`, `Major` 等），方便在系統中搜尋、引用與版本管理。\n\n---\n\n## 建議進一步行動\n\n- **下載完整文件**：若需要更詳細的圖表與程式碼，請告訴我您希望下載哪一份文件，我會提供完整內容。\n- **進行案例分析**：若想探討特定業務場景（如物料管理、能源設備管理）的系統架構設計，我可以協助擬定案例流程圖或建議改進點。\n- **元資料統計**：若需要對知識庫中的元資料做統計（例如各 Domain 的分佈），也可告知，我將幫您生成報表。\n\n如需進一步的協助，請隨時告訴我！",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "系統架構",
+        "資料"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-008",
+      "status": "passed",
+      "has_expected_keywords": false,
+      "has_refusal_keywords": false,
+      "response_text": "本次未產生回覆，請重試或換一種問法。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-010",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "在「技術文檔」中，我已根據檢索結果找到了以下與「數據庫」相關的資訊（共 10 個相關片段），這些片段來自 5 個已上架的 Knowledge Asset (KA) 文件。以下為每個片段的簡短說明，並在必要時提供原文摘錄以協助您快速定位所需內容。\n\n| 片段編號 | 所屬 KA 檔名（含版本） | 摘錄 |\n|---------|------------------------|------|\n| 1 | **Knowledge Asset**（版 1.0） | “每個 Knowledge Asset(KA) 或上架的文件, metadata 可以包含：... `Domain`：領域分類，例如『物料管理』『能源』…”。此處未直接提到「數據庫」但說明了「Domain」層級，若您尋找關於數據庫的領域可在此分類下進行檢索。 |\n| 2 | **Knowledge Asset**（版 1.0） | “# Knowledge Service Layer Specification (KSLS) – Engineering‑Oriented Architecture & Capability Specification”<br>“本文件定義 Knowledge Service Layer(KSL) 的工程級系統規格，用以支援 Agent‑Oriented 企…”。在 KSLS 的「實作範例」部分有提及「資料庫設計」與「資料庫連線配置」。 |\n| 3 | **Knowledge Asset**（版 1.1） | “參考文檔 – 1. KA‑Agent 規格書、2. Knowledge Asset 版本號規範、3. Knowledge Service Layer Specification (KSLS)”。在 KSLS 章節第 7‑1 節討論「資料庫遷移與備援」，提到使用 PostgreSQL / MySQL。 |\n| 4 | **Knowledge Asset**（版 1.1） | “參考文檔 – 14. 參考文檔 – Semantic Versioning 2.0.0、KA‑Agent 規格書 v1.4.1、Knowledge Service Layer Specification (KSLS)”。此處在 KSLS 的「版本控制」節中說明「資料庫版本同步」的做法。 |\n| 5 | **Knowledge Asset**（版 1.0） | “Metadata 中的國際分類結構”。雖未直接提到「數據庫」，但此片段提供了「Domain」分類的國際化標準，您可利用此標準對「資料庫」相關 Domain 進行更精細化的分類。 |\n| 6 | **Knowledge Asset**（版 1.0） | “# Knowledge Service Layer Specification (KSLS) – Engineering‑Oriented Architecture & Capability Specification”。在「系統架構」章節第 4‑2 節明確列出「資料庫層」的責任與接口。 |\n| 7 | **Knowledge Asset**（版 1.1） | “參考文檔 – Semantic Versioning 2.0.0、KA‑Agent 規格書 v1.4.1”。在「版本號規範」章節 2‑3 討論「資料庫 schema 版本管理」的策略。 |\n| 8 | **Knowledge Asset**（版 1.0） | “# Knowledge Service Layer Specification (KSLS) – Engineering‑Oriented Architecture & Capability Specification”。在「安全性」章節第 5‑3 節闡述「資料庫加密」的最佳實踐。 |\n| 9 | **Knowledge Asset**（版 1.0） | “每個 Knowledge Asset(KA) 或上架的文件, metadata 可以包含：... `KNW_Code`：系統唯一索引(Domain + Major + Base 簡化標識 + 版本)”。此處說明「KNW_Code」可用於標識與資料庫相關的知識資產。 |\n|10 | **Knowledge Asset**（版 1.1） | “Knowledge Service Layer Specification (KSLS)”。在「性能優化」章節第 6‑2 節介紹「資料庫索引」與「查詢優化」技巧。 |\n\n### 主要結論\n- **文件總數**：共 5 個 Knowledge Asset 文件已被上架並可查詢。  \n- **相關主題**：在 KSLS（Knowledge Service Layer Specification）文檔中，資料庫（Database）相關內容主要集中於以下章節：  \n  - 系統架構 → 資料庫層（第 4‑2 章）  \n  - 系統安全 → 資料庫加密（第 5‑3 章）  \n  - 版本管理 → 資料庫 schema 版本（第 2‑3 章）  \n  - 性能優化 → 資料庫索引與查詢優化（第 6‑2 章）  \n  - 參考文檔 → 指向 KA‑Agent 規格書與 Semantic Versioning 的說明，均涉及資料庫設計與版本控制的細節。\n\n若您需要進一步查閱某一章節的完整內容，請告知具體章節或關鍵字，我將協助您定位。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "技術文檔",
+        "數據庫",
+        "內容"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-011",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "根據目前檢索到的 5 個知識資產文件，並沒有發現任何文件中專門包含「用戶手冊」的內容。雖然文件中有「作業手冊」相關說明（例如「KA‑Agent 作業手冊模板」與「作業手冊工程導向」等），但並未見「用戶手冊」的專題或章節。若您需要更具體的「用戶手冊」資料，可能需要再進一步上傳或搜尋相關文件。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "用戶手冊",
+        "內容"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-013",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "**根據目前的知識庫檢索結果（共找到 5 個知識資產文件），在這些文件中未檢索到「API」相關的內容。**  \n\n若需要更進一步的檢索或查看具體段落，請告知我進一步的搜尋需求。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [
+        "API",
+        "內容"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-017",
+      "status": "passed",
+      "has_expected_keywords": false,
+      "has_refusal_keywords": false,
+      "response_text": "根據目前的檢索結果，我們的知識庫中共有 **5 個知識資產文件**。  \n\n經過關鍵字搜尋「量子計算」後，**在這5份文件中未檢索到任何與「量子計算」相關的內容**。如果您有其他關鍵字或想進一步篩選，歡迎再告訴我！",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-020",
+      "status": "passed",
+      "has_expected_keywords": false,
+      "has_refusal_keywords": false,
+      "response_text": "本次未產生回覆，請重試或換一種問法。",
+      "endpoint_used": "http://localhost:8000/api/v2/chat",
+      "found_keywords": [],
+      "found_refusal_keywords": []
+    }
+  ]
+}

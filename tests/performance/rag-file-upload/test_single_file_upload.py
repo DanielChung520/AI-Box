@@ -73,7 +73,7 @@ def test_large_file_upload_performance(client):
 
 def test_upload_response_time(client):
     """測試上傳響應時間"""
-    content = b"測試響應時間的文件內容"
+    content = "測試響應時間的文件內容".encode("utf-8")
     files = {"files": ("response_test.txt", BytesIO(content), "text/plain")}
 
     start_time = time.time()

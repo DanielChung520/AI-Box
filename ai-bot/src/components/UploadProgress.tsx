@@ -2,11 +2,14 @@
  * 代碼功能說明: 文件上傳進度組件
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-06
+ * 最後修改日期: 2026-01-27
+ *
+ * - 支援縮到最小，右下角顯示精簡條（背景作業）
+ * - 縮小時顯示「上傳中 X%」或「上傳完成 · 背景處理中」，可點擊展開
  */
 
-import React from 'react';
-import { X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, CheckCircle, AlertCircle, Loader2, Minimize2, Maximize2 } from 'lucide-react';
 import { FileWithMetadata } from './FileUploadModal';
 
 interface UploadProgressProps {
@@ -28,6 +31,8 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
   onCancel,
   onDismiss,
 }) => {
+  const [minimized, setMinimized] = useState(false);
+
   if (files.length === 0) return null;
 
   const getStatusIcon = (status: FileWithMetadata['status']) => {
@@ -63,7 +68,36 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
   };
 
   const isUploading = files.some((f) => f.status === 'uploading' || f.status === 'pending');
+  const hasError = files.some((f) => f.status === 'error');
   const overallProgress = getOverallProgress();
+
+  const statusLabel = isUploading
+    ? `上傳中 ${overallProgress}%`
+    : hasError
+      ? '上傳完成（含錯誤）'
+      : '上傳完成 · 背景處理中';
+
+  if (minimized) {
+    return (
+      <div
+        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+        onClick={() => setMinimized(false)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && setMinimized(false)}
+      >
+        {isUploading ? (
+          <Loader2 className="w-4 h-4 text-blue-600 animate-spin flex-shrink-0" />
+        ) : hasError ? (
+          <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+        ) : (
+          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+        )}
+        <span className="text-sm font-medium text-gray-800">{statusLabel}</span>
+        <Maximize2 className="w-4 h-4 text-gray-500 flex-shrink-0" aria-label="展開" />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-md w-full">
@@ -73,14 +107,26 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
           <h3 className="text-sm font-semibold text-gray-900">
             {isUploading ? `上傳中... ${overallProgress}%` : '上傳完成'}
           </h3>
-          {!isUploading && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => files.forEach((f) => onDismiss?.(f.id))}
-              className="text-xs text-gray-500 hover:text-gray-700"
+              type="button"
+              onClick={() => setMinimized(true)}
+              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              title="縮到最小（背景作業）"
             >
-              全部關閉
+              <Minimize2 className="w-3.5 h-3.5" />
+              縮小
             </button>
-          )}
+            {!isUploading && (
+              <button
+                type="button"
+                onClick={() => files.forEach((f) => onDismiss?.(f.id))}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                全部關閉
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Progress Bar (Overall) */}

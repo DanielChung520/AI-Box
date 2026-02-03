@@ -2,10 +2,10 @@
  * 代碼功能說明: 文件預覽組件
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2026-01-21 12:30 UTC+8
+ * 最後修改日期: 2026-01-31 20:00 UTC+8
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Loader2, FileText, Database, Network, Download, RefreshCw, Edit, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
@@ -812,14 +812,21 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
     navigate(`/iee-editor?fileId=${encodeURIComponent(file.file_id)}`);
   };
 
+  // 修改時間：2026-02-01 - 使用 ref 追踪是否首次打開，避免重複重置 regenerationJobId
+  const isFirstOpen = useRef(true);
+  
   useEffect(() => {
     if (isOpen && file) {
-      setMode('text'); // 重置為文件模式
-      checkDataAvailability();
-      loadDataForMode('text');
-      // 重置任務狀態
-      setRegenerationJobId(null);
-      setRegenerationStartTime(null);
+      // 只在首次打開時重置狀態，避免在重新生成過程中因 file prop 變化而重置
+      if (isFirstOpen.current) {
+        setMode('text'); // 重置為文件模式
+        checkDataAvailability();
+        loadDataForMode('text');
+        // 重置任務狀態
+        setRegenerationJobId(null);
+        setRegenerationStartTime(null);
+        isFirstOpen.current = false;
+      }
 
       // 修改時間：2026-01-06 - 如果是 Markdown 文件且是當前編輯的文件，獲取原始內容
       const isMarkdown = file.filename.toLowerCase().endsWith('.md') ||
@@ -846,6 +853,10 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
       if (refreshInterval) {
         clearInterval(refreshInterval);
         setRefreshInterval(null);
+      }
+      // 修改時間：2026-02-01 - 關閉預覽時重置標記，下次打開時重新初始化
+      if (!isOpen) {
+        isFirstOpen.current = true;
       }
     };
   }, [isOpen, file, editingFileId, setOriginalContent, setEditingFile]);
@@ -901,6 +912,48 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
       clearInterval(interval);
     };
   }, [isOpen, mode, vectorAvailable, graphAvailable]);
+
+  // 修改時間：2026-02-01 - 當重新生成任務提交後，自動輪詢檢查完成狀態
+  useEffect(() => {
+    if (!regenerationJobId || mode !== 'vector') return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 120; // 最多輪詢 120 次（約 6 分鐘，考慮超時）
+
+    const tick = async () => {
+      if (cancelled) return;
+      attempts++;
+
+      // 檢查數據可用性
+      await checkDataAvailability();
+
+      // 如果向量數據已可用，停止輪詢並刷新頁面
+      if (vectorAvailable && vectorData) {
+        toast.success('向量生成完成！', { duration: 3000 });
+        setRegenerationJobId(null);
+        await loadDataForMode('vector');
+        return;
+      }
+
+      // 如果超過最大嘗試次數，停止輪詢並提示用戶
+      if (attempts >= maxAttempts) {
+        toast.warning('輪詢超時，請手動刷新查看狀態', { duration: 5000 });
+        setRegenerationJobId(null);
+        return;
+      }
+
+      // 繼續輪詢（每 3 秒）
+      setTimeout(tick, 3000);
+    };
+
+    // 立即開始第一次檢查
+    tick();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [regenerationJobId, mode, vectorAvailable, vectorData]);
 
   const renderChunkBars = () => {
     const totalChunks: number | undefined =
@@ -1227,6 +1280,33 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
         );
 
       case 'vector':
+        // 修改時間：2026-02-01 - 如果有正在進行的重新生成任務，顯示全屏生成中狀態
+        if (regenerationJobId && mode === 'vector') {
+          return (
+            <div className="h-full flex items-center justify-center p-4 bg-white dark:bg-gray-900">
+              <div className="text-center">
+                <RefreshCw className="w-16 h-16 mx-auto mb-4 text-blue-500 animate-spin" />
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  向量生成中...
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  {regenerationJobId !== 'pending' ? `任務 ID: ${regenerationJobId}` : '任務已提交到隊列'}
+                </p>
+                <button
+                  onClick={async () => {
+                    await checkDataAvailability();
+                    await loadDataForMode('vector');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors mx-auto"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>手動刷新</span>
+                </button>
+              </div>
+            </div>
+          );
+        }
+
         // 修改時間：2026-01-21 12:55 UTC+8 - 即使 vectorAvailable 為 false，如果已經有 vectorData，也顯示數據
         // 優先檢查是否有已加載的 vectorData（即使 vector_count 為 0，也應該顯示 Collection 信息）
         console.log('[FilePreview] Vector mode - vectorAvailable:', vectorAvailable, 'vectorData:', vectorData);
@@ -1274,11 +1354,77 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</div>
-                    <div className="text-sm text-gray-900 dark:text-gray-100 capitalize">
+                    <div className={`text-sm capitalize ${collectionStatus === 'error' || collectionStatus === 'failed' || collectionStatus === 'red' || collectionStatus === 'partial_completed' ? 'text-red-600 font-semibold' : 'text-gray-900 dark:text-gray-100'}`}>
                       {collectionStatus || 'unknown'}
                     </div>
                   </div>
                 </div>
+
+                {/* 修改時間：2026-01-31 - 添加向量錯誤狀態提示和重新生成按鈕 */}
+                {(collectionStatus === 'error' || collectionStatus === 'failed' || collectionStatus === 'red' || collectionStatus === 'partial_completed') && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-800 mb-2">
+                          ⚠️ 向量化過程發生錯誤，請重新生成
+                        </p>
+                        {vectorCount === 0 && (
+                          <p className="text-xs text-red-600 mb-3">
+                            當前 vector_count 為 0，向量數據未成功生成
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={async () => {
+                          // 修改時間：2026-02-01 - 防重複點擊檢查
+                          if (loading || regenerationJobId) {
+                            return; // 已在處理中，忽略點擊
+                          }
+                          if (!file.file_id) {
+                            toast.error('缺少 fileId，無法重新生成');
+                            return;
+                          }
+                          // 立即設置狀態，防止重複點擊
+                          setLoading(true);
+                          setRegenerationJobId('pending'); // 立即設置，觸發全屏"生成中..."顯示
+                          try {
+                            const result = await regenerateFileData(file.file_id, 'vector');
+                            if (result.success) {
+                              const jobId = result.data?.job_id;
+                              setRegenerationJobId(jobId || 'pending');
+                              toast.success('向量重新生成已提交到隊列，請稍候...', {
+                                description: jobId ? `任務 ID: ${jobId}` : '處理將在後台進行',
+                                duration: 5000,
+                              });
+                            } else {
+                              setRegenerationJobId(null); // 失敗時重置
+                              toast.error(result.message || '重新生成失敗', { duration: 3000 });
+                            }
+                          } catch (err: any) {
+                            setRegenerationJobId(null); // 異常時重置
+                            toast.error(err.message || '重新生成失敗', { duration: 3000 });
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                        disabled={loading || !!regenerationJobId}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                      >
+                        {loading ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>重新生成中...</span>
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4" />
+                            <span>重新生成</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {vectorData?.vectors && vectorData.vectors.length > 0 ? (
@@ -1480,11 +1626,77 @@ export default function FilePreview({ file, isOpen, onClose, inline = false }: F
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</div>
-                  <div className="text-sm text-gray-900 dark:text-gray-100 capitalize">
+                  <div className={`text-sm capitalize ${collectionStatus === 'error' || collectionStatus === 'failed' || collectionStatus === 'red' || collectionStatus === 'partial_completed' ? 'text-red-600 font-semibold' : 'text-gray-900 dark:text-gray-100'}`}>
                     {collectionStatus || 'unknown'}
                   </div>
                 </div>
               </div>
+
+              {/* 修改時間：2026-01-31 - 添加向量錯誤狀態提示和重新生成按鈕 */}
+              {(collectionStatus === 'error' || collectionStatus === 'failed' || collectionStatus === 'red' || collectionStatus === 'partial_completed') && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-800 mb-2">
+                        ⚠️ 向量化過程發生錯誤，請重新生成
+                      </p>
+                      {vectorCount === 0 && (
+                        <p className="text-xs text-red-600 mb-3">
+                          當前 vector_count 為 0，向量數據未成功生成
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        // 修改時間：2026-02-01 - 防重複點擊檢查
+                        if (loading || regenerationJobId) {
+                          return; // 已在處理中，忽略點擊
+                        }
+                        if (!file.file_id) {
+                          toast.error('缺少 fileId，無法重新生成');
+                          return;
+                        }
+                        // 立即設置狀態，防止重複點擊
+                        setLoading(true);
+                        setRegenerationJobId('pending'); // 立即設置，觸發全屏"生成中..."顯示
+                        try {
+                          const result = await regenerateFileData(file.file_id, 'vector');
+                          if (result.success) {
+                            const jobId = result.data?.job_id;
+                            setRegenerationJobId(jobId || 'pending');
+                            toast.success('向量重新生成已提交到隊列，請稍候...', {
+                              description: jobId ? `任務 ID: ${jobId}` : '處理將在後台進行',
+                              duration: 5000,
+                            });
+                          } else {
+                            setRegenerationJobId(null); // 失敗時重置
+                            toast.error(result.message || '重新生成失敗', { duration: 3000 });
+                          }
+                        } catch (err: any) {
+                          setRegenerationJobId(null); // 異常時重置
+                          toast.error(err.message || '重新生成失敗', { duration: 3000 });
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading || !!regenerationJobId}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                      {loading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>重新生成中...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4" />
+                          <span>重新生成</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Points 列表（類似 Qdrant Dashboard 的 Points 面板） */}

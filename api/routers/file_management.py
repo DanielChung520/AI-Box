@@ -10,6 +10,7 @@ import os
 import zipfile
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
+from urllib.parse import quote
 
 import structlog
 from fastapi import APIRouter, Body, Depends, Query, Request, status
@@ -25,7 +26,12 @@ from pydantic import BaseModel, Field
 
 from api.core.response import APIResponse
 from database.arangodb import ArangoDBClient
-from database.rq.queue import KG_EXTRACTION_QUEUE, VECTORIZATION_QUEUE, get_task_queue
+from database.rq.queue import (
+    FILE_PROCESSING_QUEUE,
+    KG_EXTRACTION_QUEUE,
+    VECTORIZATION_QUEUE,
+    get_task_queue,
+)
 from services.api.models.audit_log import AuditAction
 from services.api.models.file_metadata import FileMetadata, FileMetadataUpdate
 from services.api.services.file_metadata_service import FileMetadataService
@@ -38,7 +44,11 @@ from system.infra.config.config import get_config_section
 from system.security.audit_decorator import audit_log
 from system.security.dependencies import get_current_user
 from system.security.models import Permission, User
-from workers.tasks import process_kg_extraction_only_task, process_vectorization_only_task
+from workers.tasks import (
+    process_file_chunking_and_vectorization_task,
+    process_kg_extraction_only_task,
+    process_vectorization_only_task,
+)
 
 # 导入 worker 配置函数
 try:
@@ -108,7 +118,9 @@ class FileMoveRequest(BaseModel):
     """文件移動請求模型"""
 
     target_task_id: str = Field(..., description="目標任務ID")
-    target_folder_id: Optional[str] = Field(None, description="目標資料夾ID（可選，未提供時移動到任務工作區）")
+    target_folder_id: Optional[str] = Field(
+        None, description="目標資料夾ID（可選，未提供時移動到任務工作區）"
+    )
 
 
 class FolderCreateRequest(BaseModel):
@@ -978,8 +990,29 @@ async def download_file(
                 media_type = text_types[ext]
                 content_encoding = "utf-8"
 
+        # 修復文件名編碼問題：使用 RFC 5987 格式支持中文文件名
+        # 如果文件名包含非 ASCII 字符，只使用 filename* 格式（避免 latin-1 編碼錯誤）
+        if filename:
+            try:
+                # 檢查文件名是否包含非 ASCII 字符
+                filename.encode('ascii')
+                # 如果沒有非 ASCII 字符，使用標準格式
+                content_disposition = f'attachment; filename="{filename}"'
+            except UnicodeEncodeError:
+                # 如果包含非 ASCII 字符，只使用 RFC 5987 格式
+                # 不提供 filename 格式，因為它包含非 ASCII 字符會導致 latin-1 編碼錯誤
+                # 提供一個 ASCII 安全的備用文件名（使用文件 ID 作為後備）
+                safe_filename = file_id if file_id else "file"
+                encoded_filename = quote(filename, safe='')
+                content_disposition = (
+                    f'attachment; filename="{safe_filename}"; '
+                    f"filename*=UTF-8''{encoded_filename}"
+                )
+        else:
+            content_disposition = 'attachment'
+
         headers = {
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": content_disposition,
         }
         if content_encoding:
             headers["Content-Encoding"] = content_encoding
@@ -1647,7 +1680,7 @@ async def delete_file(
     刪除文件時需要清理以下數據源：
     1. 文件實體（從文件系統）
     2. 文件元數據（從 ArangoDB）
-    3. 向量數據（從 ChromaDB）
+    3. 向量數據（從 Qdrant）
     4. 知識圖譜關聯（從 ArangoDB）
 
     Args:
@@ -1676,7 +1709,7 @@ async def delete_file(
         }
         deletion_errors = []
 
-        # 1. 刪除ChromaDB中的向量數據
+        # 1. 刪除 Qdrant 中的向量數據
         try:
             vector_store_service = get_qdrant_vector_store_service()
             vector_store_service.delete_vectors_by_file_id(
@@ -2639,7 +2672,7 @@ async def delete_folder(
             try:
                 file_id = file_metadata.file_id
 
-                # 1. 刪除ChromaDB中的向量
+                # 1. 刪除 Qdrant 中的向量
                 try:
                     vector_store_service = get_qdrant_vector_store_service()
                     vector_store_service.delete_vectors_by_file_id(
@@ -2939,7 +2972,7 @@ async def get_file_vectors(
             )
 
         # 修改時間：2026-01-05 - 移除文件存在性檢查
-        # 向量數據存儲在 ChromaDB 中，與文件存儲無關
+        # 向量數據存儲在 Qdrant 中，與文件存儲無關
         # 不需要檢查文件是否在 SeaWeedFS 或本地文件系統中存在
         # 如果文件元數據存在，就可以查詢向量數據
 
@@ -3128,7 +3161,10 @@ async def get_similar_vectors(
 class RegenerateRequest(BaseModel):
     """重新生成請求模型"""
 
-    type: str = Field(..., description="重新生成的類型：'vector' 或 'graph'")
+    type: str = Field(
+        ...,
+        description="重新生成的類型：'vector'（僅向量）、'graph'（僅圖譜）、'full'（分塊+向量+圖譜）",
+    )
 
 
 @router.post("/{file_id}/regenerate")
@@ -3347,9 +3383,66 @@ async def regenerate_file_data(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
+        elif regenerate_type == "full":
+            # 完整流程：分塊 + 向量化 + 圖譜提取（與上傳後處理一致）
+            try:
+                queue = get_task_queue(FILE_PROCESSING_QUEUE)
+                job_timeout = get_worker_job_timeout()
+                job = queue.enqueue(
+                    process_file_chunking_and_vectorization_task,
+                    file_id=file_id,
+                    file_path=file_path,
+                    file_type=file_metadata.file_type,
+                    user_id=current_user.user_id,
+                    job_timeout=job_timeout,
+                )
+                try:
+                    from api.routers.file_upload import _update_processing_status
+
+                    _update_processing_status(
+                        file_id=file_id,
+                        overall_status="processing",
+                        overall_progress=0,
+                        chunking={
+                            "status": "pending",
+                            "progress": 0,
+                            "message": "完整處理（分塊+向量+圖譜）已提交到隊列",
+                        },
+                        message="完整處理已提交到隊列",
+                    )
+                except Exception:
+                    pass
+                logger.info(
+                    "File full reprocess (chunk+vector+kg) triggered via RQ",
+                    file_id=file_id,
+                    user_id=current_user.user_id,
+                    job_id=job.id,
+                    queue=FILE_PROCESSING_QUEUE,
+                )
+                return APIResponse.success(
+                    data={
+                        "file_id": file_id,
+                        "type": "full",
+                        "status": "queued",
+                        "job_id": job.id,
+                    },
+                    message="完整處理（分塊+向量+圖譜）已提交到隊列，處理將在後台進行",
+                )
+            except Exception as e:
+                logger.error(
+                    "Failed to enqueue full reprocess task",
+                    file_id=file_id,
+                    error=str(e),
+                    exc_info=True,
+                )
+                return APIResponse.error(
+                    message=f"提交完整處理任務失敗: {str(e)}",
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
         else:
             return APIResponse.error(
-                message=f"不支持的重新生成類型: {regenerate_type}，支持 'vector' 或 'graph'",
+                message=f"不支持的重新生成類型: {regenerate_type}，支持 'vector'、'graph' 或 'full'",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 

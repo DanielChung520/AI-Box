@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useContext } from 'react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/languageContext';
 import { AuthContext } from '../contexts/authContext';
+import { isSystemAdmin } from '../lib/userUtils';
 import { saveTask, getAllTasks, deleteTask, getFavorites, addTaskToFavorites, removeTaskFromFavorites, isTaskFavorite, clearHardcodedFavorites, removeFavorite } from '../lib/taskStorage';
 import { saveMockFiles } from '../lib/mockFileStorage';
 import { deleteUserTask, deleteUserTaskSoft, restoreUserTask, permanentDeleteUserTask, getUserTask, updateUserTask } from '../lib/api';
@@ -23,6 +24,8 @@ export interface FileNode {
   name: string;
   type: 'folder' | 'file';
   children?: FileNode[];
+  /** 可選：用於 StageDots（SeaweedFS/向量/圖譜）的元數據 */
+  metadata?: { storage_path?: string; vector_count?: number; kg_status?: string };
 }
 
 // 修改時間：2026-01-21 - 添加 trash 狀態支援 Soft Delete
@@ -33,6 +36,7 @@ export interface Task {
   status: 'pending' | 'in-progress' | 'completed';
   task_status?: 'activate' | 'archive' | 'trash'; // 添加 trash 狀態
   label_color?: string;
+  is_agent_task?: boolean; // 修改時間：2026-01-27 - 添加 Agent 任務標記
   dueDate: string;
   created_at?: string;
   updated_at?: string;
@@ -576,11 +580,15 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     setActiveSection('tasks');
     setActiveItemId(newTask.id);
 
+    // 修改時間：2026-01-31 - 新任務立即同步到後端，避免送出訊息時 GET 404
+    saveTask(newTask, true, { isNewTask: true }).catch((error) => {
+      console.error('[Sidebar] Failed to save new task:', error);
+    });
+
     // 通知父组件创建新任务
     if (onTaskSelect) {
       onTaskSelect(newTask);
     }
-
   };
 
   // 处理任务点击
@@ -951,6 +959,59 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     setShowRenameModal(false);
     setRenameTaskTarget(null);
     setRenameInput('');
+  };
+
+  // 修改時間：2026-01-27 - 處理標記/取消標記 Agent 任務
+  const handleToggleAgentTask = async () => {
+    if (!contextMenu) return;
+
+    try {
+      const taskId = String(contextMenu.task.id);
+      const currentIsAgentTask = contextMenu.task.is_agent_task || false;
+      const newIsAgentTask = !currentIsAgentTask;
+
+      // 保存至後端 user_tasks（ArangoDB）：PUT /user-tasks/{taskId}，更新 is_agent_task
+      try {
+        await updateUserTask(taskId, {
+          is_agent_task: newIsAgentTask,
+        });
+        console.log('[Sidebar] Task agent flag saved to user_tasks', { taskId, is_agent_task: newIsAgentTask });
+      } catch (error: any) {
+        console.error('[Sidebar] Failed to save agent flag to user_tasks:', error);
+        alert(`更新 Agent 任務標記失敗: ${error.message || '未知錯誤'}`);
+        return;
+      }
+
+      // 同步更新本地任務快取（與 user_tasks 一致）
+      const now = new Date().toISOString();
+      const updatedTask: Task = {
+        ...contextMenu.task,
+        is_agent_task: newIsAgentTask,
+        updated_at: now,
+      };
+      saveTask(updatedTask, false); // 不觸發後端同步（已透過 updateUserTask 寫入 user_tasks）
+
+      // 如果更新的是當前選中的任務，更新選中狀態
+      if (selectedTask && selectedTask.id === contextMenu.task.id) {
+        if (onTaskSelect) {
+          onTaskSelect(updatedTask);
+        }
+      }
+
+      // 重新加載任務列表
+      const loadedTasks = getAllTasks();
+      setSavedTasks(loadedTasks);
+
+      // 觸發任務更新事件
+      window.dispatchEvent(new CustomEvent('taskUpdated', { detail: { taskId: contextMenu.task.id } }));
+
+      alert(newIsAgentTask ? '任務已標記為 Agent 任務' : '任務已取消 Agent 任務標記');
+    } catch (error: any) {
+      console.error('[Sidebar] Failed to toggle agent task:', error);
+      alert(`更新 Agent 任務標記失敗: ${error.message || '未知錯誤'}`);
+    }
+
+    closeContextMenu();
   };
 
   // 修改時間：2025-01-27 - 取消任務重新命名
@@ -1717,6 +1778,16 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
               </button>
             );
           })()}
+          {/* 修改時間：2026-01-27 - 添加「標記為 Agent 任務」選項（僅 systemAdmin/授權用戶可見） */}
+          {isSystemAdmin(currentUser) && contextMenu && (
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={handleToggleAgentTask}
+            >
+              <i className={`${contextMenu.task.is_agent_task ? 'fa-solid fa-robot text-blue-500' : 'fa-regular fa-robot text-gray-400'} w-4`}></i>
+              <span>{contextMenu.task.is_agent_task ? '取消 Agent 任務標記' : '標記為 Agent 任務'}</span>
+            </button>
+          )}
           {/* 修改時間：2025-12-09 - 添加標識顏色選項，支持懸停顯示顏色選擇子菜單 */}
           <div
             className="relative"

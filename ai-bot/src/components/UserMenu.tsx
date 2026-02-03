@@ -9,6 +9,7 @@ import { AuthContext } from '../contexts/authContext';
 import { useContext } from 'react';
 import UserProfileModal from './UserProfileModal';
 import ChangePasswordModal from './ChangePasswordModal';
+import ConsentModal from './ConsentModal';
 
 interface UserMenuProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export default function UserMenu({ isOpen, onClose, position = 'bottom' }: UserM
   const { logout } = useContext(AuthContext);
   const [showUserProfileModal, setShowUserProfileModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
 
   // 處理點擊外部區域關閉菜單
   useEffect(() => {
@@ -116,6 +118,12 @@ export default function UserMenu({ isOpen, onClose, position = 'bottom' }: UserM
     onClose();
   };
 
+  // 處理數據使用同意（AI 處理同意等）
+  const handleDataConsent = () => {
+    setShowConsentModal(true);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   // 處理鍵盤選擇（Enter/Space）
@@ -156,6 +164,21 @@ export default function UserMenu({ isOpen, onClose, position = 'bottom' }: UserM
       >
         <i className="fa-solid fa-user w-4 text-center" aria-hidden="true"></i>
         <span>我的賬戶</span>
+      </button>
+
+      <div className="border-t border-primary my-1"></div>
+
+      {/* 數據使用同意（AI 處理同意，用於知識庫列表等） */}
+      <button
+        role="menuitem"
+        aria-label="數據使用同意"
+        tabIndex={0}
+        className="w-full text-left px-4 py-3 text-sm text-primary hover:bg-tertiary focus:bg-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset theme-transition flex items-center gap-3 transition-colors duration-200"
+        onClick={handleDataConsent}
+        onKeyDown={(e) => handleMenuItemKeyDown(e, handleDataConsent)}
+      >
+        <i className="fa-solid fa-shield-alt w-4 text-center" aria-hidden="true"></i>
+        <span>數據使用同意</span>
       </button>
 
       <div className="border-t border-primary my-1"></div>
@@ -211,6 +234,14 @@ export default function UserMenu({ isOpen, onClose, position = 'bottom' }: UserM
       <ChangePasswordModal
         isOpen={showChangePasswordModal}
         onClose={() => setShowChangePasswordModal(false)}
+      />
+
+      {/* 數據使用同意 Modal（預設開啟 AI 處理同意） */}
+      <ConsentModal
+        isOpen={showConsentModal}
+        onClose={() => setShowConsentModal(false)}
+        onConsent={() => setShowConsentModal(false)}
+        consentType="ai_processing"
       />
     </div>
   );

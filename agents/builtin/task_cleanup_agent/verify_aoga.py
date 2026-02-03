@@ -51,9 +51,9 @@ async def verify_aoga():
     if record:
         print(f"Audit Record Found: {record['_key']}")
         print(f"Content Hash: {record.get('content_hash')}")
-        print(f"Execution Result: {record.get('execution', {)}).get('result')}")
+        print(f"Execution Result: {record.get('execution', {}).get('result')}")
         print(
-            f"Deleted Tasks Count: {record.get('execution', {)}).get('details', {}).get('user_tasks')}"
+            f"Deleted Tasks Count: {record.get('execution', {}).get('details', {}).get('user_tasks')}"
         ),
     else:
         print("Error: Audit record not found in database")

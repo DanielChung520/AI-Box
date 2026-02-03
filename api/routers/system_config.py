@@ -103,7 +103,27 @@ async def list_system_configs(
 
             from services.api.services.config_store_service import _document_to_model
 
-            docs = collection.find(filters)
+            # 使用 AQL 查詢以提高性能（支持索引）
+            aql = """
+            FOR doc IN system_configs
+            FILTER doc.is_active == true
+            """
+            bind_vars: Dict[str, Any] = {}
+            
+            if category:
+                aql += " AND doc.category == @category"
+                bind_vars["category"] = category
+            
+            aql += " LIMIT 1000 RETURN doc"
+            
+            try:
+                cursor = service._client.db.aql.execute(aql, bind_vars=bind_vars)
+                docs = [doc for doc in cursor]
+            except Exception as e:
+                # Fallback 到 collection.find
+                logger.warning(f"AQL query failed, falling back to collection.find: {str(e)}")
+                docs = collection.find(filters, limit=1000)
+            
             configs = [_document_to_model(doc, "system_configs") for doc in docs]
 
         config_dicts = [config.model_dump(mode="json") for config in configs if config]

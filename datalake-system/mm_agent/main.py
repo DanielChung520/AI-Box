@@ -23,6 +23,7 @@ if str(ai_box_root) not in sys.path:
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -34,7 +35,7 @@ from mm_agent.agent import MMAgent
 from mm_agent.mcp_server import mcp_server
 from mm_agent.chain.mm_agent_chain import MMAgentChain, MMChainInput
 from mm_agent.translator import Translator
-from mm_agent.positive_list import PositiveListChecker
+from mm_agent.negative_list import NegativeListChecker
 
 from agents.services.protocol.base import AgentServiceRequest
 
@@ -49,13 +50,27 @@ logger = logging.getLogger(__name__)
 mm_agent = MMAgent()
 mm_chain = MMAgentChain()
 translator = Translator()
-positive_list = PositiveListChecker()
+negative_list = NegativeListChecker()
 
 # 創建FastAPI應用
 app = FastAPI(
     title="MM-Agent Service",
     description="MM-Agent（庫管員Agent）服務 - 庫存管理業務Agent（LangChain + Ollama）",
     version="4.0.0",
+)
+
+# 配置 CORS（允許前端跨域訪問）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8503",  # Frontend React 開發服務
+        "http://localhost:3000",  # 備選前端端口
+        "http://127.0.0.1:8503",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -172,34 +187,40 @@ async def root() -> dict:
         "service": "MM-Agent Service",
         "version": "4.0.0",
         "status": "running",
-        "features": ["LangChain", "Ollama", "MCP", "Positive List"],
+        "features": ["LangChain", "Ollama", "MCP", "Negative List"],
     }
 
 
 class ChatRequest(BaseModel):
-    """對話請求"""
+    """對話請求 - 支持多輪對話"""
 
     instruction: str
+    session_id: Optional[str] = None  # 對話會話 ID（多輪對話支持）
+    user_id: Optional[str] = None
     context: Optional[dict] = None
 
 
 class ChatResponse(BaseModel):
-    """對話響應"""
+    """對話響應 - 支持多輪對話"""
 
     success: bool
     response: str
     needs_clarification: bool = False
     clarification_message: Optional[str] = None
+    session_id: Optional[str] = None  # 返回會話 ID
+    resolved_query: Optional[str] = None  # 指代消解後的查詢
     translation: Optional[dict] = None
     debug_info: Optional[dict] = None
 
 
 @app.post("/api/v1/mm-agent/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
-    """對話端點 - 使用 LangChain 編排"""
+    """對話端點 - 使用 LangChain 編排（支持多輪對話）"""
     try:
         input_data = MMChainInput(
             instruction=request.instruction,
+            session_id=request.session_id,
+            user_id=request.user_id,
             context=request.context,
         )
 
@@ -210,6 +231,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
             response=result.response,
             needs_clarification=result.needs_clarification,
             clarification_message=result.clarification_message,
+            session_id=result.session_id,
+            resolved_query=result.resolved_query,
             translation=result.translation.model_dump() if result.translation else None,
             debug_info=result.debug_info,
         )
@@ -238,18 +261,18 @@ async def translate(request: ChatRequest) -> dict:
 
 
 @app.post("/api/v1/mm-agent/check")
-async def check_positive_list(request: ChatRequest) -> dict:
-    """正面表列檢查端點"""
+async def check_negative_list(request: ChatRequest) -> dict:
+    """負面表列檢查端點"""
     try:
-        passed, matched = positive_list.check(request.instruction)
+        denied, matched = negative_list.check(request.instruction)
         return {
             "success": True,
-            "passed": passed,
+            "denied": denied,
             "matched_keywords": matched,
-            "needs_clarification": not passed,
+            "is_denied": denied,
         }
     except Exception as e:
-        logger.error(f"正面表列檢查失敗: {e}")
+        logger.error(f"負面表列檢查失敗: {e}")
         return {"success": False, "error": str(e)}
 
 

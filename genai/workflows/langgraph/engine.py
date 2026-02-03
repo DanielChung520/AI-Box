@@ -290,7 +290,7 @@ class TaskExecutionEngine:
         execution_id: str ,
         context: ExecutionContext ,
         state: AIBoxState ,
-        layers: List[str] 
+        layers: List[str],
         start_time: datetime ,
         success: bool ,
         error_msg: Optional[str] = None ,
@@ -305,13 +305,13 @@ class TaskExecutionEngine:
             success=final_success,
             final_state=state,
             execution_time=execution_time,
-            node_count=len(context.node_results)
+            node_count=len(context.node_results),
             error_count=context.error_count,
             layers_executed=layers,
             final_layer=context.current_layer,
             reasoning=(
-                error_msg,
-                if error_msg,
+                error_msg
+                if error_msg
                 else self._generate_execution_reasoning(context, final_success)
             ),
         )

@@ -121,8 +121,8 @@ class PolicyAgent(BaseAgentNode):
                 permission_granted=True,
                 security_checks_passed=True,
                 compliance_score=1.0,
-                violations=[]
-                recommendations=[]
+                violations=[],
+                recommendations=[],
                 reasoning="All policy and security checks passed.",
             )
         except Exception as e:
@@ -156,7 +156,7 @@ def create_policy_agent_config() -> NodeConfig:
         description="策略執行Agent - 負責安全性、權限和合規性檢查",
         max_retries=1,
         timeout=20.0,
-        required_inputs=["user_id"]
+        required_inputs=["user_id"],
         optional_inputs=["resource_allocation", "messages"],
         output_keys=["policy_verification", "policy_summary"],
     )

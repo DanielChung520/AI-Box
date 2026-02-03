@@ -167,7 +167,8 @@ class AgentDiscovery:
             if agent.status != AgentStatus.ONLINE:
                 continue
 
-            # 如果沒有心跳記錄，視為不健康（除非剛註冊）
+            # 修復時間：2026-01-28 - System Agent 從數據庫加載時已設置 last_heartbeat，跳過健康檢查
+            # 或者如果沒有心跳記錄，視為不健康（除非剛註冊）
             if agent.last_heartbeat is None:
                 # 如果註冊時間在超時時間內，仍然認為是健康的
                 if agent.registered_at > timeout_threshold:

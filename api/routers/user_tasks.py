@@ -454,7 +454,7 @@ async def delete_user_task(
     刪除任務時需要清理以下數據源：
     1. 任務本身（從 ArangoDB）
     2. 任務下的所有文件（從文件系統）
-    3. 所有文件的向量數據（從 ChromaDB）
+    3. 所有文件的向量數據（從 Qdrant）
     4. 所有文件的知識圖譜數據（從 ArangoDB）
     5. 所有文件的元數據（從 ArangoDB）
 

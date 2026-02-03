@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { useLanguage } from '../contexts/languageContext';
+import { AuthContext } from '../contexts/authContext';
+import { isSystemAdmin } from '../lib/userUtils';
 import { cn } from '../lib/utils';
 import FileTree, { FileNode } from './FileTree';
 import FileViewer from './FileViewer';
@@ -11,6 +13,7 @@ import UploadProgress from './UploadProgress';
 import IEEEditor from '../pages/IEEEditor';
 import { useKeyboardShortcuts } from '../lib/hooks/useKeyboardShortcuts';
 import { getMockFileContent, getMockFile, getMockFiles } from '../lib/mockFileStorage';
+import { toast } from 'sonner';
 import { getFileTree, FileTreeResponse, previewFile, uploadFiles, uploadFromLibrary, returnToLibrary, syncFiles } from '../lib/api';
 import { getDraftFileContent } from '../lib/fileReference';
 
@@ -26,6 +29,7 @@ interface ResultPanelProps {
 }
 
 export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onToggle, onViewChange, fileTree, onFileTreeChange, taskId, userId }: ResultPanelProps) {
+  const { currentUser } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState<'files' | 'preview' | 'edit'>('files');
 
   useEffect(() => {
@@ -454,16 +458,20 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
         }, 3000);
       } else {
         // 整體失敗
+        const errMsg = response.message || response.error || '上傳失敗';
+        toast.error(`文件上傳失敗: ${errMsg}`);
         setUploadingFiles((prev) =>
           prev.map((f) => ({
             ...f,
             status: 'error',
-            error: response.message || response.error || '上傳失敗',
+            error: errMsg,
           }))
         );
       }
     } catch (error: any) {
+      const msg = error?.message || String(error);
       console.error('File upload error:', error);
+      toast.error(`文件上傳失敗: ${msg}`);
 
       // 如果後端不可用，嘗試使用模擬文件上傳
       if (error.message?.includes('網絡錯誤') || error.message?.includes('ERR_CONNECTION_TIMED_OUT') || error.message?.includes('Failed to fetch')) {
@@ -994,6 +1002,7 @@ export default function ResultPanel({ collapsed, wasCollapsed, onToggle: _onTogg
         onClose={() => setShowFileUploadModal(false)}
         onUpload={handleFileUpload}
         defaultTaskId={focusedFolderId || (taskId ? String(taskId) : 'temp-workspace')}
+        isAgentOnboardingAllowed={isSystemAdmin(currentUser)}
       />
 
       {/* 文件庫選擇對話框 */}

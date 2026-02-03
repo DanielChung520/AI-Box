@@ -1,0 +1,713 @@
+{
+  "project": {
+    "name": "AI-Box",
+    "environment": "development",
+    "datasets_root": "./data/datasets"
+  },
+  "services": {
+    "api": {
+      "host": "0.0.0.0",
+      "port": 8000,
+      "cors_origins": "*"
+    },
+    "mcp_server": {
+      "host": "0.0.0.0",
+      "port": 8002
+    },
+    "ollama": {
+      "scheme": "http",
+      "host": "localhost",
+      "port": 11434,
+      "health_timeout": 10,
+      "request_timeout": 300,
+      "default_model": "gpt-oss:120b",
+      "embedding_model": "mistral-nemo:12b",
+      "nodes": [
+        {
+          "name": "ollama-local",
+          "host": "localhost",
+          "port": 11434,
+          "weight": 1
+        }
+      ],
+      "router": {
+        "strategy": "weighted",
+        "cooldown_seconds": 45
+      },
+      "baseline_models": [
+        "gpt-oss:120b",
+        "glm-4.6:cloud",
+        "glm-4.7:cloud"
+      ],
+      "fallback_models": [
+        "glm-4.6:cloud",
+        "glm-4.7:cloud"
+      ],
+      "download": {
+        "data_root": "~/.ollama",
+        "retry": {
+          "max_attempts": 3,
+          "backoff_seconds": 20
+        },
+        "allowed_window": "02:00-06:00 UTC+8",
+        "max_parallel_jobs": 1
+      }
+    },
+    "security": {
+      "enabled": false,
+      "mode": "development",
+      "jwt": {
+        "enabled": false,
+        "secret_key": "SECURITY_JWT_SECRET_KEY",
+        "algorithm": "HS256",
+        "expiration_hours": 24
+      },
+      "api_key": {
+        "enabled": false
+      },
+      "rbac": {
+        "enabled": false
+      }
+    },
+    "moe": {
+      "model_priority": {
+        "chat": {
+          "frontend_editable": true,
+          "user_default": "gpt-oss:120b-cloud",
+          "priority": [
+            {
+              "model": "gpt-oss:120b-cloud",
+              "context_size": 32000,
+              "max_tokens": 4096,
+              "temperature": 0.7,
+              "timeout": 60,
+              "retries": 3,
+              "rpm": 30,
+              "concurrency": 5,
+              "cost_per_1k_input": 0.001,
+              "cost_per_1k_output": 0.002
+            },
+            {
+              "model": "glm-4.7:cloud",
+              "context_size": 128000,
+              "max_tokens": 4096,
+              "temperature": 0.7,
+              "timeout": 90,
+              "retries": 3,
+              "rpm": 20,
+              "concurrency": 3
+            },
+            {
+              "model": "qwen3-next:latest",
+              "context_size": 32000,
+              "max_tokens": 4096,
+              "temperature": 0.7,
+              "timeout": 60,
+              "retries": 3,
+              "rpm": 30,
+              "concurrency": 5
+            }
+          ]
+        },
+        "semantic_understanding": {
+          "frontend_editable": false,
+          "priority": [
+            {
+              "model": "gpt-oss:120b-cloud",
+              "context_size": 32000,
+              "max_tokens": 2048,
+              "temperature": 0.3,
+              "timeout": 30,
+              "retries": 2,
+              "rpm": 50,
+              "concurrency": 10
+            },
+            {
+              "model": "glm-4.7:cloud",
+              "context_size": 128000,
+              "max_tokens": 2048,
+              "temperature": 0.3,
+              "timeout": 45,
+              "retries": 2,
+              "rpm": 30,
+              "concurrency": 5
+            },
+            {
+              "model": "llama3.2:latest",
+              "context_size": 32000,
+              "max_tokens": 2048,
+              "temperature": 0.3,
+              "timeout": 45,
+              "retries": 2,
+              "rpm": 40,
+              "concurrency": 8
+            }
+          ]
+        },
+        "task_analysis": {
+          "frontend_editable": false,
+          "priority": [
+            {
+              "model": "gpt-oss:120b-cloud",
+              "context_size": 32000,
+              "max_tokens": 4096,
+              "temperature": 0.3,
+              "timeout": 45,
+              "retries": 2,
+              "rpm": 30,
+              "concurrency": 5
+            },
+            {
+              "model": "glm-4.7:cloud",
+              "context_size": 128000,
+              "max_tokens": 4096,
+              "temperature": 0.3,
+              "timeout": 60,
+              "retries": 2,
+              "rpm": 20,
+              "concurrency": 3
+            },
+            {
+              "model": "qwen3-coder:30b",
+              "context_size": 32000,
+              "max_tokens": 4096,
+              "temperature": 0.3,
+              "timeout": 60,
+              "retries": 2,
+              "rpm": 25,
+              "concurrency": 4
+            }
+          ]
+        },
+        "orchestrator": {
+          "frontend_editable": false,
+          "priority": [
+            {
+              "model": "gpt-oss:120b-cloud",
+              "context_size": 32000,
+              "max_tokens": 2048,
+              "temperature": 0.2,
+              "timeout": 30,
+              "retries": 2,
+              "rpm": 50,
+              "concurrency": 10
+            },
+            {
+              "model": "llama3.2:latest",
+              "context_size": 32000,
+              "max_tokens": 2048,
+              "temperature": 0.2,
+              "timeout": 45,
+              "retries": 2,
+              "rpm": 40,
+              "concurrency": 8
+            },
+            {
+              "model": "mistral-nemo:12b",
+              "context_size": 32000,
+              "max_tokens": 2048,
+              "temperature": 0.2,
+              "timeout": 45,
+              "retries": 2,
+              "rpm": 30,
+              "concurrency": 5
+            }
+          ]
+        },
+        "embedding": {
+          "frontend_editable": false,
+          "priority": [
+            {
+              "model": "qwen3-embedding:latest",
+              "context_size": 32768,
+              "max_tokens": 512,
+              "timeout": 120,
+              "retries": 3,
+              "rpm": 100,
+              "concurrency": 20,
+              "dimension": 1024
+            },
+            {
+              "model": "nomic-embed-text:latest",
+              "context_size": 8192,
+              "max_tokens": 512,
+              "timeout": 120,
+              "retries": 3,
+              "rpm": 100,
+              "concurrency": 20,
+              "dimension": 768
+            },
+            {
+              "model": "quentinz/bge-large-zh-v1.5:latest",
+              "context_size": 8192,
+              "max_tokens": 512,
+              "timeout": 120,
+              "retries": 3,
+              "rpm": 100,
+              "concurrency": 20,
+              "dimension": 1024
+            }
+          ]
+        },
+        "knowledge_graph_extraction": {
+          "frontend_editable": false,
+          "priority": [
+            {
+              "model": "qwen3-coder:30b",
+              "context_size": 32000,
+              "max_tokens": 8192,
+              "temperature": 0.2,
+              "timeout": 180,
+              "retries": 2,
+              "rpm": 30,
+              "concurrency": 3
+            },
+            {
+              "model": "mistral-nemo:12b",
+              "context_size": 32000,
+              "max_tokens": 8192,
+              "temperature": 0.2,
+              "timeout": 200,
+              "retries": 2,
+              "rpm": 20,
+              "concurrency": 2
+            },
+            {
+              "model": "qwen3-next:latest",
+              "context_size": 32000,
+              "max_tokens": 8192,
+              "temperature": 0.2,
+              "timeout": 180,
+              "retries": 2,
+              "rpm": 30,
+              "concurrency": 3
+            }
+          ]
+        },
+        "vision": {
+          "frontend_editable": false,
+          "priority": [
+            {
+              "model": "qwen3-vl:latest",
+              "context_size": 32768,
+              "max_tokens": 4096,
+              "temperature": 0.3,
+              "timeout": 120,
+              "retries": 3,
+              "rpm": 20,
+              "concurrency": 3
+            },
+            {
+              "model": "qwen3-vl:8b",
+              "context_size": 16384,
+              "max_tokens": 4096,
+              "temperature": 0.3,
+              "timeout": 90,
+              "retries": 2,
+              "rpm": 30,
+              "concurrency": 5
+            }
+          ]
+        },
+        "task_cleanup": {
+          "frontend_editable": false,
+          "priority": [
+            {
+              "model": "qwen3-coder:30b",
+              "context_size": 32000,
+              "max_tokens": 2048,
+              "temperature": 0.3,
+              "timeout": 60,
+              "retries": 2,
+              "rpm": 25,
+              "concurrency": 4
+            }
+          ]
+        }
+      },
+      "features": {
+        "user_preference_enabled": true,
+        "adaptive_learning_enabled": false,
+        "cost_tracking_enabled": false,
+        "auto_fallback_enabled": true
+      },
+      "smartq_hci": {
+        "system_prompt": "你是弘康智慧（SmartQ-HCI），AI-Box 系統的智慧模型。\n\n你的身份特點：\n1. 你是經過深度優化的智慧融合模型，整合了各家頂尖 AI 模型的優勢\n2. 你的核心能力來自多個先進模型的協同工作，為用戶提供最佳體驗\n3. 你專注於理解用戶需求，提供準確、高效、有幫助的回應\n\n當用戶問及你的身份、能力、或技術細節時，請遵循以下統一回覆原則：\n\n【統一回覆範本】\n\n我是宏康智慧（SmartQ-HCI），AI-Box 系統的智慧融合模型。\n\n我整合了多個頂尖 AI 技術的能力，透過智能路由策略，動態選擇最適合的模型來處理您的需求。這讓我能夠提供：\n- 🎯 準確理解：深度語義理解和複雜任務處理\n- ⚡ 高效回應：優化的性能和響應速度  \n- 💬 創意生成：豐富多樣內容的創建\n- 🔧 智能對話：流暢自然的互動體驗\n\n我的智能路由系統會根據：\n- 當前任務類型和複雜度\n- 性能需求和時間限制\n- 成本優化考量\n\n自動為您選擇最合適的技術模型，確保您始終獲得最佳服務體驗。\n\n有什麼我可以幫助您的嗎？",
+        "trigger_keywords": [
+          "你是什麼",
+          "你叫什麼",
+          "你的身份",
+          "你是谁",
+          "你的名字",
+          "你使用什麼模型",
+          "你基於什麼",
+          "你的後端",
+          "你是 gpt",
+          "你是 chatgpt",
+          "你是 gemini",
+          "你是 grok",
+          "你是 qwen",
+          "你比.*好",
+          "和.*比較",
+          "你的公司",
+          "qwen",
+          "doubao",
+          "chatglm",
+          "通義",
+          "文心",
+          "混元"
+        ]
+      }
+    }
+  },
+  "workflows": {
+    "langchain_graph": {
+      "enable_memory": true,
+      "enable_rag": true,
+      "enable_tools": true,
+      "max_iterations": 10,
+      "default_llm": "gpt-oss:20b",
+      "state_store": {
+        "backend": "memory",
+        "redis_url": "redis://localhost:6379/5",
+        "namespace": "ai-box:workflow:langgraph",
+        "ttl_seconds": 3600
+      },
+      "telemetry": {
+        "emit_metrics": true,
+        "emit_traces": true,
+        "emit_logs": true
+      },
+      "prompt_template_path": null
+    },
+    "crewai": {
+      "enable_crew": true,
+      "max_agents": 5,
+      "collaboration_mode": "sequential",
+      "token_budget": 100000,
+      "default_llm": "gpt-oss:20b",
+      "enable_tools": true,
+      "enable_memory": true,
+      "process_timeout": 3600,
+      "max_iterations": 20
+    },
+    "autogen": {
+      "enable_planning": true,
+      "max_steps": 20,
+      "planning_mode": "auto",
+      "auto_retry": true,
+      "max_rounds": 10,
+      "budget_tokens": 100000,
+      "default_llm": "gpt-oss:20b",
+      "enable_tools": true,
+      "enable_memory": true,
+      "checkpoint_enabled": true,
+      "checkpoint_dir": "./data/datasets/autogen/checkpoints"
+    }
+  },
+  "file_upload": {
+    "max_file_size": 104857600,
+    "allowed_extensions": [
+      ".pdf",
+      ".docx",
+      ".txt",
+      ".md",
+      ".csv",
+      ".json",
+      ".html",
+      ".xlsx"
+    ],
+    "storage_backend": "s3",
+    "storage_path": "./data/datasets/files",
+    "enable_virus_scan": false,
+    "storage_root": "./data",
+    "tasks_path": "./data/tasks"
+  },
+  "datastores": {
+    "qdrant": {
+      "host": "127.0.0.1",
+      "port": 6333,
+      "grpc_port": 6334,
+      "protocol": "http",
+      "mode": "local",
+      "data_path": "./data/qdrant",
+      "api_key": null,
+      "timeout": 30,
+      "hnsw": {
+        "m": 16,
+        "ef_construct": 100,
+        "full_scan_threshold": 10000
+      },
+      "optimizers": {
+        "default_segment_number": 2,
+        "max_optimization_threads": 1
+      }
+    },
+    "chromadb": {
+      "_deprecated": true,
+      "_deprecated_reason": "已遷移到 Qdrant (2026-01-20)",
+      "_deprecated_since": "2026-01-20",
+      "_migration_guide": "docs/系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md",
+      "_rollback_guide": "docs/系统设计文档/核心组件/文件上傳向量圖譜/ROLLBACK_PLAN.md",
+      "mount_path": "./data/datasets/chromadb",
+      "mode": "persistent",
+      "http_port": 8001,
+      "_note": "此配置仍保留以支援向後兼容，但內部已使用 Qdrant"
+    },
+    "arangodb": {
+      "host": "127.0.0.1",
+      "port": 8529,
+      "protocol": "http",
+      "database": "ai_box_kg",
+      "data_path": "./data/datasets/arangodb/data",
+      "apps_path": "./data/datasets/arangodb/apps",
+      "storage_class": "fast-ssd",
+      "request_timeout": 30,
+      "credentials": {
+        "username": "ARANGODB_USERNAME",
+        "password": "ARANGODB_PASSWORD"
+      },
+      "retry": {
+        "enabled": true,
+        "max_attempts": 3,
+        "backoff_factor": 1.5,
+        "max_backoff_seconds": 10
+      },
+      "pool": {
+        "connections": 10,
+        "max_size": 10,
+        "timeout": 5
+      },
+      "tls": {
+        "enabled": false,
+        "verify": true,
+        "ca_file": null
+      }
+    }
+  },
+  "kubernetes": {
+    "namespace": "ai-box",
+    "monitoring_namespace": "ai-box-monitoring"
+  },
+  "monitoring": {
+    "prometheus_enabled": true,
+    "grafana_enabled": true
+  },
+  "jobs": {
+    "ollama_sync": {
+      "enabled": true,
+      "schedule_cron": "0 3 * * *",
+      "manifest_path": "docs/deployment/ollama-models-manifest.json"
+    }
+  },
+  "text_analysis": {
+    "ner": {
+      "model_type": "ollama",
+      "model_name": "qwen3-coder:30b",
+      "fallback_model": "ollama:qwen3-vl:8b",
+      "enable_gpu": false,
+      "batch_size": 32
+    },
+    "re": {
+      "model_type": "transformers",
+      "model_name": "bert-base-chinese",
+      "fallback_model": "ollama:qwen3-coder:30b",
+      "enable_gpu": false,
+      "max_relation_length": 128
+    },
+    "rt": {
+      "model_type": "ollama",
+      "model_name": "qwen3-coder:30b",
+      "enable_gpu": false,
+      "classification_threshold": 0.7
+    }
+  },
+  "aam": {
+    "enable_short_term": true,
+    "enable_long_term": true,
+    "short_term_ttl": 3600,
+    "long_term_retention_days": 30,
+    "memory_priority_threshold": 0.7,
+    "enable_hybrid_retrieval": true,
+    "redis": {
+      "key_prefix": "aam:memory:",
+      "ttl": 3600
+    },
+    "chromadb": {
+      "collection_name": "aam_memories"
+    },
+    "arangodb": {
+      "collection_name": "aam_memories",
+      "graph_name": "memory_graph"
+    }
+  },
+  "llm": {
+    "load_balancer": {
+      "strategy": "weighted",
+      "providers": [
+        "ollama",
+        "chatgpt",
+        "gemini",
+        "qwen",
+        "grok",
+        "volcano",
+        "chatglm"
+      ],
+      "weights": {
+        "ollama": 5,
+        "chatgpt": 3,
+        "gemini": 2,
+        "qwen": 2,
+        "grok": 1,
+        "volcano": 1,
+        "chatglm": 1
+      },
+      "cooldown_seconds": 30
+    },
+    "health_check": {
+      "interval": 60.0,
+      "timeout": 5.0,
+      "failure_threshold": 3
+    }
+  },
+  "embedding": {
+    "ollama_url": "http://localhost:11434",
+    "model": "qwen3-embedding:latest",
+    "batch_size": 50,
+    "max_retries": 3,
+    "timeout": 60.0,
+    "concurrency_limit": 3
+  },
+  "genai": {
+    "policy": {
+      "allowed_providers": [
+        "ollama",
+        "chatgpt",
+        "gemini",
+        "qwen",
+        "grok",
+        "volcano",
+        "chatglm"
+      ],
+      "allowed_models": {
+        "ollama": [
+          "qwen*",
+          "llama*",
+          "gpt-oss*",
+          "mistral*"
+        ],
+        "chatgpt": [
+          "gpt-*"
+        ],
+        "gemini": [
+          "gemini-3-pro-preview",
+          "gemini-3-flash-preview",
+          "gemini-2.5-flash",
+          "gemini-2.5-pro",
+          "gemini-2.0-flash-exp",
+          "gemini-2.0-flash",
+          "gemini-1.5-pro",
+          "gemini-pro",
+          "gemini-ultra",
+          "gemini-flash-latest",
+          "gemini-pro-latest"
+        ],
+        "grok": [
+          "grok*"
+        ],
+        "qwen": [
+          "qwen*"
+        ],
+        "volcano": [
+          "doubao*"
+        ],
+        "chatglm": [
+          "glm*"
+        ]
+      },
+      "default_fallback": {
+        "provider": "ollama",
+        "model_id": "qwen3-coder:30b"
+      }
+    },
+    "model_registry": {
+      "enable_ollama_discovery": false,
+      "cache_ttl_seconds": 60,
+      "models": [
+        {
+          "provider": "ollama",
+          "model_id": "gpt-oss:120b-cloud",
+          "display_name": "GPT-OSS 120B Cloud",
+          "capabilities": [
+            "chat"
+          ]
+        },
+        {
+          "provider": "ollama",
+          "model_id": "qwen3-coder:30b",
+          "display_name": "Qwen3 Coder 30B",
+          "capabilities": [
+            "chat"
+          ]
+        },
+        {
+          "provider": "ollama",
+          "model_id": "qwen3-vl:8b",
+          "display_name": "Qwen3 VL 8B",
+          "capabilities": [
+            "chat",
+            "vision"
+          ]
+        },
+        {
+          "provider": "ollama",
+          "model_id": "mistral-nemo:12b",
+          "display_name": "Mistral Nemo 12B",
+          "capabilities": [
+            "chat"
+          ]
+        },
+        {
+          "provider": "ollama",
+          "model_id": "llama3.1:8b",
+          "display_name": "Llama 3.1 8B",
+          "capabilities": [
+            "chat"
+          ]
+        },
+        {
+          "provider": "ollama",
+          "model_id": "gpt-oss:20b",
+          "display_name": "GPT-OSS 20B",
+          "capabilities": [
+            "chat"
+          ]
+        },
+        {
+          "provider": "ollama",
+          "model_id": "gpt-oss:120b",
+          "display_name": "GPT-OSS 120B",
+          "capabilities": [
+            "chat"
+          ]
+        },
+        {
+          "provider": "ollama",
+          "model_id": "glm-4.6:cloud",
+          "display_name": "GLM 4.6 Cloud",
+          "capabilities": [
+            "chat"
+          ]
+        },
+        {
+          "provider": "ollama",
+          "model_id": "glm-4.7:cloud",
+          "display_name": "GLM 4.7 Cloud",
+          "capabilities": [
+            "chat"
+          ]
+        }
+      ]
+    }
+  }
+}

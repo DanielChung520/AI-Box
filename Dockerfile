@@ -3,7 +3,7 @@
 # 創建人: Daniel Chung
 # 最後修改日期: 2025-11-25
 
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # 設置工作目錄
 WORKDIR /app

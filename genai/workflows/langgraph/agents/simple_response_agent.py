@@ -116,7 +116,7 @@ class SimpleResponseAgent(BaseAgentNode):
                 response_type="error_fallback",
                 response_content="抱歉，我現在遇到了一些技術問題。",
                 confidence=0.5,
-                follow_up_suggestions=[]
+                follow_up_suggestions=[],
                 reasoning=str(e)
             )
 
@@ -124,7 +124,7 @@ class SimpleResponseAgent(BaseAgentNode):
         for message in reversed(state.messages):
             if message.role == "user":
                 return message.content
-        return "
+        return ""
     def _create_response_summary(self, response_result: SimpleResponseResult) -> Dict[str, Any]:
         return {
             "response_generated": response_result.response_generated,

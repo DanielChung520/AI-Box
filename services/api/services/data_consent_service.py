@@ -61,9 +61,16 @@ class DataConsentService:
         # 檢查是否已存在相同類型的同意記錄
         existing = self._get_consent_by_type(user_id, consent_create.consent_type)
 
+        consent_type_value = (
+            consent_create.consent_type.value
+            if hasattr(consent_create.consent_type, "value")
+            else consent_create.consent_type
+        )
+        # data_consents 文檔欄位（與規格一致）：
+        # _key, user_id, consent_type, granted, timestamp, purpose, expires_at
         consent_data = {
             "user_id": user_id,
-            "consent_type": consent_create.consent_type.value,
+            "consent_type": consent_type_value,
             "purpose": consent_create.purpose,
             "granted": consent_create.granted,
             "timestamp": datetime.utcnow().isoformat(),
@@ -79,7 +86,7 @@ class DataConsentService:
             logger.info(
                 "Updated consent record",
                 user_id=user_id,
-                consent_type=consent_create.consent_type.value,
+                consent_type=consent_type_value,
                 granted=consent_create.granted,
             )
             updated = result.get("new") or consent_data
@@ -87,13 +94,13 @@ class DataConsentService:
         else:
             # 創建新記錄
             # 使用 user_id 和 consent_type 生成唯一 key
-            key = f"{user_id}_{consent_create.consent_type.value}"
+            key = f"{user_id}_{consent_type_value}"
             consent_data["_key"] = key
             result = self.collection.insert(consent_data)
             logger.info(
                 "Created consent record",
                 user_id=user_id,
-                consent_type=consent_create.consent_type.value,
+                consent_type=consent_type_value,
                 granted=consent_create.granted,
             )
             created = result.get("new") or consent_data
@@ -150,6 +157,7 @@ class DataConsentService:
         Returns:
             是否成功撤銷
         """
+        consent_type_value = consent_type.value if hasattr(consent_type, "value") else consent_type
         consent = self._get_consent_by_type(user_id, consent_type)
         if not consent:
             return False
@@ -166,7 +174,7 @@ class DataConsentService:
         logger.info(
             "Revoked consent",
             user_id=user_id,
-            consent_type=consent_type.value,
+            consent_type=consent_type_value,
         )
         return True
 
@@ -217,7 +225,8 @@ class DataConsentService:
         Returns:
             同意記錄文檔，如果不存在則返回 None
         """
-        key = f"{user_id}_{consent_type.value}"
+        consent_type_value = consent_type.value if hasattr(consent_type, "value") else consent_type
+        key = f"{user_id}_{consent_type_value}"
         try:
             return self.collection.get(key)
         except Exception:

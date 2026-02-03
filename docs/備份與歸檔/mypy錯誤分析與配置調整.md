@@ -156,7 +156,6 @@ exclude = [
     "docs/.*/rag-file-upload/.*",
     "backup/.*",
     "venv/.*",
-    ".venv/.*",
     "build/.*",
     "dist/.*",
     "__pycache__/.*",

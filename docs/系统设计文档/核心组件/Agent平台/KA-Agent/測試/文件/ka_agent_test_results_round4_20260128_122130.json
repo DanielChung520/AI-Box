@@ -1,0 +1,65 @@
+{
+  "test_round": 4,
+  "test_date": "2026-01-28T12:21:30.914496",
+  "total_tests": 5,
+  "passed": 0,
+  "failed": 5,
+  "pass_rate": 0.0,
+  "results": [
+    {
+      "test_id": "KA-TEST-001",
+      "test_name": "知識庫文件數量查詢",
+      "query": "告訴我你的知識庫或文件區有多少文件？",
+      "status_code": 500,
+      "elapsed_time_ms": 9031.11,
+      "expected_status": 200,
+      "passed": false,
+      "error": "状态码不匹配: 期望 200, 实际 500",
+      "response_preview": "哎呀，發生了一些小狀況，我感到很抱歉！請通知管理員（錯誤代碼：CHAT_PRODUCT_FAILED）😅"
+    },
+    {
+      "test_id": "KA-TEST-005",
+      "test_name": "關鍵詞檢索",
+      "query": "查找關於『API 開發』的相關文檔",
+      "status_code": 500,
+      "elapsed_time_ms": 50133.64,
+      "expected_status": 200,
+      "passed": false,
+      "error": "状态码不匹配: 期望 200, 实际 500",
+      "response_preview": "哎呀，發生了一些小狀況，我感到很抱歉！請通知管理員（錯誤代碼：CHAT_PRODUCT_FAILED）😅"
+    },
+    {
+      "test_id": "KA-TEST-006",
+      "test_name": "問答式查詢",
+      "query": "如何進行 API 性能優化？",
+      "status_code": 500,
+      "elapsed_time_ms": 58597.19,
+      "expected_status": 200,
+      "passed": false,
+      "error": "状态码不匹配: 期望 200, 实际 500",
+      "response_preview": "哎呀，發生了一些小狀況，我感到很抱歉！請通知管理員（錯誤代碼：CHAT_PRODUCT_FAILED）😅"
+    },
+    {
+      "test_id": "KA-TEST-016",
+      "test_name": "空查詢",
+      "query": "",
+      "status_code": 422,
+      "elapsed_time_ms": 2.77,
+      "expected_status": 400,
+      "passed": false,
+      "error": "响应中未包含预期关键词: 缺少",
+      "response_preview": "Request validation failed"
+    },
+    {
+      "test_id": "KA-TEST-019",
+      "test_name": "權限不足",
+      "query": "告訴我你的知識庫或文件區有多少文件？",
+      "status_code": 500,
+      "elapsed_time_ms": 8055.53,
+      "expected_status": 200,
+      "passed": false,
+      "error": "状态码不匹配: 期望 200, 实际 500",
+      "response_preview": "哎呀，發生了一些小狀況，我感到很抱歉！請通知管理員（錯誤代碼：CHAT_PRODUCT_FAILED）😅"
+    }
+  ]
+}

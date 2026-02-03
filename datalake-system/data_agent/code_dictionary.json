@@ -1,0 +1,97 @@
+{
+  "dictionary_id": "tiptop_codes",
+  "version": "1.0",
+  "last_updated": "2026-01-31",
+  "description": "Tiptop 系統代碼對照表 - 倉庫、料號、程式碼",
+  "codes": {
+    "W01": {
+      "type": "warehouse",
+      "name": "原料倉",
+      "description": "原料倉庫",
+      "table": "img_file",
+      "field": "img02",
+      "valid_values": ["W01", "W02", "W03", "W04", "W05"]
+    },
+    "W02": {
+      "type": "warehouse",
+      "name": "半成品倉",
+      "description": "半成品倉庫",
+      "table": "img_file",
+      "field": "img02"
+    },
+    "W03": {
+      "type": "warehouse",
+      "name": "成品倉",
+      "description": "成品倉庫",
+      "table": "img_file",
+      "field": "img02"
+    },
+    "W04": {
+      "type": "warehouse",
+      "name": "不良品倉",
+      "description": "不良品倉庫",
+      "table": "img_file",
+      "field": "img02"
+    },
+    "W05": {
+      "type": "warehouse",
+      "name": "樣品倉",
+      "description": "樣品倉庫",
+      "table": "img_file",
+      "field": "img02"
+    }
+  },
+  "code_patterns": [
+    {
+      "pattern": "^W0[1-5]$",
+      "type": "warehouse",
+      "description": "倉庫代碼（W01-W05）",
+      "default_table": "img_file",
+      "default_field": "img02"
+    },
+    {
+      "pattern": "^\\d{2}-\\d{4}$",
+      "type": "item_code",
+      "description": "料號格式（XX-XXXX）",
+      "default_table": "ima_file",
+      "default_field": "ima01",
+      "examples": ["10-0001", "20-0001"]
+    },
+    {
+      "pattern": "^[A-Z]{4}\\d{3}$",
+      "type": "program_code",
+      "description": "Tiptop 程式代碼",
+      "mappings": [
+        {
+          "code": "AXMT520",
+          "name": "出貨前訂單查詢",
+          "description": "客戶代碼 + 日期查詢出貨訂單",
+          "related_tables": ["coptc_file", "coptd_file"]
+        },
+        {
+          "code": "AXMT420",
+          "name": "訂價單查詢",
+          "description": "查詢 PN 的訂價單與最新批准價格",
+          "related_tables": ["pmp_file", "pmq_file"]
+        },
+        {
+          "code": "ASFT301",
+          "name": "生產進度查詢",
+          "description": "查詢 SO、SO Line、Order Batch、生產製程",
+          "related_tables": ["sfs_file", "sfb_file", "sfa_file"]
+        }
+      ]
+    }
+  ],
+  "code_aliases": {
+    "inag_t": "tlf_file",
+    "img_t": "img_file",
+    "ima_t": "ima_file",
+    "cop_t": "coptc_file"
+  },
+  "notes": {
+    "warehouse_codes": "倉庫代碼 W01-W05 對應 img_file.img02 欄位",
+    "item_codes": "料號格式為 XX-XXXX（如 10-0001），對應 ima_file.ima01 或 img_file.img01",
+    "program_codes": "程式代碼如 AXMT520 為 Tiptop ERP 程式識別碼"
+  }
+}

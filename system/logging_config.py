@@ -2,12 +2,13 @@
 代碼功能說明: 系統日誌配置模組
 創建日期: 2025-12-08
 創建人: Daniel Chung
-最後修改日期: 2025-12-08 12:30:00 UTC+8
+最後修改日期: 2026-01-28 10:30:00 UTC+8
 
 功能說明:
-- 配置 FastAPI、前端和 MCP Server 的日誌文件
+- 配置 FastAPI、前端、MCP Server 和 Agent 的日誌文件
 - 使用 RotatingFileHandler 實現日誌輪轉
-- 每個日誌文件最大 500KB，保留 4 個備份文件
+- 每個日誌文件最大 512KB，保留 4 個備份文件
+- Agent 日誌獨立於 FastAPI 日誌，便於追蹤和調試
 """
 
 import logging
@@ -23,6 +24,7 @@ LOG_DIR.mkdir(exist_ok=True)
 FASTAPI_LOG_PATH = LOG_DIR / "fastapi.log"
 FRONTEND_LOG_PATH = LOG_DIR / "frontend.log"
 MCP_SERVER_LOG_PATH = LOG_DIR / "mcp_server.log"
+AGENT_LOG_PATH = LOG_DIR / "agent.log"
 
 # 日誌格式
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -35,7 +37,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 def setup_file_logger(
     name: str,
     log_file: Path,
-    max_bytes: int = 500 * 1024,  # 500KB
+    max_bytes: int = 512 * 1024,  # 512KB
     backup_count: int = 4,
     level: str = LOG_LEVEL,
 ) -> logging.Logger:
@@ -85,7 +87,7 @@ def setup_fastapi_logging() -> None:
     # 創建 RotatingFileHandler
     handler = RotatingFileHandler(
         FASTAPI_LOG_PATH,
-        maxBytes=500 * 1024,  # 500KB
+        maxBytes=512 * 1024,  # 512KB
         backupCount=4,
         encoding="utf-8",
     )
@@ -130,7 +132,7 @@ def setup_frontend_logging() -> logging.Logger:
     return setup_file_logger(
         "frontend",
         FRONTEND_LOG_PATH,
-        max_bytes=500 * 1024,  # 500KB
+        max_bytes=512 * 1024,  # 512KB
         backup_count=4,
     )
 
@@ -140,9 +142,85 @@ def setup_mcp_server_logging() -> logging.Logger:
     return setup_file_logger(
         "mcp_server",
         MCP_SERVER_LOG_PATH,
-        max_bytes=500 * 1024,  # 500KB
+        max_bytes=512 * 1024,  # 512KB
         backup_count=4,
     )
+
+
+def setup_agent_logging() -> None:
+    """
+    設置 Agent 日誌配置
+
+    為所有 Agent 相關的 logger 配置獨立的日誌文件，包括：
+    - Orchestrator
+    - KA-Agent
+    - Task Analyzer
+    - 其他 Agent 組件
+
+    日誌不會傳播到根 logger，保持與 FastAPI 日誌分離。
+    """
+    # 創建 RotatingFileHandler
+    handler = RotatingFileHandler(
+        AGENT_LOG_PATH,
+        maxBytes=512 * 1024,  # 512KB
+        backupCount=4,
+        encoding="utf-8",
+    )
+    handler.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+    formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+    handler.setFormatter(formatter)
+
+    # Agent 相關的 logger 名稱前綴
+    agent_logger_prefixes = [
+        "agents",  # 所有 agents 模組
+        "agents.services.orchestrator",  # Orchestrator
+        "agents.builtin.ka_agent",  # KA-Agent
+        "agents.task_analyzer",  # Task Analyzer
+        "agents.builtin",  # 其他內建 Agent
+    ]
+
+    # 為每個 Agent logger 配置獨立的 handler
+    for prefix in agent_logger_prefixes:
+        logger = logging.getLogger(prefix)
+        logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+
+        # 檢查是否已經有 Agent 日誌文件處理器，避免重複添加
+        has_agent_handler = any(
+            isinstance(h, RotatingFileHandler) and h.baseFilename == str(AGENT_LOG_PATH)
+            for h in logger.handlers
+        )
+
+        if not has_agent_handler:
+            logger.addHandler(handler)
+
+        # 防止日誌向上傳播到根記錄器（保持與 FastAPI 日誌分離）
+        logger.propagate = False
+
+    # 同時為具體的 logger 名稱配置（確保覆蓋所有情況）
+    specific_agent_loggers = [
+        "agents.services.orchestrator.orchestrator",
+        "agents.builtin.ka_agent.agent",
+        "agents.task_analyzer.analyzer",
+        "agents.task_analyzer.capability_matcher",
+        "agents.task_analyzer.knowledge_signal_mapper",
+        "agents.task_analyzer.router_llm",
+    ]
+
+    for logger_name in specific_agent_loggers:
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+
+        # 檢查是否已經有 Agent 日誌文件處理器
+        has_agent_handler = any(
+            isinstance(h, RotatingFileHandler) and h.baseFilename == str(AGENT_LOG_PATH)
+            for h in logger.handlers
+        )
+
+        if not has_agent_handler:
+            logger.addHandler(handler)
+
+        # 防止日誌向上傳播到根記錄器
+        logger.propagate = False
 
 
 def get_logger(name: str) -> logging.Logger:

@@ -5,9 +5,8 @@
 #
 # 變更記錄:
 # 2026-01-20: 添加 Qdrant 向量數據庫，移除 ChromaDB（遷移到 Qdrant）
+# 2026-01-29: 移除 version（Docker Compose v2 已棄用）
 #
-version: "3.8"
-
 services:
   # API Service
   api:
@@ -135,8 +134,10 @@ services:
       retries: 3
       start_period: 20s
 
-  # ArangoDB (圖資料庫)
+  # ArangoDB (圖資料庫)；使用 profile 可選，若已有 arangodb 容器則不必啟動此服務
   arangodb:
+    profiles:
+      - with-arangodb
     image: arangodb:3.12
     container_name: arangodb
     ports:
@@ -151,7 +152,9 @@ services:
       - ai-box-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8529/_api/version"]
+      # 使用 nc (netcat) 檢查端口是否開放
+      # 這是最簡單可靠的健康檢查方法，不依賴 HTTP 認證
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8529 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -198,7 +201,7 @@ services:
       - SEAWEEDFS_S3_ACCESS_KEY=${AI_BOX_SEAWEEDFS_S3_ACCESS_KEY:-admin}
       - SEAWEEDFS_S3_SECRET_KEY=${AI_BOX_SEAWEEDFS_S3_SECRET_KEY:-admin123}
     volumes:
-      - seaweedfs-ai-box-s3-config:/etc/seaweedfs
+      - ./config/seaweedfs:/etc/seaweedfs:ro  # s3.json 須存在，否則 Filer 會崩潰
     restart: unless-stopped
 
 networks:
@@ -213,23 +216,7 @@ volumes:
   postgres_data:
   redis_data:
   qdrant_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /Users/daniel/GitHub/AI-Box/data/qdrant
   arangodb_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /Users/daniel/GitHub/AI-Box/datasets/arangodb/data
   arangodb_apps_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /Users/daniel/GitHub/AI-Box/datasets/arangodb/apps
   seaweedfs-master-data:
   seaweedfs-volume-data:
-  seaweedfs-ai-box-s3-config:

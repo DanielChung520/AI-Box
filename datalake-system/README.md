@@ -1,170 +1,87 @@
 # Datalake System
 
-**版本**：1.0
-**創建日期**：2026-01-13
-**創建人**：Daniel Chung
-**最後修改日期**：2026-01-13
+**datalake-system 為獨立示範系統**，不依賴 AI-Box 專案。可部署於虛擬機或獨立主機。
 
-## 概述
+## 執行環境
 
-Datalake System 是獨立的數據湖系統，提供數據存儲、數據字典管理和 Schema 管理功能。
+**所有組件統一使用 `datalake-system/venv`**：
 
-根據 Data-Agent 規格書，**Data Agent 屬於 Datalake 系統（外部系統）**，不屬於 AI-Box。
+| 組件 | 說明 | 端口 |
+|------|------|------|
+| **Data-Agent** | 自然語言轉 SQL、Datalake 查詢 | 8004 |
+| **Dashboard** | Tiptop 模擬系統 Streamlit 儀表板 | 8502 |
+| **Datalake** | SeaweedFS S3 數據存儲 | 8334 |
+| **MM-Agent** | 庫管員 Agent | 8003 |
+
+### 首次安裝
+
+```bash
+cd datalake-system
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+pip install -r requirements.txt
+```
+
+### 啟動服務（推薦：統一腳本）
+
+使用 `scripts/start_services.sh` 統一管理所有組件：
+
+```bash
+cd datalake-system
+
+# 檢查所有服務狀態（預設）
+./scripts/start_services.sh
+./scripts/start_services.sh status
+
+# 啟動全部服務
+./scripts/start_services.sh start
+
+# 個別啟動
+./scripts/start_services.sh start data_agent      # Data-Agent
+./scripts/start_services.sh start dashboard        # Dashboard
+./scripts/start_services.sh start mm_agent # MM-Agent
+./scripts/start_services.sh start datalake        # SeaweedFS (Docker)
+
+# 停止服務
+./scripts/start_services.sh stop                  # 停止全部
+./scripts/start_services.sh stop dashboard        # 僅停止 Dashboard
+
+# 重啟服務
+./scripts/start_services.sh restart all
+./scripts/start_services.sh restart data_agent
+```
+
+**注意**：Datalake (SeaweedFS) 為 Docker 服務，`stop datalake` 不會自動停止，需手動執行 `docker-compose down`。
+
+### 個別組件啟動（進階）
+
+各組件亦可單獨啟動，腳本會自動啟用 `datalake-system/venv`（若存在）：
+
+| 組件 | 啟動腳本 | 狀態檢查 |
+|------|----------|----------|
+| Data-Agent | `./scripts/data_agent/start.sh` | `./scripts/data_agent/status.sh` |
+| Dashboard | `./scripts/start_services.sh start dashboard` | `./scripts/start_services.sh status` |
+| MM-Agent | `./scripts/mm_agent/start.sh` | `./scripts/mm_agent/status.sh` |
+
+---
 
 ## 目錄結構
 
 ```
 datalake-system/
-├── data_agent/              # Data Agent 服務代碼
-│   ├── __init__.py
-│   ├── agent.py             # DataAgent 主類
-│   ├── models.py            # 數據模型
-│   ├── datalake_service.py  # Datalake 查詢服務
-│   ├── dictionary_service.py # 數據字典服務
-│   ├── schema_service.py    # Schema 服務
-│   ├── text_to_sql.py       # Text-to-SQL 服務
-│   ├── query_gateway.py     # 查詢閘道服務
-│   └── mcp_server.py        # MCP Server
-├── scripts/                 # 服務管理腳本
-│   ├── start_data_agent_service.py  # 服務啟動腳本
-│   ├── check_environment.py         # 環境配置檢查
-│   └── data_agent/          # 啟動和日誌腳本
-│       ├── start.sh         # 啟動服務
-│       ├── stop.sh          # 停止服務
-│       ├── restart.sh       # 重啟服務
-│       ├── status.sh        # 查看狀態
-│       ├── view_logs.sh     # 查看日誌
-│       ├── quick_start.sh   # 快速啟動
-│       └── install_dependencies.sh # 安裝依賴
-├── tests/                   # 測試文件
-│   └── data_agent/
-├── logs/                     # 日誌文件（運行時創建）
-│   ├── data_agent.log
-│   ├── data_agent_error.log
-│   └── data_agent.pid
-├── requirements.txt          # Python 依賴
-├── README.md                 # 本文件
-└── QUICK_START.md            # 快速開始指南
+├── venv/                    # 統一虛擬環境（所有組件共用）
+├── data_agent/              # Data Agent 服務
+├── dashboard/               # Tiptop Dashboard
+├── mm_agent/                # MM-Agent（庫管員 Agent）
+├── scripts/                 # 啟動腳本
+│   ├── start_services.sh    # 統一服務管理（推薦）
+│   ├── data_agent/          # Data-Agent 啟動腳本
+│   └── mm_agent/            # MM-Agent 啟動腳本
+├── logs/                    # 日誌（運行時創建）
+├── metadata/                # Schema 等
+└── .ds-docs/                # 文檔
 ```
 
-## 環境配置
+---
 
-### 環境變數位置
-
-環境變數配置在 **AI-Box 項目的 `.env` 文件中**（上層目錄）：
-
-```bash
-# Datalake SeaweedFS 配置
-DATALAKE_SEAWEEDFS_S3_ENDPOINT=http://localhost:8334
-DATALAKE_SEAWEEDFS_S3_ACCESS_KEY=admin
-DATALAKE_SEAWEEDFS_S3_SECRET_KEY=admin123
-DATALAKE_SEAWEEDFS_USE_SSL=false
-DATALAKE_SEAWEEDFS_FILER_ENDPOINT=http://localhost:8889
-
-# Data Agent Service 配置
-DATA_AGENT_SERVICE_HOST=localhost
-DATA_AGENT_SERVICE_PORT=8004
-AI_BOX_API_URL=http://localhost:8000
-```
-
-### 當前環境狀態
-
-根據您提供的信息：
-
-- ✅ **SeaweedFS Master** - 運行中 (端口 9334)
-- ✅ **SeaweedFS Volume** - 運行中
-- ✅ **SeaweedFS Filer API** - 運行中 (端口 8889)
-- ✅ **SeaweedFS S3 API** - 運行中 (端口 8334)
-- ✅ **認證配置** - 在 `.env` 文件中
-
-## 快速開始
-
-### 1. 檢查環境配置
-
-```bash
-cd /Users/daniel/GitHub/AI-Box/datalake-system
-python3 scripts/check_environment.py
-```
-
-### 2. 安裝依賴
-
-```bash
-cd /Users/daniel/GitHub/AI-Box/datalake-system
-./scripts/data_agent/install_dependencies.sh
-```
-
-### 3. 啟動服務
-
-```bash
-cd /Users/daniel/GitHub/AI-Box/datalake-system
-./scripts/data_agent/start.sh
-```
-
-或使用快速啟動腳本：
-
-```bash
-./scripts/data_agent/quick_start.sh
-```
-
-### 4. 查看日誌
-
-```bash
-# 實時查看日誌
-./scripts/data_agent/view_logs.sh
-
-# 查看錯誤日誌
-./scripts/data_agent/view_logs.sh error
-```
-
-## 服務管理
-
-所有腳本位於 `scripts/data_agent/` 目錄：
-
-- `start.sh` - 啟動服務
-- `stop.sh` - 停止服務
-- `restart.sh` - 重啟服務
-- `status.sh` - 查看狀態
-- `view_logs.sh` - 查看日誌
-- `quick_start.sh` - 快速啟動和觀察
-- `install_dependencies.sh` - 安裝依賴
-
-詳細說明請參閱：[QUICK_START.md](./QUICK_START.md)
-
-## 依賴安裝位置
-
-**在 Datalake System 目錄中安裝**：
-
-```bash
-cd /Users/daniel/GitHub/AI-Box/datalake-system
-pip install -r requirements.txt
-```
-
-或使用安裝腳本：
-
-```bash
-./scripts/data_agent/install_dependencies.sh
-```
-
-## 架構說明
-
-### 與 AI-Box 的關係
-
-- **Datalake System** 是獨立系統，位於 AI-Box 項目中的 `datalake-system/` 目錄
-- **環境變數** 配置在 AI-Box 項目的 `.env` 文件中（共享配置）
-- **代碼** 完全獨立，有自己的 `requirements.txt` 和啟動腳本
-- **日誌** 存儲在 `datalake-system/logs/` 目錄
-
-### 未來遷移
-
-當 Datalake 項目完全獨立後，可以：
-
-1. 將 `datalake-system/` 目錄遷移到獨立項目
-2. 創建獨立的 `.env` 文件
-3. 獨立部署和維護
-
-## 相關文檔
-
-- [快速開始指南](./QUICK_START.md)
-- [Data-Agent 規格書](../docs/系统设计文档/核心组件/Agent平台/Data-Agent-規格書.md)
-- [模擬 Datalake 規劃書](../docs/系统设计文档/核心组件/Agent平台/模擬-Datalake-規劃書.md)
-- [SeaweedFS 使用指南](../docs/系统设计文档/核心组件/系統管理/SeaweedFS使用指南.md)
+**詳細文檔**：`.ds-docs/Datalake/README.md`

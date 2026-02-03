@@ -1,7 +1,7 @@
-// 代碼功能說明: 首頁頁面組件
+// 代碼功能說明: 首頁頁件組件
 // 創建日期: 2025-10-25
 // 創建人: Daniel Chung
-// 最後修改日期: 2026-01-23 00:08 UTC+8
+// 最後修改日期: 2026-02-02
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLanguage } from '../contexts/languageContext';
@@ -10,6 +10,8 @@ import ChatArea from '../components/ChatArea';
 import ResultPanel from '../components/ResultPanel';
 import ExecutorSelectorModal from '../components/ExecutorSelectorModal';
 import FileEditPreviewModal from '../components/FileEditPreviewModal';
+import BrainIcon from '../components/BrainIcon';
+import AIStatusWindow from '../components/AIStatusWindow';
 import { Task, FavoriteItem, FileNode } from '../components/Sidebar';
 import { saveTask, deleteTask, getTask, getFavorites } from '../lib/taskStorage';
 // 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：串接 /api/v1/chat
@@ -18,6 +20,7 @@ import { chatProduct, chatProductStream, ChatProductMessage } from '../lib/api';
 import { parseFileReference, updateDraftFileContent } from '../lib/fileReference';
 import { getDocEditState } from '../lib/api';
 import { extractTaskTitle } from '../lib/taskTitleUtils'; // 修改時間：2025-12-21 - 導入任務標題提取工具
+import { useAIStatusSSE } from '../hooks/useAIStatusSSE';
 import '../lib/debugStorage'; // 加載調試工具
 import '../lib/checkFiles'; // 加載文件檢查工具
 
@@ -27,8 +30,27 @@ export default function Home() {
   const [isMarkdownView, setIsMarkdownView] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
   const [isLoadingAI, setIsLoadingAI] = useState(false); // 修改時間：2025-12-21 - AI 回復加載狀態
+  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null); // AI 狀態追蹤 request_id
   const prevResultPanelCollapsedRef = useRef<boolean>(false);
   const { t, updateCounter, language } = useLanguage();
+
+  // AI 狀態 SSE 追蹤
+  const { connect: connectAIStatus, disconnect: disconnectAIStatus } = useAIStatusSSE({
+    requestId: currentRequestId,
+    enabled: true,
+  });
+
+  // 當 AI 回覆完成時，清理 request_id
+  useEffect(() => {
+    if (!isLoadingAI && currentRequestId) {
+      // AI 回覆完成，延遲清理確保狀態已更新
+      const timer = setTimeout(() => {
+        setCurrentRequestId(null);
+        disconnectAIStatus();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingAI, currentRequestId, disconnectAIStatus]);
 
   // 調試：記錄 token 狀態
   useEffect(() => {
@@ -378,6 +400,40 @@ export default function Home() {
     // 任務的文件目錄會自動從 task.fileTree 恢復
   };
 
+  // 模擬 AI 狀態更新（讓 BrainIcon 閃爍）
+  const simulateAIStatusUpdates = async (requestId: string, apiBase: string) => {
+    const statusSteps = [
+      { step: '理解問題', message: '正在分析用戶需求...', progress: 0.1 },
+      { step: '規劃執行', message: '規劃處理步驟...', progress: 0.2 },
+      { step: '檢索知識', message: '搜索相關知識...', progress: 0.4 },
+      { step: '生成回覆', message: '正在生成回覆...', progress: 0.6 },
+      { step: '優化內容', message: '優化回覆內容...', progress: 0.8 },
+      { step: '完成', message: '處理完成！', progress: 1.0 },
+    ];
+
+    for (const status of statusSteps) {
+      try {
+        await fetch(`${apiBase}/api/v1/agent-status/event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            request_id: requestId,
+            step: status.step,
+            status: status.progress === 1.0 ? 'completed' : 'processing',
+            message: status.message,
+            progress: status.progress,
+          }),
+        });
+        // 模擬不同步驟之間的間隔
+        if (status.progress < 1.0) {
+          await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+        }
+      } catch (error) {
+        console.error('[Home] 發送狀態失敗:', error);
+      }
+    }
+  };
+
   // 修改時間：2025-12-13 17:28:02 (UTC+8) - 模型選擇寫回 task.executionConfig.modelId 並持久化
   const handleModelSelect = (modelId: string) => {
     if (!selectedTask) {
@@ -406,6 +462,27 @@ export default function Home() {
 
     // 修改時間：2025-12-21 - 設置 AI 回復加載狀態
     setIsLoadingAI(true);
+
+    // 生成 request_id 並開始追蹤狀態
+    const requestId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    console.log('[Home] 生成 request_id:', requestId);
+    setCurrentRequestId(requestId);
+    connectAIStatus(); // 連接 SSE
+
+    // 調用 API 開始追蹤狀態
+    try {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+      await fetch(`${apiBase}/api/v1/agent-status/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: requestId }),
+      });
+
+      // 模擬發送狀態更新（讓 BrainIcon 閃爍）
+      await simulateAIStatusUpdates(requestId, apiBase);
+    } catch (error) {
+      console.error('[Home] 無法啟動狀態追蹤:', error);
+    }
 
     let text = '';
     let fileReferences: Array<any> = [];
@@ -1027,11 +1104,12 @@ export default function Home() {
   };
 
   // 修改時間：2025-12-08 09:04:21 UTC+8 - 任務保存時同步到後台
+  // 修改時間：2026-01-31 - 新任務傳入 isNewTask，跳過 getUserTask 檢查避免 404
   // 處理任務創建（用於文件上傳時創建新任務）
   const handleTaskCreate = async (task: Task) => {
     setSelectedTask(task);
-    // 保存任務到 localStorage 並同步到後台（等待後端同步完成）
-    await saveTask(task, true);
+    // 保存任務到 localStorage 並同步到後台（新任務直接創建，避免 GET 404）
+    await saveTask(task, true, { isNewTask: true });
     // 觸發事件通知 Sidebar 更新焦點
     window.dispatchEvent(new CustomEvent('taskCreated', {
       detail: { taskId: task.id }
@@ -1069,7 +1147,13 @@ export default function Home() {
 
   // 修改時間：2025-12-09 - 處理文件樹更新事件
   const handleFileTreeUpdated = (event: CustomEvent) => {
+    if (!event.detail) {
+      return;
+    }
     const { taskId, fileTree } = event.detail;
+    if (!taskId) {
+      return;
+    }
     setSelectedTask((currentTask) => {
       if (!currentTask || String(currentTask.id) !== String(taskId)) {
         return currentTask;
@@ -1296,6 +1380,10 @@ export default function Home() {
     };
 
     setSelectedTask(newTask);
+    // 修改時間：2026-01-31 - 新任務立即同步到後端，避免送出訊息時 GET 404
+    saveTask(newTask, true, { isNewTask: true }).catch((error) => {
+      console.error('[Home] Failed to save task after assistant select:', error);
+    });
     // 清除浏览模式（从浏览模式创建任务时）
     setBrowseMode(null);
 
@@ -1345,6 +1433,10 @@ export default function Home() {
     };
 
     setSelectedTask(newTask);
+    // 修改時間：2026-01-31 - 新任務立即同步到後端，避免送出訊息時 GET 404
+    saveTask(newTask, true, { isNewTask: true }).catch((error) => {
+      console.error('[Home] Failed to save task after agent select:', error);
+    });
     // 清除浏览模式（从浏览模式创建任务时）
     setBrowseMode(null);
 
@@ -1369,9 +1461,14 @@ export default function Home() {
           : { agentId: selectedExecutorId }
         ),
       },
+      fileTree: [],
     };
 
     setSelectedTask(newTask);
+    // 修改時間：2026-01-31 - 新任務立即同步到後端，避免送出訊息時 GET 404
+    saveTask(newTask, true, { isNewTask: true }).catch((error) => {
+      console.error('[Home] Failed to save task after executor select:', error);
+    });
     setShowExecutorModal(false);
     if (isMarkdownView) {
       setIsMarkdownView(false);
@@ -1476,12 +1573,11 @@ export default function Home() {
           onAgentSelect={handleAgentSelect}
           onModelSelect={handleModelSelect}
           onMessageSend={handleMessageSend}
-          isLoadingAI={isLoadingAI} // 修改時間：2025-12-21 - 傳遞 AI 回復加載狀態
+          isLoadingAI={isLoadingAI}
           resultPanelCollapsed={resultPanelCollapsed}
           onResultPanelToggle={() => {
             const newCollapsed = !resultPanelCollapsed;
             setResultPanelCollapsed(newCollapsed);
-            // 當收攏面板時，重置預覽狀態
             if (newCollapsed) {
               setIsMarkdownView(false);
             }
@@ -1491,9 +1587,7 @@ export default function Home() {
           onAgentFavorite={handleAgentFavorite}
           favoriteAgents={favoriteAgents}
           onTaskUpdate={(updatedTask: Task) => {
-            // 更新任务（包括标题）
             setSelectedTask(updatedTask);
-            // 同步保存，確保 executionConfig/modelId/sessionId 等欄位不丟失
             saveTask(updatedTask, true).catch((error) => {
               console.error('[Home] Failed to save task after update:', error);
             });
@@ -1568,6 +1662,12 @@ export default function Home() {
           }}
         />
       )}
+
+      {/* AI 狀態追蹤 */}
+      <div className="fixed top-4 right-4 z-50">
+        <BrainIcon />
+        <AIStatusWindow />
+      </div>
     </div>
   );
 }

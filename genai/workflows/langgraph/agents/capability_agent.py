@@ -250,9 +250,9 @@ class CapabilityAgent(BaseAgentNode):
 
             # 判斷複雜度
             complexity = (
-                "high",
+                "high"
                 if domain in ["system_architecture", "code_generation"]
-                else "mid",
+                else "mid"
                 if intent_name not in ["general_query"]
                 else "low",
             )
@@ -311,9 +311,9 @@ class CapabilityAgent(BaseAgentNode):
 
     def _calculate_overall_confidence(
         self,
-        agent_matches: List[Dict[str, Any]] 
-        tool_matches: List[Dict[str, Any]] 
-        model_matches: List[Dict[str, Any]] 
+        agent_matches: List[Dict[str, Any]],
+        tool_matches: List[Dict[str, Any]],
+        model_matches: List[Dict[str, Any]],
         intent_result: Any ,
     ) -> float:
         """計算整體信心度"""
@@ -338,9 +338,9 @@ class CapabilityAgent(BaseAgentNode):
 
     def _extract_resource_requirements(
         self,
-        agent_matches: List[Dict[str, Any]] 
-        tool_matches: List[Dict[str, Any]] 
-        model_matches: List[Dict[str, Any]] 
+        agent_matches: List[Dict[str, Any]],
+        tool_matches: List[Dict[str, Any]],
+        model_matches: List[Dict[str, Any]],
         intent_result: Any ,
     ) -> Dict[str, Any]:
         """提取資源需求"""
@@ -364,8 +364,8 @@ class CapabilityAgent(BaseAgentNode):
     def _generate_reasoning(
         self,
         intent_result: Any ,
-        agent_matches: List[Dict[str, Any]] 
-        tool_matches: List[Dict[str, Any]] 
+        agent_matches: List[Dict[str, Any]],
+        tool_matches: List[Dict[str, Any]],
         model_matches: List[Dict[str, Any]] 
     ) -> str:
         """生成推理說明"""
@@ -441,9 +441,9 @@ class CapabilityAgent(BaseAgentNode):
         except Exception as e:
             logger.error(f"Fallback capability analysis failed: {e}")
             return CapabilityAnalysisResult(
-                matched_agents=[]
-                matched_tools=[]
-                matched_models=[]
+                matched_agents=[],
+                matched_tools=[],
+                matched_models=[],
                 capability_confidence=0.0,
                 reasoning="Complete fallback failed",
             )

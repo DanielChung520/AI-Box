@@ -113,7 +113,7 @@ class WorkspaceManagerAgent(BaseAgentNode):
                 file_structure_initialized=True,
                 workspace_id=workspace_id,
                 workspace_path=f"/data/workspaces/{workspace_id}",
-                initial_files_created=[]
+                initial_files_created=[],
                 reasoning="Successfully initialized task workspace.",
             )
         except Exception as e:
@@ -136,7 +136,7 @@ def create_workspace_manager_agent_config() -> NodeConfig:
         max_retries=1,
         timeout=30.0,
         required_inputs=["user_id", "task_management"],
-        optional_inputs=["messages"]
+        optional_inputs=["messages"],
         output_keys=["workspace_management", "workspace_summary"],
     )
 

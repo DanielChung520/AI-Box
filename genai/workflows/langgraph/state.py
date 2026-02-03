@@ -174,7 +174,7 @@ class AIBoxState:
     def add_audit_entry(
         self,
         action: str ,
-        details: Dict[str, Any] 
+        details: Dict[str, Any],
         user_id: Optional[str] = None ,
         session_id: Optional[str] = None ,
     ) -> None:
@@ -197,7 +197,7 @@ class AIBoxState:
     def add_execution_result(
         self,
         agent_id: str ,
-        status: Literal["success", "failure", "partial"] 
+        status: Literal["success", "failure", "partial"],
         result: Optional[Dict[str, Any]] = None ,
         error: Optional[str] = None ,
         duration: float = 0.0 ,
@@ -350,20 +350,20 @@ class AIBoxState:
         observations = [Observation(**obs) for obs in data.get("observations", [])]
 
         return cls(
-            session_id=data.get("session_id")
-            user_id=data.get("user_id")
+            session_id=data.get("session_id"),
+            user_id=data.get("user_id"),
             current_layer=data.get("current_layer", "input"),
             messages=messages,
-            task_id=data.get("task_id")
-            request_id=data.get("request_id")
+            task_id=data.get("task_id"),
+            request_id=data.get("request_id"),
             input_type=data.get("input_type", "free"),
-            injected_context=data.get("injected_context")
+            injected_context=data.get("injected_context"),
             execution_results=execution_results,
             audit_log=audit_log,
             observations=observations,
-            final_response=data.get("final_response")
+            final_response=data.get("final_response"),
             confidence_score=data.get("confidence_score", 0.0),
-            response_metadata=data.get("response_metadata")
+            response_metadata=data.get("response_metadata"),
             execution_status=data.get("execution_status", "pending"),
         )
 
@@ -374,6 +374,6 @@ class AIBoxState:
         cloned_data["observations"] = []  # 重置觀察記錄
 
         cloned = AIBoxState.from_dict(cloned_data)
-        cloned.add_audit_entry("state_cloned", {"from_state": state.session_id}))
+        cloned.add_audit_entry("state_cloned", {"from_state": state.session_id})
 
         return cloned

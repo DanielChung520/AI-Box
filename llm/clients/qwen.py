@@ -1,7 +1,7 @@
 # 代碼功能說明: Qwen 客戶端實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-29
+# 最後修改日期: 2026-01-24 23:38 UTC+8
 
 """Qwen 客戶端實現，整合阿里雲 Qwen API。"""
 
@@ -36,6 +36,7 @@ class QwenClient(BaseLLMClient):
         base_url: Optional[str] = None,
         default_model: Optional[str] = None,
         timeout: Optional[float] = None,
+        **kwargs: Any,
     ):
         """
         初始化 Qwen 客戶端。
@@ -45,6 +46,7 @@ class QwenClient(BaseLLMClient):
             base_url: API 基礎 URL（可選）
             default_model: 默認模型名稱
             timeout: 請求超時時間（秒，可選，從配置讀取）
+            **kwargs: 其他參數（兼容性保留）
         """
         if httpx is None:
             raise ImportError("httpx is not installed. Please install it with: pip install httpx")
@@ -63,6 +65,11 @@ class QwenClient(BaseLLMClient):
         config = get_config_section("llm", "qwen", default={}) or {}
         if base_url is None:
             base_url = config.get("base_url", "https://dashscope.aliyuncs.com/api/v1")
+        
+        # 確保 base_url 以 / 結尾，以便 httpx 正確拼接相對路徑
+        if not base_url.endswith("/"):
+            base_url += "/"
+            
         if default_model is None:
             default_model = config.get("default_model", "qwen-turbo")
         if timeout is None:
@@ -72,6 +79,9 @@ class QwenClient(BaseLLMClient):
         self.base_url = base_url
         self._default_model = default_model
         self.timeout = timeout
+        
+        # 檢測是否為 OpenAI 兼容模式
+        self.is_compatible_mode = "compatible-mode" in self.base_url
 
         # 創建 HTTP 客戶端
         self._client: Optional[httpx.AsyncClient] = httpx.AsyncClient(
@@ -121,36 +131,55 @@ class QwenClient(BaseLLMClient):
             raise QwenClientError("Client has been closed")
 
         try:
-            # Qwen API 使用 chat completions 端點
-            payload: Dict[str, Any] = {
-                "model": model,
-                "input": {
+            # 根據模式選擇端點和 Payload 格式
+            if self.is_compatible_mode:
+                # OpenAI 兼容模式
+                endpoint = "chat/completions"
+                payload = {
+                    "model": model,
                     "messages": [{"role": "user", "content": prompt}],
-                },
-            }
+                }
+                if temperature is not None:
+                    payload["temperature"] = temperature
+                if max_tokens is not None:
+                    payload["max_tokens"] = max_tokens
+                payload.update(kwargs)
+            else:
+                # DashScope 原生模式
+                endpoint = "services/aigc/text-generation/generation"
+                payload = {
+                    "model": model,
+                    "input": {
+                        "messages": [{"role": "user", "content": prompt}],
+                    },
+                }
 
-            parameters: Dict[str, Any] = {}
-            if temperature is not None:
-                parameters["temperature"] = temperature
-            if max_tokens is not None:
-                parameters["max_tokens"] = max_tokens
-            parameters.update(kwargs)
+                parameters: Dict[str, Any] = {}
+                if temperature is not None:
+                    parameters["temperature"] = temperature
+                if max_tokens is not None:
+                    parameters["max_tokens"] = max_tokens
+                parameters.update(kwargs)
 
-            if parameters:
-                payload["parameters"] = parameters
+                if parameters:
+                    payload["parameters"] = parameters
 
-            response = await self._client.post(
-                "/services/aigc/text-generation/generation", json=payload
-            )
+            response = await self._client.post(endpoint, json=payload)
             response.raise_for_status()
             data = response.json()
 
             # 提取文本內容
             text = ""
-            if "output" in data and "choices" in data["output"]:
-                choices = data["output"]["choices"]
-                if len(choices) > 0 and "message" in choices[0]:
-                    text = choices[0]["message"].get("content", "")
+            if self.is_compatible_mode:
+                if "choices" in data and len(data["choices"]) > 0:
+                    choice = data["choices"][0]
+                    if "message" in choice and "content" in choice["message"]:
+                        text = choice["message"]["content"]
+            else:
+                if "output" in data and "choices" in data["output"]:
+                    choices = data["output"]["choices"]
+                    if len(choices) > 0 and "message" in choices[0]:
+                        text = choices[0]["message"].get("content", "")
 
             # 構建返回結果
             result: Dict[str, Any] = {
@@ -207,35 +236,55 @@ class QwenClient(BaseLLMClient):
                 content = msg.get("content", "")
                 formatted_messages.append({"role": role, "content": content})
 
-            payload: Dict[str, Any] = {
-                "model": model,
-                "input": {
+            # 根據模式選擇端點和 Payload 格式
+            if self.is_compatible_mode:
+                # OpenAI 兼容模式
+                endpoint = "chat/completions"
+                payload = {
+                    "model": model,
                     "messages": formatted_messages,
-                },
-            }
+                }
+                if temperature is not None:
+                    payload["temperature"] = temperature
+                if max_tokens is not None:
+                    payload["max_tokens"] = max_tokens
+                payload.update(kwargs)
+            else:
+                # DashScope 原生模式
+                endpoint = "services/aigc/text-generation/generation"
+                payload = {
+                    "model": model,
+                    "input": {
+                        "messages": formatted_messages,
+                    },
+                }
 
-            parameters: Dict[str, Any] = {}
-            if temperature is not None:
-                parameters["temperature"] = temperature
-            if max_tokens is not None:
-                parameters["max_tokens"] = max_tokens
-            parameters.update(kwargs)
+                parameters: Dict[str, Any] = {}
+                if temperature is not None:
+                    parameters["temperature"] = temperature
+                if max_tokens is not None:
+                    parameters["max_tokens"] = max_tokens
+                parameters.update(kwargs)
 
-            if parameters:
-                payload["parameters"] = parameters
+                if parameters:
+                    payload["parameters"] = parameters
 
-            response = await self._client.post(
-                "/services/aigc/text-generation/generation", json=payload
-            )
+            response = await self._client.post(endpoint, json=payload)
             response.raise_for_status()
             data = response.json()
 
             # 提取消息內容
             content = ""
-            if "output" in data and "choices" in data["output"]:
-                choices = data["output"]["choices"]
-                if len(choices) > 0 and "message" in choices[0]:
-                    content = choices[0]["message"].get("content", "")
+            if self.is_compatible_mode:
+                if "choices" in data and len(data["choices"]) > 0:
+                    choice = data["choices"][0]
+                    if "message" in choice and "content" in choice["message"]:
+                        content = choice["message"]["content"]
+            else:
+                if "output" in data and "choices" in data["output"]:
+                    choices = data["output"]["choices"]
+                    if len(choices) > 0 and "message" in choices[0]:
+                        content = choices[0]["message"].get("content", "")
 
             # 構建返回結果
             result: Dict[str, Any] = {
@@ -282,25 +331,38 @@ class QwenClient(BaseLLMClient):
             raise QwenClientError("Client has been closed")
 
         try:
-            payload: Dict[str, Any] = {
-                "model": model,
-                "input": {
-                    "texts": [text],
-                },
-            }
+            if self.is_compatible_mode:
+                # OpenAI 兼容模式
+                endpoint = "embeddings"
+                payload = {
+                    "model": model,
+                    "input": [text],
+                }
+            else:
+                # DashScope 原生模式
+                endpoint = "services/embeddings/text-embedding/text-embedding"
+                payload = {
+                    "model": model,
+                    "input": {
+                        "texts": [text],
+                    },
+                }
+            
             payload.update(kwargs)
 
-            response = await self._client.post(
-                "/services/embeddings/text-embedding/text-embedding", json=payload
-            )
+            response = await self._client.post(endpoint, json=payload)
             response.raise_for_status()
             data = response.json()
 
             # 提取嵌入向量
-            if "output" in data and "embeddings" in data["output"]:
-                embeddings = data["output"]["embeddings"]
-                if len(embeddings) > 0 and "embedding" in embeddings[0]:
-                    return embeddings[0]["embedding"]
+            if self.is_compatible_mode:
+                if "data" in data and len(data["data"]) > 0:
+                    return data["data"][0].get("embedding", [])
+            else:
+                if "output" in data and "embeddings" in data["output"]:
+                    embeddings = data["output"]["embeddings"]
+                    if len(embeddings) > 0 and "embedding" in embeddings[0]:
+                        return embeddings[0]["embedding"]
 
             return []
 
@@ -352,3 +414,24 @@ class QwenClient(BaseLLMClient):
             如果可用返回 True，否則返回 False
         """
         return self._client is not None and self.api_key is not None
+
+    async def verify_connectivity(self) -> tuple[bool, str]:
+        """
+        驗證與 Qwen API 的連通性。
+
+        Returns:
+            (是否成功, 消息)
+        """
+        try:
+            if self.is_compatible_mode:
+                # OpenAI 兼容模式可以獲取模型列表
+                response = await self._client.get("models")
+                response.raise_for_status()
+                return True, "連通性正常 (OpenAI 兼容模式)"
+            else:
+                # Qwen 原生模式沒有簡單的 list models API，發送一個微型請求來測試
+                await self.chat([{"role": "user", "content": "hi"}], max_tokens=1)
+                return True, "連通性正常 (DashScope 原生模式)"
+        except Exception as exc:
+            logger.error(f"Qwen connectivity check failed: {exc}")
+            return False, f"連通性驗證失敗: {str(exc)}"

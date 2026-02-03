@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=DGX Desktop Init
+Exec=/usr/sbin/update-desktop-links.bash
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

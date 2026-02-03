@@ -24,7 +24,15 @@ from agents.services.registry.models import (
 )
 from agents.services.registry.registry import get_agent_registry
 
-from .models import AgentRegistryInfo, TaskRequest, TaskResult, TaskStatus, ValidationResult
+from .models import (
+    AgentRegistryInfo,
+    TaskPlan,
+    TaskRequest,
+    TaskResult,
+    TaskStatus,
+    TodoItem,
+    ValidationResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +158,11 @@ class AgentOrchestrator:
         self._tasks[task_id] = task_request
         self._task_queue.append((priority, task_id))
 
-        logger.info(f"Submitted task: {task_id} (type: {task_type})")
+        logger.info(
+            f"[Orchestrator] 📥 任務提交: task_id={task_id}, task_type={task_type}, "
+            f"priority={priority}, timeout={timeout}, "
+            f"required_agents={required_agents}, metadata_keys={list(metadata.keys()) if metadata else []}"
+        )
 
         # 嘗試立即分配任務
         self._try_assign_tasks()
@@ -191,12 +203,30 @@ class AgentOrchestrator:
         Returns:
             選中的 Agent，如果沒有合適的則返回 None
         """
+        logger.debug(
+            f"[Orchestrator] 🔍 Agent 選擇開始: task_id={task_request.task_id}, "
+            f"task_type={task_request.task_type}, "
+            f"required_agents={task_request.required_agents}"
+        )
+
         # 如果指定了需要的 Agent
         if task_request.required_agents:
+            logger.debug(
+                f"[Orchestrator] 📌 使用指定 Agent 列表: task_id={task_request.task_id}, "
+                f"required_agents={task_request.required_agents}"
+            )
             for agent_id in task_request.required_agents:
                 agent_info = self._registry.get_agent_info(agent_id)
                 if agent_info and agent_info.status == AgentStatus.ONLINE:
+                    logger.info(
+                        f"[Orchestrator] ✅ 從指定列表選擇 Agent: task_id={task_request.task_id}, "
+                        f"agent_id={agent_id}, agent_name={agent_info.name}"
+                    )
                     return agent_info
+            logger.warning(
+                f"[Orchestrator] ⚠️ 指定 Agent 列表無可用 Agent: task_id={task_request.task_id}, "
+                f"required_agents={task_request.required_agents}"
+            )
             return None
 
         # 根據任務類型選擇 Agent
@@ -208,21 +238,48 @@ class AgentOrchestrator:
 
         preferred_type = agent_type_mapping.get(task_request.task_type)
 
+        logger.debug(
+            f"[Orchestrator] 🔍 根據任務類型發現 Agent: task_id={task_request.task_id}, "
+            f"task_type={task_request.task_type}, preferred_type={preferred_type}"
+        )
+
         # 發現可用的 Agent
         available_agents = self.discover_agents(agent_type=preferred_type)
 
         if not available_agents:
+            logger.warning(
+                f"[Orchestrator] ⚠️ 未找到可用 Agent: task_id={task_request.task_id}, "
+                f"preferred_type={preferred_type}"
+            )
             return None
+
+        logger.debug(
+            f"[Orchestrator] 📊 發現可用 Agent: task_id={task_request.task_id}, "
+            f"available_count={len(available_agents)}, "
+            f"agent_ids={[a.agent_id for a in available_agents]}"
+        )
 
         # 優先選擇內部 Agent（性能更好）
         internal_agents = [agent for agent in available_agents if agent.endpoints.is_internal]
         if internal_agents:
+            logger.debug(
+                f"[Orchestrator] 🏠 優先選擇內部 Agent: task_id={task_request.task_id}, "
+                f"internal_count={len(internal_agents)}, "
+                f"internal_agent_ids={[a.agent_id for a in internal_agents]}"
+            )
             available_agents = internal_agents
 
         # 選擇負載最低的 Agent（從 Registry 獲取負載信息）
         selected_agent = min(
             available_agents,
             key=lambda a: self._agent_loads.get(a.agent_id, a.load),
+        )
+
+        selected_load = self._agent_loads.get(selected_agent.agent_id, selected_agent.load)
+        logger.info(
+            f"[Orchestrator] ✅ Agent 選擇完成: task_id={task_request.task_id}, "
+            f"selected_agent_id={selected_agent.agent_id}, selected_agent_name={selected_agent.name}, "
+            f"selected_load={selected_load}, is_internal={selected_agent.endpoints.is_internal}"
         )
 
         return selected_agent
@@ -284,30 +341,60 @@ class AgentOrchestrator:
         Returns:
             任務結果，如果失敗則返回 None
         """
+        execution_start_time = datetime.now()
         try:
+            logger.info(
+                f"[Orchestrator] 🚀 任務執行開始: task_id={task_id}, "
+                f"specified_agent_id={agent_id}, timestamp={execution_start_time.isoformat()}"
+            )
+
             task_request = self._tasks.get(task_id)
             if not task_request:
-                logger.error(f"Task not found: {task_id}")
+                logger.error(f"[Orchestrator] ❌ 任務不存在: task_id={task_id}")
                 return None
+
+            logger.debug(
+                f"[Orchestrator] 📋 任務詳情: task_id={task_id}, "
+                f"task_type={task_request.task_type}, "
+                f"task_data_keys={list(task_request.task_data.keys()) if task_request.task_data else []}, "
+                f"metadata_keys={list(task_request.metadata.keys()) if task_request.metadata else []}"
+            )
 
             # 如果未指定 Agent，自動選擇
             if not agent_id:
+                logger.info(f"[Orchestrator] 🔍 自動選擇 Agent: task_id={task_id}")
                 agent_info = self._select_agent(task_request)
                 if not agent_info:
-                    logger.error(f"No available agent for task {task_id}")
+                    logger.error(f"[Orchestrator] ❌ 無法找到可用 Agent: task_id={task_id}")
                     return None
                 agent_id = agent_info.agent_id
+                logger.info(
+                    f"[Orchestrator] ✅ Agent 自動選擇完成: task_id={task_id}, "
+                    f"agent_id={agent_id}, agent_name={agent_info.name}, "
+                    f"agent_type={agent_info.agent_type}, capabilities={agent_info.capabilities}"
+                )
             else:
+                logger.info(f"[Orchestrator] 📌 使用指定 Agent: task_id={task_id}, agent_id={agent_id}")
                 agent_info = self._registry.get_agent_info(agent_id)
                 if not agent_info:
-                    logger.error(f"Agent not found: {agent_id}")
+                    logger.error(f"[Orchestrator] ❌ 指定 Agent 不存在: task_id={task_id}, agent_id={agent_id}")
                     return None
+                logger.info(
+                    f"[Orchestrator] ✅ 指定 Agent 驗證通過: task_id={task_id}, "
+                    f"agent_id={agent_id}, agent_name={agent_info.name}, "
+                    f"agent_status={agent_info.status.value}"
+                )
 
             # 獲取 Agent 實例或客戶端
             agent = self._registry.get_agent(agent_id)
             if not agent:
-                logger.error(f"Failed to get agent instance: {agent_id}")
+                logger.error(f"[Orchestrator] ❌ 無法獲取 Agent 實例: task_id={task_id}, agent_id={agent_id}")
                 return None
+
+            logger.debug(
+                f"[Orchestrator] 🔧 Agent 實例獲取成功: task_id={task_id}, "
+                f"agent_id={agent_id}, agent_type={type(agent).__name__}"
+            )
 
             # 構建 AgentServiceRequest
             service_request = AgentServiceRequest(
@@ -318,22 +405,55 @@ class AgentOrchestrator:
                 metadata=task_request.metadata,
             )
 
+            logger.debug(
+                f"[Orchestrator] 📦 AgentServiceRequest 構建完成: task_id={task_id}, "
+                f"task_type={service_request.task_type}, "
+                f"has_context={service_request.context is not None}, "
+                f"has_metadata={service_request.metadata is not None}"
+            )
+
             # 執行任務
             task_result = self._task_results.get(task_id)
             if task_result:
                 task_result.status = TaskStatus.RUNNING
+                logger.debug(f"[Orchestrator] 📊 任務狀態更新為 RUNNING: task_id={task_id}")
 
-            logger.info(f"Executing task {task_id} on agent {agent_id}")
+            agent_execution_start = datetime.now()
+            logger.info(
+                f"[Orchestrator] ⚡ 開始執行 Agent: task_id={task_id}, "
+                f"agent_id={agent_id}, execution_start={agent_execution_start.isoformat()}"
+            )
+
             service_response: AgentServiceResponse = await agent.execute(service_request)
+
+            agent_execution_end = datetime.now()
+            agent_execution_latency_ms = int(
+                (agent_execution_end - agent_execution_start).total_seconds() * 1000
+            )
+
+            logger.info(
+                f"[Orchestrator] ✅ Agent 執行完成: task_id={task_id}, "
+                f"agent_id={agent_id}, status={service_response.status}, "
+                f"execution_latency_ms={agent_execution_latency_ms}, "
+                f"execution_end={agent_execution_end.isoformat()}"
+            )
 
             # 更新任務結果
             if task_result:
                 if service_response.status == "completed":
                     task_result.status = TaskStatus.COMPLETED
                     task_result.result = service_response.result
+                    logger.info(
+                        f"[Orchestrator] ✅ 任務完成: task_id={task_id}, "
+                        f"agent_id={agent_id}, status=COMPLETED"
+                    )
                 else:
                     task_result.status = TaskStatus.FAILED
                     task_result.error = service_response.error
+                    logger.warning(
+                        f"[Orchestrator] ⚠️ 任務失敗: task_id={task_id}, "
+                        f"agent_id={agent_id}, status=FAILED, error={service_response.error}"
+                    )
                 task_result.completed_at = datetime.now()
             else:
                 # 創建新的任務結果
@@ -345,15 +465,24 @@ class AgentOrchestrator:
                         else TaskStatus.FAILED
                     ),
                     agent_id=agent_id,
-                    started_at=datetime.now(),
+                    started_at=execution_start_time,
                     completed_at=datetime.now(),
                     result=service_response.result,
                     error=service_response.error,
                 )
                 self._task_results[task_id] = task_result
+                logger.debug(
+                    f"[Orchestrator] 📝 創建新任務結果: task_id={task_id}, "
+                    f"status={task_result.status.value}"
+                )
 
             # 更新負載計數
-            self._agent_loads[agent_id] = max(0, self._agent_loads.get(agent_id, 0) - 1)
+            old_load = self._agent_loads.get(agent_id, 0)
+            self._agent_loads[agent_id] = max(0, old_load - 1)
+            logger.debug(
+                f"[Orchestrator] 📊 Agent 負載更新: agent_id={agent_id}, "
+                f"old_load={old_load}, new_load={self._agent_loads[agent_id]}"
+            )
 
             # L5 層級：記錄執行指標
             if task_result.started_at and task_result.completed_at:
@@ -362,6 +491,16 @@ class AgentOrchestrator:
                 )
             else:
                 latency_ms = 0
+
+            total_execution_time = datetime.now() - execution_start_time
+            total_latency_ms = int(total_execution_time.total_seconds() * 1000)
+
+            logger.info(
+                f"[Orchestrator] 📊 任務執行統計: task_id={task_id}, "
+                f"agent_id={agent_id}, total_latency_ms={total_latency_ms}, "
+                f"agent_execution_latency_ms={agent_execution_latency_ms}, "
+                f"status={service_response.status}"
+            )
 
             # 從任務元數據中獲取 intent 信息
             intent_name = task_request.metadata.get("intent", {}).get(
@@ -605,12 +744,13 @@ class AgentOrchestrator:
 
         # 服務類型到Agent ID的映射
         service_agent_mapping = {
-            "security": "security_manager",
-            "system_config": "system_config_agent",
-            "reports": "reports_agent",
-            "moe": "moe_agent",  # 未來實現
-            "knowledge_ontology": "knowledge_ontology_agent",  # 未來實現
-            "data": "data_agent",  # 未來實現
+            "security": "security-manager-agent",
+            "system_config": "system-config-agent",
+            "reports": "reports-agent",
+            "moe": "moe-agent",
+            "knowledge_ontology": "knowledge-ontology-agent",
+            "knowledge_architect": "ka-agent",
+            "data": "data-agent",
         }
 
         # 查找對應的Agent ID
@@ -1847,3 +1987,444 @@ class AgentOrchestrator:
                 "react_id": react_id or "unknown",
                 "trace_id": react_id or "unknown",
             }
+
+    async def plan_task(
+        self,
+        instruction: str,
+        context: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+    ) -> TaskPlan:
+        """
+        任務規劃：全面了解任務並編排 todo 列表
+
+        功能：
+        1. 使用 Task Analyzer 全面分析任務
+        2. 使用 Task Planner 生成任務分解計劃（TaskDAG）
+        3. 將 TaskDAG 轉換為 TodoItem 列表
+        4. 去重和排序（處理重複滿足條件的任務）
+        5. 生成完整的 TaskPlan
+
+        Args:
+            instruction: 自然語言指令
+            context: 上下文信息（可選）
+            user_id: 用戶 ID（可選）
+
+        Returns:
+            TaskPlan 對象，包含排序後的 todo 列表
+        """
+        plan_id = str(uuid.uuid4())
+        planning_start_time = datetime.utcnow()
+
+        logger.info(
+            f"[Orchestrator] 📋 開始任務規劃: plan_id={plan_id}, "
+            f"instruction={instruction[:100]}..., user_id={user_id}"
+        )
+
+        try:
+            # 1. 使用 Task Analyzer 全面分析任務
+            task_analyzer = self._get_task_analyzer()
+            from agents.task_analyzer.models import TaskAnalysisRequest
+
+            analysis_result = await task_analyzer.analyze(
+                TaskAnalysisRequest(
+                    task=instruction,
+                    context=context,
+                    user_id=user_id,
+                )
+            )
+
+            logger.info(
+                f"[Orchestrator] ✅ 任務分析完成: plan_id={plan_id}, "
+                f"task_type={analysis_result.task_type.value}, "
+                f"confidence={analysis_result.confidence:.2f}, "
+                f"suggested_agents={analysis_result.suggested_agents}"
+            )
+
+            # 2. 使用 Task Planner 生成任務分解計劃（TaskDAG）
+            from agents.task_analyzer.task_planner import get_task_planner
+
+            task_planner = get_task_planner()
+            router_decision = analysis_result.router_decision
+
+            if router_decision is None:
+                # 如果沒有 router_decision，創建一個基本的
+                from agents.task_analyzer.models import RouterDecision
+
+                router_decision = RouterDecision(
+                    topics=analysis_result.analysis_details.get("topics", []),
+                    entities=analysis_result.analysis_details.get("entities", []),
+                    action_signals=analysis_result.analysis_details.get("action_signals", []),
+                    modality=analysis_result.analysis_details.get("modality", "conversation"),
+                    intent_type="execution" if analysis_result.requires_agent else "conversation",
+                    complexity="mid",
+                    needs_agent=analysis_result.requires_agent,
+                    needs_tools=len(analysis_result.suggested_tools) > 0,
+                    determinism_required=False,
+                    risk_level="low",
+                    confidence=analysis_result.confidence,
+                )
+
+            task_dag = task_planner.plan(
+                user_query=instruction,
+                router_decision=router_decision,
+                top_k=10,
+                similarity_threshold=0.7,
+            )
+
+            logger.info(
+                f"[Orchestrator] ✅ 任務計劃生成: plan_id={plan_id}, "
+                f"task_count={len(task_dag.task_graph)}, "
+                f"reasoning={task_dag.reasoning}"
+            )
+
+            # 3. 將 TaskDAG 轉換為 TodoItem 列表
+            todos = self._convert_task_dag_to_todos(task_dag, analysis_result)
+
+            logger.info(
+                f"[Orchestrator] ✅ Todo 列表生成: plan_id={plan_id}, "
+                f"todo_count={len(todos)}"
+            )
+
+            # 4. 去重和排序（處理重複滿足條件的任務）
+            todos = self._deduplicate_and_prioritize_todos(todos)
+
+            logger.info(
+                f"[Orchestrator] ✅ Todo 去重和排序完成: plan_id={plan_id}, "
+                f"final_todo_count={len(todos)}"
+            )
+
+            # 5. 計算總預估執行時間
+            total_estimated_duration = sum(
+                todo.estimated_duration or 0 for todo in todos if todo.estimated_duration
+            )
+
+            # 6. 生成 TaskPlan
+            task_plan = TaskPlan(
+                plan_id=plan_id,
+                instruction=instruction,
+                todos=todos,
+                total_estimated_duration=total_estimated_duration if total_estimated_duration > 0 else None,
+                reasoning=task_dag.reasoning or "任務規劃完成",
+                created_at=planning_start_time,
+                metadata={
+                    "task_type": analysis_result.task_type.value,
+                    "workflow_type": analysis_result.workflow_type.value,
+                    "confidence": analysis_result.confidence,
+                    "suggested_agents": analysis_result.suggested_agents,
+                },
+            )
+
+            planning_latency_ms = int(
+                (datetime.utcnow() - planning_start_time).total_seconds() * 1000
+            )
+
+            logger.info(
+                f"[Orchestrator] 🎉 任務規劃完成: plan_id={plan_id}, "
+                f"todo_count={len(todos)}, "
+                f"total_estimated_duration={total_estimated_duration}s, "
+                f"planning_latency_ms={planning_latency_ms}"
+            )
+
+            return task_plan
+
+        except Exception as e:
+            logger.error(
+                f"[Orchestrator] ❌ 任務規劃失敗: plan_id={plan_id}, "
+                f"error={str(e)}, error_type={type(e).__name__}",
+                exc_info=True,
+            )
+            # 返回一個基本的 TaskPlan（包含單個 todo）
+            return TaskPlan(
+                plan_id=plan_id,
+                instruction=instruction,
+                todos=[
+                    TodoItem(
+                        todo_id=f"{plan_id}_todo_1",
+                        description=instruction,
+                        status="pending",
+                        priority=0,
+                    )
+                ],
+                reasoning=f"任務規劃失敗，使用基本計劃: {str(e)}",
+                created_at=planning_start_time,
+                metadata={"error": str(e)},
+            )
+
+    def _convert_task_dag_to_todos(
+        self, task_dag: Any, analysis_result: Any
+    ) -> List[TodoItem]:
+        """
+        將 TaskDAG 轉換為 TodoItem 列表
+
+        Args:
+            task_dag: TaskDAG 對象
+            analysis_result: Task Analyzer 的分析結果
+
+        Returns:
+            TodoItem 列表
+        """
+        todos: List[TodoItem] = []
+
+        # 從 TaskDAG 的 task_graph 創建 TodoItem
+        for task_node in task_dag.task_graph:
+            # 根據 agent 名稱查找 agent_id
+            agent_id = None
+            if task_node.agent:
+                # 嘗試從 suggested_agents 中匹配
+                for suggested_agent in analysis_result.suggested_agents:
+                    agent_info = self._registry.get_agent_info(suggested_agent)
+                    if agent_info and agent_info.name == task_node.agent:
+                        agent_id = suggested_agent
+                        break
+
+                # 如果沒找到，嘗試直接使用 agent 名稱作為 agent_id
+                if not agent_id:
+                    agent_id = task_node.agent
+
+            # 估算執行時間（根據複雜度和能力）
+            estimated_duration = self._estimate_todo_duration(task_node, analysis_result)
+
+            todo = TodoItem(
+                todo_id=task_node.id,
+                description=task_node.description or f"執行 {task_node.capability}",
+                agent_id=agent_id,
+                capability=task_node.capability,
+                priority=self._calculate_todo_priority(task_node, analysis_result),
+                depends_on=task_node.depends_on,
+                estimated_duration=estimated_duration,
+                status="pending",
+                metadata=task_node.metadata,
+            )
+
+            todos.append(todo)
+
+        return todos
+
+    def _deduplicate_and_prioritize_todos(self, todos: List[TodoItem]) -> List[TodoItem]:
+        """
+        去重和排序 todo 列表
+
+        規則：
+        1. 如果多個 todo 滿足相同條件（相同的 agent_id + capability），只保留優先級最高的
+        2. 按優先級排序（優先級高的在前）
+        3. 考慮依賴關係（有依賴的 todo 排在依賴項之後）
+
+        Args:
+            todos: 原始 todo 列表
+
+        Returns:
+            去重和排序後的 todo 列表
+        """
+        if not todos:
+            return []
+
+        logger.info(
+            f"[Orchestrator] 🔄 開始去重和排序: original_count={len(todos)}"
+        )
+
+        # 1. 去重：相同 agent_id + capability 的 todo，只保留優先級最高的
+        seen_key_to_todo: Dict[tuple, TodoItem] = {}
+        for todo in todos:
+            key = (todo.agent_id, todo.capability)
+            if key in seen_key_to_todo:
+                existing_todo = seen_key_to_todo[key]
+                if todo.priority > existing_todo.priority:
+                    logger.debug(
+                        f"[Orchestrator] 🔄 替換重複 todo: "
+                        f"agent_id={todo.agent_id}, capability={todo.capability}, "
+                        f"old_priority={existing_todo.priority}, new_priority={todo.priority}"
+                    )
+                    seen_key_to_todo[key] = todo
+                else:
+                    logger.debug(
+                        f"[Orchestrator] 🔄 跳過重複 todo（優先級較低）: "
+                        f"agent_id={todo.agent_id}, capability={todo.capability}, "
+                        f"existing_priority={existing_todo.priority}, new_priority={todo.priority}"
+                    )
+            else:
+                seen_key_to_todo[key] = todo
+
+        deduplicated_todos = list(seen_key_to_todo.values())
+
+        logger.info(
+            f"[Orchestrator] ✅ 去重完成: original_count={len(todos)}, "
+            f"deduplicated_count={len(deduplicated_todos)}"
+        )
+
+        # 2. 拓撲排序：考慮依賴關係
+        sorted_todos = self._topological_sort_todos(deduplicated_todos)
+
+        # 3. 在拓撲排序的基礎上，按優先級進一步排序（相同層級的按優先級排序）
+        final_todos = self._sort_by_priority_within_levels(sorted_todos)
+
+        logger.info(
+            f"[Orchestrator] ✅ 排序完成: final_count={len(final_todos)}"
+        )
+
+        return final_todos
+
+    def _topological_sort_todos(self, todos: List[TodoItem]) -> List[TodoItem]:
+        """
+        拓撲排序 todo 列表（考慮依賴關係）
+
+        Args:
+            todos: todo 列表
+
+        Returns:
+            拓撲排序後的 todo 列表
+        """
+        # 構建 todo_id 到 todo 的映射
+        todo_map: Dict[str, TodoItem] = {todo.todo_id: todo for todo in todos}
+
+        # 計算每個 todo 的入度（依賴數量）
+        in_degree: Dict[str, int] = {todo.todo_id: 0 for todo in todos}
+        for todo in todos:
+            for dep_id in todo.depends_on:
+                if dep_id in todo_map:
+                    in_degree[todo.todo_id] += 1
+
+        # 拓撲排序
+        sorted_todos: List[TodoItem] = []
+        queue: List[str] = [todo_id for todo_id, degree in in_degree.items() if degree == 0]
+
+        while queue:
+            # 按優先級排序隊列（優先級高的先處理）
+            queue.sort(key=lambda tid: todo_map[tid].priority, reverse=True)
+            current_id = queue.pop(0)
+            current_todo = todo_map[current_id]
+            sorted_todos.append(current_todo)
+
+            # 更新依賴此 todo 的其他 todo 的入度
+            for todo in todos:
+                if current_id in todo.depends_on:
+                    in_degree[todo.todo_id] -= 1
+                    if in_degree[todo.todo_id] == 0:
+                        queue.append(todo.todo_id)
+
+        # 檢查是否有循環依賴（如果 sorted_todos 的數量少於 todos，說明有循環）
+        if len(sorted_todos) < len(todos):
+            logger.warning(
+                f"[Orchestrator] ⚠️ 檢測到循環依賴，部分 todo 無法排序: "
+                f"sorted_count={len(sorted_todos)}, total_count={len(todos)}"
+            )
+            # 將未排序的 todo 添加到末尾
+            unsorted_ids = set(todo.todo_id for todo in todos) - set(
+                todo.todo_id for todo in sorted_todos
+            )
+            for todo_id in unsorted_ids:
+                sorted_todos.append(todo_map[todo_id])
+
+        return sorted_todos
+
+    def _sort_by_priority_within_levels(self, todos: List[TodoItem]) -> List[TodoItem]:
+        """
+        在拓撲排序的基礎上，按優先級進一步排序（相同層級的按優先級排序）
+
+        Args:
+            todos: 拓撲排序後的 todo 列表
+
+        Returns:
+            最終排序後的 todo 列表
+        """
+        # 構建依賴圖
+        todo_map: Dict[str, TodoItem] = {todo.todo_id: todo for todo in todos}
+        dependents: Dict[str, List[str]] = {todo.todo_id: [] for todo in todos}
+
+        for todo in todos:
+            for dep_id in todo.depends_on:
+                if dep_id in dependents:
+                    dependents[dep_id].append(todo.todo_id)
+
+        # 計算每個 todo 的層級（距離根節點的距離）
+        levels: Dict[str, int] = {}
+        visited: set = set()
+
+        def calculate_level(todo_id: str) -> int:
+            if todo_id in levels:
+                return levels[todo_id]
+            if todo_id in visited:
+                return 0  # 循環依賴，返回 0
+
+            visited.add(todo_id)
+            todo = todo_map[todo_id]
+            if not todo.depends_on:
+                levels[todo_id] = 0
+            else:
+                max_dep_level = max(
+                    (calculate_level(dep_id) for dep_id in todo.depends_on if dep_id in todo_map),
+                    default=-1,
+                )
+                levels[todo_id] = max_dep_level + 1
+            visited.remove(todo_id)
+            return levels[todo_id]
+
+        for todo in todos:
+            calculate_level(todo.todo_id)
+
+        # 按層級和優先級排序
+        sorted_todos = sorted(
+            todos, key=lambda t: (levels.get(t.todo_id, 0), -t.priority)
+        )
+
+        return sorted_todos
+
+    def _calculate_todo_priority(self, task_node: Any, analysis_result: Any) -> int:
+        """
+        計算 todo 的優先級
+
+        優先級計算規則：
+        - 基礎優先級：根據任務複雜度（high=10, mid=5, low=0）
+        - 有依賴的 todo 優先級降低（-2 per dependency）
+        - 高風險任務優先級提高（+5）
+
+        Args:
+            task_node: TaskNode 對象
+            analysis_result: Task Analyzer 的分析結果
+
+        Returns:
+            優先級（數字越大優先級越高）
+        """
+        priority = 0
+
+        # 基礎優先級：根據複雜度
+        complexity_map = {"high": 10, "mid": 5, "low": 0}
+        router_decision = analysis_result.router_decision
+        if router_decision:
+            priority += complexity_map.get(router_decision.complexity, 5)
+
+        # 有依賴的 todo 優先級降低（因為需要等待依賴完成）
+        priority -= len(task_node.depends_on) * 2
+
+        # 高風險任務優先級提高
+        if router_decision and router_decision.risk_level == "high":
+            priority += 5
+
+        return max(0, priority)  # 確保優先級不為負數
+
+    def _estimate_todo_duration(self, task_node: Any, analysis_result: Any) -> int:
+        """
+        估算 todo 的執行時間（秒）
+
+        估算規則：
+        - 基礎時間：根據複雜度（high=300s, mid=60s, low=10s）
+        - 有依賴的任務時間增加（+30s per dependency）
+
+        Args:
+            task_node: TaskNode 對象
+            analysis_result: Task Analyzer 的分析結果
+
+        Returns:
+            預估執行時間（秒）
+        """
+        router_decision = analysis_result.router_decision
+        if not router_decision:
+            return 60  # 默認 60 秒
+
+        # 基礎時間：根據複雜度
+        base_duration_map = {"high": 300, "mid": 60, "low": 10}
+        duration = base_duration_map.get(router_decision.complexity, 60)
+
+        # 有依賴的任務時間增加
+        duration += len(task_node.depends_on) * 30
+
+        return duration

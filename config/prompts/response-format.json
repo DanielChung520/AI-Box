@@ -1,0 +1,110 @@
+{
+  "response_format": {
+    "version": "1.0.0",
+    "last_updated": "2026-02-02",
+    "description": "AI 回應內容的格式規範",
+    "rules": [
+      {
+        "id": "RF001",
+        "severity": "error",
+        "name": "代碼塊語言標記",
+        "description": "所有程式碼必須使用正確的語言標記包裹",
+        "enforcement": "hard",
+        "examples": {
+          "correct": {
+            "python": "```python\\ndef hello():\\n    print(\"Hello\")\\n```",
+            "typescript": "```typescript\\nfunction hello(): void {\\n    console.log(\"Hello\");\\n}\\n```",
+            "bash": "```bash\\necho \"Hello World\"\\n```",
+            "json": "```json\\n{\\"key\\": \\"value\\"}\\n```",
+            "mermaid": "```mermaid\\nflowchart TD\\n    A --> B\\n```"
+          },
+          "incorrect": {
+            "description": "缺少語言標記或使用錯誤標記",
+            "example": "```\\ndef hello():\\n    print(\"Hello\")\\n```"
+          }
+        }
+      },
+      {
+        "id": "RF002",
+        "severity": "warning",
+        "name": "錯誤回應格式",
+        "description": "提供錯誤資訊時應包含錯誤訊息、可能原因、解決建議",
+        "enforcement": "soft",
+        "template": {
+          "format": "## 錯誤訊息\\n[具體錯誤內容]\\n\\n## 可能原因\\n- [原因1]\\n- [原因2]\\n\\n## 建議解決方式\\n- [步驟1]\\n- [步驟2]",
+          "example": "## 錯誤訊息\\nConnection refused to port 8000\\n\\n## 可能原因\\n- API 服務未啟動\\n- 端口被佔用\\n- 防火牆阻止連接\\n\\n## 建議解決方式\\n1. 檢查服務狀態: ./scripts/start_services.sh status\\n2. 重啟服務: ./scripts/start_services.sh fastapi"
+        }
+      },
+      {
+        "id": "RF003",
+        "severity": "info",
+        "name": "清單格式化",
+        "description": "使用一致的分隔符和編號風格",
+        "enforcement": "soft",
+        "examples": {
+          "bullet": "- 項目1\\n- 項目2\\n- 項目3",
+          "numbered": "1. 第一步\\n2. 第二步\\n3. 第三步",
+          "table": "| 欄位1 | 欄位2 |\\n|-------|-------|\\n| 值1 | 值2 |"
+        }
+      },
+      {
+        "id": "RF004",
+        "severity": "info",
+        "name": "強調文字",
+        "description": "使用適當的 Markdown 語法強調重點",
+        "enforcement": "soft",
+        "examples": {
+          "bold": "**重要訊息**",
+          "italic": "*強調文字*",
+          "code": "`變數` 或 `檔案路徑`",
+          "link": "[連結文字](URL)"
+        }
+      },
+      {
+        "id": "RF005",
+        "severity": "warning",
+        "name": "引用外部資源",
+        "description": "引用文檔或連結時應提供標題",
+        "enforcement": "soft",
+        "examples": {
+          "correct": "參考 [AI-Box 文檔](path/to/docs) 了解詳情",
+          "incorrect": "參考這個文檔"
+        }
+      },
+      {
+        "id": "RF006",
+        "severity": "info",
+        "name": "命令列指令",
+        "description": "命令使用程式碼塊標記，輸出結果分開標記",
+        "enforcement": "soft",
+        "examples": {
+          "command": "```bash\\n./scripts/start_services.sh status\\n```",
+          "output": "```\\n✅ Ollama 服務 - 運行中\\n✅ API - 運行中\\n```"
+        }
+      }
+    ],
+    "special_cases": {
+      "mermaid_diagrams": {
+        "required": "```mermaid",
+        "note": "Mermaid 必須使用 mermaid 標記才能被正確渲染"
+      },
+      "api_responses": {
+        "format": "JSON",
+        "indent": 2,
+        "language_tag": "json"
+      },
+      "configuration_files": {
+        "format": "根據檔案類型選擇對應標記",
+        "examples": {
+          "json": "```json",
+          "yaml": "```yaml",
+          "ini": "```ini"
+        }
+      }
+    },
+    "metadata": {
+      "category": "output_format",
+      "related_rules": ["mermaid"]
+    }
+  }
+}

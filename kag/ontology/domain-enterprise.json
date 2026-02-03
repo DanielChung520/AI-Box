@@ -1,7 +1,7 @@
 {
     "ontology_name": "Enterprise_Domain_Ontology",
     "version": "1.0",
-    "inherits_from": "5W1H_Base_Ontology_OWL",
+    "inherits_from": ["5W1H_Base_Ontology_OWL"],
     "description": "企業領域通用本體論，定義組織、財務與專案的核心概念。",
 
     "entity_classes": [

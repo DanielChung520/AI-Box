@@ -1,7 +1,7 @@
 // 代碼功能說明：PDF 文件預覽組件
 // 創建日期：2025-01-27
 // 創建人：Daniel Chung
-// 最後修改日期：2026-01-21 11:57 UTC+8
+// 最後修改日期：2026-02-01 UTC+8
 
 import { useState, useEffect, useMemo } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -165,13 +165,18 @@ export default function PDFViewer({ fileId, fileName, fileUrl, fileMetadata, sho
 
   return (
     <div className="flex flex-col theme-transition" style={{ height: '100%', minHeight: 0 }}>
-      {/* 文件標題欄和工具欄 */}
-      {showHeader && (
+      {/* 工具欄：翻頁、縮放、旋轉、下載 - 始終顯示以支持 PDF 操作 */}
+      {/* showHeader 僅控制檔名顯示，inline 模式下父組件已有檔名，不重複顯示 */}
       <div className="flex items-center justify-between p-4 pb-2 border-b border-primary flex-shrink-0">
-        <div className="flex items-center">
-          <i className="fa-solid fa-file-pdf text-red-400 mr-2"></i>
-          <span className="font-medium text-primary">{fileName}</span>
-        </div>
+        {/* 檔名區塊：僅在 showHeader 時顯示（非 inline 模式） */}
+        {showHeader ? (
+          <div className="flex items-center">
+            <i className="fa-solid fa-file-pdf text-red-400 mr-2"></i>
+            <span className="font-medium text-primary">{fileName}</span>
+          </div>
+        ) : (
+          <div />
+        )}
         <div className="flex items-center gap-2">
           {/* 頁面控制 */}
           <div className="flex items-center gap-2 px-2">
@@ -262,7 +267,6 @@ export default function PDFViewer({ fileId, fileName, fileUrl, fileMetadata, sho
           </button>
         </div>
       </div>
-      )}
 
       {/* PDF 內容區域 */}
       <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 flex items-start justify-center p-4" style={{ minHeight: 0 }}>

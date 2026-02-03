@@ -71,12 +71,13 @@ from api.routers import (
     agent_registration,
     agent_registry,
     agent_secret,
+    agent_status,
     agents,
     alert_webhook,
     audit_log,
     auth,
     chat,
-    chromadb,
+    chat_module,
     config_definitions,
     data_consent,
     execution,
@@ -88,6 +89,7 @@ from api.routers import (
     mcp,
     moe,
     moe_metrics,
+    ontology,
     orchestrator,
     planning,
     prometheus_compat,
@@ -106,12 +108,17 @@ from api.routers import (
 )
 
 # 修改時間：2025-12-08 12:30:00 UTC+8 - 使用統一的日誌配置模組
-from system.logging_config import setup_fastapi_logging
+# 修改時間：2026-01-28 10:30:00 UTC+8 - 添加 Agent 日誌配置
+from system.logging_config import setup_agent_logging, setup_fastapi_logging
 from system.security.config import get_security_settings
 from system.security.middleware import SecurityMiddleware
 
 # 配置 FastAPI 日誌（使用 RotatingFileHandler，最大 500KB，保留 4 個備份）
 setup_fastapi_logging()
+
+# 配置 Agent 日誌（獨立於 FastAPI 日誌，便於追蹤和調試）
+setup_agent_logging()
+
 logger = logging.getLogger(__name__)
 
 # 可選導入 CrewAI 路由（如果模組未安裝則跳過）
@@ -156,10 +163,6 @@ app = FastAPI(
         {
             "name": "MCP",
             "description": "MCP Server 整合和工具調用功能",
-        },
-        {
-            "name": "ChromaDB",
-            "description": "ChromaDB 向量資料庫操作接口",
         },
         {
             "name": "LLM",
@@ -309,6 +312,89 @@ Validation errors ({len(error_details)}):"""
             f"Validation error {i}: loc={error.get('loc')}, type={error.get('type')}, msg={error.get('msg')}, input={error.get('input')}"
         )
 
+    # 修改時間：2026-01-28 - 檢查是否是空查詢錯誤，返回友好錯誤消息
+    # 檢查是否是 chat 端點的空查詢錯誤
+    if request.url.path.endswith("/chat") and request.method == "POST":
+        # 添加調試日誌
+        logger.debug(
+            f"Checking empty query in exception handler: path={request.url.path}, "
+            f"method={request.method}, error_count={len(error_details)}"
+        )
+
+        # 檢查是否是 content 字段的 min_length 錯誤
+        is_empty_query = False
+        for error in error_details:
+            error_loc = error.get("loc", [])
+            error_type = error.get("type", "")
+            error_msg = error.get("msg", "")
+
+            # 添加調試日誌
+            logger.debug(
+                f"Error check in exception handler: loc={error_loc}, type={error_type}, "
+                f"msg={error_msg}, loc_length={len(error_loc)}"
+            )
+
+            # 檢查是否是 messages[].content 的 min_length 錯誤
+            # error_loc 格式: ("body", "messages", 0, "content") 或 ["body", "messages", 0, "content"]
+            # 修改時間：2026-01-28 - 支持所有可能的錯誤類型和位置格式
+            error_loc_list = list(error_loc) if not isinstance(error_loc, list) else error_loc
+
+            if (
+                len(error_loc_list) >= 4
+                and error_loc_list[0] == "body"
+                and error_loc_list[1] == "messages"
+                and isinstance(error_loc_list[2], int)
+                and error_loc_list[3] == "content"
+                and (
+                    "min_length" in error_type
+                    or "string_too_short" in error_type
+                    or "value_error" in error_type
+                    or "string_type" in error_type
+                    or "greater_than_equal" in error_type
+                    or "less_than_equal" in error_type
+                    or ("string" in error_type and "length" in error_msg.lower())
+                )
+            ):
+                is_empty_query = True
+                logger.info(
+                    f"Empty query detected in exception handler: error_type={error_type}, "
+                    f"error_loc={error_loc}, error_msg={error_msg}"
+                )
+                break
+
+        if is_empty_query:
+            # 使用 KA-Agent 的錯誤處理器生成友好錯誤消息
+            try:
+                from agents.builtin.ka_agent.error_handler import KAAgentErrorHandler
+
+                error_feedback = KAAgentErrorHandler.missing_parameter(
+                    parameter_name="instruction",
+                    context="用戶查詢為空",
+                )
+
+                # 返回友好錯誤消息（使用 400 而非 422）
+                from api.core.response import APIResponse
+
+                logger.info(
+                    f"Returning friendly empty query error: error_type={error_feedback.error_type.value}, "
+                    f"user_message={error_feedback.user_message[:100]}"
+                )
+
+                return JSONResponse(
+                    status_code=400,
+                    content=APIResponse.error(
+                        message=error_feedback.user_message,
+                        error_code="MISSING_PARAMETER",
+                        details={
+                            "error_type": error_feedback.error_type.value,
+                            "suggested_action": error_feedback.suggested_action.value,
+                            "clarifying_questions": error_feedback.clarifying_questions,
+                        },
+                    ).model_dump(),
+                )
+            except Exception as e:
+                logger.warning(f"Failed to generate KA-Agent error feedback: {e}", exc_info=True)
+
     # 返回標準錯誤響應
     from api.core.response import APIResponse
 
@@ -388,7 +474,7 @@ app.include_router(planning.router, prefix=API_PREFIX, tags=["Planning Agent"])
 app.include_router(execution.router, prefix=API_PREFIX, tags=["Execution Agent"])
 app.include_router(review.router, prefix=API_PREFIX, tags=["Review Agent"])
 app.include_router(mcp.router, prefix=API_PREFIX, tags=["MCP"])
-app.include_router(chromadb.router, prefix=API_PREFIX, tags=["ChromaDB"])
+# ChromaDB router 已移除（已迁移到 Qdrant）
 
 # 監控代理路由
 if monitoring_proxy_router:
@@ -400,10 +486,13 @@ app.include_router(file_upload.router, prefix=API_PREFIX, tags=["File Upload"])
 app.include_router(agent_files.router, prefix=API_PREFIX, tags=["Agent Files"])
 app.include_router(reports.router, prefix=API_PREFIX, tags=["Reports"])
 app.include_router(chat.router, prefix=API_PREFIX, tags=["Chat"])
+app.include_router(chat_module.router, prefix="/api/v2", tags=["Chat V2"])
 app.include_router(config_definitions.router, prefix=API_PREFIX, tags=["Config Definitions"])
+app.include_router(ontology.router, prefix=API_PREFIX)
 app.include_router(llm_models.router, prefix=API_PREFIX, tags=["LLM Models"])
 app.include_router(moe.router, prefix=API_PREFIX, tags=["MoE"])
 app.include_router(moe_metrics.router, prefix=API_PREFIX, tags=["MoE Metrics"])
+app.include_router(agent_status.router, prefix=API_PREFIX, tags=["Agent Status"])
 app.include_router(rq_monitor.router, prefix=API_PREFIX, tags=["RQ Monitor"])
 
 
@@ -502,7 +591,9 @@ async def startup_event():
         init_results = initialize_system_configs(force=False)
         initialized_count = sum(1 for success in init_results.values() if success)
         skipped_count = len(init_results) - initialized_count
-        logger.info(f"系統配置初始化完成: {initialized_count} 個已初始化，{skipped_count} 個已存在（跳過）")
+        logger.info(
+            f"系統配置初始化完成: {initialized_count} 個已初始化，{skipped_count} 個已存在（跳過）"
+        )
     except Exception as e:
         logger.warning(f"系統配置初始化失敗（不影響啟動）: {e}")
 

@@ -200,6 +200,9 @@ class TaskWorkspaceService:
         """
         確保任務工作區存在（如果不存在則創建）
 
+        修改時間：2026-01-28 - 避免重複創建工作區目錄
+        只有在資料庫和文件系統中都不存在時才創建
+
         Args:
             task_id: 任務ID
             user_id: 用戶ID
@@ -219,22 +222,46 @@ class TaskWorkspaceService:
         folder_key = f"{task_id}_workspace"
         existing_folder = collection.get(folder_key)
 
+        workspace_path = Path(base_storage_path) / task_id / "workspace"
+
         if existing_folder is None:
-            # 工作區不存在，創建它
+            # 資料庫中無記錄，創建新的工作區
             return self.create_workspace(task_id, user_id, base_storage_path)
         else:
-            # 工作區已存在，返回現有信息
-            workspace_path = Path(base_storage_path) / task_id / "workspace"
-            # 確保文件系統目錄存在
-            workspace_path.mkdir(parents=True, exist_ok=True)
-
-            return {
-                "task_id": task_id,
-                "folder_name": existing_folder.get("folder_name", WORKSPACE_FOLDER_NAME),
-                "folder_type": "workspace",
-                "storage_path": str(workspace_path),
-                "folder_key": folder_key,
-            }
+            # 資料庫中已有記錄
+            if workspace_path.exists():
+                # 文件系統目錄也存在，直接返回
+                self.logger.debug(
+                    "workspace_exists",
+                    task_id=task_id,
+                    user_id=user_id,
+                    note="Workspace exists in both database and filesystem",
+                )
+                return {
+                    "task_id": task_id,
+                    "folder_name": existing_folder.get("folder_name", WORKSPACE_FOLDER_NAME),
+                    "folder_type": "workspace",
+                    "storage_path": str(workspace_path),
+                    "folder_key": folder_key,
+                }
+            else:
+                # 資料庫有記錄但文件系統目錄不存在，記錄警告但不自動創建
+                self.logger.warning(
+                    "workspace_missing_in_filesystem",
+                    task_id=task_id,
+                    user_id=user_id,
+                    folder_key=folder_key,
+                    note="Workspace exists in database but not in filesystem (not auto-created to avoid bulk creation)",
+                )
+                return {
+                    "task_id": task_id,
+                    "folder_name": existing_folder.get("folder_name", WORKSPACE_FOLDER_NAME),
+                    "folder_type": "workspace",
+                    "storage_path": str(workspace_path),
+                    "folder_key": folder_key,
+                    "exists": False,
+                    "note": "Database record exists but filesystem directory does not",
+                }
 
     def get_workspace_path(self, task_id: str, base_storage_path: Optional[str] = None) -> Path:
         """

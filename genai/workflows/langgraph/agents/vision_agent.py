@@ -60,9 +60,10 @@ class VisionAgent(BaseAgentNode):
 
         except Exception as e:
             logger.error(f"VisionAgent execution error: {e}", exc_info=True)
-            return NodeResult.failure(f"Vision analysis failed: {str(e)}",
+            return NodeResult.failure(f"Vision analysis failed: {str(e)}")
+
     def _get_image_files(self, state: AIBoxState) -> List[Dict[str, Any]]:
-        """從狀態中提取圖片文件信息""",
+        """從狀態中提取圖片文件信息"""
         images = []
         if state.injected_context and "images" in state.injected_context:
             images = state.injected_context["images"]
@@ -91,7 +92,7 @@ def create_vision_agent_config() -> NodeConfig:
         description="視覺分析Agent - 負責圖片和圖表的深度解析",
         max_retries=2,
         timeout=60.0,
-        required_inputs=["user_id"]
+        required_inputs=["user_id"],
         optional_inputs=["task_id", "injected_context"],
         output_keys=["vision_analysis"]
     )

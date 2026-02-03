@@ -1,0 +1,377 @@
+{
+  "smartq_models_schema": {
+    "version": "1.0",
+    "description": "SmartQ 品牌模型配置架構 - 用於前端顯示和後端路由",
+    "last_updated": "2026-01-24",
+    
+    "chat_models": {
+      "smartq_hci": {
+        "id": "smartq-hci",
+        "name": "SmartQ-HCI",
+        "display_name": {
+          "zh": "SmartQ-HCI 智能對話",
+          "en": "SmartQ-HCI Smart Chat",
+          "zh-tw": "SmartQ-HCI 智慧對話"
+        },
+        "description": "智能融合模型 (Human-Computer Interface) - 自動選擇最佳後端模型",
+        "category": "smartq",
+        "icon": "fa-microchip",
+        "color": "text-orange-400",
+        "is_default": false,
+        "order": 100,
+        "capabilities": ["chat", "text_generation", "function_calling"],
+        
+        "backend_config": {
+          "provider": "moe_routing",
+          "routing_strategy": "smart_selection",
+          
+          "moe_config": {
+            "scene": "chat",
+            "primary_models": [
+              {
+                "model_id": "gpt-oss:120b-cloud",
+                "provider": "ollama",
+                "weight": 0.4,
+                "context_size": 32000,
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "timeout": 60,
+                "cost_per_1k_tokens": 0.01
+              },
+              {
+                "model_id": "glm-4.7:cloud",
+                "provider": "chatglm",
+                "weight": 0.3,
+                "context_size": 128000,
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "timeout": 90,
+                "cost_per_1k_tokens": 0.008
+              },
+              {
+                "model_id": "qwen3-next:latest",
+                "provider": "qwen",
+                "weight": 0.3,
+                "context_size": 32000,
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "timeout": 60,
+                "cost_per_1k_tokens": 0.006
+              }
+            ],
+            "fallback_models": [
+              {
+                "model_id": "llama3.2:latest",
+                "provider": "ollama",
+                "context_size": 32000,
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "timeout": 60
+              },
+              {
+                "model_id": "glm-4.6:cloud",
+                "provider": "chatglm",
+                "context_size": 128000,
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "timeout": 90
+              }
+            ],
+            "selection_criteria": {
+              "performance_weight": 0.4,
+              "cost_weight": 0.3,
+              "availability_weight": 0.3,
+              "latency_threshold_ms": 5000,
+              "error_rate_threshold": 0.1
+            }
+          }
+        },
+        
+        "scene_mapping": {
+          "chat": {
+            "primary_models": ["gpt-oss:120b-cloud", "glm-4.7:cloud"],
+            "fallback_models": ["llama3.2:latest", "glm-4.6:cloud"]
+          },
+          "semantic_understanding": {
+            "primary_models": ["glm-4.7:cloud", "gpt-oss:120b-cloud"],
+            "fallback_models": ["qwen3-coder:30b", "llama3.2:latest"]
+          },
+          "task_analysis": {
+            "primary_models": ["qwen3-coder:30b", "gpt-oss:120b-cloud"],
+            "fallback_models": ["glm-4.7:cloud", "llama3.2:latest"]
+          },
+          "embedding": {
+            "primary_models": ["nomic-embed-text:latest"],
+            "fallback_models": ["text-embedding-v1"]
+          }
+        }
+      },
+      
+      "smartq_iee": {
+        "id": "smartq-iee",
+        "name": "SmartQ-IEE",
+        "display_name": {
+          "zh": "SmartQ-IEE 智能推理",
+          "en": "SmartQ-IEE Smart Inference",
+          "zh-tw": "SmartQ-IEE 智慧推理"
+        },
+        "description": "智能推理模型 (Intelligent Engineering Environment) - 高性能任務處理",
+        "category": "smartq",
+        "icon": "fa-brain",
+        "color": "text-blue-400",
+        "is_default": false,
+        "order": 90,
+        "capabilities": ["chat", "text_generation", "function_calling", "code_generation"],
+        
+        "backend_config": {
+          "provider": "moe_routing",
+          "routing_strategy": "performance_first",
+          
+          "moe_config": {
+            "scene": "task_analysis",
+            "primary_models": [
+              {
+                "model_id": "gpt-oss:120b-cloud",
+                "provider": "ollama",
+                "weight": 0.5,
+                "context_size": 32000,
+                "temperature": 0.3,
+                "max_tokens": 4096,
+                "timeout": 45
+              },
+              {
+                "model_id": "qwen3-coder:30b",
+                "provider": "qwen",
+                "weight": 0.5,
+                "context_size": 32000,
+                "temperature": 0.3,
+                "max_tokens": 4096,
+                "timeout": 60
+              }
+            ],
+            "fallback_models": [
+              {
+                "model_id": "glm-4.7:cloud",
+                "provider": "chatglm",
+                "context_size": 128000,
+                "temperature": 0.3,
+                "max_tokens": 4096,
+                "timeout": 90
+              }
+            ]
+          }
+        }
+      }
+    },
+    
+    "ollama_models": {
+      "display_selection": [
+        {
+          "model_id": "gpt-oss:120b-cloud",
+          "display_name": {
+            "zh": "GPT-OSS 120B (雲端)",
+            "en": "GPT-OSS 120B (Cloud)",
+            "zh-tw": "GPT-OSS 120B (雲端)"
+          },
+          "show_in_chat": true,
+          "category": "ollama_cloud",
+          "icon": "fa-cloud",
+          "color": "text-purple-400",
+          "order": 1
+        },
+        {
+          "model_id": "llama3.2:latest",
+          "display_name": {
+            "zh": "Llama 3.2 (本地)",
+            "en": "Llama 3.2 (Local)",
+            "zh-tw": "Llama 3.2 (本機)"
+          },
+          "show_in_chat": true,
+          "category": "ollama_local",
+          "icon": "fa-server",
+          "color": "text-green-400",
+          "order": 2
+        },
+        {
+          "model_id": "mistral-nemo:12b",
+          "display_name": {
+            "zh": "Mistral Nemo (本地)",
+            "en": "Mistral Nemo (Local)",
+            "zh-tw": "Mistral Nemo (本機)"
+          },
+          "show_in_chat": true,
+          "category": "ollama_local",
+          "icon": "fa-server",
+          "color": "text-cyan-400",
+          "order": 3
+        }
+      ]
+    },
+    
+    "international_providers": {
+      "maintenance_mode": {
+        "auto_update_models": true,
+        "health_check_interval_minutes": 30
+      },
+      
+      "openai": {
+        "provider_id": "openai",
+        "display_name": {
+          "zh": "OpenAI",
+          "en": "OpenAI",
+          "zh-tw": "OpenAI"
+        },
+        "icon": "fa-robot",
+        "color": "text-green-400",
+        "category": "international",
+        "requires_api_key": true,
+        
+        "models": [
+          {
+            "model_id": "gpt-4",
+            "display_name": {
+              "zh": "GPT-4",
+              "en": "GPT-4",
+              "zh-tw": "GPT-4"
+            },
+            "context_size": 128000,
+            "temperature_range": [0.0, 2.0],
+            "max_tokens": 4096,
+            "is_premium": true,
+            "show_in_chat": true,
+            "order": 1
+          },
+          {
+            "model_id": "gpt-4-turbo",
+            "display_name": {
+              "zh": "GPT-4 Turbo",
+              "en": "GPT-4 Turbo",
+              "zh-tw": "GPT-4 Turbo"
+            },
+            "context_size": 128000,
+            "temperature_range": [0.0, 2.0],
+            "max_tokens": 4096,
+            "is_premium": true,
+            "show_in_chat": true,
+            "order": 2
+          }
+        ],
+        
+        "api_config": {
+          "base_url": "https://api.openai.com/v1",
+          "endpoints": {
+            "chat": "/chat/completions",
+            "models": "/models"
+          },
+          "authentication": {
+            "type": "bearer_token",
+            "header_name": "Authorization",
+            "key_storage": "arangodb_encrypted"
+          },
+          "health_check": {
+            "enabled": true,
+            "endpoint": "/models",
+            "timeout_seconds": 10,
+            "expected_status": 200
+          }
+        }
+      },
+      
+      "google": {
+        "provider_id": "google",
+        "display_name": {
+          "zh": "Google Gemini",
+          "en": "Google Gemini",
+          "zh-tw": "Google Gemini"
+        },
+        "icon": "fa-gem",
+        "color": "text-blue-400",
+        "category": "international",
+        "requires_api_key": true,
+        
+        "models": [
+          {
+            "model_id": "gemini-2.0-flash",
+            "display_name": {
+              "zh": "Gemini 2.0 Flash",
+              "en": "Gemini 2.0 Flash",
+              "zh-tw": "Gemini 2.0 Flash"
+            },
+            "context_size": 2800000,
+            "temperature_range": [0.0, 2.0],
+            "max_tokens": 8192,
+            "is_premium": false,
+            "show_in_chat": true,
+            "order": 1
+          },
+          {
+            "model_id": "gemini-2.5-pro",
+            "display_name": {
+              "zh": "Gemini 2.5 Pro",
+              "en": "Gemini 2.5 Pro",
+              "zh-tw": "Gemini 2.5 Pro"
+            },
+            "context_size": 2800000,
+            "temperature_range": [0.0, 2.0],
+            "max_tokens": 8192,
+            "is_premium": true,
+            "show_in_chat": true,
+            "order": 2
+          }
+        ],
+        
+        "api_config": {
+          "base_url": "https://generativelanguage.googleapis.com/v1beta",
+          "endpoints": {
+            "chat": "/models/{model_id}:generateContent",
+            "models": "/models"
+          },
+          "authentication": {
+            "type": "query_param",
+            "param_name": "key",
+            "key_storage": "arangodb_encrypted"
+          },
+          "health_check": {
+            "enabled": true,
+            "endpoint": "/models",
+            "timeout_seconds": 10,
+            "expected_status": 200
+          }
+        }
+      }
+    },
+    
+    "routing_policies": {
+      "default_strategy": "smart_selection",
+      "strategies": {
+        "smart_selection": {
+          "description": "智能選擇 - 根據性能、成本、可用性綜合評分",
+          "algorithm": "weighted_scoring",
+          "fallback_on_error": true,
+          "retry_count": 3
+        },
+        "performance_first": {
+          "description": "性能優先 - 優先使用最快的模型",
+          "algorithm": "latency_based",
+          "fallback_on_error": true,
+          "retry_count": 2
+        },
+        "cost_optimized": {
+          "description": "成本優化 - 優先使用最便宜的模型",
+          "algorithm": "cost_based",
+          "fallback_on_error": true,
+          "retry_count": 3
+        }
+      }
+    },
+    
+    "metadata": {
+      "compatibility_version": "1.0",
+      "schema_type": "smartq_models_config",
+      "created_by": "AI-Box Team",
+      "supported_locales": ["zh", "en", "zh-tw"],
+      "encryption_required": true,
+      "data_integrity_check": true
+    }
+  }
+}

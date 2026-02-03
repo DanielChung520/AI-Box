@@ -1,0 +1,277 @@
+{
+  "test_time": "2026-01-28T16:50:37.949772",
+  "test_target": "新 Chat Module 模塊化架構 (api/routers/chat_module/)",
+  "chat_module_enabled": true,
+  "chat_endpoint": "/api/v1/chat",
+  "summary": {
+    "total": 5,
+    "passed": 4,
+    "failed": 0,
+    "error": 0,
+    "skipped": 1,
+    "pass_rate": 80.0
+  },
+  "results": [
+    {
+      "test_id": "KA-TEST-001",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "在您的知識庫中目前已上傳並索引了 **5 個知識資產文件**。",
+          "session_id": "test_KA-TEST-001_1769590145",
+          "task_id": "test_task_KA-TEST-001_1769590145",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 3736.8531227111816,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "28529877-e52e-4851-b8b8-ab4e83470b63",
+            "session_id": "test_KA-TEST-001_1769590145",
+            "task_id": "test_task_KA-TEST-001_1769590145",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null
+        }
+      },
+      "error": null,
+      "duration": 12.22909688949585,
+      "endpoint_used": "http://localhost:8000/api/v1/chat",
+      "timestamp": "2026-01-28T16:49:17.925763"
+    },
+    {
+      "test_id": "KA-TEST-005",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "在目前已上架的知識資產中，共有 **5 個文件**。  \n經過範例片段檢索，並未發現任何文件標題或內容片段中包含「API」或「接口」兩個關鍵字。如果您想進一步確認或針對其他關鍵字進行更精準的搜尋，請告訴我具體需求，我將協助您繼續查找。",
+          "session_id": "test_KA-TEST-005_1769590157",
+          "task_id": "test_task_KA-TEST-005_1769590157",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 13328.984022140503,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "c89b46f3-3169-49ba-8618-f1c5253964ab",
+            "session_id": "test_KA-TEST-005_1769590157",
+            "task_id": "test_task_KA-TEST-005_1769590157",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null
+        }
+      },
+      "error": null,
+      "duration": 45.656774282455444,
+      "endpoint_used": "http://localhost:8000/api/v1/chat",
+      "timestamp": "2026-01-28T16:50:03.582742"
+    },
+    {
+      "test_id": "KA-TEST-006",
+      "name": "Chat API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat success",
+        "data": {
+          "content": "根據最近的檢索結果，我的知識庫目前包含 **5 個文件**。在這些文件中並沒有直接針對「知識圖譜」的定義或說明，主要聚焦於「狀態轉換流程」「編碼範例」以及「格式說明」等主題。如果您需要更具體的「知識圖譜」說明，可能需要額外的資料或文件加入我的知識庫。",
+          "session_id": "test_KA-TEST-006_1769590203",
+          "task_id": "test_task_KA-TEST-006_1769590203",
+          "routing": {
+            "provider": "ollama",
+            "model": "gpt-oss:20b",
+            "strategy": "load_balancer_weighted_policy",
+            "latency_ms": 11983.603954315186,
+            "failover_used": false,
+            "fallback_provider": null
+          },
+          "observability": {
+            "request_id": "8a857de1-83e6-487f-bce3-d899dc57df0d",
+            "session_id": "test_KA-TEST-006_1769590203",
+            "task_id": "test_task_KA-TEST-006_1769590203",
+            "token_input": null,
+            "token_output": null,
+            "cost": null,
+            "memory_hit_count": 0,
+            "memory_sources": [],
+            "retrieval_latency_ms": 0.0,
+            "context_message_count": 1
+          },
+          "actions": null
+        }
+      },
+      "error": null,
+      "duration": 34.36292910575867,
+      "endpoint_used": "http://localhost:8000/api/v1/chat",
+      "timestamp": "2026-01-28T16:50:37.945829"
+    },
+    {
+      "test_id": "KA-TEST-016",
+      "name": "空查詢處理",
+      "status": "skipped",
+      "response": null,
+      "error": "空查詢通常在前端被攔截",
+      "duration": 0.0,
+      "endpoint_used": null,
+      "timestamp": "2026-01-28T16:50:37.945881"
+    },
+    {
+      "test_id": "OBS-TEST-001",
+      "name": "觀測性統計 API (新模組)",
+      "status": "passed",
+      "response": {
+        "success": true,
+        "message": "Chat observability stats retrieved",
+        "data": {
+          "stats": {
+            "chat_total": 3,
+            "chat_error_total": 0,
+            "error_rate": 0.0,
+            "memory_hit_total": 0,
+            "memory_miss_total": 3,
+            "failover_total": 0,
+            "total_latency": {
+              "count": 3,
+              "avg_ms": 30737.590235987835,
+              "min_ms": 12211.132665979676,
+              "max_ms": 45646.77649998339
+            },
+            "llm_latency": {
+              "count": 3,
+              "avg_ms": 9723.259763675742,
+              "min_ms": 3772.801708022598,
+              "max_ms": 13383.809874998406
+            },
+            "retrieval_latency": {
+              "count": 3,
+              "avg_ms": 0.0,
+              "min_ms": 0.0,
+              "max_ms": 0.0
+            },
+            "by_provider": {
+              "ollama": {
+                "chat_total": 3,
+                "chat_error_total": 0,
+                "failover_total": 0,
+                "total_latency": {
+                  "count": 3,
+                  "avg_ms": 30737.590235987835,
+                  "min_ms": 12211.132665979676,
+                  "max_ms": 45646.77649998339
+                },
+                "llm_latency": {
+                  "count": 3,
+                  "avg_ms": 9723.259763675742,
+                  "min_ms": 3772.801708022598,
+                  "max_ms": 13383.809874998406
+                },
+                "retrieval_latency": {
+                  "count": 3,
+                  "avg_ms": 0.0,
+                  "min_ms": 0.0,
+                  "max_ms": 0.0
+                }
+              }
+            },
+            "by_strategy": {
+              "load_balancer_weighted_policy": {
+                "chat_total": 3,
+                "chat_error_total": 0,
+                "failover_total": 0,
+                "total_latency": {
+                  "count": 3,
+                  "avg_ms": 30737.590235987835,
+                  "min_ms": 12211.132665979676,
+                  "max_ms": 45646.77649998339
+                },
+                "llm_latency": {
+                  "count": 3,
+                  "avg_ms": 9723.259763675742,
+                  "min_ms": 3772.801708022598,
+                  "max_ms": 13383.809874998406
+                },
+                "retrieval_latency": {
+                  "count": 3,
+                  "avg_ms": 0.0,
+                  "min_ms": 0.0,
+                  "max_ms": 0.0
+                }
+              }
+            }
+          },
+          "user_id": "systemAdmin"
+        }
+      },
+      "error": null,
+      "duration": 0.0036618709564208984,
+      "endpoint_used": "http://localhost:8000/api/v1/chat/observability/stats",
+      "timestamp": "2026-01-28T16:50:37.949622"
+    }
+  ],
+  "analyses": [
+    {
+      "test_id": "KA-TEST-001",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "在您的知識庫中目前已上傳並索引了 **5 個知識資產文件**。",
+      "endpoint_used": "http://localhost:8000/api/v1/chat",
+      "found_keywords": [
+        "文件",
+        "知識庫",
+        "個"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-005",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "在目前已上架的知識資產中，共有 **5 個文件**。  \n經過範例片段檢索，並未發現任何文件標題或內容片段中包含「API」或「接口」兩個關鍵字。如果您想進一步確認或針對其他關鍵字進行更精準的搜尋，請告訴我具體需求，我將協助您繼續查找。",
+      "endpoint_used": "http://localhost:8000/api/v1/chat",
+      "found_keywords": [
+        "API",
+        "接口",
+        "文件"
+      ],
+      "found_refusal_keywords": []
+    },
+    {
+      "test_id": "KA-TEST-006",
+      "status": "passed",
+      "has_expected_keywords": true,
+      "has_refusal_keywords": false,
+      "response_text": "根據最近的檢索結果，我的知識庫目前包含 **5 個文件**。在這些文件中並沒有直接針對「知識圖譜」的定義或說明，主要聚焦於「狀態轉換流程」「編碼範例」以及「格式說明」等主題。如果您需要更具體的「知識圖譜」說明，可能需要額外的資料或文件加入我的知識庫。",
+      "endpoint_used": "http://localhost:8000/api/v1/chat",
+      "found_keywords": [
+        "知識圖譜"
+      ],
+      "found_refusal_keywords": []
+    }
+  ]
+}

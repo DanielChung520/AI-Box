@@ -84,7 +84,11 @@ def _authenticate_user(username: str, password: str) -> Optional[User]:
             system_user = service.get_system_user("systemAdmin")
 
             if system_user is None:
-                logger.warning("SystemAdmin user not found in database")
+                logger.warning("SystemAdmin user not found in database, using fallback authentication")
+                # 降級到環境變數驗證
+                if password == os.getenv("SYSTEM_ADMIN_PASSWORD", "systemAdmin@2026"):
+                    logger.warning("Using fallback authentication for systemAdmin (user not in database)")
+                    return User.create_system_admin()
                 return None
 
             if not system_user.is_active:
@@ -122,11 +126,22 @@ def _authenticate_user(username: str, password: str) -> Optional[User]:
                 is_active=system_user.is_active,
                 metadata=system_user.metadata,
             )
+        except RuntimeError as e:
+            # ArangoDB 連接失敗，使用降級驗證
+            error_msg = str(e)
+            if "not connected" in error_msg or "ArangoDB" in error_msg:
+                logger.warning(f"ArangoDB connection failed, using fallback authentication: {e}")
+                if password == os.getenv("SYSTEM_ADMIN_PASSWORD", "systemAdmin@2026"):
+                    logger.warning("Using fallback authentication for systemAdmin (database not connected)")
+                    return User.create_system_admin()
+                return None
+            # 其他 RuntimeError，重新拋出
+            raise
         except Exception as e:
             logger.error(f"Failed to authenticate systemAdmin: {e}", exc_info=True)
             # 降級到舊的驗證方式（向後兼容）
             if password == os.getenv("SYSTEM_ADMIN_PASSWORD", "systemAdmin@2026"):
-                logger.warning("Using fallback authentication for systemAdmin")
+                logger.warning("Using fallback authentication for systemAdmin (exception occurred)")
                 return User.create_system_admin()
             return None
 

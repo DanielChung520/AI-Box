@@ -1,0 +1,27 @@
+DRIVER    VOLUME NAME
+local     1f08d2729195d7501b8683218737713a0f0c63ce9fe458f452d2a540a235735e
+local     5c34d5d96666111c9c2f260943f9ffae7c031eac4fd1221fa00f1d8aa63fb9b6
+local     95155dd9f2bbe3b6495b281880ea45f3053e3e34d21aed2ce7457bf605d2c282
+local     ai-box_alertmanager_data
+local     ai-box_arangodb_apps_data
+local     ai-box_arangodb_data
+local     ai-box_chromadb_data
+local     ai-box_grafana_data
+local     ai-box_prometheus_data
+local     ai-box_redis_data
+local     ai-box_seaweedfs-ai-box-s3-config
+local     ai-box_seaweedfs-datalake-master-data
+local     ai-box_seaweedfs-datalake-s3-config
+local     ai-box_seaweedfs-datalake-volume-data
+local     ai-box_seaweedfs-master-data
+local     ai-box_seaweedfs-volume-data
+local     ai-box_seaweedfs_data
+local     b962f8b3675a29842215edbfc68fd1fad942554381193cc1fa06083d083ee017
+local     d96879b78b6199d01975f596e35b0eff6007653eaf0734e99237b466c675d257
+local     da6023c8280eaafe9804ae993efdec16189b8aa267f673e4adf573375a7d4ce8
+local     dcf9399343c47efddcbe7a65fae2a3f714c4e776319eb3f2cb60c995f1c2c070
+local     e3c92386b4276c9128c190a7491c34e060153f2e4dda9a5fa3b99b33594dfa9f
+local     fc3c4419ade44ef36efbf2d3382729c7f06e3ed04e9799a10f1bec78d76a2f6e
+local     fe5769e17d263f79213dd7665de5857a4424068bb8b17098b997ca6ffb4cc842
+local     seaweedfs-ai-box-s3-config
+local     seaweedfs-datalake-s3-config

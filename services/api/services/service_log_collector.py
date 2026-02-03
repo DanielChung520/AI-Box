@@ -32,9 +32,7 @@ class ServiceLogCollector:
             "rq_worker": [
                 "/Users/daniel/GitHub/AI-Box/logs/rq_worker.log",
             ],
-            "chromadb": [
-                "/Users/daniel/GitHub/AI-Box/logs/chromadb.log",
-            ],
+            # ChromaDB 日志收集已移除（已迁移到 Qdrant）
             "redis": [
                 "/var/log/redis/redis-server.log",
                 "/usr/local/var/log/redis.log",

@@ -39,7 +39,7 @@ class UserConfirmationAgent(BaseAgentNode):
 
             if not confirmation_needed:
                 return NodeResult.success(
-                    data={"confirmation": {"skipped": True}}
+                    data={"confirmation": {"skipped": True}},
                     next_layer="task_orchestration",
                 )
 
@@ -115,7 +115,7 @@ def create_user_confirmation_agent_config() -> NodeConfig:
         description="用戶確認Agent - 在執行敏感操作或高風險任務前請求用戶授權",
         max_retries=1,
         timeout=15.0,
-        required_inputs=["user_id"]
+        required_inputs=["user_id"],
         optional_inputs=["policy_verification", "messages"],
         output_keys=["user_confirmation", "confirmation_summary"],
     )

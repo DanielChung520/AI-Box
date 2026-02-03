@@ -12,6 +12,7 @@ import AccountSecuritySettings from "@/pages/AccountSecuritySettings";
 import SystemSettings from "@/pages/SystemSettings";
 import AgentRequestManagement from "@/pages/AgentRequestManagement";
 import { useState, useEffect } from "react";
+import { toast } from 'sonner';
 import { AuthContext, User } from '@/contexts/authContext';
 import { LanguageProvider, useLanguage } from '@/contexts/languageContext';
 import { FileEditingProvider } from '@/contexts/fileEditingContext';
@@ -97,9 +98,17 @@ function AppContent() {
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('authStateChanged', handleAuthStateChanged as EventListener);
 
+    // 全域監聽 uploadError（知識庫上架等失敗時由 FileUploadModal 派發）
+    const handleUploadError = (e: Event) => {
+      const msg = (e as CustomEvent<{ message?: string }>)?.detail?.message || '未知錯誤';
+      toast.error(`上傳失敗: ${msg}`);
+    };
+    window.addEventListener('uploadError', handleUploadError as EventListener);
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('authStateChanged', handleAuthStateChanged as EventListener);
+      window.removeEventListener('uploadError', handleUploadError as EventListener);
     };
   }, []);
 

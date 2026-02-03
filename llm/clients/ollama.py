@@ -1,7 +1,7 @@
 # 代碼功能說明: Ollama 客戶端實現（實現 BaseLLMClient 接口）
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-21 (UTC+8)
+# 最後修改日期: 2026-01-24 23:38 UTC+8
 
 """Ollama 客戶端實現，整合 Ollama API，實現 BaseLLMClient 接口。"""
 
@@ -126,16 +126,20 @@ class OllamaClient(BaseLLMClient):
     def __init__(
         self,
         router: Optional[LLMNodeRouter] = None,
+        base_url: Optional[str] = None,
         default_model: Optional[str] = None,
         timeout: Optional[float] = None,
+        **kwargs: Any,
     ):
         """
         初始化 Ollama 客戶端。
 
         Args:
             router: LLM 節點路由器（可選，從配置自動創建）
+            base_url: API 基礎 URL（可選，Ollama 節點已包含 URL，此處為兼容性保留）
             default_model: 默認模型名稱（可選，從配置讀取）
             timeout: 請求超時時間（可選，從配置讀取）
+            **kwargs: 其他參數（兼容性保留）
         """
         # 延迟导入，避免循环导入
         from api.core.settings import get_ollama_settings
@@ -367,15 +371,42 @@ class OllamaClient(BaseLLMClient):
         try:
             response = await self._post("/api/chat", payload)
 
-            # 提取消息內容
+            # 提取消息內容：優先 content，若為空則從 thinking 提取（方案 1）
             content = ""
-            if "message" in response and "content" in response["message"]:
-                content = response["message"]["content"]
+            msg_obj = response.get("message") if isinstance(response, dict) else None
+            if isinstance(msg_obj, dict):
+                content = (msg_obj.get("content") or "").strip()
+                if not content and msg_obj.get("thinking"):
+                    thinking = msg_obj.get("thinking")
+                    if isinstance(thinking, str) and thinking.strip():
+                        content = thinking.strip()
+                        logger.info(
+                            f"Ollama chat: content empty, using thinking as fallback: model={model}, "
+                            f"thinking_len={len(content)}"
+                        )
+                    elif isinstance(thinking, (list, dict)):
+                        content = str(thinking).strip()
+                        if content:
+                            logger.info(
+                                f"Ollama chat: content empty, using thinking (non-str) as fallback: model={model}"
+                            )
+
+            # 診斷：若 content 與 thinking 均無有效內容，記錄 response 結構
+            if not (content and str(content).strip()):
+                msg_obj = response.get("message") if isinstance(response, dict) else None
+                logger.warning(
+                    f"Ollama chat returned empty content: model={model}, "
+                    f"response_keys={list(response.keys()) if isinstance(response, dict) else []}, "
+                    f"has_message={bool(msg_obj)}, "
+                    f"message_keys={list(msg_obj.keys()) if isinstance(msg_obj, dict) else []}, "
+                    f"message_content_type={type(msg_obj.get('content')).__name__ if isinstance(msg_obj, dict) else None}, "
+                    f"message_content_len={len(str(msg_obj.get('content') or '')) if isinstance(msg_obj, dict) else 0}"
+                )
 
             # 構建返回結果
             result: Dict[str, Any] = {
-                "content": content,
-                "message": content,
+                "content": content or "",
+                "message": content or "",
                 "model": model,
             }
 
@@ -566,6 +597,26 @@ class OllamaClient(BaseLLMClient):
             如果可用返回 True，否則返回 False
         """
         return self._router is not None and len(self._router.get_nodes()) > 0
+
+    async def verify_connectivity(self) -> tuple[bool, str]:
+        """
+        驗證與 Ollama 服務的連通性。
+        Returns:
+            (是否成功, 消息)
+        """
+        try:
+            # 通過獲取標籤（模型列表）來驗證
+            node = self._router.select_node()
+            async with httpx.AsyncClient(
+                base_url=f"http://{node.host}:{node.port}",
+                timeout=5.0,  # 驗證時使用較短的超時
+            ) as client:
+                response = await client.get("/api/tags")
+                response.raise_for_status()
+                return True, "連通性正常"
+        except Exception as exc:
+            logger.error(f"Ollama connectivity check failed: {exc}")
+            return False, f"連通性驗證失敗: {str(exc)}"
 
 
 # 為了向後兼容，提供 get_ollama_client() 函數

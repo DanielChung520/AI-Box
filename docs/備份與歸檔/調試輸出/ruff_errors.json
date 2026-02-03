@@ -1,0 +1,3215 @@
+[
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 80,
+      "row": 78
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/agent.py",
+    "fix": null,
+    "location": {
+      "column": 79,
+      "row": 78
+    },
+    "message": "missing closing quote in string literal",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 79
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/agent.py",
+    "fix": null,
+    "location": {
+      "column": 80,
+      "row": 78
+    },
+    "message": "Expected `)`, found newline",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 27,
+      "row": 130
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 130
+    },
+    "message": "Expected `,`, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 22,
+      "row": 131
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 131
+    },
+    "message": "Expected `,`, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 39,
+      "row": 132
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 38,
+      "row": 132
+    },
+    "message": "Expected `else`, found `:`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 35,
+      "row": 133
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 21,
+      "row": 133
+    },
+    "message": "Expected a parameter name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 21,
+      "row": 134
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 134
+    },
+    "message": "Expected `,`, found `else`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 22,
+      "row": 134
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 21,
+      "row": 134
+    },
+    "message": "Expected `,`, found `:`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 36,
+      "row": 135
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 21,
+      "row": 135
+    },
+    "message": "Expected a parameter name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 20,
+      "row": 138
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 21,
+      "row": 135
+    },
+    "message": "Duplicate keyword argument \"\"",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 21,
+      "row": 138
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 20,
+      "row": 138
+    },
+    "message": "Expected `else`, found `:`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 19,
+      "row": 140
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 140
+    },
+    "message": "Expected `,`, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 23,
+      "row": 141
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 141
+    },
+    "message": "Expected `,`, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 45,
+      "row": 141
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 141
+    },
+    "message": "Duplicate keyword argument \"stats_info\"",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 18,
+      "row": 142
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 142
+    },
+    "message": "Expected `,`, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 20,
+      "row": 144
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 142
+    },
+    "message": "Duplicate keyword argument \"\"",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 21,
+      "row": 144
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 20,
+      "row": 144
+    },
+    "message": "Expected `else`, found `:`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 93,
+      "row": 145
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 145
+    },
+    "message": "Duplicate keyword argument \"aql\"",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 19,
+      "row": 146
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 146
+    },
+    "message": "Expected `,`, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 75,
+      "row": 146
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 146
+    },
+    "message": "Duplicate keyword argument \"cursor\"",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 23,
+      "row": 147
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 147
+    },
+    "message": "Expected `,`, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 45,
+      "row": 147
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 147
+    },
+    "message": "Duplicate keyword argument \"stats_info\"",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 18,
+      "row": 148
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 148
+    },
+    "message": "Expected `,`, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 20,
+      "row": 151
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 148
+    },
+    "message": "Duplicate keyword argument \"\"",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 21,
+      "row": 151
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 20,
+      "row": 151
+    },
+    "message": "Expected `else`, found `:`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 152
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/cleanup_service.py",
+    "fix": null,
+    "location": {
+      "column": 21,
+      "row": 151
+    },
+    "message": "Expected `)`, found newline",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 62,
+      "row": 54
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/verify_aoga.py",
+    "fix": null,
+    "location": {
+      "column": 61,
+      "row": 54
+    },
+    "message": "Expected an expression",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 79,
+      "row": 54
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/verify_aoga.py",
+    "fix": null,
+    "location": {
+      "column": 78,
+      "row": 54
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 63,
+      "row": 56
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/verify_aoga.py",
+    "fix": null,
+    "location": {
+      "column": 62,
+      "row": 56
+    },
+    "message": "Expected an expression",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 83,
+      "row": 56
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/verify_aoga.py",
+    "fix": null,
+    "location": {
+      "column": 82,
+      "row": 56
+    },
+    "message": "Expected an expression",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 103,
+      "row": 56
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/agents/builtin/task_cleanup_agent/verify_aoga.py",
+    "fix": null,
+    "location": {
+      "column": 102,
+      "row": 56
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 126,
+      "row": 2171
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 125,
+      "row": 2171
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 129,
+      "row": 2171
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 128,
+      "row": 2171
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 100,
+      "row": 2172
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 99,
+      "row": 2172
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 103,
+      "row": 2172
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 102,
+      "row": 2172
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 75,
+      "row": 2173
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 74,
+      "row": 2173
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 78,
+      "row": 2173
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 77,
+      "row": 2173
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 130,
+      "row": 2414
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 129,
+      "row": 2414
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 133,
+      "row": 2414
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 132,
+      "row": 2414
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 100,
+      "row": 2420
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 99,
+      "row": 2420
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 103,
+      "row": 2420
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 102,
+      "row": 2420
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 79,
+      "row": 2425
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 78,
+      "row": 2425
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 82,
+      "row": 2425
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 81,
+      "row": 2425
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 142,
+      "row": 2528
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 141,
+      "row": 2528
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 145,
+      "row": 2528
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 144,
+      "row": 2528
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 116,
+      "row": 2529
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 115,
+      "row": 2529
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 119,
+      "row": 2529
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 118,
+      "row": 2529
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 91,
+      "row": 2530
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 90,
+      "row": 2530
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 94,
+      "row": 2530
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 93,
+      "row": 2530
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 119,
+      "row": 3395
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 118,
+      "row": 3395
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 122,
+      "row": 3395
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 3395
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 118,
+      "row": 3437
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 117,
+      "row": 3437
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 121,
+      "row": 3437
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 120,
+      "row": 3437
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 92,
+      "row": 3469
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 91,
+      "row": 3469
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 95,
+      "row": 3469
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 94,
+      "row": 3469
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 115,
+      "row": 3493
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 114,
+      "row": 3493
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 118,
+      "row": 3493
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 117,
+      "row": 3493
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 91,
+      "row": 3497
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 90,
+      "row": 3497
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 94,
+      "row": 3497
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/chat.py",
+    "fix": null,
+    "location": {
+      "column": 93,
+      "row": 3497
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 27,
+      "row": 161
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/langgraph.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 161
+    },
+    "message": "Expected `,`, found string",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 94,
+      "row": 110
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 93,
+      "row": 110
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 97,
+      "row": 110
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 96,
+      "row": 110
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 100,
+      "row": 186
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 99,
+      "row": 186
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 103,
+      "row": 186
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 102,
+      "row": 186
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 104,
+      "row": 192
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 103,
+      "row": 192
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 107,
+      "row": 192
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 106,
+      "row": 192
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 88,
+      "row": 236
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 87,
+      "row": 236
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 91,
+      "row": 236
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 90,
+      "row": 236
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 92,
+      "row": 241
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 91,
+      "row": 241
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 95,
+      "row": 241
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 94,
+      "row": 241
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 102,
+      "row": 273
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 273
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 105,
+      "row": 273
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 104,
+      "row": 273
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 106,
+      "row": 285
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 105,
+      "row": 285
+    },
+    "message": "Expected `}`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 109,
+      "row": 285
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/api/routers/streaming.py",
+    "fix": null,
+    "location": {
+      "column": 108,
+      "row": 285
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 137,
+      "row": 62
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 136,
+      "row": 62
+    },
+    "message": "Expected `,`, found `}`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 139,
+      "row": 62
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 137,
+      "row": 62
+    },
+    "message": "missing closing quote in string literal",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 138,
+      "row": 62
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 137,
+      "row": 62
+    },
+    "message": "Cannot reuse outer quote character in f-strings on Python 3.11 (syntax was added in Python 3.12)",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 14,
+      "row": 63
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 14,
+      "row": 63
+    },
+    "message": "f-string: unterminated string",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 15,
+      "row": 64
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 64
+    },
+    "message": "f-string: expecting `}`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 25,
+      "row": 64
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 16,
+      "row": 64
+    },
+    "message": "Expected FStringEnd, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 28,
+      "row": 64
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 26,
+      "row": 64
+    },
+    "message": "Expected `,`, found `as`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 31,
+      "row": 64
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 30,
+      "row": 64
+    },
+    "message": "Expected `,`, found `:`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 65
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 31,
+      "row": 64
+    },
+    "message": "Expected `,`, found newline",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 66
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 72,
+      "row": 65
+    },
+    "message": "Expected `,`, found newline",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 18,
+      "row": 66
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 66
+    },
+    "message": "Expected `)`, found `raise`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 5,
+      "row": 68
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/database/qdrant/client.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 68
+    },
+    "message": "Expected `except` or `finally` after `try` block",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 70,
+      "row": 492
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_orchestrator.py",
+    "fix": null,
+    "location": {
+      "column": 69,
+      "row": 492
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 493
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_orchestrator.py",
+    "fix": null,
+    "location": {
+      "column": 70,
+      "row": 492
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 28,
+      "row": 497
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_orchestrator.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 497
+    },
+    "message": "Expected `,`, found string",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 66,
+      "row": 544
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_orchestrator.py",
+    "fix": null,
+    "location": {
+      "column": 65,
+      "row": 544
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 545
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_orchestrator.py",
+    "fix": null,
+    "location": {
+      "column": 66,
+      "row": 544
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 28,
+      "row": 549
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_orchestrator.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 549
+    },
+    "message": "Expected `,`, found string",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 22,
+      "row": 994
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_orchestrator.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 994
+    },
+    "message": "Expected `,`, found string",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 117,
+      "row": 101
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_rag.py",
+    "fix": null,
+    "location": {
+      "column": 116,
+      "row": 101
+    },
+    "message": "Expected `,`, found `}`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 119,
+      "row": 101
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_rag.py",
+    "fix": null,
+    "location": {
+      "column": 117,
+      "row": 101
+    },
+    "message": "missing closing quote in string literal",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 118,
+      "row": 101
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_rag.py",
+    "fix": null,
+    "location": {
+      "column": 117,
+      "row": 101
+    },
+    "message": "Cannot reuse outer quote character in f-strings on Python 3.11 (syntax was added in Python 3.12)",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 25,
+      "row": 102
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_rag.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 102
+    },
+    "message": "Expected `,`, found name",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 14,
+      "row": 104
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_rag.py",
+    "fix": null,
+    "location": {
+      "column": 14,
+      "row": 104
+    },
+    "message": "f-string: unterminated string",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 105
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_rag.py",
+    "fix": null,
+    "location": {
+      "column": 14,
+      "row": 104
+    },
+    "message": "Expected FStringEnd, found newline",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 19,
+      "row": 106
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_rag.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 106
+    },
+    "message": "f-string: expecting `}`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 19,
+      "row": 106
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/docs/備份與歸檔/hybrid_rag.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 106
+    },
+    "message": "Expected `)`, found `return`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 62,
+      "row": 21
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 61,
+      "row": 21
+    },
+    "message": "Expected `:`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 63,
+      "row": 21
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 62,
+      "row": 21
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 22
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 63,
+      "row": 21
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 9,
+      "row": 22
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 22
+    },
+    "message": "Unexpected indentation",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 68,
+      "row": 24
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 67,
+      "row": 24
+    },
+    "message": "Expected `:`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 69,
+      "row": 24
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 68,
+      "row": 24
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 25
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 69,
+      "row": 24
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 10,
+      "row": 25
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 25
+    },
+    "message": "Unexpected indentation",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 5,
+      "row": 29
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 29
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 47
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 47
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 93,
+      "row": 16
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v4.py",
+    "fix": null,
+    "location": {
+      "column": 92,
+      "row": 16
+    },
+    "message": "Expected `:`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 94,
+      "row": 16
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v4.py",
+    "fix": null,
+    "location": {
+      "column": 93,
+      "row": 16
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 17
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v4.py",
+    "fix": null,
+    "location": {
+      "column": 94,
+      "row": 16
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 9,
+      "row": 17
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v4.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 17
+    },
+    "message": "Unexpected indentation",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 38
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v4.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 38
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 93,
+      "row": 15
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 92,
+      "row": 15
+    },
+    "message": "Expected `:`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 94,
+      "row": 15
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 93,
+      "row": 15
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 16
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 94,
+      "row": 15
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 9,
+      "row": 16
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 16
+    },
+    "message": "Unexpected indentation",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 50,
+      "row": 29
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 49,
+      "row": 29
+    },
+    "message": "Expected `:`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 51,
+      "row": 29
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 50,
+      "row": 29
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 52,
+      "row": 29
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 51,
+      "row": 29
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 30
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 53,
+      "row": 29
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 9,
+      "row": 30
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 30
+    },
+    "message": "Unexpected indentation",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 5,
+      "row": 37
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 37
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 39
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v5.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 39
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 93,
+      "row": 13
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 92,
+      "row": 13
+    },
+    "message": "Expected `:`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 94,
+      "row": 13
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 93,
+      "row": 13
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 14
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 94,
+      "row": 13
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 9,
+      "row": 14
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 14
+    },
+    "message": "Unexpected indentation",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 40,
+      "row": 44
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 39,
+      "row": 44
+    },
+    "message": "Expected `:`, found `)`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 41,
+      "row": 44
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 40,
+      "row": 44
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 45
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 41,
+      "row": 44
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 18,
+      "row": 45
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 45
+    },
+    "message": "Unexpected indentation",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 5,
+      "row": 47
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 47
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 49
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/fix_syntax_errors_v6.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 49
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 76,
+      "row": 104
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/genai/workflows/langgraph/agents/semantic_agent.py",
+    "fix": null,
+    "location": {
+      "column": 75,
+      "row": 104
+    },
+    "message": "missing closing quote in string literal",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 105
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/genai/workflows/langgraph/agents/semantic_agent.py",
+    "fix": null,
+    "location": {
+      "column": 76,
+      "row": 104
+    },
+    "message": "Expected `)`, found newline",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 75,
+      "row": 66
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/genai/workflows/langgraph/agents/vision_agent.py",
+    "fix": null,
+    "location": {
+      "column": 74,
+      "row": 66
+    },
+    "message": "missing closing quote in string literal",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 67
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/genai/workflows/langgraph/agents/vision_agent.py",
+    "fix": null,
+    "location": {
+      "column": 75,
+      "row": 66
+    },
+    "message": "Expected `)`, found newline",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 100,
+      "row": 204
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/genai/workflows/langgraph/routing.py",
+    "fix": null,
+    "location": {
+      "column": 99,
+      "row": 204
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 205
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/genai/workflows/langgraph/routing.py",
+    "fix": null,
+    "location": {
+      "column": 100,
+      "row": 204
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 1,
+      "row": 389
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/genai/workflows/langgraph/state.py",
+    "fix": null,
+    "location": {
+      "column": 80,
+      "row": 388
+    },
+    "message": "Expected `)`, found newline",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 80,
+      "row": 51
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/fix_logging_compliance.py",
+    "fix": null,
+    "location": {
+      "column": 79,
+      "row": 51
+    },
+    "message": "Expected a statement",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 81,
+      "row": 51
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/fix_logging_compliance.py",
+    "fix": null,
+    "location": {
+      "column": 80,
+      "row": 51
+    },
+    "message": "missing closing quote in string literal",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 56,
+      "row": 53
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/fix_logging_compliance.py",
+    "fix": null,
+    "location": {
+      "column": 55,
+      "row": 53
+    },
+    "message": "f-string: expecting `}`",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 57,
+      "row": 53
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/fix_logging_compliance.py",
+    "fix": null,
+    "location": {
+      "column": 56,
+      "row": 53
+    },
+    "message": "f-string: single `}` is not allowed",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 66,
+      "row": 76
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/fix_logging_compliance.py",
+    "fix": null,
+    "location": {
+      "column": 64,
+      "row": 76
+    },
+    "message": "missing closing quote in string literal",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 76,
+      "row": 34
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/fix_syntax_errors.py",
+    "fix": null,
+    "location": {
+      "column": 74,
+      "row": 34
+    },
+    "message": "missing closing quote in string literal",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 66,
+      "row": 49
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/fix_syntax_errors_v2.py",
+    "fix": null,
+    "location": {
+      "column": 64,
+      "row": 49
+    },
+    "message": "missing closing quote in string literal",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 51,
+      "row": 334
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/kg_extract_test_file.py",
+    "fix": null,
+    "location": {
+      "column": 50,
+      "row": 334
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 66,
+      "row": 114
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/verify_kg_extraction_results.py",
+    "fix": null,
+    "location": {
+      "column": 65,
+      "row": 114
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 68,
+      "row": 160
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/verify_kg_extraction_results.py",
+    "fix": null,
+    "location": {
+      "column": 67,
+      "row": 160
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 69,
+      "row": 224
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/scripts/verify_kg_extraction_results.py",
+    "fix": null,
+    "location": {
+      "column": 68,
+      "row": 224
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 68,
+      "row": 107
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/processors/parsers/image_parser.py",
+    "fix": null,
+    "location": {
+      "column": 67,
+      "row": 107
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 69,
+      "row": 107
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/processors/parsers/image_parser.py",
+    "fix": null,
+    "location": {
+      "column": 68,
+      "row": 107
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 70,
+      "row": 107
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/processors/parsers/image_parser.py",
+    "fix": null,
+    "location": {
+      "column": 69,
+      "row": 107
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 83,
+      "row": 132
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/governance_report_service.py",
+    "fix": null,
+    "location": {
+      "column": 82,
+      "row": 132
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 84,
+      "row": 132
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/governance_report_service.py",
+    "fix": null,
+    "location": {
+      "column": 83,
+      "row": 132
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 85,
+      "row": 132
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/governance_report_service.py",
+    "fix": null,
+    "location": {
+      "column": 84,
+      "row": 132
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 71,
+      "row": 212
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/governance_report_service.py",
+    "fix": null,
+    "location": {
+      "column": 70,
+      "row": 212
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 72,
+      "row": 212
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/governance_report_service.py",
+    "fix": null,
+    "location": {
+      "column": 71,
+      "row": 212
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 73,
+      "row": 212
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/governance_report_service.py",
+    "fix": null,
+    "location": {
+      "column": 72,
+      "row": 212
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 72,
+      "row": 942
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/user_task_service.py",
+    "fix": null,
+    "location": {
+      "column": 71,
+      "row": 942
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 73,
+      "row": 942
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/user_task_service.py",
+    "fix": null,
+    "location": {
+      "column": 72,
+      "row": 942
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 74,
+      "row": 942
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/user_task_service.py",
+    "fix": null,
+    "location": {
+      "column": 73,
+      "row": 942
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 75,
+      "row": 942
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/services/api/services/user_task_service.py",
+    "fix": null,
+    "location": {
+      "column": 74,
+      "row": 942
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 70,
+      "row": 187
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/storage/file_storage.py",
+    "fix": null,
+    "location": {
+      "column": 69,
+      "row": 187
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 71,
+      "row": 187
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/storage/file_storage.py",
+    "fix": null,
+    "location": {
+      "column": 70,
+      "row": 187
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 72,
+      "row": 187
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/storage/file_storage.py",
+    "fix": null,
+    "location": {
+      "column": 71,
+      "row": 187
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 60,
+      "row": 182
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/location/timezone.py",
+    "fix": null,
+    "location": {
+      "column": 59,
+      "row": 182
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 61,
+      "row": 182
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/location/timezone.py",
+    "fix": null,
+    "location": {
+      "column": 60,
+      "row": 182
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 62,
+      "row": 182
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/location/timezone.py",
+    "fix": null,
+    "location": {
+      "column": 61,
+      "row": 182
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 64,
+      "row": 206
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/text/cleaner.py",
+    "fix": null,
+    "location": {
+      "column": 63,
+      "row": 206
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 65,
+      "row": 206
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/text/cleaner.py",
+    "fix": null,
+    "location": {
+      "column": 64,
+      "row": 206
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 66,
+      "row": 206
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/text/cleaner.py",
+    "fix": null,
+    "location": {
+      "column": 65,
+      "row": 206
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 67,
+      "row": 206
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/text/cleaner.py",
+    "fix": null,
+    "location": {
+      "column": 66,
+      "row": 206
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 66,
+      "row": 187
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/text/formatter.py",
+    "fix": null,
+    "location": {
+      "column": 65,
+      "row": 187
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 67,
+      "row": 187
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/text/formatter.py",
+    "fix": null,
+    "location": {
+      "column": 66,
+      "row": 187
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 68,
+      "row": 187
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/text/formatter.py",
+    "fix": null,
+    "location": {
+      "column": 67,
+      "row": 187
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 69,
+      "row": 187
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/text/formatter.py",
+    "fix": null,
+    "location": {
+      "column": 68,
+      "row": 187
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 89,
+      "row": 212
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/time/datetime_tool.py",
+    "fix": null,
+    "location": {
+      "column": 88,
+      "row": 212
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 90,
+      "row": 212
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/time/datetime_tool.py",
+    "fix": null,
+    "location": {
+      "column": 89,
+      "row": 212
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 91,
+      "row": 212
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/tools/time/datetime_tool.py",
+    "fix": null,
+    "location": {
+      "column": 90,
+      "row": 212
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 56,
+      "row": 298
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/workers/service.py",
+    "fix": null,
+    "location": {
+      "column": 55,
+      "row": 298
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 57,
+      "row": 298
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/workers/service.py",
+    "fix": null,
+    "location": {
+      "column": 56,
+      "row": 298
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 58,
+      "row": 298
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/workers/service.py",
+    "fix": null,
+    "location": {
+      "column": 57,
+      "row": 298
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": {
+      "column": 59,
+      "row": 298
+    },
+    "filename": "/Users/daniel/GitHub/AI-Box/workers/service.py",
+    "fix": null,
+    "location": {
+      "column": 58,
+      "row": 298
+    },
+    "message": "Expected an expression or a ')'",
+    "noqa_row": null,
+    "url": null
+  }
+]

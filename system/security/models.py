@@ -32,9 +32,8 @@ class Permission(str, Enum):
     LLM_CHAT = "llm:chat"
     LLM_EMBEDDING = "llm:embedding"
 
-    # ChromaDB 相關權限
-    CHROMADB_READ = "chromadb:read"
-    CHROMADB_WRITE = "chromadb:write"
+    # ChromaDB 相關權限已移除（已迁移到 Qdrant）
+    # 如需向量数据库权限，请使用 QDRANT_READ 和 QDRANT_WRITE
 
     # ArangoDB 相關權限
     ARANGODB_READ = "arangodb:read"

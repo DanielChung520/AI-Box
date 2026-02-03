@@ -227,7 +227,7 @@ async def receive_alert_webhook(request: Request) -> JSONResponse:
                 # 通過訪問服務的 _alerts_collection 來保存告警
                 try:
                     alerts_collection = alert_service._alerts_collection
-                    alerts_collection.insert(alert_doc, overwrite=True)
+                    alerts_collection.insert(alert_doc)
                 except Exception as e:
                     logger.error(
                         f"Failed to save alert to database: alert_id={alert_id}, error={str(e)}",

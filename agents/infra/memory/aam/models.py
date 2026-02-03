@@ -44,6 +44,13 @@ class Memory:
     access_count: int = 0
     relevance_score: float = 0.0  # 相關度分數（0.0-1.0）
 
+    # Qdrant 擴展欄位
+    user_id: str = ""  # 用於 User Isolation
+    entity_type: str = ""  # 實體類型 (part_number, tlf19, etc.)
+    entity_value: str = ""  # 實體值 (RM05-008, 101, etc.)
+    confidence: float = 0.5  # 置信度 (0.0-1.0)
+    status: str = "active"  # 狀態 (active, archived, review)
+
     def to_dict(self) -> Dict[str, Any]:
         """轉換為字典格式"""
         return {
@@ -57,6 +64,12 @@ class Memory:
             "accessed_at": self.accessed_at.isoformat() if self.accessed_at else None,
             "access_count": self.access_count,
             "relevance_score": self.relevance_score,
+            # Qdrant 擴展欄位
+            "user_id": self.user_id,
+            "entity_type": self.entity_type,
+            "entity_value": self.entity_value,
+            "confidence": self.confidence,
+            "status": self.status,
         }
 
     @classmethod
@@ -85,6 +98,12 @@ class Memory:
             ),
             access_count=data.get("access_count", 0),
             relevance_score=data.get("relevance_score", 0.0),
+            # Qdrant 擴展欄位
+            user_id=data.get("user_id", ""),
+            entity_type=data.get("entity_type", ""),
+            entity_value=data.get("entity_value", ""),
+            confidence=data.get("confidence", 0.5),
+            status=data.get("status", "active"),
         )
 
     def update_access(self) -> None:

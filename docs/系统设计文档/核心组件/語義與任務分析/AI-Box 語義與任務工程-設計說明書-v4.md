@@ -56,33 +56,51 @@
 
 ## 2. 整體架構設計
 
-### 2.1 5層處理流程
+### 2.1 5層處理流程（v4.0 更新：新增 L1.5 Knowledge Signal Mapping）
 
 ```mermaid
 graph TD
     A[User / System Input] --> B[L1: Semantic Understanding]
-    B --> C[L2: Intent & Task Abstraction]
+    B --> B5[L1.5: Knowledge Signal Mapping]
+    B5 --> C[L2: Intent & Task Abstraction]
     C --> D[L3: Capability Mapping & Task Planning]
     D --> E[L4: Constraint Validation & Policy Check]
     E --> F[L5: Execution + Observation]
     F --> G[Memory / Feedback / Model Improvement]
     
+    B5 -->|is_knowledge_event| KA[KA-Agent]
+    KA --> KB[(Vector DB / Graph / Registry)]
+    
     style B fill:#e1f5ff
+    style B5 fill:#fff9c4
     style C fill:#fff4e1
     style D fill:#e8f5e9
     style E fill:#fce4ec
     style F fill:#f3e5f5
+    style KA fill:#c8e6c9
 ```
+
+**重要更新（2026-01-28）**：
+- ✅ 新增 **L1.5: Knowledge Signal Mapping** 層
+- ✅ 定位：語義觀測結果 → 治理事件判斷（純規則、可審計、不可漂移）
+- ✅ KA-Agent **只看 Knowledge Signal，不看 user text**
+- ✅ 向量比對用於 KA-Agent 內部的相似性檢索，不用於語義理解和責任歸屬判斷
 
 ### 2.2 架構層級對應（現有系統 → v4.0）
 
 | v4.0 層級 | 現有系統 | 對應度 | 狀態 |
 |-----------|----------|--------|------|
 | **L1: Semantic Understanding** | Layer 2: Semantic Intent Analysis | 🟢 90% | ✅ 已實現基礎 |
+| **L1.5: Knowledge Signal Mapping** | - | 🟢 100% | ✅ 已實現（2026-01-28 新增） |
 | **L2: Intent & Task Abstraction** | Layer 2: Router Output | 🟡 60% | ⚠️ 需擴展 |
 | **L3: Capability Mapping & Planning** | Layer 3: Decision Engine | 🟢 85% | ✅ 已實現基礎 |
 | **L4: Policy & Constraint** | - | 🔴 30% | ❌ 需新建 |
 | **L5: Execution + Observation** | Orchestrator + Observation | 🟢 80% | ✅ 已實現基礎 |
+
+**重要更新（2026-01-28）**：
+- ✅ 新增 **L1.5: Knowledge Signal Mapping** 層
+- ✅ 解決了「語義分析 ≠ 向量檢索」的架構問題
+- ✅ KA-Agent 現在基於 Knowledge Signal 觸發，而非關鍵字/向量匹配
 
 ---
 
@@ -129,8 +147,169 @@ class SemanticUnderstandingOutput(BaseModel):
 
 **當前實現**：
 - ✅ Router LLM 已實現語義理解基礎
-- ⚠️ 輸出為 `RouterDecision`（包含 `intent_type`, `complexity` 等）
-- 🔴 需要擴展為 `SemanticUnderstandingOutput`
+- ✅ 輸出為 `SemanticUnderstandingOutput`（v4.0 純語義理解輸出）
+- ✅ 包含 `topics`, `entities`, `action_signals`, `modality`, `certainty`
+
+---
+
+## 3.5 L1.5：Knowledge Signal Mapping Layer（知識信號映射層）- v4.0 新增
+
+### 3.5.1 職責定義
+
+> **語義觀測結果 → 治理事件判斷**
+
+**定位非常重要**：
+- ❗ 它不是語義理解
+- ❗ 它不是 intent 分類
+- ❗ 它不是搜尋
+- ✅ 它是 **語義觀測結果 → 治理事件判斷**
+
+### 3.5.2 輸入
+
+- **L1 語義理解輸出**：`SemanticUnderstandingOutput`
+
+### 3.5.3 輸出 Schema
+
+```python
+class KnowledgeSignal:
+    """唯一允許觸發 KA-Agent 的物件"""
+    is_knowledge_event: bool
+    knowledge_type: Optional[KnowledgeType]  # architectural | procedural | factual | operational
+    stability_estimate: Optional[StabilityEstimate]  # low | mid | high
+    reuse_potential: float  # 0.0-1.0
+    skill_candidate: bool
+    confidence: float  # 0.0-1.0
+    reason_codes: List[str]  # 用於 debug 和 audit
+```
+
+**示例輸出**：
+```json
+{
+  "is_knowledge_event": true,
+  "knowledge_type": "architectural",
+  "stability_estimate": "high",
+  "reuse_potential": 0.88,
+  "skill_candidate": false,
+  "confidence": 0.91,
+  "reason_codes": ["DEFINE_ACTION", "SYSTEM_TOPIC", "HIGH_CERTAINTY"]
+}
+```
+
+### 3.5.4 設計原則
+
+1. **純規則映射**：無 LLM、無向量
+2. **可審計**：每一條規則都可 debug
+3. **不可漂移**：deterministic
+
+### 3.5.5 規則映射表
+
+#### Rule Group A：是否為 Knowledge Event
+
+| 條件                                              | 判斷 |
+| ----------------------------------------------- | -- |
+| modality ∈ {instruction, explanation}           | +1 |
+| action_signals 含 define / design / formalize    | +1 |
+| topics 含 system / architecture / agent / policy | +1 |
+| certainty ≥ 0.8                                 | +1 |
+
+**規則**：`score ≥ 3 → is_knowledge_event = true`
+
+#### Rule Group B：Knowledge Type 判斷
+
+| 條件                                         | 類型            |
+| ------------------------------------------ | ------------- |
+| topics 含 architecture / system / framework | architectural |
+| action_signals 含 process / workflow / step | procedural    |
+| entities 以名詞事實為主                           | factual       |
+| action_signals 含 config / operate / deploy | operational   |
+
+**優先級**：architectural > procedural > operational > factual
+
+#### Rule Group C：穩定性（Stability）
+
+| 條件                                  | 判斷   |
+| ----------------------------------- | ---- |
+| action_signals 含 define / formalize | high |
+| action_signals 含 adjust / tweak     | mid  |
+| modality = question                 | low  |
+
+#### Rule Group D：重用潛力（Reuse Potential）
+
+數值計算（上限 1.0）：
+- +0.3 if topics 為 system / agent / architecture
+- +0.3 if entities 為 generic（非 instance）
+- +0.2 if stability = high
+- +0.2 if certainty ≥ 0.85
+
+#### Rule Group E：Skill Candidate 判斷
+
+```text
+skill_candidate = true if:
+- is_knowledge_event = true
+- knowledge_type ∈ {procedural, operational}
+- reuse_potential ≥ 0.7
+```
+
+### 3.5.6 工程實現
+
+**文件位置**：`agents/task_analyzer/knowledge_signal_mapper.py`
+
+**當前實現**：
+- ✅ 已實現純規則映射器
+- ✅ 支持所有 Rule Group A-E
+- ✅ 提供 `reason_codes` 用於 debug 和 audit
+
+### 3.5.7 架構對照
+
+#### ❌ 錯誤設計（向量用於語義理解）
+
+```mermaid
+flowchart TD
+    U[User Input] --> E[Embedding]
+    E --> V[Semantic Vector DB]
+    V -->|similarity| D[Decision]
+    D --> O[Orchestrator]
+    O --> A[Agent / KA-Agent?]
+
+    note right of V
+      相似 ≠ 合法
+      相似 ≠ 穩定
+      相似 ≠ 可治理
+    end
+```
+
+**問題**：
+- Decision 無法解釋
+- KA-Agent 變成機率性被調用
+- Debug 幾乎不可能
+
+#### ✅ 正確設計（向量用於相似性檢索）
+
+```mermaid
+flowchart TD
+    U[User Input] --> L1[Semantic Understanding]
+    L1 --> KS[Knowledge Signal Mapper]
+    KS -->|is_knowledge_event| KA[KA-Agent]
+    KS --> L2[Intent & Task Abstraction]
+    L2 --> P[Planner]
+    P --> O[Orchestrator]
+
+    KA --> KB[(Vector DB / Graph / Registry)]
+
+    note right of KS
+      純規則
+      可審計
+      不用向量
+    end
+
+    note right of KA
+      向量在這裡才是對的
+      用於治理與去重
+    end
+```
+
+**核心原則**：
+> **向量負責「相似性」，語義負責「責任歸屬」，治理只能建在後者之上。**
 
 **實現要求**：
 - ❌ **不產生 intent**（intent 在 L2 層級產生）

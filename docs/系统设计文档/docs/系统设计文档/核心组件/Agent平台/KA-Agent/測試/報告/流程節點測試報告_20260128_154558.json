@@ -1,0 +1,85 @@
+{
+  "test_summary": {
+    "total_nodes": 7,
+    "passed": 2,
+    "failed": 0,
+    "errors": 4,
+    "unknown": 1,
+    "pass_rate": "28.6%",
+    "test_time": "2026-01-28T15:45:58.183588"
+  },
+  "node_results": [
+    {
+      "node_name": "API 路由接收",
+      "node_step": 1,
+      "status": "passed",
+      "duration": "3748.93ms",
+      "details": {
+        "status_code": 500
+      },
+      "error": null,
+      "timestamp": "2026-01-28T15:45:54.241731"
+    },
+    {
+      "node_name": "請求驗證",
+      "node_step": 2,
+      "status": "passed",
+      "duration": "2.39ms",
+      "details": {
+        "status_code": 422,
+        "validation_works": true
+      },
+      "error": null,
+      "timestamp": "2026-01-28T15:45:54.244154"
+    },
+    {
+      "node_name": "服務初始化",
+      "node_step": 3,
+      "status": "error",
+      "duration": "0.12ms",
+      "details": {},
+      "error": "Import error: No module named 'api'",
+      "timestamp": "2026-01-28T15:45:54.244283"
+    },
+    {
+      "node_name": "Task Analyzer 分析",
+      "node_step": 7,
+      "status": "unknown",
+      "duration": "3939.06ms",
+      "details": {
+        "status_code": 500,
+        "error_code": "CHAT_PRODUCT_FAILED",
+        "note": "需要檢查服務器日誌確認執行狀態"
+      },
+      "error": null,
+      "timestamp": "2026-01-28T15:45:58.183395"
+    },
+    {
+      "node_name": "Agent 選擇",
+      "node_step": 8,
+      "status": "error",
+      "duration": "0.09ms",
+      "details": {},
+      "error": "Import error: No module named 'agents'",
+      "timestamp": "2026-01-28T15:45:58.183500"
+    },
+    {
+      "node_name": "Agent 執行",
+      "node_step": 9,
+      "status": "error",
+      "duration": "0.04ms",
+      "details": {},
+      "error": "Import error: No module named 'agents'",
+      "timestamp": "2026-01-28T15:45:58.183546"
+    },
+    {
+      "node_name": "LLM 調用",
+      "node_step": 12,
+      "status": "error",
+      "duration": "0.03ms",
+      "details": {},
+      "error": "Import error: No module named 'api'",
+      "timestamp": "2026-01-28T15:45:58.183579"
+    }
+  ]
+}

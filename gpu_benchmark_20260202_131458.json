@@ -1,0 +1,41 @@
+{
+  "gpu_info": {
+    "error": "无法获取 GPU 信息"
+  },
+  "test_time": "2026-02-02T13:14:58.857698",
+  "test_prompt": "能將採購流程用mermaid 幫我根據TIPTOP的入庫流程嗎？簡單回答即可。",
+  "results": {
+    "llama3:8b": {
+      "model_info": {
+        "size_bytes": 4661224676,
+        "size_gb": 4.66,
+        "parameter_size": "8.0B",
+        "quantization": "Q4_0",
+        "format": "gguf"
+      },
+      "avg_latency_ms": 3862.9164889765284,
+      "min_latency_ms": 3138.115374953486,
+      "max_latency_ms": 4397.46995200403,
+      "std_latency_ms": 650.8756518848508,
+      "avg_tokens_per_sec": 45.38122685937828,
+      "success_rate": 100.0,
+      "test_runs": null
+    },
+    "mistral-nemo:12b": {
+      "model_info": {
+        "size_bytes": 7071713227,
+        "size_gb": 7.07,
+        "parameter_size": "12.2B",
+        "quantization": "Q4_0",
+        "format": "gguf"
+      },
+      "avg_latency_ms": 5048.03873769318,
+      "min_latency_ms": 2742.6339250523597,
+      "max_latency_ms": 7612.854252103716,
+      "std_latency_ms": 2445.451275869251,
+      "avg_tokens_per_sec": 25.218837059143485,
+      "success_rate": 100.0,
+      "test_runs": null
+    }
+  }
+}

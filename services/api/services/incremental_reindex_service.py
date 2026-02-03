@@ -109,12 +109,40 @@ class IncrementalReindexService:
             chunk_texts = [chunk.get("text", "") for chunk in chunks_to_reindex]
             new_embeddings = await self.embedding_service.generate_embeddings_batch(chunk_texts)
 
-            # 6. 更新 ChromaDB
-            self._update_vectors_in_chromadb(
+            # 6. 更新 Qdrant 向量（已从 ChromaDB 迁移）
+            # 使用 Qdrant 向量存储服务更新向量
+            from services.api.services.qdrant_vector_store_service import get_qdrant_vector_store_service
+            
+            qdrant_service = get_qdrant_vector_store_service()
+            collection = qdrant_service.get_or_create_collection(file_id, user_id)
+            
+            # 准备数据
+            ids = [f"{file_id}_{chunk.get('chunk_index', i)}" for i, chunk in enumerate(chunks_to_reindex)]
+            documents = [chunk.get("text", "") for chunk in chunks_to_reindex]
+            metadatas = []
+            for i, chunk in enumerate(chunks_to_reindex):
+                chunk_metadata = chunk.get("metadata", {})
+                metadata = {
+                    **chunk_metadata,
+                    "file_id": file_id,
+                    "chunk_index": chunk.get("chunk_index", i),
+                    "chunk_text": chunk.get("text", "")[:200],
+                }
+                if user_id:
+                    metadata["user_id"] = user_id
+                metadatas.append(metadata)
+            
+            # 更新向量
+            collection.upsert(
+                ids=ids,
+                vectors=new_embeddings,
+                payloads=[{"text": doc, **meta} for doc, meta in zip(documents, metadatas)],
+            )
+            
+            logger.info(
+                f"成功更新 {len(chunks_to_reindex)} 個向量到 Qdrant",
                 file_id=file_id,
-                chunks=chunks_to_reindex,
-                embeddings=new_embeddings,
-                user_id=user_id,
+                chunk_count=len(chunks_to_reindex),
             )
 
             logger.info(
@@ -266,77 +294,5 @@ class IncrementalReindexService:
 
         return affected_indices
 
-    def _update_vectors_in_chromadb(
-        self,
-        file_id: str,
-        chunks: List[Dict[str, Any]],
-        embeddings: List[List[float]],
-        user_id: Optional[str] = None,
-    ) -> None:
-        """
-        更新 ChromaDB 中的向量
-
-        Args:
-            file_id: 文件 ID
-            chunks: 要更新的 chunks 列表
-            embeddings: 新的 embeddings 列表
-            user_id: 用戶 ID（可選）
-        """
-        if len(chunks) != len(embeddings):
-            raise ValueError(
-                f"Chunks count ({len(chunks)}) and embeddings count ({len(embeddings)}) must match"
-            )
-
-        try:
-            collection = self.vector_store_service.get_or_create_collection(file_id, user_id)
-
-            # 準備數據
-            ids = [f"{file_id}_{chunk.get('chunk_index', i)}" for i, chunk in enumerate(chunks)]
-            documents = [chunk.get("text", "") for chunk in chunks]
-            metadatas = []
-            for i, chunk in enumerate(chunks):
-                chunk_metadata = chunk.get("metadata", {})
-                direct_metadata = {}
-                for k, v in chunk.items():
-                    if k not in ["text", "metadata"] and v is not None:
-                        if isinstance(v, (list, dict)):
-                            direct_metadata[k] = json.dumps(v, ensure_ascii=False)
-                        else:
-                            direct_metadata[k] = v
-
-                cleaned_chunk_metadata = {}
-                for k, v in chunk_metadata.items():
-                    if isinstance(v, (list, dict)):
-                        cleaned_chunk_metadata[k] = json.dumps(v, ensure_ascii=False)
-                    else:
-                        cleaned_chunk_metadata[k] = v
-
-                metadata = {
-                    **cleaned_chunk_metadata,
-                    **direct_metadata,
-                    "file_id": file_id,
-                    "chunk_index": chunk.get("chunk_index", i),
-                    "chunk_text": chunk.get("text", "")[:200],
-                }
-
-                if user_id:
-                    metadata["user_id"] = user_id
-                metadatas.append(metadata)
-
-            # 更新向量（使用 update 方法）
-            collection.update(
-                ids=ids,
-                embeddings=embeddings,
-                documents=documents,
-                metadatas=metadatas,
-            )
-
-            logger.info(
-                f"成功更新 {len(chunks)} 個向量",
-                file_id=file_id,
-                chunk_count=len(chunks),
-            )
-
-        except Exception as e:
-            logger.error(f"更新 ChromaDB 向量失敗: {e}", exc_info=True)
-            raise
+    # _update_vectors_in_chromadb 方法已移除（已迁移到 Qdrant）
+    # 请使用 Qdrant 向量存储服务进行向量更新

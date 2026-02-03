@@ -1,7 +1,7 @@
 # 代碼功能說明: RQ Worker Service 管理模組
 # 創建日期: 2025-12-12
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-21 04:39 UTC+8
+# 最後修改日期: 2026-01-25 22:30 UTC+8
 
 """RQ Worker Service 管理模組 - 提供 Worker 的啟動、監控、重啟等功能"""
 
@@ -51,25 +51,30 @@ class WorkerService:
         redis_url: Optional[str] = None,
         log_file: Optional[str] = None,
         python_path: Optional[str] = None,
+        num_workers: int = 1,
     ):
         """
         初始化 Worker Service
 
         Args:
             queue_names: 要監聽的隊列名稱列表
-            worker_name: Worker 名稱（默認為自動生成）
+            worker_name: Worker 名稱（默認為自動生成 UUID）
             redis_url: Redis URL（默認從環境變數讀取）
             log_file: 日誌文件路徑（默認自動生成）
             python_path: Python 可執行文件路徑（默認自動檢測）
+            num_workers: Worker 實例數量（並發處理，默認 1）
         """
+        import uuid
+
         self.queue_names = queue_names
-        self.worker_name = worker_name or f"rq_worker_{os.getpid()}"
+        self.worker_name = worker_name or str(uuid.uuid4())[:8]  # 使用 UUID 前 8 位作為名稱
         self.redis_url = redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0")
         self.log_file = log_file or str(LOG_DIR / f"rq_worker_{self.worker_name}.log")
         self.python_path = python_path or self._detect_python_path()
         self.rq_command = self._detect_rq_command()
+        self.num_workers = num_workers
 
-        self.process: Optional[subprocess.Popen] = None
+        self.processes: List[subprocess.Popen] = []  # 支持多個 worker 實例
         self.is_running = False
         self.restart_count = 0
         self.max_restarts = 10  # 最大重啟次數
@@ -85,11 +90,7 @@ class WorkerService:
         if venv_python.exists():
             return str(venv_python)
 
-        venv_python = PROJECT_ROOT / ".venv" / "bin" / "python"
-        if venv_python.exists():
-            return str(venv_python)
-
-        # 使用系統 Python
+        # 使用系統 Python（專案統一使用 venv，不使用 .venv）
         return sys.executable
 
     def _detect_rq_command(self) -> str:
@@ -99,11 +100,7 @@ class WorkerService:
         if venv_rq.exists():
             return str(venv_rq)
 
-        venv_rq = PROJECT_ROOT / ".venv" / "bin" / "rq"
-        if venv_rq.exists():
-            return str(venv_rq)
-
-        # 使用系統 rq 命令（如果可用）
+        # 使用系統 rq 命令（如果可用；專案統一使用 venv）
         import shutil
 
         rq_path = shutil.which("rq")
@@ -241,10 +238,8 @@ class WorkerService:
                 queues=self.queue_names,
                 redis_url=self.redis_url,
                 log_file=self.log_file,
+                num_workers=self.num_workers,
             )
-
-            # 打開日誌文件
-            log_file_handle = open(self.log_file, "a")
 
             # 修改時間：2025-12-31 - 確保 Worker 進程能夠訪問環境變數
             # 重新加載 .env 文件以確保環境變數可用（因為 Worker 是子進程）
@@ -261,7 +256,9 @@ class WorkerService:
                     for key, value in env_vars.items():
                         if value is not None and key not in worker_env:
                             worker_env[key] = value
-                    logger.info("已將 .env 文件中的環境變數添加到 Worker 環境", env_file=str(env_file))
+                    logger.info(
+                        "已將 .env 文件中的環境變數添加到 Worker 環境", env_file=str(env_file)
+                    )
             except ImportError:
                 logger.warning("python-dotenv 未安裝，無法從 .env 文件加載環境變數到 Worker")
             except Exception as e:
@@ -273,23 +270,74 @@ class WorkerService:
                 worker_env["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
                 logger.info("已設置 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES 以解決 macOS fork 問題")
 
-            # 啟動進程
-            # 過濾 None 值，確保 cmd 列表中的元素都是字符串
-            cmd_filtered: list[str] = [arg for arg in cmd if arg is not None]
-            self.process = subprocess.Popen(
-                cmd_filtered,  # type: ignore[arg-type]  # 已過濾 None，但 mypy 仍報告類型錯誤
-                cwd=str(PROJECT_ROOT),
-                env=worker_env,
-                stdout=log_file_handle,
-                stderr=subprocess.STDOUT,
-                preexec_fn=os.setsid,  # 創建新的進程組
-            )
+            # 修改時間：2026-01-25 - 支持啟動多個 worker 實例（並發處理）
+            # 啟動多個 worker 進程以實現並發處理
+            self.processes = []
+            for i in range(self.num_workers):
+                # 為每個 worker 實例生成唯一的名稱
+                instance_name = (
+                    f"{self.worker_name}_{i + 1}" if self.num_workers > 1 else self.worker_name
+                )
+                instance_log_file = (
+                    str(LOG_DIR / f"rq_worker_{instance_name}.log")
+                    if self.num_workers > 1
+                    else self.log_file
+                )
+
+                # 構建該實例的命令（使用實例名稱）
+                if self.rq_command:
+                    instance_cmd = [
+                        self.rq_command,
+                        "worker",
+                        *self.queue_names,
+                        "--name",
+                        instance_name,
+                        "--url",
+                        self.redis_url,
+                        "--with-scheduler",
+                    ]
+                else:
+                    instance_cmd = [
+                        self.python_path,
+                        "-m",
+                        "rq.cli",
+                        "worker",
+                        *self.queue_names,
+                        "--name",
+                        instance_name,
+                        "--url",
+                        self.redis_url,
+                        "--with-scheduler",
+                    ]
+
+                # 打開日誌文件
+                log_file_handle = open(instance_log_file, "a")
+
+                # 過濾 None 值，確保 cmd 列表中的元素都是字符串
+                cmd_filtered: list[str] = [arg for arg in instance_cmd if arg is not None]
+                process = subprocess.Popen(
+                    cmd_filtered,  # type: ignore[arg-type]  # 已過濾 None，但 mypy 仍報告類型錯誤
+                    cwd=str(PROJECT_ROOT),
+                    env=worker_env,
+                    stdout=log_file_handle,
+                    stderr=subprocess.STDOUT,
+                    preexec_fn=os.setsid,  # 創建新的進程組
+                )
+
+                self.processes.append(process)
+                logger.info(
+                    "RQ Worker 實例已啟動",
+                    instance=i + 1,
+                    total=self.num_workers,
+                    pid=process.pid,
+                    worker_name=instance_name,
+                )
 
             self.is_running = True
             logger.info(
-                "RQ Worker 已啟動",
-                pid=self.process.pid,
-                worker_name=self.worker_name,
+                "所有 RQ Worker 實例已啟動",
+                num_workers=self.num_workers,
+                pids=[p.pid for p in self.processes],
             )
 
             return True
@@ -301,41 +349,56 @@ class WorkerService:
 
     def stop(self) -> bool:
         """
-        停止 Worker
+        停止所有 Worker 實例
 
         Returns:
             是否成功停止
         """
-        if not self.is_running or self.process is None:
+        if not self.is_running or not self.processes:
             return True
 
         try:
-            logger.info("停止 RQ Worker", pid=self.process.pid)
+            logger.info(
+                "停止 RQ Worker 實例",
+                num_workers=len(self.processes),
+                pids=[p.pid for p in self.processes],
+            )
 
-            # 發送 SIGTERM 信號給整個進程組
-            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+            # 停止所有 worker 實例
+            for i, process in enumerate(self.processes):
+                try:
+                    # 發送 SIGTERM 信號給整個進程組
+                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                except ProcessLookupError:
+                    # 進程已經不存在，跳過
+                    logger.warning(f"Worker 實例 {i + 1} (PID {process.pid}) 已不存在")
+                    continue
 
-            # 等待進程結束（最多等待 10 秒）
-            try:
-                self.process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                # 如果 10 秒內沒有結束，強制終止
-                logger.warning("Worker 未在 10 秒內結束，強制終止")
-                os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
-                self.process.wait()
+            # 等待所有進程結束（最多等待 10 秒）
+            for i, process in enumerate(self.processes):
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    # 如果 10 秒內沒有結束，強制終止
+                    logger.warning(
+                        f"Worker 實例 {i + 1} (PID {process.pid}) 未在 10 秒內結束，強制終止"
+                    )
+                    try:
+                        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                        process.wait()
+                    except ProcessLookupError:
+                        pass  # 進程已不存在
 
             self.is_running = False
-            self.process = None
-            logger.info("RQ Worker 已停止")
+            self.processes = []
+            logger.info("所有 RQ Worker 實例已停止")
             return True
 
-        except ProcessLookupError:
-            # 進程已經不存在
-            self.is_running = False
-            self.process = None
-            return True
         except Exception as e:
             logger.error("停止 Worker 失敗", error=str(e), exc_info=True)
+            # 即使部分失敗，也標記為已停止
+            self.is_running = False
+            self.processes = []
             return False
 
     def restart(self) -> bool:
@@ -361,23 +424,30 @@ class WorkerService:
 
     def is_alive(self) -> bool:
         """
-        檢查 Worker 是否還在運行
+        檢查所有 Worker 實例是否還在運行
 
         Returns:
-            Worker 是否存活
+            是否至少有一個 Worker 實例存活
         """
-        if not self.is_running or self.process is None:
+        if not self.is_running or not self.processes:
             return False
 
-        # 檢查進程是否還在運行
-        return_code = self.process.poll()
-        if return_code is not None:
-            # 進程已經結束
-            logger.warning(
-                "Worker 進程已結束",
-                pid=self.process.pid,
-                return_code=return_code,
-            )
+        # 檢查所有進程是否還在運行
+        alive_count = 0
+        for i, process in enumerate(self.processes):
+            return_code = process.poll()
+            if return_code is not None:
+                # 進程已經結束
+                logger.warning(
+                    f"Worker 實例 {i + 1} 進程已結束",
+                    pid=process.pid,
+                    return_code=return_code,
+                )
+            else:
+                alive_count += 1
+
+        # 如果所有實例都結束了，標記為未運行
+        if alive_count == 0:
             self.is_running = False
             return False
 
@@ -430,7 +500,8 @@ class WorkerService:
             "worker_name": self.worker_name,
             "is_running": self.is_running,
             "is_alive": self.is_alive(),
-            "pid": self.process.pid if self.process else None,
+            "num_workers": self.num_workers,
+            "pids": [p.pid for p in self.processes] if self.processes else [],
             "queue_names": self.queue_names,
             "restart_count": self.restart_count,
             "log_file": self.log_file,
@@ -477,6 +548,12 @@ def main():
         default=30,
         help="監控檢查間隔（秒，默認 30）",
     )
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=5,
+        help="Worker 實例數量（並發處理，默認 5）",
+    )
 
     args = parser.parse_args()
 
@@ -486,6 +563,7 @@ def main():
         worker_name=args.name,
         redis_url=args.redis_url,
         log_file=args.log_file,
+        num_workers=args.num_workers,
     )
 
     # 啟動 Worker
@@ -497,12 +575,14 @@ def main():
     if args.monitor:
         service.monitor(check_interval=args.check_interval)
     else:
-        # 否則等待進程結束
-        if service.process is None:
-            logger.warning("Worker process is None, cannot wait")
+        # 否則等待所有進程結束
+        if not service.processes:
+            logger.warning("Worker processes is empty, cannot wait")
             return
         try:
-            service.process.wait()  # type: ignore[union-attr]  # 已檢查不為 None
+            # 等待所有 worker 實例結束
+            for process in service.processes:
+                process.wait()  # type: ignore[union-attr]  # 已檢查不為空
         except KeyboardInterrupt:
             logger.info("收到中斷信號，停止 Worker")
             service.stop()

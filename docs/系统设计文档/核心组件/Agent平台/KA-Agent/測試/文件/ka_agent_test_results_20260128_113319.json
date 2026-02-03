@@ -1,0 +1,37 @@
+[
+  {
+    "test_id": "KA-TEST-001",
+    "test_name": "知識庫文件數量查詢",
+    "passed": false,
+    "message": "API 請求錯誤: 500 Server Error: Internal Server Error for url: http://localhost:8000/api/v1/chat",
+    "timestamp": "2026-01-28T11:31:26.772486"
+  },
+  {
+    "test_id": "KA-TEST-005",
+    "test_name": "關鍵詞檢索",
+    "passed": false,
+    "message": "API 請求錯誤: 500 Server Error: Internal Server Error for url: http://localhost:8000/api/v1/chat",
+    "timestamp": "2026-01-28T11:32:18.184953"
+  },
+  {
+    "test_id": "KA-TEST-006",
+    "test_name": "問答式查詢",
+    "passed": false,
+    "message": "API 請求錯誤: 500 Server Error: Internal Server Error for url: http://localhost:8000/api/v1/chat",
+    "timestamp": "2026-01-28T11:33:09.003214"
+  },
+  {
+    "test_id": "KA-TEST-016",
+    "test_name": "空查詢",
+    "passed": false,
+    "message": "API 請求錯誤: 422 Client Error: Unprocessable Entity for url: http://localhost:8000/api/v1/chat",
+    "timestamp": "2026-01-28T11:33:09.008300"
+  },
+  {
+    "test_id": "KA-TEST-019",
+    "test_name": "權限不足",
+    "passed": false,
+    "message": "API 請求錯誤: 500 Server Error: Internal Server Error for url: http://localhost:8000/api/v1/chat",
+    "timestamp": "2026-01-28T11:33:19.609653"
+  }
+]

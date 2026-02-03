@@ -123,11 +123,11 @@ class TaskExecutorAgent(BaseAgentNode):
             return TaskExecutionResult(
                 task_id=orchestration_result.task_id,
                 execution_success=True,
-                results=[]
+                results=[],
                 execution_time=5.0,
                 agent_count=1,
                 error_count=0,
-                output_files=[]
+                output_files=[],
                 reasoning="Successfully executed scheduled agents.",
             )
         except Exception as e:

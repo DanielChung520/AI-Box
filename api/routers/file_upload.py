@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件上傳路由
 # 創建日期: 2025-01-27 23:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-23 01:33 UTC+8
+# 最後修改日期: 2026-01-27 23:00 UTC+8
 
 """文件上傳路由 - 提供文件上傳、驗證和存儲功能"""
 
@@ -10,6 +10,7 @@ import os
 import time
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import structlog
@@ -22,7 +23,7 @@ from database.redis import get_redis_client
 from database.rq.queue import FILE_PROCESSING_QUEUE, get_task_queue
 from genai.api.services.kg_builder_service import KGBuilderService
 from services.api.models.audit_log import AuditAction
-from services.api.models.data_consent import ConsentType
+from services.api.models.data_consent import ConsentType, DataConsentCreate
 from services.api.models.file_metadata import FileMetadataCreate, FileMetadataUpdate
 from services.api.models.user_task import UserTaskCreate
 from services.api.services.embedding_service import get_embedding_service
@@ -73,7 +74,9 @@ class BlankMarkdownCreateRequest(BaseModel):
     """建立空白 Markdown 檔案（不走 upload multipart）。"""
 
     task_id: str = Field(..., description="任務ID（必填）")
-    folder_id: Optional[str] = Field(None, description="資料夾ID（可選；None 表示任務工作區根目錄）")
+    folder_id: Optional[str] = Field(
+        None, description="資料夾ID（可選；None 表示任務工作區根目錄）"
+    )
     filename: str = Field(..., description="檔名（會自動補 .md）")
 
 
@@ -92,11 +95,11 @@ def get_worker_job_timeout() -> int:
             logger.warning(
                 "failed_to_load_worker_config_from_arangodb",
                 error=str(e),
-                message="從 ArangoDB 讀取 worker 配置失敗，使用默認值 3600 秒",
+                message="從 ArangoDB 讀取 worker 配置失敗，使用默認值 3600 秒（生產環境）",
             )
 
-    # 默認值：900 秒（15分鐘）- 測試階段快速發現問題；生產環境可調整為 3600 秒
-    return 900
+    # 默認值：3600 秒（1小時）- 調整為適合知識庫上傳的長時間處理
+    return 3600
 
 
 def get_validator() -> FileValidator:
@@ -599,6 +602,53 @@ async def _generate_file_summary_for_metadata(
         return None
 
 
+async def _encode_knowledge_asset_async(
+    file_id: str,
+    filename: str,
+    file_content_preview: Optional[str],
+    file_type: Optional[str],
+    user_id: str,
+    task_id: Optional[str],
+    vector_refs: Optional[List[str]] = None,
+    graph_refs: Optional[Dict[str, Any]] = None,
+) -> None:
+    """異步執行知識資產編碼並寫入 file_metadata（規格 13.6.2）。編碼失敗不影響上傳。"""
+    try:
+        from services.api.models.file_metadata import FileMetadataUpdate
+        from services.api.services.file_metadata_service import get_metadata_service
+        from services.api.services.knowledge_asset_encoding_service import (
+            KnowledgeAssetEncodingService,
+        )
+
+        enc_svc = KnowledgeAssetEncodingService()
+        enc = await enc_svc.encode_file(
+            file_id=file_id,
+            filename=filename,
+            file_content_preview=file_content_preview,
+            file_metadata={"file_type": file_type, "user_id": user_id, "task_id": task_id},
+        )
+        meta = get_metadata_service()
+        update_kw: Dict[str, Any] = {
+            "knw_code": enc["knw_code"],
+            "ka_id": enc["ka_id"],
+            "domain": enc["domain"],
+            "major": enc.get("major"),
+            "lifecycle_state": enc["lifecycle_state"],
+            "version": enc["version"],
+        }
+        if vector_refs is not None:
+            update_kw["vector_refs"] = vector_refs
+        if graph_refs is not None:
+            update_kw["graph_refs"] = graph_refs
+        meta.update(file_id, FileMetadataUpdate(**update_kw))
+        logger.info(f"知識資產編碼完成: file_id={file_id}, knw_code={enc['knw_code']}")
+    except Exception as e:
+        logger.warning(
+            f"知識資產編碼失敗，使用默認值不影響上傳: file_id={file_id}, error={e}",
+            exc_info=True,
+        )
+
+
 async def process_file_chunking_and_vectorization(
     file_id: str,
     file_path: str,
@@ -914,7 +964,7 @@ async def process_file_chunking_and_vectorization(
                 timing=timing_records["vectorization"],
             )
 
-            # ========== 階段3: 存儲到 ChromaDB (90-100%) ==========
+            # ========== 階段3: 存儲到 Qdrant (90-100%) ==========
             # 記錄存儲開始時間
             timing_records["storage"]["start"] = time.time()
 
@@ -1192,6 +1242,36 @@ async def process_file_chunking_and_vectorization(
             collection_name=stats["collection_name"] if stats else None,
         )
 
+        # 知識資產編碼（v4.4）：completed / partial_completed 時執行並寫入 file_metadata
+        # 必須 await，否則 RQ Worker 的 loop.run_until_complete 結束後 loop.close() 會取消
+        # create_task 的編碼任務，導致 KA 屬性從未寫入（規格 5.2、5.4.1）。
+        if overall_status in ("completed", "partial_completed"):
+            filename_for_encoding = Path(file_path).name if file_path else "unknown"
+            preview = (
+                (chunks[0].get("text") or "")[:2000]
+                if chunks and isinstance(chunks[0], dict)
+                else None
+            )
+            vec_refs: Optional[List[str]] = None
+            if stats and stats.get("collection_name"):
+                vec_refs = [str(stats["collection_name"])]
+            graph_refs_val: Optional[Dict[str, Any]] = None
+            if kg_extraction_success and not is_image_file:
+                graph_refs_val = {
+                    "entities_collection": "entities",
+                    "relations_collection": "relations",
+                }
+            await _encode_knowledge_asset_async(
+                file_id=file_id,
+                filename=filename_for_encoding,
+                file_content_preview=preview,
+                file_type=file_type,
+                user_id=user_id,
+                task_id=task_id_from_metadata,
+                vector_refs=vec_refs,
+                graph_refs=graph_refs_val,
+            )
+
     except Exception as e:
         logger.error(
             "文件處理失敗",
@@ -1418,7 +1498,7 @@ async def process_vectorization_only(
             vector_count=len(embeddings),
         )
 
-        # ========== 階段4: 存儲到 ChromaDB (90-100%) ==========
+        # ========== 階段4: 存儲到 Qdrant (90-100%) ==========
         _update_processing_status(
             file_id=file_id,
             storage={"status": "processing", "progress": 0, "message": "開始存儲向量"},
@@ -1494,8 +1574,15 @@ async def process_vectorization_only(
             error=str(e),
             exc_info=True,
         )
+        # 修改時間：2026-02-01 - 失敗時也要更新 vectorization 狀態，確保 file_metadata.vector_count 被正確更新
         _update_processing_status(
             file_id=file_id,
+            vectorization={
+                "status": "failed",
+                "progress": 0,
+                "message": f"向量化失敗: {str(e)}",
+                "vector_count": 0,  # 明確設置 vector_count 為 0
+            },
             overall_status="failed",
             overall_progress=0,
             message=f"向量化處理失敗: {str(e)}",
@@ -1508,7 +1595,7 @@ async def _reconstruct_chunks_from_vectors(
     user_id: str,
 ) -> Optional[List[Dict[str, Any]]]:
     """
-    從 ChromaDB 中已存在的向量重構 chunks
+    從 Qdrant 中已存在的向量重構 chunks
 
     Args:
         file_id: 文件ID
@@ -1826,36 +1913,46 @@ async def process_kg_extraction_only(
             message="開始圖譜提取處理",
         )
 
-        # ========== 清理舊圖譜數據（重新生成時）==========
-        try:
-            kg_builder_service = KGBuilderService()
-            cleanup_result = kg_builder_service.remove_file_associations(file_id)
-            if (
-                cleanup_result.get("relations_deleted", 0) > 0
-                or cleanup_result.get("entities_deleted", 0) > 0
-            ):
+        # ========== 清理舊圖譜數據（僅在 force_rechunk=True 時重新生成）==========
+        # 修改時間：2026-01-27 - 修復續跑流程：只在 force_rechunk=True 時清理 chunk_state
+        # 續跑任務應該保留已完成的 chunks 狀態，只處理剩餘的分塊
+        if force_rechunk:
+            try:
+                kg_builder_service = KGBuilderService()
+                cleanup_result = kg_builder_service.remove_file_associations(file_id)
+                if (
+                    cleanup_result.get("relations_deleted", 0) > 0
+                    or cleanup_result.get("entities_deleted", 0) > 0
+                ):
+                    logger.info(
+                        "清理舊圖譜數據以重新生成",
+                        file_id=file_id,
+                        relations_deleted=cleanup_result.get("relations_deleted", 0),
+                        entities_deleted=cleanup_result.get("entities_deleted", 0),
+                    )
+                # 清理 chunk 狀態（僅在重新生成時重置續跑狀態）
+                # 清理 Redis 中的 chunk 狀態
+                redis_client = get_redis_client()  # noqa: F823
+                chunk_state_key = f"kg:chunk_state:{file_id}"
+                redis_client.delete(chunk_state_key)
                 logger.info(
-                    "清理舊圖譜數據以重新生成",
+                    "舊圖譜數據和狀態清理完成（force_rechunk=True）",
                     file_id=file_id,
-                    relations_deleted=cleanup_result.get("relations_deleted", 0),
-                    entities_deleted=cleanup_result.get("entities_deleted", 0),
                 )
-            # 清理 chunk 狀態（重置續跑狀態）
-            # 清理 Redis 中的 chunk 狀態
-            redis_client = get_redis_client()  # noqa: F823
-            chunk_state_key = f"kg:chunk_state:{file_id}"
-            redis_client.delete(chunk_state_key)
+            except Exception as e:
+                logger.warning(
+                    "清理舊圖譜數據時發生錯誤（繼續執行）",
+                    file_id=file_id,
+                    error=str(e),
+                )
+                # 不阻止重新生成流程
+        else:
+            # 續跑任務：保留已完成的 chunks 狀態，只處理剩餘分塊
             logger.info(
-                "舊圖譜數據和狀態清理完成",
+                "續跑任務：保留已完成的 chunks 狀態",
                 file_id=file_id,
+                force_rechunk=force_rechunk,
             )
-        except Exception as e:
-            logger.warning(
-                "清理舊圖譜數據時發生錯誤（繼續執行）",
-                file_id=file_id,
-                error=str(e),
-            )
-            # 不阻止重新生成流程
 
         chunks = None
 
@@ -2127,7 +2224,9 @@ async def upload_files(
     request: Request,
     files: List[UploadFile] = File(...),
     task_id: Optional[str] = Form(None, description="任務ID（可選，用於組織文件到工作區）"),
-    target_folder_id: Optional[str] = Form(None, description="目標資料夾ID（可選，未提供則放任務工作區）"),
+    target_folder_id: Optional[str] = Form(
+        None, description="目標資料夾ID（可選，未提供則放任務工作區）"
+    ),
     current_user: User = Depends(require_consent(ConsentType.FILE_UPLOAD)),
 ) -> JSONResponse:
     # 修改時間：2025-01-27 - 添加日誌記錄以便調試 JWT 認證問題
@@ -2549,6 +2648,31 @@ async def upload_files(
                     "filename": file.filename,
                     "error": error_message,
                 }
+            )
+
+    # 修改時間：2026-01-28 - 文件上傳/知識上架成功時，為上傳者自動寫入 AI 處理同意（若尚未同意）
+    if results:
+        try:
+            from services.api.services.data_consent_service import get_consent_service
+
+            consent_service = get_consent_service()
+            consent_service.record_consent(
+                current_user.user_id,
+                DataConsentCreate(
+                    consent_type=ConsentType.AI_PROCESSING,
+                    purpose="文件上傳/知識上架時自動同意",
+                    granted=True,
+                    expires_at=None,
+                ),
+            )
+            logger.info(
+                f"ai_processing_consent_recorded_after_upload: "
+                f"user_id={current_user.user_id}, success_count={len(results)}"
+            )
+        except Exception as e:
+            logger.warning(
+                f"record_ai_consent_after_upload_failed: "
+                f"user_id={current_user.user_id}, error={str(e)}"
             )
 
     # 構建響應
@@ -3261,7 +3385,7 @@ async def delete_file(
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        # 1. 刪除ChromaDB中的向量
+        # 1. 刪除 Qdrant 中的向量
         try:
             vector_store_service = get_qdrant_vector_store_service()
             vector_store_service.delete_vectors_by_file_id(

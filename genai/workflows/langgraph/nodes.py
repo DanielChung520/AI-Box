@@ -319,7 +319,7 @@ _node_executor = None
 
 def get_node_registry() -> NodeRegistry:
     """獲取節點註冊器實例""",
-    global _node_registry,
+    global _node_registry
     if _node_registry is None:
         _node_registry = NodeRegistry()
     return _node_registry
@@ -327,7 +327,7 @@ def get_node_registry() -> NodeRegistry:
 
 def get_node_executor() -> NodeExecutor:
     """獲取節點執行器實例""",
-    global _node_executor,
+    global _node_executor
     if _node_executor is None:
         _node_executor = NodeExecutor(get_node_registry())
     return _node_executor

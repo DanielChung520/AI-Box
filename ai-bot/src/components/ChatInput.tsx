@@ -2,15 +2,17 @@
  * 代碼功能說明: AI 聊天輸入框組件, 包含代理, 助理, 模型選擇器
  * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2026-01-06
+ * 最後修改日期: 2026-01-25 00:06 UTC+8
  */
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, useContext } from 'react';
 import { useLanguage } from '../contexts/languageContext';
+import { AuthContext } from '../contexts/authContext';
+import { isSystemAdmin } from '../lib/userUtils';
 import { createPortal } from 'react-dom';
 import FileUploadModal, { FileWithMetadata } from './FileUploadModal';
 import UploadProgress from './UploadProgress';
-import { uploadFiles, getFavoriteModels, setFavoriteModels, getModels, type LLMModel, FileMetadata } from '../lib/api';
+import { uploadFiles, getFavoriteModels, setFavoriteModels, getModels, getModelsByScene, getScenes, type LLMModel, FileMetadata } from '../lib/api';
 import { Task } from './Sidebar';
 // 修改時間：2025-12-08 10:40:00 UTC+8 - 添加文件引用組件
 import FileReference, { FileReferenceData } from './FileReference';
@@ -145,6 +147,7 @@ export default function ChatInput({
   const mentionMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { t } = useLanguage();
+  const { currentUser } = useContext(AuthContext);
 
   // 從 localStorage 讀取收藏數據
   const [favoriteAgents, setFavoriteAgents] = useState<Map<string, string>>(() => loadFavoritesFromStorage('favoriteAgents'));
@@ -154,6 +157,11 @@ export default function ChatInput({
 
   // 修改時間：2025-12-21 - 從 API 獲取模型列表
   const [llmModels, setLlmModels] = useState<Array<{ id: string; name: string; provider: string; icon?: string; color?: string }>>([]);
+  
+  // 修改時間：2026-01-24 - 場景感知相關狀態
+  const [currentScene, setCurrentScene] = useState<string>('chat'); // 默認使用 chat 場景
+  const [sceneConfig, setSceneConfig] = useState<{ frontend_editable: boolean; user_default?: string | null } | null>(null);
+  const [isLoadingSceneModels, setIsLoadingSceneModels] = useState(false);
 
   // 使用 ref 跟踪用户是否手动选择过（防止 prop 覆盖用户选择）
   const hasUserSelectedAgent = useRef(false);
@@ -469,35 +477,55 @@ export default function ChatInput({
     };
   }, []);
 
-  // 修改時間：2025-12-21 - 從 API 獲取模型列表
+  // 修改時間：2026-01-24 - 獲取場景列表
   useEffect(() => {
     let cancelled = false;
-    getModels({
-      include_discovered: true,
-      include_favorite_status: true,
-      limit: 1000, // 獲取所有模型
-    })
+    getScenes()
       .then((resp) => {
         if (cancelled) return;
-        console.log('[ChatInput] API response:', resp); // 調試：查看 API 響應
+        if (resp?.success && resp.data?.scenes) {
+          // 查找 chat 場景配置
+          const chatScene = resp.data.scenes.find((s: any) => s.scene === 'chat');
+          if (chatScene) {
+            setSceneConfig({
+              frontend_editable: chatScene.frontend_editable || false,
+              user_default: chatScene.user_default || null,
+            });
+          }
+        }
+      })
+      .catch((error) => {
+        console.warn('[ChatInput] Failed to fetch scenes:', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 修改時間：2025-12-21 - 從 API 獲取模型列表（支持場景感知）
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingSceneModels(true);
+    
+    // 優先使用場景特定的模型列表
+    getModelsByScene(currentScene, true)
+      .then((resp) => {
+        if (cancelled) return;
+        setIsLoadingSceneModels(false);
+        
         if (resp?.success && resp.data?.models && Array.isArray(resp.data.models) && resp.data.models.length > 0) {
-          console.log('[ChatInput] Models from API:', resp.data.models); // 調試：查看模型列表
-          console.log('[ChatInput] Models count from API:', resp.data.models.length); // 調試
+          console.log(`[ChatInput] Models from scene '${currentScene}':`, resp.data.models);
+          
+          // 更新場景配置
+          if (resp.data.frontend_editable !== undefined) {
+            setSceneConfig({
+              frontend_editable: resp.data.frontend_editable,
+              user_default: resp.data.user_default || null,
+            });
+          }
+          
           // 將 API 返回的模型轉換為組件需要的格式
           const models = resp.data.models.map((model: LLMModel) => {
-            // 調試：詳細查看每個模型的結構
-            console.log('[ChatInput] Processing model:', {
-              raw: model,
-              model_id: model.model_id,
-              name: model.name,
-              provider: model.provider,
-              providerType: typeof model.provider,
-              icon: model.icon,
-              color: model.color,
-              order: (model as any).order,
-            });
-
-            // 確保 provider 是字符串（如果是 Enum，取值）
             const providerStr = typeof model.provider === 'string'
               ? model.provider
               : (model.provider as any)?.value || String(model.provider);
@@ -510,8 +538,7 @@ export default function ChatInput({
               color: model.color,
             };
           });
-          console.log('[ChatInput] Transformed models:', models); // 調試：查看轉換後的模型
-          console.log('[ChatInput] Models count:', models.length); // 調試：查看模型數量
+          
           // 確保 auto 模型在最前面
           const autoModel = models.find((m) => m.id === 'auto') || {
             id: 'auto',
@@ -521,23 +548,64 @@ export default function ChatInput({
             color: 'text-purple-400',
           };
           const otherModels = models.filter((m) => m.id !== 'auto');
-          // 按 order 排序（如果有的話），否則保持原順序
+          
+          // 按 order 排序（場景模型已經按優先級排序）
+          const sortedModels = [...otherModels].sort((a, b) => {
+            const aModel = resp.data?.models.find((m: LLMModel) => m.model_id === a.id);
+            const bModel = resp.data?.models.find((m: LLMModel) => m.model_id === b.id);
+            const aOrder = (aModel as any)?.order || 999;
+            const bOrder = (bModel as any)?.order || 999;
+            return aOrder - bOrder;
+          });
+          
+          setLlmModels([autoModel, ...sortedModels]);
+        } else {
+          // 如果場景模型列表失敗，fallback 到通用模型列表
+          console.warn(`[ChatInput] Scene '${currentScene}' models not available, falling back to general models`);
+          return getModels({
+            include_discovered: true,
+            include_favorite_status: true,
+            limit: 1000,
+          });
+        }
+      })
+      .then((resp) => {
+        // 處理 fallback 到通用模型列表的情況
+        if (cancelled) return;
+        if (!resp) return; // 如果已經處理過場景模型，跳過
+        
+        setIsLoadingSceneModels(false);
+        if (resp?.success && resp.data?.models && Array.isArray(resp.data.models) && resp.data.models.length > 0) {
+          const models = resp.data.models.map((model: LLMModel) => {
+            const providerStr = typeof model.provider === 'string'
+              ? model.provider
+              : (model.provider as any)?.value || String(model.provider);
+
+            return {
+              id: model.model_id,
+              name: model.name,
+              provider: providerStr,
+              icon: model.icon,
+              color: model.color,
+            };
+          });
+          
+          const autoModel = models.find((m) => m.id === 'auto') || {
+            id: 'auto',
+            name: t('chatInput.model.auto', 'Auto'),
+            provider: 'auto',
+            icon: 'fa-magic',
+            color: 'text-purple-400',
+          };
+          const otherModels = models.filter((m) => m.id !== 'auto');
           const sortedModels = [...otherModels].sort((a, b) => {
             const aOrder = resp.data?.models.find((m: LLMModel) => m.model_id === a.id)?.order || 999;
             const bOrder = resp.data?.models.find((m: LLMModel) => m.model_id === b.id)?.order || 999;
             return aOrder - bOrder;
           });
           setLlmModels([autoModel, ...sortedModels]);
-          console.log('[ChatInput] Final models set:', [autoModel, ...sortedModels].length); // 調試
         } else {
-          console.warn('[ChatInput] API response missing models:', {
-            success: resp?.success,
-            hasData: !!resp?.data,
-            hasModels: !!resp?.data?.models,
-            modelsLength: resp?.data?.models?.length || 0,
-            fullResponse: resp
-          });
-          // 如果 API 返回成功但沒有模型，使用 fallback
+          // 最終 fallback
           const fallbackModels = [
             { id: 'auto', name: t('chatInput.model.auto', 'Auto'), provider: 'auto', icon: 'fa-magic', color: 'text-purple-400' },
           ];
@@ -545,27 +613,20 @@ export default function ChatInput({
         }
       })
       .catch((error) => {
+        if (cancelled) return;
+        setIsLoadingSceneModels(false);
         console.error('[ChatInput] Failed to fetch models:', error);
         // 失敗時使用默認模型列表（fallback）
         const fallbackModels = [
           { id: 'auto', name: t('chatInput.model.auto', 'Auto'), provider: 'auto', icon: 'fa-magic', color: 'text-purple-400' },
-          { id: 'smartq-iee', name: t('chatInput.model.smartqIEE', 'SmartQ IEE'), provider: 'smartq', icon: 'fa-microchip', color: 'text-blue-400' },
-          { id: 'smartq-hci', name: t('chatInput.model.smartqHCI', 'SmartQ HCI'), provider: 'smartq', icon: 'fa-robot', color: 'text-green-400' },
-          { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'chatgpt', icon: 'fa-robot', color: 'text-green-400' },
-          { id: 'gpt-4', name: 'GPT-4', provider: 'chatgpt', icon: 'fa-robot', color: 'text-green-400' },
-          { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'chatgpt', icon: 'fa-robot', color: 'text-green-400' },
-          { id: 'gemini-pro', name: 'Gemini Pro', provider: 'gemini', icon: 'fa-gem', color: 'text-blue-400' },
-          { id: 'gemini-ultra', name: 'Gemini Ultra', provider: 'gemini', icon: 'fa-gem', color: 'text-blue-400' },
-          { id: 'qwen-turbo', name: 'Qwen Turbo', provider: 'qwen', icon: 'fa-code', color: 'text-orange-400' },
-          { id: 'qwen-plus', name: 'Qwen Plus', provider: 'qwen', icon: 'fa-code', color: 'text-orange-400' },
-          { id: 'grok-beta', name: 'Grok Beta', provider: 'grok', icon: 'fa-bolt', color: 'text-yellow-400' },
+          { id: 'smartq-hci', name: t('chatInput.model.smartqHCI', 'SmartQ HCI'), provider: 'smartq', icon: 'fa-microchip', color: 'text-orange-400' },
         ];
         setLlmModels(fallbackModels);
       });
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [currentScene, t]);
 
   // 監聽 localStorage 變化（跨窗口和同窗口）
   useEffect(() => {
@@ -1226,8 +1287,9 @@ export default function ChatInput({
         // saveTask 現在會等待後端同步完成，不需要額外等待
         finalTaskId = String(newTaskId);
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
         console.error('[ChatInput] Failed to create task:', error);
-        // 如果任務創建失敗，返回錯誤
+        toast.error(`創建任務失敗: ${msg}`);
         setUploadingFiles([]);
         return;
       }
@@ -1265,11 +1327,12 @@ export default function ChatInput({
           setUploadingFiles([]);
           return;
         }
-      } else {
-        console.error('[ChatInput] onTaskCreate callback not available');
-        setUploadingFiles([]);
-        return;
-      }
+        } else {
+          console.error('[ChatInput] onTaskCreate callback not available');
+          toast.error('無法創建任務，請先選擇或建立任務');
+          setUploadingFiles([]);
+          return;
+        }
     }
 
     // 創建文件元數據
@@ -1351,16 +1414,20 @@ export default function ChatInput({
         }, 3000);
       } else {
         // 整體失敗
+        const errMsg = response.message || response.error || '上傳失敗';
+        toast.error(`文件上傳失敗: ${errMsg}`);
         setUploadingFiles((prev) =>
           prev.map((f) => ({
             ...f,
             status: 'error',
-            error: response.message || response.error || '上傳失敗',
+            error: errMsg,
           }))
         );
       }
     } catch (error: any) {
+      const msg = error?.message || String(error);
       console.error('File upload error:', error);
+      toast.error(`文件上傳失敗: ${msg}`);
 
       // 如果後端不可用，嘗試使用模擬文件上傳
       if (error.message?.includes('網絡錯誤') || error.message?.includes('ERR_CONNECTION_TIMED_OUT') || error.message?.includes('Failed to fetch')) {
@@ -1905,6 +1972,29 @@ export default function ChatInput({
               <div className="p-2 border-b border-primary text-sm font-medium text-primary sticky top-0 bg-secondary">
                 {t('chatInput.selectModel', '選擇模型')}
               </div>
+              {/* 場景提示 UI - 當使用 SmartQ-HCI 時顯示 */}
+              {selectedModelId === 'smartq-hci' && (
+                <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-primary">
+                  <div className="flex items-start gap-2 text-xs text-blue-700 dark:text-blue-300">
+                    <i className="fa-solid fa-info-circle mt-0.5"></i>
+                    <div>
+                      <div className="font-medium mb-1">SmartQ-HCI 智能融合模型</div>
+                      <div className="text-blue-600 dark:text-blue-400">
+                        系統會自動為您選擇最佳後端模型，無需手動配置。根據場景智能路由到最優模型。
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* 場景配置提示 - 當場景不可編輯時顯示 */}
+              {sceneConfig && !sceneConfig.frontend_editable && currentScene === 'chat' && (
+                <div className="px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 border-b border-primary">
+                  <div className="flex items-center gap-2 text-xs text-yellow-700 dark:text-yellow-300">
+                    <i className="fa-solid fa-lightbulb"></i>
+                    <span>當前場景已為您優化模型選擇</span>
+                  </div>
+                </div>
+              )}
               {(() => {
                 console.log('[ChatInput] Rendering model selector, llmModels:', llmModels); // 調試：查看渲染時的模型列表
                 console.log('[ChatInput] favoriteModels:', favoriteModels); // 調試：查看收藏的模型
@@ -1940,7 +2030,7 @@ export default function ChatInput({
                         (model.icon && (model.icon.startsWith('fa-') ? model.icon : `fa-${model.icon}`)) || (
                           model.id === 'auto' ? 'fa-magic' :
                           model.id === 'smartq-iee' ? 'fa-microchip' :
-                          model.id === 'smartq-hci' ? 'fa-robot' :
+                          model.id === 'smartq-hci' ? 'fa-microchip' :
                           model.provider === 'chatgpt' ? 'fa-robot' :
                           model.provider === 'gemini' ? 'fa-gem' :
                           model.provider === 'qwen' ? 'fa-code' :
@@ -1955,7 +2045,7 @@ export default function ChatInput({
                         model.color || (
                           model.id === 'auto' ? 'text-purple-400' :
                           model.id === 'smartq-iee' ? 'text-blue-400' :
-                          model.id === 'smartq-hci' ? 'text-green-400' :
+                          model.id === 'smartq-hci' ? 'text-orange-400' :
                           model.provider === 'chatgpt' ? 'text-green-400' :
                           model.provider === 'gemini' ? 'text-blue-400' :
                           model.provider === 'qwen' ? 'text-orange-400' :
@@ -1970,24 +2060,6 @@ export default function ChatInput({
 
                       <span className="text-secondary flex-1 truncate">{model.name}</span>
 
-                      {showStar && model.id !== 'auto' && (
-                        <span
-                          className="p-1 rounded hover:bg-hover"
-                          title={isFavorite ? t('chatInput.model.unfavorite', '取消收藏') : t('chatInput.model.favorite', '收藏')}
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            toggleFavoriteModel(model.id);
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }}
-                        >
-                          <i className={`fa-solid fa-star ${isFavorite ? 'text-yellow-400' : 'text-gray-500'}`}></i>
-                        </span>
-                      )}
-
                       {isSelected && (
                         <i className="fa-solid fa-check text-blue-400 ml-1" title="已選中"></i>
                       )}
@@ -2000,25 +2072,12 @@ export default function ChatInput({
                     {/* Auto */}
                     {autoModel && renderModelRow(autoModel, false)}
 
-                    {/* Favorites */}
-                    <div className="border-t border-primary my-1"></div>
-                    <div className="px-4 py-2 text-xs text-tertiary font-medium">
-                      {t('chatInput.model.favorites', '我的收藏')}
-                    </div>
-                    {favoriteModelItems.length > 0 ? (
-                      favoriteModelItems.map((m) => renderModelRow(m, true))
-                    ) : (
-                      <div className="px-4 py-2 text-xs text-tertiary">
-                        {t('chatInput.model.noFavorites', '暫無收藏模型')}
-                      </div>
-                    )}
-
                     {/* All models */}
                     <div className="border-t border-primary my-1"></div>
                     <div className="px-4 py-2 text-xs text-tertiary font-medium">
                       {t('chatInput.model.all', '所有模型')}
                     </div>
-                    {allModelItems.map((m) => renderModelRow(m, true))}
+                    {allModelItems.map((m) => renderModelRow(m, false))}
                   </>
                 );
               })()}
@@ -2159,6 +2218,7 @@ export default function ChatInput({
         onClose={() => setShowFileUploadModal(false)}
         onUpload={handleFileUpload}
         defaultTaskId={currentTaskId || 'temp-workspace'}
+        isAgentOnboardingAllowed={isSystemAdmin(currentUser)}
       />
 
       {/* 上傳進度顯示 */}

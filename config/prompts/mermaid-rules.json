@@ -1,0 +1,65 @@
+{
+  "mermaid_rules": {
+    "version": "1.0.0",
+    "last_updated": "2026-02-02",
+    "description": "Mermaid 圖表生成規範",
+    "applies_to": ["flowchart", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey"],
+    "rules": [
+      {
+        "id": "MR001",
+        "severity": "error",
+        "name": "禁止使用全形冒號、分號、逗號、等號",
+        "description": "Mermaid 會將全形冒號、分號、逗號、等號視為語法符號，導致解析錯誤",
+        "examples": {
+          "wrong_text": "全形冒號（：）、全形分號（；）、全形逗號（，）、全形等號（＝）",
+          "correct_text": "使用半形標點（:, ;, ,）或用引號包住文字"
+        },
+        "note": "⚠️ 注意：描述性文字內的括號應使用全形（），避免與 Mermaid 語法的半形()衝突。例如：A[使用者（admin）登入] 而不是 A[(admin)登入]"
+      },
+      {
+        "id": "MR002",
+        "severity": "error",
+        "name": "方括號內容必須用引號保護",
+        "description": "節點標籤包含中文、空格或特殊符號時必須用引號包住",
+        "examples": {
+          "wrong_text": "A[這是一個節點]、B[特殊@符號]、C[含空格 的文字]",
+          "correct_text": "A[\"這是一個節點\"]、B[\"特殊@符號\"]、C[\"含空格 的文字\"]"
+        }
+      },
+      {
+        "id": "MR003",
+        "severity": "error",
+        "name": "init 配置必須是合法 JSON",
+        "description": "%%{init: {...}}%% 內的 JSON 必須使用半形標點",
+        "examples": {
+          "wrong_text": "%%{init：{'theme':'base'}}%% - 使用全形冒號",
+          "correct_text": "%%{init: {'theme': 'base'}}%% - 使用半形逗號和冒號"
+        }
+      },
+      {
+        "id": "MR004",
+        "severity": "warning",
+        "name": "正確使用程式碼塊標記",
+        "description": "Mermaid 代碼必須用 ```mermaid 標記包裹",
+        "examples": {
+          "correct_text": "```mermaid\\nflowchart TD\\n    A[開始] --> B[結束]\\n```",
+          "wrong_text": "```\\nflowchart TD\\n    A[開始] --> B[結束]\\n```"
+        }
+      }
+    ],
+    "templates": {
+      "flowchart_basic": {
+        "description": "基礎流程圖",
+        "code": "```mermaid\\nflowchart TD\\n    A[開始] --> B[處理]\\n    B --> C{判斷}\\n    C -->|是| D[完成]\\n    C -->|否| B\\n```"
+      },
+      "flowchart_with_style": {
+        "description": "帶樣式的流程圖",
+        "code": "```mermaid\\n%%{init: {theme: 'base', themeVariables: {primaryColor: '#4CAF50'}}}%%\\nflowchart TD\\n    A[開始] --> B[處理]\\n    B --> C{完成?}\\n    C -->|是| D[結束]\\n    C -->|否| B\\n```"
+      },
+      "sequence_diagram": {
+        "description": "時序圖",
+        "code": "```mermaid\\nsequenceDiagram\\n    participant U as 用戶\\n    participant S as 系統\\n    U->>S: 提交請求\\n    S-->>U: 顯示響應\\n```"
+      }
+    }
+  }
+}

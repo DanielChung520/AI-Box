@@ -1,0 +1,63 @@
+{
+  "llm": {
+    "default_temperature": 0.3,
+    "default_max_tokens": 1000,
+    "fallback_enabled": true,
+    "model_priority": [
+      "mistral-nemo:12b",
+      "qwen3:32b",
+      "llama3:8b"
+    ]
+  },
+  "embedding": {
+    "model": "qwen3-embedding:latest",
+    "fallback": "sentence-transformers/all-MiniLM-L6-v2",
+    "endpoint": "http://localhost:11434/api/embeddings",
+    "dimension": 4096,
+    "timeout": 60
+  },
+  "text_to_sql": {
+    "model": "mistral-nemo:12b",
+    "temperature": 0.3,
+    "max_tokens": 2000,
+    "timeout": 120
+  },
+  "sql": {
+    "timeout_seconds": 30,
+    "max_rows": 1000,
+    "enable_validation": true,
+    "dangerous_keywords": [
+      "DROP",
+      "DELETE",
+      "TRUNCATE",
+      "ALTER",
+      "CREATE",
+      "INSERT",
+      "UPDATE"
+    ],
+    "require_parameters": true
+  },
+  "datalake": {
+    "default_bucket": "tiptop-raw",
+    "default_query_type": "table",
+    "timeout_seconds": 60,
+    "max_rows_per_file": 10000,
+    "enable_cache": true
+  },
+  "query_gateway": {
+    "timeout_seconds": 30,
+    "enable_injection_protection": true,
+    "enable_permission_check": true,
+    "enable_sensitive_data_masking": true
+  },
+  "validation": {
+    "schema_enabled": true,
+    "data_validation_enabled": true,
+    "confidence_threshold": 0.5
+  },
+  "logging": {
+    "level": "INFO",
+    "enable_conversion_log": true,
+    "enable_performance_log": true
+  }
+}

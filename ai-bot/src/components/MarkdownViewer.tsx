@@ -2,7 +2,7 @@
  * 代碼功能說明: Markdown 文件預覽組件 - 支持流式編輯實時預覽
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2026-01-21 12:30 UTC+8
+ * 最後修改日期: 2026-01-31 19:45 UTC+8
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -22,6 +22,10 @@ interface VectorViewerContentProps {
 }
 
 function VectorViewerContent({ vectorData, fileId }: VectorViewerContentProps) {
+  // 修改時間：2026-01-31 - 添加重新生成按鈕狀態管理
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
+
   // 修改時間：2026-01-21 12:35 UTC+8 - 處理 vectorData 為 null 的情況
   if (!vectorData) {
     return (
@@ -38,10 +42,40 @@ function VectorViewerContent({ vectorData, fileId }: VectorViewerContentProps) {
   const collectionName = vectorData?.stats?.collection_name;
   const collectionStatus = vectorData?.stats?.status;
 
+  // 修改時間：2026-01-31 - 檢測狀態是否為錯誤
+  const isErrorStatus = collectionStatus === 'error' || collectionStatus === 'failed' || collectionStatus === 'red' || collectionStatus === 'partial_completed';
+
   // Qdrant Dashboard URL（可選，用於跳轉）
   const qdrantDashboardUrl = collectionName
     ? `http://localhost:6333/dashboard#/collections/${collectionName}`
     : null;
+
+  // 修改時間：2026-01-31 - 處理重新生成
+  const handleRegenerate = async () => {
+    if (!fileId) {
+      setRegenerateError('缺少 fileId，無法重新生成');
+      return;
+    }
+
+    setIsRegenerating(true);
+    setRegenerateError(null);
+
+    try {
+      const result = await regenerateFileData(fileId, 'vector');
+      if (result.success) {
+        toast.success('向量重新生成已提交到隊列，請稍候...', { duration: 3000 });
+      } else {
+        setRegenerateError(result.message || '重新生成失敗');
+        toast.error(result.message || '重新生成失敗', { duration: 3000 });
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || '重新生成失敗';
+      setRegenerateError(errorMsg);
+      toast.error(errorMsg, { duration: 3000 });
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   return (
     <div className="p-4 flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-900">
@@ -75,11 +109,49 @@ function VectorViewerContent({ vectorData, fileId }: VectorViewerContentProps) {
           </div>
           <div className="bg-tertiary p-3 rounded border border-primary theme-transition">
             <div className="text-xs text-tertiary theme-transition mb-1">Status</div>
-            <div className="text-sm text-primary theme-transition capitalize">
+            <div className={`text-sm theme-transition capitalize ${isErrorStatus ? 'text-red-600 font-semibold' : 'text-primary'}`}>
               {collectionStatus || 'unknown'}
             </div>
           </div>
         </div>
+
+        {/* 修改時間：2026-01-31 - 添加錯誤狀態提示和重新生成按鈕 */}
+        {isErrorStatus && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800 mb-2">
+                  ⚠️ 向量化過程發生錯誤，請重新生成
+                </p>
+                {vectorCount === 0 && (
+                  <p className="text-xs text-red-600 mb-3">
+                    當前 vector_count 為 0，向量數據未成功生成
+                  </p>
+                )}
+                {regenerateError && (
+                  <p className="text-xs text-red-600 mb-3">{regenerateError}</p>
+                )}
+              </div>
+              <button
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+              >
+                {isRegenerating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>處理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    <span>重新生成</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Points 列表（類似 Qdrant Dashboard 的 Points 面板） */}

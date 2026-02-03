@@ -1,7 +1,7 @@
 # 代碼功能說明: 文件元數據模型
 # 創建日期: 2025-12-06
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-02
+# 最後修改日期: 2026-01-25 19:27 UTC+8
 
 """文件元數據模型 - 定義 Pydantic Model"""
 
@@ -44,6 +44,44 @@ class FileMetadataBase(BaseModel):
     sensitivity_labels: Optional[List[str]] = Field(
         default_factory=list,
         description="敏感性標籤列表（與 access_control.sensitivity_labels 同步）",
+    )
+    # 知識資產核心屬性（v4.4 新增，所有新上傳必填）
+    knw_code: Optional[str] = Field(
+        None, description="檔案編碼（KNW-Code），知識資產唯一識別碼"
+    )
+    ka_id: Optional[str] = Field(None, description="知識資產邏輯唯一標識")
+    domain: Optional[str] = Field(
+        None, description="知識領域（對標 Ontology Domain），如 domain-enterprise"
+    )
+    major: Optional[str] = Field(
+        None, description="專業層（對標 Ontology Major），如 major-manufacture"
+    )
+    lifecycle_state: Optional[str] = Field(
+        None,
+        description="生命週期狀態：Draft / Active / Deprecated / Archived，預設 Draft",
+    )
+    version: Optional[str] = Field(
+        None, description="SemVer 版本號，如 1.0.0，預設 1.0.0"
+    )
+    license: Optional[str] = Field(
+        None, description="授權類型：INTERNAL / PROPRIETARY / PUBLIC"
+    )
+    validity_scope: Optional[Dict[str, Any]] = Field(
+        None, description="有效性範圍：{ tenant_id, expires_at }"
+    )
+    vector_refs: Optional[List[str]] = Field(
+        None, description="向量引用（Qdrant collection 名稱列表）"
+    )
+    graph_refs: Optional[Dict[str, Any]] = Field(
+        None,
+        description="圖譜引用：{ entities_collection, relations_collection }",
+    )
+    supersedes: Optional[List[str]] = Field(
+        None, description="此版本取代的舊版 ka_id 列表"
+    )
+    superseded_by: Optional[str] = Field(None, description="被哪個新版本取代的 ka_id")
+    version_history: Optional[List[Dict[str, Any]]] = Field(
+        None, description="版本歷史：[{ version, at, by }]"
     )
 
     @field_validator("data_classification")
@@ -95,6 +133,20 @@ class FileMetadataUpdate(BaseModel):
     access_control: Optional[FileAccessControl] = Field(
         None, description="文件訪問控制配置（可選，用於更新訪問控制配置）"
     )
+    # 知識資產核心屬性（v4.4 新增，可選更新）
+    knw_code: Optional[str] = Field(None, description="檔案編碼（KNW-Code）")
+    ka_id: Optional[str] = Field(None, description="知識資產邏輯唯一標識")
+    domain: Optional[str] = Field(None, description="知識領域（對標 Ontology Domain）")
+    major: Optional[str] = Field(None, description="專業層（對標 Ontology Major）")
+    lifecycle_state: Optional[str] = Field(None, description="生命週期狀態")
+    version: Optional[str] = Field(None, description="SemVer 版本號")
+    license: Optional[str] = Field(None, description="授權類型")
+    validity_scope: Optional[Dict[str, Any]] = Field(None, description="有效性範圍")
+    vector_refs: Optional[List[str]] = Field(None, description="向量引用")
+    graph_refs: Optional[Dict[str, Any]] = Field(None, description="圖譜引用")
+    supersedes: Optional[List[str]] = Field(None, description="此版本取代的舊版")
+    superseded_by: Optional[str] = Field(None, description="被哪個新版本取代")
+    version_history: Optional[List[Dict[str, Any]]] = Field(None, description="版本歷史")
 
 
 class FileMetadata(FileMetadataBase):

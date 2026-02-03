@@ -108,13 +108,13 @@ class FileUploadAgent(BaseAgentNode):
     ) -> Optional[FileUploadResult]:
         """處理文件上傳"""
         return FileUploadResult(
-            files_uploaded=len(files)
-            files_validated=len(files)
+            files_uploaded=len(files),
+            files_validated=len(files),
             files_stored=True,
             upload_success=True,
             total_size=0,
             processing_triggered=True,
-            uploaded_files=[]
+            uploaded_files=[],
             reasoning="Simulated upload success.",
         )
 
@@ -131,8 +131,8 @@ def create_file_upload_agent_config() -> NodeConfig:
         description="文件上傳Agent - 負責接收、驗證並初步存儲用戶上傳的文件",
         max_retries=1,
         timeout=60.0,
-        required_inputs=["user_id"]
-        optional_inputs=["messages"]
+        required_inputs=["user_id"],
+        optional_inputs=["messages"],
         output_keys=["file_ids", "upload_summary"],
     )
 

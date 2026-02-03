@@ -262,7 +262,7 @@ class EmbeddingService:
                     if ollama_config:
                         config = {
                             "ollama_url": f"http://{ollama_config.get('host', 'localhost')}:{ollama_config.get('port', 11434)}",
-                            "model": ollama_config.get("embedding_model", "nomic-embed-text"),
+                            "model": ollama_config.get("embedding_model", "qwen3-embedding:latest"),
                         }
         return config
 
@@ -282,7 +282,7 @@ class EmbeddingService:
             model
             or os.getenv("OLLAMA_EMBEDDING_MODEL")
             or config.get("model")
-            or "nomic-embed-text"
+            or "qwen3-embedding:latest"
         )
         self.timeout = timeout or config.get("timeout", 60.0)
 

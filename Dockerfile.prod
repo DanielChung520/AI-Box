@@ -1,0 +1,49 @@
+# 代碼功能說明: 生產環境 Dockerfile
+# 創建日期: 2026-01-24
+# 創建人: Daniel Chung
+# 最後修改日期: 2026-01-24
+
+# 使用官方 Python 運行時作為基礎鏡像
+FROM python:3.12-slim
+
+# 設置工作目錄
+WORKDIR /app
+
+# 設置環境變數
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    ENV=production
+
+# 安裝系統依賴
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安裝 Python 依賴
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 複製應用代碼
+COPY . .
+
+# 創建非root用戶
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+USER app
+
+# 創建必要的目錄
+RUN mkdir -p /app/logs /app/data/uploads
+
+# 暴露端口
+EXPOSE 8000
+
+# 健康檢查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# 啟動應用
+CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

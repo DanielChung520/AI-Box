@@ -110,7 +110,7 @@ def create_retrieval_integration_agent_config() -> NodeConfig:
         description="檢索集成Agent - 負責將向量、圖譜或其他檢索結果注入當前工作流上下文",
         max_retries=1,
         timeout=30.0,
-        required_inputs=["user_id"]
+        required_inputs=["user_id"],
         optional_inputs=["retrieval_context", "messages"],
         output_keys=["retrieval_integration", "integration_summary"],
     )

@@ -15,24 +15,35 @@ class DataAgentRequest(BaseModel):
 
     action: str = Field(
         ...,
-        description="操作類型（text_to_sql/execute_query/validate_query/get_schema/query_datalake/create_dictionary/get_dictionary/create_schema/validate_data）",
+        description="操作類型（text_to_sql/execute_query/validate_query/get_schema/query_datalake/create_dictionary/get_dictionary/create_schema/validate_data/execute_sql_on_datalake/execute_structured_query）",
     )
     # text_to_sql 參數
-    natural_language: Optional[str] = Field(None, description="自然語言查詢（text_to_sql 操作需要）")
+    natural_language: Optional[str] = Field(
+        None, description="自然語言查詢（text_to_sql 操作需要）"
+    )
     database_type: Optional[str] = Field(
         "postgresql", description="數據庫類型（postgresql/mysql/sqlite，可選）"
     )
     schema_info: Optional[Dict[str, Any]] = Field(None, description="數據庫 Schema 信息（可選）")
+    intent_analysis: Optional[Dict[str, Any]] = Field(
+        None, description="意圖分析結果（text_to_sql 操作可選，用於指導 LLM 生成 SQL）"
+    )
     # execute_query 參數
     sql_query: Optional[str] = Field(None, description="SQL 查詢語句（execute_query 操作需要）")
     connection_string: Optional[str] = Field(None, description="數據庫連接字符串（可選）")
     # validate_query 參數
     query: Optional[str] = Field(None, description="查詢語句（validate_query 操作需要）")
     # Datalake 查詢參數
-    bucket: Optional[str] = Field(None, description="Datalake bucket 名稱（query_datalake 操作需要）")
+    bucket: Optional[str] = Field(
+        None, description="Datalake bucket 名稱（query_datalake 操作需要）"
+    )
     key: Optional[str] = Field(None, description="數據鍵（文件路徑，query_datalake 操作需要）")
     query_type: Optional[str] = Field("exact", description="查詢類型（exact/fuzzy，可選）")
     filters: Optional[Dict[str, Any]] = Field(None, description="過濾條件（可選）")
+    # execute_sql_on_datalake 參數
+    sql_query_datalake: Optional[str] = Field(
+        None, description="SQL 查詢語句（execute_sql_on_datalake 操作需要）"
+    )
     # 數據字典參數
     dictionary_id: Optional[str] = Field(
         None, description="數據字典 ID（create_dictionary/get_dictionary 操作需要）"
@@ -44,8 +55,16 @@ class DataAgentRequest(BaseModel):
     schema_id: Optional[str] = Field(
         None, description="Schema ID（create_schema/get_schema/validate_data 操作需要）"
     )
-    schema_data: Optional[Dict[str, Any]] = Field(None, description="Schema 數據（create_schema 操作需要）")
-    data: Optional[List[Dict[str, Any]]] = Field(None, description="待驗證數據（validate_data 操作需要）")
+    schema_data: Optional[Dict[str, Any]] = Field(
+        None, description="Schema 數據（create_schema 操作需要）"
+    )
+    data: Optional[List[Dict[str, Any]]] = Field(
+        None, description="待驗證數據（validate_data 操作需要）"
+    )
+    # 結構化查詢參數（execute_structured_query 使用，由 MM-Agent 提供）
+    structured_query: Optional[Dict[str, Any]] = Field(
+        None, description="結構化查詢參數（tlf19/part_number/time_expr/table_name等）"
+    )
     # 通用參數
     user_id: Optional[str] = Field(None, description="用戶 ID（可選）")
     tenant_id: Optional[str] = Field(None, description="租戶 ID（可選）")

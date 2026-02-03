@@ -1,0 +1,105 @@
+{
+  "code_style": {
+    "version": "1.0.0",
+    "last_updated": "2026-02-02",
+    "description": "AI 生成程式碼時的風格規範",
+    "languages": ["python", "typescript", "javascript", "bash", "sql"],
+    "rules": [
+      {
+        "id": "CS001",
+        "severity": "info",
+        "name": "檔案頭註解",
+        "description": "新創建的檔案必須包含標準檔案頭註解",
+        "enforcement": "soft",
+        "template": {
+          "python": "# 代碼功能說明: [功能描述]\\n# 創建日期: YYYY-MM-DD\\n# 創建人: [姓名]\\n# 最後修改日期: YYYY-MM-DD\\n",
+          "typescript": "// 代碼功能說明: [功能描述]\\n// 創建日期: YYYY-MM-DD\\n// 創建人: [姓名]\\n// 最後修改日期: YYYY-MM-DD\\n",
+          "javascript": "// 代碼功能說明: [功能描述]\\n// 創建日期: YYYY-MM-DD\\n// 創建人: [姓名]\\n// 最後修改日期: YYYY-MM-DD\\n",
+          "bash": "# 代碼功能說明: [功能描述]\\n# 創建日期: YYYY-MM-DD\\n# 創建人: [姓名]\\n# 最後修改日期: YYYY-MM-DD\\n",
+          "sql": "-- 代碼功能說明: [功能描述]\\n-- 創建日期: YYYY-MM-DD\\n-- 創建人: [姓名]\\n-- 最後修改日期: YYYY-MM-DD\\n"
+        }
+      },
+      {
+        "id": "CS002",
+        "severity": "warning",
+        "name": "類型註解",
+        "description": "函數參數和返回值必須有類型註解",
+        "enforcement": "soft",
+        "examples": {
+          "correct": {
+            "python": "def process_data(user_id: str, options: Dict[str, Any]) -> bool:",
+            "typescript": "function processData(userId: string, options: Record<string, unknown>): boolean {"
+          },
+          "incorrect": {
+            "python": "def process_data(user_id, options):",
+            "typescript": "function processData(userId, options) {"
+          }
+        }
+      },
+      {
+        "id": "CS003",
+        "severity": "warning",
+        "name": "docstring 註解",
+        "description": "公開函數必須有 docstring 說明",
+        "enforcement": "soft",
+        "examples": {
+          "python": "def func(param: str) -> str:\\n    \\\"\\\"\\\"\\n    函數說明\\n    \\n    Args:\\n        param: 參數說明\\n    \\n    Returns:\\n        返回值說明\\n    \\\"\\\"\\\"\\n    return result"
+        }
+      },
+      {
+        "id": "CS004",
+        "severity": "error",
+        "name": "禁止硬編碼敏感資訊",
+        "description": "API Key、密碼等敏感資訊必須使用環境變數",
+        "enforcement": "hard",
+        "examples": {
+          "wrong": "api_key = \"sk-1234567890abcdef\"",
+          "correct": "import os\\napi_key = os.environ.get(\"API_KEY\")"
+        }
+      },
+      {
+        "id": "CS005",
+        "severity": "info",
+        "name": "import 語句順序",
+        "description": "import 應按標準庫、第三方庫、本地模組順序排列",
+        "enforcement": "soft",
+        "examples": {
+          "python": "from typing import Optional, List, Dict, Any\\nfrom fastapi import APIRouter\\nfrom llm.moe.moe_manager import LLMMoEManager"
+        }
+      },
+      {
+        "id": "CS006",
+        "severity": "warning",
+        "name": "日誌規範",
+        "description": "使用標準 logging，禁用 structlog 格式",
+        "enforcement": "soft",
+        "examples": {
+          "correct": "logger.info(f\"User logged in: user_id={user_id}\")",
+          "incorrect": "logger.info(\"user_logged_in\", user_id=user_id)"
+        }
+      }
+    ],
+    "conventions": {
+      "python": {
+        "naming": "snake_case for functions and variables, PascalCase for classes",
+        "line_length": 120,
+        "formatter": "black",
+        "linter": "ruff"
+      },
+      "typescript": {
+        "naming": "camelCase for functions and variables, PascalCase for classes",
+        "line_length": 120,
+        "formatter": "prettier",
+        "linter": "eslint"
+      },
+      "bash": {
+        "naming": "snake_case for variables",
+        "shellcheck": true
+      }
+    },
+    "metadata": {
+      "category": "code_quality",
+      "related_rules": []
+    }
+  }
+}

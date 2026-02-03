@@ -187,9 +187,9 @@ class LLMFailoverManager:
 
         except Exception as exc:
             latency = time.time() - start_time
-            logger.error(
-                f"Health check error for {provider.value}: {exc}",
-                exc_info=True,
+            # 健康檢查失敗屬預期（如無 API key、provider 離線），用 WARNING 避免日誌過度
+            logger.warning(
+                f"Health check failed for {provider.value}: {exc}",
             )
             return HealthCheckResult(
                 provider=provider,

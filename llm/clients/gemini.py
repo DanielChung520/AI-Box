@@ -1,7 +1,7 @@
 # 代碼功能說明: Gemini 客戶端實現
 # 創建日期: 2025-11-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-01-22
+# 最後修改日期: 2026-01-24 23:38 UTC+8
 
 """Gemini 客戶端實現，整合 Google Gemini API。"""
 
@@ -35,16 +35,20 @@ class GeminiClient(BaseLLMClient):
     def __init__(
         self,
         api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
         default_model: Optional[str] = None,
         timeout: Optional[float] = None,
+        **kwargs: Any,
     ):
         """
         初始化 Gemini 客戶端。
 
         Args:
             api_key: Google API 密鑰（從環境變數或配置讀取）
+            base_url: API 基礎 URL（可選，Gemini SDK 自動處理，此處為兼容性保留）
             default_model: 默認模型名稱
             timeout: 請求超時時間（秒，可選，從配置讀取）
+            **kwargs: 其他參數（兼容性保留）
         """
         if genai is None:
             raise ImportError(
@@ -292,3 +296,18 @@ class GeminiClient(BaseLLMClient):
             如果可用返回 True，否則返回 False
         """
         return genai is not None and self.api_key is not None
+
+    async def verify_connectivity(self) -> tuple[bool, str]:
+        """
+        驗證與 Gemini API 的連通性。
+
+        Returns:
+            (是否成功, 消息)
+        """
+        try:
+            # 嘗試獲取模型列表作為連通性測試
+            genai.list_models()
+            return True, "連通性正常"
+        except Exception as exc:
+            logger.error(f"Gemini connectivity check failed: {exc}")
+            return False, f"連通性驗證失敗: {str(exc)}"

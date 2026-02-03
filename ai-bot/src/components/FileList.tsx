@@ -2,14 +2,15 @@
  * 代碼功能說明: 文件列表組件
  * 創建日期: 2025-12-06
  * 創建人: Daniel Chung
- * 最後修改日期: 2025-12-13 18:28:38 (UTC+8)
+ * 最後修改日期: 2026-01-25
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { File as FileIcon, Download, Trash2, Eye, RefreshCw, Search, Edit } from 'lucide-react';
+import { Download, Trash2, Eye, RefreshCw, Search, Edit } from 'lucide-react';
 import { getFileList, deleteFile, downloadFile, FileMetadata, getProcessingStatus } from '../lib/api';
 import FilePreview from './FilePreview';
+import StageDots from './StageDots';
 
 interface FileListProps {
   userId?: string;
@@ -76,6 +77,14 @@ const getStatusBadge = (status?: string, processingStatus?: string, processingDa
   }
   return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">未知</span>;
 };
+
+/** 依 file 與 processing 狀態算出 StageDots 的紅黃綠（SeaweedFS / 向量 / 圖譜） */
+function getStageDotsState(file: FileMetadata, processingData?: { storage?: { status?: string }; vectorization?: { status?: string }; kg_extraction?: { status?: string } }) {
+  const storageOk = !!(file.storage_path || processingData?.storage?.status === 'completed');
+  const vectorOk = !!(file.vector_count != null && file.vector_count > 0) || processingData?.vectorization?.status === 'completed';
+  const graphOk = !!(file.kg_status === 'completed' || processingData?.kg_extraction?.status === 'completed');
+  return { storageOk, vectorOk, graphOk };
+}
 
 export default function FileList({ userId, taskId, onFileSelect, viewMode = 'table', autoRefresh = true, refreshInterval = 5000 }: FileListProps) {
   const navigate = useNavigate();
@@ -231,7 +240,7 @@ export default function FileList({ userId, taskId, onFileSelect, viewMode = 'tab
 
   if (viewMode === 'card') {
     return (
-      <div className="p-4">
+      <div className="pl-2 pr-4 py-4">
         <div className="mb-4 flex items-center gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -273,10 +282,12 @@ export default function FileList({ userId, taskId, onFileSelect, viewMode = 'tab
               onClick={() => onFileSelect?.(file)}
             >
               <div className="flex items-start justify-between mb-2">
-                <FileIcon className="w-5 h-5 text-blue-500" />
                 {getStatusBadge(file.status, file.processing_status, processingStatuses[file.file_id])}
               </div>
-              <h3 className="font-medium truncate mb-1">{file.filename}</h3>
+              <div className="flex items-center gap-1.5 mb-1">
+                <StageDots {...getStageDotsState(file, processingStatuses[file.file_id])} />
+                <h3 className="font-medium truncate">{file.filename}</h3>
+              </div>
               <p className="text-sm text-gray-500 mb-2">
                 {formatFileSize(file.file_size)} • {formatDate(file.upload_time)}
               </p>
@@ -360,9 +371,9 @@ export default function FileList({ userId, taskId, onFileSelect, viewMode = 'tab
     );
   }
 
-  // Table view (default)
+  // Table view (default) — 修改時間：2026-01-25 左側縮減，檔案 item 向左移
   return (
-    <div className="p-4">
+    <div className="pl-2 pr-4 py-4">
       <div className="mb-4 flex items-center gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -400,7 +411,7 @@ export default function FileList({ userId, taskId, onFileSelect, viewMode = 'tab
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b">
-              <th className="text-left p-2">文件名</th>
+              <th className="text-left pl-1 pr-2 py-2">文件名</th>
               <th className="text-left p-2">類型</th>
               <th className="text-left p-2">大小</th>
               <th className="text-left p-2">狀態</th>
@@ -411,9 +422,9 @@ export default function FileList({ userId, taskId, onFileSelect, viewMode = 'tab
           <tbody>
             {filteredFiles.map((file) => (
               <tr key={file.file_id} className="border-b hover:bg-gray-50">
-                <td className="p-2">
-                  <div className="flex items-center gap-2">
-                    <FileIcon className="w-4 h-4 text-blue-500" />
+                <td className="pl-1 pr-2 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <StageDots {...getStageDotsState(file, processingStatuses[file.file_id])} />
                     <span className="truncate max-w-xs">{file.filename}</span>
                   </div>
                 </td>

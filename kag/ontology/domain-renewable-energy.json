@@ -1,7 +1,7 @@
 {
     "ontology_name": "Renewable_Energy_Domain_Ontology",
     "version": "1.0",
-    "inherits_from": "5W1H_Base_Ontology_OWL",
+    "inherits_from": ["5W1H_Base_Ontology_OWL"],
     "description": "再生能源領域本體論，定義太陽能、風能、水力、生質能等再生能源相關的核心概念。",
     "last_modified": "2026-01-03",
     "author": "Daniel Chung",

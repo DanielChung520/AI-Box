@@ -4,6 +4,7 @@
 
 """正面表列檢查 - L4 策略檢查層"""
 
+import re
 from typing import List, Tuple
 
 
@@ -64,6 +65,55 @@ class PositiveListChecker:
         "• 料號格式：RM05-008、ABC-123"
     )
 
+    # 料號正則模式
+    PART_NUMBER_PATTERNS = [
+        r"[A-Z]{2,4}-?\d{2,6}(?:-\d{2,6})?",  # ABC-123, RM05-008
+        r"\d{2,4}-\d{2,6}",  # 10-0001
+    ]
+
+    # 動作關鍵詞
+    ACTION_KEYWORDS = [
+        "採購",
+        "買",
+        "買進",
+        "進貨",
+        "收料",
+        "賣",
+        "賣出",
+        "出貨",
+        "出庫",
+        "銷售",
+        "庫存",
+        "存量",
+        "剩餘",
+        "還有",
+        "領料",
+        "領用",
+        "生產領料",
+        "報廢",
+        "報損",
+        "損耗",
+        "訂單",
+        "下單",
+    ]
+
+    # 數量關鍵詞
+    QUANTITY_KEYWORDS = [
+        "多少",
+        "總數",
+        "數量",
+        "合計",
+        "總計",
+        "共",
+        "有幾",
+        "總共有",
+        "總共",
+        "共有",
+        "全部",
+        "餘額",
+        "剩餘",
+    ]
+
     def __init__(self):
         self._logger = None
 
@@ -89,11 +139,63 @@ class PositiveListChecker:
         """獲取澄清提示消息"""
         return self.CLARIFICATION_MESSAGE
 
+    def check_required_params(self, query: str) -> Tuple[bool, str]:
+        """檢查必要參數是否齊全
+
+        Returns:
+            Tuple[是否缺少參數, 澄清訊息]
+        """
+        query_upper = query.upper()
+
+        # 1. 檢查是否有料號
+        has_part_number = False
+        for pattern in self.PART_NUMBER_PATTERNS:
+            if re.search(pattern, query_upper):
+                has_part_number = True
+                break
+
+        # 2. 檢查是否有明確動作
+        has_action = any(kw in query for kw in self.ACTION_KEYWORDS)
+
+        # 3. 檢查是否有數量詞（對於查詢類）
+        has_quantity = any(kw in query for kw in self.QUANTITY_KEYWORDS)
+
+        # 判定缺少哪些必要參數
+        missing = []
+        if not has_part_number:
+            missing.append("料號（如：RM05-008、ABC-123）")
+
+        if not has_action:
+            missing.append("動作（如：採購、庫存、銷售、領料）")
+
+        # 如果有料號和動作，但沒有數量詞，給予提示但不強制
+        if has_part_number and has_action and not has_quantity:
+            pass  # 可選參數，不強制要求
+
+        if missing:
+            message = (
+                "💡 請補充以下資訊，我才能幫您查詢：\n"
+                + "\n".join([f"• {item}" for item in missing])
+                + "\n\n範例：\n"
+                + "• RM05-008 上月買進多少\n"
+                + "• ABC-123 庫存還有多少"
+            )
+            return True, message
+
+        return False, ""
+
     def needs_clarification(self, query: str) -> Tuple[bool, str]:
-        """判斷是否需要澄清"""
+        """判斷是否需要澄清（正面表列 + 必要參數檢查）"""
+        # 首先檢查是否在正面表列內
         passed, matched = self.check(query)
         if not passed:
             return True, self.CLARIFICATION_MESSAGE
+
+        # 再檢查必要參數是否齊全
+        missing_params, param_message = self.check_required_params(query)
+        if missing_params:
+            return True, param_message
+
         return False, ""
 
 

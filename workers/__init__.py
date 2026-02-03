@@ -4,3 +4,6 @@
 # 最後修改日期: 2025-12-10
 
 """RQ Worker 模組 - 提供任務處理 Worker"""
+
+# 導入任務以供 RQ Worker 註冊
+from .tasks import process_file_chunking_and_vectorization_task

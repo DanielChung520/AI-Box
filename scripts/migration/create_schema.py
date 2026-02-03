@@ -144,9 +144,9 @@ def create_indexes(client: ArangoDBClient) -> None:
                 idx_name = idx_config["name"]
                 existing_indexes = [idx["name"] for idx in collection.indexes() if "name" in idx]
                 if idx_name not in existing_indexes:
-                    collection.add_index(
+                    # 使用 ArangoDB 的索引創建方法
+                    collection.add_hash_index(
                         fields=idx_config["fields"],
-                        index_type=idx_config["type"],
                         unique=False,
                         name=idx_name,
                     )

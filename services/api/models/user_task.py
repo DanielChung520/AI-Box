@@ -67,6 +67,11 @@ class UserTaskBase(BaseModel):
         None,
         description="任務顏色標籤（red/orange/yellow/green/blue/purple/gray），None 表示無顏色",
     )
+    # 修改時間：2026-01-27 - 添加 Agent 任務標記字段
+    is_agent_task: Optional[bool] = Field(
+        False,
+        description="是否為 Agent 任務（True 表示是 Agent 任務，False 或 None 表示一般任務）",
+    )
     dueDate: Optional[str] = Field(None, description="截止日期")
     messages: Optional[List[Message]] = Field(default_factory=list, description="消息列表")
     # 修改時間：2025-01-27 - executionConfig 改為必填，默認值為 {'mode': 'free'}
@@ -99,6 +104,10 @@ class UserTaskUpdate(BaseModel):
     # 修改時間：2025-12-09 - 添加任務顏色標籤字段
     label_color: Optional[str] = Field(
         None, description="任務顏色標籤（red/orange/yellow/green/blue/purple/gray）"
+    )
+    # 修改時間：2026-01-27 - 添加 Agent 任務標記字段
+    is_agent_task: Optional[bool] = Field(
+        None, description="是否為 Agent 任務（True 表示是 Agent 任務，False 或 None 表示一般任務）"
     )
     dueDate: Optional[str] = Field(None, description="截止日期")
     messages: Optional[List[Message]] = Field(None, description="消息列表")

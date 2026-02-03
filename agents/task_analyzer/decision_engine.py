@@ -1,7 +1,7 @@
 # 代碼功能說明: 工作流決策引擎
 # 創建日期: 2025-11-26 22:30 (UTC+8)
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-13
+# 最後修改日期: 2026-01-28
 
 """實現工作流模式選擇決策邏輯。"""
 
@@ -285,7 +285,9 @@ class DecisionEngine:
             mode = "hybrid"
             primary = WorkflowType.AUTOGEN
             fallback = [WorkflowType.LANGCHAIN]
-            reasoning_parts.append(f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式")
+            reasoning_parts.append(
+                f"步驟數 {step_count} > {self.step_count_threshold_hybrid}，使用混合模式"
+            )
 
         # 規則 3: 需要可觀測性 → LangGraph 作為主要模式
         elif requires_observability:
@@ -430,6 +432,23 @@ class DecisionEngine:
         user_query = context.get("task", "") or context.get("query", "") if context else ""
         is_file_editing = self._is_file_editing_task(user_query)
 
+        # 檢查是否為知識庫查詢任務（從 context 中獲取 Knowledge Signal）
+        is_knowledge_query = False
+        knowledge_signal_dict = context.get("knowledge_signal") if context else None
+        if knowledge_signal_dict and knowledge_signal_dict.get("is_knowledge_event"):
+            is_knowledge_query = True
+            logger.info(
+                f"Decision Engine: Knowledge query detected from Knowledge Signal: "
+                f"is_knowledge_event=True, knowledge_type={knowledge_signal_dict.get('knowledge_type')}"
+            )
+            # 如果 Knowledge Signal 標記為知識事件，強制設置 needs_agent=True
+            if not router_decision.needs_agent:
+                router_decision.needs_agent = True
+                logger.info(
+                    f"Decision Engine: Forcing needs_agent=True for knowledge query "
+                    f"(query: {user_query[:100]}...)"
+                )
+
         # 注意：任務類型修正已在 analyzer.py 中處理（修正 RouterDecision.intent_type）
         # 這裡不需要再次修正，因為 RouterDecision 沒有 task_type 字段
 
@@ -572,8 +591,43 @@ class DecisionEngine:
         # 2. 選擇 Agent
         chosen_agent = None
 
-        # 方案1：根據文件擴展名精確匹配（優先級最高）
-        if specific_agent_id:
+        # 方案1（優先）：若是知識庫查詢任務，優先選擇 KA-Agent
+        # 即使用戶當前在 MM-Agent 等任務中，問「專業知識」「知識庫」時也應走 KA-Agent 檢索
+        if is_knowledge_query and agent_candidates:
+            # 優先查找 ka-agent
+            ka_agent = next((a for a in agent_candidates if a.candidate_id == "ka-agent"), None)
+            if ka_agent:
+                chosen_agent = "ka-agent"
+                reasoning_parts.append(
+                    f"知識庫查詢任務，選擇 KA-Agent: {chosen_agent} (評分: {ka_agent.total_score:.2f})"
+                )
+                logger.info(
+                    f"Decision Engine: Knowledge query detected, selected KA-Agent: {chosen_agent} "
+                    f"(score: {ka_agent.total_score:.2f})"
+                )
+            else:
+                # 如果沒有找到 ka-agent，查找知識服務類型的 Agent
+                knowledge_service_agents = [
+                    a
+                    for a in agent_candidates
+                    if a.metadata.get("agent_type") == "knowledge_service"
+                ]
+                if knowledge_service_agents:
+                    best_knowledge_agent = max(
+                        knowledge_service_agents, key=lambda x: x.total_score
+                    )
+                    chosen_agent = best_knowledge_agent.candidate_id
+                    reasoning_parts.append(
+                        f"知識庫查詢任務，選擇知識服務 Agent: {chosen_agent} "
+                        f"(評分: {best_knowledge_agent.total_score:.2f})"
+                    )
+                    logger.info(
+                        f"Decision Engine: Knowledge query detected, selected knowledge service agent: "
+                        f"{chosen_agent} (score: {best_knowledge_agent.total_score:.2f})"
+                    )
+
+        # 方案2：根據用戶選擇或文件擴展名精確匹配（僅在未因知識查詢選中 Agent 時）
+        if not chosen_agent and specific_agent_id:
             # 記錄所有候選 Agent ID（用於調試）
             candidate_ids = [a.candidate_id for a in agent_candidates] if agent_candidates else []
             logger.info(
@@ -590,25 +644,20 @@ class DecisionEngine:
             if matched_agent:
                 chosen_agent = specific_agent_id
                 reasoning_parts.append(
-                    f"根據文件擴展名精確匹配: {chosen_agent} (評分: {matched_agent.total_score:.2f})"
+                    f"根據文件擴展名/用戶選擇: {chosen_agent} (評分: {matched_agent.total_score:.2f})"
                 )
                 logger.info(
                     f"Decision Engine: File extension match - selected {chosen_agent} "
                     f"(score: {matched_agent.total_score:.2f})"
                 )
             else:
-                # 如果文件擴展名匹配到特定 Agent，但該 Agent 不在候選列表中
-                # 這可能是因為 Agent 沒有被正確註冊或加載
-                # 記錄警告，但繼續使用候選列表中的 Agent
                 logger.warning(
                     f"Decision Engine: File extension match found {specific_agent_id}, "
                     f"but it's not in agent_candidates! Available: {candidate_ids}. "
                     f"This may indicate the agent is not properly registered or loaded."
                 )
-                # 注意：這裡不強制選擇 specific_agent_id，因為它不在候選列表中
-                # 如果強制選擇，可能會導致執行時錯誤
 
-        # 方案2：如果是文件編輯任務，選擇評分最高的 Agent（document-editing-agent 已被過濾）
+        # 方案3：如果是文件編輯任務，選擇評分最高的 Agent（document-editing-agent 已被過濾）
         if not chosen_agent and router_decision.needs_agent and agent_candidates:
             # 選擇評分最高的 Agent
             best_agent = max(agent_candidates, key=lambda x: x.total_score)
@@ -624,11 +673,14 @@ class DecisionEngine:
                 logger.info(
                     f"Decision Engine: No agent selected (best score {best_agent.total_score:.2f} < 0.5)"
                 )
-                reasoning_parts.append(f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent")
-        else:
+                reasoning_parts.append(
+                    f"Agent 評分過低 ({best_agent.total_score:.2f})，不使用 Agent"
+                )
+        elif not chosen_agent:
             logger.debug(
                 f"Decision Engine: No agent selection - needs_agent={router_decision.needs_agent}, "
-                f"is_file_editing={is_file_editing}, candidates_count={len(agent_candidates)}"
+                f"is_file_editing={is_file_editing}, is_knowledge_query={is_knowledge_query}, "
+                f"candidates_count={len(agent_candidates)}"
             )
 
         # 3. 選擇 Tool
@@ -732,7 +784,9 @@ class DecisionEngine:
         if model_candidates:
             best_model = max(model_candidates, key=lambda x: x.total_score)
             chosen_model = best_model.candidate_id
-            reasoning_parts.append(f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})")
+            reasoning_parts.append(
+                f"選擇 Model: {chosen_model} (評分: {best_model.total_score:.2f})"
+            )
 
         # 5. 計算總評分
         scores = []

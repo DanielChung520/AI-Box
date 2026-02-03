@@ -28,7 +28,7 @@ class TaskOrchestrationResult:
     task_dependencies: List[Dict[str, Any]] = None
     estimated_duration: Optional[float] = None
     resource_utilization: Dict[str, Any] = None
-    reasoning: str = "
+    reasoning: str = ""
     def __post_init__(self):
         if self.scheduled_agents is None:
             self.scheduled_agents = []

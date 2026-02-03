@@ -81,8 +81,8 @@ class ContextManagerAgent(BaseAgentNode):
                     "context_size": context_result.context_size,
                     "memory_integrated": context_result.memory_integrated,
                 },
-                1.0,
-                if context_result.context_persisted and context_result.memory_integrated,
+                1.0
+                if context_result.context_persisted and context_result.memory_integrated
                 else 0.7,
             )
 
@@ -145,7 +145,7 @@ class ContextManagerAgent(BaseAgentNode):
                 memory_integrated=memory_integrated,
                 session_active=True,
                 messages_stored=messages_stored,
-                context_size=len(state.messages)
+                context_size=len(state.messages),
                 reasoning="Successfully managed conversation context and session state.",
             )
 

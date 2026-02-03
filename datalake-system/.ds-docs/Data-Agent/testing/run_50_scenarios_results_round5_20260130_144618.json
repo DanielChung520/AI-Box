@@ -1,0 +1,3034 @@
+{
+  "summary": {
+    "total": 50,
+    "passed": 49,
+    "failed": 1
+  },
+  "results": [
+    {
+      "scenario_id": "T2S-001",
+      "category": "簡單 WHERE 條件查詢",
+      "passed": true,
+      "duration_sec": 2.749,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file WHERE img01 = '10-0001'",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file WHERE img01 = '10-0001'",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號為 10-0001 的庫存記錄。」轉換為 SQL: SELECT * FROM img_file WHERE img01 = '10-0001'...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:30.678061",
+            "natural_language": "查詢料號為 10-0001 的庫存記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4037
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2678.23,
+                "raw_output_length": 47,
+                "raw_output_preview": "SELECT * FROM img_file WHERE img01 = '10-0001';"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file WHERE img01 = '10-0001'"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file WHERE img01 = '10-0001'",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 2683.26,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-002",
+      "category": "AND 條件查詢",
+      "passed": true,
+      "duration_sec": 3.985,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT *\nFROM img_file\nWHERE img01 = '10-0001'\nAND img02 = 'W01'",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT *\nFROM img_file\nWHERE img01 = '10-0001'\nAND img02 = 'W01'",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號 10-0001 且倉庫為 W01 的庫存。」轉換為 SQL: SELECT *\nFROM img_file\nWHERE img01 = '10-0001'\nAND img02 = 'W01'...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:33.426851",
+            "natural_language": "查詢料號 10-0001 且倉庫為 W01 的庫存。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4043
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3984.34,
+                "raw_output_length": 98,
+                "raw_output_preview": "查詢料號為 '10-0001' 且倉庫為 'W01' 的庫存。\n\nSELECT *\nFROM img_file\nWHERE img01 = '10-0001'\nAND img02 = 'W01';"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT *\nFROM img_file\nWHERE img01 = '10-0001'\nAND img02 = 'W01'"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT *\nFROM img_file\nWHERE img01 = '10-0001'\nAND img02 = 'W01'",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3984.73,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-003",
+      "category": "OR 條件查詢",
+      "passed": true,
+      "duration_sec": 3.873,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT *\nFROM img_file\nWHERE img01 IN ('10-0001', '10-0002')",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT *\nFROM img_file\nWHERE img01 IN ('10-0001', '10-0002')",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號為 10-0001 或 10-0002 的庫存。」轉換為 SQL: SELECT *\nFROM img_file\nWHERE img01 IN ('10-0001', '10-0002')...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:37.411698",
+            "natural_language": "查詢料號為 10-0001 或 10-0002 的庫存。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4045
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3872.14,
+                "raw_output_length": 91,
+                "raw_output_preview": "查詢料號為 10-0001 或 10-0002 的庫存。\n\nSELECT *\nFROM img_file\nWHERE img01 IN ('10-0001', '10-0002');"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT *\nFROM img_file\nWHERE img01 IN ('10-0001', '10-0002')"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT *\nFROM img_file\nWHERE img01 IN ('10-0001', '10-0002')",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3872.52,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-004",
+      "category": "IN 條件查詢",
+      "passed": true,
+      "duration_sec": 3.294,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file WHERE img01 IN ('10-0001', '10-0002', '10-0003')",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file WHERE img01 IN ('10-0001', '10-0002', '10-0003')",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號在 10-0001、10-0002、10-0003 中的庫存。」轉換為 SQL: SELECT * FROM img_file WHERE img01 IN ('10-0001', '10-0002', '10-0003')...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:41.284324",
+            "natural_language": "查詢料號在 10-0001、10-0002、10-0003 中的庫存。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4052
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3292.98,
+                "raw_output_length": 72,
+                "raw_output_preview": "SELECT * FROM img_file WHERE img01 IN ('10-0001', '10-0002', '10-0003');"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file WHERE img01 IN ('10-0001', '10-0002', '10-0003')"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file WHERE img01 IN ('10-0001', '10-0002', '10-0003')",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3293.65,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-005",
+      "category": "SUM 聚合",
+      "passed": true,
+      "duration_sec": 2.81,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT SUM(img10)\nFROM img_file\nWHERE img01 = '10-0001'",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT SUM(img10)\nFROM img_file\nWHERE img01 = '10-0001'",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「計算料號 10-0001 的總庫存量。」轉換為 SQL: SELECT SUM(img10)\nFROM img_file\nWHERE img01 = '10-0001'...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:44.578143",
+            "natural_language": "計算料號 10-0001 的總庫存量。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.04,
+                "prompt_length": 4036
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2809.34,
+                "raw_output_length": 56,
+                "raw_output_preview": "SELECT SUM(img10)\nFROM img_file\nWHERE img01 = '10-0001';"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT SUM(img10)\nFROM img_file\nWHERE img01 = '10-0001'"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT SUM(img10)\nFROM img_file\nWHERE img01 = '10-0001'",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 2809.72,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-006",
+      "category": "AVG 聚合",
+      "passed": true,
+      "duration_sec": 3.781,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT AVG(img10) FROM img_file WHERE img01 = '10-0001' GROUP BY img02",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT AVG(img10) FROM img_file WHERE img01 = '10-0001' GROUP BY img02",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號 10-0001 在各倉庫的平均庫存量。」轉換為 SQL: SELECT AVG(img10) FROM img_file WHERE img01 = '10-0001' GROUP BY img02...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:47.387998",
+            "natural_language": "查詢料號 10-0001 在各倉庫的平均庫存量。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4041
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3779.99,
+                "raw_output_length": 97,
+                "raw_output_preview": "查詢料號 10-0001 在各倉庫的平均庫存量。\n\nSELECT AVG(img10) FROM img_file WHERE img01 = '10-0001' GROUP BY img02;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT AVG(img10) FROM img_file WHERE img01 = '10-0001' GROUP BY img02"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT AVG(img10) FROM img_file WHERE img01 = '10-0001' GROUP BY img02",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3780.44,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-007",
+      "category": "MAX 聚合",
+      "passed": true,
+      "duration_sec": 2.926,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT MAX(img10) FROM img_file",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT MAX(img10) FROM img_file",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢庫存量最高的單筆記錄的數量。」轉換為 SQL: SELECT MAX(img10) FROM img_file...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:51.168547",
+            "natural_language": "查詢庫存量最高的單筆記錄的數量。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4033
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2925.73,
+                "raw_output_length": 50,
+                "raw_output_preview": "查詢庫存量最高的單筆記錄的數量。\n\nSELECT MAX(img10) FROM img_file;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT MAX(img10) FROM img_file"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT MAX(img10) FROM img_file",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 2926.04,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-008",
+      "category": "MIN 聚合",
+      "passed": true,
+      "duration_sec": 2.943,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT MIN(img10) FROM img_file",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT MIN(img10) FROM img_file",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢庫存量最低的單筆記錄的數量。」轉換為 SQL: SELECT MIN(img10) FROM img_file...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:54.094704",
+            "natural_language": "查詢庫存量最低的單筆記錄的數量。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4033
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2941.94,
+                "raw_output_length": 50,
+                "raw_output_preview": "查詢庫存量最低的單筆記錄的數量。\n\nSELECT MIN(img10) FROM img_file;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT MIN(img10) FROM img_file"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT MIN(img10) FROM img_file",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 2942.44,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-009",
+      "category": "COUNT 聚合",
+      "passed": true,
+      "duration_sec": 2.729,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT COUNT(*) FROM img_file WHERE img01 = '10-0001'",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT COUNT(*) FROM img_file WHERE img01 = '10-0001'",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「統計料號 10-0001 的庫存記錄筆數。」轉換為 SQL: SELECT COUNT(*) FROM img_file WHERE img01 = '10-0001'...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:57.037290",
+            "natural_language": "統計料號 10-0001 的庫存記錄筆數。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4038
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2728.92,
+                "raw_output_length": 54,
+                "raw_output_preview": "SELECT COUNT(*) FROM img_file WHERE img01 = '10-0001';"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT COUNT(*) FROM img_file WHERE img01 = '10-0001'"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT COUNT(*) FROM img_file WHERE img01 = '10-0001'",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 2729.31,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-010",
+      "category": "GROUP BY 分組",
+      "passed": true,
+      "duration_sec": 2.639,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT SUM(img10), img02 FROM img_file GROUP BY img02",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT SUM(img10), img02 FROM img_file GROUP BY img02",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「按倉庫統計總庫存量。」轉換為 SQL: SELECT SUM(img10), img02 FROM img_file GROUP BY img02...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:44:59.766726",
+            "natural_language": "按倉庫統計總庫存量。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4027
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2638.05,
+                "raw_output_length": 54,
+                "raw_output_preview": "SELECT SUM(img10), img02 FROM img_file GROUP BY img02;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT SUM(img10), img02 FROM img_file GROUP BY img02"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT SUM(img10), img02 FROM img_file GROUP BY img02",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 2638.43,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-011",
+      "category": "ORDER BY ASC 排序",
+      "passed": true,
+      "duration_sec": 3.086,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT *\nFROM img_file\nORDER BY img10 ASC",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT *\nFROM img_file\nORDER BY img10 ASC",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢庫存記錄，按庫存量由小到大排序。」轉換為 SQL: SELECT *\nFROM img_file\nORDER BY img10 ASC...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:02.405271",
+            "natural_language": "查詢庫存記錄，按庫存量由小到大排序。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4035
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3085.6,
+                "raw_output_length": 61,
+                "raw_output_preview": "查詢庫存記錄，按庫存量由小到大排序。\n\nSELECT *\nFROM img_file\nORDER BY img10 ASC"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT *\nFROM img_file\nORDER BY img10 ASC"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT *\nFROM img_file\nORDER BY img10 ASC",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 3086.08,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-012",
+      "category": "ORDER BY DESC 排序",
+      "passed": true,
+      "duration_sec": 3.056,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file ORDER BY img10 DESC",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file ORDER BY img10 DESC",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢庫存記錄，按庫存量由大到小排序。」轉換為 SQL: SELECT * FROM img_file ORDER BY img10 DESC...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:05.491494",
+            "natural_language": "查詢庫存記錄，按庫存量由大到小排序。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4035
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3055.79,
+                "raw_output_length": 63,
+                "raw_output_preview": "查詢庫存記錄，按庫存量由大到小排序。\n\nSELECT * FROM img_file ORDER BY img10 DESC;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file ORDER BY img10 DESC"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file ORDER BY img10 DESC",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 3056.26,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-013",
+      "category": "LIMIT 限制",
+      "passed": true,
+      "duration_sec": 2.373,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file LIMIT 10",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file LIMIT 10",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢前 10 筆庫存記錄。」轉換為 SQL: SELECT * FROM img_file LIMIT 10...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:08.547918",
+            "natural_language": "查詢前 10 筆庫存記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4030
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2372.94,
+                "raw_output_length": 32,
+                "raw_output_preview": "SELECT * FROM img_file LIMIT 10;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file LIMIT 10"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file LIMIT 10",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 2373.35,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-014",
+      "category": ">= 範圍過濾",
+      "passed": true,
+      "duration_sec": 2.543,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file WHERE img10 >= 100",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file WHERE img10 >= 100",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢庫存量大於等於 100 的記錄。」轉換為 SQL: SELECT * FROM img_file WHERE img10 >= 100...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:10.921430",
+            "natural_language": "查詢庫存量大於等於 100 的記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4035
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2542.78,
+                "raw_output_length": 42,
+                "raw_output_preview": "SELECT * FROM img_file WHERE img10 >= 100;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file WHERE img10 >= 100"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file WHERE img10 >= 100",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 2543.28,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-015",
+      "category": "<= 範圍過濾",
+      "passed": true,
+      "duration_sec": 2.522,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file WHERE img10 <= 500",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file WHERE img10 <= 500",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢庫存量小於等於 500 的記錄。」轉換為 SQL: SELECT * FROM img_file WHERE img10 <= 500...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:13.464872",
+            "natural_language": "查詢庫存量小於等於 500 的記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4035
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2521.96,
+                "raw_output_length": 42,
+                "raw_output_preview": "SELECT * FROM img_file WHERE img10 <= 500;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file WHERE img10 <= 500"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file WHERE img10 <= 500",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 2522.28,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-016",
+      "category": "BETWEEN 範圍過濾",
+      "passed": true,
+      "duration_sec": 2.72,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 500",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 500",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢庫存量在 100 到 500 之間的記錄。」轉換為 SQL: SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 500...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:15.987277",
+            "natural_language": "查詢庫存量在 100 到 500 之間的記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4040
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2719.58,
+                "raw_output_length": 55,
+                "raw_output_preview": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 500;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 500"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 500",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 2719.91,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-017",
+      "category": "當月數據查詢",
+      "passed": true,
+      "duration_sec": 2.969,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM tlf_file WHERE EXTRACT(MONTH FROM tlf06) = EXTRACT(MONTH FROM CURRENT_DATE)",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM tlf_file WHERE EXTRACT(MONTH FROM tlf06) = EXTRACT(MONTH FROM CURRENT_DATE)",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢當月的交易記錄。」轉換為 SQL: SELECT * FROM tlf_file WHERE EXTRACT(MONTH FROM tlf06) = EXTRACT(MONTH FROM CURRENT_DATE)...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:18.707312",
+            "natural_language": "查詢當月的交易記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4027
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2968.5,
+                "raw_output_length": 90,
+                "raw_output_preview": "SELECT * FROM tlf_file WHERE EXTRACT(MONTH FROM tlf06) = EXTRACT(MONTH FROM CURRENT_DATE);"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM tlf_file WHERE EXTRACT(MONTH FROM tlf06) = EXTRACT(MONTH FROM CURRENT_DATE)"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM tlf_file WHERE EXTRACT(MONTH FROM tlf06) = EXTRACT(MONTH FROM CURRENT_DATE)",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 2969.01,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-018",
+      "category": "大數據量查詢（1000 筆）",
+      "passed": true,
+      "duration_sec": 2.437,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file LIMIT 1000",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file LIMIT 1000",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢庫存表前 1000 筆記錄。」轉換為 SQL: SELECT * FROM img_file LIMIT 1000...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:21.676432",
+            "natural_language": "查詢庫存表前 1000 筆記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4033
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2436.47,
+                "raw_output_length": 34,
+                "raw_output_preview": "SELECT * FROM img_file LIMIT 1000;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file LIMIT 1000"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file LIMIT 1000",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 2436.72,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-019",
+      "category": "複雜查詢（WHERE + GROUP BY + ORDER BY）",
+      "passed": true,
+      "duration_sec": 3.558,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT img01, SUM(img10)\nFROM img_file\nWHERE img10 >= 100\nGROUP BY img01\nORDER BY SUM(img10) DESC\nLIMIT 5",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT img01, SUM(img10)\nFROM img_file\nWHERE img10 >= 100\nGROUP BY img01\nORDER BY SUM(img10) DESC\nLIMIT 5",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢庫存量≥100 的料號，按料號分組加總庫存，再按總量由高到低排序取前 5 筆。」轉換為 SQL: SELECT img01, SUM(img10)\nFROM img_file\nWHERE img10 >= 100\nGROUP BY img01\nORDER BY SUM(img10) DESC\nLI...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:24.113266",
+            "natural_language": "查詢庫存量≥100 的料號，按料號分組加總庫存，再按總量由高到低排序取前 5 筆。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4058
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3556.69,
+                "raw_output_length": 106,
+                "raw_output_preview": "SELECT img01, SUM(img10)\nFROM img_file\nWHERE img10 >= 100\nGROUP BY img01\nORDER BY SUM(img10) DESC\nLIMIT 5;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT img01, SUM(img10)\nFROM img_file\nWHERE img10 >= 100\nGROUP BY img01\nORDER BY SUM(img10) DESC\nLIMIT 5"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT img01, SUM(img10)\nFROM img_file\nWHERE img10 >= 100\nGROUP BY img01\nORDER BY SUM(img10) DESC\nLIMIT 5",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3557.82,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-020",
+      "category": "多條件查詢",
+      "passed": true,
+      "duration_sec": 3.344,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file WHERE img01 = '10-0001' AND img02 = 'W01' AND img10 > 50",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file WHERE img01 = '10-0001' AND img02 = 'W01' AND img10 > 50",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號 10-0001、倉庫 W01、庫存量大於 50 的記錄。」轉換為 SQL: SELECT * FROM img_file WHERE img01 = '10-0001' AND img02 = 'W01' AND img10 > 50...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:27.671235",
+            "natural_language": "查詢料號 10-0001、倉庫 W01、庫存量大於 50 的記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4050
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3342.83,
+                "raw_output_length": 80,
+                "raw_output_preview": "SELECT * FROM img_file WHERE img01 = '10-0001' AND img02 = 'W01' AND img10 > 50;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file WHERE img01 = '10-0001' AND img02 = 'W01' AND img10 > 50"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file WHERE img01 = '10-0001' AND img02 = 'W01' AND img10 > 50",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3343.62,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-021",
+      "category": "Top N 料號查詢",
+      "passed": true,
+      "duration_sec": 3.783,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT ima01, SUM(img10)\nFROM ima_file\nJOIN img_file ON ima_file.ima01 = img_file.img01\nGROUP BY ima01\nORDER BY SUM(img10) DESC\nLIMIT 5",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT ima01, SUM(img10)\nFROM ima_file\nJOIN img_file ON ima_file.ima01 = img_file.img01\nGROUP BY ima01\nORDER BY SUM(img10) DESC\nLIMIT 5",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢庫存總量前 5 名的料號。」轉換為 SQL: SELECT ima01, SUM(img10)\nFROM ima_file\nJOIN img_file ON ima_file.ima01 = img_file.img01\nGROUP BY ima...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:31.015017",
+            "natural_language": "查詢庫存總量前 5 名的料號。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.04,
+                "prompt_length": 4032
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3781.48,
+                "raw_output_length": 136,
+                "raw_output_preview": "SELECT ima01, SUM(img10)\nFROM ima_file\nJOIN img_file ON ima_file.ima01 = img_file.img01\nGROUP BY ima01\nORDER BY SUM(img10) DESC\nLIMIT 5;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT ima01, SUM(img10)\nFROM ima_file\nJOIN img_file ON ima_file.ima01 = img_file.img01\nGROUP BY ima01\nORDER BY SUM(img10) DESC\nLIMIT 5"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT ima01, SUM(img10)\nFROM ima_file\nJOIN img_file ON ima_file.ima01 = img_file.img01\nGROUP BY ima01\nORDER BY SUM(img10) DESC\nLIMIT 5",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 3782.76,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-022",
+      "category": "Bottom N 料號查詢",
+      "passed": true,
+      "duration_sec": 3.167,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nORDER BY SUM(img10) ASC\nLIMIT 5",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nORDER BY SUM(img10) ASC\nLIMIT 5",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢庫存總量最低的 5 個料號。」轉換為 SQL: SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nORDER BY SUM(img10) ASC\nLIMIT 5...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:34.797956",
+            "natural_language": "查詢庫存總量最低的 5 個料號。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.05,
+                "prompt_length": 4033
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3166.05,
+                "raw_output_length": 85,
+                "raw_output_preview": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nORDER BY SUM(img10) ASC\nLIMIT 5"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nORDER BY SUM(img10) ASC\nLIMIT 5"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nORDER BY SUM(img10) ASC\nLIMIT 5",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 3166.98,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-023",
+      "category": "LIKE 模糊查詢",
+      "passed": true,
+      "duration_sec": 3.233,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT *\nFROM ima_file\nWHERE ima01 LIKE '10-%'",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT *\nFROM ima_file\nWHERE ima01 LIKE '10-%'",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號開頭為 10- 的物料主檔。」轉換為 SQL: SELECT *\nFROM ima_file\nWHERE ima01 LIKE '10-%'...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:37.965140",
+            "natural_language": "查詢料號開頭為 10- 的物料主檔。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4035
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3232.62,
+                "raw_output_length": 67,
+                "raw_output_preview": "查詢料號開頭為 10- 的物料主檔。\n\nSELECT *\nFROM ima_file\nWHERE ima01 LIKE '10-%';"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT *\nFROM ima_file\nWHERE ima01 LIKE '10-%'"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT *\nFROM ima_file\nWHERE ima01 LIKE '10-%'",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3233.16,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-024",
+      "category": "空結果處理",
+      "passed": true,
+      "duration_sec": 3.397,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file WHERE img01 = '不存在的料号-XYZ'",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file WHERE img01 = '不存在的料号-XYZ'",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號為「不存在的料號-XYZ」的庫存。」轉換為 SQL: SELECT * FROM img_file WHERE img01 = '不存在的料号-XYZ'...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:41.198471",
+            "natural_language": "查詢料號為「不存在的料號-XYZ」的庫存。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4038
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3396.01,
+                "raw_output_length": 73,
+                "raw_output_preview": "查詢料號為「不存在的料號-XYZ」的庫存。\n\nSELECT * FROM img_file WHERE img01 = '不存在的料号-XYZ';"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file WHERE img01 = '不存在的料号-XYZ'"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file WHERE img01 = '不存在的料号-XYZ'",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3396.56,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-025",
+      "category": "DISTINCT",
+      "passed": false,
+      "duration_sec": 3.655,
+      "expected_success": true,
+      "actual_success": false,
+      "error": "語義理解不清楚：⚠️ 語義理解警告：查詢「庫存」或「數量」時應該使用 img_file（庫存表），但使用了 ima_file（主料表）",
+      "generated_sql": null,
+      "result_summary": {
+        "success": false,
+        "action": "text_to_sql",
+        "result": null,
+        "error": "語義理解不清楚：⚠️ 語義理解警告：查詢「庫存」或「數量」時應該使用 img_file（庫存表），但使用了 ima_file（主料表）",
+        "metadata": null
+      },
+      "notes": [
+        "預期成功=True，實際=False"
+      ]
+    },
+    {
+      "scenario_id": "T2S-026",
+      "category": "HAVING 條件",
+      "passed": true,
+      "duration_sec": 3.208,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nHAVING SUM(img10) > 1000",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nHAVING SUM(img10) > 1000",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢總庫存量超過 1000 的料號。」轉換為 SQL: SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nHAVING SUM(img10) > 1000...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:48.249862",
+            "natural_language": "查詢總庫存量超過 1000 的料號。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4035
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3207.41,
+                "raw_output_length": 79,
+                "raw_output_preview": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nHAVING SUM(img10) > 1000;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nHAVING SUM(img10) > 1000"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT img01, SUM(img10)\nFROM img_file\nGROUP BY img01\nHAVING SUM(img10) > 1000",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 3208.34,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-027",
+      "category": "多表語義（若支援）",
+      "passed": true,
+      "duration_sec": 3.815,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT ima02, SUM(img10)\nFROM ima_file\nINNER JOIN img_file ON ima_file.ima01 = img_file.img01\nWHERE ima01 = '10-0001'\nGROUP BY ima02",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT ima02, SUM(img10)\nFROM ima_file\nINNER JOIN img_file ON ima_file.ima01 = img_file.img01\nWHERE ima01 = '10-0001'\nGROUP BY ima02",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號 10-0001 的品名與其總庫存量。」轉換為 SQL: SELECT ima02, SUM(img10)\nFROM ima_file\nINNER JOIN img_file ON ima_file.ima01 = img_file.img01\nWHERE ...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:51.458362",
+            "natural_language": "查詢料號 10-0001 的品名與其總庫存量。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.04,
+                "prompt_length": 4040
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3811.08,
+                "raw_output_length": 133,
+                "raw_output_preview": "SELECT ima02, SUM(img10)\nFROM ima_file\nINNER JOIN img_file ON ima_file.ima01 = img_file.img01\nWHERE ima01 = '10-0001'\nGROUP BY ima02;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT ima02, SUM(img10)\nFROM ima_file\nINNER JOIN img_file ON ima_file.ima01 = img_file.img01\nWHERE ima01 = '10-0001'\nGROUP BY ima02"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT ima02, SUM(img10)\nFROM ima_file\nINNER JOIN img_file ON ima_file.ima01 = img_file.img01\nWHERE ima01 = '10-0001'\nGROUP BY ima02",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3815.28,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-028",
+      "category": "日期範圍",
+      "passed": true,
+      "duration_sec": 3.34,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM tlf_file WHERE EXTRACT(YEAR FROM tlf06) = 2026 AND EXTRACT(MONTH FROM tlf06) = 1",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM tlf_file WHERE EXTRACT(YEAR FROM tlf06) = 2026 AND EXTRACT(MONTH FROM tlf06) = 1",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢 2026 年 1 月的交易記錄。」轉換為 SQL: SELECT * FROM tlf_file WHERE EXTRACT(YEAR FROM tlf06) = 2026 AND EXTRACT(MONTH FROM tlf06) = 1...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:55.273806",
+            "natural_language": "查詢 2026 年 1 月的交易記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4036
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3338.42,
+                "raw_output_length": 95,
+                "raw_output_preview": "SELECT * FROM tlf_file WHERE EXTRACT(YEAR FROM tlf06) = 2026 AND EXTRACT(MONTH FROM tlf06) = 1;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM tlf_file WHERE EXTRACT(YEAR FROM tlf06) = 2026 AND EXTRACT(MONTH FROM tlf06) = 1"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM tlf_file WHERE EXTRACT(YEAR FROM tlf06) = 2026 AND EXTRACT(MONTH FROM tlf06) = 1",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3339.47,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-029",
+      "category": "NULL 條件",
+      "passed": true,
+      "duration_sec": 2.907,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT *\nFROM img_file\nWHERE img04 IS NULL",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT *\nFROM img_file\nWHERE img04 IS NULL",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢批號為空的庫存記錄。」轉換為 SQL: SELECT *\nFROM img_file\nWHERE img04 IS NULL...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:45:58.613428",
+            "natural_language": "查詢批號為空的庫存記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4029
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2906.52,
+                "raw_output_length": 57,
+                "raw_output_preview": "查詢批號為空的庫存記錄。\n\nSELECT *\nFROM img_file\nWHERE img04 IS NULL;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT *\nFROM img_file\nWHERE img04 IS NULL"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT *\nFROM img_file\nWHERE img04 IS NULL",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 2906.84,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-030",
+      "category": "中文描述複雜條件",
+      "passed": true,
+      "duration_sec": 3.436,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 200 AND (img02 = 'W01' OR img02 = 'W02')",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 200 AND (img02 = 'W01' OR img02 = 'W02')",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢庫存數量在 100 到 200 之間且倉庫為 W01 或 W02 的記錄。」轉換為 SQL: SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 200 AND (img02 = 'W01' OR img02 = 'W02')...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:46:01.520401",
+            "natural_language": "查詢庫存數量在 100 到 200 之間且倉庫為 W01 或 W02 的記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4056
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3434.89,
+                "raw_output_length": 92,
+                "raw_output_preview": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 200 AND (img02 = 'W01' OR img02 = 'W02');"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 200 AND (img02 = 'W01' OR img02 = 'W02')"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file WHERE img10 BETWEEN 100 AND 200 AND (img02 = 'W01' OR img02 = 'W02')",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3435.42,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-031",
+      "category": "缺參數：無 natural_language",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "natural_language is required for text_to_sql action",
+      "generated_sql": null,
+      "result_summary": {
+        "success": false,
+        "action": "text_to_sql",
+        "result": null,
+        "error": "natural_language is required for text_to_sql action",
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-032",
+      "category": "缺參數：無 sql_query",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "sql_query is required for execute_query action",
+      "generated_sql": null,
+      "result_summary": {
+        "success": false,
+        "action": "execute_query",
+        "result": null,
+        "error": "sql_query is required for execute_query action",
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-033",
+      "category": "錯誤 action",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "Unknown action: invalid_action",
+      "generated_sql": null,
+      "result_summary": {
+        "success": false,
+        "action": "invalid_action",
+        "result": null,
+        "error": "Unknown action: invalid_action",
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-034",
+      "category": "task_data 為空",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "1 validation error for DataAgentRequest\naction\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+      "generated_sql": null,
+      "result_summary": {},
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-035",
+      "category": "task_data 型別錯誤",
+      "passed": true,
+      "duration_sec": null,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "1 validation error for AgentServiceRequest\ntask_data\n  Input should be a valid dictionary [type=dict_type, input_value='not_a_dict', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/dict_type",
+      "generated_sql": null,
+      "result_summary": null,
+      "notes": [
+        "Pydantic 驗證拒絕非 dict task_data"
+      ]
+    },
+    {
+      "scenario_id": "T2S-036",
+      "category": "危險 SQL：DROP",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": null,
+      "result_summary": {
+        "success": true,
+        "action": "validate_query",
+        "result": {
+          "valid": false,
+          "error": "Dangerous operation detected",
+          "details": [
+            "Forbidden operation detected: DROP"
+          ]
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-037",
+      "category": "危險 SQL：DELETE",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": null,
+      "result_summary": {
+        "success": true,
+        "action": "validate_query",
+        "result": {
+          "valid": false,
+          "error": "Dangerous operation detected",
+          "details": [
+            "Forbidden operation detected: DELETE"
+          ]
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-038",
+      "category": "SQL 注入嘗試",
+      "passed": true,
+      "duration_sec": 1.538,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "未被授權做資料查詢以外的變更操作",
+      "generated_sql": "'; DROP TABLE img_file;'",
+      "result_summary": {
+        "success": false,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "'; DROP TABLE img_file;'",
+          "error_type": "authorization_denied"
+        },
+        "error": "未被授權做資料查詢以外的變更操作",
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-039",
+      "category": "無效 SQL 語法",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": null,
+      "result_summary": {
+        "success": true,
+        "action": "validate_query",
+        "result": {
+          "valid": false,
+          "error": "Invalid SQL syntax: SELECT 子句缺少欄位",
+          "details": [
+            "SELECT 子句缺少欄位"
+          ]
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-040",
+      "category": "validate_query 通過",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": null,
+      "result_summary": {
+        "success": true,
+        "action": "validate_query",
+        "result": {
+          "valid": true,
+          "warnings": []
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-041",
+      "category": "validate_query 不通過",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": null,
+      "result_summary": {
+        "success": true,
+        "action": "validate_query",
+        "result": {
+          "valid": false,
+          "error": "Invalid SQL syntax: SQL 包含無效字符或語法",
+          "details": [
+            "SQL 包含無效字符或語法"
+          ]
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-042",
+      "category": "query_datalake 缺 bucket",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "bucket and key are required for query_datalake action",
+      "generated_sql": null,
+      "result_summary": {
+        "success": false,
+        "action": "query_datalake",
+        "result": null,
+        "error": "bucket and key are required for query_datalake action",
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-043",
+      "category": "query_datalake 不存在的 key",
+      "passed": true,
+      "duration_sec": 0.068,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "File not found: tiptop-raw/nonexistent/key/xyz.parquet",
+      "generated_sql": null,
+      "result_summary": {
+        "success": false,
+        "action": "query_datalake",
+        "result": {
+          "success": false,
+          "error": "File not found: tiptop-raw/nonexistent/key/xyz.parquet"
+        },
+        "error": "File not found: tiptop-raw/nonexistent/key/xyz.parquet",
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-044",
+      "category": "超時（若已實作）",
+      "passed": true,
+      "duration_sec": 1.529,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢庫存表所有記錄不限制筆數」轉換為 SQL: SELECT * FROM img_file...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:46:06.562491",
+            "natural_language": "查詢庫存表所有記錄不限制筆數",
+            "database_type": "postgresql",
+            "schema_info_provided": false,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.0,
+                "prompt_length": 2985
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 1528.38,
+                "raw_output_length": 23,
+                "raw_output_preview": "SELECT * FROM img_file;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 1528.6,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-045",
+      "category": "過大 LIMIT（若有限制）",
+      "passed": true,
+      "duration_sec": 1.55,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT COUNT(*) FROM img_file",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT COUNT(*) FROM img_file",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢庫存表 100 萬筆記錄」轉換為 SQL: SELECT COUNT(*) FROM img_file...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:46:08.091183",
+            "natural_language": "查詢庫存表 100 萬筆記錄",
+            "database_type": "postgresql",
+            "schema_info_provided": false,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.0,
+                "prompt_length": 2985
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 1549.26,
+                "raw_output_length": 30,
+                "raw_output_preview": "SELECT COUNT(*) FROM img_file;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT COUNT(*) FROM img_file"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT COUNT(*) FROM img_file",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 1549.55,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-046",
+      "category": "get_schema 缺 schema_id",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "schema_id is required for get_schema action",
+      "generated_sql": null,
+      "result_summary": {
+        "success": false,
+        "action": "get_schema",
+        "result": null,
+        "error": "schema_id is required for get_schema action",
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-047",
+      "category": "create_dictionary 缺必要欄位",
+      "passed": true,
+      "duration_sec": 0.0,
+      "expected_success": false,
+      "actual_success": false,
+      "error": "dictionary_id and dictionary_data are required for create_dictionary action",
+      "generated_sql": null,
+      "result_summary": {
+        "success": false,
+        "action": "create_dictionary",
+        "result": null,
+        "error": "dictionary_id and dictionary_data are required for create_dictionary action",
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-048",
+      "category": "重複呼叫 text_to_sql",
+      "passed": true,
+      "duration_sec": 4.7780000000000005,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file WHERE img01 = '10-0001'",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file WHERE img01 = '10-0001'",
+          "parameters": [],
+          "confidence": 0.7999999999999999,
+          "explanation": "將自然語言查詢「查詢料號 10-0001 的庫存記錄。」轉換為 SQL: SELECT * FROM img_file WHERE img01 = '10-0001'...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句",
+            "建議使用參數化查詢以防止 SQL 注入"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:46:09.640851",
+            "natural_language": "查詢料號 10-0001 的庫存記錄。",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4036
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 3318.5,
+                "raw_output_length": 68,
+                "raw_output_preview": "查詢料號 10-0001 的庫存記錄。\n\nSELECT * FROM img_file WHERE img01 = '10-0001';"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file WHERE img01 = '10-0001'"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file WHERE img01 = '10-0001'",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句",
+                  "建議使用參數化查詢以防止 SQL 注入"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7999999999999999
+              }
+            ],
+            "total_duration_ms": 3318.82,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-049",
+      "category": "混合流程：text_to_sql → validate_query",
+      "passed": true,
+      "duration_sec": 2.549,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT * FROM img_file ORDER BY img10 DESC LIMIT 1",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT * FROM img_file ORDER BY img10 DESC LIMIT 1",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢前 1 筆庫存記錄」轉換為 SQL: SELECT * FROM img_file ORDER BY img10 DESC LIMIT 1...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:46:14.418340",
+            "natural_language": "查詢前 1 筆庫存記錄",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.02,
+                "prompt_length": 4028
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 2548.43,
+                "raw_output_length": 51,
+                "raw_output_preview": "SELECT * FROM img_file ORDER BY img10 DESC LIMIT 1;"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT * FROM img_file ORDER BY img10 DESC LIMIT 1"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT * FROM img_file ORDER BY img10 DESC LIMIT 1",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 2548.76,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    },
+    {
+      "scenario_id": "T2S-050",
+      "category": "混合流程：text_to_sql → execute_query",
+      "passed": true,
+      "duration_sec": 1.208,
+      "expected_success": true,
+      "actual_success": true,
+      "error": null,
+      "generated_sql": "SELECT *\nFROM img_file\nORDER BY img10 DESC\nLIMIT 1",
+      "result_summary": {
+        "success": true,
+        "action": "text_to_sql",
+        "result": {
+          "sql_query": "SELECT *\nFROM img_file\nORDER BY img10 DESC\nLIMIT 1",
+          "parameters": [],
+          "confidence": 0.7,
+          "explanation": "將自然語言查詢「查詢前 1 筆庫存記錄」轉換為 SQL: SELECT *\nFROM img_file\nORDER BY img10 DESC\nLIMIT 1...",
+          "warnings": [
+            "SQL 缺少 SELECT 子句",
+            "SQL 缺少 FROM 子句"
+          ],
+          "conversion_log": {
+            "timestamp": "2026-01-30T14:46:16.967246",
+            "natural_language": "查詢前 1 筆庫存記錄",
+            "database_type": "postgresql",
+            "schema_info_provided": true,
+            "steps": [
+              {
+                "step": "llm_client_init",
+                "status": "success",
+                "provider": "None"
+              },
+              {
+                "step": "build_prompt",
+                "status": "success",
+                "duration_ms": 0.03,
+                "prompt_length": 4028
+              },
+              {
+                "step": "llm_generate",
+                "status": "success",
+                "duration_ms": 1207.5,
+                "raw_output_length": 64,
+                "raw_output_preview": "查詢前 1 筆庫存記錄。\n\nSELECT *\nFROM img_file\nORDER BY img10 DESC\nLIMIT 1"
+              },
+              {
+                "step": "extract_sql",
+                "status": "success",
+                "extracted_sql": "SELECT *\nFROM img_file\nORDER BY img10 DESC\nLIMIT 1"
+              },
+              {
+                "step": "validate_sql",
+                "status": "success",
+                "validated_sql": "SELECT *\nFROM img_file\nORDER BY img10 DESC\nLIMIT 1",
+                "warnings": [
+                  "SQL 缺少 SELECT 子句",
+                  "SQL 缺少 FROM 子句"
+                ]
+              },
+              {
+                "step": "extract_parameters",
+                "status": "success",
+                "parameters": []
+              },
+              {
+                "step": "calculate_confidence",
+                "status": "success",
+                "confidence": 0.7
+              }
+            ],
+            "total_duration_ms": 1207.81,
+            "success": true
+          }
+        },
+        "error": null,
+        "metadata": null
+      },
+      "notes": []
+    }
+  ]
+}

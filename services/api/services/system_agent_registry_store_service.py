@@ -20,11 +20,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-import structlog
+import logging
 
 from database.arangodb import ArangoCollection, ArangoDBClient
 
-logger = structlog.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 SYSTEM_AGENT_REGISTRY_COLLECTION = "system_agent_registry"
 
@@ -228,9 +228,8 @@ class SystemAgentRegistryStoreService:
             if existing is not None and isinstance(existing, dict):
                 # 更新現有 Agent
                 self._logger.info(
-                    "system_agent_already_exists",
-                    agent_id=agent_id,
-                    message="Updating existing system agent",
+                    f"system_agent_already_exists: agent_id={agent_id}, "
+                    f"message=Updating existing system agent"
                 )
                 return self.update_system_agent(
                     agent_id=agent_id,
@@ -262,17 +261,13 @@ class SystemAgentRegistryStoreService:
         try:
             self._collection.insert(doc)
             self._logger.info(
-                "system_agent_registered",
-                agent_id=agent_id,
-                agent_type=agent_type,
-                name=name,
+                f"system_agent_registered: agent_id={agent_id}, "
+                f"agent_type={agent_type}, name={name}"
             )
             return agent_model
         except Exception as exc:
             self._logger.error(
-                "system_agent_register_failed",
-                agent_id=agent_id,
-                error=str(exc),
+                f"system_agent_register_failed: agent_id={agent_id}, error={str(exc)}",
                 exc_info=True,
             )
             raise
@@ -294,9 +289,8 @@ class SystemAgentRegistryStoreService:
         # 確保是 System Agent
         if not doc.get("is_system_agent", False):
             self._logger.warning(
-                "agent_not_system_agent",
-                agent_id=agent_id,
-                message="Agent exists but is not marked as system agent",
+                f"agent_not_system_agent: agent_id={agent_id}, "
+                f"message=Agent exists but is not marked as system agent"
             )
             return None
 
@@ -363,13 +357,11 @@ class SystemAgentRegistryStoreService:
             # ArangoDB update 方法需要傳入文檔的 _key 或 _id，而不是字符串
             # 使用 {"_key": agent_id} 作為文檔標識
             self._collection.update({"_key": agent_id}, doc)
-            self._logger.info("system_agent_updated", agent_id=agent_id)
+            self._logger.info(f"system_agent_updated: agent_id={agent_id}")
             return _document_to_model(doc)
         except Exception as exc:
             self._logger.error(
-                "system_agent_update_failed",
-                agent_id=agent_id,
-                error=str(exc),
+                f"system_agent_update_failed: agent_id={agent_id}, error={str(exc)}",
                 exc_info=True,
             )
             raise
@@ -426,18 +418,47 @@ class SystemAgentRegistryStoreService:
             docs = list(cursor)
 
             agents = [_document_to_model(doc) for doc in docs]
+
+            # 修復時間：2026-01-28 - 使用標準 logging 格式（f-string）
             self._logger.info(
-                "system_agents_listed",
-                count=len(agents),
-                agent_type=agent_type,
-                is_active=is_active,
-                status=status,
+                f"system_agents_listed: count={len(agents)}, agent_type={agent_type}, "
+                f"is_active={is_active}, status={status}"
             )
+
+            # 修復時間：2026-01-28 - 添加詳細日誌以診斷問題
+            if len(agents) == 0:
+                self._logger.warning(
+                    f"⚠️ No system agents found in database with filters: "
+                    f"agent_type={agent_type}, is_active={is_active}, status={status}"
+                )
+                # 嘗試查詢所有記錄以確認數據庫中是否有數據
+                try:
+                    all_docs_aql = f"""
+                    FOR doc IN {SYSTEM_AGENT_REGISTRY_COLLECTION}
+                        RETURN {{agent_id: doc.agent_id, status: doc.status, is_active: doc.is_active}}
+                    """
+                    all_cursor = self._client.db.aql.execute(all_docs_aql)
+                    all_docs = list(all_cursor)
+                    self._logger.info(f"📊 Total documents in system_agent_registry: {len(all_docs)}")
+                    for doc in all_docs:
+                        self._logger.info(
+                            f"   - agent_id: {doc.get('agent_id')}, status: {doc.get('status')}, "
+                            f"is_active: {doc.get('is_active')}"
+                        )
+                except Exception as e:
+                    self._logger.error(f"Failed to query all documents: {e}")
+            else:
+                for agent in agents:
+                    self._logger.info(
+                        f"✅ Found agent: agent_id={agent.agent_id}, status={agent.status}, "
+                        f"is_active={agent.is_active}"
+                    )
+
             return agents
         except Exception as exc:
+            # 修復時間：2026-01-28 - 使用標準 logging 格式（f-string）
             self._logger.error(
-                "system_agents_list_failed",
-                error=str(exc),
+                f"system_agents_list_failed: error={str(exc)}",
                 exc_info=True,
             )
             raise
@@ -471,13 +492,11 @@ class SystemAgentRegistryStoreService:
         try:
             # ArangoDB update 方法需要傳入文檔的 _key 或 _id，而不是字符串
             self._collection.update({"_key": agent_id}, doc)
-            self._logger.info("system_agent_unregistered", agent_id=agent_id)
+            self._logger.info(f"system_agent_unregistered: agent_id={agent_id}")
             return True
         except Exception as exc:
             self._logger.error(
-                "system_agent_unregister_failed",
-                agent_id=agent_id,
-                error=str(exc),
+                f"system_agent_unregister_failed: agent_id={agent_id}, error={str(exc)}",
                 exc_info=True,
             )
             raise

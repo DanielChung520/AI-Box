@@ -1,0 +1,144 @@
+{
+    "type": "major",
+    "name": "KA_Agent_Major",
+    "ontology_name": "KA_Agent_Major_Ontology",
+    "version": "1.0",
+    "inherits_from": ["5W1H_Base_Ontology_OWL", "KA_Agent_Domain_Ontology"],
+    "description": "KA-Agent 專業本體論，定義知識資產管理領域下的細分模組、流程與服務。包括知識上架、向量化、圖譜抽取、RAG Pipeline、版本管理、審計、安全控制等核心組件。",
+    "last_modified": "2026-01-25",
+    "author": "Daniel Chung",
+    "entity_classes": [
+      {
+        "name": "Knowledge_Asset_Onboarding",
+        "base_class": "Process",
+        "description": "知識上架流程，包括文件收集、向量化、Base 層抽取、Domain/Major 對齊、Metadata 生成。"
+      },
+      {
+        "name": "Metadata_Management",
+        "base_class": "Concept",
+        "description": "Metadata 管理，生成、更新、對齊 Domain/Major、本地與國際標準分類。"
+      },
+      {
+        "name": "Vectorization_Process",
+        "base_class": "Process",
+        "description": "向量化流程，將文檔或文本生成嵌入向量，用於檢索和 RAG Pipeline。"
+      },
+      {
+        "name": "KG_Extraction_Process",
+        "base_class": "Process",
+        "description": "知識圖譜抽取流程，生成實體、關係與三元組。"
+      },
+      {
+        "name": "RAG_Execution",
+        "base_class": "Process",
+        "description": "檢索增強生成流程，組合向量檢索與圖譜查詢，支援 Agent 問答。"
+      },
+      {
+        "name": "Version_Control_Process",
+        "base_class": "Process",
+        "description": "知識版本管理流程，追蹤原子知識、更新歷史與 KNW-Code 對應。"
+      },
+      {
+        "name": "Security_Audit_Process",
+        "base_class": "Process",
+        "description": "安全與審計流程，包括權限驗證、操作記錄、審計日誌生成。"
+      },
+      {
+        "name": "KA_Agent_Module",
+        "base_class": "Agent",
+        "description": "KA-Agent 各模組，包括上架模組、檢索模組、RAG 支援模組、Metadata 管理模組等。"
+      },
+      {
+        "name": "BPA_Integration_Module",
+        "base_class": "Agent",
+        "description": "BPA-Agent 與 KA-Agent 的集成模組，用於知識提供與流程驅動。"
+      },
+      {
+        "name": "Vector_Store_Service",
+        "base_class": "Vector_Store",
+        "description": "向量存儲服務實例，如 Qdrant、ChromaDB。"
+      },
+      {
+        "name": "Graph_DB_Service",
+        "base_class": "Graph_Database",
+        "description": "圖數據庫服務實例，如 ArangoDB。"
+      },
+      {
+        "name": "File_Storage_Service",
+        "base_class": "File_Storage",
+        "description": "文件存儲服務實例，如 S3、SeaweedFS。"
+      }
+    ],
+    "object_properties": [
+      {
+        "name": "executes_process",
+        "description": "Agent 執行流程或模組。",
+        "domain": ["KA_Agent_Module", "BPA_Integration_Module"],
+        "range": [
+          "Knowledge_Asset_Onboarding",
+          "Vectorization_Process",
+          "KG_Extraction_Process",
+          "RAG_Execution",
+          "Version_Control_Process",
+          "Security_Audit_Process"
+        ]
+      },
+      {
+        "name": "manages_metadata",
+        "description": "管理知識資產 Metadata。",
+        "domain": ["KA_Agent_Module"],
+        "range": ["Metadata_Management"]
+      },
+      {
+        "name": "stores_in_vector_store",
+        "description": "將向量化後的知識存入向量庫。",
+        "domain": ["Vectorization_Process"],
+        "range": ["Vector_Store_Service"]
+      },
+      {
+        "name": "stores_in_graph_db",
+        "description": "將圖譜或知識存入圖數據庫。",
+        "domain": ["KG_Extraction_Process"],
+        "range": ["Graph_DB_Service"]
+      },
+      {
+        "name": "stores_files",
+        "description": "存儲原始文件或文檔。",
+        "domain": ["Knowledge_Asset_Onboarding"],
+        "range": ["File_Storage_Service"]
+      },
+      {
+        "name": "integrates_with_bpa",
+        "description": "與 BPA-Agent 集成，提供知識與流程服務。",
+        "domain": ["KA_Agent_Module"],
+        "range": ["BPA_Integration_Module"]
+      },
+      {
+        "name": "supports_rag",
+        "description": "流程或模組支援 RAG Pipeline。",
+        "domain": [
+          "Vectorization_Process",
+          "KG_Extraction_Process",
+          "RAG_Execution"
+        ],
+        "range": ["RAG_Execution"]
+      },
+      {
+        "name": "tracks_version",
+        "description": "追蹤知識資產版本和 KNW-Code 對應。",
+        "domain": ["Version_Control_Process"],
+        "range": ["Knowledge_Asset"]
+      },
+      {
+        "name": "applies_security_policy",
+        "description": "安全與審計流程應用於知識資產。",
+        "domain": ["Security_Audit_Process"],
+        "range": ["Knowledge_Asset"]
+      }
+    ],
+    "metadata": {
+      "domain_owner": "KA-Agent",
+      "data_classification": "INTERNAL"
+    }
+  }
+  

@@ -1,7 +1,7 @@
 // 代碼功能說明: API 客戶端配置
 // 創建日期: 2025-01-27
 // 創建人: Daniel Chung
-// 最後修改日期: 2026-01-21 11:57 UTC+8
+// 最後修改日期: 2026-01-24 22:03 UTC+8
 
 /**
  * API 客戶端配置
@@ -71,6 +71,15 @@ const isLocalNetworkRequest = (url: string): boolean => {
 export const API_URL = `${API_BASE_URL}${API_PREFIX}`;
 
 /**
+ * Chat API 基底 URL：VITE_CHAT_USE_V2=true 時使用 /api/v2/chat，否則使用 API_URL（/api/v1/chat）
+ */
+export function getChatBaseUrl(): string {
+  return import.meta.env.VITE_CHAT_USE_V2 === 'true'
+    ? `${API_BASE_URL}/api/v2`
+    : API_URL;
+}
+
+/**
  * API 請求配置
  */
 export const apiConfig = {
@@ -83,12 +92,17 @@ export const apiConfig = {
 
 /**
  * 封裝的 fetch 請求函數
+ * @param endpoint - 路徑（如 '/chat'）
+ * @param options - fetch 選項
+ * @param baseUrl - 可選，指定基底 URL（未指定時使用 API_URL）
  */
 export async function apiRequest<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  baseUrl?: string
 ): Promise<T> {
-  const url = `${API_URL}${endpoint}`;
+  const base = baseUrl ?? API_URL;
+  const url = `${base}${endpoint}`;
 
   // 獲取認證 token
   const token = localStorage.getItem('access_token');
@@ -128,11 +142,15 @@ export async function apiRequest<T = any>(
     const isChatRequest = url.includes('/chat');
     const isFileListRequest = url.includes('/files') && !url.includes('/chat');
     const isUserTaskRequest = url.includes('/user-tasks');
+    const isSystemConfigRequest = url.includes('/admin/system-configs');
+    const isProviderAPIKeyRequest = url.includes('/models/providers/') && url.includes('/api-key');
     const timeoutDuration = isChatRequest
       ? 120000
       : (isFileListRequest || isUserTaskRequest)
         ? 60000
-        : 30000; // chat: 120秒，文件列表/用戶任務: 60秒，其他: 30秒
+        : (isSystemConfigRequest || isProviderAPIKeyRequest)
+          ? 60000  // 系統配置和 Provider API Key 請求: 60秒
+          : 30000; // chat: 120秒，文件列表/用戶任務/系統配置/Provider API Key: 60秒，其他: 30秒
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
     const response = await fetch(url, {
@@ -274,29 +292,48 @@ export async function apiRequest<T = any>(
 
 /**
  * GET 請求
+ * @param baseUrl - 可選，指定基底 URL（用於 Chat V2 等）
  */
-export async function apiGet<T = any>(endpoint: string): Promise<T> {
-  return apiRequest<T>(endpoint, { method: 'GET' });
+export async function apiGet<T = any>(endpoint: string, baseUrl?: string): Promise<T> {
+  return apiRequest<T>(endpoint, { method: 'GET' }, baseUrl);
 }
 
 /**
  * POST 請求
+ * @param baseUrl - 可選，指定基底 URL（用於 Chat V2 等）
  */
-export async function apiPost<T = any>(endpoint: string, data?: any): Promise<T> {
-  return apiRequest<T>(endpoint, {
-    method: 'POST',
-    body: data ? JSON.stringify(data) : undefined,
-  });
+export async function apiPost<T = any>(
+  endpoint: string,
+  data?: any,
+  baseUrl?: string
+): Promise<T> {
+  return apiRequest<T>(
+    endpoint,
+    {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    },
+    baseUrl
+  );
 }
 
 /**
  * PUT 請求
+ * @param baseUrl - 可選，指定基底 URL（用於 Chat V2 等）
  */
-export async function apiPut<T = any>(endpoint: string, data?: any): Promise<T> {
-  return apiRequest<T>(endpoint, {
-    method: 'PUT',
-    body: data ? JSON.stringify(data) : undefined,
-  });
+export async function apiPut<T = any>(
+  endpoint: string,
+  data?: any,
+  baseUrl?: string
+): Promise<T> {
+  return apiRequest<T>(
+    endpoint,
+    {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    },
+    baseUrl
+  );
 }
 
 /**
@@ -709,6 +746,12 @@ export async function uploadFiles(
           errorMessage = xhr.statusText || errorMessage;
         }
 
+        // 504 Gateway Timeout：代理逾時，提示調整 nginx/proxy timeout
+        if (xhr.status === 504) {
+          errorMessage =
+            '上傳超時 (504)：檔案較大或伺服器繁忙，請嘗試減少檔案數量或聯絡管理員調整代理逾時設定';
+        }
+
         // 401 未授權錯誤：清除無效 token 並觸發認證狀態變化
         if (xhr.status === 401) {
           console.warn('[uploadFiles] Authentication failed. Token may be missing, invalid, or expired.');
@@ -995,23 +1038,9 @@ export async function downloadFile(
   fileId: string,
   fileMetadata?: FileMetadata
 ): Promise<Blob> {
-  // 如果提供了文件元數據且包含 storage_path（S3 URI），優先使用 SeaWeedFS 直接訪問
-  if (fileMetadata?.storage_path && fileMetadata.storage_path.startsWith('s3://')) {
-    try {
-      const { readFileFromSeaWeedFS } = await import('./seaweedfs');
-      console.log('[downloadFile] 使用 SeaWeedFS 直接訪問:', {
-        fileId,
-        storage_path: fileMetadata.storage_path,
-      });
-      return await readFileFromSeaWeedFS(fileMetadata.storage_path);
-    } catch (error: any) {
-      console.warn(
-        '[downloadFile] SeaWeedFS 直接訪問失敗，回退到 API:',
-        error.message
-      );
-      // 如果 SeaWeedFS 直接訪問失敗，回退到使用 API
-    }
-  }
+  // 注意：前端不再直接訪問 SeaWeedFS，因為簽名計算複雜且不安全
+  // 所有文件下載都通過後端 API 代理，後端會處理 SeaWeedFS 認證
+  // 這樣可以避免前端的簽名問題和安全性問題
 
   // 如果沒有 storage_path 或 SeaWeedFS 訪問失敗，使用 API
   const url = `${API_URL}/files/${fileId}/download`;
@@ -1371,6 +1400,75 @@ export async function getKgChunkStatus(fileId: string): Promise<KgChunkStatusRes
 }
 
 /**
+ * Ontology 列表項（方案 B：Agent 知識庫上架）
+ */
+export interface OntologyListItem {
+  id: string;
+  type: string;
+  name: string;
+  version: string;
+  ontology_name: string;
+}
+
+/**
+ * 依 task_id 查詢關聯 Ontology（方案 B）
+ */
+export interface FetchOntologiesByTaskIdResponse {
+  success: boolean;
+  data?: { items: OntologyListItem[]; has_any: boolean };
+  message?: string;
+}
+
+export async function fetchOntologiesByTaskId(
+  taskId: string
+): Promise<{ items: OntologyListItem[]; has_any: boolean }> {
+  const q = new URLSearchParams({ task_id: taskId });
+  const r = await apiGet<FetchOntologiesByTaskIdResponse>(`/ontologies?${q.toString()}`);
+  if (!r.success || !r.data) {
+    throw new Error(r.message || '查詢 Ontology 失敗');
+  }
+  return r.data;
+}
+
+/**
+ * 匯入 Ontology JSON 檔案（方案 B，僅 systemAdmin/授權用戶）
+ */
+export interface ImportOntologiesResponse {
+  success: boolean;
+  data?: { imported: string[]; errors: string[] };
+  message?: string;
+  details?: { errors?: string[] };
+}
+
+export async function importOntologies(files: File[]): Promise<{
+  imported: string[];
+  errors: string[];
+}> {
+  if (files.length === 0) throw new Error('請選擇至少一個 Ontology JSON 檔案');
+  const form = new FormData();
+  files.forEach((f) => form.append('files', f));
+  const token = localStorage.getItem('access_token');
+  const res = await fetch(`${API_URL}/ontologies/import`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  const json = (await res.json()) as ImportOntologiesResponse & { detail?: unknown };
+  if (!res.ok) {
+    const msg =
+      (json as { message?: string }).message ||
+      (typeof json.detail === 'object' && json.detail && 'errors' in json.detail
+        ? (json.detail as { errors?: string[] }).errors?.join('; ')
+        : String(json.detail ?? res.statusText));
+    throw new Error(msg || `匯入失敗 (${res.status})`);
+  }
+  if (!json.success || !json.data) {
+    throw new Error(json.message || '匯入 Ontology 失敗');
+  }
+  return json.data;
+}
+
+/**
  * 文件重命名請求接口
  */
 export interface FileRenameRequest {
@@ -1577,7 +1675,7 @@ export async function getFileAccessControl(
   fileId: string
 ): Promise<{ success: boolean; data?: FileAccessControl; message?: string }> {
   try {
-    const response = await apiGet<{ success: boolean; data?: FileMetadata }>(`/files/${fileId}`);
+    const response = await apiGet<{ success: boolean; data?: FileMetadata }>(`/files/${fileId}/metadata`);
     if (response.success && response.data?.access_control) {
       return {
         success: true,
@@ -2233,6 +2331,7 @@ export interface UserTask {
   status: 'pending' | 'in-progress' | 'completed';
   task_status?: 'activate' | 'archive';
   label_color?: string | null;
+  is_agent_task?: boolean; // 修改時間：2026-01-27 - 添加 Agent 任務標記
   dueDate?: string;
   created_at?: string; // 修改時間：2026-01-06 - 添加創建時間（ISO 8601 格式字符串）
   updated_at?: string; // 修改時間：2026-01-06 - 添加更新時間（ISO 8601 格式字符串）
@@ -2369,6 +2468,7 @@ export async function updateUserTask(
     status?: 'pending' | 'in-progress' | 'completed';
     task_status?: 'activate' | 'archive'; // 修改時間：2025-12-09 - 添加任務顯示狀態
     label_color?: string | null; // 修改時間：2025-12-09 - 添加任務顏色標籤
+    is_agent_task?: boolean; // 修改時間：2026-01-27 - 標記為 Agent 任務，保存至 user_tasks
     dueDate?: string;
     messages?: Array<any>;
     executionConfig?: any;
@@ -2518,7 +2618,7 @@ export async function listTrashTasks(): Promise<{
 }
 
 /**
- * 產品級 Chat API（/api/v1/chat）
+ * 產品級 Chat API（預設 /api/v1/chat；VITE_CHAT_USE_V2=true 時為 /api/v2/chat）
  */
 
 export type ChatRole = 'system' | 'user' | 'assistant';
@@ -2598,17 +2698,17 @@ export interface ChatProductResponse {
 }
 
 export async function chatProduct(request: ChatProductRequest): Promise<ChatProductResponse> {
-  return apiPost<ChatProductResponse>('/chat', request);
+  return apiPost<ChatProductResponse>('/chat', request, getChatBaseUrl());
 }
 
 /**
- * 產品級 Chat API - 流式版本（/api/v1/chat/stream）
+ * 產品級 Chat API - 流式版本（預設 /api/v1/chat/stream；VITE_CHAT_USE_V2=true 時為 /api/v2/chat/stream）
  * 返回一個 async generator，逐塊接收內容
  */
 export async function* chatProductStream(
   request: ChatProductRequest
 ): AsyncGenerator<{ type: string; data: any }, void, unknown> {
-  const url = `${API_URL}/chat/stream`;
+  const url = `${getChatBaseUrl()}/chat/stream`;
   const token = localStorage.getItem('access_token');
 
   const controller = new AbortController();
@@ -2725,7 +2825,10 @@ export interface FavoriteModelsResponse {
 
 export async function getFavoriteModels(): Promise<FavoriteModelsResponse> {
   try {
-    const resp = await apiGet<FavoriteModelsResponse>('/chat/preferences/models');
+    const resp = await apiGet<FavoriteModelsResponse>(
+      '/chat/preferences/models',
+      getChatBaseUrl()
+    );
     if (resp?.success && resp.data?.model_ids) {
       saveFavoriteModelsLocal(resp.data.model_ids);
     }
@@ -2743,7 +2846,11 @@ export async function setFavoriteModels(model_ids: string[]): Promise<FavoriteMo
   // 先本地保存，避免 UI 受網路波動影響
   saveFavoriteModelsLocal(model_ids);
   try {
-    return await apiPut<FavoriteModelsResponse>('/chat/preferences/models', { model_ids });
+    return await apiPut<FavoriteModelsResponse>(
+      '/chat/preferences/models',
+      { model_ids },
+      getChatBaseUrl()
+    );
   } catch (error: any) {
     return {
       success: true,
@@ -2799,6 +2906,7 @@ export interface GetModelsParams {
   search?: string;
   include_discovered?: boolean;
   include_favorite_status?: boolean;
+  include_inactive?: boolean;  // 是否包含未激活的模型（用於管理界面）
   limit?: number;
   offset?: number;
 }
@@ -2819,6 +2927,9 @@ export async function getModels(params?: GetModelsParams): Promise<LLMModelsResp
     if (params?.include_favorite_status !== undefined) {
       queryParams.append('include_favorite_status', String(params.include_favorite_status));
     }
+    if (params?.include_inactive !== undefined) {
+      queryParams.append('include_inactive', String(params.include_inactive));
+    }
     if (params?.limit) queryParams.append('limit', String(params.limit));
     if (params?.offset) queryParams.append('offset', String(params.offset));
 
@@ -2827,6 +2938,233 @@ export async function getModels(params?: GetModelsParams): Promise<LLMModelsResp
   } catch (error: any) {
     console.error('[getModels] Failed to fetch models:', error);
     throw error;
+  }
+}
+
+/**
+ * 場景配置接口
+ */
+export interface SceneConfig {
+  scene: string;
+  frontend_editable: boolean;
+  user_default?: string | null;
+}
+
+/**
+ * 場景列表響應
+ */
+export interface ScenesResponse {
+  success: boolean;
+  data?: {
+    scenes: SceneConfig[];
+    total: number;
+  };
+  message?: string;
+  error_code?: string;
+}
+
+/**
+ * 場景模型響應
+ */
+export interface SceneModelsResponse {
+  success: boolean;
+  data?: {
+    scene: string;
+    frontend_editable: boolean;
+    user_default?: string | null;
+    models: LLMModel[];
+    total: number;
+  };
+  message?: string;
+  error_code?: string;
+}
+
+/**
+ * 獲取所有可用的 MoE 場景列表
+ */
+export async function getScenes(): Promise<ScenesResponse> {
+  try {
+    return await apiGet<ScenesResponse>('/models/scenes');
+  } catch (error: any) {
+    console.error('[getScenes] Failed to fetch scenes:', error);
+    throw error;
+  }
+}
+
+/**
+ * 根據場景獲取模型列表（按優先級排序）
+ */
+export async function getModelsByScene(
+  sceneName: string,
+  includeFavoriteStatus: boolean = true
+): Promise<SceneModelsResponse> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (includeFavoriteStatus !== undefined) {
+      queryParams.append('include_favorite_status', String(includeFavoriteStatus));
+    }
+
+    const endpoint = `/models/scene/${sceneName}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return await apiGet<SceneModelsResponse>(endpoint);
+  } catch (error: any) {
+    console.error(`[getModelsByScene] Failed to fetch models for scene '${sceneName}':`, error);
+    throw error;
+  }
+}
+
+/**
+ * LLM Provider API Key 管理
+ */
+
+export interface ProviderModelConfig {
+  model_id: string;
+  max_tokens?: number;
+  temperature?: number;
+  context_window?: number;
+  top_p?: number;
+  frequency_penalty?: number;
+  presence_penalty?: number;
+}
+
+export interface ProviderAPIKeyStatus {
+  provider: string;
+  has_api_key: boolean;
+  base_url?: string;
+  default_model?: ProviderModelConfig;
+  last_updated?: string;
+  health_status?: string;
+}
+
+export interface ProviderConfigUpdateRequest {
+  api_key?: string;
+  base_url?: string;
+  api_version?: string;
+  timeout?: number;
+  max_retries?: number;
+  default_model?: ProviderModelConfig;
+}
+
+export interface ProviderAPIKeyStatusResponse {
+  success: boolean;
+  data?: {
+    status: ProviderAPIKeyStatus;
+  };
+  message?: string;
+  error_code?: string;
+}
+
+export interface SetProviderAPIKeyRequest {
+  api_key: string;
+}
+
+export interface SetProviderAPIKeyResponse {
+  success: boolean;
+  data?: {
+    provider: string;
+    has_api_key: boolean;
+  };
+  message?: string;
+  error_code?: string;
+}
+
+/**
+ * 批量獲取所有 Provider API Key 狀態
+ */
+export interface AllProvidersStatusResponse {
+  success: boolean;
+  data?: {
+    statuses: ProviderAPIKeyStatus[];
+    total: number;
+  };
+  message?: string;
+  error_code?: string;
+}
+
+export async function getAllProvidersStatus(): Promise<AllProvidersStatusResponse> {
+  try {
+    return await apiGet<AllProvidersStatusResponse>('/models/providers/status');
+  } catch (error: any) {
+    console.error('[getAllProvidersStatus] Failed to fetch all providers status:', error);
+    throw error;
+  }
+}
+
+/**
+ * 獲取 Provider API Key 狀態（不返回實際 key）
+ */
+export async function getProviderAPIKeyStatus(
+  provider: string
+): Promise<ProviderAPIKeyStatusResponse> {
+  try {
+    return await apiGet<ProviderAPIKeyStatusResponse>(`/models/providers/${provider}/api-key`);
+  } catch (error: any) {
+    console.error(`[getProviderAPIKeyStatus] Failed to fetch status for provider '${provider}':`, error);
+    throw error;
+  }
+}
+
+/**
+ * 設置 Provider API Key
+ */
+export async function setProviderAPIKey(
+  provider: string,
+  apiKey: string
+): Promise<SetProviderAPIKeyResponse> {
+  try {
+    return await apiPost<SetProviderAPIKeyResponse>(`/models/providers/${provider}/api-key`, {
+      api_key: apiKey,
+    });
+  } catch (error: any) {
+    console.error(`[setProviderAPIKey] Failed to set API key for provider '${provider}':`, error);
+    throw error;
+  }
+}
+
+/**
+ * 刪除 Provider API Key
+ */
+export async function deleteProviderAPIKey(provider: string): Promise<{ success: boolean; message?: string }> {
+  try {
+    return await apiDelete<{ success: boolean; message?: string }>(`/models/providers/${provider}/api-key`);
+  } catch (error: any) {
+    console.error(`[deleteProviderAPIKey] Failed to delete API key for provider '${provider}':`, error);
+    throw error;
+  }
+}
+
+/**
+ * 更新 Provider 完整配置
+ */
+export async function updateProviderConfig(
+  provider: string,
+  config: ProviderConfigUpdateRequest
+): Promise<SetProviderAPIKeyResponse> {
+  try {
+    return await apiPut<SetProviderAPIKeyResponse>(`/models/providers/${provider}/config`, config);
+  } catch (error: any) {
+    console.error(`[updateProviderConfig] Failed to update config for provider '${provider}':`, error);
+    throw error;
+  }
+}
+
+/**
+ * 驗證 Provider 連通性
+ */
+export async function verifyProviderConnectivity(
+  provider: string,
+  apiKey?: string
+): Promise<{ success: boolean; message: string; data?: any }> {
+  try {
+    return await apiPost<{ success: boolean; message: string; data?: any }>(
+      `/models/providers/${provider}/verify`,
+      { api_key: apiKey }
+    );
+  } catch (error: any) {
+    console.error(`[verifyProviderConnectivity] Failed to verify provider '${provider}':`, error);
+    return {
+      success: false,
+      message: error.message || '驗證失敗',
+    };
   }
 }
 

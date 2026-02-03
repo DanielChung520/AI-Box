@@ -1,7 +1,7 @@
 # 代碼功能說明: 統一響應格式
 # 創建日期: 2025-10-25
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-11-25
+# 最後修改日期: 2026-01-24 22:54 UTC+8
 
 """統一響應格式處理"""
 
@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import status
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
 
 class APIResponse:
@@ -36,7 +37,7 @@ class APIResponse:
             "message": message,
             "data": data,
         }
-        return JSONResponse(content=response_data, status_code=status_code)
+        return JSONResponse(content=jsonable_encoder(response_data), status_code=status_code)
 
     @staticmethod
     def error(
@@ -63,4 +64,4 @@ class APIResponse:
             "error_code": error_code,
             "details": details,
         }
-        return JSONResponse(content=response_data, status_code=status_code)
+        return JSONResponse(content=jsonable_encoder(response_data), status_code=status_code)

@@ -21,15 +21,15 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 服務配置
+# 服務端口配置
 ARANGODB_PORT=8529
 QDRANT_REST_PORT=6333
 QDRANT_GRPC_PORT=6334
-CHROMADB_PORT=8001
 FASTAPI_PORT=8000
 REDIS_PORT=6379
 MCP_SERVER_PORT=8002
 FRONTEND_PORT=3000
+OLLAMA_PORT=11434
 
 # SeaweedFS 端口配置
 AI_BOX_SEAWEEDFS_MASTER_PORT=9333
@@ -47,16 +47,23 @@ cd "$PROJECT_ROOT"
 LOG_DIR="$PROJECT_ROOT/logs"
 mkdir -p "$LOG_DIR"
 
-# 函數：檢查端口是否被占用
+# 函數：檢查端口是否被占用（含 Docker 綁定端口，Linux 下 lsof 可能偵測不到）
 check_port() {
     local port=$1
-    # 检查 LISTEN 状态的端口
+    # 检查 LISTEN 状态的端口（本機進程）
     if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
         return 0  # 端口被占用（LISTEN 状态）
     fi
     # 检查其他状态的端口（包括 CLOSED）
     if lsof -ti :$port >/dev/null 2>&1; then
         return 0  # 端口被占用（其他状态）
+    fi
+    # Linux 下 Docker 綁定的端口 lsof 可能偵測不到，改用 ss 或 /dev/tcp
+    if command -v ss &>/dev/null && ss -tln 2>/dev/null | grep -qE ":${port}([^0-9]|\$)"; then
+        return 0
+    fi
+    if (echo >/dev/tcp/127.0.0.1/$port) 2>/dev/null; then
+        return 0
     fi
     return 1  # 端口未被占用
 }
@@ -353,115 +360,6 @@ start_qdrant() {
     fi
 }
 
-
-# 函數：啟動 ChromaDB（⚠️ 已廢棄，請使用 start_qdrant）
-start_chromadb() {
-    echo -e "${YELLOW}=== ⚠️  啟動 ChromaDB（已廢棄）===${NC}"
-    echo -e "${YELLOW}⚠️  注意：ChromaDB 已遷移到 Qdrant${NC}"
-    echo -e "${YELLOW}   請使用 'start_qdrant' 替代 'start_chromadb'${NC}"
-    echo -e "${YELLOW}   詳細信息請參考: docs/系统设计文档/核心组件/文件上傳向量圖譜/CHROMADB_TO_QDRANT_MIGRATION.md${NC}"
-    echo ""
-
-    kill_port $CHROMADB_PORT "ChromaDB"
-
-    # 檢查 Docker 是否安裝
-    if ! command -v docker &> /dev/null; then
-        echo -e "${RED}錯誤: Docker 未安裝${NC}"
-        echo -e "${YELLOW}請先安裝 Docker Desktop: https://www.docker.com/products/docker-desktop${NC}"
-        return 1
-    fi
-
-    # 檢查 Docker daemon 是否運行
-    if ! docker ps &> /dev/null 2>&1; then
-        echo -e "${RED}錯誤: Docker daemon 未運行${NC}"
-        echo -e "${YELLOW}請執行以下操作之一：${NC}"
-        echo -e "${YELLOW}  1. 啟動 Docker Desktop 應用程式${NC}"
-        echo -e "${YELLOW}  2. 或運行: open -a Docker${NC}"
-        echo ""
-
-        # 嘗試自動啟動 Docker Desktop (macOS)
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            echo -e "${BLUE}嘗試自動啟動 Docker Desktop...${NC}"
-            if open -a Docker 2>/dev/null; then
-                echo -e "${GREEN}已嘗試啟動 Docker Desktop，請等待其完全啟動後重新運行此命令${NC}"
-                echo -e "${YELLOW}提示: Docker Desktop 通常需要 10-30 秒才能完全啟動${NC}"
-            else
-                echo -e "${YELLOW}無法自動啟動 Docker Desktop，請手動啟動${NC}"
-            fi
-        fi
-
-        return 1
-    fi
-
-    # 查找 ChromaDB 容器
-    local container=$(docker ps -a --format '{{.Names}}' | grep -i chroma | head -1)
-    if [ -n "$container" ]; then
-        echo -e "${GREEN}發現 ChromaDB Docker 容器: $container${NC}"
-
-        # 檢查容器是否已在運行
-        if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
-            echo -e "${GREEN}✅ ChromaDB 已在運行 (端口 $CHROMADB_PORT)${NC}"
-            echo -e "${GREEN}   API: http://localhost:$CHROMADB_PORT${NC}"
-            return 0
-        fi
-
-        # 啟動容器
-        echo -e "${GREEN}啟動 ChromaDB 容器...${NC}"
-        docker start "$container"
-
-        if [ $? -ne 0 ]; then
-            echo -e "${RED}❌ 啟動 ChromaDB 容器失敗${NC}"
-            echo -e "${YELLOW}請檢查日誌: docker logs $container${NC}"
-            return 1
-        fi
-
-        sleep 5
-
-        if check_port $CHROMADB_PORT; then
-            echo -e "${GREEN}✅ ChromaDB 已啟動 (端口 $CHROMADB_PORT)${NC}"
-            echo -e "${GREEN}   API: http://localhost:$CHROMADB_PORT${NC}"
-            return 0
-        else
-            echo -e "${RED}❌ ChromaDB 啟動失敗（端口未監聽）${NC}"
-            echo -e "${YELLOW}請檢查日誌: docker logs $container${NC}"
-            return 1
-        fi
-    else
-        echo -e "${YELLOW}未找到 ChromaDB Docker 容器${NC}"
-        echo -e "${BLUE}正在創建 ChromaDB 容器...${NC}"
-
-        # 從環境變數獲取配置
-        CHROMADB_PERSIST_DIR=${CHROMADB_PERSIST_DIR:-"./chroma_data"}
-
-        # 創建持久化目錄（如果不存在）
-        mkdir -p "$CHROMADB_PERSIST_DIR"
-
-        if docker run -d \
-            -p $CHROMADB_PORT:8000 \
-            -v "$(pwd)/$CHROMADB_PERSIST_DIR:/chroma/chroma" \
-            --name chromadb \
-            chromadb/chroma:latest; then
-            echo -e "${GREEN}✅ ChromaDB 容器已創建${NC}"
-            echo -e "${GREEN}   持久化目錄: $CHROMADB_PERSIST_DIR${NC}"
-            sleep 5
-
-            if check_port $CHROMADB_PORT; then
-                echo -e "${GREEN}✅ ChromaDB 已啟動 (端口 $CHROMADB_PORT)${NC}"
-                echo -e "${GREEN}   API: http://localhost:$CHROMADB_PORT${NC}"
-                return 0
-            else
-                echo -e "${YELLOW}⚠️ 容器已創建，但端口尚未就緒，請稍後檢查${NC}"
-                return 0
-            fi
-        else
-            echo -e "${RED}❌ 創建 ChromaDB 容器失敗${NC}"
-            return 1
-        fi
-    fi
-}
-
-
-
 # 函數：啟動 Redis
 start_redis() {
     echo -e "${BLUE}=== 啟動 Redis ===${NC}"
@@ -499,31 +397,41 @@ start_redis() {
     if [ -f "docker-compose.yml" ]; then
         echo -e "${GREEN}發現 docker-compose.yml，使用 docker-compose 管理 Redis${NC}"
 
+        # 偵測 docker-compose 或 docker compose（與 SeaweedFS 一致）
+        if command -v docker-compose &> /dev/null; then
+            DOCKER_COMPOSE_CMD="docker-compose"
+        elif command -v docker &> /dev/null && docker compose version &> /dev/null 2>&1; then
+            DOCKER_COMPOSE_CMD="docker compose"
+        else
+            echo -e "${RED}❌ 錯誤：未找到 docker-compose 或 docker compose 命令${NC}"
+            return 1
+        fi
+
         # 檢查 Redis 容器是否已在運行
-        if docker-compose ps redis 2>/dev/null | grep -q "Up"; then
+        if $DOCKER_COMPOSE_CMD ps redis 2>/dev/null | grep -q "Up"; then
             echo -e "${GREEN}✅ Redis 已在運行 (端口 $REDIS_PORT)${NC}"
-            echo -e "${GREEN}   使用 docker-compose 管理: docker-compose ps redis${NC}"
+            echo -e "${GREEN}   使用 $DOCKER_COMPOSE_CMD 管理: $DOCKER_COMPOSE_CMD ps redis${NC}"
             return 0
         fi
 
         # 啟動 Redis 容器
         echo -e "${GREEN}啟動 Redis 容器...${NC}"
-        if docker-compose up -d redis 2>/dev/null; then
+        if $DOCKER_COMPOSE_CMD up -d redis 2>/dev/null; then
             sleep 3
 
             # 檢查容器狀態
-            if docker-compose ps redis 2>/dev/null | grep -q "Up"; then
+            if $DOCKER_COMPOSE_CMD ps redis 2>/dev/null | grep -q "Up"; then
                 echo -e "${GREEN}✅ Redis 已啟動 (端口 $REDIS_PORT)${NC}"
-                echo -e "${GREEN}   使用 docker-compose 管理: docker-compose ps redis${NC}"
+                echo -e "${GREEN}   使用 $DOCKER_COMPOSE_CMD 管理: $DOCKER_COMPOSE_CMD ps redis${NC}"
                 return 0
             else
                 echo -e "${YELLOW}⚠️  Redis 容器已啟動，但狀態檢查失敗${NC}"
-                echo -e "${YELLOW}   請檢查: docker-compose logs redis${NC}"
+                echo -e "${YELLOW}   請檢查: $DOCKER_COMPOSE_CMD logs redis${NC}"
                 return 0
             fi
         else
             echo -e "${RED}❌ 啟動 Redis 容器失敗${NC}"
-            echo -e "${YELLOW}   請檢查: docker-compose logs redis${NC}"
+            echo -e "${YELLOW}   請檢查: $DOCKER_COMPOSE_CMD logs redis${NC}"
             return 1
         fi
     fi
@@ -716,6 +624,148 @@ start_mcp_server() {
     fi
 }
 
+# 函數：啟動/重啟 Ollama
+start_ollama() {
+    echo -e "${BLUE}=== Ollama 服務管理 ===${NC}"
+
+    # 檢查 systemd 是否可用
+    if ! command -v systemctl &> /dev/null; then
+        echo -e "${RED}錯誤: systemctl 未找到，無法管理 Ollama 服務${NC}"
+        return 1
+    fi
+
+    # 檢查 Ollama 是否已安裝
+    if ! command -v ollama &> /dev/null; then
+        echo -e "${RED}錯誤: Ollama 未安裝${NC}"
+        echo -e "${YELLOW}請安裝: curl -fsSL https://ollama.ai/install.sh | sh${NC}"
+        return 1
+    fi
+
+    # 檢查服務是否存在
+    if ! systemctl is-active --quiet ollama 2>/dev/null; then
+        echo -e "${YELLOW}Ollama 服務未運行，正在啟動...${NC}"
+        sudo systemctl start ollama
+        sleep 3
+    else
+        echo -e "${GREEN}Ollama 服務已在運行，重啟中...${NC}"
+        sudo systemctl restart ollama
+        sleep 3
+    fi
+
+    # 檢查服務狀態
+    if systemctl is-active --quiet ollama; then
+        echo -e "${GREEN}✅ Ollama 服務已啟動${NC}"
+        echo -e "${GREEN}   API 端口: $OLLAMA_PORT${NC}"
+        echo -e "${GREEN}   本地訪問: http://localhost:$OLLAMA_PORT${NC}"
+
+        # 顯示已載入的模型
+        echo ""
+        echo -e "${BLUE}已安裝的模型:${NC}"
+        local models=$(curl -s http://localhost:$OLLAMA_PORT/api/tags 2>/dev/null | python3 -c "import sys,json; [print('  - '+m['name']) for m in json.load(sys.stdin).get('models',[])]" 2>/dev/null)
+        if [ -n "$models" ]; then
+            echo "$models"
+        else
+            echo -e "${YELLOW}  無模型或無法獲取模型列表${NC}"
+        fi
+
+        # 檢查 GPU
+        if command -v nvidia-smi &> /dev/null; then
+            echo ""
+            echo -e "${BLUE}GPU 狀態:${NC}"
+            nvidia-smi --query-gpu=name,memory.used,temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | while read line; do
+                echo -e "  ${GREEN}$line${NC}"
+            done
+        fi
+
+        return 0
+    else
+        echo -e "${RED}❌ Ollama 服務啟動失敗${NC}"
+        echo -e "${YELLOW}請檢查日誌: sudo journalctl -u ollama -n 20${NC}"
+        return 1
+    fi
+}
+
+# 函數：查看 Ollama 狀態
+ollama_status() {
+    echo -e "${BLUE}=== Ollama 狀態 ===${NC}"
+    echo ""
+
+    # 檢查服務狀態
+    if command -v systemctl &> /dev/null; then
+        if systemctl is-active --quiet ollama 2>/dev/null; then
+            echo -e "${GREEN}✅ Ollama 服務: 運行中${NC}"
+            sudo systemctl status ollama --no-pager | head -5
+        else
+            echo -e "${RED}❌ Ollama 服務: 未運行${NC}"
+        fi
+    fi
+
+    # 檢查端口
+    echo ""
+    if check_port $OLLAMA_PORT; then
+        echo -e "${GREEN}✅ Ollama API: 監聽中 (端口 $OLLAMA_PORT)${NC}"
+    else
+        echo -e "${RED}❌ Ollama API: 未監聽 (端口 $OLLAMA_PORT)${NC}"
+    fi
+
+    # 顯示模型
+    echo ""
+    echo -e "${BLUE}已安裝模型:${NC}"
+    if curl -s http://localhost:$OLLAMA_PORT/api/tags > /dev/null 2>&1; then
+        curl -s http://localhost:$OLLAMA_PORT/api/tags | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for m in data.get('models', []):
+    size_gb = m.get('size', 0) / 1e9
+    details = m.get('details', {})
+    quant = details.get('quantization_level', 'N/A')
+    print(f\"  - {m['name']}: {size_gb:.1f}GB ({quant})\")
+" 2>/dev/null || echo -e "${YELLOW}  無法解析模型列表${NC}"
+    else
+        echo -e "${YELLOW}  無法連接到 Ollama API${NC}"
+    fi
+
+    # GPU 狀態
+    if command -v nvidia-smi &> /dev/null; then
+        echo ""
+        echo -e "${BLUE}GPU 監控:${NC}"
+        nvidia-smi --query-gpu=name,memory.used,memory.total,temperature.gpu,utilization.gpu,power.draw \
+            --format=csv,noheader,nounits 2>/dev/null | while read line; do
+            IFS=',' read -r name mem_used mem_total temp util power <<< "$line"
+            echo -e "  ${GREEN}$name${NC}"
+            echo -e "    顯存: ${mem_used}/${mem_total} MB"
+            echo -e "    溫度: ${temp}°C"
+            echo -e "    利用率: ${util}%"
+            echo -e "    功耗: ${power}W"
+        done
+    fi
+}
+
+# 函數：列出 Ollama 模型
+ollama_models() {
+    echo -e "${BLUE}=== Ollama 模型列表 ===${NC}"
+    echo ""
+
+    if ! check_port $OLLAMA_PORT; then
+        echo -e "${RED}❌ Ollama 未運行 (端口 $OLLAMA_PORT)${NC}"
+        return 1
+    fi
+
+    curl -s http://localhost:$OLLAMA_PORT/api/tags | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print(f\"總共 {len(data.get('models', []))} 個模型:\\n\")
+for m in sorted(data.get('models', []), key=lambda x: x.get('size', 0), reverse=True):
+    size_gb = m.get('size', 0) / 1e9
+    details = m.get('details', {})
+    params = details.get('parameter_size', 'N/A')
+    quant = details.get('quantization_level', 'N/A')
+    print(f\"{m['name']}\")
+    print(f\"  大小: {size_gb:.1f}GB | 參數: {params} | 量化: {quant}\")
+    print()
+" 2>/dev/null || echo -e "${YELLOW}無法獲取模型列表${NC}"
+}
+
 # 函數：啟動前端服務 (Vite)
 start_frontend() {
     echo -e "${BLUE}=== 啟動前端服務 (Vite) ===${NC}"
@@ -757,7 +807,7 @@ start_frontend() {
     fi
 
     echo -e "${GREEN}啟動前端服務 (端口 $FRONTEND_PORT)...${NC}"
-    nohup $PKG_MANAGER dev         > "$LOG_DIR/frontend.log" 2>&1 &
+    nohup $PKG_MANAGER run dev:client > "$LOG_DIR/frontend.log" 2>&1 &
 
     # 等待服務啟動
     local max_attempts=15
@@ -793,19 +843,34 @@ show_usage() {
     echo "用法: $0 [選項]"
     echo ""
     echo "選項:"
-    echo "  all        啟動所有服務 (Qdrant, ArangoDB, FastAPI)"
-    echo "  qdrant     啟動 Qdrant 向量數據庫（推薦）"
+    echo "  all        啟動所有服務（依賴順序自動啟動）"
+    echo ""
+    echo "基礎設施:"
+    echo "  redis      啟動 Redis"
     echo "  arangodb   啟動 ArangoDB"
-    echo "  chromadb   啟動 ChromaDB（⚠️ 已廢棄，請使用 qdrant）"
+    echo "  qdrant     啟動 Qdrant 向量數據庫"
+    echo ""
+    echo "存儲和監控:"
+    echo "  seaweedfs          啟動 SeaweedFS (AI-Box 和 DataLake)
+    seaweedfs-ai-box    啟動 AI-Box SeaweedFS
+    seaweedfs-datalake  啟動 DataLake SeaweedFS"
+    echo "  buckets      創建 SeaweedFS Buckets"
+    echo "  monitoring  啟動監控系統 (Prometheus, Grafana, Alertmanager)"
+    echo ""
+    echo "應用服務:"
     echo "  fastapi|api  啟動 FastAPI (API 服務)"
     echo "  mcp        啟動 MCP Server"
     echo "  frontend   啟動前端服務 (Vite)"
     echo "  worker     啟動 RQ Worker (後台任務處理)"
-    echo "  seaweedfs          啟動 SeaweedFS (AI-Box 和 DataLake)
-   seaweedfs-ai-box    啟動 AI-Box SeaweedFS
-   seaweedfs-datalake  啟動 DataLake SeaweedFS"
-    echo "  buckets      創建 SeaweedFS Buckets"
     echo "  dashboard  啟動 RQ Dashboard (任務監控界面)"
+    echo ""
+    echo "Ollama (本地 LLM):"
+    echo "  ollama           啟動/重啟 Ollama 服務"
+    echo "  ollama-status    查看 Ollama 狀態和模型"
+    echo "  ollama-restart   重啟 Ollama 服務"
+    echo "  ollama-models    列出已安裝模型"
+    echo ""
+    echo "其他:"
     echo "  status     檢查服務狀態"
     echo "  monitor    實時監控 FastAPI 運行狀態"
     echo "  stop       停止所有服務"
@@ -815,8 +880,9 @@ show_usage() {
     echo "  $0 all              # 啟動所有服務"
     echo "  $0 qdrant           # 只啟動 Qdrant 向量數據庫"
     echo "  $0 fastapi          # 只啟動 FastAPI
-   $0 api              # 同上（別名）"
+    $0 api              # 同上（別名）"
     echo "  $0 arangodb qdrant  # 啟動 ArangoDB 和 Qdrant"
+    echo "  $0 monitoring       # 只啟動監控系統"
 }
 
 # 函數：啟動 RQ Worker
@@ -877,11 +943,12 @@ start_worker() {
 
     # 啟動 Worker Service（監聽所有隊列，啟用監控）
     echo -e "${GREEN}啟動 RQ Worker Service...${NC}"
-    echo -e "${GREEN}  監聽隊列: kg_extraction, vectorization, file_processing${NC}"
-    echo -e "${GREEN}  監控模式: 啟用${NC}"
-    echo -e "${GREEN}  日誌文件: $LOG_DIR/worker_service.log${NC}"
+    echo -e "${GREEN}  Worker 數量: ${WORKER_NUM:-5}${NC}"
+    echo -e "${GREEN} 監聽隊列: kg_extraction, vectorization, file_processing${NC}"
+    echo -e "${GREEN} 監控模式: 啟用${NC}"
+    echo -e "${GREEN} 日誌文件: $LOG_DIR/worker_service.log${NC}"
 
-    nohup "$PYTHON_CMD" -m workers.service         --queues kg_extraction vectorization file_processing         --monitor         --check-interval 30         --name rq_worker_ai_box         > "$LOG_DIR/worker_service.log" 2>&1 &
+    nohup "$PYTHON_CMD" -m workers.service         --queues kg_extraction vectorization file_processing         --num-workers ${WORKER_NUM:-5}         --monitor         --check-interval 30         --name rq_worker_ai_box         > "$LOG_DIR/worker_service.log" 2>&1 &
 
     local worker_pid=$!
     sleep 2
@@ -1001,7 +1068,8 @@ start_seaweedfs_ai_box() {
         return 1
     fi
 
-    $DOCKER_COMPOSE_CMD -f "$compose_file" up -d
+    # 僅使用當前 compose 檔，避免載入根目錄 docker-compose.yml（消除 version 警告）
+    COMPOSE_FILE="$compose_file" $DOCKER_COMPOSE_CMD -f "$compose_file" up -d
 
     if [ $? -ne 0 ]; then
         echo -e "${RED}❌ AI-Box SeaweedFS 啟動失敗${NC}"
@@ -1056,7 +1124,8 @@ start_seaweedfs_datalake() {
         return 1
     fi
 
-    $DOCKER_COMPOSE_CMD -f "$compose_file" up -d
+    # 僅使用當前 compose 檔，避免載入根目錄 docker-compose.yml（消除 version 警告）
+    COMPOSE_FILE="$compose_file" $DOCKER_COMPOSE_CMD -f "$compose_file" up -d
 
     if [ $? -ne 0 ]; then
         echo -e "${RED}❌ DataLake SeaweedFS 啟動失敗${NC}"
@@ -1087,6 +1156,66 @@ start_seaweedfs_docker() {
     echo -e "${BLUE}=== 啟動 SeaweedFS 服務（AI-Box 和 DataLake） ===${NC}"
     start_seaweedfs_ai_box || true
     start_seaweedfs_datalake || true
+}
+
+# 函數：啟動監控系統（Prometheus、Grafana、Alertmanager、Exporter）
+start_monitoring() {
+    echo -e "${BLUE}=== 啟動監控系統 ===${NC}"
+
+    local compose_file="docker-compose.monitoring.yml"
+
+    if [ ! -f "$compose_file" ]; then
+        echo -e "${YELLOW}⚠️  未找到 $compose_file，跳過監控系統啟動${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}檢查監控系統是否已運行...${NC}"
+
+    # 檢查 Grafana 是否已運行
+    if check_port 3001; then
+        echo -e "${GREEN}✅ 監控系統已在運行（Grafana 端口 3001）${NC}"
+        return 0
+    fi
+
+    echo -e "${BLUE}啟動監控系統（Docker Compose）...${NC}"
+
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+    elif command -v docker &> /dev/null && docker compose version &> /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker compose"
+    else
+        echo -e "${RED}❌ 錯誤：未找到 docker-compose 或 docker compose 命令${NC}"
+        return 1
+    fi
+
+    # 僅使用當前 compose 檔，避免載入根目錄 docker-compose.yml（消除 version 警告）
+    COMPOSE_FILE="$compose_file" $DOCKER_COMPOSE_CMD -f "$compose_file" up -d
+
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ 監控系統啟動失敗${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}等待監控系統啟動...${NC}"
+    local max_attempts=30
+    local attempt=0
+
+    while [ $attempt -lt $max_attempts ]; do
+        if check_port 3001; then
+            echo -e "${GREEN}✅ 監控系統啟動成功${NC}"
+            echo -e "${GREEN}   Grafana: http://localhost:3001${NC}"
+            echo -e "${GREEN}   Prometheus: http://localhost:9090${NC}"
+            echo -e "${GREEN}   Alertmanager: http://localhost:9093${NC}"
+            sleep 2
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+        echo -e "${YELLOW}  等待中... ($attempt/$max_attempts)${NC}"
+    done
+
+    echo -e "${RED}❌ 監控系統啟動超時${NC}"
+    return 1
 }
 
 # 函數：創建 SeaweedFS Buckets
@@ -1133,10 +1262,47 @@ check_status() {
     echo -e "${BLUE}=== 服務狀態檢查 ===${NC}"
     echo ""
 
+    # 檢查 Ollama 狀態
+    echo -e "${BLUE}Ollama (本地 LLM):${NC}"
+    if command -v systemctl &> /dev/null; then
+        if systemctl is-active --quiet ollama 2>/dev/null; then
+            local ollama_pid=$(ps aux | grep "[o]llama serve" | awk '{print $2}' | head -1)
+            if [ -n "$ollama_pid" ]; then
+                echo -e "${GREEN}✅ Ollama 服務${NC} - 運行中 (PID: $ollama_pid)"
+            else
+                echo -e "${GREEN}✅ Ollama 服務${NC} - 運行中"
+            fi
+
+            # 顯示已載入的模型數量
+            local model_count=$(curl -s http://localhost:$OLLAMA_PORT/api/tags 2>/dev/null | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('models',[])))" 2>/dev/null || echo "0")
+            echo -e "${GREEN}   已安裝模型: ${model_count} 個${NC}"
+            echo -e "${GREEN}   API: http://localhost:$OLLAMA_PORT${NC}"
+
+            # GPU 狀態
+            if command -v nvidia-smi &> /dev/null; then
+                local gpu_info=$(nvidia-smi --query-gpu=name,utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1)
+                if [ -n "$gpu_info" ]; then
+                    echo -e "${GREEN}   GPU: $gpu_info${NC}"
+                fi
+            fi
+        else
+            echo -e "${RED}❌ Ollama 服務${NC} - 未運行"
+            echo -e "${YELLOW}   提示: 運行 '$0 ollama' 啟動${NC}"
+        fi
+    else
+        # 非 systemd 系統，直接檢查端口
+        if check_port $OLLAMA_PORT; then
+            local ollama_pid=$(ps aux | grep "[o]llama serve" | awk '{print $2}' | head -1)
+            echo -e "${GREEN}✅ Ollama${NC} - 運行中 (端口 $OLLAMA_PORT, PID: $ollama_pid)"
+        else
+            echo -e "${RED}❌ Ollama${NC} - 未運行 (端口 $OLLAMA_PORT)"
+        fi
+    fi
+    echo ""
+
     services=(
         "Qdrant:$QDRANT_REST_PORT"
         "ArangoDB:$ARANGODB_PORT"
-        "ChromaDB:$CHROMADB_PORT"
         "Redis:$REDIS_PORT"
         "FastAPI:$FASTAPI_PORT"
         "MCP Server:$MCP_SERVER_PORT"
@@ -1233,6 +1399,45 @@ check_status() {
         echo -e "${GREEN}    ✅ S3 API${NC} - 運行中 (端口 $DATALAKE_SEAWEEDFS_S3_PORT)"
     else
         echo -e "${RED}    ❌ S3 API${NC} - 未運行 (端口 $DATALAKE_SEAWEEDFS_S3_PORT)"
+    fi
+
+    # 檢查監控系統狀態
+    echo -e "${BLUE}監控系統狀態:${NC}"
+    # 檢查 Grafana
+    if check_port 3001; then
+        local grafana_pid=$(lsof -ti :3001 | head -1)
+        echo -e "${GREEN}  ✅ Grafana${NC} - 運行中 (端口 3001, PID: $grafana_pid)"
+        echo -e "${GREEN}     訪問地址: http://localhost:3001${NC}"
+    else
+        echo -e "${RED}  ❌ Grafana${NC} - 未運行 (端口 3001)"
+    fi
+    # 檢查 Prometheus
+    if check_port 9090; then
+        local prometheus_pid=$(lsof -ti :9090 | head -1)
+        echo -e "${GREEN}  ✅ Prometheus${NC} - 運行中 (端口 9090, PID: $prometheus_pid)"
+        echo -e "${GREEN}     訪問地址: http://localhost:9090${NC}"
+    else
+        echo -e "${RED}  ❌ Prometheus${NC} - 未運行 (端口 9090)"
+    fi
+    # 檢查 Alertmanager
+    if check_port 9093; then
+        local alertmanager_pid=$(lsof -ti :9093 | head -1)
+        echo -e "${GREEN}  ✅ Alertmanager${NC} - 運行中 (端口 9093, PID: $alertmanager_pid)"
+        echo -e "${GREEN}     訪問地址: http://localhost:9093${NC}"
+    else
+        echo -e "${RED}  ❌ Alertmanager${NC} - 未運行 (端口 9093)"
+    fi
+    # 檢查 Node Exporter
+    if check_port 9100; then
+        echo -e "${GREEN}  ✅ Node Exporter${NC} - 運行中 (端口 9100)"
+    else
+        echo -e "${RED}  ❌ Node Exporter${NC} - 未運行 (端口 9100)"
+    fi
+    # 檢查 Redis Exporter
+    if check_port 9121; then
+        echo -e "${GREEN}  ✅ Redis Exporter${NC} - 運行中 (端口 9121)"
+    else
+        echo -e "${RED}  ❌ Redis Exporter${NC} - 未運行 (端口 9121)"
     fi
 
 
@@ -1465,18 +1670,25 @@ main() {
     for arg in "$@"; do
         case "$arg" in
             all)
-                echo -e "${BLUE}啟動所有服務...${NC}"
+                echo -e "${BLUE}=== 啟動所有服務 ===${NC}"
+                echo ""
+                echo -e "${BLUE}[1/3] 啟動基礎設施服務...${NC}"
+                start_redis || true
+                start_arangodb || true
+                start_qdrant || true
+                echo ""
+                echo -e "${BLUE}[2/3] 啟動存儲和監控服務...${NC}"
                 start_seaweedfs_docker || true
                 create_seaweedfs_buckets || true
-                start_qdrant || true
-                start_arangodb || true
-                start_chromadb || true  # ⚠️ 已廢棄，仍保留向後兼容
-                start_redis || true
+                start_monitoring || true
+                echo ""
+                echo -e "${BLUE}[3/3] 啟動應用服務...${NC}"
                 start_fastapi || true
                 start_mcp || true
                 start_frontend || true
                 start_worker || true
                 start_rq_dashboard || true
+                echo ""
                 echo -e "${GREEN}=== 啟動完成 ===${NC}"
                 check_status
                 ;;
@@ -1485,10 +1697,6 @@ main() {
                 ;;
             arangodb)
                 start_arangodb
-                ;;
-            chromadb)
-                echo -e "${YELLOW}⚠️  ChromaDB 已廢棄，請使用 'qdrant' 替代${NC}"
-                start_chromadb
                 ;;
             redis)
                 start_redis
@@ -1508,6 +1716,9 @@ main() {
             dashboard)
                 start_rq_dashboard
                 ;;
+            monitoring)
+                start_monitoring
+                ;;
             seaweedfs)
                 start_seaweedfs_docker
                 ;;
@@ -1519,6 +1730,30 @@ main() {
                 ;;
             buckets)
                 create_seaweedfs_buckets
+                ;;
+            ollama)
+                start_ollama
+                ;;
+            ollama-status|ollama_status)
+                ollama_status
+                ;;
+            ollama-models|ollama_models)
+                ollama_models
+                ;;
+            ollama-restart|ollama_restart)
+                echo -e "${BLUE}=== 重啟 Ollama ===${NC}"
+                if command -v systemctl &> /dev/null; then
+                    sudo systemctl restart ollama
+                    sleep 3
+                    if systemctl is-active --quiet ollama; then
+                        echo -e "${GREEN}✅ Ollama 已重啟${NC}"
+                        ollama_status
+                    else
+                        echo -e "${RED}❌ Ollama 重啟失敗${NC}"
+                    fi
+                else
+                    echo -e "${RED}錯誤: systemctl 未找到${NC}"
+                fi
                 ;;
             status)
                 check_status

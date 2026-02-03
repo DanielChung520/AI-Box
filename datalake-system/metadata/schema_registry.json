@@ -1,0 +1,143 @@
+{
+  "ima_file": {
+    "canonical_name": "ima_file",
+    "tiptop_name": "料件主檔",
+    "columns": [
+      {"id": "ima01", "name": "料號", "type": "V", "description": "PK"},
+      {"id": "ima02", "name": "品名", "type": "V", "description": "Item Name"},
+      {"id": "ima021", "name": "規格", "type": "V", "description": "Specification"},
+      {"id": "ima25", "name": "庫存單位", "type": "V", "description": "Unit"},
+      {"id": "ima08", "name": "來源碼", "type": "V", "description": "M:成品, P:原料"}
+    ]
+  },
+  "img_file": {
+    "canonical_name": "img_file",
+    "tiptop_name": "倉庫庫存明細檔",
+    "columns": [
+      {"id": "img01", "name": "料號", "type": "V", "description": ""},
+      {"id": "img02", "name": "倉庫", "type": "V", "description": ""},
+      {"id": "img03", "name": "儲位", "type": "V", "description": ""},
+      {"id": "img04", "name": "批號", "type": "V", "description": ""},
+      {"id": "img10", "name": "庫存數量", "type": "N", "description": ""}
+    ]
+  },
+  "tlf_file": {
+    "canonical_name": "tlf_file",
+    "tiptop_name": "庫存交易明細檔",
+    "columns": [
+      {"id": "tlf01", "name": "料號", "type": "V", "description": ""},
+      {"id": "tlf06", "name": "單據日期", "type": "D", "description": ""},
+      {"id": "tlf10", "name": "異動數量", "type": "N", "description": ""},
+      {"id": "tlf13", "name": "來源單號", "type": "V", "description": ""},
+      {"id": "tlf061", "name": "倉庫", "type": "V", "description": ""},
+      {"id": "tlf062", "name": "儲位", "type": "V", "description": ""},
+      {"id": "tlf19", "name": "交易類型", "type": "V", "description": "101:採購進貨, 102:完工入庫, 201:生產領料, 202:銷售出庫, 301:庫存報廢"}
+    ]
+  },
+  "pmc_file": {
+    "canonical_name": "pmc_file",
+    "tiptop_name": "供應商主檔",
+    "columns": [
+      {"id": "pmc01", "name": "供應商編號", "type": "V", "description": "PK"},
+      {"id": "pmc03", "name": "供應商全名", "type": "V", "description": ""},
+      {"id": "pmc24", "name": "聯絡人", "type": "V", "description": ""},
+      {"id": "pmc08", "name": "電話", "type": "V", "description": ""}
+    ]
+  },
+  "pmm_file": {
+    "canonical_name": "pmm_file",
+    "tiptop_name": "採購單頭檔",
+    "columns": [
+      {"id": "pmm01", "name": "採購單號", "type": "V", "description": "PK"},
+      {"id": "pmm02", "name": "單據日期", "type": "D", "description": ""},
+      {"id": "pmm04", "name": "供應商", "type": "V", "description": ""},
+      {"id": "pmm09", "name": "採購人員", "type": "V", "description": ""}
+    ]
+  },
+  "pmn_file": {
+    "canonical_name": "pmn_file",
+    "tiptop_name": "採購單身檔",
+    "columns": [
+      {"id": "pmn01", "name": "採購單號", "type": "V", "description": "FK pmm01"},
+      {"id": "pmn02", "name": "項次", "type": "N", "description": "Line No"},
+      {"id": "pmn04", "name": "料號", "type": "V", "description": ""},
+      {"id": "pmn20", "name": "採購數量", "type": "N", "description": ""},
+      {"id": "pmn31", "name": "已交數量", "type": "N", "description": ""},
+      {"id": "pmn33", "name": "預計到貨日", "type": "D", "description": ""}
+    ]
+  },
+  "rvb_file": {
+    "canonical_name": "rvb_file",
+    "tiptop_name": "收料單身檔",
+    "columns": [
+      {"id": "rvb01", "name": "收料單號", "type": "V", "description": "PK"},
+      {"id": "rvb05", "name": "料號", "type": "V", "description": ""},
+      {"id": "rvb07", "name": "採購單號", "type": "V", "description": "FK pmn01"},
+      {"id": "rvb33", "name": "驗收數量", "type": "N", "description": ""}
+    ]
+  },
+  "imd_file": {
+    "canonical_name": "imd_file",
+    "tiptop_name": "倉庫代號檔",
+    "columns": [
+      {"id": "imd01", "name": "倉庫代號", "type": "V", "description": "PK"},
+      {"id": "imd02", "name": "倉庫名稱", "type": "V", "description": ""}
+    ]
+  },
+  "ime_file": {
+    "canonical_name": "ime_file",
+    "tiptop_name": "儲位代號檔",
+    "columns": [
+      {"id": "ime01", "name": "倉庫代號", "type": "V", "description": ""},
+      {"id": "ime02", "name": "儲位代號", "type": "V", "description": ""},
+      {"id": "ime03", "name": "儲位名稱", "type": "V", "description": ""}
+    ]
+  },
+  "cmc_file": {
+    "canonical_name": "cmc_file",
+    "tiptop_name": "客戶主檔",
+    "columns": [
+      {"id": "cmc01", "name": "客戶代碼", "type": "V", "description": "PK"},
+      {"id": "cmc02", "name": "客戶名稱", "type": "V", "description": ""},
+      {"id": "cmc03", "name": "聯絡人", "type": "V", "description": ""},
+      {"id": "cmc08", "name": "電話", "type": "V", "description": ""}
+    ]
+  },
+  "coptc_file": {
+    "canonical_name": "coptc_file",
+    "tiptop_name": "客戶訂單單頭檔",
+    "columns": [
+      {"id": "coptc01", "name": "訂單號", "type": "V", "description": "PK"},
+      {"id": "coptc02", "name": "客戶代碼", "type": "V", "description": "FK cmc01"},
+      {"id": "coptc03", "name": "單據日期", "type": "D", "description": ""},
+      {"id": "coptc04", "name": "預計出貨日", "type": "D", "description": ""},
+      {"id": "coptc05", "name": "訂單狀態", "type": "V", "description": "10:未出貨, 20:部分出貨, 30:已出貨"},
+      {"id": "coptc06", "name": "業務人員", "type": "V", "description": ""}
+    ]
+  },
+  "coptd_file": {
+    "canonical_name": "coptd_file",
+    "tiptop_name": "客戶訂單單身檔",
+    "columns": [
+      {"id": "coptd01", "name": "訂單號", "type": "V", "description": "FK coptc01"},
+      {"id": "coptd02", "name": "項次", "type": "N", "description": "Line No"},
+      {"id": "coptd04", "name": "料號", "type": "V", "description": "FK ima01"},
+      {"id": "coptd20", "name": "訂購數量", "type": "N", "description": ""},
+      {"id": "coptd30", "name": "單價", "type": "N", "description": ""},
+      {"id": "coptd31", "name": "已出貨數量", "type": "N", "description": ""},
+      {"id": "coptd32", "name": "訂單批次", "type": "V", "description": "Order Batch"}
+    ]
+  },
+  "prc_file": {
+    "canonical_name": "prc_file",
+    "tiptop_name": "訂價單檔",
+    "columns": [
+      {"id": "prc01", "name": "料號", "type": "V", "description": "FK ima01"},
+      {"id": "prc02", "name": "單價", "type": "N", "description": ""},
+      {"id": "prc03", "name": "批准日期", "type": "D", "description": ""},
+      {"id": "prc04", "name": "批准狀態", "type": "V", "description": "Y:已批准, N:待批准"},
+      {"id": "prc05", "name": "生效日", "type": "D", "description": ""},
+      {"id": "prc06", "name": "失效日", "type": "D", "description": ""}
+    ]
+  }
+}

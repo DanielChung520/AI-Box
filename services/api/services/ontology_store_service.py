@@ -460,6 +460,41 @@ class OntologyStoreService:
             self._logger.error("ontology_list_failed", tenant_id=tenant_id, error=str(exc))
             raise
 
+    def list_ontologies_by_task_id(self, task_id: str, limit: int = 50) -> List[OntologyModel]:
+        """
+        依 task_id（Agent 代碼）查詢關聯的 Ontology。
+        匹配 name 或 ontology_name 包含規範化後之 task_id 的 Ontology
+        （如 KA-Agent -> KA_Agent，匹配 KA_Agent_Domain 等）。
+
+        Args:
+            task_id: Agent 代碼（如 KA-Agent、MM-Agent）
+            limit: 返回數量上限
+
+        Returns:
+            OntologyModel 列表
+        """
+        if not task_id or not task_id.strip():
+            return []
+        pattern = task_id.strip().replace("-", "_")
+        try:
+            aql = """
+            FOR doc IN ontologies
+                FILTER doc.is_active == true
+                FILTER LOWER(doc.name) LIKE LOWER(CONCAT("%", @pattern, "%"))
+                   OR LOWER(doc.ontology_name) LIKE LOWER(CONCAT("%", @pattern, "%"))
+                LIMIT @limit
+                RETURN doc
+            """
+            bind_vars: Dict[str, Any] = {"pattern": pattern, "limit": limit}
+            if self._client.db is None:
+                raise RuntimeError("ArangoDB client is not connected")
+            result = self._client.execute_aql(aql, bind_vars=bind_vars)
+            docs = result.get("results", [])
+            return [_document_to_model(d) for d in docs]
+        except Exception as exc:
+            self._logger.error("ontology_list_by_task_id_failed", task_id=task_id, error=str(exc))
+            raise
+
     def update_ontology(
         self, ontology_id: str, updates: OntologyUpdate, tenant_id: Optional[str] = None
     ) -> OntologyModel:
@@ -829,9 +864,7 @@ class OntologyStoreService:
                     op_dict = (
                         op
                         if isinstance(op, dict)
-                        else op.model_dump()
-                        if hasattr(op, "model_dump")
-                        else {}
+                        else op.model_dump() if hasattr(op, "model_dump") else {}
                     )
                     rel_name = op_dict.get("name", "")
                     if rel_name:
@@ -864,9 +897,7 @@ class OntologyStoreService:
                         ec_dict = (
                             ec
                             if isinstance(ec, dict)
-                            else ec.model_dump()
-                            if hasattr(ec, "model_dump")
-                            else {}
+                            else ec.model_dump() if hasattr(ec, "model_dump") else {}
                         )
                         entity_name = ec_dict.get("name", "")
                         if entity_name:
@@ -876,9 +907,7 @@ class OntologyStoreService:
                         op_dict = (
                             op
                             if isinstance(op, dict)
-                            else op.model_dump()
-                            if hasattr(op, "model_dump")
-                            else {}
+                            else op.model_dump() if hasattr(op, "model_dump") else {}
                         )
                         rel_name = op_dict.get("name", "")
                         if rel_name and rel_name not in merged_rules["relationship_types"]:
@@ -912,9 +941,7 @@ class OntologyStoreService:
                         ec_dict = (
                             ec
                             if isinstance(ec, dict)
-                            else ec.model_dump()
-                            if hasattr(ec, "model_dump")
-                            else {}
+                            else ec.model_dump() if hasattr(ec, "model_dump") else {}
                         )
                         entity_name = ec_dict.get("name", "")
                         if entity_name:
@@ -924,9 +951,7 @@ class OntologyStoreService:
                         op_dict = (
                             op
                             if isinstance(op, dict)
-                            else op.model_dump()
-                            if hasattr(op, "model_dump")
-                            else {}
+                            else op.model_dump() if hasattr(op, "model_dump") else {}
                         )
                         rel_name = op_dict.get("name", "")
                         if rel_name and rel_name not in merged_rules["relationship_types"]:

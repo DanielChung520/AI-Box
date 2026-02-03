@@ -101,8 +101,8 @@ def create_error_handler_agent_config() -> NodeConfig:
         description="錯誤處理Agent - 負責捕捉節點執行錯誤、分析模式並建議或執行恢復操作",
         max_retries=1,
         timeout=20.0,
-        required_inputs=["user_id"]
-        optional_inputs=["messages"]
+        required_inputs=["user_id"],
+        optional_inputs=["messages"],
         output_keys=["error_handling", "error_summary"],
     )
 

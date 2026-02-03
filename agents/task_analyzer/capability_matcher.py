@@ -60,6 +60,98 @@ class CapabilityMatcher:
                 self._agent_capability_retriever = None
         return self._agent_capability_retriever
 
+    async def _is_knowledge_base_query(self, query: str) -> bool:
+        """
+        判斷是否為知識庫查詢任務（需要 KA-Agent）
+
+        修改時間：2026-01-28 - 使用向量比對替代關鍵字匹配，提高準確性和靈活性
+
+        Args:
+            query: 用戶查詢文本
+
+        Returns:
+            是否為知識庫查詢任務
+        """
+        if not query:
+            return False
+
+        try:
+            # 優先使用向量比對（語義相似度）
+            from agents.task_analyzer.query_pattern_vector_store import (
+                get_query_pattern_vector_store,
+            )
+
+            vector_store = get_query_pattern_vector_store()
+            is_match = await vector_store.is_knowledge_base_query(
+                query=query, similarity_threshold=0.75
+            )
+
+            if is_match:
+                logger.info(
+                    f"Knowledge base query detected via vector similarity: '{query[:50]}...'"
+                )
+                return True
+
+            # 如果向量比對未匹配，fallback 到關鍵字匹配
+            logger.debug(
+                f"Vector similarity did not match, falling back to keyword matching: '{query[:50]}...'"
+            )
+            return self._fallback_keyword_match(query)
+
+        except Exception as e:
+            logger.warning(
+                f"Vector similarity matching failed: {e}, falling back to keyword matching"
+            )
+            return self._fallback_keyword_match(query)
+
+    def _fallback_keyword_match(self, query: str) -> bool:
+        """
+        Fallback 關鍵字匹配（當向量比對失敗時使用）
+
+        Args:
+            query: 用戶查詢文本
+
+        Returns:
+            是否為知識庫查詢任務
+        """
+        if not query:
+            return False
+
+        query_lower = query.lower()
+
+        # 知識庫查詢關鍵詞（簡化版，作為 fallback）
+        knowledge_keywords = [
+            # 知識庫相關
+            "知識庫",
+            "知識資產",
+            "知識",
+            "knowledge",
+            # 文件查詢相關
+            "文件.*有多少",
+            "文件.*有哪些",
+            "文件.*列表",
+            "文件.*統計",
+            "文件.*數量",
+            "文件區",
+            # 查詢/檢索相關
+            "查詢.*知識",
+            "檢索.*知識",
+            "搜索.*知識",
+            "查找.*知識",
+            # KA-Agent 能力相關
+            "ka.retrieve",
+            "knowledge.query",
+            "ka.list",
+        ]
+
+        import re
+
+        for pattern in knowledge_keywords:
+            if re.search(pattern, query_lower):
+                return True
+
+        return False
+
     def _is_file_editing_task(self, query: str) -> bool:
         """
         判斷是否為文件編輯任務
@@ -296,26 +388,54 @@ class CapabilityMatcher:
         # 檢查是否為文件編輯任務
         user_query = context.get("task", "") or context.get("query", "") if context else ""
         is_file_editing = self._is_file_editing_task(user_query)
+        
+        # 修改時間：2026-01-28 - 使用 Knowledge Signal 判斷是否為知識庫查詢任務
+        # 優先使用 Knowledge Signal（純規則、可審計），fallback 到關鍵字匹配
+        is_knowledge_query = False
+        knowledge_signal_dict = context.get("knowledge_signal") if context else None
+        
+        if knowledge_signal_dict and knowledge_signal_dict.get("is_knowledge_event"):
+            is_knowledge_query = True
+            logger.info(
+                f"Knowledge Signal detected: is_knowledge_event=True, "
+                f"knowledge_type={knowledge_signal_dict.get('knowledge_type')}, "
+                f"reason_codes={knowledge_signal_dict.get('reason_codes', [])}"
+            )
+        else:
+            # Fallback：如果沒有 Knowledge Signal，使用關鍵字匹配（向後兼容）
+            logger.debug("No Knowledge Signal available, falling back to keyword matching")
+            is_knowledge_query = self._fallback_keyword_match(user_query)
 
         logger.info(
             f"CapabilityMatcher.match_agents: user_query='{user_query[:100]}...', "
-            f"is_file_editing={is_file_editing}, needs_agent={router_decision.needs_agent}"
+            f"is_file_editing={is_file_editing}, is_knowledge_query={is_knowledge_query}, "
+            f"needs_agent={router_decision.needs_agent}"
         )
 
-        # 如果是文件編輯任務，即使 needs_agent=False，也應該匹配對應的 Agent（md-editor, xls-editor 等）
-        if not router_decision.needs_agent and not is_file_editing:
+        # 如果是文件編輯任務或知識庫查詢任務，強制設置 needs_agent=True
+        # 這樣 Decision Engine 才能正確選擇 Agent
+        if is_file_editing or is_knowledge_query:
+            if not router_decision.needs_agent:
+                router_decision.needs_agent = True
+                if is_file_editing:
+                    logger.info(
+                        f"File editing task detected (query: {user_query[:100]}...), "
+                        f"forcing needs_agent=true to match file editing agents"
+                    )
+                if is_knowledge_query:
+                    logger.info(
+                        f"Knowledge base query detected (query: {user_query[:100]}...), "
+                        f"forcing needs_agent=true to match KA-Agent"
+                    )
+
+        # 如果既不是文件編輯也不是知識查詢，且 needs_agent=False，則不匹配 Agent
+        if not router_decision.needs_agent and not is_file_editing and not is_knowledge_query:
             logger.info(
                 f"CapabilityMatcher.match_agents: Skipping agent matching "
-                f"(needs_agent={router_decision.needs_agent}, is_file_editing={is_file_editing})"
+                f"(needs_agent={router_decision.needs_agent}, is_file_editing={is_file_editing}, "
+                f"is_knowledge_query={is_knowledge_query})"
             )
             return []
-
-        # 如果是文件編輯任務，強制設置 needs_agent=True（臨時設置，不影響原始決策）
-        if is_file_editing and not router_decision.needs_agent:
-            logger.info(
-                f"File editing task detected (query: {user_query[:100]}...), "
-                "forcing needs_agent=true to match file editing agents"
-            )
 
         registry = self._get_agent_registry()
         if registry is None:
@@ -346,11 +466,39 @@ class CapabilityMatcher:
                 except Exception as e:
                     logger.warning(f"RAG retrieval failed: {e}, falling back to registry matching")
 
-            # 如果是文件編輯/轉換任務，需要發現 System Agent（md-editor, xls-editor, md-to-pdf, xls-to-pdf, pdf-to-md）
-            # 注意：document-editing-agent 已棄用，不應被調用
-            # 因此需要包括 System Agents（include_system_agents=True）
-            # 對於其他任務，可以使用 AgentDiscovery（會過濾 System Agents）
-            if is_file_editing:
+            # 優先級：知識查詢 > 文件編輯 > 其他任務
+            # 如果是知識庫查詢任務，優先匹配 KA-Agent
+            if is_knowledge_query:
+                # 修改時間：2026-01-28 - 知識庫查詢任務：強制匹配 KA-Agent
+                from agents.services.registry.models import AgentStatus
+
+                # 查詢 knowledge_service 類型的 Agent（包括 ka-agent）
+                knowledge_agents = registry.list_agents(
+                    agent_type="knowledge_service",
+                    status=AgentStatus.ONLINE,
+                    include_system_agents=True,  # 包括 System Agents
+                )
+                logger.info(
+                    f"CapabilityMatcher: Query with agent_type='knowledge_service' found {len(knowledge_agents)} agents"
+                )
+                
+                # 如果沒有找到，嘗試直接查找 ka-agent
+                if not knowledge_agents:
+                    ka_agent_info = registry.get_agent_info("ka-agent")
+                    if ka_agent_info and ka_agent_info.status == AgentStatus.ONLINE:
+                        knowledge_agents = [ka_agent_info]
+                        logger.info("CapabilityMatcher: Found ka-agent directly by agent_id")
+                
+                agents = knowledge_agents
+                
+                logger.info(
+                    f"Knowledge base query task: Found {len(agents)} agents (including System Agents) "
+                    f"for query: {user_query[:100]}..."
+                )
+                if agents:
+                    agent_ids = [a.agent_id for a in agents]
+                    logger.info(f"CapabilityMatcher: Found knowledge service agent IDs: {agent_ids}")
+            elif is_file_editing:
                 from agents.services.registry.models import AgentStatus
 
                 # 文件編輯/轉換任務：同時查詢 document_editing 和 document_conversion 類型的 Agent
@@ -466,7 +614,7 @@ class CapabilityMatcher:
                     f"for query: {user_query[:100]}..."
                 )
             else:
-                # 非文件編輯任務：使用 AgentDiscovery（會過濾 System Agents）
+                # 非文件編輯任務和非知識庫查詢任務：使用 AgentDiscovery（會過濾 System Agents）
                 discovery = AgentDiscovery(registry)
                 agents = discovery.discover_agents(
                     required_capabilities=required_capabilities if required_capabilities else None,

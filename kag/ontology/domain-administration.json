@@ -1,7 +1,7 @@
 {
     "ontology_name": "Administration_Domain_Ontology",
     "version": "1.0",
-    "inherits_from": "5W1H_Base_Ontology_OWL",
+    "inherits_from": ["5W1H_Base_Ontology_OWL"],
     "description": "行政管理領域通用本體論，定義行政流程、政策法規、審批流程與組織管理的核心概念。",
     "last_modified": "2025-12-10",
     "author": "Daniel Chung",

@@ -121,7 +121,7 @@ root.render(
   <StrictMode>
     <HashRouter>
       <App />
-      <Toaster />
+      <Toaster position="top-center" richColors duration={5000} />
     </HashRouter>
   </StrictMode>
 );

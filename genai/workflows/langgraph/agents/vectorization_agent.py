@@ -114,14 +114,14 @@ class VectorizationAgent(BaseAgentNode):
     ) -> Optional[VectorizationResult]:
         """執行實際的向量化處理"""
         return VectorizationResult(
-            files_processed=len(files)
+            files_processed=len(files),
             vectors_generated=0,
             vector_dimensions=1536,
             processing_success=True,
             total_tokens=0,
             processing_time=0.0,
             vector_store_updated=True,
-            failed_files=[]
+            failed_files=[],
             reasoning="Simulated vectorization success.",
         )
 
@@ -140,7 +140,7 @@ def create_vectorization_agent_config() -> NodeConfig:
         description="向量化Agent - 負責將非結構化文件轉換為高維向量存儲",
         max_retries=1,
         timeout=300.0,
-        required_inputs=["user_id"]
+        required_inputs=["user_id"],
         optional_inputs=["file_upload", "messages"],
         output_keys=["vectorization_summary"]
     )

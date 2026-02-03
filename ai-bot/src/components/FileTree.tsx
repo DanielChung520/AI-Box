@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Folder, FolderOpen, File as FileIcon, ChevronRight, ChevronDown, X } from 'lucide-react';
+import { Folder, FolderOpen, ChevronRight, ChevronDown, X } from 'lucide-react';
 import { getFileTree, FileTreeResponse, getFileList, deleteFile, renameFile, copyFile, moveFile, renameFolder, createFolder, deleteFolder, moveFolder, getFileVectors, getFileGraph, FileMetadata } from '../lib/api';
 import { FileNode } from './Sidebar';
 import { getMockFiles, hasMockFiles, getMockFile } from '../lib/mockFileStorage';
@@ -27,6 +27,8 @@ import FileDataPreview from './FileDataPreview';
 import NewFileOrUploadModal from './NewFileOrUploadModal';
 // 修改時間：2026-01-02 - 文件訪問控制設置模態框 (WBS-4.5.4)
 import FileAccessControlModal from './FileAccessControlModal';
+// 修改時間：2026-01-25 - 文件名前紅黃綠三點（SeaweedFS/向量/圖譜）
+import StageDots from './StageDots';
 
 // 導出 FileNode 類型供其他組件使用
 export type { FileNode };
@@ -421,6 +423,11 @@ export default function FileTree({
               id: file.file_id || file.id,
               name: file.filename || file.name,
               type: 'file',
+              metadata: {
+                storage_path: file.storage_path,
+                vector_count: file.vector_count,
+                kg_status: file.kg_status,
+              },
             });
           });
           console.log('[FileTree] Added files to folder', {
@@ -2735,8 +2742,8 @@ export default function FileTree({
         return (
           <div
             key={node.id}
-            className="flex items-center gap-2 px-2 py-1 text-xs text-secondary hover:bg-tertiary rounded cursor-pointer theme-transition"
-            style={{ paddingLeft: `${level * 1 + 1.5}rem` }}
+            className="flex items-center gap-2 pl-1 pr-2 py-1 text-xs text-secondary hover:bg-tertiary rounded cursor-pointer theme-transition"
+            style={{ paddingLeft: `${level * 0.75 + 0.5}rem` }}
             onClick={() => {
               if (onFileSelect) {
                 if (isDraftFileId(node.id)) {
@@ -2753,7 +2760,13 @@ export default function FileTree({
               handleContextMenu(e, node.id, node.name);
             }}
           >
-            <FileIcon className="w-3 h-3 text-tertiary" />
+            {!isDraftFileId(node.id) && (
+              <StageDots
+                storageOk={!!node.metadata?.storage_path}
+                vectorOk={!!(node.metadata?.vector_count != null && node.metadata.vector_count > 0)}
+                graphOk={node.metadata?.kg_status === 'completed'}
+              />
+            )}
             <span className="flex-1 truncate text-primary">{node.name}</span>
             {isDraftFileId(node.id) && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30">
@@ -2779,7 +2792,7 @@ export default function FileTree({
             const hash = safeFileTree.map(f => `${f.id}:${f.name}`).sort().join('|');
             return (
               <div
-                className="p-2"
+                className="pl-1 pr-2 py-2"
                 key={`filetree-content-${taskId || 'no-task'}-${hash}`}
               >
                 {safeFileTree.map((node, index) => (
@@ -3614,14 +3627,14 @@ export default function FileTree({
                 }
 
                 return (
-                  <div className="ml-6 mt-1 space-y-0.5">
+                  <div className="ml-4 mt-1 space-y-0.5">
                     {/* 文件列表（直接屬於這個資料夾） */}
                     {filesInFolder.length > 0 && (
                       <div className="mb-1">
                         {filesInFolder.slice(0, 20).map((file: any) => (
                           <div
                             key={file.file_id}
-                            className={`flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition ${
+                            className={`flex items-center gap-2 pl-1 pr-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition ${
                               selectedFileId === file.file_id
                                 ? 'bg-blue-500/30 text-blue-300 border-l-4 border-blue-500 shadow-md'
                                 : 'text-secondary hover:bg-blue-500/25 hover:text-blue-300 hover:border-l-4 hover:border-blue-500 hover:shadow-md'
@@ -3650,7 +3663,13 @@ export default function FileTree({
                               handleContextMenu(e, file.file_id, file.filename);
                             }}
                           >
-                            <FileIcon className="w-3 h-3 text-tertiary flex-shrink-0" />
+                            {!isDraftFileId(file.file_id) && (
+                              <StageDots
+                                storageOk={!!file.storage_path}
+                                vectorOk={!!(file.vector_count != null && file.vector_count > 0)}
+                                graphOk={file.kg_status === 'completed'}
+                              />
+                            )}
                             <span className={`flex-1 truncate ${selectedFileId === file.file_id ? 'text-blue-400' : 'text-primary'}`}>
                               {file.filename}
                             </span>
@@ -3686,7 +3705,7 @@ export default function FileTree({
                               }
                             }}
                             tabIndex={0}
-                            className={`flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 ${
+                            className={`flex items-center gap-2 pl-1 pr-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 ${
                               selectedTaskId === subFolder.taskId
                                 ? 'bg-blue-500/30 text-blue-300 border-l-4 border-blue-500 shadow-md'
                                 : 'hover:bg-blue-500/25 hover:text-blue-300 hover:border-l-4 hover:border-blue-500 hover:shadow-md text-primary'
@@ -3732,7 +3751,7 @@ export default function FileTree({
                             const subSubFolders = getSubFolders(subFolder.taskId);
                             if (subSubFolders.length > 0) {
                               return (
-                                <div className="ml-6 mt-1 space-y-0.5">
+                                <div className="ml-4 mt-1 space-y-0.5">
                                   {subSubFolders.map((subSubFolder) => {
                                     const isSubSubExpanded = expandedTasks.has(subSubFolder.taskId);
                                     const subSubFiles = getMergedFiles(subSubFolder.taskId);
@@ -3747,7 +3766,7 @@ export default function FileTree({
                                             }
                                           }}
                                           tabIndex={0}
-                                          className={`flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 ${
+                                          className={`flex items-center gap-2 pl-1 pr-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 ${
                                             selectedTaskId === subSubFolder.taskId
                                               ? 'bg-blue-500/30 text-blue-300 border-l-4 border-blue-500 shadow-md'
                                               : 'hover:bg-blue-500/25 hover:text-blue-300 hover:border-l-4 hover:border-blue-500 hover:shadow-md text-primary'
@@ -3790,11 +3809,11 @@ export default function FileTree({
                                         </div>
                                         {/* 子資料夾的文件列表 */}
                                         {isSubSubExpanded && subSubFiles.length > 0 && (
-                                          <div className="ml-6 mt-1 space-y-0.5">
+                                          <div className="ml-4 mt-1 space-y-0.5">
                                             {subSubFiles.slice(0, 10).map((file: any) => (
                                               <div
                                                 key={file.file_id}
-                                                className={`flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition ${
+                                                className={`flex items-center gap-2 pl-1 pr-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition ${
                                                   selectedFileId === file.file_id
                                                     ? 'bg-blue-500/30 text-blue-300 border-l-4 border-blue-500 shadow-md'
                                                     : 'text-secondary hover:bg-blue-500/25 hover:text-blue-300 hover:border-l-4 hover:border-blue-500 hover:shadow-md'
@@ -3814,7 +3833,13 @@ export default function FileTree({
                                                   handleContextMenu(e, file.file_id, file.filename);
                                                 }}
                                               >
-                                                <FileIcon className="w-3 h-3 text-tertiary flex-shrink-0" />
+                                                {!isDraftFileId(file.file_id) && (
+                                                  <StageDots
+                                                    storageOk={!!file.storage_path}
+                                                    vectorOk={!!(file.vector_count != null && file.vector_count > 0)}
+                                                    graphOk={file.kg_status === 'completed'}
+                                                  />
+                                                )}
                                                 <span className={`flex-1 truncate ${selectedFileId === file.file_id ? 'text-blue-400' : 'text-primary'}`}>
                                                   {file.filename}
                                                 </span>
@@ -3842,11 +3867,11 @@ export default function FileTree({
                           })()}
                           {/* 子資料夾的文件列表 */}
                           {isSubExpanded && subFiles.length > 0 && (
-                            <div className="ml-6 mt-1 space-y-0.5">
+                            <div className="ml-4 mt-1 space-y-0.5">
                               {subFiles.slice(0, 10).map((file: any) => (
                                 <div
                                   key={file.file_id}
-                                  className={`flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition ${
+                                  className={`flex items-center gap-2 pl-1 pr-2 py-1 text-xs rounded cursor-pointer transition-all duration-200 theme-transition ${
                                     selectedFileId === file.file_id
                                       ? 'bg-blue-500/30 text-blue-300 border-l-4 border-blue-500 shadow-md'
                                       : 'text-secondary hover:bg-blue-500/25 hover:text-blue-300 hover:border-l-4 hover:border-blue-500 hover:shadow-md'
@@ -3866,7 +3891,13 @@ export default function FileTree({
                                     handleContextMenu(e, file.file_id, file.filename);
                                   }}
                                 >
-                                  <FileIcon className="w-3 h-3 text-tertiary flex-shrink-0" />
+                                  {!isDraftFileId(file.file_id) && (
+                                    <StageDots
+                                      storageOk={!!file.storage_path}
+                                      vectorOk={!!(file.vector_count != null && file.vector_count > 0)}
+                                      graphOk={file.kg_status === 'completed'}
+                                    />
+                                  )}
                                   <span className={`flex-1 truncate ${selectedFileId === file.file_id ? 'text-blue-400' : 'text-primary'}`}>
                                     {file.filename}
                                   </span>

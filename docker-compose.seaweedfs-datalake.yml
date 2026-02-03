@@ -1,9 +1,8 @@
 # 代碼功能說明: SeaweedFS Docker Compose 配置（DataLake 服務）
 # 創建日期: 2025-12-29
 # 創建人: Daniel Chung
-# 最後修改日期: 2025-12-29
-
-version: "3.8"
+# 最後修改日期: 2026-01-29
+# 說明: 移除 version（Docker Compose v2 已棄用）；Filer 改掛載 config/seaweedfs 提供 s3.json
 
 services:
   # SeaweedFS Master 節點（DataLake）
@@ -49,7 +48,7 @@ services:
       - SEAWEEDFS_S3_ACCESS_KEY=${DATALAKE_SEAWEEDFS_S3_ACCESS_KEY:-admin}
       - SEAWEEDFS_S3_SECRET_KEY=${DATALAKE_SEAWEEDFS_S3_SECRET_KEY:-admin123}
     volumes:
-      - seaweedfs-datalake-s3-config:/etc/seaweedfs
+      - ./config/seaweedfs:/etc/seaweedfs:ro  # s3.json 須存在，否則 Filer 會崩潰
     restart: unless-stopped
 
 networks:
@@ -59,4 +58,3 @@ networks:
 volumes:
   seaweedfs-datalake-master-data:
   seaweedfs-datalake-volume-data:
-  seaweedfs-datalake-s3-config:

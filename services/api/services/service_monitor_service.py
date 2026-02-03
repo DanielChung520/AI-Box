@@ -40,11 +40,7 @@ SERVICE_CONFIGS: Dict[str, Dict[str, Any]] = {
         "port": 6379,
         "health_endpoint": None,  # 使用連接檢查
     },
-    "chromadb": {
-        "type": "database",
-        "port": 8001,
-        "health_endpoint": "http://localhost:8001/api/v1/heartbeat",
-    },
+    # ChromaDB 已移除（已迁移到 Qdrant）
     "rq_worker": {
         "type": "worker",
         "port": None,
@@ -102,8 +98,7 @@ class ServiceMonitorService:
                 result = await self.check_arangodb()
             elif service_name == "redis":
                 result = await self.check_redis()
-            elif service_name == "chromadb":
-                result = await self.check_chromadb()
+            # ChromaDB 监控已移除（已迁移到 Qdrant）
             elif service_name == "rq_worker":
                 result = await self.check_rq_worker()
             elif service_name == "rq_dashboard":
@@ -255,31 +250,7 @@ class ServiceMonitorService:
                 error_message=str(e),
             )
 
-    async def check_chromadb(self) -> ServiceHealthCheck:
-        """檢查 ChromaDB 服務"""
-        try:
-            response = await self._http_client.get("http://localhost:8001/api/v1/heartbeat")
-            if response.status_code == 200:
-                return ServiceHealthCheck(
-                    service_name="chromadb",
-                    status="running",
-                    health_status="healthy",
-                    metadata={"status_code": response.status_code},
-                )
-            else:
-                return ServiceHealthCheck(
-                    service_name="chromadb",
-                    status="error",
-                    health_status="unhealthy",
-                    error_message=f"HTTP {response.status_code}",
-                )
-        except Exception as e:
-            return ServiceHealthCheck(
-                service_name="chromadb",
-                status="error",
-                health_status="unhealthy",
-                error_message=str(e),
-            )
+    # check_chromadb 方法已移除（已迁移到 Qdrant）
 
     async def check_rq_worker(self) -> ServiceHealthCheck:
         """檢查 RQ Worker 服務"""

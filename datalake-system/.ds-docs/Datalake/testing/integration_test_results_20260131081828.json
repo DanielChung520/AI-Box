@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-01-31T08:18:28.105925",
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "pass_rate": "100.0%",
+    "elapsed_seconds": 12.19
+  },
+  "results": [
+    {
+      "name": "查詢 W01 庫房料號存量",
+      "query": "查詢W01庫房 每個料號的存量",
+      "expected_action": "text_to_sql",
+      "passed": true,
+      "error": null,
+      "sql": "SELECT img01, SUM(img10)\nFROM img_file\nWHERE img02 = 'W01'\nGROUP BY img01",
+      "row_count": 100
+    },
+    {
+      "name": "查詢料號 10-0001 庫存",
+      "query": "查詢料號 10-0001 的庫存信息",
+      "expected_action": "text_to_sql",
+      "passed": true,
+      "error": null,
+      "sql": "SELECT * FROM img_file WHERE img01 = '10-0001'",
+      "row_count": 1
+    },
+    {
+      "name": "按倉庫統計總庫存",
+      "query": "按倉庫統計總庫存量",
+      "expected_action": "text_to_sql",
+      "passed": true,
+      "error": null,
+      "sql": "SELECT img02, SUM(img10)\nFROM img_file\nGROUP BY img02",
+      "row_count": 2
+    },
+    {
+      "name": "查詢前 10 個庫存最多物料",
+      "query": "列出前 10 個庫存量最多的物料",
+      "expected_action": "text_to_sql",
+      "passed": true,
+      "error": null,
+      "sql": "SELECT img01, SUM(img10) FROM img_file GROUP BY img01 ORDER BY SUM(img10) DESC LIMIT 10",
+      "row_count": 10
+    },
+    {
+      "name": "查詢 W03 成品倉庫存",
+      "query": "查詢 W03 成品倉的庫存",
+      "expected_action": "text_to_sql",
+      "passed": true,
+      "error": null,
+      "sql": "SELECT * FROM img_file WHERE img02 = 'W03'",
+      "row_count": 20
+    }
+  ]
+}
