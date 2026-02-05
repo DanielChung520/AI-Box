@@ -165,7 +165,91 @@ class ChatMemoryService:
             if re.search(pattern, query_lower):
                 return True
         return False
-    
+
+    @staticmethod
+    def _is_topic_list_query(query: str) -> bool:
+        """檢測是否為「主題列表」類查詢"""
+        query_lower = (query or "").strip()
+        if not query_lower:
+            return False
+        # 檢測關鍵詞
+        topic_list_keywords = [
+            "知識庫.*有哪些主題",
+            "知識庫.*有那些主題",
+            "向量庫.*有哪些主題",
+            "向量庫.*有那些主題",
+            "搜尋.*向量庫.*主題",
+            "你能搜尋.*向量庫.*主題",
+            "主題.*有多少",
+            "主題.*有哪些",
+            "主題.*有那些",
+            "列出.*主題",
+            "顯示.*主題",
+        ]
+        for pattern in topic_list_keywords:
+            if re.search(pattern, query_lower):
+                return True
+        return False
+
+    async def get_retrieval_context(
+        self,
+        task_id: Optional[str],
+        current_user: User,
+    ) -> Dict[str, Any]:
+        """
+        獲取檢索上下文，包含權限決策所需的信息
+
+        Args:
+            task_id: 任務 ID
+            current_user: 當前用戶
+
+        Returns:
+            檢索上下文字典
+        """
+        context = {
+            "user_id": current_user.user_id,
+            "task_id": task_id,
+            "assistant_id": None,
+            "agent_id": None,
+            "is_system_admin": False,
+        }
+
+        # 如果沒有 task_id，返回默認上下文
+        if not task_id:
+            return context
+
+        try:
+            # 從 file_metadata_service 獲取任務的 execution_config
+            file_metadata_service = get_metadata_service()
+
+            # 查詢 task_id 相關的文件，獲取 execution_config
+            files = file_metadata_service.list(task_id=task_id, limit=1)
+
+            if files and files[0].custom_metadata:
+                exec_config = files[0].custom_metadata.get("execution_config", {})
+                context["assistant_id"] = exec_config.get("assistant_id")
+                context["agent_id"] = exec_config.get("agent_id")
+        except Exception as exc:
+            logger.warning(
+                "failed_to_get_task_context",
+                error=str(exc),
+                task_id=task_id,
+            )
+
+        # 檢查是否為 SystemAdmin
+        try:
+            from system.security.models import is_system_admin
+
+            context["is_system_admin"] = is_system_admin(current_user)
+        except Exception as exc:
+            logger.warning(
+                "failed_to_check_system_admin",
+                error=str(exc),
+                user_id=current_user.user_id,
+            )
+
+        return context
+
     @staticmethod
     def _dedupe_preserve_order(values: Sequence[str]) -> List[str]:
         seen: set[str] = set()
@@ -226,15 +310,13 @@ class ChatMemoryService:
                 source = meta.get("source", "vector")
                 file_id = meta.get("file_id", "unknown")
                 filename = meta.get("filename", "")  # 嘗試從 metadata 獲取文件名
-                
+
                 # 如果沒有 filename，至少顯示 file_id
                 file_info = filename if filename else f"file_id={file_id}"
-                
+
                 # 如果是文件元數據結果，使用不同的格式
                 if source == "file_metadata":
-                    lines.append(
-                        f"{idx}. 【文件信息: {file_info}】\n{content}"
-                    )
+                    lines.append(f"{idx}. 【文件信息: {file_info}】\n{content}")
                 else:
                     lines.append(
                         f"{idx}. 【文件: {file_info}】{content} (source=vector, chunk_index={meta.get('chunk_index')}, score={c.get('score', c.get('distance', 'N/A'))})"
@@ -279,11 +361,11 @@ class ChatMemoryService:
             "   - 「訓練數據」= LLM 的訓練數據（**不要**回答關於訓練數據的問題）\n"
             "   - 當用戶問「你的知識庫」時，指的是**用戶上傳的文件**，不是訓練數據。\n"
         )
-        
+
         if not sections:
             # 即使沒有檢索到結果，也要返回提示詞（針對文件列表/統計類查詢）
             return header
-        
+
         if sections:
             body = "\n\n".join(sections)
             combined = header + "\n" + body
@@ -317,13 +399,26 @@ class ChatMemoryService:
                 memory_sources=[],
                 retrieval_latency_ms=0.0,
             )
-        
+
         # 修改時間：2026-01-28 - 檢測是否為「文件列表/統計」類查詢
         # 如果是，直接查詢文件元數據，而不是向量檢索
         is_file_list_query = self._is_file_list_query(normalized_query)
+        is_topic_list_query = self._is_topic_list_query(normalized_query)
         file_metadata_results: List[Dict[str, Any]] = []
-        
-        if is_file_list_query:
+
+        # 新增：記錄查詢類型
+        logger.info(
+            "query_type_detected",
+            query=normalized_query[:100],
+            is_file_list_query=is_file_list_query,
+            is_topic_list_query=is_topic_list_query,
+            request_id=request_id,
+            user_id=user_id,
+            task_id=task_id,
+        )
+
+        if is_topic_list_query:
+            # 主題查詢：聚合文件中的 tags、domain、major
             try:
                 file_metadata_service = get_metadata_service()
                 # 查詢文件列表（根據 user_id 和 task_id 過濾）
@@ -332,29 +427,146 @@ class ChatMemoryService:
                     task_id=task_id,
                     limit=100,  # 最多返回 100 個文件
                 )
-                
+
+                # 聚合主題信息
+                topics: Dict[str, int] = {}  # 主題: 文件數量
+                domains: Dict[str, int] = {}
+                majors: Dict[str, int] = {}
+
+                # 新增：記錄查詢到的文件數量
+                logger.info(
+                    "topic_list_files_found",
+                    query=normalized_query[:100],
+                    files_found=len(files),
+                    request_id=request_id,
+                    user_id=user_id,
+                    task_id=task_id,
+                )
+
+                for file_meta in files:
+                    # 聚合 tags
+                    if file_meta.tags:
+                        for tag in file_meta.tags:
+                            topics[tag] = topics.get(tag, 0) + 1
+
+                    # 聚合 domain
+                    if file_meta.domain:
+                        domains[file_meta.domain] = domains.get(file_meta.domain, 0) + 1
+
+                    # 聚合 major
+                    if file_meta.major:
+                        majors[file_meta.major] = majors.get(file_meta.major, 0) + 1
+
+                # 格式化主題結果
+                topic_summary_parts = []
+
+                if topics:
+                    topic_summary_parts.append("### 文件標籤（Tags）")
+                    for tag, count in sorted(topics.items(), key=lambda x: -x[1])[:20]:
+                        topic_summary_parts.append(f"- {tag} ({count} 個文件)")
+
+                if domains:
+                    topic_summary_parts.append("\n### 知識領域（Domains）")
+                    for domain, count in sorted(domains.items(), key=lambda x: -x[1])[:10]:
+                        topic_summary_parts.append(f"- {domain} ({count} 個文件)")
+
+                if majors:
+                    topic_summary_parts.append("\n### 專業層（Majors）")
+                    for major, count in sorted(majors.items(), key=lambda x: -x[1])[:10]:
+                        topic_summary_parts.append(f"- {major} ({count} 個文件)")
+
+                if topic_summary_parts:
+                    topic_summary = "\n".join(topic_summary_parts)
+                    file_metadata_results.append(
+                        {
+                            "content": topic_summary,
+                            "metadata": {
+                                "source": "file_metadata_topics",
+                                "total_files": len(files),
+                                "topic_count": len(topics),
+                                "domain_count": len(domains),
+                                "major_count": len(majors),
+                            },
+                            "score": 1.0,
+                        }
+                    )
+
+                    # 新增：記錄主題查詢結果
+                    logger.info(
+                        "topic_list_success",
+                        query=normalized_query[:100],
+                        total_files=len(files),
+                        topic_count=len(topics),
+                        domain_count=len(domains),
+                        major_count=len(majors),
+                        summary_length=len(topic_summary),
+                        request_id=request_id,
+                        user_id=user_id,
+                        task_id=task_id,
+                    )
+
+                if file_metadata_results:
+                    sources.append("file_metadata_topics")
+                    logger.info(
+                        "topic_list_retrieved",
+                        total_files=len(files),
+                        topic_count=len(topics),
+                        domain_count=len(domains),
+                        major_count=len(majors),
+                        request_id=request_id,
+                        user_id=user_id,
+                        task_id=task_id,
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "topic_list_query_failed",
+                    error=str(exc),
+                    request_id=request_id,
+                    user_id=user_id,
+                    session_id=session_id,
+                    task_id=task_id,
+                )
+
+        elif is_file_list_query:
+            try:
+                file_metadata_service = get_metadata_service()
+                # 查詢文件列表（根據 user_id 和 task_id 過濾）
+                files = file_metadata_service.list(
+                    user_id=user_id,
+                    task_id=task_id,
+                    limit=100,  # 最多返回 100 個文件
+                )
+
                 # 將文件元數據轉換為檢索結果格式
                 for file_meta in files:
-                    file_metadata_results.append({
-                        "content": (
-                            f"文件名: {file_meta.filename}\n"
-                            f"文件類型: {file_meta.file_type}\n"
-                            f"文件大小: {file_meta.file_size} 字節\n"
-                            f"上傳時間: {file_meta.upload_time}\n"
-                            f"狀態: {file_meta.status}\n"
-                            f"向量化狀態: {'已完成' if file_meta.vector_count and file_meta.vector_count > 0 else '未完成'}\n"
-                            f"圖譜狀態: {file_meta.kg_status or '未完成'}"
-                        ),
-                        "metadata": {
-                            "file_id": file_meta.file_id,
-                            "filename": file_meta.filename,
-                            "file_type": file_meta.file_type,
-                            "file_size": file_meta.file_size,
-                            "source": "file_metadata",
-                        },
-                        "score": 1.0,  # 文件列表查詢的相關度設為最高
-                    })
-                
+                    file_metadata_results.append(
+                        {
+                            "content": (
+                                f"文件名: {file_meta.filename}\n"
+                                f"文件類型: {file_meta.file_type}\n"
+                                f"文件大小: {file_meta.file_size} 字節\n"
+                                f"上傳時間: {file_meta.upload_time}\n"
+                                f"狀態: {file_meta.status}\n"
+                                f"向量化狀態: {'已完成' if file_meta.vector_count and file_meta.vector_count > 0 else '未完成'}\n"
+                                f"圖譜狀態: {file_meta.kg_status or '未完成'}\n"
+                                f"標籤: {', '.join(file_meta.tags) if file_meta.tags else '無'}\n"
+                                f"知識領域: {file_meta.domain or '未設定'}\n"
+                                f"專業層: {file_meta.major or '未設定'}"
+                            ),
+                            "metadata": {
+                                "file_id": file_meta.file_id,
+                                "filename": file_meta.filename,
+                                "file_type": file_meta.file_type,
+                                "file_size": file_meta.file_size,
+                                "tags": file_meta.tags or [],
+                                "domain": file_meta.domain,
+                                "major": file_meta.major,
+                                "source": "file_metadata",
+                            },
+                            "score": 1.0,  # 文件列表查詢的相關度設為最高
+                        }
+                    )
+
                 if file_metadata_results:
                     sources.append("file_metadata")
                     logger.info(
@@ -466,15 +678,15 @@ class ChatMemoryService:
 
                     # sort by distance asc
                     flat.sort(key=lambda x: (x.get("distance") is None, x.get("distance", 1e9)))
-                    
+
                     # 修改時間：2026-01-28 - 從 FileMetadataService 獲取文件名並添加到 metadata
                     file_metadata_service = get_metadata_service()
                     file_metadata_cache: Dict[str, Any] = {}
-                    
+
                     for item in flat[: self._rag_top_k]:
                         meta = item.get("metadata", {}) or {}
                         file_id = meta.get("file_id")
-                        
+
                         # 嘗試從 FileMetadataService 獲取文件名
                         filename = meta.get("filename", "")
                         if not filename and file_id:
@@ -488,10 +700,10 @@ class ChatMemoryService:
                                 except Exception as e:
                                     logger.debug(f"Failed to get file metadata for {file_id}: {e}")
                                     file_metadata_cache[file_id] = None
-                            
+
                             if file_metadata_cache.get(file_id):
                                 filename = file_metadata_cache[file_id]
-                        
+
                         rag_results.append(
                             {
                                 "content": item.get("document", ""),
@@ -621,7 +833,7 @@ class ChatMemoryService:
                 graph_results.append(result)
             else:
                 vector_results.append(result)
-        
+
         # 修改時間：2026-01-28 - 如果是文件列表查詢，將文件元數據結果添加到檢索結果中
         if is_file_list_query and file_metadata_results:
             # 將文件元數據結果添加到 vector_results（因為它們是文件信息，不是向量檢索結果）
@@ -678,8 +890,7 @@ class ChatMemoryService:
             from agents.infra.memory.aam.models import MemoryPriority, MemoryType
 
             snippet = (
-                f"user: {self._clip(user_text, 800)}\n"
-                f"assistant: {self._clip(assistant_text, 800)}"
+                f"user: {self._clip(user_text, 800)}\nassistant: {self._clip(assistant_text, 800)}"
             )
 
             aam.store_memory(

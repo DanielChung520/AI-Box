@@ -19,10 +19,10 @@ logger = logging.getLogger(__name__)
 class SemanticUnderstandingOutputLocal:
     """語義理解輸出（自定義版本，避免pydantic依賴）"""
 
-    topics: List[str] 
-    entities: List[str] 
-    action_signals: List[str] 
-    modality: Literal["instruction", "question", "conversation", "command"] 
+    topics: List[str]
+    entities: List[str]
+    action_signals: List[str]
+    modality: Literal["instruction", "question", "conversation", "command"]
     certainty: float
 
     def __post_init__(self):

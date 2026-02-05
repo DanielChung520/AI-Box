@@ -46,11 +46,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# 檢查是否啟用語義轉譯
+USE_SEMANTIC_TRANSLATOR = os.getenv("MM_AGENT_USE_SEMANTIC_TRANSLATOR", "false").lower() == "true"
+logger.info(f"語義轉譯 Agent: {'啟用' if USE_SEMANTIC_TRANSLATOR else '禁用'}")
+
 # 初始化Agent
 mm_agent = MMAgent()
-mm_chain = MMAgentChain()
-translator = Translator()
+mm_chain = MMAgentChain(use_semantic_translator=USE_SEMANTIC_TRANSLATOR)
+translator = Translator(use_semantic_translator=USE_SEMANTIC_TRANSLATOR)
 negative_list = NegativeListChecker()
+
+# 初始化 ReAct 引擎
+from mm_agent.chain.react_executor import get_react_engine
+
+_react_engine = get_react_engine()
 
 # 創建FastAPI應用
 app = FastAPI(
@@ -147,14 +156,50 @@ async def get_capabilities() -> dict:
 async def execute(request: dict) -> dict:
     """執行任務端點"""
     try:
-        # 構建AgentServiceRequest
-        agent_request = AgentServiceRequest(
-            task_id=request.get("task_id", "http-task"),
-            task_type=request.get("task_type", "warehouse_management"),
-            task_data=request.get("task_data", {}),
-            context=request.get("context"),
-            metadata=request.get("metadata"),
-        )
+        # 檢查是否是自然語言對話格式
+        if "messages" in request and isinstance(request["messages"], list):
+            # AI-Box 發送的對話格式
+            # 提取最後一條用戶消息
+            messages = request["messages"]
+            last_user_msg = None
+            for msg in reversed(messages):
+                if msg.get("role") == "user":
+                    last_user_msg = msg.get("content", "")
+                    break
+
+            if last_user_msg:
+                instruction = last_user_msg
+                logger.info(f"[execute] 從對話中提取指令: {instruction}")
+
+                # 構建 AgentServiceRequest
+                agent_request = AgentServiceRequest(
+                    task_id=request.get("task_id", "http-task"),
+                    task_type="general_chat",  # 使用 general_chat 任務類型
+                    task_data={
+                        "instruction": instruction,
+                        "user_id": request.get("user_id"),
+                        "session_id": request.get("session_id"),
+                    },
+                    context=request.get("context"),
+                    metadata=request.get("metadata"),
+                )
+            else:
+                # 沒有找到用戶消息
+                return {
+                    "task_id": request.get("task_id", "http-task"),
+                    "status": "error",
+                    "result": None,
+                    "error": "No user message found in messages",
+                }
+        else:
+            # 原始結構化格式
+            agent_request = AgentServiceRequest(
+                task_id=request.get("task_id", "http-task"),
+                task_type=request.get("task_type", "warehouse_management"),
+                task_data=request.get("task_data", {}),
+                context=request.get("context"),
+                metadata=request.get("metadata"),
+            )
 
         # 調用Agent
         response = await mm_agent.execute(agent_request)
@@ -213,18 +258,83 @@ class ChatResponse(BaseModel):
     debug_info: Optional[dict] = None
 
 
-@app.post("/api/v1/mm-agent/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
-    """對話端點 - 使用 LangChain 編排（支持多輪對話）"""
+@app.post("/api/v1/chat", response_model=ChatResponse)
+async def chat_v1(request: ChatRequest) -> ChatResponse:
+    """對話端點 - ReAct 模式 + LangChain 混合編排
+
+    流程：
+    1. 判斷任務類型（單一查詢 / 操作指引 / 複合工作）
+    2. 操作指引/複合工作 → 使用 ReAct 工作流程
+    3. 單一查詢 → 使用原有的 mm_chain
+    """
     try:
+        instruction = request.instruction
+        session_id = request.session_id or f"chat-{id(request)}"
+
+        # 判斷任務類型
+        is_guidance = any(
+            kw in instruction
+            for kw in [
+                "如何",
+                "怎麼",
+                "步驟",
+                "設置",
+                "設定",
+                "建立",
+                "操作",
+                "方法",
+                "建議",
+                "指導",
+                "指引",
+                "說明",
+                "介紹",  # 知識/指引類
+                "ABC",
+                "abc",  # ABC 管理相關
+            ]
+        )
+        is_compound = any(
+            kw in instruction.lower() for kw in ["然後", "接著", "完成後", "最後", "並且", "以及"]
+        )
+
+        # 如果是操作指引或複合工作，使用 ReAct 引擎
+        if is_guidance or is_compound:
+            logger.info(f"[Chat] 使用 ReAct 工作流程: {instruction[:50]}...")
+
+            # 啟動工作流程
+            wf_result = await _react_engine.start_workflow(
+                instruction=instruction,
+                session_id=session_id,
+                context=request.context,
+            )
+
+            if wf_result.get("success"):
+                return ChatResponse(
+                    success=True,
+                    response=wf_result["response"],
+                    needs_clarification=False,
+                    clarification_message=None,
+                    session_id=session_id,
+                    resolved_query=None,
+                    translation=None,
+                    debug_info={
+                        "step": "workflow_started",
+                        "task_type": wf_result.get("task_type"),
+                        "is_react_workflow": True,
+                        "total_steps": len(wf_result.get("plan", {}).get("steps", [])),
+                    },
+                )
+
+        # 預設使用原有的 mm_chain
+        logger.info(f"[Chat] 使用 mm_chain: {instruction[:50]}...")
+
         input_data = MMChainInput(
-            instruction=request.instruction,
-            session_id=request.session_id,
+            instruction=instruction,
+            session_id=session_id,
             user_id=request.user_id,
             context=request.context,
         )
 
-        result = mm_chain.run(input_data)
+        result = await mm_chain.run(input_data)
 
         return ChatResponse(
             success=result.success,
@@ -244,6 +354,55 @@ async def chat(request: ChatRequest) -> ChatResponse:
             response="",
             clarification_message=f"執行錯誤: {str(e)}",
         )
+
+
+@app.post("/api/v1/chat/execute-step")
+async def execute_step(request: ChatRequest) -> dict:
+    """對話端點 - 執行 ReAct 工作流程下一步
+
+    用於多輪對話中執行複合工作的下一步
+    """
+    try:
+        session_id = request.session_id
+        if not session_id:
+            return {"success": False, "error": "需要 session_id"}
+
+        # 執行下一步
+        result = await _react_engine.execute_next_step(
+            session_id=session_id,
+            user_response=request.instruction,
+        )
+
+        return {
+            "success": result.success,
+            "response": result.get("response", ""),
+            "step_id": result.get("step_id"),
+            "action_type": result.get("action_type"),
+            "completed_steps": result.get("completed_steps", []),
+            "total_steps": result.get("total_steps", 0),
+            "waiting_for_user": result.get("waiting_for_user", False),
+            "debug_info": result.get("debug_info", {}),
+        }
+
+    except Exception as e:
+        logger.error(f"步驟執行失敗: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/v1/chat/workflow/{session_id}")
+async def get_chat_workflow_state(session_id: str) -> dict:
+    """獲取對話工作流程狀態"""
+    state = _react_engine.get_state(session_id)
+    if state:
+        return {"success": True, "state": state}
+    return {"success": False, "error": "會話不存在"}
+
+
+@app.delete("/api/v1/chat/workflow/{session_id}")
+async def clear_chat_workflow_state(session_id: str) -> dict:
+    """清除對話工作流程狀態"""
+    _react_engine.clear_state(session_id)
+    return {"success": True, "message": "狀態已清除"}
 
 
 @app.post("/api/v1/mm-agent/translate")

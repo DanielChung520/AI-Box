@@ -7,7 +7,7 @@ from __future__ import annotations
 """UserConfirmationAgent實現 - 負責任戶交互和指令確認LangGraph節點"""
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState
@@ -20,7 +20,7 @@ class UserConfirmationResult:
     """用戶確認結果"""
     confirmation_required: bool
     confirmation_message: str
-    confirmation_options: List[Dict[str, str]] = field(default_factory=list) 
+    confirmation_options: List[Dict[str, str]] = field(default_factory=list)
     timeout_seconds: int = 300
     reasoning: str = ""
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 """SimpleResponseAgent實現 - 負責處理簡單對話回應"""
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState
@@ -22,7 +22,7 @@ class SimpleResponseResult:
     response_type: str
     response_content: str
     confidence: float
-    follow_up_suggestions: List[str] 
+    follow_up_suggestions: List[str]
     reasoning: str = ""
 
 
@@ -83,7 +83,7 @@ class SimpleResponseAgent(BaseAgentNode):
     async def _generate_simple_response(self, state: AIBoxState) -> SimpleResponseResult:
         """生成簡單回應"""
         try:
-            user_message = self._get_latest_user_message(state)
+            _user_message = self._get_latest_user_message(state)
             semantic_result = getattr(state, "semantic_analysis", None)
             modality = getattr(semantic_result, "modality", "conversation")
 

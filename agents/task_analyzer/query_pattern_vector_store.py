@@ -6,7 +6,7 @@
 """查詢模式向量庫服務 - 使用向量相似度比對檢測知識庫查詢"""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.3.0 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.3.0">
+  <diagram name="第 1 页" id="AxqQVzeu7DU-f01Q7lKm">
+    <mxGraphModel dx="2946" dy="2444" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" parent="1" style="swimlane;whiteSpace=wrap;html=1;" value="Orchestrator" vertex="1">
+          <mxGeometry height="491" width="1028" x="953" y="-1092" as="geometry" />
+        </mxCell>
+        <mxCell id="3" edge="1" parent="2" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="19" value="是">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="4" edge="1" parent="2" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="672" y="234" />
+            </Array>
+            <mxPoint x="633" y="436" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5" connectable="0" parent="4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="否·" vertex="1">
+          <mxGeometry relative="1" x="0.0529" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6" parent="2" style="rounded=1;whiteSpace=wrap;html=1;" value="確認是否是&lt;div&gt;代理型任務呢&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="615" y="84" as="geometry" />
+        </mxCell>
+        <mxCell id="7" edge="1" parent="2" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="16" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="2" style="rounded=1;whiteSpace=wrap;html=1;" value="先決判斷" vertex="1">
+          <mxGeometry height="60" width="120" x="231" y="84" as="geometry" />
+        </mxCell>
+        <mxCell id="9" edge="1" parent="2" source="8" style="edgeStyle=orthogonalEdgeStyle;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;startArrow=none;endArrow=none;rounded=0;targetPortConstraint=eastwest;sourcePortConstraint=northsouth;curved=0;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="12" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="310" y="188" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="10" edge="1" parent="2" source="8" style="edgeStyle=orthogonalEdgeStyle;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;startArrow=none;endArrow=none;rounded=0;targetPortConstraint=eastwest;sourcePortConstraint=northsouth;curved=0;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="14" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="310" y="188" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="11" edge="1" parent="2" source="12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="17" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="2" style="whiteSpace=wrap;html=1;align=center;verticalAlign=middle;treeFolding=1;treeMoving=1;rounded=1;" value="語義補全" vertex="1">
+          <mxGeometry height="60" width="100" x="179" y="204" as="geometry" />
+        </mxCell>
+        <mxCell id="13" edge="1" parent="2" source="14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="18" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="2" style="whiteSpace=wrap;html=1;align=center;verticalAlign=middle;treeFolding=1;treeMoving=1;rounded=1;" value="一般問候" vertex="1">
+          <mxGeometry height="60" width="100" x="181" y="308" as="geometry" />
+        </mxCell>
+        <mxCell id="15" edge="1" parent="2" source="16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="16" parent="2" style="rounded=1;whiteSpace=wrap;html=1;" value="語義完整&lt;div&gt;任務明確&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="439" y="84" as="geometry" />
+        </mxCell>
+        <mxCell id="17" parent="2" style="whiteSpace=wrap;html=1;align=center;verticalAlign=middle;treeFolding=1;treeMoving=1;rounded=1;" value="回問&lt;div&gt;補全任務說明&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="100" x="56" y="202" as="geometry" />
+        </mxCell>
+        <mxCell id="18" parent="2" style="whiteSpace=wrap;html=1;align=center;verticalAlign=middle;treeFolding=1;treeMoving=1;rounded=1;" value="回應問候" vertex="1">
+          <mxGeometry height="60" width="100" x="53" y="308" as="geometry" />
+        </mxCell>
+        <mxCell id="19" parent="2" style="rounded=1;whiteSpace=wrap;html=1;" value="確認任務目標，&lt;div&gt;排定todo&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="810" y="84" as="geometry" />
+        </mxCell>
+        <mxCell id="20" edge="1" parent="2" source="21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="22" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="21" parent="2" style="rounded=1;whiteSpace=wrap;html=1;" value="理解原因" vertex="1">
+          <mxGeometry height="60" width="120" x="682" y="384" as="geometry" />
+        </mxCell>
+        <mxCell id="22" parent="2" style="rounded=1;whiteSpace=wrap;html=1;" value="補全說明" vertex="1">
+          <mxGeometry height="60" width="120" x="469" y="384" as="geometry" />
+        </mxCell>
+        <mxCell id="23" edge="1" parent="2" source="24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="25" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="24" parent="2" style="rounded=1;whiteSpace=wrap;html=1;" value="檢查結果&lt;div&gt;是&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;否符合目標&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="888" y="333" as="geometry" />
+        </mxCell>
+        <mxCell id="25" parent="2" style="rounded=1;whiteSpace=wrap;html=1;" value="補全、美化&lt;br&gt;執行結果" vertex="1">
+          <mxGeometry height="60" width="120" x="888" y="193" as="geometry" />
+        </mxCell>
+        <mxCell id="26" edge="1" parent="1" source="27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="27" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="GenAI" vertex="1">
+          <mxGeometry height="80" width="120" x="999" y="-1179" as="geometry" />
+        </mxCell>
+        <mxCell id="28" edge="1" parent="1" source="17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="29" edge="1" parent="1" source="18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="27">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="983" y="-739" />
+              <mxPoint x="983" y="-1139" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="30" edge="1" parent="1" source="32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1177" y="-567" />
+              <mxPoint x="1321" y="-567" />
+            </Array>
+            <mxPoint x="1175" y="-595" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="31" connectable="0" parent="30" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Orchestrator 專業技能、知識、指代消解支持" vertex="1">
+          <mxGeometry relative="1" x="0.1979" y="-1" as="geometry">
+            <mxPoint x="-1" y="70" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="32" parent="1" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;" value="知識向量/圖譜庫" vertex="1">
+          <mxGeometry height="165" width="448" x="954" y="-445" as="geometry" />
+        </mxCell>
+        <mxCell id="33" parent="32" style="shape=ext;double=1;rounded=1;whiteSpace=wrap;html=1;" value="提供Orchestrator&amp;nbsp;&lt;div&gt;專業技能&lt;/div&gt;" vertex="1">
+          <mxGeometry height="61" width="144" x="68" y="14" as="geometry" />
+        </mxCell>
+        <mxCell id="34" parent="32" style="shape=ext;double=1;rounded=1;whiteSpace=wrap;html=1;" value="指代消解名稱對應" vertex="1">
+          <mxGeometry height="61" width="144" x="247" y="14" as="geometry" />
+        </mxCell>
+        <mxCell id="35" parent="32" style="shape=ext;double=1;rounded=1;whiteSpace=wrap;html=1;" value="提供各Agent&amp;nbsp;&lt;div&gt;專業技能、&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;知識&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="61" width="144" x="70" y="81" as="geometry" />
+        </mxCell>
+        <mxCell id="36" parent="32" style="shape=ext;double=1;rounded=1;whiteSpace=wrap;html=1;" value="知識授權檢查" vertex="1">
+          <mxGeometry height="61" width="144" x="247" y="81" as="geometry" />
+        </mxCell>
+        <mxCell id="37" parent="1" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;" value="資料湖" vertex="1">
+          <mxGeometry height="163" width="442" x="954" y="-261" as="geometry" />
+        </mxCell>
+        <mxCell id="38" edge="1" parent="37" source="40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="39" connectable="0" parent="38" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Query" vertex="1">
+          <mxGeometry relative="1" x="-0.0051" y="-3" as="geometry">
+            <mxPoint x="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="40" parent="37" style="shape=ext;double=1;rounded=1;whiteSpace=wrap;html=1;" value="DuckDB" vertex="1">
+          <mxGeometry height="122" width="78" x="266" y="18" as="geometry" />
+        </mxCell>
+        <mxCell id="41" edge="1" parent="37" source="43" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;" target="40">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="42" connectable="0" parent="41" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Response" vertex="1">
+          <mxGeometry relative="1" x="0.239" y="-1" as="geometry">
+            <mxPoint y="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="43" parent="37" style="shape=ext;double=1;rounded=1;whiteSpace=wrap;html=1;" value="SeaweedFS" vertex="1">
+          <mxGeometry height="121" width="120" x="81" y="18" as="geometry" />
+        </mxCell>
+        <mxCell id="44" parent="1" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;flipH=1;legacyAnchorPoints=0;" value="Business Process Agent" vertex="1">
+          <mxGeometry height="344" width="556" x="1424" y="-443" as="geometry" />
+        </mxCell>
+        <mxCell id="45" edge="1" parent="44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="49">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="344" y="73" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="46" edge="1" parent="44" source="48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="50">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="344" y="73" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="47" edge="1" parent="44" source="48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="52">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="48" parent="44" style="rounded=1;whiteSpace=wrap;html=1;" value="業務語義判斷" vertex="1">
+          <mxGeometry height="60" width="120" x="377" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="49" parent="44" style="rounded=1;whiteSpace=wrap;html=1;" value="業務語義不清-回問" vertex="1">
+          <mxGeometry height="60" width="120" x="179" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="50" parent="44" style="rounded=1;whiteSpace=wrap;html=1;" value="未授權-回絕" vertex="1">
+          <mxGeometry height="60" width="120" x="179" y="118" as="geometry" />
+        </mxCell>
+        <mxCell id="51" edge="1" parent="44" source="52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="54" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="52" parent="44" style="rounded=1;whiteSpace=wrap;html=1;" value="語義完整" vertex="1">
+          <mxGeometry height="60" width="120" x="377" y="162" as="geometry" />
+        </mxCell>
+        <mxCell id="53" edge="1" parent="44" source="54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="55" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="54" parent="44" style="rounded=1;whiteSpace=wrap;html=1;" value="結構化表達" vertex="1">
+          <mxGeometry height="60" width="120" x="179" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="55" parent="44" style="rounded=1;whiteSpace=wrap;html=1;" value="TextToSql" vertex="1">
+          <mxGeometry height="60" width="120" x="14" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="56" parent="44" style="whiteSpace=wrap;html=1;rounded=1;" value="檢查結果" vertex="1">
+          <mxGeometry height="60" width="120" x="21" y="276" as="geometry" />
+        </mxCell>
+        <mxCell id="57" edge="1" parent="1" source="19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="48" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1818" y="-881" />
+              <mxPoint x="1818" y="-881" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="58" edge="1" parent="1" source="50" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="21">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1513" y="-295" />
+              <mxPoint x="1513" y="-580" />
+              <mxPoint x="1695" y="-580" />
+            </Array>
+            <mxPoint x="1745" y="-689" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="59" edge="1" parent="1" source="49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="21">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1562" y="-370" />
+              <mxPoint x="1562" y="-580" />
+              <mxPoint x="1695" y="-580" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="60" edge="1" parent="1" source="22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="27">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="983" y="-678" />
+              <mxPoint x="983" y="-1139" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="61" connectable="0" parent="60" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="回問 or 回絕" vertex="1">
+          <mxGeometry relative="1" x="-0.4367" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="62" edge="1" parent="1" source="55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" target="40">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="63" connectable="0" parent="62" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Execution" vertex="1">
+          <mxGeometry relative="1" x="-0.1744" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="64" edge="1" parent="1" source="40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="56" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1326" y="-137" />
+              <mxPoint x="1326" y="-137" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="65" connectable="0" parent="64" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="回復資料集" vertex="1">
+          <mxGeometry relative="1" x="-0.4966" as="geometry">
+            <mxPoint x="26" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="66" edge="1" parent="1" source="56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="24">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1930" y="-137" />
+            </Array>
+            <mxPoint x="1942" y="-735" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="67" edge="1" parent="1" source="24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="48">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="68" connectable="0" parent="67" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="不符合再&lt;div&gt;執行一次&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.0201" y="-3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="69" edge="1" parent="1" source="25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.908;entryY=0.238;entryDx=0;entryDy=0;entryPerimeter=0;" target="27">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1901" y="-1162" />
+              <mxPoint x="1108" y="-1162" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

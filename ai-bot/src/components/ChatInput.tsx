@@ -9,7 +9,9 @@ import { useState, useRef, useEffect, useMemo, useCallback, useContext } from 'r
 import { useLanguage } from '../contexts/languageContext';
 import { AuthContext } from '../contexts/authContext';
 import { isSystemAdmin } from '../lib/userUtils';
+import { useAIStatusStore } from '../stores/aiStatusStore';
 import { createPortal } from 'react-dom';
+import AIStatusWindow from './AIStatusWindow';
 import FileUploadModal, { FileWithMetadata } from './FileUploadModal';
 import UploadProgress from './UploadProgress';
 import { uploadFiles, getFavoriteModels, setFavoriteModels, getModels, getModelsByScene, getScenes, type LLMModel, FileMetadata } from '../lib/api';
@@ -108,8 +110,6 @@ interface ChatInputProps {
   onTaskDelete?: (taskId: number) => void; // 刪除任務回調
   // 修改時間：2025-12-08 11:30:00 UTC+8 - 添加預覽模式狀態，用於控制按鈕顯示
   isPreviewMode?: boolean; // 是否處於預覽模式（右側文件預覽展開時為 true）
-  // 修改時間：2025-12-21 - 添加 AI 回復加載狀態
-  isLoadingAI?: boolean; // AI 是否正在回復
 }
 
 export default function ChatInput({
@@ -127,14 +127,14 @@ export default function ChatInput({
   selectedTask,
   onTaskCreate,
   onTaskDelete,
-  isPreviewMode = false, // 修改時間：2025-12-08 11:30:00 UTC+8 - 預覽模式狀態
-  isLoadingAI = false, // 修改時間：2025-12-21 - AI 回復加載狀態
+  isPreviewMode = false,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [showAssistantSelector, setShowAssistantSelector] = useState(false);
   const [showAgentSelector, setShowAgentSelector] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showMentionMenu, setShowMentionMenu] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [assistantPosition, setAssistantPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const [agentPosition, setAgentPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const [modelPosition, setModelPosition] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -148,6 +148,7 @@ export default function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { t } = useLanguage();
   const { currentUser } = useContext(AuthContext);
+  const { currentStatus, toggleWindow, isWindowOpen } = useAIStatusStore();
 
   // 從 localStorage 讀取收藏數據
   const [favoriteAgents, setFavoriteAgents] = useState<Map<string, string>>(() => loadFavoritesFromStorage('favoriteAgents'));
@@ -1036,6 +1037,7 @@ export default function ChatInput({
 
   const handleSend = async () => {
     if (message.trim() || fileReferences.length > 0) {
+      setIsLoading(true);
       const messageText = message.trim();
 
       // 修改時間：2025-01-27 - 重構任務創建邏輯
@@ -1066,6 +1068,7 @@ export default function ChatInput({
         } catch (error) {
           console.error('[ChatInput] Failed to create task:', error);
           // 如果任務創建失敗，不發送消息
+          setIsLoading(false);
           return;
         }
       } else if (selectedTask && onTaskTitleGenerate) {
@@ -1163,10 +1166,12 @@ export default function ChatInput({
       }
 
       // 发送消息（傳遞包含文件引用和工具信息的對象）
+      console.log('[ChatInput] 發送消息, hasHandler:', !!onMessageSend);
       onMessageSend?.(JSON.stringify(messageWithFiles));
 
       setMessage('');
       setFileReferences([]); // 清空文件引用
+      setIsLoading(false); // 發送完成後立即重置按鈕狀態
     }
   };
 
@@ -1523,7 +1528,20 @@ export default function ChatInput({
   };
 
   return (
-    <div className="bg-secondary rounded-xl overflow-hidden theme-transition">
+    <>
+      <style>{`
+        @keyframes breathe {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.6;
+            transform: scale(0.95);
+          }
+        }
+      `}</style>
+      <div className="bg-secondary rounded-xl overflow-hidden theme-transition">
       {/* 工具欄 */}
       <div className="flex items-center p-1.5 border-b border-primary">
         {/* 上网功能按钮 */}
@@ -1671,8 +1689,16 @@ export default function ChatInput({
           <i className="fa-solid fa-globe"></i>
         </button>
         <button
-          className="p-1.5 rounded hover:bg-tertiary transition-colors text-tertiary hover:text-primary"
-          aria-label="深度思考"
+          onClick={toggleWindow}
+          className={`p-1.5 rounded transition-colors ${
+            currentStatus === 'processing'
+              ? 'text-green-500'
+              : 'hover:bg-tertiary text-tertiary hover:text-primary'
+          }`}
+          style={currentStatus === 'processing' ? {
+            animation: 'breathe 2s ease-in-out infinite'
+          } : {}}
+          aria-label={currentStatus === 'processing' ? t('chatInput.aiProcessing', 'AI 正在處理') : '深度思考'}
         >
           <i className="fa-solid fa-brain"></i>
         </button>
@@ -2008,22 +2034,28 @@ export default function ChatInput({
                 const renderModelRow = (model: any, showStar: boolean = true) => {
                   const isSelected = selectedModelId === model.id;
                   const isFavorite = favoriteModels.has(model.id);
+                  const isInactive = model.status === 'inactive' || model.metadata?.status === 'inactive';
+                  const inactiveReason = model.inactive_reason || model.metadata?.inactive_reason || '暫時不可用';
 
                   return (
                     <button
                       key={model.id}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-tertiary transition-colors flex items-center gap-2 ${
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2 ${
                         isSelected ? 'bg-tertiary font-medium' : ''
-                      }`}
+                      } ${isInactive ? 'opacity-50 cursor-not-allowed' : 'hover:bg-tertiary'}`}
+                      disabled={isInactive}
                       onMouseDown={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
-                        handleModelSelect(model.id);
+                        if (!isInactive) {
+                          handleModelSelect(model.id);
+                        }
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
                       }}
+                      title={isInactive ? inactiveReason : ''}
                     >
                       <i className={`fa-solid ${
                         // 如果 API 返回的 icon 已經包含 fa- 前綴，直接使用；否則添加 fa- 前綴
@@ -2056,11 +2088,15 @@ export default function ChatInput({
                           model.provider === 'deepseek' ? 'text-blue-400' :
                           'text-gray-400'
                         )
-                      }`}></i>
+                      } ${isInactive ? 'grayscale' : ''}`}></i>
 
-                      <span className="text-secondary flex-1 truncate">{model.name}</span>
+                      <span className={`flex-1 truncate ${isInactive ? 'text-tertiary' : 'text-secondary'}`}>{model.name}</span>
 
-                      {isSelected && (
+                      {isInactive && (
+                        <i className="fa-solid fa-lock text-tertiary ml-1" title={inactiveReason}></i>
+                      )}
+
+                      {isSelected && !isInactive && (
                         <i className="fa-solid fa-check text-blue-400 ml-1" title="已選中"></i>
                       )}
                     </button>
@@ -2190,25 +2226,24 @@ export default function ChatInput({
             <i className={`fa-solid fa-xmark ${!isPreviewMode ? 'ml-2' : ''}`}></i>
           </button>
 
-          {/* 發送按鈕 */}
-          <button
-            className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center ${isPreviewMode ? 'px-2' : ''} ${isLoadingAI ? 'opacity-75 cursor-not-allowed' : ''}`}
-            onClick={handleSend}
-            disabled={isLoadingAI} // 修改時間：2025-12-21 - 加載時禁用按鈕
-          >
-            {isLoadingAI ? (
-              // 修改時間：2025-12-21 - 顯示 spinner
-              <>
-                {!isPreviewMode && <span>{t('chatInput.sending', '發送中')}</span>}
-                <i className={`fa-solid fa-spinner fa-spin ${!isPreviewMode ? 'ml-2' : ''}`}></i>
-              </>
-            ) : (
-              <>
-                {!isPreviewMode && <span>{t('chatInput.send', '發送')}</span>}
-                <i className={`fa-solid fa-paper-plane ${!isPreviewMode ? 'ml-2' : ''}`}></i>
-              </>
-            )}
-          </button>
+           {/* 發送按鈕 */}
+           <button
+             className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center ${isPreviewMode ? 'px-2' : ''} ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
+             onClick={handleSend}
+             disabled={isLoading}
+           >
+             {isLoading ? (
+               <>
+                 {!isPreviewMode && <span>{t('chatInput.sending', '發送中')}</span>}
+                 <i className={`fa-solid fa-spinner fa-spin ${!isPreviewMode ? 'ml-2' : ''}`}></i>
+               </>
+             ) : (
+               <>
+                 {!isPreviewMode && <span>{t('chatInput.send', '發送')}</span>}
+                 <i className={`fa-solid fa-paper-plane ${!isPreviewMode ? 'ml-2' : ''}`}></i>
+               </>
+             )}
+           </button>
         </div>
       </div>
 
@@ -2229,6 +2264,17 @@ export default function ChatInput({
           onDismiss={handleDismissUpload}
         />
       )}
-    </div>
+      </div>
+
+      {/* AI Status Window Portal - 2/3 AI message 區域 */}
+      {isWindowOpen && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50 p-4">
+          <div className="relative w-2/3 h-2/3 pointer-events-auto">
+            <AIStatusWindow />
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

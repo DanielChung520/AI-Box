@@ -5,11 +5,11 @@
 
 from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field
 
 
 class CleanupTarget(BaseModel):
-    user_id: str = Field(..., description="目標用戶 ID (Email)") 
+    user_id: str = Field(..., description="目標用戶 ID (Email)")
     task_id: Optional[str] = Field(None, description="特定任務 ID，若為 None 則清理用戶所有數據")
 
 
@@ -24,23 +24,23 @@ class CleanupStats(BaseModel):
 
 class CleanupAnalysis(BaseModel):
     """LLM 分析結果"""
-    urgency: str = Field(default="medium", description="緊急性: high/medium/low") 
-    risk_level: str = Field(default="medium", description="風險等級: high/medium/low") 
-    analysis: str = Field(default="", description="分析描述") 
+    urgency: str = Field(default="medium", description="緊急性: high/medium/low")
+    risk_level: str = Field(default="medium", description="風險等級: high/medium/low")
+    analysis: str = Field(default="", description="分析描述")
     recommendation: str = Field(default="", description="清理建議")
 
 
 class CleanupPlan(BaseModel):
     """LLM 生成的清理計劃"""
-    steps: List[str] = Field(default_factory=list, description="清理步驟列表") 
-    estimated_impact: str = Field(default="", description="預估影響") 
+    steps: List[str] = Field(default_factory=list, description="清理步驟列表")
+    estimated_impact: str = Field(default="", description="預估影響")
     warnings: List[str] = Field(default_factory=list, description="警告信息")
 
 
 class CleanupVerification(BaseModel):
     """LLM 驗證結果"""
-    is_complete: bool = Field(default=False, description="清理是否完整") 
-    findings: str = Field(default="", description="驗證發現") 
+    is_complete: bool = Field(default=False, description="清理是否完整")
+    findings: str = Field(default="", description="驗證發現")
     suggestions: List[str] = Field(default_factory=list, description="建議")
 
 
@@ -69,21 +69,21 @@ class AOGAApproval(BaseModel):
     required: bool
     approver: Optional[str] = None
     approved_at: Optional[str] = None
-    approval_mode: Literal["explicit", "implicit"] = "explicit" 
+    approval_mode: Literal["explicit", "implicit"] = "explicit"
     approval_token: Optional[str] = None
 
 
 class AOGAExecution(BaseModel):
-    mode: Literal["function", "agent"] = "function" 
+    mode: Literal["function", "agent"] = "function"
     function_name: str
-    result: str = "pending" 
+    result: str = "pending"
     details: Dict[str, Any] = Field(default_factory=dict)
 
 
 class AOGAAuditRecord(BaseModel):
     """符合 AOGA 架構的不可篡改審計日誌模型"""
-    record_id: str = Field(..., description="唯一的審計記錄 ID") 
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat()) 
+    record_id: str = Field(..., description="唯一的審計記錄 ID")
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     actor: str
     action_type: str
     intent: str
@@ -92,5 +92,5 @@ class AOGAAuditRecord(BaseModel):
     approval: Optional[AOGAApproval] = None
     execution: Optional[AOGAExecution] = None
 
-    compliance_tags: List[str] = Field(default_factory=list) 
+    compliance_tags: List[str] = Field(default_factory=list)
     content_hash: Optional[str] = None  # SHA-256 integrity hash

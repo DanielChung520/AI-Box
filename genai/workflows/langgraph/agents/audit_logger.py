@@ -7,7 +7,6 @@ from __future__ import annotations
 """AuditLogger實現 - 審計日誌記錄LangGraph節點"""
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult

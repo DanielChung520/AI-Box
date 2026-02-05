@@ -114,16 +114,30 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
         return false;
       });
 
+      // 遞歸檢查是否有任何 DOM 元素包含 block-level 元素
+      const hasBlockElement = (element: any): boolean => {
+        if (element.type === 'element') {
+          // pre, div, code block 都是 block-level
+          if (element.tagName === 'pre' || element.tagName === 'div' || (element.tagName === 'code' && !element.properties?.inline)) {
+            return true;
+          }
+          // 遞歸檢查 children
+          if (element.children) {
+            return element.children.some(hasBlockElement);
+          }
+        }
+        return false;
+      };
+
+      const hasNestedBlock = node?.children?.some(hasBlockElement);
+
       // 檢查 React children 是否包含 CodeBlock 或 MermaidToggle 組件
-      // 由於組件可能被包裝，我們需要遞歸檢查
       const checkForBlockComponent = (child: any): boolean => {
         if (React.isValidElement(child)) {
           const componentType = child.type;
-          // 直接檢查組件類型
           if (componentType === CodeBlock || componentType === MermaidToggle) {
             return true;
           }
-          // 如果是 Fragment 或其他容器，檢查其 children
           const childProps = child.props as any;
           if (childProps?.children) {
             const nestedChildren = React.Children.toArray(childProps.children);
@@ -137,7 +151,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
       const hasBlockComponent = childrenArray.some(checkForBlockComponent);
 
       // 如果包含代碼塊或塊級組件，使用 div 而不是 p
-      if (hasCodeBlock || hasBlockComponent) {
+      if (hasCodeBlock || hasNestedBlock || hasBlockComponent) {
         return <div className="mb-2 text-primary leading-[0.81] whitespace-pre-wrap" {...props}>{children}</div>;
       }
 

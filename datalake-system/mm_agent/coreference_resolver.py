@@ -17,9 +17,11 @@ logger = logging.getLogger(__name__)
 _AAM_AVAILABLE = False
 try:
     import sys
+
     sys.path.insert(0, "/home/daniel/ai-box")
     from agents.infra.memory.aam.models import Memory, MemoryType, MemoryPriority
     from agents.infra.memory.aam.qdrant_adapter import QdrantAdapter
+
     _AAM_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"AAM 模塊不可用: {e}")
@@ -61,18 +63,11 @@ class CoreferenceResolver:
         self._ollama_url = ollama_url
         self._model = model
         self._user_id = user_id
-        self._enable_aam = enable_aam and _AAM_AVAILABLE
+        self._enable_aam = False  # 暫時禁用 AAM，避免每次請求載入 embedding model
         self._llm_available = self._check_llm_available()
 
-        # AAM Qdrant 適配器
+        # AAM Qdrant 適配器（禁用）
         self._qdrant_adapter = None
-        if self._enable_aam:
-            try:
-                self._qdrant_adapter = QdrantAdapter()
-                logger.info("AAM Qdrant 適配器初始化成功")
-            except Exception as e:
-                logger.warning(f"AAM Qdrant 適配器初始化失敗: {e}")
-                self._enable_aam = False
 
         # 繁體中文代詞列表
         self._pronouns = {

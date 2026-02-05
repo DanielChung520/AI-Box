@@ -7,7 +7,7 @@ from __future__ import annotations
 """ContextManagerAgent實現 - 上下文維護和檢索LangGraph節點"""
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState

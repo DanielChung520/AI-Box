@@ -6,8 +6,8 @@ from __future__ import annotations
 
 """ProductionReadinessAgent實現 - 負責任務生產環境就緒評估LangGraph節點"""
 import logging
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState

@@ -308,7 +308,7 @@ class KAAgentErrorHandler:
     def format_feedback_for_llm(feedback: UserFeedback) -> str:
         """格式化反饋消息供 LLM 使用（注入到上下文）"""
         parts = [
-            f"[KA-Agent 反饋]\n",
+            "[KA-Agent 反饋]\n",
             f"{feedback.user_message}\n",
         ]
 

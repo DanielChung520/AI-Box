@@ -6,8 +6,8 @@ from __future__ import annotations
 
 """ErrorHandlerAgent實現 - 負責系統錯誤分析和恢復策略LangGraph節點"""
 import logging
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState

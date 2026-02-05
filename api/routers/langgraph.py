@@ -24,10 +24,10 @@ router = APIRouter()
 
 class LangGraphExecuteRequest(BaseModel):
     """LangGraph 工作流執行請求模型"""
-    task: str = Field(..., description="任務描述") 
-    user_id: str = Field(..., description="用戶ID") 
-    session_id: Optional[str] = Field(default=None, description="會話ID") 
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息") 
+    task: str = Field(..., description="任務描述")
+    user_id: str = Field(..., description="用戶ID")
+    session_id: Optional[str] = Field(default=None, description="會話ID")
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="上下文信息")
     workflow_config: Optional[Dict[str, Any]] = Field(
         default_factory=dict, description="工作流配置",
     )
@@ -48,17 +48,17 @@ class LangGraphResultResponse(BaseModel):
     """LangGraph 結果響應模型"""
     workflow_id: str
     success: bool
-    final_state: Dict[str, Any] 
+    final_state: Dict[str, Any]
     execution_time: float
     node_count: int
     error_count: int
-    layers_executed: list[str] 
+    layers_executed: list[str]
     final_layer: str
     reasoning: str
 
 
 # 全局執行引擎實例
-_execution_engine = TaskExecutionEngine() 
+_execution_engine = TaskExecutionEngine()
 _active_workflows: Dict[str, Any] = {}
 
 

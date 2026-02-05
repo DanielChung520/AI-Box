@@ -55,29 +55,26 @@ import { isSystemAdmin } from '../lib/userUtils';
   }
 
   interface ChatAreaProps {
-    selectedTask?: Task;
-    browseMode?: 'assistants' | 'agents' | null;
-    onAssistantSelect?: (assistantId: string) => void;
-    onAgentSelect?: (agentId: string) => void;
-    onModelSelect?: (modelId: string) => void; // 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：模型選擇回寫
-    onMessageSend?: (raw: string) => void; // 修改時間：2025-12-13 17:28:02 (UTC+8) - 產品級 Chat：送出訊息到後端
-    resultPanelCollapsed?: boolean;
-    onResultPanelToggle?: () => void;
-    onAssistantFavorite?: (assistantId: string, isFavorite: boolean, assistantName?: string) => void;
-    favoriteAssistants?: Map<string, string> | Set<string>;
-    onAgentFavorite?: (agentId: string, isFavorite: boolean, agentName?: string) => void;
-    favoriteAgents?: Map<string, string> | Set<string>;
-    currentTaskId?: string; // 當前任務ID，用於文件上傳
-    onTaskUpdate?: (task: Task) => void; // 任務更新回調
-    onTaskCreate?: (task: Task) => void; // 任務創建回調
-    onTaskDelete?: (taskId: number) => void; // 任務刪除回調
-    // 修改時間：2025-12-08 11:30:00 UTC+8 - 添加預覽模式狀態
-    isPreviewMode?: boolean; // 是否處於預覽模式（右側文件預覽展開時為 true）
-    // 修改時間：2025-12-21 - 添加 AI 回復加載狀態
-    isLoadingAI?: boolean; // AI 是否正在回復
+    selectedTask: Task | undefined;
+    browseMode?: boolean;
+    onAssistantSelect: (id: string) => void;
+    onAgentSelect: (id: string) => void;
+    onModelSelect: (id: string) => void;
+    onMessageSend: (raw: string) => void;
+    resultPanelCollapsed: boolean;
+    onResultPanelToggle: () => void;
+    onAssistantFavorite: (id: string, name: string) => void;
+    favoriteAssistants?: Map<string, string>;
+    onAgentFavorite: (id: string, name: string) => void;
+    favoriteAgents?: Map<string, string>;
+    onTaskUpdate: (task: Task) => void;
+    currentTaskId?: number;
+    onTaskCreate: (task: Task) => void;
+    onTaskDelete: (taskId: number) => void;
+    isPreviewMode?: boolean;
   }
 
-  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, onModelSelect, onMessageSend, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete, isPreviewMode = false, isLoadingAI = false }: ChatAreaProps) {
+  export default function ChatArea({ selectedTask, browseMode, onAssistantSelect, onAgentSelect, onModelSelect, onMessageSend, resultPanelCollapsed, onResultPanelToggle, onAssistantFavorite, favoriteAssistants = new Map(), onAgentFavorite, favoriteAgents = new Map(), onTaskUpdate, currentTaskId, onTaskCreate, onTaskDelete, isPreviewMode = false }: ChatAreaProps) {
     const location = useLocation();
     const navigate = useNavigate();
     const { currentUser } = useContext(AuthContext);
@@ -105,8 +102,8 @@ import { isSystemAdmin } from '../lib/userUtils';
     const [showDeleteAgentModal, setShowDeleteAgentModal] = useState(false);
 
     // 修改時間：2026-01-06 - 文件編輯相關狀態
-    const { editingFileId, setEditingFile, setPatches, clearEditing, setCurrentRequestId } = useFileEditing();
-    const { connect, disconnect, patches: streamingPatches, isStreaming, error: streamingError } = useStreamingEdit();
+    const { editingFileId, setEditingFile, setPatches, clearEditing, setCurrentRequestId: setEditingRequestId } = useFileEditing();
+    const { connect: connectStreamingEdit, disconnect, patches: streamingPatches, isStreaming, error: streamingError } = useStreamingEdit();
     const editingSessionIdRef = useRef<string | null>(null);
 
     // 處理點擊外部區域關閉系統管理菜單
@@ -186,12 +183,12 @@ import { isSystemAdmin } from '../lib/userUtils';
               command: message,
             });
 
-            if (response.success && response.data?.request_id) {
-              // 存儲 request_id 到 Context
-              setCurrentRequestId(response.data.request_id);
-              // 連接流式編輯端點
-              connect(editingSessionIdRef.current!, response.data.request_id);
-            }
+              if (response.success && response.data?.request_id) {
+                // 存儲 request_id 到 Context
+                setEditingRequestId(response.data.request_id);
+                // 連接流式編輯端點
+                connectStreamingEdit(editingSessionIdRef.current!, response.data.request_id);
+              }
           } catch (error) {
             console.error('[ChatArea] Failed to submit editing command:', error);
           }
@@ -202,7 +199,7 @@ import { isSystemAdmin } from '../lib/userUtils';
       return () => {
         window.removeEventListener('messageSentForFileEditing', handleMessageSent);
       };
-    }, [editingFileId, connect, setCurrentRequestId]);
+      }, [editingFileId, connectStreamingEdit, setEditingRequestId]);
 
     // 修改時間：2026-01-06 - 將流式 patches 更新到 Context
     useEffect(() => {
@@ -826,7 +823,6 @@ import { isSystemAdmin } from '../lib/userUtils';
           onTaskCreate={onTaskCreate}
           onTaskDelete={onTaskDelete}
           isPreviewMode={isPreviewMode}
-          isLoadingAI={isLoadingAI} // 修改時間：2025-12-21 - 傳遞 AI 回復加載狀態
           onMessageSend={onMessageSend}
           onTaskTitleGenerate={(title) => {
             // 生成任务标题（只在任务标题还是默认值时更新）

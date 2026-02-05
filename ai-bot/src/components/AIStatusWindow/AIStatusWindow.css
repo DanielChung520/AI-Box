@@ -1,13 +1,10 @@
 .ai-status-window {
-  position: fixed;
-  top: 70px;
-  right: 16px;
-  width: 360px;
-  max-height: calc(100vh - 100px);
+  position: relative;
+  width: 100%;
+  height: 100%;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  z-index: 1000;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -30,6 +27,31 @@
   color: #333;
 }
 
+.ai-status-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.test-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.test-button:hover {
+  background: #e8f4fd;
+  color: #1890ff;
+}
+
 .close-button {
   display: flex;
   align-items: center;
@@ -47,6 +69,95 @@
 .close-button:hover {
   background: #f0f0f0;
   color: #666;
+}
+
+/* 全局進度條 */
+.global-progress-container {
+  padding: 12px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.global-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.global-progress-header .progress-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.global-progress-header .progress-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.global-progress-bar {
+  height: 6px;
+  background: #e8e8e8;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.global-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1890ff, #52c41a);
+  border-radius: 3px;
+}
+
+/* 性能統計 */
+.performance-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #fff;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.stat-item svg {
+  color: #999;
+}
+
+.stat-item .stat-label {
+  color: #999;
+}
+
+.stat-item .stat-value {
+  font-weight: 600;
+  color: #333;
+}
+
+.stat-item .stat-duration {
+  color: #ff4d4f;
+}
+
+.stat-item.slowest {
+  background: #fff2f0;
+}
+
+.stat-item.slowest .stat-label,
+.stat-item.slowest svg {
+  color: #ff4d4f;
+}
+
+.stat-item.slowest .stat-value {
+  color: #ff4d4f;
 }
 
 .ai-status-content {
@@ -90,6 +201,8 @@
   background: #f9f9f9;
   border-radius: 8px;
   border-left: 3px solid #e8e8e8;
+  position: relative;
+  overflow: hidden;
 }
 
 .status-item-header {
@@ -144,32 +257,72 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-top: 6px;
+  padding-left: 24px;
+}
+
+.message-line {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
 }
 
 .step-name {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
+  padding-left: 24px;
+  margin-bottom: 4px;
 }
 
-.message {
-  font-size: 12px;
-  color: #666;
-  line-height: 1.4;
+.status-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
 }
 
 .timestamp {
-  display: block;
-  margin-top: 6px;
   font-size: 11px;
   color: #bbb;
-  text-align: right;
+}
+
+.duration {
+  font-size: 10px;
+  color: #52c41a;
+  background: #f6ffed;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.duration.slow {
+  color: #fa8c16;
+  background: #fff7e6;
+}
+
+/* 耗時視覺化條 */
+.duration-bar-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #f0f0f0;
+}
+
+.duration-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #1890ff, #52c41a);
+  opacity: 0.5;
 }
 
 .ai-status-footer {
   padding: 10px 16px;
   border-top: 1px solid #f0f0f0;
   background: #fafafa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .connection-status {
@@ -192,4 +345,23 @@
 
 .connection-status.disconnected .status-dot {
   background: #d9d9d9;
+}
+
+.request-id {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #bbb;
+}
+
+.request-id-label {
+  color: #ccc;
+}
+
+.request-id-value {
+  font-family: monospace;
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
 }

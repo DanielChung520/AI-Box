@@ -7,7 +7,7 @@
 
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from ..models import SemanticAnalysisResult
 from .prompt_manager import PromptManager
@@ -29,6 +29,11 @@ class SemanticAnalyzer:
 
         # 定義關鍵詞模式
         self._patterns = {
+            "memory": [
+                r"記住.*",
+                r"記錄.*",
+                r"記得.*",
+            ],
             "query_part": [
                 r"查詢.*料號",
                 r"查詢.*物料",
@@ -50,6 +55,21 @@ class SemanticAnalyzer:
                 r"current.*stock",
                 r"存放在.*哪裡",
                 r"存放.*位置",
+            ],
+            "query_stock_history": [
+                r"進料",
+                r"進貨",
+                r"採購.*記錄",
+                r"採購.*歷史",
+                r"入庫.*記錄",
+                r"入庫.*歷史",
+                r"收料.*記錄",
+                r"purchase.*record",
+                r"purchase.*history",
+                r"incoming.*material",
+                r"最近.*進",
+                r"最近.*採購",
+                r"最近.*入庫",
             ],
             "analyze_shortage": [
                 r"缺料",
@@ -118,6 +138,7 @@ class SemanticAnalyzer:
         # 1. 長度較短（< 50 字符）
         # 2. 包含明確的關鍵詞和料號
         # 3. 不包含指代或上下文依賴
+        # 4. 不包含複雜意圖關鍵詞（如進料、採購記錄等）
 
         if len(instruction) > 50:
             return False
@@ -126,8 +147,28 @@ class SemanticAnalyzer:
         if any(word in instruction for word in ["剛才", "那個", "這個", "它", "他"]):
             return False
 
+        # 檢查是否包含複雜意圖關鍵詞（這些需要 LLM 識別）
+        complex_keywords = [
+            "進料",
+            "進貨",
+            "採購",
+            "入庫",
+            "出庫",
+            "交易",
+            "歷史",
+            "記錄",
+            "最近",
+            "上個月",
+            "上週",
+            "今年",
+            "去年",
+            "歷史記錄",
+        ]
+        if any(kw in instruction for kw in complex_keywords):
+            return False
+
         # 檢查是否包含明確的料號
-        if re.search(r"[A-Z]{2,4}-\d{2,6}", instruction, re.IGNORECASE):
+        if re.search(r"[A-Z]{2,4}\d{2,6}-\d{2,6}", instruction, re.IGNORECASE):
             return True
 
         return False
@@ -161,6 +202,25 @@ class SemanticAnalyzer:
         part_number = self._extract_part_number(instruction)
         quantity = self._extract_quantity(instruction)
 
+        # 檢查是否包含模糊的時間詞彙，需要澄清
+        ambiguous_time_keywords = ["最近", "這幾天", "近來", "近期"]
+        has_ambiguous_time = any(kw in instruction for kw in ambiguous_time_keywords)
+
+        clarification_needed = detected_intent is None
+        clarification_questions: List[str] = []
+
+        if detected_intent in ["query_stock_history", "purchase_history", "transaction_history"]:
+            if has_ambiguous_time:
+                clarification_needed = True
+                clarification_questions = [
+                    "「最近」是指什麼時間範圍？",
+                    "• 今天",
+                    "• 最近一週",
+                    "• 最近一個月",
+                    "• 最近三個月",
+                    "• 其他時間範圍",
+                ]
+
         return SemanticAnalysisResult(
             intent=detected_intent,
             confidence=confidence,
@@ -169,8 +229,8 @@ class SemanticAnalyzer:
                 "quantity": quantity,
             },
             original_instruction=instruction,
-            clarification_needed=(detected_intent is None),
-            clarification_questions=(["請明確您要執行哪個操作？"] if detected_intent is None else []),
+            clarification_needed=clarification_needed,
+            clarification_questions=clarification_questions,
         )
 
     async def _analyze_with_llm(
@@ -207,13 +267,37 @@ class SemanticAnalyzer:
             # 解析LLM響應
             result = self._prompt_manager.parse_llm_response(llm_response)
 
+            # 檢查是否包含模糊的時間詞彙，需要澄清
+            detected_intent = result.get("intent")
+            ambiguous_time_keywords = ["最近", "這幾天", "近來", "近期"]
+            has_ambiguous_time = any(kw in instruction for kw in ambiguous_time_keywords)
+
+            clarification_needed = result.get("clarification_needed", False)
+            clarification_questions = result.get("clarification_questions", [])
+
+            if detected_intent in [
+                "query_stock_history",
+                "purchase_history",
+                "transaction_history",
+            ]:
+                if has_ambiguous_time:
+                    clarification_needed = True
+                    clarification_questions = [
+                        "「最近」是指什麼時間範圍？",
+                        "• 今天",
+                        "• 最近一週",
+                        "• 最近一個月",
+                        "• 最近三個月",
+                        "• 其他時間範圍",
+                    ]
+
             return SemanticAnalysisResult(
-                intent=result.get("intent"),
+                intent=detected_intent,
                 confidence=result.get("confidence", 0.0),
                 parameters=result.get("parameters", {}),
                 original_instruction=instruction,
-                clarification_needed=result.get("clarification_needed", False),
-                clarification_questions=result.get("clarification_questions", []),
+                clarification_needed=clarification_needed,
+                clarification_questions=clarification_questions,
             )
 
         except Exception as e:
@@ -230,9 +314,16 @@ class SemanticAnalyzer:
         Returns:
             提取的料號，如果未找到則返回None
         """
-        # 模式1：ABC-123 格式
-        pattern1 = r"([A-Z]{2,4}-\d{2,6})"
+        # 模式1：ABC-123 格式（如 RM01-009、ABC-123）
+        # 格式：字母(2-4) + 數字(2-6) + 連字符 + 數字(2-6)
+        pattern1 = r"([A-Z]{2,4}\d{2,6}-\d{2,6})"
         match = re.search(pattern1, instruction, re.IGNORECASE)
+        if match:
+            return match.group(1).upper()
+
+        # 模式2：ABC123-456 格式（字母+數字直接相連）
+        pattern2 = r"([A-Z]{2,4}\d{3,6}-\d{3,6})"
+        match = re.search(pattern2, instruction, re.IGNORECASE)
         if match:
             return match.group(1).upper()
 

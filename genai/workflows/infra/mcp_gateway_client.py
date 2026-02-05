@@ -7,7 +7,7 @@
 
 import os
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from mcp.client.client import MCPClient
 

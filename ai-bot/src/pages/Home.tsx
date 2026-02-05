@@ -21,6 +21,7 @@ import { parseFileReference, updateDraftFileContent } from '../lib/fileReference
 import { getDocEditState } from '../lib/api';
 import { extractTaskTitle } from '../lib/taskTitleUtils'; // 修改時間：2025-12-21 - 導入任務標題提取工具
 import { useAIStatusSSE } from '../hooks/useAIStatusSSE';
+import { useAIStatusStore } from '../stores/aiStatusStore';
 import '../lib/debugStorage'; // 加載調試工具
 import '../lib/checkFiles'; // 加載文件檢查工具
 
@@ -29,28 +30,27 @@ export default function Home() {
   const [resultPanelCollapsed, setResultPanelCollapsed] = useState(false);
   const [isMarkdownView, setIsMarkdownView] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
-  const [isLoadingAI, setIsLoadingAI] = useState(false); // 修改時間：2025-12-21 - AI 回復加載狀態
-  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null); // AI 狀態追蹤 request_id
   const prevResultPanelCollapsedRef = useRef<boolean>(false);
   const { t, updateCounter, language } = useLanguage();
 
   // AI 狀態 SSE 追蹤
   const { connect: connectAIStatus, disconnect: disconnectAIStatus } = useAIStatusSSE({
-    requestId: currentRequestId,
+    requestId: null,  // 從 store 讀取，不從 props 傳入
     enabled: true,
   });
 
+  const { currentStatus, setCurrentStatus, setRequestId, requestId } = useAIStatusStore();
+
   // 當 AI 回覆完成時，清理 request_id
   useEffect(() => {
-    if (!isLoadingAI && currentRequestId) {
-      // AI 回覆完成，延遲清理確保狀態已更新
+    if ((currentStatus === 'completed' || currentStatus === 'error') && requestId) {
       const timer = setTimeout(() => {
-        setCurrentRequestId(null);
+        setRequestId(null);
         disconnectAIStatus();
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isLoadingAI, currentRequestId, disconnectAIStatus]);
+  }, [currentStatus, requestId, disconnectAIStatus, setRequestId]);
 
   // 調試：記錄 token 狀態
   useEffect(() => {
@@ -387,51 +387,38 @@ export default function Home() {
 
   // 处理任务选择
   const handleTaskSelect = (task: Task) => {
-    // 從 localStorage 重新加載任務數據，確保文件樹是最新的
+    console.log('[Home] handleTaskSelect called, task.id=' + task.id + ', selectedTask.id=' + (selectedTask?.id || 'null'));
+
+    // 如果選擇的是當前任務，保留內存中的任務（包含最新消息）
+    if (selectedTask && selectedTask.id === task.id) {
+      console.log('[Home] 選擇當前任務，保留內存中的數據');
+      setCurrentStatus('idle'); // 重置 AI 狀態
+      setBrowseMode(null);
+      if (isMarkdownView) {
+        setIsMarkdownView(false);
+      }
+      return;
+    }
+
+    // 從 localStorage 重新加載任務數據
     const savedTask = getTask(task.id);
     const taskToSelect = savedTask || task;
 
+    console.log('[Home] 從 localStorage 加載任務:', {
+      taskId: task.id,
+      hasSavedTask: !!savedTask,
+      messageCount: taskToSelect?.messages?.length || 0,
+      lastMessage: taskToSelect?.messages?.slice(-1)[0]?.content?.substring(0, 50) || 'none',
+    });
+
     setSelectedTask(taskToSelect);
+    setCurrentStatus('idle'); // 重置 AI 狀態
     setBrowseMode(null); // 清除浏览模式
     // 如果正在预览Markdown，切换回聊天视图
     if (isMarkdownView) {
       setIsMarkdownView(false);
     }
     // 任務的文件目錄會自動從 task.fileTree 恢復
-  };
-
-  // 模擬 AI 狀態更新（讓 BrainIcon 閃爍）
-  const simulateAIStatusUpdates = async (requestId: string, apiBase: string) => {
-    const statusSteps = [
-      { step: '理解問題', message: '正在分析用戶需求...', progress: 0.1 },
-      { step: '規劃執行', message: '規劃處理步驟...', progress: 0.2 },
-      { step: '檢索知識', message: '搜索相關知識...', progress: 0.4 },
-      { step: '生成回覆', message: '正在生成回覆...', progress: 0.6 },
-      { step: '優化內容', message: '優化回覆內容...', progress: 0.8 },
-      { step: '完成', message: '處理完成！', progress: 1.0 },
-    ];
-
-    for (const status of statusSteps) {
-      try {
-        await fetch(`${apiBase}/api/v1/agent-status/event`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            request_id: requestId,
-            step: status.step,
-            status: status.progress === 1.0 ? 'completed' : 'processing',
-            message: status.message,
-            progress: status.progress,
-          }),
-        });
-        // 模擬不同步驟之間的間隔
-        if (status.progress < 1.0) {
-          await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
-        }
-      } catch (error) {
-        console.error('[Home] 發送狀態失敗:', error);
-      }
-    }
   };
 
   // 修改時間：2025-12-13 17:28:02 (UTC+8) - 模型選擇寫回 task.executionConfig.modelId 並持久化
@@ -460,29 +447,39 @@ export default function Home() {
       return;
     }
 
-    // 修改時間：2025-12-21 - 設置 AI 回復加載狀態
-    setIsLoadingAI(true);
+    // 設置 AI 處理狀態
+    setCurrentStatus('processing');
+    console.log('[Home] AI 狀態設置為: processing');
 
     // 生成 request_id 並開始追蹤狀態
     const requestId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    console.log('[Home] 生成 request_id:', requestId);
-    setCurrentRequestId(requestId);
-    connectAIStatus(); // 連接 SSE
+    console.log('[Home] 🔧 生成 request_id:', requestId);
 
-    // 調用 API 開始追蹤狀態
-    try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-      await fetch(`${apiBase}/api/v1/agent-status/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request_id: requestId }),
-      });
+    // 【修復】確保 SSE 連接在 /api/v1/agent-status/start 之前建立
+    // 時序：1. 先設置 requestId 2. 建立 SSE 連接 3. 啟動狀態追蹤
+    setRequestId(requestId);
 
-      // 模擬發送狀態更新（讓 BrainIcon 閃爍）
-      await simulateAIStatusUpdates(requestId, apiBase);
-    } catch (error) {
-      console.error('[Home] 無法啟動狀態追蹤:', error);
-    }
+    // 【關鍵】立即建立 SSE 連接（不使用 setTimeout 延遲）
+    console.log('[Home] 🔌 建立 SSE 連接...');
+    connectAIStatus();
+
+    // 然後調用 API 開始追蹤狀態
+    console.log('[Home] 📡 調用 /api/v1/agent-status/start...');
+    fetch('/api/v1/agent-status/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request_id: requestId }),
+    })
+    .then(response => {
+      console.log('[Home] ✅ /api/v1/agent-status/start 響應:', response.status, response.statusText);
+      return response.json();
+    })
+    .then(data => {
+      console.log('[Home] ✅ 狀態追蹤啟動成功:', data);
+    })
+    .catch((error) => {
+      console.error('[Home] ❌ 無法啟動狀態追蹤:', error);
+    });
 
     let text = '';
     let fileReferences: Array<any> = [];
@@ -544,8 +541,17 @@ export default function Home() {
     };
 
     setSelectedTask(taskWithUserMessage);
+    // 立即同步保存到 localStorage（確保切換任務時能讀取到）
+    try {
+      const taskKey = `ai-box-task-${taskWithUserMessage.id}`;
+      localStorage.setItem(taskKey, JSON.stringify(taskWithUserMessage));
+      console.log('[Home] 已將用戶消息同步保存到 localStorage, key=' + taskKey);
+    } catch (error) {
+      console.error('[Home] Failed to save task to localStorage:', error);
+    }
+    // 異步同步到後台
     saveTask(taskWithUserMessage, true).catch((error) => {
-      console.error('[Home] Failed to save task after user message:', error);
+      console.error('[Home] Failed to sync task to backend:', error);
     });
 
     // 修改時間：2025-12-14 14:30:00 (UTC+8) - 檢測是否為編輯草稿檔意圖
@@ -672,14 +678,16 @@ export default function Home() {
             })
           );
 
-          // 修改時間：2025-12-21 - AI 回復完成，清除加載狀態
-          setIsLoadingAI(false);
+          // AI 回復完成
+          setCurrentStatus('completed');
+          console.log('[Home] AI 狀態設置為: completed (draft edit)');
           return; // 提前返回，不執行後續的正式檔案處理
         }
       } catch (error: any) {
         console.error('[Home] chatProduct request failed for draft edit:', error);
-        // 如果失敗，清除加載狀態並繼續執行正常的流程
-        setIsLoadingAI(false);
+        setCurrentStatus('error');
+        console.log('[Home] AI 狀態設置為: error (stream failed)');
+        console.log('[Home] AI 狀態設置為: error (draft edit failed)');
       }
     }
 
@@ -766,21 +774,69 @@ export default function Home() {
         allowed_tools: allowedTools.length > 0 ? allowedTools : undefined,
       };
 
-      console.log('[chatMessage] 📤 發送聊天請求（流式）:', {
-        task_id: String(taskWithUserMessage.id),
-        assistant_id: requestParams.assistant_id || '未選擇',
-        agent_id: requestParams.agent_id || '未選擇',
-        model_id: requestParams.model_id,
-        model_selector: requestParams.model_selector,
-        web_search: requestParams.web_search,
-        message_count: requestParams.messages.length,
-        last_message: requestParams.messages[requestParams.messages.length - 1]?.content?.substring(0, 100),
-        allowed_tools: requestParams.allowed_tools || [],
-        attachments_count: requestParams.attachments?.length || 0,
-        session_id: sessionId,
-        timestamp: new Date().toISOString(),
-        full_request: requestParams, // 完整請求對象
-      });
+      // ========================================
+      // 指代消解邏輯（2026-02-04）
+      // ========================================
+      const lastUserMessage = chatMessages[chatMessages.length - 1]?.content || '';
+      const currentEntities = taskWithUserMessage.entities || {};
+
+      // 提取實體：檢查是否為 "X 是 Y" 模式
+      const entityPatterns = [
+        /^(.+?)\s*(是|為|等於)\s*(.+)$/,  // "RM01-009 是料號"
+        /^(.+?)\s*=\s*(.+)$/,              // "RM01-009 = 料號"
+      ];
+
+      let newEntities = { ...currentEntities };
+      let resolvedMessage = lastUserMessage;
+
+      // 1. 提取新實體
+      for (const pattern of entityPatterns) {
+        const match = lastUserMessage.match(pattern);
+        if (match) {
+          const name = match[1].trim();
+          const meaning = match[3].trim();
+          // 排除常見的無意義對應
+          if (name !== meaning && name.length > 1 && meaning.length > 1) {
+            newEntities[name] = meaning;
+            console.log('[指代消解] 📝 提取實體:', { name, meaning });
+          }
+          break; // 只處理第一個匹配
+        }
+      }
+
+      // 2. 指代消解：將 entities 中的 key 替換為 "意義 key"
+      for (const [key, meaning] of Object.entries(newEntities)) {
+        // 使用正則匹配完整的 key（避免部分匹配）
+        const regex = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
+        resolvedMessage = resolvedMessage.replace(regex, `${meaning} ${key}`);
+      }
+
+      // 3. 如果消息被修改（包含實體），更新消息
+      if (resolvedMessage !== lastUserMessage) {
+        console.log('[指代消解] 🔄 消解後:', resolvedMessage);
+        // 更新最後一條用戶消息
+        const updatedMessages = chatMessages.map((msg, idx) => {
+          if (idx === chatMessages.length - 1 && msg.role === 'user') {
+            return { ...msg, content: resolvedMessage };
+          }
+          return msg;
+        });
+        (requestParams as any).messages = updatedMessages;
+      }
+
+      // 4. 將 entities 保存到 task 中
+      const taskWithEntities: Task = {
+        ...taskWithUserMessage,
+        entities: newEntities,
+      };
+
+      console.log('[指代消解] 📚 當前 entities:', newEntities);
+
+      // console.log('[chatMessage] 📤', {
+      //   agent_id: requestParams.agent_id,
+      //   model_id: requestParams.model_id,
+      //   last_message: requestParams.messages[requestParams.messages.length - 1]?.content?.substring(0, 50),
+      // });
 
       // 創建初始 AI 消息（內容為空，將逐步更新）
       const aiMessageId = generateMessageId();
@@ -802,22 +858,11 @@ export default function Home() {
       // 使用之前構建的 requestParams（已經包含所有參數）
       const requestData = requestParams;
 
-      // 修改時間：2026-01-27 - 添加完整的請求參數日誌
-      console.log('[chatMessage] 📤 發送聊天請求（流式）:', {
-        task_id: String(taskWithUserMessage.id),
-        assistant_id: requestData.assistant_id || '未選擇',
-        agent_id: requestData.agent_id || '未選擇',
-        model_id: modelId,
-        model_selector: requestData.model_selector,
-        web_search: tools?.web_search || false,
-        message_count: chatMessages.length,
-        last_message: chatMessages[chatMessages.length - 1]?.content?.substring(0, 100),
-        allowed_tools: requestData.allowed_tools || [],
-        attachments_count: requestData.attachments?.length || 0,
-        session_id: sessionId,
-        timestamp: new Date().toISOString(),
-        full_request: requestData, // 完整請求對象
-      });
+      // console.log('[chatMessage] 📤', {
+      //   agent_id: requestData.agent_id,
+      //   model_id: modelId,
+      //   last_message: chatMessages[chatMessages.length - 1]?.content?.substring(0, 50),
+      // });
 
       // 验证 messages 不为空
       if (chatMessages.length === 0) {
@@ -833,7 +878,8 @@ export default function Home() {
           messages: [...(taskWithUserMessage.messages || []), errorMessage],
         };
         setSelectedTask(errorTask);
-        setIsLoadingAI(false);
+        setCurrentStatus('error');
+        console.log('[Home] AI 狀態設置為: error (stream failed)');
         return;
       }
 
@@ -935,7 +981,18 @@ export default function Home() {
       };
 
       try {
-        for await (const event of chatProductStream(requestData as any)) { // 临时使用 any，因为接口定义可能还没有更新
+        console.log('[Home] 開始接收流式響應...');
+        let eventCount = 0;
+        // 修改時間：2026-02-03 - 調用 chatProductStream 並獲取 requestId
+        const { requestId, stream } = await chatProductStream(requestData as any);
+        if (requestId) {
+          console.log('[Home] Request ID:', requestId);
+          setRequestId(requestId);  // 從 store 設置 requestId
+        }
+
+        for await (const event of stream) { // 遍歷 stream 而不是 chatProductStream
+          eventCount++;
+          console.log('[Home] 收到事件 #' + eventCount + ':', event.type);
           if (event.type === 'content' && event.data?.chunk) {
             // 累積內容並更新消息（使用防抖）
             fullContent += event.data.chunk;
@@ -976,9 +1033,11 @@ export default function Home() {
                 messages: [...filteredMessages, errorMessage],
               };
             });
-            setIsLoadingAI(false);
+            setCurrentStatus('error');
+        console.log('[Home] AI 狀態設置為: error (stream failed)');
             return;
           } else if (event.type === 'done') {
+            console.log('[Home] 收到 done 事件');
             // 流結束，清除待處理的定時器並強制更新最後一次
             if (pendingUpdateTimer) {
               clearTimeout(pendingUpdateTimer);
@@ -988,6 +1047,8 @@ export default function Home() {
             if (fullContent) {
               updateTaskContent(fullContent, true);
             }
+            setCurrentStatus('completed');
+            console.log('[Home] AI 狀態設置為: completed (done event)');
             break;
           }
         }
@@ -1019,9 +1080,25 @@ export default function Home() {
             messages: [...filteredMessages, errorMessage],
           };
         });
-        setIsLoadingAI(false);
+        setCurrentStatus('error');
+        console.log('[Home] AI 狀態設置為: error (stream failed)');
         return;
       }
+
+      // 檢查是否收到 done 事件（通過檢查 fullContent 是否已更新）
+      console.log('[Home] 流式響應檢查: fullContent.length=' + fullContent.length + ', currentStatus=' + currentStatus);
+      if (fullContent && currentStatus !== 'completed') {
+        console.log('[Home] 流式響應正常結束，設置 completed');
+        setCurrentStatus('completed');
+      }
+
+      // 如果超過 60 秒沒有完成，設置超時
+      setTimeout(() => {
+        if (currentStatus === 'processing') {
+          console.log('[Home] 流式響應超時，設置 completed');
+          setCurrentStatus('completed');
+        }
+      }, 60000);
 
       // 流式響應完成後，處理後續邏輯（標題生成等）
       const aiMessage = {
@@ -1051,7 +1128,7 @@ export default function Home() {
       }
 
       const finalTask: Task = {
-        ...taskWithUserMessage,
+        ...taskWithEntities, // 使用包含 entities 的 task
         title: finalTaskTitle, // 使用提取的標題
         messages: [
           ...(taskWithUserMessage.messages || []),
@@ -1064,8 +1141,9 @@ export default function Home() {
         console.error('[Home] Failed to save task after ai message:', error);
       });
 
-      // 修改時間：2025-12-21 - AI 回復完成，清除加載狀態
-      setIsLoadingAI(false);
+      // AI 回復完成
+      setCurrentStatus('completed');
+      console.log('[Home] AI 狀態設置為: completed (stream done)');
 
       // 修改時間：2025-12-21 - 如果標題已更新，觸發任務列表更新事件，以便 Sidebar 顯示新標題
       if (isFirstConversation && finalTaskTitle !== taskWithUserMessage.title) {
@@ -1098,8 +1176,9 @@ export default function Home() {
         console.error('[Home] Failed to save task after network error:', e);
       });
 
-      // 修改時間：2025-12-21 - AI 回復完成（異常情況），清除加載狀態
-      setIsLoadingAI(false);
+      // AI 處理異常完成
+      setCurrentStatus('error');
+        console.log('[Home] AI 狀態設置為: error (stream failed)');
     }
   };
 
@@ -1573,7 +1652,6 @@ export default function Home() {
           onAgentSelect={handleAgentSelect}
           onModelSelect={handleModelSelect}
           onMessageSend={handleMessageSend}
-          isLoadingAI={isLoadingAI}
           resultPanelCollapsed={resultPanelCollapsed}
           onResultPanelToggle={() => {
             const newCollapsed = !resultPanelCollapsed;
@@ -1663,11 +1741,7 @@ export default function Home() {
         />
       )}
 
-      {/* AI 狀態追蹤 */}
-      <div className="fixed top-4 right-4 z-50">
-        <BrainIcon />
-        <AIStatusWindow />
-      </div>
+
     </div>
   );
 }

@@ -410,49 +410,69 @@ export async function syncTasksFromBackend(): Promise<{ synced: number; errors: 
 
         backendTaskIds.add(String(taskId));
 
-        // 修改時間：2025-12-09 - 從 localStorage 讀取現有任務，保留本地的 label_color
-        const existingTask = getTask(taskId);
-
-        // 修改時間：2025-01-27 - 優先使用後端的 task_status，確保同步最新狀態
-        // 強制使用後端的 task_status（如果後端有設置），否則使用本地的，最後默認為 activate
-        const finalTaskStatus = backendTask.task_status !== undefined && backendTask.task_status !== null
-          ? backendTask.task_status
-          : (existingTask?.task_status || 'activate');
-
-        const frontendTask: Task = {
-          id: taskId, // 修改時間：2026-01-06 - 支持字符串 ID，不再強制轉換為數字
-          title: backendTask.title,
-          status: backendTask.status as 'pending' | 'in-progress' | 'completed',
-          task_status: finalTaskStatus,
-          // 修改時間：2025-12-09 - 優先使用後端的 label_color，如果後端沒有則使用本地的
-          label_color: backendTask.label_color !== undefined && backendTask.label_color !== null
-            ? backendTask.label_color
-            : existingTask?.label_color,
-          // 修改時間：2026-01-27 - 優先使用後端的 is_agent_task，取消 Agent 標記後須同步到本地
-          is_agent_task: backendTask.is_agent_task === true || backendTask.is_agent_task === false
-            ? backendTask.is_agent_task
-            : (existingTask?.is_agent_task ?? false),
-          dueDate: backendTask.dueDate || '',
-          // 修改時間：2026-01-06 - 從後端同步創建時間和更新時間
-          // 後端返回的可能是 datetime 對象或字符串，統一轉換為 ISO 8601 字符串
-          created_at: backendTask.created_at
-            ? (typeof backendTask.created_at === 'string'
-                ? backendTask.created_at
-                : (backendTask.created_at instanceof Date
-                    ? backendTask.created_at.toISOString()
-                    : String(backendTask.created_at)))
-            : existingTask?.created_at,
-          updated_at: backendTask.updated_at
-            ? (typeof backendTask.updated_at === 'string'
-                ? backendTask.updated_at
-                : (backendTask.updated_at instanceof Date
-                    ? backendTask.updated_at.toISOString()
-                    : String(backendTask.updated_at)))
-            : existingTask?.updated_at,
-          messages: backendTask.messages,
-          executionConfig: backendTask.executionConfig,
-          fileTree: backendTask.fileTree,
-        };
+         // 修改時間：2025-12-09 - 從 localStorage 讀取現有任務，保留本地的 label_color
+         const existingTask = getTask(taskId);
+ 
+         // 修改時間：2025-01-27 - 優先使用後端的 task_status，確保同步最新狀態
+         // 強制使用後端的 task_status（如果後端有設置），否則使用本地的，最後默認為 activate
+         const finalTaskStatus = backendTask.task_status !== undefined && backendTask.task_status !== null
+           ? backendTask.task_status
+           : (existingTask?.task_status || 'activate');
+ 
+         // 修改時間：2026-01-06 - 從後端同步創建時間和更新時間
+         // 後端返回的可能是 datetime 對象或字符串，統一轉換為 ISO 8601 字符串
+         let backendCreatedAt: string;
+         if (backendTask.created_at) {
+           if (typeof backendTask.created_at === 'string') {
+             backendCreatedAt = backendTask.created_at;
+           } else if (backendTask.created_at instanceof Date) {
+             backendCreatedAt = backendTask.created_at.toISOString();
+           } else {
+             backendCreatedAt = String(backendTask.created_at);
+           }
+         } else {
+           backendCreatedAt = existingTask?.created_at || '';
+         }
+         
+         let backendUpdatedAt: string;
+         if (backendTask.updated_at) {
+           if (typeof backendTask.updated_at === 'string') {
+             backendUpdatedAt = backendTask.updated_at;
+           } else if (backendTask.updated_at instanceof Date) {
+             backendUpdatedAt = backendTask.updated_at.toISOString();
+           } else {
+             backendUpdatedAt = String(backendTask.updated_at);
+           }
+         } else {
+           backendUpdatedAt = existingTask?.updated_at || '';
+         }
+ 
+         // 修改時間：2026-02-03 - 比較本地和後端的更新時間，使用最新的數據
+         // 如果本地 updated_at 比後端新，保留本地的 messages 和 executionConfig
+         const useLocalData = existingTask?.updated_at && backendUpdatedAt
+           ? new Date(existingTask.updated_at) > new Date(backendUpdatedAt)
+           : false;
+ 
+         const frontendTask: Task = {
+           id: taskId, // 修改時間：2026-01-06 - 支持字符串 ID，不再強制轉換為數字
+           title: backendTask.title,
+           status: backendTask.status as 'pending' | 'in-progress' | 'completed',
+           task_status: finalTaskStatus,
+           // 修改時間：2025-12-09 - 優先使用後端的 label_color，如果後端沒有則使用本地的
+           label_color: backendTask.label_color !== undefined && backendTask.label_color !== null
+             ? backendTask.label_color
+             : existingTask?.label_color,
+           // 修改時間：2026-01-27 - 優先使用後端的 is_agent_task，取消 Agent 標記後須同步到本地
+           is_agent_task: backendTask.is_agent_task === true || backendTask.is_agent_task === false
+             ? backendTask.is_agent_task
+             : (existingTask?.is_agent_task ?? false),
+           dueDate: backendTask.dueDate || '',
+           created_at: backendCreatedAt,
+           updated_at: useLocalData ? existingTask!.updated_at : backendUpdatedAt, // 使用最新的 updated_at
+           messages: useLocalData ? existingTask!.messages : backendTask.messages, // 使用最新的 messages
+           executionConfig: useLocalData ? existingTask!.executionConfig : backendTask.executionConfig, // 使用最新的 executionConfig
+           fileTree: backendTask.fileTree || existingTask?.fileTree, // 合併文件樹
+         };
 
         // 保存到 localStorage（不觸發後台同步，避免循環）
         const taskKey = `${STORAGE_KEY_PREFIX}${frontendTask.id}`;

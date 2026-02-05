@@ -24,8 +24,8 @@ class PolicyVerificationResult:
     permission_granted: bool
     security_checks_passed: bool
     compliance_score: float
-    violations: List[str] 
-    recommendations: List[str] 
+    violations: List[str]
+    recommendations: List[str]
     reasoning: str = ""
 
 

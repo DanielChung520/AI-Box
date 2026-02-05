@@ -48,13 +48,13 @@ class NodeResult:
 class NodeConfig:
     """節點配置"""
     name: str
-    description: str = "" 
+    description: str = ""
     max_retries: int = 3
     retry_delay: float = 1.0
     timeout: float = 30.0
-    required_inputs: List[str] = field(default_factory=list) 
-    optional_inputs: List[str] = field(default_factory=list) 
-    output_keys: List[str] = field(default_factory=list) 
+    required_inputs: List[str] = field(default_factory=list)
+    optional_inputs: List[str] = field(default_factory=list)
+    output_keys: List[str] = field(default_factory=list)
     input_schema: Optional[Dict[str, Any]] = None  # 新增：JSON Schema 約束
 
 
@@ -237,7 +237,7 @@ class NodeExecutionContext:
     def __init__(self, state: AIBoxState, node_name: str):
         self.state = state,
         self.node_name = node_name,
-        self.start_time = datetime.now() 
+        self.start_time = datetime.now()
         self.execution_metadata: Dict[str, Any] = {}
 
     def add_metadata(self, key: str, value: Any) -> None:

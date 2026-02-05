@@ -6,7 +6,6 @@
 """
 
 from datetime import datetime
-from typing import Optional
 
 from api.routers.agent_status import (
     AgentStatusEvent,

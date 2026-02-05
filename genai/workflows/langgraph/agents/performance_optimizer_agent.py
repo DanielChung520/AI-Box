@@ -7,7 +7,7 @@ from __future__ import annotations
 """PerformanceOptimizerAgent實現 - 負責系統性能監控和優化建議LangGraph節點"""
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState

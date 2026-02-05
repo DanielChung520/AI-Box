@@ -24,11 +24,6 @@ def get_moe_manager() -> LLMMoEManager:
     return LLMMoEManager()
 
 
-def get_moe_config_loader():
-    """獲取 MoE 配置載入器"""
-    return get_moe_config_loader()
-
-
 MoEDep = Annotated[LLMMoEManager, Depends(get_moe_manager)]
 UserDep = Annotated[User | None, Depends(get_current_user)]
 

@@ -218,6 +218,11 @@ export default function AgentDisplayConfigModal({
     }
   }, [isOpen, agentId, isEditMode, loadAgentConfig, resetForm]);
 
+  // 調試：監聽 capabilities 變化
+  useEffect(() => {
+    console.log('[AgentDisplayConfigModal] capabilities 變化', capabilities);
+  }, [capabilities]);
+
 
   const handleClose = () => {
     if (!isSubmitting && !isLoading) {
@@ -636,6 +641,38 @@ export default function AgentDisplayConfigModal({
                         <i className="fa-solid fa-plus"></i>
                       </button>
                     </div>
+                    
+                    {/* 常用能力快捷按鈕 */}
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          console.log('[AgentDisplayConfigModal] 點擊 MM-Agent 知識庫按鈕', {
+                            currentCapabilities: capabilities,
+                            includes: capabilities.includes('mm_agent_knowledge'),
+                            isSubmitting,
+                            isLoading,
+                          });
+                          if (!capabilities.includes('mm_agent_knowledge')) {
+                            const newCapabilities = [...capabilities, 'mm_agent_knowledge'];
+                            console.log('[AgentDisplayConfigModal] 更新 capabilities', newCapabilities);
+                            setCapabilities(newCapabilities);
+                          } else {
+                            console.log('[AgentDisplayConfigModal] mm_agent_knowledge 已存在，不添加');
+                          }
+                        }}
+                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                          capabilities.includes('mm_agent_knowledge')
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                            : 'bg-tertiary text-tertiary hover:text-primary border border-primary/30'
+                        }`}
+                        disabled={isSubmitting || isLoading}
+                      >
+                        <i className="fa-solid fa-database mr-1"></i>
+                        MM-Agent 知識庫
+                      </button>
+                    </div>
+                    
                     {capabilities.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {capabilities.map((cap) => (
@@ -643,9 +680,15 @@ export default function AgentDisplayConfigModal({
                             key={cap}
                             className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm flex items-center gap-2"
                           >
+                            {cap === 'mm_agent_knowledge' && (
+                              <i className="fa-solid fa-database text-xs"></i>
+                            )}
                             {cap}
                             <button
-                              onClick={() => removeCapability(cap)}
+                              onClick={() => {
+                                console.log('[AgentDisplayConfigModal] 移除 capability', cap);
+                                removeCapability(cap);
+                              }}
                               className="hover:text-red-400"
                               disabled={isSubmitting || isLoading}
                             >
@@ -654,6 +697,9 @@ export default function AgentDisplayConfigModal({
                           </span>
                         ))}
                       </div>
+                    )}
+                    {capabilities.length === 0 && (
+                      <p className="text-xs text-tertiary">尚未添加任何能力</p>
                     )}
                   </div>
                 </div>

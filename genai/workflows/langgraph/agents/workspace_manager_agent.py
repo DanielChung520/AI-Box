@@ -24,7 +24,7 @@ class WorkspaceManagementResult:
     file_structure_initialized: bool
     workspace_id: str
     workspace_path: str
-    initial_files_created: List[str] = field(default_factory=list) 
+    initial_files_created: List[str] = field(default_factory=list)
     reasoning: str = ""
 
 

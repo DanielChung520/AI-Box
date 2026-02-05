@@ -207,7 +207,7 @@ class WorkerService:
             # 修改時間：2025-12-12 - 修復 RQ Worker 啟動方式
             # 優先使用 rq 命令，如果不可用則使用 python -m rq.cli
             if self.rq_command:
-                cmd = [
+                _cmd = [
                     self.rq_command,
                     "worker",
                     *self.queue_names,
@@ -218,8 +218,8 @@ class WorkerService:
                     "--with-scheduler",
                 ]
             else:
-                # 使用 python -m rq.cli 作為備選方案
-                cmd = [
+                # 使用 python -m rq.cli 作為備選方案（instance_cmd 在迴圈內依此邏輯構建）
+                _cmd = [
                     self.python_path,
                     "-m",
                     "rq.cli",

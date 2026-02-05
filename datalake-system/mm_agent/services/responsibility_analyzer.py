@@ -56,6 +56,47 @@ class ResponsibilityAnalyzer:
                 required_data=["part_number"],
             )
 
+        elif intent == "query_stock_history":
+            # 如果語義分析需要澄清時間範圍，使用語義分析的澄清問題
+            if semantic_result.clarification_needed and semantic_result.clarification_questions:
+                return Responsibility(
+                    type="clarification_needed",
+                    description="需要澄清時間範圍",
+                    steps=["生成時間範圍澄清問題"],
+                    clarification_questions=semantic_result.clarification_questions,
+                )
+            # 否則，執行查詢庫存歷史
+            return Responsibility(
+                type="query_stock_history",
+                description="查詢庫存/進貨歷史",
+                steps=[
+                    "調用 Data Agent 查詢交易歷史",
+                    "格式化返回結果",
+                ],
+                required_data=["part_number"],
+            )
+            logger.info(
+                f"[ResponsibilityAnalyzer] query_stock_history - clarification_questions: {semantic_result.clarification_questions}"
+            )
+
+            if semantic_result.clarification_needed and semantic_result.clarification_questions:
+                return Responsibility(
+                    type="clarification_needed",
+                    description="需要澄清時間範圍",
+                    steps=["生成時間範圍澄清問題"],
+                    clarification_questions=semantic_result.clarification_questions,
+                )
+            # 否則，執行查詢庫存歷史
+            return Responsibility(
+                type="query_stock_history",
+                description="查詢庫存/進貨歷史",
+                steps=[
+                    "調用 Data Agent 查詢交易歷史",
+                    "格式化返回結果",
+                ],
+                required_data=["part_number"],
+            )
+
         elif intent == "analyze_shortage":
             return Responsibility(
                 type="analyze_shortage",

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { useAIStatusStore } from '../../stores/aiStatusStore';
+import { useAIStatusStore } from '../stores/aiStatusStore';
 
 interface UseAIStatusSSEOptions {
   requestId: string | null;
@@ -14,7 +14,6 @@ export function useAIStatusSSE({ requestId, enabled = true }: UseAIStatusSSEOpti
     setIsConnected,
     setCurrentRequestId,
     clearEvents,
-    isWindowOpen,
   } = useAIStatusStore();
 
   const connect = useCallback(() => {
@@ -75,7 +74,7 @@ export function useAIStatusSSE({ requestId, enabled = true }: UseAIStatusSSEOpti
   }, [setIsConnected]);
 
   useEffect(() => {
-    if (isWindowOpen && requestId) {
+    if (requestId) {
       clearEvents();
       connect();
     }
@@ -83,7 +82,7 @@ export function useAIStatusSSE({ requestId, enabled = true }: UseAIStatusSSEOpti
     return () => {
       disconnect();
     };
-  }, [isWindowOpen, requestId, connect, disconnect, clearEvents]);
+  }, [requestId, connect, disconnect, clearEvents]);
 
   return {
     connect,

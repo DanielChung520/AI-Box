@@ -15,10 +15,8 @@ Qdrant 存儲適配器 - 提供 AAM 長期記憶的向量存儲和檢索功能
 - 時效性管理: 支持記憶歸檔和清理
 """
 
-import json
 import logging
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from qdrant_client.models import (
     PointStruct,

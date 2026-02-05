@@ -11,12 +11,17 @@ import NLPPage from './pages/NLP';
 import BrainIcon from './components/BrainIcon';
 import AIStatusWindow from './components/AIStatusWindow';
 import { useDashboardStore } from './stores/dashboardStore';
+import { useAIStatusStore } from './stores/aiStatusStore';
+import { useAIStatusSSE } from './hooks/useAIStatusSSE';
 import './Layout.css';
 
 const { Content } = Layout;
 
 export default function DashboardLayout() {
   const { currentPage, sidebarCollapsed } = useDashboardStore();
+  const { currentRequestId } = useAIStatusStore();
+
+  useAIStatusSSE({ requestId: currentRequestId });
 
   const renderPage = () => {
     switch (currentPage) {

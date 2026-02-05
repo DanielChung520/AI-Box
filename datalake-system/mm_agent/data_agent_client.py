@@ -28,8 +28,9 @@ class DataAgentClient:
             service_url: Data-Agent 服務 URL（默認從環境變數讀取）
         """
         self._service_url = service_url or os.getenv(
-            "DATA_AGENT_SERVICE_URL", "http://localhost:8005"
+            "DATA_AGENT_SERVICE_URL", "http://localhost:8004"
         )
+        self._api_path = "/execute"
         self._timeout = 30.0
         self._logger = logger
 
@@ -172,17 +173,18 @@ class DataAgentClient:
         Returns:
             API 響應結果
         """
-        url = f"{self._service_url}/execute"
+        url = f"{self._service_url}{self._api_path}"
         timeout = timeout or self._timeout
 
-        self._logger.debug(f"調用 Data-Agent API: action={request_data.get('action')}, url={url}")
+        action = request_data.get("action", "")
+        self._logger.debug(f"調用 Data-Agent API: action={action}, url={url}")
 
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     url,
                     json={
-                        "task_id": f"mm-agent-{request_data.get('action')}",
+                        "task_id": f"mm-agent-{action}",
                         "task_type": "data_agent",
                         "task_data": request_data,
                         "metadata": {},
@@ -211,6 +213,9 @@ class DataAgentClient:
                     task_result = result.get("result", {})
                     if isinstance(task_result, dict):
                         if task_result.get("success", False):
+                            inner_result = task_result.get("result", task_result)
+                            if isinstance(inner_result, dict) and "rows" in inner_result:
+                                return inner_result
                             return task_result
                         else:
                             return {

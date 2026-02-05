@@ -542,6 +542,61 @@ class KnowledgeArchitectAgent(AgentServiceProtocol):
             f"domain={req.domain}, major={req.major}, top_k={req.top_k}"
         )
 
+        # 獲取調用 Agent 的 ID（從 metadata 中）
+        caller_agent_id = None
+        if raw_req.metadata:
+            caller_agent_id = raw_req.metadata.get("caller_agent_id")
+
+        self._logger.debug(
+            f"[KA-Agent] 📋 調用方信息: task_id={task_id}, caller_agent_id={caller_agent_id}"
+        )
+
+        # Agent 權限檢查（檢查是否有 MM-Agent 知識庫訪問權限）
+        MM_AGENT_KNOWLEDGE_CAPABILITY = "mm_agent_knowledge"
+
+        if caller_agent_id:
+            try:
+                from agents.services.registry.registry import get_agent_registry
+
+                registry = get_agent_registry()
+                agent_info = registry.get_agent_info(caller_agent_id)
+
+                if agent_info:
+                    capabilities = agent_info.capabilities or []
+                    has_mm_knowledge = MM_AGENT_KNOWLEDGE_CAPABILITY in capabilities
+
+                    self._logger.info(
+                        f"[KA-Agent] 🔐 Agent 權限檢查: task_id={task_id}, "
+                        f"caller_agent_id={caller_agent_id}, has_mm_knowledge={has_mm_knowledge}, "
+                        f"capabilities={capabilities}"
+                    )
+
+                    if not has_mm_knowledge:
+                        feedback = self._error_handler.permission_denied(
+                            user_id=caller_agent_id,
+                            action="知識庫檢索",
+                            resource="MM-Agent 知識庫",
+                            reason=f"Agent '{caller_agent_id}' 沒有 '{MM_AGENT_KNOWLEDGE_CAPABILITY}' 能力",
+                        )
+
+                        formatted_feedback = self._error_handler.format_feedback_for_llm(feedback)
+
+                        return KAResponse(
+                            success=False,
+                            message=formatted_feedback,
+                            results=[],
+                            total=0,
+                            metadata={"feedback": feedback.model_dump()},
+                        )
+                else:
+                    self._logger.warning(
+                        f"[KA-Agent] ⚠️ 未找到 Agent 信息: task_id={task_id}, caller_agent_id={caller_agent_id}"
+                    )
+            except Exception as e:
+                self._logger.error(
+                    f"[KA-Agent] ❌ 權限檢查失敗: task_id={task_id}, error={str(e)}", exc_info=True
+                )
+
         user_id = str(raw_req.metadata.get("user_id", "unknown") if raw_req.metadata else "unknown")
         resource = {
             "action": "knowledge_query",

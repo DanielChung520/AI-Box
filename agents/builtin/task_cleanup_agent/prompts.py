@@ -4,13 +4,14 @@
 
 """LLM Prompt 模板，用於 Task Cleanup Agent 的分析和驗證。"""
 
-from typing import List, Dict, Any
+from typing import List, Dict
 from dataclasses import dataclass
 
 
 @dataclass
 class CleanupAnalysis:
     """清理分析結果"""
+
     urgency: str  # "high" / "medium" / "low",
     risk_level: str  # "high" / "medium" / "low",
     analysis: str
@@ -20,7 +21,8 @@ class CleanupAnalysis:
 @dataclass
 class CleanupPlan:
     """清理計劃"""
-    steps: List[str] 
+
+    steps: List[str]
     estimated_impact: str
     warnings: List[str]
 
@@ -28,6 +30,7 @@ class CleanupPlan:
 @dataclass
 class CleanupVerification:
     """清理驗證結果"""
+
     is_complete: bool
     findings: str
     suggestions: List[str]
@@ -35,6 +38,7 @@ class CleanupVerification:
 
 class CleanupPrompts:
     """清理任務的 Prompt 模板集合"""
+
     # ========== 分析階段 Prompt ==========
     @staticmethod
     def analyze(user_id: str, task_id: str | None, stats: Dict[str, int]) -> str:
@@ -42,7 +46,7 @@ class CleanupPrompts:
 
         Args:
             user_id: 用戶 ID
-            task_id: 任務 ID (可選) 
+            task_id: 任務 ID (可選)
             stats: 掃描統計結果
 
         Returns:
@@ -73,6 +77,7 @@ class CleanupPrompts:
 }}
 
 只返回 JSON，不要有其他內容。"""
+
     # ========== 計劃階段 Prompt ==========
     @staticmethod
     def generate_plan(
@@ -82,7 +87,7 @@ class CleanupPrompts:
 
         Args:
             user_id: 用戶 ID
-            task_id: 任務 ID (可選) 
+            task_id: 任務 ID (可選)
             stats: 掃描統計結果
             analysis: LLM 分析結果
 
@@ -122,6 +127,7 @@ class CleanupPrompts:
 }}
 
 只返回 JSON,不要有其他內容。"""
+
     # ========== 驗證階段 Prompt ==========
     @staticmethod
     def verify(
@@ -131,7 +137,7 @@ class CleanupPrompts:
 
         Args:
             user_id: 用戶 ID
-            task_id: 任務 ID (可選) 
+            task_id: 任務 ID (可選)
             stats: 預期清理數量
             result: 實際清理結果
 
@@ -164,6 +170,8 @@ class CleanupPrompts:
 }}
 
 只返回 JSON，不要有其他內容。"""
+
+
 # 便捷函數
 def analyze_prompt(user_id: str, task_id: str | None, stats: Dict[str, int]) -> str:
     return CleanupPrompts.analyze(user_id, task_id, stats)

@@ -5,8 +5,6 @@
 
 """文件樹同步服務 - 確保前端文件樹與 ArangoDB 及檔案系統一致"""
 
-import hashlib
-import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -255,28 +253,6 @@ class FileTreeSyncService:
             "folders": folders_info,
             "tree": tree,  # 保留舊格式的 tree（用於兼容）
             # "persisted": persisted,
-        }
-
-        persisted = True
-        if task_doc is None:
-            persisted = False
-            logger.warning(
-                "User task not found when syncing file tree, skip persistence",
-                task_id=task_id,
-                user_id=user_id,
-            )
-        else:
-            user_task_collection.update(updated_doc)  # type: ignore[arg-type]  # update 接受 dict
-
-        return {
-            "task_id": task_id,
-            "user_id": user_id,
-            "fileTreeVersion": version,
-            "fileTreeHash": complete_tree_hash,  # 使用完整文件樹的哈希值
-            "fileTree": complete_file_tree,  # 返回完整的文件樹
-            "folders": folders_info,
-            "tree": tree,  # 保留舊格式的 tree（用於兼容）
-            "persisted": persisted,
         }
 
     def get_file_tree_version(self, user_id: str, task_id: str) -> Dict[str, Any]:

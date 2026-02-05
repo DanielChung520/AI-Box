@@ -6,8 +6,8 @@ from __future__ import annotations
 
 """RetrievalIntegrationAgent實現 - 負責將檢索結果集成到上下文LangGraph節點"""
 import logging
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState

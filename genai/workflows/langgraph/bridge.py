@@ -6,7 +6,7 @@ from __future__ import annotations
 
 """狀態橋接層 - 實現TaskAnalyzer與LangGraph狀態的雙向轉換"""
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from genai.workflows.langgraph.state import AIBoxState, StateManager
 

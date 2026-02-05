@@ -1,100 +1,107 @@
 {
   "frontend_model_simplification": {
     "enabled": true,
-    "description": "簡化前端模型列表，統一為 SmartQ 品牌形象",
+    "description": "前端模型選擇列表",
     "model_mapping": {
+      "auto": {
+        "id": "auto",
+        "name": "1. 自動",
+        "provider": "auto",
+        "icon": "fa-magic",
+        "color": "text-purple-400",
+        "description": "自動選擇最佳模型（依據 config 中的 model_priority）",
+        "status": "active"
+      },
       "chatgpt": {
-        "id": "chatgpt-latest",
-        "name": "ChatGPT",
+        "id": "chatgpt",
+        "name": "2. ChatGPT",
         "provider": "openai",
         "icon": "fa-robot",
         "color": "text-green-400",
-        "description": "OpenAI 最新 ChatGPT 模型",
-        "backend_model": "gpt-oss:120b-cloud"
+        "description": "OpenAI ChatGPT 模型",
+        "backend_model": "gpt-oss:120b-cloud",
+        "status": "inactive",
+        "inactive_reason": "尚未設定 API Key"
       },
       "gemini": {
-        "id": "gemini-latest",
-        "name": "Gemini",
+        "id": "gemini",
+        "name": "3. Gemini",
         "provider": "google",
         "icon": "fa-gem",
         "color": "text-blue-400",
-        "description": "Google 最新 Gemini 模型",
-        "backend_model": "gemini-2.0-flash"
+        "description": "Google Gemini 模型",
+        "backend_model": "gemini-2.0-flash",
+        "status": "inactive",
+        "inactive_reason": "尚未設定 API Key"
+      },
+      "claude": {
+        "id": "claude",
+        "name": "4. Claude",
+        "provider": "anthropic",
+        "icon": "fa-brain",
+        "color": "text-orange-400",
+        "description": "Anthropic Claude 模型",
+        "backend_model": "claude-3-5-sonnet",
+        "status": "inactive",
+        "inactive_reason": "尚未設定 API Key"
       },
       "grok": {
-        "id": "grok-latest",
-        "name": "Grok",
+        "id": "grok",
+        "name": "5. Grok",
         "provider": "xai",
         "icon": "fa-bolt",
         "color": "text-yellow-400",
         "description": "xAI Grok 模型",
-        "backend_model": "grok-2"
+        "backend_model": "grok-2",
+        "status": "inactive",
+        "inactive_reason": "尚未設定 API Key"
       },
       "ollama": {
         "id": "ollama-local",
-        "name": "Ollama",
+        "name": "6. Ollama-Local",
         "provider": "ollama",
         "icon": "fa-server",
         "color": "text-purple-400",
         "description": "本地部署模型",
-        "backend_model": "gpt-oss:120b"
+        "backend_model_priority": [
+          "gpt-oss:120b",
+          "llama3.2-vision:90b",
+          "qwen3:32b"
+        ],
+        "status": "active"
       },
       "smartq-hci": {
         "id": "smartq-hci",
-        "name": "SmartQ-HCI",
+        "name": "7. SmartQ",
         "provider": "smartq",
         "icon": "fa-microchip",
         "color": "text-orange-400",
-        "description": "智能融合模型 (Human-Computer Interface)",
+        "description": "SmartQ-HCI 智能融合模型",
         "backend_model": "auto",
         "moe_routing": {
           "enabled": true,
           "scene": "chat",
-          "fallback_strategy": "performance"
-        }
+          "fallback_strategy": "cost_performance_balance"
+        },
+        "status": "active"
       }
-    },
-    "auto_model": {
-      "id": "auto",
-      "name": "Auto",
-      "provider": "auto",
-      "icon": "fa-magic",
-      "color": "text-purple-400",
-      "description": "自動選擇最佳模型"
     }
   },
   "backend_routing": {
     "smartq-hci_config": {
+      "description": "SmartQ-HCI 智能路由配置 - 根據流向及成本平衡自動分配",
       "primary_models": [
         "gpt-oss:120b-cloud",
-        "glm-4.7:cloud",
-        "qwen3-next:latest"
+        "mistral-nemo:12b"
       ],
       "fallback_models": [
-        "llama3.2:latest",
-        "glm-4.6:cloud"
+        "llama3.2:3b-instruct-q4_0",
+        "qwen3:32b"
       ],
       "selection_criteria": {
         "performance_weight": 0.4,
         "cost_weight": 0.3,
         "availability_weight": 0.3
-      },
-      "scene_mapping": {
-        "chat": [
-          "gpt-oss:120b-cloud",
-          "glm-4.7:cloud"
-        ],
-        "semantic_understanding": [
-          "glm-4.7:cloud",
-          "gpt-oss:120b-cloud"
-        ],
-        "task_analysis": [
-          "qwen3-coder:30b",
-          "gpt-oss:120b-cloud"
-        ],
-        "embedding": [
-          "nomic-embed-text:latest"
-        ]
       }
     }
   }

@@ -1,11 +1,12 @@
 # 代碼功能說明: MM-Agent 對話鏈 - LangChain 編排 + 多輪對話
 # 創建日期: 2026-01-31
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-31
+# 最後修改日期: 2026-02-03
 
 """MM-Agent 對話鏈 - 意圖語義分析 + 多輪對話支持"""
 
 import os
+import logging
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
 
@@ -13,6 +14,11 @@ from mm_agent.translator import Translator, TranslationResult
 from mm_agent.negative_list import NegativeListChecker
 from mm_agent.coreference_resolver import CoreferenceResolver
 from mm_agent.chain.context_manager import ContextManager, get_context_manager
+from mm_agent.semantic_translator import SemanticTranslatorAgent
+from mm_agent.translation_models import SemanticTranslationResult
+from mm_agent.services.schema_registry import get_schema_registry
+
+logger = logging.getLogger(__name__)
 
 
 class MMChainInput(BaseModel):
@@ -51,10 +57,11 @@ class MMAgentChain:
 工作流程：
 1. 嘗試指代消解（從上下文提取省略信息）
 2. 負面表列檢查（權限控制）
-3. 進行語義分析，提取意圖和參數
-4. 專業轉譯（tlf19 碼、時間表達式）
-5. 保存對話歷史和提取的實體
-6. 生成自然語言回復
+3. 檢查是否需要查詢知識庫（職責、技能、流程等）
+4. 進行語義分析，提取意圖和參數
+5. 專業轉譯（tlf19 碼、時間表達式）
+6. 保存對話歷史和提取的實體
+7. 生成自然語言回復
 
 多輪對話示例：
 用戶：RM05-008 上月買進多少
@@ -67,14 +74,211 @@ class MMAgentChain:
 - 專業但易於理解的語言
 - 包含關鍵數據和專業術語說明
 - 多輪對話時保持上下文一致
+- 優先使用知識庫信息回答職責、技能、流程類問題
 
 當無法理解查詢時，請求用戶澄清。"""
 
-    def __init__(self, storage_backend: str = "memory"):
-        self._translator = Translator()
+    def __init__(self, storage_backend: str = "memory", use_semantic_translator: bool = False):
+        """初始化對話鏈
+
+        Args:
+            storage_backend: 存儲後端（memory/redis）
+            use_semantic_translator: 是否使用語義轉譯 Agent（LLM）
+        """
+        self._translator = Translator(use_semantic_translator=use_semantic_translator)
         self._negative_list = NegativeListChecker()
         self._context_manager = get_context_manager(storage_backend)
         self._coreference_resolver = CoreferenceResolver(model="qwen3:32b")
+        self._ka_client = None  # KA-Agent 客戶端
+        self._use_semantic_translator = use_semantic_translator
+
+        # 初始化 Schema Registry（用於 SQL 生成）
+        self._schema_registry = get_schema_registry()
+
+        # 初始化語義轉譯器（當使用新架構時）
+        self._semantic_translator = None
+        if use_semantic_translator:
+            try:
+                self._semantic_translator = SemanticTranslatorAgent(use_rules_engine=True)
+                logger.info("MM-Agent: 語義轉譯器已初始化")
+            except Exception as e:
+                logger.warning(f"MM-Agent: 無法初始化語義轉譯器: {e}")
+
+    def _build_clarification_message(self, intent: str, validation, constraints) -> str:
+        """構建澄清消息"""
+        messages = ["為了更準確地回答您的問題，請提供以下信息："]
+
+        for field in validation.missing_fields:
+            prompt = validation.notes or f"請提供 {field}"
+            messages.append(f"\n• {prompt}")
+
+        messages.append("\n謝謝您的配合！")
+        return "\n".join(messages)
+
+    def _generate_sql_from_semantic(
+        self, semantic_result: SemanticTranslationResult
+    ) -> Optional[str]:
+        """根據語義分析結果生成 SQL"""
+        if not semantic_result:
+            return None
+
+        intent = semantic_result.intent
+        if intent == "CLARIFICATION":
+            return None
+
+        # 轉換約束條件為字典
+        constraints = {}
+        if semantic_result.constraints.material_id:
+            constraints["material_id"] = semantic_result.constraints.material_id
+        if semantic_result.constraints.inventory_location:
+            constraints["inventory_location"] = semantic_result.constraints.inventory_location
+        if semantic_result.constraints.material_category:
+            constraints["material_category"] = semantic_result.constraints.material_category
+        if semantic_result.constraints.transaction_type:
+            constraints["transaction_type"] = semantic_result.constraints.transaction_type
+        if semantic_result.constraints.time_range:
+            time_range = semantic_result.constraints.time_range
+            if isinstance(time_range, dict):
+                # 保留完整的 time_range 字典（包含 type 和 date/start/end）
+                constraints["time_range"] = time_range
+            else:
+                constraints["time_type"] = time_range
+        if semantic_result.constraints.quantity:
+            constraints["quantity"] = semantic_result.constraints.quantity
+
+        try:
+            sql = self._schema_registry.generate_sql(intent, constraints)
+            logger.info(f"SQL 生成成功: {sql[:100] if sql else 'None'}...")
+            return sql
+        except Exception as e:
+            logger.warning(f"SQL 生成失敗: {e}")
+            return None
+
+    def _get_ka_client(self):
+        """獲取 KA-Agent 客戶端（懶加載）"""
+        if self._ka_client is None:
+            try:
+                from agents.services.protocol.http_client import HTTPAgentClient
+
+                self._ka_client = HTTPAgentClient(
+                    base_url="http://localhost:8000",  # AI-Box 主服務地址
+                    timeout=30,
+                )
+                logger.info("MM-Agent: KA-Agent 客戶端已初始化")
+            except Exception as e:
+                logger.warning(f"MM-Agent: 無法初始化 KA-Agent 客戶端: {e}")
+        return self._ka_client
+
+    def _needs_knowledge_retrieval(self, instruction: str) -> bool:
+        """判斷是否需要知識庫檢索
+
+        Args:
+            instruction: 用戶查詢
+
+        Returns:
+            是否需要知識庫檢索
+        """
+        knowledge_keywords = [
+            # 職責相關
+            "職責",
+            "職能",
+            "功能",
+            "介紹",
+            "說明",
+            "你是誰",
+            "你是什麼",
+            "你做什麼",
+            # 技能相關
+            "技能",
+            "能力",
+            "可以做",
+            "擅長",
+            "會做",
+            "能做",
+            # 流程相關
+            "流程",
+            "步驟",
+            "怎麼",
+            "如何",
+            "方法",
+            "操作",
+            "指引",
+            "教學",
+            # 其他知識相關
+            "規則",
+            "規定",
+            "標準",
+            "注意事項",
+            "注意",
+            "提醒",
+            "注意點",
+        ]
+
+        instruction_lower = instruction.lower()
+        return any(keyword in instruction_lower for keyword in knowledge_keywords)
+
+    async def _retrieve_knowledge(
+        self, instruction: str, domain: str = "mm_agent", major: str = "responsibilities"
+    ) -> Optional[str]:
+        """調用 KA-Agent 檢索知識
+
+        Args:
+            instruction: 用戶查詢
+            domain: 知識庫域名（mm_agent）
+            major: 知識庫類型（responsibilities/skills/workflows）
+
+        Returns:
+            檢索結果，失敗返回 None
+        """
+        ka_client = self._get_ka_client()
+        if ka_client is None:
+            logger.warning("MM-Agent: KA-Agent 客戶端未初始化，無法檢索知識庫")
+            return None
+
+        try:
+            from agents.services.protocol.base import AgentServiceRequest
+
+            # 構建 KA-Agent 請求
+            ka_request = AgentServiceRequest(
+                task_id=f"mm_knowledge_{id(instruction)}",
+                task_type="knowledge_query",
+                task_data={
+                    "instruction": instruction,
+                    "domain": domain,
+                    "major": major,
+                },
+                metadata={
+                    "caller_agent_id": "mm-agent",  # 標記調用方為 mm-agent
+                    "knowledge_via_authorized_agent": True,
+                },
+            )
+
+            # 調用 KA-Agent
+            response = await ka_client.execute_agent(
+                agent_id="ka-agent",
+                request=ka_request,
+            )
+
+            if response.success and response.result:
+                knowledge = response.result.get("knowledge") or response.result.get("response")
+                logger.info(
+                    f"MM-Agent: 知識庫檢索成功, instruction='{instruction[:50]}...', "
+                    f"knowledge_length={len(knowledge) if knowledge else 0}"
+                )
+                return knowledge
+            else:
+                logger.warning(
+                    f"MM-Agent: 知識庫檢索失敗, instruction='{instruction[:50]}...', "
+                    f"error={response.error if hasattr(response, 'error') else 'Unknown'}"
+                )
+                return None
+
+        except Exception as e:
+            logger.error(
+                f"MM-Agent: 調用 KA-Agent 檢索知識庫失敗: {e}",
+                exc_info=True,
+            )
+            return None
 
     def _check_negative_list(self, instruction: str) -> tuple[bool, str]:
         """L4: 負面表列檢查（權限控制）"""
@@ -95,7 +299,7 @@ class MMAgentChain:
                 return "sales"
             elif translation.tlf19 in ["301"]:
                 return "scrapping"
-        elif "庫存" in instruction:
+        elif "庫存" in instruction or translation.material_category:
             return "inventory"
         return "unknown"
 
@@ -152,7 +356,7 @@ class MMAgentChain:
 
         return translation
 
-    def run(self, input_data: MMChainInput) -> MMChainOutput:
+    async def run(self, input_data: MMChainInput) -> MMChainOutput:
         """執行對話鏈（同步版本 - 支持多輪對話）"""
         instruction = input_data.instruction
         user_id = input_data.user_id
@@ -194,16 +398,99 @@ class MMAgentChain:
                 },
             )
 
-        # Step 3: 專業轉譯
-        translation = self._translate(working_query)
+        # Step 3: 檢查是否需要知識庫檢索
+        knowledge_result = None
+        if self._needs_knowledge_retrieval(working_query):
+            logger.info(f"MM-Agent: 檢測到知識庫查詢需求, instruction='{working_query[:50]}...'")
 
-        # Step 4: 使用上下文豐富轉譯結果（對於省略的實體）
+            # 嘗試從多個知識庫類型檢索
+            for major in ["responsibilities", "skills", "workflows"]:
+                result = await self._retrieve_knowledge(
+                    working_query, domain="mm_agent", major=major
+                )
+                if result:
+                    knowledge_result = result
+                    logger.info(f"MM-Agent: 從 {major} 知識庫檢索到結果")
+                    break
+
+            if not knowledge_result:
+                logger.warning("MM-Agent: 知識庫檢索未返回結果")
+
+        # Step 4: 專業轉譯 + 語義分析（使用新架構）
+        semantic_result = None
+        translation = await self._translate(working_query)
+
+        # 如果啟用語義轉譯器，使用新架構進行語義分析
+        if self._semantic_translator and not knowledge_result:
+            try:
+                logger.info(f"MM-Agent: 使用語義轉譯器, instruction='{working_query[:50]}...'")
+                semantic_result = await self._semantic_translator.translate(working_query)
+
+                # 如果需要澄清，優先返回澄清請求
+                if semantic_result.validation.requires_confirmation:
+                    clarification_msg = self._build_clarification_message(
+                        semantic_result.intent,
+                        semantic_result.validation,
+                        semantic_result.constraints,
+                    )
+                    return MMChainOutput(
+                        success=False,
+                        response="",
+                        needs_clarification=True,
+                        clarification_message=clarification_msg,
+                        session_id=session_id,
+                        resolved_query=resolved_query if resolved_query != instruction else None,
+                        translation=translation,
+                        debug_info={
+                            "step": "semantic_translation",
+                            "intent": semantic_result.intent,
+                            "semantic_result": semantic_result.model_dump(),
+                            "requires_confirmation": True,
+                        },
+                    )
+            except Exception as e:
+                logger.warning(f"MM-Agent: 語義轉譯失敗，回退到原有邏輯: {e}")
+
+        # Step 5: 使用上下文豐富轉譯結果（對於省略的實體）
         translation = self._enrich_with_context(translation, context_entities)
 
-        # Step 5: 意圖分析
+        # Step 6: 意圖分析
         intent = self._analyze_intent(working_query, translation)
 
-        # Step 6: 保存對話歷史和實體
+        # Step 6.5: 檢查是否需要澄清（針對模糊的時間表達）
+        needs_clarification = False
+        clarification_message = None
+        ambiguous_time_keywords = ["最近", "這幾天", "近來", "近期"]
+        has_ambiguous_time = any(kw in working_query for kw in ambiguous_time_keywords)
+
+        if has_ambiguous_time and intent in ["purchase", "sales", "material_issue"]:
+            needs_clarification = True
+            clarification_message = """「最近」是指什麼時間範圍？
+• 今天
+• 最近一週
+• 最近一個月
+• 最近三個月
+• 其他時間範圍"""
+
+        if needs_clarification:
+            return MMChainOutput(
+                success=False,
+                response="",
+                needs_clarification=True,
+                clarification_message=clarification_message,
+                session_id=session_id,
+                resolved_query=resolved_query if resolved_query != instruction else None,
+                debug_info={
+                    "step": "clarification",
+                    "intent": intent,
+                    "reason": "模糊的時間表達",
+                    "translation": translation.model_dump()
+                    if hasattr(translation, "model_dump")
+                    else dict(translation),
+                },
+            )
+
+        # Step 7: 生成回復（如果有知識庫結果，優先使用）
         metadata = {
             "part_number": translation.part_number,
             "tlf19": translation.tlf19,
@@ -215,12 +502,41 @@ class MMAgentChain:
         self._context_manager.add_message(session_id, "user", instruction, metadata)
 
         # 生成回復
-        response = f"已收到指令：{instruction}"
-        if resolved_query != instruction:
-            response += f"\n（指代消解：{resolved_query}）"
+        if knowledge_result:
+            # 使用知識庫結果生成回復
+            response = knowledge_result
+            logger.info(f"MM-Agent: 使用知識庫結果回復, response_length={len(response)}")
+        else:
+            # 默認回復
+            response = f"已收到指令：{instruction}"
+            if resolved_query != instruction:
+                response += f"\n（指代消解：{resolved_query}）"
 
         # 保存助手回覆
         self._context_manager.add_message(session_id, "assistant", response)
+
+        # 構建 debug_info
+        debug_info = {
+            "step": "analyzed",
+            "intent": intent,
+            "has_context_entities": len(context_entities) > 0,
+            "context_entities": context_entities,
+            "translation": translation.model_dump()
+            if hasattr(translation, "model_dump")
+            else dict(translation),
+            "used_knowledge_retrieval": knowledge_result is not None,
+            "knowledge_used": knowledge_result is not None,
+        }
+
+        # 如果有語義分析結果，添加到 debug_info
+        if semantic_result:
+            debug_info["semantic_result"] = semantic_result.model_dump()
+            debug_info["intent"] = semantic_result.intent
+
+            # 生成 SQL
+            generated_sql = self._generate_sql_from_semantic(semantic_result)
+            if generated_sql:
+                debug_info["generated_sql"] = generated_sql
 
         return MMChainOutput(
             success=True,
@@ -228,72 +544,74 @@ class MMAgentChain:
             translation=translation,
             session_id=session_id,
             resolved_query=resolved_query if resolved_query != instruction else None,
-            debug_info={
-                "step": "analyzed",
-                "intent": intent,
-                "has_context_entities": len(context_entities) > 0,
-                "context_entities": context_entities,
-                "translation": translation.model_dump(),
-            },
+            debug_info=debug_info,
         )
 
 
 if __name__ == "__main__":
     import asyncio
 
-    chain = MMAgentChain()
+    async def main():
+        chain = MMAgentChain()
 
-    print("=" * 70)
-    print("MM-Agent 多輪對話測試")
-    print("=" * 70)
+        print("=" * 70)
+        print("MM-Agent 多輪對話測試")
+        print("=" * 70)
 
-    # 模擬多輪對話
-    conversation = [
-        ("RM05-008 上月買進多少", "第一輪：初始查詢"),
-        ("這個料號庫存還有多少", "第二輪：指代消解測試"),
-        ("上月賣出多少", "第三輪：進一步省略"),
-        ("今天天氣如何", "第四輪：無關查詢"),
-    ]
+        # 模擬多輪對話
+        conversation = [
+            ("RM05-008 上月買進多少", "第一輪：初始查詢"),
+            ("這個料號庫存還有多少", "第二輪：指代消解測試"),
+            ("上月賣出多少", "第三輪：進一步省略"),
+            ("今天天氣如何", "第四輪：無關查詢"),
+            ("告訴我你的職責", "第五輪：知識庫查詢測試"),
+        ]
 
-    session_id = None
+        session_id = None
 
-    for instruction, desc in conversation:
+        for instruction, desc in conversation:
+            print(f"\n{'=' * 70}")
+            print(f"{desc}")
+            print(f"用戶: {instruction}")
+
+            result = await chain.run(MMChainInput(instruction=instruction, session_id=session_id))
+
+            # 保存 session_id 用於下一輪
+            session_id = result.session_id
+
+            if result.needs_clarification:
+                print(f"助手: ❌ 需要澄清")
+                print(f"訊息: {result.clarification_message[:60]}...")
+            else:
+                trans = result.translation
+                print(f"助手: ✅ 理解成功")
+
+                if result.resolved_query:
+                    print(f"   指代消解: {result.resolved_query}")
+
+                print(f"   - 料號: {trans.part_number}")
+                print(f"   - tlf19: {trans.tlf19}")
+                print(f"   - 意圖: {result.debug_info.get('intent')}")
+
+                # 顯示是否使用了上下文
+                if result.debug_info.get("has_context_entities"):
+                    print(f"   - 使用了上下文實體: {result.debug_info.get('context_entities')}")
+
+                # 顯示是否使用了知識庫
+                if result.debug_info.get("used_knowledge_retrieval"):
+                    print(f"   - 使用知識庫檢索: {result.debug_info.get('knowledge_used', False)}")
+
+        # 顯示完整對話歷史
         print(f"\n{'=' * 70}")
-        print(f"{desc}")
-        print(f"用戶: {instruction}")
+        print("完整對話歷史:")
+        print(f"{'=' * 70}")
+        context = chain._context_manager.get_context(session_id)
+        if context:
+            for i, msg in enumerate(context.messages, 1):
+                role = "用戶" if msg.role == "user" else "助手"
+                print(f"{i}. [{role}] {msg.content}")
 
-        result = chain.run(MMChainInput(instruction=instruction, session_id=session_id))
+        print(f"\n{'=' * 70}")
+        print("測試完成")
 
-        # 保存 session_id 用於下一輪
-        session_id = result.session_id
-
-        if result.needs_clarification:
-            print(f"助手: ❌ 需要澄清")
-            print(f"訊息: {result.clarification_message[:60]}...")
-        else:
-            trans = result.translation
-            print(f"助手: ✅ 理解成功")
-
-            if result.resolved_query:
-                print(f"   指代消解: {result.resolved_query}")
-
-            print(f"   - 料號: {trans.part_number}")
-            print(f"   - tlf19: {trans.tlf19}")
-            print(f"   - 意圖: {result.debug_info.get('intent')}")
-
-            # 顯示是否使用了上下文
-            if result.debug_info.get("has_context_entities"):
-                print(f"   - 使用了上下文實體: {result.debug_info.get('context_entities')}")
-
-    # 顯示完整對話歷史
-    print(f"\n{'=' * 70}")
-    print("完整對話歷史:")
-    print(f"{'=' * 70}")
-    context = chain._context_manager.get_context(session_id)
-    if context:
-        for i, msg in enumerate(context.messages, 1):
-            role = "用戶" if msg.role == "user" else "助手"
-            print(f"{i}. [{role}] {msg.content}")
-
-    print(f"\n{'=' * 70}")
-    print("測試完成")
+    asyncio.run(main())

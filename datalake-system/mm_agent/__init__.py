@@ -1,8 +1,15 @@
 # 代碼功能說明: 庫管員Agent模塊初始化
 # 創建日期: 2026-01-13
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-13
+# 最後修改日期: 2026-02-05
 
 """庫管員Agent - 庫存管理業務Agent"""
 
 __version__ = "1.0.0"
+
+# 導出簡化版組件
+from .router import Router
+from .extractor import Extractor
+from .sql_generator import SQLGenerator
+
+__all__ = ["Router", "Extractor", "SQLGenerator"]

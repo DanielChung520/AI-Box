@@ -228,10 +228,29 @@ You must ONLY extract:
      * "解釋一下微服務架構" → topics: ["architecture", "microservices"]
 
 2. entities (List[str]): Extract mentioned entities (agents, systems, documents, etc.)
-   - Examples:
-     * "幫我產生Data Agent文件" → entities: ["Data Agent"]
-     * "編輯README.md文件" → entities: ["README.md"]
-     * "查詢系統配置" → entities: ["System Config", "Config Service"]
+    - Examples:
+      * "幫我產生Data Agent文件" → entities: ["Data Agent"]
+      * "編輯README.md文件" → entities: ["README.md"]
+      * "查詢系統配置" → entities: ["System Config", "Config Service"]
+
+3. coreference_resolutions (List[Dict]): Resolve pronouns and references using session context
+    - Examples:
+      * "物料管理員需要哪些技能？告訴我他們的職責" → coreference_resolutions: [
+          {"original": "他們", "resolved": "物料管理員", "source": "inference", "confidence": 0.95}
+        ]
+      * "編輯README.md文件。查詢這個文件的內容" (with context: {"mentioned_files": ["README.md"]}) → coreference_resolutions: [
+          {"original": "這個文件", "resolved": "README.md", "source": "session_context", "confidence": 0.98}
+        ]
+      * "Data Agent 有哪些能力？幫我優化它" → coreference_resolutions: [
+          {"original": "它", "resolved": "Data Agent", "source": "inference", "confidence": 0.92}
+        ]
+    - Guidelines:
+      * Use session_context to resolve references (e.g., "mentioned_files", "previous_entities")
+      * For pronouns like "他們", "它", "這個", infer from context
+      * Include confidence score for each resolution (0.8-1.0 for confident, <0.8 for uncertain)
+      * If no coreferences found, return empty list []
+
+4. action_signals (List[str]): Extract action verbs/signals indicating user intent
 
 3. action_signals (List[str]): Extract action verbs/signals indicating user intent
    - Examples:
@@ -241,21 +260,24 @@ You must ONLY extract:
      * "什麼是DevSecOps" → action_signals: ["explain", "query"]
 
 4. modality (Literal["instruction", "question", "conversation", "command"]): Determine the communication mode
-   - instruction: User is giving instructions (e.g., "幫我產生文件", "編輯README.md")
-   - question: User is asking a question (e.g., "什麼是DevSecOps", "如何實現")
-   - conversation: Casual chat (e.g., "你好", "謝謝")
-   - command: Direct command (e.g., "執行這個任務", "運行測試")
+    - instruction: User is giving instructions (e.g., "幫我產生文件", "編輯README.md")
+    - question: User is asking a question (e.g., "什麼是DevSecOps", "如何實現")
+    - conversation: Casual chat (e.g., "你好", "謝謝")
+    - command: Direct command (e.g., "執行這個任務", "運行測試")
 
 5. certainty (float, 0.0-1.0): Your confidence in the semantic understanding
-   - 0.9-1.0: Very clear semantic meaning
-   - 0.7-0.9: Clear semantic meaning with some ambiguity
-   - 0.6-0.7: Ambiguous semantic meaning
-   - <0.6: Very uncertain (will use fallback)
+    - 0.9-1.0: Very clear semantic meaning
+    - 0.7-0.9: Clear semantic meaning with some ambiguity
+    - 0.6-0.7: Ambiguous semantic meaning
+    - <0.6: Very uncertain (will use fallback)
 
 Return ONLY valid JSON following the SemanticUnderstandingOutput schema:
 {{
   "topics": ["topic1", "topic2"],
   "entities": ["entity1", "entity2"],
+  "coreference_resolutions": [
+    {{"original": "他們", "resolved": "物料管理員", "source": "inference", "confidence": 0.95}}
+  ],
   "action_signals": ["action1", "action2"],
   "modality": "instruction|question|conversation|command",
   "certainty": 0.95

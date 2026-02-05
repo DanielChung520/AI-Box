@@ -11,7 +11,6 @@ from agents.builtin.task_cleanup_agent.llm_service import CleanupLLMService
 from agents.builtin.task_cleanup_agent.audit_logger import AOGAAuditLogger
 from agents.builtin.task_cleanup_agent.models import (
     CleanupResponse,
-    CleanupStats,
     CleanupAnalysis,
     CleanupPlan,
     CleanupVerification,

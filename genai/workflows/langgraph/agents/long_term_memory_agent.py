@@ -7,7 +7,7 @@ from __future__ import annotations
 """LongTermMemoryAgent實現 - 負責長期記憶優化LangGraph節點"""
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState
@@ -23,7 +23,7 @@ class LongTermMemoryOptimizationResult:
     memory_archived: bool
     memory_indexed: bool
     memory_health_score: float
-    optimization_metrics: Dict[str, Any] = field(default_factory=dict) 
+    optimization_metrics: Dict[str, Any] = field(default_factory=dict)
     reasoning: str = ""
 
 

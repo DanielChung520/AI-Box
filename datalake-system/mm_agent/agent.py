@@ -242,6 +242,15 @@ class MMAgent(AgentServiceProtocol):
                 }
             return await self._query_stock_info(part_number, request)
 
+        elif responsibility_type == "query_stock_history":
+            part_number = parameters.get("part_number")
+            if not part_number:
+                return {
+                    "success": False,
+                    "error": "缺少料號參數（part_number）",
+                }
+            return await self._query_stock_history(part_number, request)
+
         elif responsibility_type == "analyze_shortage":
             part_number = parameters.get("part_number")
             if not part_number:
@@ -267,10 +276,20 @@ class MMAgent(AgentServiceProtocol):
             return await self._generate_purchase_order(part_number, quantity, request)
 
         elif responsibility_type == "clarification_needed":
+            # 生成澄清問題的自然語言解釋
+            questions = responsibility.clarification_questions or []
+            if questions:
+                explanation = questions[0] + "\n"
+                for q in questions[1:]:
+                    explanation += q + "\n"
+            else:
+                explanation = "您的指令不夠明確，請提供更多細節。"
+
             return {
                 "success": False,
                 "error": "需要澄清用戶意圖",
-                "clarification_questions": responsibility.clarification_questions,
+                "clarification_questions": questions,
+                "response": explanation.strip(),
             }
 
         else:
@@ -295,10 +314,29 @@ class MMAgent(AgentServiceProtocol):
         """
         try:
             part_info = await self._part_service.query_part_info(part_number, request)
+
+            # 生成自然語言解釋
+            explanation = f"以下是料號 {part_number} 的詳細資料：\n"
+            explanation += f"• 料號：{part_info.get('part_number', part_number)}\n"
+            if part_info.get("description"):
+                explanation += f"• 描述：{part_info.get('description')}\n"
+            if part_info.get("spec"):
+                explanation += f"• 規格：{part_info.get('spec')}\n"
+            if part_info.get("supplier"):
+                explanation += f"• 供應商：{part_info.get('supplier')}\n"
+            if part_info.get("unit"):
+                explanation += f"• 單位：{part_info.get('unit')}\n"
+
             return {
                 "success": True,
-                "part_number": part_number,
                 "part_info": part_info,
+                "response": explanation,
+            }
+        except Exception as e:
+            self._logger.error(f"查詢物料信息失敗: {e}")
+            return {
+                "success": False,
+                "error": str(e),
             }
         except Exception as e:
             self._logger.error(f"查詢物料信息失敗: {e}")
@@ -322,14 +360,83 @@ class MMAgent(AgentServiceProtocol):
             查詢結果
         """
         try:
-            stock_info = await self._stock_service.query_stock_info(part_number, request)
+            user_id = request.metadata.get("user_id") if request.metadata else None
+            stock_info = await self._stock_service.query_stock_info(part_number, user_id=user_id)
+
+            # 生成自然語言解釋
+            warehouse = stock_info.get("warehouse", "未知倉庫")
+            batch_no = stock_info.get("batch_no", "-")
+            quantity = stock_info.get("quantity", 0)
+
+            explanation = f"料號 {part_number} 的庫存資料如下：\n"
+            explanation += f"• 存放倉庫：{warehouse}\n"
+            explanation += f"• 批次編號：{batch_no}\n"
+            explanation += f"• 目前庫存數量：{quantity:,} 件"
+
             return {
                 "success": True,
                 "part_number": part_number,
                 "stock_info": stock_info,
+                "response": explanation,
             }
         except Exception as e:
             self._logger.error(f"查詢庫存信息失敗: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+            }
+
+    async def _query_stock_history(
+        self,
+        part_number: str,
+        request: AgentServiceRequest,
+    ) -> Dict[str, Any]:
+        """查詢進料/交易歷史
+
+        Args:
+            part_number: 料號
+            request: Agent服務請求
+
+        Returns:
+            交易歷史結果
+        """
+        try:
+            user_id = request.metadata.get("user_id") if request.metadata else None
+
+            # 查詢最近進貨記錄（tlf19=101）
+            purchase_history = await self._stock_service.query_purchase(
+                part_number=part_number,
+                user_id=user_id,
+            )
+
+            transactions = purchase_history.get("transactions", [])
+            count = purchase_history.get("count", 0)
+
+            # 生成自然語言解釋
+            if count == 0:
+                explanation = f"料號 {part_number} 查無進料記錄。"
+            else:
+                explanation = f"料號 {part_number} 的最近進料記錄（共 {count} 筆）：\n\n"
+                for i, trans in enumerate(transactions[:10], 1):
+                    trans_date = trans.get("trans_date", "-")
+                    quantity = trans.get("quantity", 0)
+                    unit = trans.get("unit", "件")
+                    warehouse = trans.get("warehouse", "-")
+                    explanation += f"{i}. 日期：{trans_date}\n"
+                    explanation += f"   數量：{quantity:,} {unit}\n"
+                    explanation += f"   倉庫：{warehouse}\n\n"
+
+                if count > 10:
+                    explanation += f"... 還有 {count - 10} 筆更早的記錄"
+
+            return {
+                "success": True,
+                "part_number": part_number,
+                "purchase_history": purchase_history,
+                "response": explanation,
+            }
+        except Exception as e:
+            self._logger.error(f"查詢進料記錄失敗: {e}")
             return {
                 "success": False,
                 "error": str(e),

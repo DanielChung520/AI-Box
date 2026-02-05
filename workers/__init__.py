@@ -5,5 +5,7 @@
 
 """RQ Worker 模組 - 提供任務處理 Worker"""
 
-# 導入任務以供 RQ Worker 註冊
+# 導入任務以供 RQ Worker 註冊（re-export 供 RQ 發現）
 from .tasks import process_file_chunking_and_vectorization_task
+
+__all__ = ["process_file_chunking_and_vectorization_task"]

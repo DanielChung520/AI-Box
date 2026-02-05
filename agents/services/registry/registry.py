@@ -272,8 +272,143 @@ class AgentRegistry:
                 f"not is_system_agent={not agent_info.is_system_agent}"
             )
 
-        # 【新增】如果是外部 Agent（is_system_agent=False）且缺少 endpoint 配置
-        # 從 agent_display_configs 加載完整的技術配置（外部 Agent 不使用 system_agent_registry）
+        # 【修改】如果 Agent 不在內存中，嘗試從 agent_display_configs 動態加載
+        if agent_info is None:
+            self._logger.info(
+                f"🔍 [get_agent_info] Agent '{agent_id}' not in memory, trying to load from agent_display_configs"
+            )
+            try:
+                from database.arangodb import ArangoDBClient
+
+                arango_client = ArangoDBClient()
+                if arango_client.db:
+                    cursor = arango_client.db.aql.execute(
+                        """
+                        FOR doc IN agent_display_configs
+                            FILTER doc.config_type == "agent"
+                            FILTER doc.agent_id == @agent_id
+                            RETURN doc
+                        """,
+                        bind_vars={"agent_id": agent_id},
+                    )
+
+                    docs = list(cursor)
+                    if docs:
+                        doc = docs[0]
+                        agent_config = doc.get("agent_config", {})
+                        if agent_config:
+                            from .models import (
+                                AgentEndpoints,
+                                AgentMetadata,
+                                AgentPermissionConfig,
+                                AgentRegistryInfo,
+                                AgentStatus,
+                            )
+
+                            endpoint_url = agent_config.get("endpoint_url")
+                            protocol = agent_config.get("protocol", "http")
+
+                            agent_info = AgentRegistryInfo(
+                                agent_id=agent_config.get("id", agent_id),
+                                agent_type=agent_config.get("agent_type", "execution"),
+                                name=agent_config.get("name", {}),
+                                status=AgentStatus.ONLINE,
+                                capabilities=agent_config.get("capabilities", []) or [],
+                                endpoints=AgentEndpoints(
+                                    http=endpoint_url,
+                                    mcp=None,
+                                    protocol=AgentServiceProtocolType.HTTP
+                                    if protocol == "http"
+                                    else AgentServiceProtocolType.MCP,
+                                    is_internal=False,
+                                ),
+                                permissions=AgentPermissionConfig(
+                                    secret_id=agent_config.get("secret_id"),
+                                    api_key=agent_config.get("secret_key"),
+                                    server_certificate=agent_config.get("server_certificate"),
+                                    server_fingerprint=agent_config.get("server_fingerprint"),
+                                ),
+                                metadata=AgentMetadata(
+                                    tags=[agent_config.get("category_id")]
+                                    if agent_config.get("category_id")
+                                    else [],
+                                ),
+                                is_system_agent=False,
+                            )
+
+                            # 註冊到內存
+                            self._agents[agent_id] = agent_info
+                            self._logger.info(
+                                f"✅ [get_agent_info] Dynamically loaded agent '{agent_id}' from agent_display_configs, "
+                                f"endpoint={endpoint_url}"
+                            )
+            except Exception as load_err:
+                self._logger.warning(
+                    f"⚠️ [get_agent_info] Failed to load agent '{agent_id}' from agent_display_configs: {load_err}"
+                )
+            try:
+                from database.arangodb import ArangoDBClient
+
+                arango_client = ArangoDBClient()
+                if arango_client.db:
+                    cursor = arango_client.db.aql.execute(
+                        """
+                        FOR doc IN agent_display_configs
+                            FILTER doc.config_type == "agent"
+                            FILTER doc.agent_id == @agent_id
+                            RETURN doc
+                        """,
+                        bind_vars={"agent_id": agent_id},
+                    )
+
+                    docs = list(cursor)
+                    if docs:
+                        doc = docs[0]
+                        agent_config = doc.get("agent_config", {})
+                        if agent_config:
+                            from .models import (
+                                AgentEndpoints,
+                                AgentMetadata,
+                                AgentPermissionConfig,
+                                AgentRegistryInfo,
+                                AgentStatus,
+                            )
+
+                            agent_info = AgentRegistryInfo(
+                                agent_id=agent_config.get("id", agent_id),
+                                agent_type=agent_config.get("agent_type", "execution"),
+                                name=agent_config.get("name", {}),
+                                status=AgentStatus.ONLINE,
+                                endpoints=AgentEndpoints(
+                                    http=agent_config.get("endpoint_url"),
+                                    mcp=None,
+                                    is_internal=False,
+                                ),
+                                permissions=AgentPermissionConfig(
+                                    secret_id=agent_config.get("secret_id"),
+                                    api_key=agent_config.get("secret_key"),
+                                ),
+                                metadata=AgentMetadata(
+                                    tags=[agent_config.get("category_id")]
+                                    if agent_config.get("category_id")
+                                    else [],
+                                ),
+                                is_system_agent=False,
+                            )
+
+                            # 註冊到內存
+                            self._agents[agent_id] = agent_info
+                            self._logger.info(
+                                f"✅ [get_agent_info] Dynamically loaded agent '{agent_id}' from agent_display_configs, "
+                                f"endpoint={agent_info.endpoints.http}"
+                            )
+            except Exception as load_err:
+                self._logger.warning(
+                    f"⚠️ [get_agent_info] Failed to load agent '{agent_id}' from agent_display_configs: {load_err}"
+                )
+
+        # 【原有】如果是外部 Agent（is_system_agent=False）且缺少 endpoint 配置
+        # 從 agent_display_configs 加載完整的技術配置
         if agent_info and not agent_info.is_system_agent:
             # 檢查是否缺少 endpoint 配置
             if not agent_info.endpoints.mcp and not agent_info.endpoints.http:
@@ -725,7 +860,9 @@ class AgentRegistry:
 
                         # 修改時間：2026-01-28 - System Agent Registry 中的 agent 且 is_active=true 都是內部 Agent
                         # 只要 system_agent_registry 有資料，而且是 is_active = true 都屬於有效內建 agent（內部 Agent）
-                        is_internal = sys_agent.is_active if hasattr(sys_agent, "is_active") else True
+                        is_internal = (
+                            sys_agent.is_active if hasattr(sys_agent, "is_active") else True
+                        )
                         metadata = sys_agent.metadata or {}
                         endpoints_dict = metadata.get("endpoints", {}) if metadata else {}
 

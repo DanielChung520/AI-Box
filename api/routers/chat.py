@@ -1500,6 +1500,36 @@ async def _process_chat_request(
         # 修改時間：2026-01-27 - 如果用戶明確選擇了 agent_id，優先使用用戶選擇的 Agent
         user_selected_agent_id = request_body.agent_id
 
+        # 2026-02-04 新增：支援 _key 到 agent_id 的轉換
+        # 前端可能傳遞 ArangoDB 的 _key（如 -h0tjyh），需要轉換為 agent_id
+        if user_selected_agent_id and user_selected_agent_id.startswith("-"):
+            try:
+                from database.arangodb import ArangoDBClient
+
+                arango_client = ArangoDBClient()
+                if arango_client.db:
+                    cursor = arango_client.db.aql.execute(
+                        """
+                        FOR doc IN agent_display_configs
+                            FILTER doc._key == @key
+                            RETURN doc
+                        """,
+                        bind_vars={"key": user_selected_agent_id},
+                    )
+                    docs = list(cursor)
+                    if docs:
+                        doc = docs[0]
+                        actual_agent_id = doc.get("agent_id")
+                        if actual_agent_id:
+                            sys.stderr.write(
+                                f"\n[agent_id 轉換] 檢測到 _key: '{user_selected_agent_id}' → 轉換為 agent_id: '{actual_agent_id}'\n"
+                            )
+                            sys.stderr.flush()
+                            user_selected_agent_id = actual_agent_id
+            except Exception as e:
+                sys.stderr.write(f"\n[agent_id 轉換] 失敗: {e}\n")
+                sys.stderr.flush()
+
         # 修改時間：2026-01-27 - 添加完整的請求參數日誌
         import sys
 
@@ -1534,8 +1564,89 @@ async def _process_chat_request(
         model_selector_dict = (
             request_body.model_selector.model_dump()
             if hasattr(request_body.model_selector, "model_dump")
-            else {"mode": getattr(request_body.model_selector, "mode", "auto"), "model_id": getattr(request_body.model_selector, "model_id", None)}
+            else {
+                "mode": getattr(request_body.model_selector, "mode", "auto"),
+                "model_id": getattr(request_body.model_selector, "model_id", None),
+            }
         )
+
+        # 2026-02-04 新增：如果是 mm-agent，直接調用 MM-Agent，跳過 Task Analyzer 和 RAG
+        if user_selected_agent_id == "mm-agent":
+            sys.stderr.write(
+                f"\n[mm-agent] 🔀 檢測到 mm-agent，直接調用 MM-Agent\n"
+                f"  - user_selected_agent_id: {user_selected_agent_id}\n"
+                f"  - query: {last_user_text[:100]}...\n"
+            )
+            sys.stderr.flush()
+
+            # 構造 MM-Agent 請求
+            from agents.services.registry.registry import get_agent_registry
+
+            registry = get_agent_registry()
+            agent_info = registry.get_agent_info("mm-agent")
+
+            if agent_info and agent_info.endpoints and agent_info.endpoints.http:
+                mm_endpoint = agent_info.endpoints.http
+                mm_request = {
+                    "task_id": task_id or str(uuid.uuid4()),
+                    "task_type": "query_stock",
+                    "task_data": {
+                        "instruction": last_user_text,
+                        "user_id": current_user.user_id,
+                        "session_id": session_id,
+                    },
+                }
+
+                sys.stderr.write(
+                    f"\n[mm-agent] 📤 調用 MM-Agent: endpoint={mm_endpoint}\n"
+                    f"  - request: {mm_request}\n"
+                )
+                sys.stderr.flush()
+
+                import httpx
+
+                response = httpx.post(
+                    mm_endpoint,
+                    json=mm_request,
+                    headers={"Content-Type": "application/json"},
+                    timeout=120.0,
+                )
+
+                if response.status_code == 200:
+                    mm_result = response.json()
+                    result_text = ""
+                    if isinstance(mm_result, dict):
+                        if "result" in mm_result:
+                            result_data = mm_result["result"]
+                            if isinstance(result_data, dict):
+                                result_text = str(result_data.get("result", str(result_data)))
+                            else:
+                                result_text = str(result_data)
+                        elif "content" in mm_result:
+                            result_text = str(mm_result["content"])
+                        else:
+                            result_text = str(mm_result)
+
+                    response = ChatResponse(
+                        content=f"【MM-Agent 查詢結果】\n{result_text}",
+                        session_id=session_id,
+                        task_id=task_id,
+                        routing=RoutingInfo(
+                            provider="mm-agent",
+                            model="mm-agent-http",
+                            strategy="mm-agent",
+                        ),
+                        observability=ObservabilityInfo(
+                            request_id=request_id,
+                            session_id=session_id,
+                            task_id=task_id,
+                        ),
+                    )
+                    return response
+                else:
+                    logger.error(f"[mm-agent] MM-Agent 調用失敗: HTTP {response.status_code}")
+
+        # Task Analyzer 分析
         analysis_result = await task_analyzer.analyze(
             TaskAnalysisRequest(
                 task=last_user_text,
@@ -1753,6 +1864,83 @@ async def _process_chat_request(
             f"Task Analyzer failed: request_id={request_id}, error={str(analyzer_error)}",
             exc_info=True,
         )
+
+        # 2026-02-04 新增：如果是 mm-agent，跳過 RAG 直接調用 MM-Agent
+        is_mm_agent_chat = user_selected_agent_id == "mm-agent"
+        if is_mm_agent_chat:
+            sys.stderr.write(
+                f"\n[mm-agent] 🔀 檢測到 mm-agent，跳過 RAG 直接調用 MM-Agent\n"
+                f"  - user_selected_agent_id: {user_selected_agent_id}\n"
+                f"  - query: {last_user_text[:100]}...\n"
+            )
+            sys.stderr.flush()
+
+            # 構造 MM-Agent 請求
+            from agents.services.registry.registry import get_agent_registry
+
+            registry = get_agent_registry()
+            agent_info = registry.get_agent_info("mm-agent")
+
+            if agent_info and agent_info.endpoints and agent_info.endpoints.http:
+                mm_endpoint = agent_info.endpoints.http
+                mm_request = {
+                    "task_id": task_id or str(uuid.uuid4()),
+                    "task_type": "query_stock",
+                    "task_data": {
+                        "instruction": last_user_text,
+                        "user_id": current_user.user_id,
+                        "session_id": session_id,
+                    },
+                }
+
+                sys.stderr.write(
+                    f"\n[mm-agent] 📤 調用 MM-Agent: endpoint={mm_endpoint}\n"
+                    f"  - request: {mm_request}\n"
+                )
+                sys.stderr.flush()
+
+                import httpx
+
+                response = httpx.post(
+                    mm_endpoint,
+                    json=mm_request,
+                    headers={"Content-Type": "application/json"},
+                    timeout=120.0,
+                )
+
+                if response.status_code == 200:
+                    mm_result = response.json()
+                    result_text = ""
+                    if isinstance(mm_result, dict):
+                        if "result" in mm_result:
+                            result_data = mm_result["result"]
+                            if isinstance(result_data, dict):
+                                result_text = str(result_data.get("result", str(result_data)))
+                            else:
+                                result_text = str(result_data)
+                        elif "content" in mm_result:
+                            result_text = str(mm_result["content"])
+                        else:
+                            result_text = str(mm_result)
+
+                    response = ChatResponse(
+                        content=f"【MM-Agent 查詢結果】\n{result_text}",
+                        session_id=session_id,
+                        task_id=task_id,
+                        routing=RoutingInfo(
+                            provider="mm-agent",
+                            model="mm-agent-http",
+                            strategy="mm-agent",
+                        ),
+                        observability=ObservabilityInfo(
+                            request_id=request_id,
+                            session_id=session_id,
+                            task_id=task_id,
+                        ),
+                    )
+                    return response
+                else:
+                    logger.error(f"[mm-agent] MM-Agent 調用失敗: HTTP {response.status_code}")
 
     # G3：用 windowed history 作為 MoE 的 messages（並保留前端提供的 system message）
     system_messages = [m for m in messages if m.get("role") == "system"]
@@ -2938,10 +3126,119 @@ async def chat_product_stream(
 
                 # 修改時間：2026-01-06 - 將 allowed_tools 傳遞給 Task Analyzer，讓 Capability Matcher 優先考慮啟用的工具
                 # 修改時間：2026-02-01 - 傳遞 model_selector，尊重用戶選擇的模型（如 Ollama）
+
+                # 2026-02-04 新增：支援 _key 到 agent_id 的轉換
+                user_selected_agent_id = request_body.agent_id
+                if user_selected_agent_id and user_selected_agent_id.startswith("-"):
+                    try:
+                        from database.arangodb import ArangoDBClient
+
+                        arango_client = ArangoDBClient()
+                        if arango_client.db:
+                            cursor = arango_client.db.aql.execute(
+                                """
+                                FOR doc IN agent_display_configs
+                                    FILTER doc._key == @key
+                                    RETURN doc
+                                """,
+                                bind_vars={"key": user_selected_agent_id},
+                            )
+                            docs = list(cursor)
+                            if docs:
+                                actual_agent_id = docs[0].get("agent_id")
+                                if actual_agent_id:
+                                    logger.info(
+                                        f"[agent_id 轉換] _key: '{user_selected_agent_id}' → agent_id: '{actual_agent_id}'"
+                                    )
+                                    user_selected_agent_id = actual_agent_id
+                    except Exception as e:
+                        logger.warning(f"[agent_id 轉換] 失敗: {e}")
+
+                # 2026-02-04 新增：如果是 mm-agent，直接調用 MM-Agent，跳過 Task Analyzer 和 RAG
+                if user_selected_agent_id == "mm-agent":
+                    logger.info(f"[mm-agent] 🔀 檢測到 mm-agent，直接調用 MM-Agent")
+
+                    try:
+                        from agents.services.registry.registry import get_agent_registry
+
+                        registry = get_agent_registry()
+                        agent_info = registry.get_agent_info("mm-agent")
+
+                        if agent_info and agent_info.endpoints and agent_info.endpoints.http:
+                            mm_endpoint = agent_info.endpoints.http
+                            mm_request = {
+                                "task_id": task_id or str(uuid.uuid4()),
+                                "task_type": "general_chat",
+                                "task_data": {
+                                    "instruction": last_user_text,
+                                    "user_id": current_user.user_id,
+                                    "session_id": session_id,
+                                },
+                            }
+
+                            logger.info(f"[mm-agent] 📤 調用 MM-Agent: endpoint={mm_endpoint}")
+
+                            import httpx
+
+                            response = httpx.post(
+                                mm_endpoint,
+                                json=mm_request,
+                                headers={"Content-Type": "application/json"},
+                                timeout=120.0,
+                            )
+
+                            if response.status_code == 200:
+                                mm_result = response.json()
+                                result_text = ""
+                                if isinstance(mm_result, dict):
+                                    # 優先提取 response 字段（自然語言解釋）
+                                    if "result" in mm_result:
+                                        result_data = mm_result["result"]
+                                        if isinstance(result_data, dict):
+                                            # MM-Agent 返回結構：result 嵌套在 result 中
+                                            # 優先使用 response 字段（自然語言解釋）
+                                            inner_result = result_data.get("result")
+                                            if isinstance(inner_result, dict):
+                                                if inner_result.get("response"):
+                                                    result_text = inner_result["response"]
+                                                else:
+                                                    result_text = str(
+                                                        inner_result.get(
+                                                            "result", str(inner_result)
+                                                        )
+                                                    )
+                                            elif isinstance(result_data.get("response"), str):
+                                                result_text = result_data["response"]
+                                            else:
+                                                result_text = str(
+                                                    result_data.get("result", str(result_data))
+                                                )
+                                        else:
+                                            result_text = str(result_data)
+                                    elif "response" in mm_result:
+                                        result_text = mm_result["response"]
+                                    elif "content" in mm_result:
+                                        result_text = str(mm_result["content"])
+                                    else:
+                                        result_text = str(mm_result)
+
+                                yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': result_text}})}\n\n"
+                                yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
+                                return
+                            else:
+                                logger.error(
+                                    f"[mm-agent] MM-Agent 調用失敗: HTTP {response.status_code}"
+                                )
+                    except Exception as mm_error:
+                        logger.error(f"[mm-agent] 錯誤: {mm_error}")
+
                 model_selector_dict = (
                     request_body.model_selector.model_dump()
                     if hasattr(request_body.model_selector, "model_dump")
-                    else {"mode": getattr(request_body.model_selector, "mode", "auto"), "model_id": getattr(request_body.model_selector, "model_id", None)}
+                    else {
+                        "mode": getattr(request_body.model_selector, "mode", "auto"),
+                        "model_id": getattr(request_body.model_selector, "model_id", None),
+                    }
                 )
                 analysis_result = await task_analyzer.analyze(
                     TaskAnalysisRequest(

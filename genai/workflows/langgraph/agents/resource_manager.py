@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 class ResourceAllocationResult:
     """資源分配結果"""
     resource_checks_passed: bool
-    agent_resources_allocated: List[Dict[str, Any]] 
-    tool_resources_allocated: List[Dict[str, Any]] 
-    model_resources_allocated: List[Dict[str, Any]] 
-    storage_resources_allocated: List[Dict[str, Any]] 
+    agent_resources_allocated: List[Dict[str, Any]]
+    tool_resources_allocated: List[Dict[str, Any]]
+    model_resources_allocated: List[Dict[str, Any]]
+    storage_resources_allocated: List[Dict[str, Any]]
     allocation_confidence: float
-    resource_constraints: Dict[str, Any] = field(default_factory=dict) 
+    resource_constraints: Dict[str, Any] = field(default_factory=dict)
     reasoning: str = ""
 
 

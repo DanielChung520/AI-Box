@@ -35,6 +35,16 @@ export interface AgentConfig {
   usage_count?: number;
   agent_id?: string;
   metadata?: Record<string, any>;
+  
+  // 技術配置欄位（與後端對齊）
+  agent_type?: 'execution' | 'planning' | 'review';
+  protocol?: 'http' | 'mcp';
+  endpoint_url?: string;
+  secret_id?: string;
+  secret_key?: string;
+  
+  // 能力列表（用於權限授權）
+  capabilities?: string[];
 }
 
 export interface CategoryWithAgents extends CategoryConfig {

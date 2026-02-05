@@ -160,7 +160,7 @@ class IntentAgent(BaseAgentNode):
         """後備意圖分析邏輯"""
         topics = getattr(semantic_output, "topics", [])
         action_signals = getattr(semantic_output, "action_signals", [])
-        modality = getattr(semantic_output, "modality", "conversation")
+        _modality = getattr(semantic_output, "modality", "conversation")
 
         intent_name = "general_query"
         domain = "general"

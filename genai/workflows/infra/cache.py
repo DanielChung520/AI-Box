@@ -8,7 +8,7 @@
 import json
 import logging
 import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 try:
     import redis

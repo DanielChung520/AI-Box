@@ -7,7 +7,7 @@ from __future__ import annotations
 """ClarificationAgent實現 - 負責處理用戶指令澄清LangGraph節點"""
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState
@@ -20,9 +20,9 @@ class ClarificationResult:
     """澄清結果"""
     clarification_needed: bool
     clarification_message: str
-    unclear_aspects: List[str] 
-    suggested_questions: List[str] 
-    context_provided: Dict[str, Any] 
+    unclear_aspects: List[str]
+    suggested_questions: List[str]
+    context_provided: Dict[str, Any]
     reasoning: str = ""
 
 

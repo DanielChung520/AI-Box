@@ -25,6 +25,10 @@ interface AIStatusState {
   setCurrentRequestId: (id: string | null) => void;
   isConnected: boolean;
   setIsConnected: (connected: boolean) => void;
+  // 修改時間：2026-02-03 - 添加 requestId 和 requestIdChange 兩個字段
+  // requestId: 當前正在處理的請求ID
+  requestId: string | null;
+  setRequestId: (id: string | null) => void;
 }
 
 export const useAIStatusStore = create<AIStatusState>((set) => ({
@@ -44,4 +48,6 @@ export const useAIStatusStore = create<AIStatusState>((set) => ({
   setCurrentRequestId: (id) => set({ currentRequestId: id }),
   isConnected: false,
   setIsConnected: (connected) => set({ isConnected: connected }),
+  requestId: null,
+  setRequestId: (id) => set({ requestId: id }),
 }));

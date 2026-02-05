@@ -2,7 +2,9 @@ import { Card, Input, Button, Typography, Row, Col, Tag, Table, Badge, Tooltip }
 import { useState, useEffect, useRef } from 'react';
 import { SendOutlined, ClearOutlined, ClockCircleOutlined, DatabaseOutlined, CheckCircleOutlined, FileSearchOutlined, BarChartOutlined, SyncOutlined } from '@ant-design/icons';
 import { useDashboardStore } from '../stores/dashboardStore';
-import { mmAgentChat } from '../lib/api';
+import { mmAgentChat, executeSqlQuery, nlpQuery } from '../lib/api';
+
+const FRONTEND_API = 'http://localhost:8005';
 import './pages.css';
 
 const { Title, Text } = Typography;
@@ -43,11 +45,91 @@ export default function NLPPage() {
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [showMultiTurnInfo, setShowMultiTurnInfo] = useState(false);
   const [turnCount, setTurnCount] = useState(0);
+  const [clarificationInfo, setClarificationInfo] = useState<{
+    show: boolean;
+    missingFields: string[];
+    prompts: Record<string, string>;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  // 檢測是否為工作流程回覆
+  const isWorkflowMessage = (content: string): boolean => {
+    return content.includes('Step ');
+  };
+
+  // 格式化工作流程內容
+  const formatWorkflowContent = (content: string): { title: string; steps: string[] } => {
+    const lines = content.split('\n');
+    const steps: string[] = [];
+    let title = '';
+    let currentStep = '';
+    let inStep = false;
+
+    for (const line of lines) {
+      if (line.match(/^(?!◼)\S/) && !line.includes('Step')) {
+        title += line + '\n';
+      } else if (line.includes('Step')) {
+        if (inStep && currentStep) {
+          steps.push(currentStep.trim());
+        }
+        currentStep = line + '\n';
+        inStep = true;
+      } else if (inStep) {
+        currentStep += line + '\n';
+      }
+    }
+
+    if (inStep && currentStep) {
+      steps.push(currentStep.trim());
+    }
+
+    return { title: title.trim(), steps };
+  };
+
+  // 渲染工作流程步驟
+  const renderWorkflowSteps = (content: string) => {
+    const { title, steps } = formatWorkflowContent(content);
+
+    return (
+      <div>
+        {title && (
+          <div style={{ marginBottom: 16, fontWeight: 500, whiteSpace: 'pre-wrap' }}>
+            {title}
+          </div>
+        )}
+        {steps.map((step, idx) => (
+          <div
+            key={idx}
+            style={{
+              marginBottom: 12,
+              padding: '12px',
+              background: '#f8f9fa',
+              borderRadius: 6,
+              borderLeft: '3px solid #1890ff',
+            }}
+          >
+            {step.split('\n').map((line, lineIdx) => (
+              <div
+                key={lineIdx}
+                style={{
+                  color: line.includes('Step') ? '#1890ff' : '#666',
+                  fontWeight: line.includes('Step') ? 600 : 400,
+                  marginBottom: lineIdx < step.split('\n').length - 1 ? 4 : 0,
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {line}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -62,6 +144,33 @@ export default function NLPPage() {
     setQueryResult(null);
 
     const startTime = Date.now();
+
+    // 輔助函數：獲取庫存數據並過濾塑料件
+    const fetchPlasticInventory = async (warehouseCode?: string) => {
+      try {
+        const response = await fetch(`${FRONTEND_API}/api/v1/datalake/inventory`);
+        const data = await response.json();
+        
+        // 過濾塑料件（ima02 包含 "塑料" 或 "塑膠"）
+        let filtered = data.filter((item: any) => {
+          const itemName = item.ima02 || '';
+          return itemName.includes('塑料') || itemName.includes('塑膠');
+        });
+
+        // 如果指定了倉庫，進一步過濾
+        if (warehouseCode) {
+          filtered = filtered.filter((item: any) => item.img02 === warehouseCode);
+        }
+
+        // 按庫存數量排序
+        filtered.sort((a: any, b: any) => (b.img10 || 0) - (a.img10 || 0));
+
+        return filtered.slice(0, 20);
+      } catch (error) {
+        console.error('獲取庫存數據錯誤:', error);
+        return [];
+      }
+    };
 
     try {
       // 調用 MM-Agent API（支持多輪對話）
@@ -78,6 +187,16 @@ export default function NLPPage() {
 
       // 檢查是否需要回問/回覆
       if (result.needs_clarification) {
+        // 提取澄清信息
+        const semanticResult = result.debug_info?.semantic_result;
+        const validation = semanticResult?.validation || {};
+        
+        setClarificationInfo({
+          show: true,
+          missingFields: validation.missing_fields || [],
+          prompts: validation.clarification_prompt || {},
+        });
+        
         setQueryStep(1);
         setIntentInfo({
           intent_type: 'needs_clarification',
@@ -106,48 +225,118 @@ export default function NLPPage() {
 
       // 從轉譯結果提取 SQL 和信息
       const translation = result.translation || {};
-      const intent = result.debug_info?.intent || 'unknown';
+      const debugInfo = result.debug_info || {};
+      const semanticResult = debugInfo.semantic_result;
       
-      // 構建 SQL 顯示（實際項目中這裡應該調用 Data-Agent 執行）
-      const tableName = translation.table_name || 'img_file';
-      const tlf19 = translation.tlf19;
-      const partNumber = translation.part_number;
+      // 使用新架構的語義分析結果
+      const intent = semanticResult?.intent || debugInfo?.intent || 'unknown';
+      const constraints = semanticResult?.constraints || translation;
+      const validation = semanticResult?.validation || {};
       
-      // 模擬 SQL（實際項目中應該從 Data-Agent 返回）
+      const materialCategory = constraints.material_category;
+      const tableName = semanticResult?.schema_binding?.primary_table || translation.table_name || 'img_file';
+      const tlf19 = constraints.tlf19;
+      const partNumber = constraints.material_id || translation.part_number;
+      const warehouse = constraints.inventory_location || constraints.warehouse || translation.warehouse;
+      
+      // 構建 SQL 顯示
       let sql = '';
-      if (tableName === 'img_file') {
-        sql = `SELECT * FROM img_file WHERE img01 = '${partNumber}' LIMIT 10`;
-      } else if (tableName === 'tlf_file' && tlf19) {
-        sql = `SELECT * FROM tlf_file WHERE tlf02 = '${partNumber}' AND tlf19 = '${tlf19}' ORDER BY tlf06 DESC LIMIT 50`;
+      let queryResultData: any = { result: { data: [], rowCount: 0 } };
+
+      // 優先使用後端返回的 generated_sql（新架構）
+      if (debugInfo.generated_sql) {
+        sql = debugInfo.generated_sql;
+        console.log('使用後端生成的 SQL:', sql);
+      } else {
+        // 回退到舊的客戶端組裝邏輯
+        console.log('後端未返回 SQL，使用客戶端組裝');
+
+        // 處理物料類別查詢（如塑料件）- 使用客戶端過濾
+        if (materialCategory === 'plastic') {
+          sql = '-- 塑料件庫存查詢（客戶端過濾）\nSELECT * FROM img_file WHERE ...';
+          
+          try {
+            // 從 API 獲取庫存數據並過濾
+            const warehouseCode = warehouse || null;
+            const plasticItems = await fetchPlasticInventory(warehouseCode);
+            
+            if (plasticItems.length > 0) {
+              queryResultData = {
+                result: {
+                  data: plasticItems,
+                  rowCount: plasticItems.length,
+                }
+              };
+            }
+          } catch (execError) {
+            console.error('塑料件查詢錯誤:', execError);
+          }
+        } else if (tableName === 'img_file' && partNumber) {
+          sql = `SELECT * FROM img_file WHERE img01 = '${partNumber}' LIMIT 10`;
+        } else if (tableName === 'tlf_file' && tlf19) {
+          sql = `SELECT * FROM tlf_file WHERE tlf02 = '${partNumber}' AND tlf19 = '${tlf19}' ORDER BY tlf06 DESC LIMIT 50`;
+        }
       }
+
       setSqlQuery(sql);
       setQueryStep(2);
 
       // 設置意圖信息
       const intentMap: Record<string, string> = {
+        'QUERY_STOCK': '庫存查詢',
+        'QUERY_PURCHASE': '採購交易查詢',
+        'QUERY_SALES': '銷售交易查詢',
+        'ANALYZE_SHORTAGE': '缺料分析',
+        'GENERATE_ORDER': '生成訂單',
         'purchase': '採購交易查詢',
         'sales': '銷售查詢',
         'inventory': '庫存查詢',
         'material_issue': '生產領料查詢',
         'scrapping': '報廢查詢',
+        'unknown': '未知查詢',
       };
+
+      // 設置倉庫信息
+      let warehouseDisplay = '全部';
+      if (warehouse) {
+        const warehouseNames: Record<string, string> = {
+          'W01': '原料倉',
+          'W02': '成品倉',
+          'W03': '半成品倉',
+          'W04': '不良品倉',
+          'W05': '回收倉',
+        };
+        warehouseDisplay = warehouseNames[warehouse] || warehouse;
+      }
 
       setIntentInfo({
         intent_type: intent,
-        description: intentMap[intent] || '查詢完成',
+        description: intentMap[intent] || (materialCategory === 'plastic' ? '塑料件庫存查詢' : '查詢完成'),
         table: tableName,
-        warehouse: input.includes('W01') ? 'W01' : input.includes('W02') ? 'W02' : input.includes('W03') ? 'W03' : '全部',
+        warehouse: warehouseDisplay,
       });
 
       await new Promise((r) => setTimeout(r, 800));
       setQueryStep(3);
 
-      setQueryResult({
-        result: {
-          data: [],
-          rowCount: 0,
+      // 如果還沒有執行查詢（針對非塑料件查詢），則執行 SQL
+      if (!queryResultData.result?.data?.length && sql && !sql.includes('--')) {
+        try {
+          const execResult = await executeSqlQuery(sql);
+          if (execResult.result?.success) {
+            queryResultData = {
+              result: {
+                data: execResult.result.rows || [],
+                rowCount: execResult.result.row_count || 0,
+              }
+            };
+          }
+        } catch (execError) {
+          console.error('SQL 執行錯誤:', execError);
         }
-      });
+      }
+
+      setQueryResult(queryResultData);
       setExecTime(`${duration} 秒`);
       setQueryStep(4);
 
@@ -189,6 +378,7 @@ export default function NLPPage() {
     setTurnCount(0);
     setQueryStep(0);
     setIntentInfo(null);
+    setClarificationInfo(null);
   };
 
   return (
@@ -243,7 +433,11 @@ export default function NLPPage() {
             >
               {chatMessages.map((msg) => (
                 <div key={msg.id} className={`chat-message ${msg.role}`}>
-                  <div className="message-content">{msg.content}</div>
+                  {isWorkflowMessage(msg.content) ? (
+                    renderWorkflowSteps(msg.content)
+                  ) : (
+                    <div className="message-content" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                  )}
                   <div className="message-time">{msg.timestamp}</div>
                 </div>
               ))}
@@ -321,6 +515,23 @@ export default function NLPPage() {
               </div>
             )}
 
+            {/* 澄清對話提示 */}
+            {clarificationInfo?.show && (
+              <div style={{ marginBottom: 16, padding: 12, background: '#fff7e6', borderRadius: 4, border: '1px solid #ffd591' }}>
+                <Text strong style={{ color: '#fa8c16' }}>
+                  💡 需要更多資訊
+                </Text>
+                <div style={{ marginTop: 8 }}>
+                  {clarificationInfo.missingFields.map((field: string) => (
+                    <div key={field} style={{ marginBottom: 4 }}>
+                      <Text style={{ color: '#666' }}>• </Text>
+                      <Text>{clarificationInfo.prompts[field] || `請提供 ${field}`}</Text>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ position: 'relative' }}>
               <div
                 style={{
@@ -391,7 +602,12 @@ export default function NLPPage() {
                       <>
                         <div style={{ marginBottom: 4 }}>
                           <Tag color="blue" style={{ marginRight: 4 }}>意圖類型</Tag>
-                          <Text>{intentInfo?.intent_type === 'purchase' ? '採購交易查詢' :
+                          <Text>{intentInfo?.intent_type === 'QUERY_STOCK' ? '庫存查詢' :
+                                 intentInfo?.intent_type === 'QUERY_PURCHASE' ? '採購交易查詢' :
+                                 intentInfo?.intent_type === 'QUERY_SALES' ? '銷售交易查詢' :
+                                 intentInfo?.intent_type === 'ANALYZE_SHORTAGE' ? '缺料分析' :
+                                 intentInfo?.intent_type === 'GENERATE_ORDER' ? '生成訂單' :
+                                 intentInfo?.intent_type === 'purchase' ? '採購交易查詢' :
                                  intentInfo?.intent_type === 'sales' ? '銷售查詢' :
                                  intentInfo?.intent_type === 'inventory' ? '庫存查詢' :
                                  intentInfo?.intent_type === 'material_issue' ? '生產領料查詢' :
@@ -412,6 +628,18 @@ export default function NLPPage() {
                             <Text strong>{intentInfo.warehouse}</Text>
                           </div>
                         )}
+                        {/* 顯示約束條件 */}
+                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e8e8e8' }}>
+                          <Text type="secondary" style={{ fontSize: 11 }}>約束條件</Text>
+                          <div style={{ marginTop: 4 }}>
+                            {intentInfo?.intent_type?.includes('QUERY') && (
+                              <Tag color="cyan" style={{ marginRight: 4, marginBottom: 4 }}>庫存查詢</Tag>
+                            )}
+                            {intentInfo?.intent_type?.includes('PURCHASE') && (
+                              <Tag color="cyan" style={{ marginRight: 4, marginBottom: 4 }}>採購查詢</Tag>
+                            )}
+                          </div>
+                        </div>
                       </>
                     )}
                   </div>

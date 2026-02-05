@@ -65,11 +65,11 @@ class QwenClient(BaseLLMClient):
         config = get_config_section("llm", "qwen", default={}) or {}
         if base_url is None:
             base_url = config.get("base_url", "https://dashscope.aliyuncs.com/api/v1")
-        
+
         # 確保 base_url 以 / 結尾，以便 httpx 正確拼接相對路徑
         if not base_url.endswith("/"):
             base_url += "/"
-            
+
         if default_model is None:
             default_model = config.get("default_model", "qwen-turbo")
         if timeout is None:
@@ -79,7 +79,7 @@ class QwenClient(BaseLLMClient):
         self.base_url = base_url
         self._default_model = default_model
         self.timeout = timeout
-        
+
         # 檢測是否為 OpenAI 兼容模式
         self.is_compatible_mode = "compatible-mode" in self.base_url
 
@@ -347,7 +347,7 @@ class QwenClient(BaseLLMClient):
                         "texts": [text],
                     },
                 }
-            
+
             payload.update(kwargs)
 
             response = await self._client.post(endpoint, json=payload)

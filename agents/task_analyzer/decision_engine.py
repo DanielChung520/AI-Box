@@ -591,9 +591,59 @@ class DecisionEngine:
         # 2. 選擇 Agent
         chosen_agent = None
 
+        # ============================================
+        # 新增：檢查用戶選擇的 Agent 是否有知識庫權限
+        # 修改時間：2026-02-03
+        # 設計目標：
+        # 1. 如果用戶選擇的 Agent 有知識庫權限，優先使用該 Agent
+        # 2. Agent 內部調用 KA-Agent 檢索，保持統一的檢索入口
+        # 3. 未來若檢索升級，只需修改 KA-Agent，其他 Agent 無需調整
+        # ============================================
+        if is_knowledge_query and user_selected_agent_id:
+            try:
+                from agents.services.registry.registry import get_agent_registry
+
+                registry = get_agent_registry()
+                if registry:
+                    user_agent_info = registry.get_agent_info(user_selected_agent_id)
+                    if user_agent_info:
+                        # 檢查是否有 MM-Agent 知識庫權限
+                        has_mm_knowledge = "mm_agent_knowledge" in user_agent_info.capabilities
+
+                        if has_mm_knowledge:
+                            # 用戶選擇的 Agent 有權限，直接使用該 Agent
+                            chosen_agent = user_selected_agent_id
+                            reasoning_parts.append(
+                                f"知識庫查詢任務，用戶選擇的 Agent '{user_selected_agent_id}' "
+                                f"有 MM-Agent 知識庫權限，優先使用該 Agent"
+                            )
+                            logger.info(
+                                f"Decision Engine: User selected agent {user_selected_agent_id} has "
+                                f"mm_agent_knowledge capability, using it for knowledge query"
+                            )
+
+                            # 標記為使用授權 Agent（供後續調用 KA-Agent 時使用）
+                            context["knowledge_via_authorized_agent"] = True
+                            context["authorized_agent_id"] = user_selected_agent_id
+                        else:
+                            logger.info(
+                                f"Decision Engine: User selected agent {user_selected_agent_id} does NOT have "
+                                f"mm_agent_knowledge capability, falling back to KA-Agent"
+                            )
+                    else:
+                        logger.warning(
+                            f"Decision Engine: Agent {user_selected_agent_id} not found in registry"
+                        )
+            except Exception as e:
+                logger.warning(
+                    f"Decision Engine: Failed to check agent capabilities: {e}",
+                    exc_info=True,
+                )
+
         # 方案1（優先）：若是知識庫查詢任務，優先選擇 KA-Agent
         # 即使用戶當前在 MM-Agent 等任務中，問「專業知識」「知識庫」時也應走 KA-Agent 檢索
-        if is_knowledge_query and agent_candidates:
+        # 注意：僅在用戶選擇的 Agent 無權限時才走此邏輯
+        if not chosen_agent and is_knowledge_query and agent_candidates:
             # 優先查找 ka-agent
             ka_agent = next((a for a in agent_candidates if a.candidate_id == "ka-agent"), None)
             if ka_agent:
@@ -685,8 +735,32 @@ class DecisionEngine:
 
         # 3. 選擇 Tool
         chosen_tools = []
+
+        # 修改時間：2026-02-03 - 根據 Knowledge Signal 的 internal_only 字段調整 Tool 選擇
+        # 如果是知識查詢，且 internal_only=True，則不選擇外部搜尋工具（優先內部知識庫）
+        # 如果是知識查詢，且 internal_only=False，則可以選擇外部搜尋工具（fallback）
+        is_internal_only = True  # 默認：優先內部知識庫
+        if knowledge_signal_dict:
+            is_internal_only = knowledge_signal_dict.get("internal_only", True)
+            logger.info(f"Decision Engine: Knowledge Signal internal_only={is_internal_only}")
+
         if router_decision.needs_tools and tool_candidates:
             logger.info(f"Decision Engine: Selecting tools from {len(tool_candidates)} candidates")
+
+            # 如果是內部優先模式（internal_only=True），過濾掉外部搜尋工具
+            if is_internal_only:
+                original_tool_count = len(tool_candidates)
+                tool_candidates = [
+                    t
+                    for t in tool_candidates
+                    if t.candidate_id not in ["web_search", "google_search", "bing_search"]
+                ]
+                if len(tool_candidates) < original_tool_count:
+                    logger.info(
+                        f"Decision Engine: Filtered out external search tools "
+                        f"(internal_only=True, {original_tool_count - len(tool_candidates)} tools removed)"
+                    )
+
             # 選擇評分最高的工具（可以選擇多個）
             sorted_tools = sorted(tool_candidates, key=lambda x: x.total_score, reverse=True)
 

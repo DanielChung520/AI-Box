@@ -7,7 +7,7 @@ from __future__ import annotations
 """FileTaskBinderAgent實現 - 負責文件與任務工作區綁定LangGraph節點"""
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState
@@ -23,7 +23,7 @@ class FileTaskBindingResult:
     files_registered: int
     permissions_synced: bool
     task_context_updated: bool
-    binding_summary: Dict[str, Any] = field(default_factory=dict) 
+    binding_summary: Dict[str, Any] = field(default_factory=dict)
     reasoning: str = ""
 
 

@@ -380,17 +380,15 @@ Validation errors ({len(error_details)}):"""
                     f"user_message={error_feedback.user_message[:100]}"
                 )
 
-                return JSONResponse(
+                return APIResponse.error(
+                    message=error_feedback.user_message,
+                    error_code="MISSING_PARAMETER",
+                    details={
+                        "error_type": error_feedback.error_type.value,
+                        "suggested_action": error_feedback.suggested_action.value,
+                        "clarifying_questions": error_feedback.clarifying_questions,
+                    },
                     status_code=400,
-                    content=APIResponse.error(
-                        message=error_feedback.user_message,
-                        error_code="MISSING_PARAMETER",
-                        details={
-                            "error_type": error_feedback.error_type.value,
-                            "suggested_action": error_feedback.suggested_action.value,
-                            "clarifying_questions": error_feedback.clarifying_questions,
-                        },
-                    ).model_dump(),
                 )
             except Exception as e:
                 logger.warning(f"Failed to generate KA-Agent error feedback: {e}", exc_info=True)

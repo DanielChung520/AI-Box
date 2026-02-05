@@ -25,7 +25,7 @@ class VectorizationResult:
     total_tokens: int
     processing_time: float
     vector_store_updated: bool
-    failed_files: List[str] = field(default_factory=list) 
+    failed_files: List[str] = field(default_factory=list)
     reasoning: str = ""
 
 

@@ -4,7 +4,6 @@
 import asyncio
 import sys
 import os
-from typing import Dict, Any
 
 # 加入路徑以導入模組
 sys.path.append(os.getcwd())

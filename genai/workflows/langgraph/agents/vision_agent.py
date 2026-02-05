@@ -6,11 +6,11 @@ from __future__ import annotations
 
 """VisionAgent實現 - 視覺數據解析和處理LangGraph節點"""
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState
-from llm.clients.ollama_vision import OllamaVisionClient, get_ollama_vision_client
+from llm.clients.ollama_vision import get_ollama_vision_client
 
 logger = logging.getLogger(__name__)
 

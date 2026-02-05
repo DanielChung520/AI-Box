@@ -25,12 +25,12 @@ class ExecutionContext:
     task_id: str
     user_id: str
     session_id: str
-    start_time: datetime = field(default_factory=datetime.now) 
+    start_time: datetime = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
-    current_layer: str = "input" 
-    execution_status: str = "running" 
-    node_results: List[Dict[str, Any]] = field(default_factory=list) 
-    layers_executed: List[str] = field(default_factory=list) 
+    current_layer: str = "input"
+    execution_status: str = "running"
+    node_results: List[Dict[str, Any]] = field(default_factory=list)
+    layers_executed: List[str] = field(default_factory=list)
     error_count: int = 0
     retry_count: int = 0
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -45,7 +45,7 @@ class ExecutionResult:
     execution_time: float
     node_count: int
     error_count: int
-    layers_executed: List[str] 
+    layers_executed: List[str]
     final_layer: str
     reasoning: str = ""
 
@@ -53,7 +53,7 @@ class ExecutionResult:
 class TaskExecutionEngine:
     """任務執行引擎 - 負責LangGraph任務的完整執行"""
     def __init__(self, cache: Optional[MultiLayerCache] = None):
-        self.node_executor = get_node_executor() 
+        self.node_executor = get_node_executor()
         self._active_executions: Dict[str, ExecutionContext] = {}
         self.logger = logging.getLogger(__name__)
         self.cache = cache or MultiLayerCache()

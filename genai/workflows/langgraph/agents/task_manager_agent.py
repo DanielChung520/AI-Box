@@ -6,9 +6,8 @@ from __future__ import annotations
 
 """TaskManagerAgent實現 - 負責任務生命週期管理和契約化LangGraph節點"""
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState

@@ -5,8 +5,9 @@ import './BrainIcon.css';
 export default function BrainIcon() {
   const { currentStatus, isConnected, toggleWindow, isWindowOpen } = useAIStatusStore();
 
+  console.log('[BrainIcon] Rendering with status:', currentStatus);
+
   const getStatusClass = () => {
-    if (!isConnected) return 'status-idle';
     switch (currentStatus) {
       case 'processing':
         return 'status-processing';

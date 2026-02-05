@@ -55,6 +55,10 @@ class PositiveListChecker:
         "告訴我",
         "查詢",
         "顯示",
+        # 記憶/記錄相關（2026-02-04 新增）
+        "記住",
+        "記錄",
+        "記得",
     ]
 
     CLARIFICATION_MESSAGE = (

@@ -5,7 +5,6 @@
 
 """增量重新索引服務 - 檢測修改的 chunks 並重新索引"""
 
-import json
 from typing import Any, Dict, List, Optional, Set
 
 import structlog

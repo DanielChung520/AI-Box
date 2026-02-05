@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CapabilityAnalysisResult:
     """能力分析結果"""
-    matched_agents: List[Dict[str, Any]] 
-    matched_tools: List[Dict[str, Any]] 
-    matched_models: List[Dict[str, Any]] 
+    matched_agents: List[Dict[str, Any]]
+    matched_tools: List[Dict[str, Any]]
+    matched_models: List[Dict[str, Any]]
     primary_agent: Optional[str] = None
     primary_tool: Optional[str] = None
     primary_model: Optional[str] = None
@@ -366,7 +366,7 @@ class CapabilityAgent(BaseAgentNode):
         intent_result: Any ,
         agent_matches: List[Dict[str, Any]],
         tool_matches: List[Dict[str, Any]],
-        model_matches: List[Dict[str, Any]] 
+        model_matches: List[Dict[str, Any]]
     ) -> str:
         """生成推理說明"""
         try:

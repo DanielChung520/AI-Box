@@ -109,13 +109,13 @@ async def list_system_configs(
             FILTER doc.is_active == true
             """
             bind_vars: Dict[str, Any] = {}
-            
+
             if category:
                 aql += " AND doc.category == @category"
                 bind_vars["category"] = category
-            
+
             aql += " LIMIT 1000 RETURN doc"
-            
+
             try:
                 cursor = service._client.db.aql.execute(aql, bind_vars=bind_vars)
                 docs = [doc for doc in cursor]
@@ -123,7 +123,7 @@ async def list_system_configs(
                 # Fallback 到 collection.find
                 logger.warning(f"AQL query failed, falling back to collection.find: {str(e)}")
                 docs = collection.find(filters, limit=1000)
-            
+
             configs = [_document_to_model(doc, "system_configs") for doc in docs]
 
         config_dicts = [config.model_dump(mode="json") for config in configs if config]

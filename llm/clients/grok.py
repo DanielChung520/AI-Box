@@ -65,11 +65,11 @@ class GrokClient(BaseLLMClient):
         config = get_config_section("llm", "grok", default={}) or {}
         if base_url is None:
             base_url = config.get("base_url", "https://api.x.ai/v1")
-            
+
         # 確保 base_url 以 / 結尾，以便 httpx 正確拼接相對路徑
         if not base_url.endswith("/"):
             base_url += "/"
-            
+
         if default_model is None:
             default_model = config.get("default_model", "grok-beta")
         if timeout is None:

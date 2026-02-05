@@ -20,11 +20,11 @@ class TaskExecutionResult:
     """任務執行結果"""
     task_id: str
     execution_success: bool
-    results: List[Dict[str, Any]] 
+    results: List[Dict[str, Any]]
     execution_time: float
     agent_count: int
     error_count: int
-    output_files: List[Dict[str, Any]] 
+    output_files: List[Dict[str, Any]]
     reasoning: str = ""
 
 

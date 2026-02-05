@@ -6,7 +6,7 @@
 """上下文壓縮 Agent，負責對長對話進行摘要和壓縮以節省 Token。"""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from llm.moe.moe_manager import LLMMoEManager
 from genai.workflows.context.models import ContextMessage
@@ -49,12 +49,12 @@ class ContextCompressionAgent:
 
         try:
             # 選擇模型（使用 task_analysis 場景）
-            model_result = self.moe_manager.select_model("task_analysis")
+            _model_result = self.moe_manager.select_model("task_analysis")
 
             # 調用 LLM 生成摘要
             # 這裡假設 LLMMoEManager 有一個直接調用方法，或者我們通過 client 調用
             # 為了簡化，我們使用模擬調用，實際項目中應整合 llm 服務
-            prompt = self.summary_prompt.format(history=history_text)
+            _prompt = self.summary_prompt.format(history=history_text)
 
             logger.info(f"Summarizing {len(messages)} messages...")
 

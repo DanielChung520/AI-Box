@@ -7,9 +7,16 @@
 
 import json
 import logging
+import sys
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
+
+# 添加 AI-Box 根目錄到 Python 路徑
+_ai_box_root = Path(__file__).resolve().parent.parent.parent.parent
+if str(_ai_box_root) not in sys.path:
+    sys.path.insert(0, str(_ai_box_root))
 
 # System Prompt定義
 WAREHOUSE_AGENT_SYSTEM_PROMPT = """你是一個庫存管理助手（庫管員 Agent），專門負責處理庫存管理相關的業務邏輯。
@@ -83,18 +90,28 @@ class PromptManager:
 
         prompt += """請返回以下 JSON 格式：
 {
-    "intent": "query_part|query_stock|analyze_shortage|generate_purchase_order|adjust_stock",
+    "intent": "query_part|query_stock|query_stock_history|analyze_shortage|generate_purchase_order|adjust_stock",
     "confidence": 0.0-1.0,
     "parameters": {
         "part_number": "料號（如果可提取）",
         "quantity": 數量（如果可提取）,
-        "location": "庫存位置（如果可提取）"
+        "location": "庫存位置（如果可提取）",
+        "start_date": "開始日期（如果可提取，如 YYYY-MM-DD）",
+        "end_date": "結束日期（如果可提取，如 YYYY-MM-DD）"
     },
     "clarification_needed": false,
     "clarification_questions": []
 }
 
-如果指令不明確，請設置 clarification_needed 為 true，並提供澄清問題。"""
+如果指令包含模糊的時間詞彙（如「最近」、「這幾天」），且意圖是查詢歷史記錄，請設置 clarification_needed 為 true，並提供時間範圍澄清問題。
+
+時間範圍澄清選項：
+- 今天
+- 最近一週
+- 最近一個月
+- 最近三個月
+- 最近六個月
+- 指定日期範圍"""
 
         return prompt
 
@@ -115,17 +132,37 @@ class PromptManager:
 
         Returns:
             LLM響應文本
-
-        Note:
-            此方法需要根據實際的LLM服務實現
-            可以調用AI-Box的LLM服務或本地LLM
         """
-        # TODO: 實現LLM調用邏輯
-        # 可以通過AI-Box的LLM服務或本地LLM（如Ollama）調用
-        # 這裡先返回一個占位符實現
+        try:
+            from llm.clients.ollama import OllamaClient
 
-        self._logger.warning("LLM調用未實現，返回空響應")
-        return ""
+            client = OllamaClient()
+
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+
+            result = await client.chat(
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                purpose="mm_agent_semantic_analysis",
+            )
+
+            content = result.get("content", "")
+            if not content:
+                self._logger.warning("LLM返回空響應")
+                return ""
+
+            return content
+
+        except ImportError as e:
+            self._logger.warning(f"無法導入AI-Box LLM客戶端，回退到正則表達式: {e}")
+            return ""
+        except Exception as e:
+            self._logger.warning(f"LLM調用失敗，回退到正則表達式: {e}")
+            return ""
 
     def parse_llm_response(self, response: str) -> Dict[str, Any]:
         """解析LLM響應為JSON

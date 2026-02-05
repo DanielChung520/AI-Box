@@ -6,7 +6,7 @@
 import os
 import base64
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 from pathlib import Path
 
 import httpx
@@ -52,7 +52,7 @@ class CleanupService:
         # 1. Tasks
         if task_id:
             aql = "FOR t IN user_tasks FILTER t.user_id == @user_id AND t.task_id == @task_id RETURN t.task_id"
-            params: Dict[str, Any] = {"user_id": user_id, "task_id": task_id} 
+            params: Dict[str, Any] = {"user_id": user_id, "task_id": task_id}
         else:
             aql = "FOR t IN user_tasks FILTER t.user_id == @user_id RETURN t.task_id"
             params = {"user_id": user_id}

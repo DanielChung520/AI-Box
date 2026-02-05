@@ -388,12 +388,12 @@ class CapabilityMatcher:
         # 檢查是否為文件編輯任務
         user_query = context.get("task", "") or context.get("query", "") if context else ""
         is_file_editing = self._is_file_editing_task(user_query)
-        
+
         # 修改時間：2026-01-28 - 使用 Knowledge Signal 判斷是否為知識庫查詢任務
         # 優先使用 Knowledge Signal（純規則、可審計），fallback 到關鍵字匹配
         is_knowledge_query = False
         knowledge_signal_dict = context.get("knowledge_signal") if context else None
-        
+
         if knowledge_signal_dict and knowledge_signal_dict.get("is_knowledge_event"):
             is_knowledge_query = True
             logger.info(
@@ -481,16 +481,16 @@ class CapabilityMatcher:
                 logger.info(
                     f"CapabilityMatcher: Query with agent_type='knowledge_service' found {len(knowledge_agents)} agents"
                 )
-                
+
                 # 如果沒有找到，嘗試直接查找 ka-agent
                 if not knowledge_agents:
                     ka_agent_info = registry.get_agent_info("ka-agent")
                     if ka_agent_info and ka_agent_info.status == AgentStatus.ONLINE:
                         knowledge_agents = [ka_agent_info]
                         logger.info("CapabilityMatcher: Found ka-agent directly by agent_id")
-                
+
                 agents = knowledge_agents
-                
+
                 logger.info(
                     f"Knowledge base query task: Found {len(agents)} agents (including System Agents) "
                     f"for query: {user_query[:100]}..."

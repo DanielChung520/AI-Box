@@ -58,8 +58,7 @@ class StockService:
             where_clause = " AND ".join(where_conditions)
             sql_query = f"""
                 SELECT img01 as part_number, img02 as warehouse,
-                       img04 as quantity, img05 as unit,
-                       img09 as last_update
+                       img04 as batch_no, img10 as quantity
                 FROM img_file
                 WHERE {where_clause}
                 LIMIT 10

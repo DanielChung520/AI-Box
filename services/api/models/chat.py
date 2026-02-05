@@ -58,7 +58,9 @@ class RoutingInfo(BaseModel):
     strategy: str = Field(..., description="策略名稱，例如 manual/load_balancer_xxx/xxx")
     latency_ms: Optional[float] = Field(None, ge=0.0, description="LLM 呼叫延遲（毫秒）")
     failover_used: bool = Field(False, description="是否發生 failover")
-    fallback_provider: Optional[str] = Field(None, description="failover 後使用的 provider（若可得）")
+    fallback_provider: Optional[str] = Field(
+        None, description="failover 後使用的 provider（若可得）"
+    )
 
 
 class ObservabilityInfo(BaseModel):
@@ -71,9 +73,18 @@ class ObservabilityInfo(BaseModel):
     token_output: Optional[int] = Field(None, ge=0, description="輸出 token（若可得）")
     cost: Optional[float] = Field(None, ge=0.0, description="成本估算（若可得）")
     memory_hit_count: Optional[int] = Field(None, ge=0, description="記憶命中數（若可得）")
-    memory_sources: Optional[List[str]] = Field(None, description="記憶來源（例如 vector/graph）（若可得）")
-    retrieval_latency_ms: Optional[float] = Field(None, ge=0.0, description="檢索延遲（毫秒）（若可得）")
-    context_message_count: Optional[int] = Field(None, ge=0, description="短期上下文（windowed）消息數量（若可得）")
+    memory_sources: Optional[List[str]] = Field(
+        None, description="記憶來源（例如 vector/graph）（若可得）"
+    )
+    retrieval_latency_ms: Optional[float] = Field(
+        None, ge=0.0, description="檢索延遲（毫秒）（若可得）"
+    )
+    context_message_count: Optional[int] = Field(
+        None, ge=0, description="短期上下文（windowed）消息數量（若可得）"
+    )
+    entity_memory: Optional[Dict[str, Any]] = Field(
+        None, description="實體記憶資訊（指代消解結果、提取的實體等）"
+    )
 
 
 class FileCreatedAction(BaseModel):
@@ -107,7 +118,9 @@ class ChatRequest(BaseModel):
     task_id: Optional[str] = Field(None, description="Task ID（用於任務維度追蹤）")
     model_selector: ModelSelector = Field(..., description="模型選擇器")
     attachments: Optional[List[ChatAttachment]] = Field(None, description="附件（MVP）")
-    allowed_tools: Optional[List[str]] = Field(None, description="允許使用的工具列表，例如 ['web_search']")
+    allowed_tools: Optional[List[str]] = Field(
+        None, description="允許使用的工具列表，例如 ['web_search']"
+    )
     assistant_id: Optional[str] = Field(None, description="當前選中的助理 ID")
     agent_id: Optional[str] = Field(None, description="當前選中的代理 ID")
 
@@ -120,7 +133,9 @@ class ChatResponse(BaseModel):
     task_id: Optional[str] = Field(None, description="Task ID（若有）")
     routing: RoutingInfo = Field(..., description="路由結果")
     observability: Optional[ObservabilityInfo] = Field(None, description="觀測欄位")
-    actions: Optional[List[Dict[str, Any]]] = Field(None, description="（可選）動作列表，例如 file_created")
+    actions: Optional[List[Dict[str, Any]]] = Field(
+        None, description="（可選）動作列表，例如 file_created"
+    )
     content_status: Optional[str] = Field(
         None,
         description="內容狀態：ok | not_found。not_found 表示檢索/知識庫無相關內容，供前端或 Orchestrator 補全客氣回應",

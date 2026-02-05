@@ -1,143 +1,511 @@
 {
-  "ima_file": {
-    "canonical_name": "ima_file",
-    "tiptop_name": "料件主檔",
-    "columns": [
-      {"id": "ima01", "name": "料號", "type": "V", "description": "PK"},
-      {"id": "ima02", "name": "品名", "type": "V", "description": "Item Name"},
-      {"id": "ima021", "name": "規格", "type": "V", "description": "Specification"},
-      {"id": "ima25", "name": "庫存單位", "type": "V", "description": "Unit"},
-      {"id": "ima08", "name": "來源碼", "type": "V", "description": "M:成品, P:原料"}
-    ]
+  "tables": {
+    "ima_file": {
+      "canonical_name": "ima_file",
+      "tiptop_name": "料件主檔",
+      "columns": [
+        {"id": "ima01", "name": "料號", "type": "V", "description": "PK"},
+        {"id": "ima02", "name": "品名", "type": "V", "description": "Item Name"},
+        {"id": "ima021", "name": "規格", "type": "V", "description": "Specification"},
+        {"id": "ima25", "name": "庫存單位", "type": "V", "description": "Unit"},
+        {"id": "ima08", "name": "來源碼", "type": "V", "description": "M:成品, P:原料"}
+      ]
+    },
+    "img_file": {
+      "canonical_name": "img_file",
+      "tiptop_name": "倉庫庫存明細檔",
+      "columns": [
+        {"id": "img01", "name": "料號", "type": "V", "description": "FK ima01"},
+        {"id": "img02", "name": "倉庫", "type": "V", "description": "FK imd01"},
+        {"id": "img03", "name": "儲位", "type": "V", "description": "FK ime02"},
+        {"id": "img04", "name": "批號", "type": "V", "description": ""},
+        {"id": "img10", "name": "庫存數量", "type": "N", "description": ""}
+      ]
+    },
+    "tlf_file": {
+      "canonical_name": "tlf_file",
+      "tiptop_name": "庫存交易明細檔",
+      "columns": [
+        {"id": "tlf01", "name": "料號", "type": "V", "description": "FK ima01"},
+        {"id": "tlf06", "name": "單據日期", "type": "D", "description": ""},
+        {"id": "tlf10", "name": "異動數量", "type": "N", "description": ""},
+        {"id": "tlf13", "name": "來源單號", "type": "V", "description": ""},
+        {"id": "tlf061", "name": "倉庫", "type": "V", "description": "FK imd01"},
+        {"id": "tlf062", "name": "儲位", "type": "V", "description": "FK ime02"},
+        {"id": "tlf19", "name": "交易類型", "type": "V", "description": "101:採購進貨, 102:完工入庫, 201:生產領料, 202:銷售出庫, 301:庫存報廢"}
+      ]
+    },
+    "pmc_file": {
+      "canonical_name": "pmc_file",
+      "tiptop_name": "供應商主檔",
+      "columns": [
+        {"id": "pmc01", "name": "供應商編號", "type": "V", "description": "PK"},
+        {"id": "pmc03", "name": "供應商全名", "type": "V", "description": ""},
+        {"id": "pmc24", "name": "聯絡人", "type": "V", "description": ""},
+        {"id": "pmc08", "name": "電話", "type": "V", "description": ""}
+      ]
+    },
+    "pmm_file": {
+      "canonical_name": "pmm_file",
+      "tiptop_name": "採購單頭檔",
+      "columns": [
+        {"id": "pmm01", "name": "採購單號", "type": "V", "description": "PK"},
+        {"id": "pmm02", "name": "單據日期", "type": "D", "description": ""},
+        {"id": "pmm04", "name": "供應商", "type": "V", "description": "FK pmc01"},
+        {"id": "pmm09", "name": "採購人員", "type": "V", "description": ""}
+      ]
+    },
+    "pmn_file": {
+      "canonical_name": "pmn_file",
+      "tiptop_name": "採購單身檔",
+      "columns": [
+        {"id": "pmn01", "name": "採購單號", "type": "V", "description": "FK pmm01"},
+        {"id": "pmn02", "name": "項次", "type": "N", "description": "Line No"},
+        {"id": "pmn04", "name": "料號", "type": "V", "description": "FK ima01"},
+        {"id": "pmn20", "name": "採購數量", "type": "N", "description": ""},
+        {"id": "pmn31", "name": "已交數量", "type": "N", "description": ""},
+        {"id": "pmn33", "name": "預計到貨日", "type": "D", "description": ""}
+      ]
+    },
+    "rvb_file": {
+      "canonical_name": "rvb_file",
+      "tiptop_name": "收料單身檔",
+      "columns": [
+        {"id": "rvb01", "name": "收料單號", "type": "V", "description": "PK"},
+        {"id": "rvb05", "name": "料號", "type": "V", "description": "FK ima01"},
+        {"id": "rvb07", "name": "採購單號", "type": "V", "description": "FK pmn01"},
+        {"id": "rvb33", "name": "驗收數量", "type": "N", "description": ""}
+      ]
+    },
+    "imd_file": {
+      "canonical_name": "imd_file",
+      "tiptop_name": "倉庫代號檔",
+      "columns": [
+        {"id": "imd01", "name": "倉庫代號", "type": "V", "description": "PK"},
+        {"id": "imd02", "name": "倉庫名稱", "type": "V", "description": ""}
+      ]
+    },
+    "ime_file": {
+      "canonical_name": "ime_file",
+      "tiptop_name": "儲位代號檔",
+      "columns": [
+        {"id": "ime01", "name": "倉庫代號", "type": "V", "description": "FK imd01"},
+        {"id": "ime02", "name": "儲位代號", "type": "V", "description": "PK"},
+        {"id": "ime03", "name": "儲位名稱", "type": "V", "description": ""}
+      ]
+    },
+    "cmc_file": {
+      "canonical_name": "cmc_file",
+      "tiptop_name": "客戶主檔",
+      "columns": [
+        {"id": "cmc01", "name": "客戶代碼", "type": "V", "description": "PK"},
+        {"id": "cmc02", "name": "客戶名稱", "type": "V", "description": ""},
+        {"id": "cmc03", "name": "聯絡人", "type": "V", "description": ""},
+        {"id": "cmc08", "name": "電話", "type": "V", "description": ""}
+      ]
+    },
+    "coptc_file": {
+      "canonical_name": "coptc_file",
+      "tiptop_name": "客戶訂單單頭檔",
+      "columns": [
+        {"id": "coptc01", "name": "訂單號", "type": "V", "description": "PK"},
+        {"id": "coptc02", "name": "客戶代碼", "type": "V", "description": "FK cmc01"},
+        {"id": "coptc03", "name": "單據日期", "type": "D", "description": ""},
+        {"id": "coptc04", "name": "預計出貨日", "type": "D", "description": ""},
+        {"id": "coptc05", "name": "訂單狀態", "type": "V", "description": "10:未出貨, 20:部分出貨, 30:已出貨"},
+        {"id": "coptc06", "name": "業務人員", "type": "V", "description": ""}
+      ]
+    },
+    "coptd_file": {
+      "canonical_name": "coptd_file",
+      "tiptop_name": "客戶訂單單身檔",
+      "columns": [
+        {"id": "coptd01", "name": "訂單號", "type": "V", "description": "FK coptc01"},
+        {"id": "coptd02", "name": "項次", "type": "N", "description": "Line No"},
+        {"id": "coptd04", "name": "料號", "type": "V", "description": "FK ima01"},
+        {"id": "coptd20", "name": "訂購數量", "type": "N", "description": ""},
+        {"id": "coptd30", "name": "單價", "type": "N", "description": ""},
+        {"id": "coptd31", "name": "已出貨數量", "type": "N", "description": ""},
+        {"id": "coptd32", "name": "訂單批次", "type": "V", "description": "Order Batch"}
+      ]
+    },
+    "prc_file": {
+      "canonical_name": "prc_file",
+      "tiptop_name": "訂價單檔",
+      "columns": [
+        {"id": "prc01", "name": "料號", "type": "V", "description": "FK ima01"},
+        {"id": "prc02", "name": "單價", "type": "N", "description": ""},
+        {"id": "prc03", "name": "批准日期", "type": "D", "description": ""},
+        {"id": "prc04", "name": "批准狀態", "type": "V", "description": "Y:已批准, N:待批准"},
+        {"id": "prc05", "name": "生效日", "type": "D", "description": ""},
+        {"id": "prc06", "name": "失效日", "type": "D", "description": ""}
+      ]
+    }
   },
-  "img_file": {
-    "canonical_name": "img_file",
-    "tiptop_name": "倉庫庫存明細檔",
-    "columns": [
-      {"id": "img01", "name": "料號", "type": "V", "description": ""},
-      {"id": "img02", "name": "倉庫", "type": "V", "description": ""},
-      {"id": "img03", "name": "儲位", "type": "V", "description": ""},
-      {"id": "img04", "name": "批號", "type": "V", "description": ""},
-      {"id": "img10", "name": "庫存數量", "type": "N", "description": ""}
-    ]
+
+  "concepts": {
+    "MATERIAL_CATEGORY": {
+      "description": "物料類別，用於過濾特定類型的物料",
+      "mappings": {
+        "plastic": {
+          "keywords": ["塑料件", "塑膠件", "塑膠", "塑料"],
+          "target_field": "ima02",
+          "operator": "LIKE",
+          "pattern": "%{value}%"
+        },
+        "metal": {
+          "keywords": ["金屬件", "金屬", "鐵件", "鋁件"],
+          "target_field": "ima02",
+          "operator": "LIKE",
+          "pattern": "%{value}%"
+        },
+        "finished": {
+          "keywords": ["成品"],
+          "target_field": "ima08",
+          "operator": "=",
+          "value": "M"
+        },
+        "raw": {
+          "keywords": ["原料"],
+          "target_field": "ima08",
+          "operator": "=",
+          "value": "P"
+        },
+        "electronic": {
+          "keywords": ["電子件", "電子", "電路", "晶片"],
+          "target_field": "ima02",
+          "operator": "LIKE",
+          "pattern": "%{value}%"
+        },
+        "packaging": {
+          "keywords": ["包裝件", "包裝", "紙箱", "塑膠袋"],
+          "target_field": "ima02",
+          "operator": "LIKE",
+          "pattern": "%{value}%"
+        }
+      }
+    },
+    "INVENTORY_LOCATION": {
+      "description": "庫存位置（倉庫）",
+      "mappings": {
+        "W01": {
+          "keywords": ["原料倉", "原料"],
+          "target_field": "img02",
+          "operator": "="
+        },
+        "W02": {
+          "keywords": ["成品倉", "成品"],
+          "target_field": "img02",
+          "operator": "="
+        },
+        "W03": {
+          "keywords": ["半成品倉", "半成品"],
+          "target_field": "img02",
+          "operator": "="
+        },
+        "W04": {
+          "keywords": ["不良品倉", "不良品"],
+          "target_field": "img02",
+          "operator": "="
+        },
+        "W05": {
+          "keywords": ["回收倉", "回收"],
+          "target_field": "img02",
+          "operator": "="
+        }
+      }
+    },
+    "TRANSACTION_TYPE": {
+      "description": "交易類型編碼",
+      "mappings": {
+        "101": {
+          "keywords": ["採購", "買進", "進貨", "收料", "購買"],
+          "target_field": "tlf19",
+          "operator": "=",
+          "description": "採購進貨"
+        },
+        "102": {
+          "keywords": ["入庫", "完工入庫"],
+          "target_field": "tlf19",
+          "operator": "=",
+          "description": "完工入庫"
+        },
+        "201": {
+          "keywords": ["領料", "生產領料", "領用"],
+          "target_field": "tlf19",
+          "operator": "=",
+          "description": "生產領料"
+        },
+        "202": {
+          "keywords": ["銷售", "賣出", "出貨", "銷售出庫"],
+          "target_field": "tlf19",
+          "operator": "=",
+          "description": "銷售出庫"
+        },
+        "301": {
+          "keywords": ["報廢", "報損", "損耗", "報廢出庫"],
+          "target_field": "tlf19",
+          "operator": "=",
+          "description": "庫存報廢"
+        }
+      }
+    },
+    "TIME_EXPRESSION": {
+      "description": "時間表達式",
+      "mappings": {
+        "this_month": {
+          "keywords": ["本月", "這個月", "本月分"],
+          "sql_expr": "DATE_FORMAT(CURDATE(), '%Y-%m')",
+          "field": "tlf06"
+        },
+        "last_month": {
+          "keywords": ["上月", "上個月", "上月分"],
+          "sql_expr": "DATE_SUB(CURDATE(), INTERVAL 1 MONTH)",
+          "field": "tlf06"
+        },
+        "this_year": {
+          "keywords": ["今年", "本年"],
+          "sql_expr": "YEAR(CURDATE())",
+          "field": "tlf06"
+        },
+        "last_year": {
+          "keywords": ["去年"],
+          "sql_expr": "YEAR(CURDATE()) - 1",
+          "field": "tlf06"
+        },
+        "recent_days": {
+          "keywords": ["最近(\\d+)天", "近(\\d+)天", "過去(\\d+)天"],
+          "sql_expr": "DATE_SUB(CURDATE(), INTERVAL ${days} DAY)",
+          "field": "tlf06",
+          "regex_extract": "(\\d+)"
+        }
+      }
+    },
+    "BATCH_NO": {
+      "description": "批號",
+      "mappings": {
+        "default": {
+          "keywords": ["批號", "batch", "BATCH"],
+          "target_field": "img04",
+          "operator": "="
+        }
+      }
+    },
+    "LOCATION_CODE": {
+      "description": "儲位代碼",
+      "mappings": {
+        "default": {
+          "keywords": ["儲位", "位置", "location", "LOC"],
+          "target_field": "img03",
+          "operator": "="
+        }
+      }
+    }
   },
-  "tlf_file": {
-    "canonical_name": "tlf_file",
-    "tiptop_name": "庫存交易明細檔",
-    "columns": [
-      {"id": "tlf01", "name": "料號", "type": "V", "description": ""},
-      {"id": "tlf06", "name": "單據日期", "type": "D", "description": ""},
-      {"id": "tlf10", "name": "異動數量", "type": "N", "description": ""},
-      {"id": "tlf13", "name": "來源單號", "type": "V", "description": ""},
-      {"id": "tlf061", "name": "倉庫", "type": "V", "description": ""},
-      {"id": "tlf062", "name": "儲位", "type": "V", "description": ""},
-      {"id": "tlf19", "name": "交易類型", "type": "V", "description": "101:採購進貨, 102:完工入庫, 201:生產領料, 202:銷售出庫, 301:庫存報廢"}
-    ]
+
+  "intent_templates": {
+    "QUERY_STOCK": {
+      "description": "庫存查詢",
+      "intent_type": "QUERY",
+      "primary_table": "img_file",
+      "joins": [
+        {
+          "table": "ima_file",
+          "on": "img01 = ima01",
+          "type": "LEFT"
+        }
+      ],
+      "required_fields": [],
+      "optional_fields": ["warehouse", "material_category", "part_number"],
+      "output_fields": ["img01", "ima02", "img02", "img03", "SUM(img10) as qty"],
+      "group_by": ["img01", "ima02", "img02", "img03"],
+      "order_by": "qty DESC",
+      "examples": [
+        "RM05-008 庫存還有多少",
+        "查詢 W01 倉庫的庫存",
+        "庫房塑料件還有多少",
+        "統計各倉庫的總庫存"
+      ]
+    },
+    "QUERY_PURCHASE": {
+      "description": "採購交易查詢",
+      "intent_type": "QUERY",
+      "primary_table": "tlf_file",
+      "joins": [
+        {
+          "table": "ima_file",
+          "on": "tlf01 = ima01",
+          "type": "LEFT"
+        }
+      ],
+      "required_fields": ["transaction_type"],
+      "optional_fields": ["part_number", "time_range", "warehouse"],
+      "output_fields": ["tlf01", "ima02", "SUM(tlf10) as total_qty", "COUNT(*) as tx_count"],
+      "group_by": ["tlf01", "ima02"],
+      "examples": [
+        "RM05-008 上月買進多少",
+        "上月採購數量",
+        "這個月進貨筆數"
+      ]
+    },
+    "QUERY_SALES": {
+      "description": "銷售交易查詢",
+      "intent_type": "QUERY",
+      "primary_table": "tlf_file",
+      "joins": [
+        {
+          "table": "ima_file",
+          "on": "tlf01 = ima01",
+          "type": "LEFT"
+        }
+      ],
+      "required_fields": ["transaction_type"],
+      "optional_fields": ["part_number", "time_range"],
+      "output_fields": ["tlf01", "ima02", "SUM(tlf10) as total_qty"],
+      "group_by": ["tlf01", "ima02"],
+      "examples": [
+        "RM05-008 上月賣出多少",
+        "這個月銷售情況"
+      ]
+    },
+    "ANALYZE_SHORTAGE": {
+      "description": "缺料分析",
+      "intent_type": "ANALYSIS",
+      "primary_table": "img_file",
+      "joins": [
+        {
+          "table": "ima_file",
+          "on": "img01 = ima01",
+          "type": "LEFT"
+        }
+      ],
+      "required_fields": [],
+      "optional_fields": ["warehouse", "threshold"],
+      "output_fields": ["img01", "ima02", "img02", "img10"],
+      "where_clause": "img10 < ${threshold:100}",
+      "order_by": "img10 ASC",
+      "examples": [
+        "哪些料號庫存不足",
+        "缺料分析",
+        "列出低於安全存量的物料"
+      ]
+    },
+    "GENERATE_ORDER": {
+      "description": "生成訂單",
+      "intent_type": "ACTION",
+      "primary_table": "pmn_file",
+      "joins": [
+        {
+          "table": "pmm_file",
+          "on": "pmn01 = pmm01",
+          "type": "LEFT"
+        },
+        {
+          "table": "ima_file",
+          "on": "pmn04 = ima01",
+          "type": "LEFT"
+        }
+      ],
+      "required_fields": ["part_number", "quantity"],
+      "optional_fields": ["supplier", "delivery_date"],
+      "output_fields": ["pmn01", "pmn02", "pmn04", "ima02", "pmn20", "pmn33"],
+      "examples": [
+        "生成 RM05-008 的採購單",
+        "請幫我下訂 1000 個 RM05-008"
+      ]
+    },
+    "QUERY_SUPPLIER": {
+      "description": "供應商查詢",
+      "intent_type": "QUERY",
+      "primary_table": "pmc_file",
+      "joins": [],
+      "required_fields": [],
+      "optional_fields": ["supplier"],
+      "output_fields": ["pmc01", "pmc03", "pmc24", "pmc08"],
+      "examples": [
+        "供應商列表",
+        "查詢特定供應商資訊"
+      ]
+    },
+    "QUERY_CUSTOMER": {
+      "description": "客戶查詢",
+      "intent_type": "QUERY",
+      "primary_table": "cmc_file",
+      "joins": [],
+      "required_fields": [],
+      "optional_fields": ["customer"],
+      "output_fields": ["cmc01", "cmc02", "cmc03", "cmc08"],
+      "examples": [
+        "客戶列表",
+        "查詢特定客戶資訊"
+      ]
+    }
   },
-  "pmc_file": {
-    "canonical_name": "pmc_file",
-    "tiptop_name": "供應商主檔",
-    "columns": [
-      {"id": "pmc01", "name": "供應商編號", "type": "V", "description": "PK"},
-      {"id": "pmc03", "name": "供應商全名", "type": "V", "description": ""},
-      {"id": "pmc24", "name": "聯絡人", "type": "V", "description": ""},
-      {"id": "pmc08", "name": "電話", "type": "V", "description": ""}
-    ]
+
+  "validation_rules": {
+    "QUERY_STOCK": {
+      "at_least_one_of": ["warehouse", "material_category", "part_number"],
+      "error_message": "請提供倉庫代號、物料類別或料號，以便進行庫存查詢",
+      "clarification_prompt": {
+        "warehouse": "請問要查詢哪個倉庫？（原料倉 W01 / 成品倉 W02 / 半成品倉 W03 / 不良品倉 W04 / 回收倉 W05）",
+        "material_category": "請問要查詢哪類物料？（塑料件 / 金屬件 / 成品 / 原料）",
+        "part_number": "請問要查詢哪個料號？"
+      }
+    },
+    "QUERY_PURCHASE": {
+      "required": ["transaction_type"],
+      "error_message": "請指定交易類型（採購/買進/進貨）",
+      "clarification_prompt": {
+        "transaction_type": "請問是查詢哪種交易？（採購進貨 / 完工入庫 / 生產領料 / 銷售出庫 / 庫存報廢）"
+      }
+    },
+    "QUERY_SALES": {
+      "required": ["transaction_type"],
+      "error_message": "請指定交易類型（銷售/賣出/出貨）",
+      "clarification_prompt": {
+        "transaction_type": "請問是查詢哪種銷售交易？（銷售出庫）"
+      }
+    },
+    "ANALYZE_SHORTAGE": {
+      "at_least_one_of": ["warehouse", "material_category"],
+      "error_message": "請提供倉庫或物料類別，以便進行缺料分析",
+      "clarification_prompt": {
+        "warehouse": "請問要分析哪個倉庫的缺料情況？",
+        "material_category": "請問要分析哪類物料？"
+      }
+    },
+    "GENERATE_ORDER": {
+      "required": ["part_number", "quantity"],
+      "error_message": "生成訂單需要料號和數量",
+      "clarification_prompt": {
+        "part_number": "請問要採購哪個料號？",
+        "quantity": "請問要採購多少數量？"
+      }
+    }
   },
-  "pmm_file": {
-    "canonical_name": "pmm_file",
-    "tiptop_name": "採購單頭檔",
-    "columns": [
-      {"id": "pmm01", "name": "採購單號", "type": "V", "description": "PK"},
-      {"id": "pmm02", "name": "單據日期", "type": "D", "description": ""},
-      {"id": "pmm04", "name": "供應商", "type": "V", "description": ""},
-      {"id": "pmm09", "name": "採購人員", "type": "V", "description": ""}
-    ]
+
+  "table_relationships": {
+    "img_file.img01": "ima_file.ima01",
+    "tlf_file.tlf01": "ima_file.ima01",
+    "tlf_file.tlf061": "imd_file.imd01",
+    "img_file.img02": "imd_file.imd01",
+    "img_file.img03": "ime_file.ime02",
+    "tlf_file.tlf062": "ime_file.ime02",
+    "pmn_file.pmn01": "pmm_file.pmm01",
+    "pmn_file.pmn04": "ima_file.ima01",
+    "pmm_file.pmm04": "pmc_file.pmc01",
+    "rvb_file.pmn01": "pmn_file.pmn01",
+    "rvb_file.rvb05": "ima_file.ima01",
+    "coptc_file.coptc02": "cmc_file.cmc01",
+    "coptd_file.coptd01": "coptc_file.coptc01",
+    "coptd_file.coptd04": "ima_file.ima01",
+    "prc_file.prc01": "ima_file.ima01"
   },
-  "pmn_file": {
-    "canonical_name": "pmn_file",
-    "tiptop_name": "採購單身檔",
-    "columns": [
-      {"id": "pmn01", "name": "採購單號", "type": "V", "description": "FK pmm01"},
-      {"id": "pmn02", "name": "項次", "type": "N", "description": "Line No"},
-      {"id": "pmn04", "name": "料號", "type": "V", "description": ""},
-      {"id": "pmn20", "name": "採購數量", "type": "N", "description": ""},
-      {"id": "pmn31", "name": "已交數量", "type": "N", "description": ""},
-      {"id": "pmn33", "name": "預計到貨日", "type": "D", "description": ""}
-    ]
-  },
-  "rvb_file": {
-    "canonical_name": "rvb_file",
-    "tiptop_name": "收料單身檔",
-    "columns": [
-      {"id": "rvb01", "name": "收料單號", "type": "V", "description": "PK"},
-      {"id": "rvb05", "name": "料號", "type": "V", "description": ""},
-      {"id": "rvb07", "name": "採購單號", "type": "V", "description": "FK pmn01"},
-      {"id": "rvb33", "name": "驗收數量", "type": "N", "description": ""}
-    ]
-  },
-  "imd_file": {
-    "canonical_name": "imd_file",
-    "tiptop_name": "倉庫代號檔",
-    "columns": [
-      {"id": "imd01", "name": "倉庫代號", "type": "V", "description": "PK"},
-      {"id": "imd02", "name": "倉庫名稱", "type": "V", "description": ""}
-    ]
-  },
-  "ime_file": {
-    "canonical_name": "ime_file",
-    "tiptop_name": "儲位代號檔",
-    "columns": [
-      {"id": "ime01", "name": "倉庫代號", "type": "V", "description": ""},
-      {"id": "ime02", "name": "儲位代號", "type": "V", "description": ""},
-      {"id": "ime03", "name": "儲位名稱", "type": "V", "description": ""}
-    ]
-  },
-  "cmc_file": {
-    "canonical_name": "cmc_file",
-    "tiptop_name": "客戶主檔",
-    "columns": [
-      {"id": "cmc01", "name": "客戶代碼", "type": "V", "description": "PK"},
-      {"id": "cmc02", "name": "客戶名稱", "type": "V", "description": ""},
-      {"id": "cmc03", "name": "聯絡人", "type": "V", "description": ""},
-      {"id": "cmc08", "name": "電話", "type": "V", "description": ""}
-    ]
-  },
-  "coptc_file": {
-    "canonical_name": "coptc_file",
-    "tiptop_name": "客戶訂單單頭檔",
-    "columns": [
-      {"id": "coptc01", "name": "訂單號", "type": "V", "description": "PK"},
-      {"id": "coptc02", "name": "客戶代碼", "type": "V", "description": "FK cmc01"},
-      {"id": "coptc03", "name": "單據日期", "type": "D", "description": ""},
-      {"id": "coptc04", "name": "預計出貨日", "type": "D", "description": ""},
-      {"id": "coptc05", "name": "訂單狀態", "type": "V", "description": "10:未出貨, 20:部分出貨, 30:已出貨"},
-      {"id": "coptc06", "name": "業務人員", "type": "V", "description": ""}
-    ]
-  },
-  "coptd_file": {
-    "canonical_name": "coptd_file",
-    "tiptop_name": "客戶訂單單身檔",
-    "columns": [
-      {"id": "coptd01", "name": "訂單號", "type": "V", "description": "FK coptc01"},
-      {"id": "coptd02", "name": "項次", "type": "N", "description": "Line No"},
-      {"id": "coptd04", "name": "料號", "type": "V", "description": "FK ima01"},
-      {"id": "coptd20", "name": "訂購數量", "type": "N", "description": ""},
-      {"id": "coptd30", "name": "單價", "type": "N", "description": ""},
-      {"id": "coptd31", "name": "已出貨數量", "type": "N", "description": ""},
-      {"id": "coptd32", "name": "訂單批次", "type": "V", "description": "Order Batch"}
-    ]
-  },
-  "prc_file": {
-    "canonical_name": "prc_file",
-    "tiptop_name": "訂價單檔",
-    "columns": [
-      {"id": "prc01", "name": "料號", "type": "V", "description": "FK ima01"},
-      {"id": "prc02", "name": "單價", "type": "N", "description": ""},
-      {"id": "prc03", "name": "批准日期", "type": "D", "description": ""},
-      {"id": "prc04", "name": "批准狀態", "type": "V", "description": "Y:已批准, N:待批准"},
-      {"id": "prc05", "name": "生效日", "type": "D", "description": ""},
-      {"id": "prc06", "name": "失效日", "type": "D", "description": ""}
-    ]
+
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2026-02-05",
+    "author": "AI-Box Development Team",
+    "description": "TipTop ERP Schema Registry with Semantic Concepts and Intent Templates"
   }
 }

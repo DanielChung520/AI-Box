@@ -7,7 +7,7 @@ from __future__ import annotations
 """MemoryManagerAgent實現 - 負責記憶同步和整合LangGraph節點"""
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from genai.workflows.langgraph.nodes import BaseAgentNode, NodeConfig, NodeResult
 from genai.workflows.langgraph.state import AIBoxState
@@ -23,7 +23,7 @@ class MemoryIntegrationResult:
     memory_optimized: bool
     memory_integrated: bool
     memory_performance: float
-    memory_usage: Dict[str, Any] 
+    memory_usage: Dict[str, Any]
     reasoning: str = ""
 
 

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Message:
     """消息結構定義"""
-    role: Literal["user", "assistant", "system"] 
+    role: Literal["user", "assistant", "system"]
     content: str
     timestamp: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -30,8 +30,8 @@ class Message:
 class SemanticAnalysis:
     """語義分析結果"""
     query_type: str
-    complexity: Literal["simple", "medium", "complex"] 
-    topics: List[str] 
+    complexity: Literal["simple", "medium", "complex"]
+    topics: List[str]
     sentiment: Optional[str] = None
     confidence: float = 0.0
 
@@ -40,7 +40,7 @@ class SemanticAnalysis:
 class IntentDSL:
     """意圖DSL結構"""
     intent_type: str
-    parameters: Dict[str, Any] 
+    parameters: Dict[str, Any]
     confidence: float = 0.0
     dsl_expression: Optional[str] = None
 
@@ -51,7 +51,7 @@ class Capability:
     name: str
     type: str
     priority: int = 0
-    requirements: Dict[str, Any] = field(default_factory=dict) 
+    requirements: Dict[str, Any] = field(default_factory=dict)
     available: bool = True
 
 
@@ -59,8 +59,8 @@ class Capability:
 class ExecutionResult:
     """執行結果"""
     agent_id: str
-    status: Literal["success", "failure", "partial"] 
-    timestamp: datetime = field(default_factory=datetime.now) 
+    status: Literal["success", "failure", "partial"]
+    timestamp: datetime = field(default_factory=datetime.now)
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     duration: float = 0.0
@@ -70,8 +70,8 @@ class ExecutionResult:
 class AuditEntry:
     """審計記錄"""
     action: str
-    details: Dict[str, Any] 
-    timestamp: datetime = field(default_factory=datetime.now) 
+    details: Dict[str, Any]
+    timestamp: datetime = field(default_factory=datetime.now)
     user_id: Optional[str] = None
     session_id: Optional[str] = None
 
@@ -80,8 +80,8 @@ class AuditEntry:
 class Observation:
     """觀察記錄"""
     type: str
-    data: Dict[str, Any] 
-    timestamp: datetime = field(default_factory=datetime.now) 
+    data: Dict[str, Any]
+    timestamp: datetime = field(default_factory=datetime.now)
     confidence: float = 0.0
 
 
@@ -90,13 +90,13 @@ class AIBoxState:
     """AI-Box完整狀態定義 - LangGraph狀態結構"""
     session_id: Optional[str] = None
     user_id: Optional[str] = None
-    current_layer: str = "input" 
-    messages: List[Message] = field(default_factory=list) 
+    current_layer: str = "input"
+    messages: List[Message] = field(default_factory=list)
     task_id: Optional[str] = None
     request_id: Optional[str] = None
 
     # === 輸入分類狀態 ===
-    input_type: Literal["free", "assistant", "agent"] = "free" 
+    input_type: Literal["free", "assistant", "agent"] = "free"
     injected_context: Optional[Dict[str, Any]] = None
     selected_assistant: Optional[str] = None
     selected_agent: Optional[str] = None
@@ -107,7 +107,7 @@ class AIBoxState:
     semantic_analysis: Optional[Any] = None
     intent_analysis: Optional[Any] = None
     capability_analysis: Optional[Any] = None
-    capability_match: List[Capability] = field(default_factory=list) 
+    capability_match: List[Capability] = field(default_factory=list)
     resources_available: bool = True
     resource_details: Optional[Dict[str, Any]] = None
     resource_allocation: Optional[Any] = None
@@ -119,8 +119,8 @@ class AIBoxState:
     clarification_details: Optional[Any] = None
 
     # === 編排狀態 ===
-    dispatched_agents: List[str] = field(default_factory=list) 
-    execution_results: List[ExecutionResult] = field(default_factory=list) 
+    dispatched_agents: List[str] = field(default_factory=list)
+    execution_results: List[ExecutionResult] = field(default_factory=list)
     current_agent: Optional[str] = None
     orchestration_plan: Optional[Dict[str, Any]] = None
     task_orchestration: Optional[Any] = None
@@ -132,9 +132,9 @@ class AIBoxState:
     task_execution: Optional[Any] = None
 
     # === 文件處理狀態 ===
-    file_ids: List[str] = field(default_factory=list) 
+    file_ids: List[str] = field(default_factory=list)
     processing_files: bool = False
-    file_processing_status: Dict[str, str] = field(default_factory=dict) 
+    file_processing_status: Dict[str, str] = field(default_factory=dict)
     retrieval_needed: bool = False
     retrieval_context: Optional[Dict[str, Any]] = None
     vision_analysis: List[Dict[str, Any]] = field(default_factory=list)
@@ -146,7 +146,7 @@ class AIBoxState:
     model_metadata: Optional[Dict[str, Any]] = None
 
     # === 審計狀態 ===
-    audit_log: List[AuditEntry] = field(default_factory=list) 
+    audit_log: List[AuditEntry] = field(default_factory=list)
     observations: List[Observation] = field(default_factory=list)
 
     # === 最終輸出 ===
@@ -156,7 +156,7 @@ class AIBoxState:
     execution_status: str = "pending"
 
     # === 時間戳 ===
-    created_at: datetime = field(default_factory=datetime.now) 
+    created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
     def update_timestamp(self) -> None:

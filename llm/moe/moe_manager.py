@@ -214,6 +214,39 @@ class LLMMoEManager:
         """獲取用戶偏好"""
         return get_user_preference(user_id, scene)
 
+    def _get_fallback_model_from_config(self, scene: str) -> str:
+        """
+        從配置中獲取 fallback 模型。
+
+        Args:
+            scene: 場景名稱
+
+        Returns:
+            可用的模型名稱
+        """
+        from system.infra.config.config import get_config_section
+
+        moe_config = get_config_section("services", "moe", "model_priority", default={})
+        scene_config = moe_config.get(scene, {})
+        priority_list = scene_config.get("priority", [])
+
+        if priority_list:
+            # 返回第一個模型
+            return priority_list[0].get("model", "llama3.2:3b-instruct-q4_0")
+
+        # 如果沒有配置，回退到預設值
+        default_models = {
+            "chat": "llama3.2:3b-instruct-q4_0",
+            "semantic_understanding": "llama3.2:3b-instruct-q4_0",
+            "task_analysis": "mistral-nemo:12b",
+            "orchestrator": "llama3.2:3b-instruct-q4_0",
+            "embedding": "qwen3-embedding:latest",
+            "knowledge_graph_extraction": "mistral-nemo:12b",
+            "vision": "llama3.2-vision:90b",
+            "task_cleanup": "mistral-nemo:12b",
+        }
+        return default_models.get(scene, "llama3.2:3b-instruct-q4_0")
+
     def get_available_scenes(self) -> List[str]:
         """獲取所有可用的場景"""
         loader = get_moe_config_loader()
@@ -1171,13 +1204,17 @@ class LLMMoEManager:
 
                 continue
 
-        # 所有提供商都失敗，最後嘗試本機 qwen3-next:latest（強制使用 localhost:11434）
-        # 修改時間：2026-01-22 - 使用 qwen3-next:latest 作為默認 fallback 模型
+        # 所有提供商都失敗，最後嘗試本機 Ollama（使用配置中的第一個可用模型）
+        # 修改時間：2026-02-03 - 使用配置中的模型而不是硬編碼的 qwen3-next:latest
         # 注意：即使原始 provider 是 OLLAMA，也嘗試最終 fallback（可能是其他節點失敗，嘗試本地節點）
         try:
+            # 獲取場景配置中的第一個模型作為 fallback
+            scene = kwargs.get("model_selector", {}).get("scene", "chat")
+            fallback_model = self._get_fallback_model_from_config(scene)
+
             logger.info(
                 f"All fallback providers failed (original: {failed_provider.value}), "
-                "attempting final fallback to local qwen3-next:latest on localhost:11434"
+                f"attempting final fallback to local {fallback_model} on localhost:11434"
             )
             # 為最終 fallback 創建只使用 localhost 的 Ollama 客戶端
             from llm.clients.ollama import OllamaClient
@@ -1194,27 +1231,27 @@ class LLMMoEManager:
                 strategy="round_robin",
                 cooldown_seconds=30,
             )
-            client = OllamaClient(router=localhost_router, default_model="qwen3-next:latest")
+            client = OllamaClient(router=localhost_router, default_model=fallback_model)
             if client.is_available():
                 start_time = time.time()
                 # 對於最終 fallback，如果原始 model 是 ollama:host:port:model_name 格式，
-                # 提取實際的模型名稱；否則使用 qwen3-next:latest
-                fallback_model = "qwen3-next:latest"
+                # 提取實際的模型名稱；否則使用配置中的 fallback_model
+                actual_fallback_model = fallback_model
                 if model and ":" in model:
                     parts = model.split(":")
                     if len(parts) >= 4 and parts[0] == "ollama":
-                        fallback_model = ":".join(parts[3:])
+                        actual_fallback_model = ":".join(parts[3:])
 
                 result = await client.chat(
                     messages,
-                    model=fallback_model,  # 使用提取的模型名稱或 qwen3-next:latest
+                    model=actual_fallback_model,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     **kwargs,
                 )
                 latency = time.time() - start_time
 
-                logger.info("Successfully used final fallback to local qwen3-next:latest")
+                logger.info(f"Successfully used final fallback to local {fallback_model}")
 
                 # 標記負載均衡器成功（如果啟用）
                 if self.load_balancer is not None:
@@ -1224,7 +1261,7 @@ class LLMMoEManager:
                 if isinstance(result, dict):
                     result["_routing"] = {
                         "provider": LLMProvider.OLLAMA.value,
-                        "model": fallback_model,
+                        "model": actual_fallback_model,
                         "strategy": f"final_fallback({failed_strategy or 'unknown'})",
                         "latency_ms": ((latency * 1000.0) if latency is not None else None),
                         "failover_used": True,
@@ -1237,7 +1274,7 @@ class LLMMoEManager:
                 logger.warning("Final fallback: localhost Ollama client is not available")
         except Exception as final_fallback_exc:
             logger.warning(
-                f"Final fallback to local qwen3-next:latest also failed: {final_fallback_exc}",
+                f"Final fallback to local {fallback_model} also failed: {final_fallback_exc}",
                 exc_info=True,
             )
             # 記錄最終 fallback 失敗的原因
@@ -1429,13 +1466,17 @@ class LLMMoEManager:
 
                 continue
 
-        # 所有提供商都失敗，最後嘗試本機 qwen3-next:latest（強制使用 localhost:11434）
-        # 修改時間：2026-01-22 - 使用 qwen3-next:latest 作為默認 fallback 模型
+        # 所有提供商都失敗，最後嘗試本機 Ollama（使用配置中的第一個可用模型）
+        # 修改時間：2026-02-03 - 使用配置中的模型而不是硬編碼的 qwen3-next:latest
         # 注意：即使原始 provider 是 OLLAMA，也嘗試最終 fallback（可能是其他節點失敗，嘗試本地節點）
         try:
+            # 獲取場景配置中的第一個模型作為 fallback
+            scene = kwargs.get("model_selector", {}).get("scene", "chat")
+            fallback_model = self._get_fallback_model_from_config(scene)
+
             logger.info(
                 f"All fallback providers failed (original: {failed_provider.value}), "
-                "attempting final fallback to local qwen3-next:latest on localhost:11434"
+                f"attempting final fallback to local {fallback_model} on localhost:11434"
             )
             # 為最終 fallback 創建只使用 localhost 的 Ollama 客戶端
             from llm.clients.ollama import OllamaClient
@@ -1452,21 +1493,21 @@ class LLMMoEManager:
                 strategy="round_robin",
                 cooldown_seconds=30,
             )
-            client = OllamaClient(router=localhost_router, default_model="qwen3-next:latest")
+            client = OllamaClient(router=localhost_router, default_model=fallback_model)
             if client.is_available() and hasattr(client, "chat_stream"):
                 # 對於最終 fallback，如果原始 model 是 ollama:host:port:model_name 格式，
-                # 提取實際的模型名稱；否則使用 qwen3-next:latest
-                fallback_model = "qwen3-next:latest"
+                # 提取實際的模型名稱；否則使用配置中的 fallback_model
+                actual_fallback_model = fallback_model
                 if model and ":" in model:
                     parts = model.split(":")
                     if len(parts) >= 4 and parts[0] == "ollama":
-                        fallback_model = ":".join(parts[3:])
+                        actual_fallback_model = ":".join(parts[3:])
 
                 start_time = time.time()
                 # 流式調用
                 async for chunk in client.chat_stream(
                     messages,
-                    model=fallback_model,
+                    model=actual_fallback_model,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     **kwargs,
@@ -1474,7 +1515,7 @@ class LLMMoEManager:
                     yield chunk
                 latency = time.time() - start_time
 
-                logger.info("Successfully used final fallback to local qwen3-next:latest")
+                logger.info(f"Successfully used final fallback to local {fallback_model}")
 
                 # 標記負載均衡器成功（如果啟用）
                 if self.load_balancer is not None:
@@ -1498,7 +1539,7 @@ class LLMMoEManager:
                 )
         except Exception as final_fallback_exc:
             logger.warning(
-                f"Final fallback to local qwen3-next:latest also failed: {final_fallback_exc}",
+                f"Final fallback to local {fallback_model} also failed: {final_fallback_exc}",
                 exc_info=True,
             )
             # 記錄最終 fallback 失敗的原因

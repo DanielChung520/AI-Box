@@ -54,12 +54,22 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
 from agents.services.protocol.base import AgentServiceRequest, AgentServiceResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 # 創建 FastAPI 應用
 app = FastAPI(
     title="Data Agent Service (Datalake System)",
     description="Data Agent 獨立服務，提供數據查詢、數據字典管理和 Schema 管理功能",
     version="1.0.0",
+)
+
+# CORS 配置
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # 初始化 Data Agent

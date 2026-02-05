@@ -1,7 +1,7 @@
 # 代碼功能說明: Text-to-SQL 轉換服務
 # 創建日期: 2026-01-08
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-08
+# 最後修改日期: 2026-02-05
 
 """Text-to-SQL 轉換服務 - 將自然語言轉換為 SQL 查詢"""
 
@@ -9,8 +9,18 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
+import sys
+from pathlib import Path
+
+# 添加 datalake-system 到 Python 路徑
+datalake_root = Path(__file__).resolve().parent.parent
+if str(datalake_root) not in sys.path:
+    sys.path.insert(0, str(datalake_root))
+
 from agents.task_analyzer.models import LLMProvider
 from llm.clients.factory import get_client
+
+from mm_agent.services.schema_registry import get_schema_registry
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +38,117 @@ class TextToSQLService:
         self._llm_provider = llm_provider or LLMProvider.OLLAMA
         self._llm_client = None
         self._logger = logger
+
+        # 初始化 Schema Registry（用於 SQL 生成）
+        self._schema_registry = get_schema_registry()
+
+    def _intent_to_constraints(self, intent_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """將意圖分析結果轉換為約束條件"""
+        constraints = {}
+
+        # 映射意圖類型到 Schema Registry 的 intent
+        intent_mapping = {
+            "purchase": "QUERY_PURCHASE",
+            "sales": "QUERY_SALES",
+            "inventory": "QUERY_STOCK",
+            "shortage": "ANALYZE_SHORTAGE",
+        }
+        intent_type = intent_analysis.get("intent_type", "")
+        if intent_type in intent_mapping:
+            constraints["_intent_name"] = intent_mapping[intent_type]
+
+        # 料號
+        if intent_analysis.get("material_id"):
+            constraints["material_id"] = intent_analysis["material_id"]
+
+        # 倉庫
+        if intent_analysis.get("warehouse"):
+            constraints["inventory_location"] = intent_analysis["warehouse"]
+
+        # 物料類別
+        if intent_analysis.get("material_category"):
+            constraints["material_category"] = intent_analysis["material_category"]
+
+        # 交易類型
+        if intent_analysis.get("transaction_type"):
+            constraints["transaction_type"] = intent_analysis["transaction_type"]
+
+        # 時間範圍
+        if intent_analysis.get("time_range"):
+            time_range = intent_analysis["time_range"]
+            if isinstance(time_range, dict):
+                constraints["time_type"] = time_range.get("type")
+            elif isinstance(time_range, str):
+                constraints["time_type"] = time_range
+
+        # 數量
+        if intent_analysis.get("quantity"):
+            constraints["quantity"] = intent_analysis["quantity"]
+
+        return constraints
+
+    def _generate_sql_from_schema_registry(self, intent_analysis: Dict[str, Any]) -> Optional[str]:
+        """使用 Schema Registry 生成 SQL"""
+        try:
+            intent_name = intent_analysis.get("intent", "") or ""
+
+            if not intent_name:
+                return None
+
+            # 映射舊意圖到新意圖
+            intent_mapping = {
+                "purchase": "QUERY_PURCHASE",
+                "sales": "QUERY_SALES",
+                "inventory": "QUERY_STOCK",
+                "shortage": "ANALYZE_SHORTAGE",
+            }
+            schema_intent = intent_mapping.get(intent_name, intent_name)
+
+            if schema_intent is None or schema_intent == "":
+                return None
+
+            # 轉換約束條件
+            constraints = self._intent_to_constraints(intent_analysis)
+
+            # 生成 SQL
+            sql = self._schema_registry.generate_sql(schema_intent, constraints)
+
+            self._logger.info(f"Schema Registry 生成 SQL: {sql[:100] if sql else 'None'}...")
+            return sql
+
+        except Exception as e:
+            self._logger.warning(f"Schema Registry SQL 生成失敗: {e}")
+            return None
+
+    def _generate_sql_fallback(self, intent_analysis: Dict[str, Any]) -> str:
+        """回退 SQL 生成（舊邏輯）"""
+        table = intent_analysis.get("table", "img_file")
+        group_by = intent_analysis.get("group_by", "")
+        aggregation = intent_analysis.get("aggregation", "")
+        filters = intent_analysis.get("filters", "")
+
+        self._logger.info(
+            f"使用回退邏輯生成 SQL: table={table}, group_by={group_by}, aggregation={aggregation}, filters={filters}"
+        )
+
+        # 生成 SQL
+        if group_by and aggregation:
+            sql_text = f"SELECT {group_by}, {aggregation}(img10) FROM {table}"
+        elif aggregation:
+            sql_text = f"SELECT {aggregation}(img10) FROM {table}"
+        elif group_by:
+            sql_text = f"SELECT {group_by} FROM {table}"
+        else:
+            sql_text = f"SELECT * FROM {table}"
+
+        if filters:
+            sql_text += f" WHERE {filters}"
+
+        if group_by and aggregation:
+            sql_text += f" GROUP BY {group_by}"
+
+        self._logger.info(f"回退生成 SQL: {sql_text}")
+        return sql_text
 
     def _get_llm_client(self):
         """獲取 LLM 客戶端（延遲初始化）"""
@@ -71,35 +192,19 @@ class TextToSQLService:
 
             self._logger.info(f"intent_analysis 接收: {intent_analysis}")
 
-            # 如果意圖分析完整，直接生成 SQL，不調用 LLM
-            if intent_analysis and intent_analysis.get("table"):
-                # 使用意圖分析直接生成 SQL
-                table = intent_analysis.get("table", "img_file")
-                group_by = intent_analysis.get("group_by", "")
-                aggregation = intent_analysis.get("aggregation", "")
-                filters = intent_analysis.get("filters", "")
-
-                self._logger.info(
-                    f"使用意圖分析生成 SQL: table={table}, group_by={group_by}, aggregation={aggregation}, filters={filters}"
-                )
-
-                # 生成 SQL
-                if group_by and aggregation:
-                    sql_text = f"SELECT {group_by}, {aggregation}(img10) FROM {table}"
-                elif aggregation:
-                    sql_text = f"SELECT {aggregation}(img10) FROM {table}"
-                elif group_by:
-                    sql_text = f"SELECT {group_by} FROM {table}"
+            # 優先使用 Schema Registry 生成 SQL
+            if intent_analysis and intent_analysis.get("intent"):
+                sql_from_registry = self._generate_sql_from_schema_registry(intent_analysis)
+                if sql_from_registry:
+                    self._logger.info(f"使用 Schema Registry 生成 SQL")
+                    sql_text = sql_from_registry
                 else:
-                    sql_text = f"SELECT * FROM {table}"
-
-                if filters:
-                    sql_text += f" WHERE {filters}"
-
-                if group_by and aggregation:
-                    sql_text += f" GROUP BY {group_by}"
-
-                self._logger.info(f"直接生成 SQL: {sql_text}")
+                    # 回退到舊邏輯
+                    self._logger.info("Schema Registry 生成失敗，回退到舊邏輯")
+                    sql_text = self._generate_sql_fallback(intent_analysis)
+            elif intent_analysis and intent_analysis.get("table"):
+                # 回退到舊邏輯
+                sql_text = self._generate_sql_fallback(intent_analysis)
             else:
                 self._logger.info("意圖分析不完整，使用 LLM 翻譯")
                 # 需要 LLM 翻譯自然語言

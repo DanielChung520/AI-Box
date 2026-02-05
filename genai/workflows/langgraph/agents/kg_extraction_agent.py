@@ -25,7 +25,7 @@ class KGExtractionResult:
     knowledge_graph_edges: int
     extraction_success: bool
     processing_time: float
-    failed_files: List[str] = field(default_factory=list) 
+    failed_files: List[str] = field(default_factory=list)
     reasoning: str = ""
 
 

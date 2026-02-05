@@ -24,8 +24,8 @@ class FileUploadResult:
     upload_success: bool
     total_size: int
     processing_triggered: bool
-    uploaded_files: List[Dict[str, Any]] = field(default_factory=list) 
-    validation_errors: List[str] = field(default_factory=list) 
+    uploaded_files: List[Dict[str, Any]] = field(default_factory=list)
+    validation_errors: List[str] = field(default_factory=list)
     reasoning: str = ""
 
 

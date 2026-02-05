@@ -2704,10 +2704,11 @@ export async function chatProduct(request: ChatProductRequest): Promise<ChatProd
 /**
  * 產品級 Chat API - 流式版本（預設 /api/v1/chat/stream；VITE_CHAT_USE_V2=true 時為 /api/v2/chat/stream）
  * 返回一個 async generator，逐塊接收內容
+ * 修改時間：2026-02-03 - 返回包含 requestId 的對象
  */
-export async function* chatProductStream(
+export async function chatProductStream(
   request: ChatProductRequest
-): AsyncGenerator<{ type: string; data: any }, void, unknown> {
+): Promise<{ requestId: string; stream: AsyncGenerator<{ type: string; data: any }, void, unknown> }> {
   const url = `${getChatBaseUrl()}/chat/stream`;
   const token = localStorage.getItem('access_token');
 
@@ -2728,62 +2729,88 @@ export async function* chatProductStream(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      console.error('[chatProductStream] HTTP error:', response.status, response.statusText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     if (!response.body) {
+      console.error('[chatProductStream] Response body is null');
       throw new Error('Response body is null');
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // 處理 SSE 格式：每行以 "data: " 開頭
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // 保留最後一個不完整的行
-
-        for (const line of lines) {
-          if (line.trim() === '') continue;
-          if (line.startsWith('data: ')) {
-            try {
-              const jsonStr = line.slice(6); // 移除 "data: " 前綴
-              const event = JSON.parse(jsonStr);
-              yield event;
-            } catch (e) {
-              console.warn('[chatProductStream] Failed to parse SSE data:', line, e);
-            }
-          }
-        }
-      }
-
-      // 處理最後的 buffer
-      if (buffer.trim()) {
-        const lines = buffer.split('\n');
-        for (const line of lines) {
-          if (line.trim() === '') continue;
-          if (line.startsWith('data: ')) {
-            try {
-              const jsonStr = line.slice(6);
-              const event = JSON.parse(jsonStr);
-              yield event;
-            } catch (e) {
-              console.warn('[chatProductStream] Failed to parse SSE data:', line, e);
-            }
-          }
-        }
-      }
-    } finally {
-      reader.releaseLock();
+    // 修改時間：2026-02-03 - 讀取 X-Request-ID header
+    const requestId = response.headers.get('X-Request-ID') || '';
+    if (!requestId) {
+      console.warn('[chatProductStream] X-Request-ID header not found');
+    } else {
+      console.log('[chatProductStream] Request ID:', requestId);
     }
+
+    // 創建異步生成器
+    async function* streamGenerator(): AsyncGenerator<{ type: string; data: any }, void, unknown> {
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      try {
+        console.log('[chatProductStream] 開始接收流...');
+        let readCount = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          readCount++;
+          if (done) {
+            console.log('[chatProductStream] 接收完成，共讀取 ' + readCount + ' 次');
+            break;
+          }
+
+          const chunk = decoder.decode(value, { stream: true });
+          console.log('[chatProductStream] 收到數據 #' + readCount + ':', chunk.substring(0, 100));
+
+          buffer += chunk;
+
+          // 處理 SSE 格式：每行以 "data: " 開頭
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // 保留最後一個不完整的行
+
+          for (const line of lines) {
+            if (line.trim() === '') continue;
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6); // 移除 "data: " 前綴
+                const event = JSON.parse(jsonStr);
+                console.log('[chatProductStream] 解析事件:', event.type);
+                yield event;
+              } catch (e) {
+                console.warn('[chatProductStream] Failed to parse SSE data:', line, e);
+              }
+            }
+          }
+        }
+
+        // 處理最後的 buffer
+        if (buffer.trim()) {
+          const lines = buffer.split('\n');
+          for (const line of lines) {
+            if (line.trim() === '') continue;
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6);
+                const event = JSON.parse(jsonStr);
+                yield event;
+              } catch (e) {
+                console.warn('[chatProductStream] Failed to parse SSE data:', line, e);
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+
+    return { requestId, stream: streamGenerator() };
   } catch (error: any) {
+    console.error('[chatProductStream] Error:', error.message, error.stack);
     if (error.name === 'AbortError') {
       throw new Error('API request timeout after 120 seconds');
     }

@@ -17,11 +17,27 @@
 
 .brain-icon {
   color: #666;
-  transition: color 0.2s ease;
+  transition: color 0.3s ease;
 }
 
 .brain-icon.active {
   color: #1890ff;
+}
+
+.status-processing .brain-icon {
+  color: #52c41a;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    color: #52c41a;
+    opacity: 1;
+  }
+  50% {
+    color: #999;
+    opacity: 0.6;
+  }
 }
 
 .status-dot {

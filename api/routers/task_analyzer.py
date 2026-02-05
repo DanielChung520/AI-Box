@@ -28,6 +28,7 @@ class TaskAnalysisAPIRequest(BaseModel):
     context: Optional[Dict[str, Any]] = None
     user_id: Optional[str] = None
     session_id: Optional[str] = None
+    specified_agent_id: Optional[str] = None
 
 
 @router.post("/task-analyzer/analyze", status_code=status.HTTP_200_OK)
@@ -48,6 +49,7 @@ async def analyze_task(request: TaskAnalysisAPIRequest) -> JSONResponse:
             context=request.context,
             user_id=request.user_id,
             session_id=request.session_id,
+            specified_agent_id=request.specified_agent_id,
         )
 
         # 執行分析

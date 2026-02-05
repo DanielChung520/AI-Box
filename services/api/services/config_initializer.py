@@ -132,6 +132,21 @@ def initialize_system_configs(force: bool = False) -> Dict[str, bool]:
     return results
 
 
+def initialize_mcp_external_services_config(force: bool = False) -> bool:
+    """
+    從 .env 加載 MCP 第三方服務配置到 ArangoDB（佔位實作，待整合）。
+
+    Args:
+        force: 是否強制覆蓋現有配置。
+
+    Returns:
+        是否成功初始化。
+    """
+    # TODO: 實作從 .env 加載 MCP 配置並寫入 ArangoDB
+    _ = force
+    return False
+
+
 def load_default_configs_from_file(
     config_path: Optional[Path] = None,
 ) -> Optional[Dict[str, Dict[str, Any]]]:

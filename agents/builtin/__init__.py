@@ -601,7 +601,7 @@ def _do_register_all_agents(
                     author="AI-Box Team",
                     tags=["document_editing", "markdown_editing", "builtin", "v2.0"],
                 ),
-                permissions=AgentPermissionConfig(),
+                permissions=AgentPermissionConfig(server_fingerprint=None),
             )
 
             success = registry.register_agent(md_editor_request, instance=md_editor_agent)

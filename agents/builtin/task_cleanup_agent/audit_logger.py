@@ -6,7 +6,7 @@ import json
 import hashlib
 import logging
 from datetime import datetime
-from typing import Optional, Any, Dict
+from typing import Any, Dict
 
 from database.arangodb import ArangoDBClient
 from agents.builtin.task_cleanup_agent.models import AOGAAuditRecord

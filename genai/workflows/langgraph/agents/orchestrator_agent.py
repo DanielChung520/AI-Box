@@ -23,7 +23,7 @@ class TaskOrchestrationResult:
     execution_plan_generated: bool
     agent_scheduled: bool
     task_id: Optional[str] = None
-    execution_status: str = "pending" 
+    execution_status: str = "pending"
     scheduled_agents: List[Dict[str, Any]] = None
     task_dependencies: List[Dict[str, Any]] = None
     estimated_duration: Optional[float] = None

@@ -128,7 +128,9 @@ class LLMRoutingResult(BaseModel):
     model: str = Field(..., description="模型名稱")
     confidence: float = Field(..., ge=0.0, le=1.0, description="置信度")
     reasoning: str = Field(..., description="選擇理由")
-    fallback_providers: List[LLMProvider] = Field(default_factory=list, description="備用提供商列表")
+    fallback_providers: List[LLMProvider] = Field(
+        default_factory=list, description="備用提供商列表"
+    )
     target_node: Optional[str] = Field(
         None,
         description="當 provider 為本地 LLM 時指派的節點",
@@ -138,7 +140,9 @@ class LLMRoutingResult(BaseModel):
     estimated_latency: Optional[float] = Field(None, description="預估延遲時間（秒）", ge=0.0)
     estimated_cost: Optional[float] = Field(None, description="預估成本", ge=0.0)
     quality_score: Optional[float] = Field(None, description="質量評分（0.0-1.0）", ge=0.0, le=1.0)
-    routing_metadata: Dict[str, Any] = Field(default_factory=dict, description="路由元數據（擴展信息）")
+    routing_metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="路由元數據（擴展信息）"
+    )
 
 
 class LogQueryIntent(BaseModel):
@@ -153,7 +157,9 @@ class LogQueryIntent(BaseModel):
         description="日誌類型：TASK（任務日誌）、AUDIT（審計日誌）、SECURITY（安全日誌）",
     )
     actor: Optional[str] = Field(None, description="執行者（用戶 ID 或 Agent ID）")
-    level: Optional[str] = Field(None, description="配置層級（system/tenant/user，僅 AUDIT 類型需要）")
+    level: Optional[str] = Field(
+        None, description="配置層級（system/tenant/user，僅 AUDIT 類型需要）"
+    )
     tenant_id: Optional[str] = Field(None, description="租戶 ID")
     user_id: Optional[str] = Field(None, description="用戶 ID")
     start_time: Optional[datetime] = Field(None, description="開始時間")
@@ -179,8 +185,12 @@ class ConfigIntent(BaseModel):
     )
     tenant_id: Optional[str] = Field(None, description="租戶 ID（租戶級操作時需要）")
     user_id: Optional[str] = Field(None, description="用戶 ID（用戶級操作時需要）")
-    config_data: Optional[Dict[str, Any]] = Field(None, description="配置數據（更新/創建操作時需要）")
-    clarification_needed: bool = Field(default=False, description="是否需要澄清（信息不足時為 true）")
+    config_data: Optional[Dict[str, Any]] = Field(
+        None, description="配置數據（更新/創建操作時需要）"
+    )
+    clarification_needed: bool = Field(
+        default=False, description="是否需要澄清（信息不足時為 true）"
+    )
     clarification_question: Optional[str] = Field(
         None, description="澄清問題（clarification_needed=true 時生成）"
     )
@@ -194,8 +204,25 @@ class RouterInput(BaseModel):
     """Router LLM 輸入模型"""
 
     user_query: str = Field(..., description="用戶查詢")
-    session_context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="會話上下文")
-    system_constraints: Optional[Dict[str, Any]] = Field(default_factory=dict, description="系統約束")
+    session_context: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="會話上下文"
+    )
+    system_constraints: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="系統約束"
+    )
+
+
+class CoreferenceResolution(BaseModel):
+    """指代消解結果"""
+
+    original: str = Field(..., description="原始指代詞，如 '他們', '這個文件', '它'")
+    resolved: str = Field(
+        ..., description="解析後的實體，如 '物料管理員', 'README.md', 'Data Agent'"
+    )
+    source: Literal["session_context", "inference"] = Field(
+        ..., description="來源：'session_context' 從上下文解析，'inference' 從語義推斷"
+    )
+    confidence: float = Field(..., ge=0.0, le=1.0, description="解析置信度")
 
 
 class SemanticUnderstandingOutput(BaseModel):
@@ -203,15 +230,25 @@ class SemanticUnderstandingOutput(BaseModel):
 
     此模型是 v4.0 架構中 L1 語義理解層的純輸出，只包含語義理解信息，
     不包含 intent、agent 選擇等決策信息（這些在 L2/L3 層級處理）。
+
+    修改時間：2026-02-03 - 新增 coreference_resolutions 字段支持指代消解
     """
 
     topics: List[str] = Field(..., description="主題列表，如 ['document', 'system_design']")
-    entities: List[str] = Field(..., description="實體列表，如 ['Document Editing Agent', 'API Spec']")
-    action_signals: List[str] = Field(..., description="動作信號，如 ['design', 'refine', 'structure']")
+    entities: List[str] = Field(
+        ..., description="實體列表，如 ['Document Editing Agent', 'API Spec']"
+    )
+    action_signals: List[str] = Field(
+        ..., description="動作信號，如 ['design', 'refine', 'structure']"
+    )
     modality: Literal["instruction", "question", "conversation", "command"] = Field(
         ..., description="模態類型"
     )
     certainty: float = Field(..., ge=0.0, le=1.0, description="確定性分數 (0.0-1.0)")
+    coreference_resolutions: List[CoreferenceResolution] = Field(
+        default_factory=list,
+        description="指代消解結果，如 [{'original': '他們', 'resolved': '物料管理員', 'source': 'inference', 'confidence': 0.95}]",
+    )
 
 
 class RouterDecision(BaseModel):
@@ -330,7 +367,9 @@ class GroDecisionLog(BaseModel):
     react_id: str = Field(..., description="ReAct session ID", min_length=8)
     iteration: int = Field(..., description="迭代次數", ge=0)
     state: ReactStateType = Field(..., description="狀態")
-    input_signature: Dict[str, Any] = Field(default_factory=dict, description="輸入簽名（命令分類、風險等級等）")
+    input_signature: Dict[str, Any] = Field(
+        default_factory=dict, description="輸入簽名（命令分類、風險等級等）"
+    )
     observations: Optional[Dict[str, Any]] = Field(None, description="觀察結果")
     decision: GroDecision = Field(..., description="決策結果")
     outcome: DecisionOutcome = Field(..., description="決策結果（success/failure/partial）")
@@ -496,7 +535,9 @@ class IntentUpdate(BaseModel):
     domain: Optional[str] = Field(None, description="領域")
     target: Optional[str] = Field(None, description="目標 Agent")
     output_format: Optional[List[str]] = Field(None, description="輸出格式列表")
-    depth: Optional[Literal["Basic", "Intermediate", "Advanced"]] = Field(None, description="深度級別")
+    depth: Optional[Literal["Basic", "Intermediate", "Advanced"]] = Field(
+        None, description="深度級別"
+    )
     default_version: Optional[bool] = Field(None, description="是否為默認版本")
     is_active: Optional[bool] = Field(None, description="是否啟用")
     description: Optional[str] = Field(None, description="Intent 描述")

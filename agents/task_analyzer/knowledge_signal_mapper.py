@@ -51,6 +51,10 @@ class KnowledgeSignal:
     """Knowledge Signal Schema - 唯一允許觸發 KA-Agent 的物件
 
     這不是 LLM 輸出，是 deterministic mapper 產生的。
+
+    修改時間：2026-02-03 - 新增 internal_only 字段
+    - internal_only=True: 只查內部知識庫（優先策略）
+    - internal_only=False: 可以外部搜尋（fallback 策略）
     """
 
     is_knowledge_event: bool = False
@@ -60,6 +64,7 @@ class KnowledgeSignal:
     skill_candidate: bool = False
     confidence: float = 0.0  # 0.0-1.0
     reason_codes: List[str] = []  # 用於 debug 和 audit
+    internal_only: bool = True  # 默認 True：優先內部知識庫
 
     def __init__(
         self,
@@ -70,6 +75,7 @@ class KnowledgeSignal:
         skill_candidate: bool = False,
         confidence: float = 0.0,
         reason_codes: Optional[List[str]] = None,
+        internal_only: bool = True,
     ):
         self.is_knowledge_event = is_knowledge_event
         self.knowledge_type = knowledge_type
@@ -78,6 +84,7 @@ class KnowledgeSignal:
         self.skill_candidate = skill_candidate
         self.confidence = confidence
         self.reason_codes = reason_codes or []
+        self.internal_only = internal_only
 
     def to_dict(self) -> dict:
         """轉換為字典（用於序列化）"""
@@ -91,6 +98,7 @@ class KnowledgeSignal:
             "skill_candidate": self.skill_candidate,
             "confidence": self.confidence,
             "reason_codes": self.reason_codes,
+            "internal_only": self.internal_only,
         }
 
     def __repr__(self) -> str:
@@ -101,6 +109,7 @@ class KnowledgeSignal:
             f"stability={self.stability_estimate}, "
             f"reuse_potential={self.reuse_potential:.2f}, "
             f"confidence={self.confidence:.2f}, "
+            f"internal_only={self.internal_only}, "
             f"reasons={self.reason_codes}"
             f")"
         )
@@ -117,6 +126,8 @@ class KnowledgeSignalMapper:
         """
         將語義理解輸出映射為 Knowledge Signal
 
+        修改時間：2026-02-03 - 使用指代消解後的實體進行判斷
+
         Args:
             semantic_output: L1 語義理解輸出
 
@@ -125,9 +136,25 @@ class KnowledgeSignalMapper:
         """
         signal = KnowledgeSignal()
 
+        # 修改時間：2026-02-03 - 應用指代消解到 entities
+        # 如果有指代消解結果，使用解析後的實體擴展 entities 列表
+        resolved_entities = list(semantic_output.entities)
+        for resolution in semantic_output.coreference_resolutions:
+            if resolution.resolved not in resolved_entities:
+                resolved_entities.append(resolution.resolved)
+                self.logger.info(
+                    f"Applied coreference resolution: '{resolution.original}' → '{resolution.resolved}' "
+                    f"(source: {resolution.source}, confidence: {resolution.confidence:.2f})"
+                )
+
+        # 創建修改後的 semantic_output 副本（用於後續判斷）
+        # 注意：這裡不修改原始對象，只是在邏輯上使用擴展的 entities
+        semantic_output_for_analysis = semantic_output
+        semantic_output_for_analysis.entities = resolved_entities
+
         # Rule Group A: 是否為 Knowledge Event
         is_knowledge_event, event_score, event_reasons = self._check_knowledge_event(
-            semantic_output
+            semantic_output_for_analysis
         )
         signal.is_knowledge_event = is_knowledge_event
         signal.reason_codes.extend(event_reasons)
@@ -137,17 +164,19 @@ class KnowledgeSignalMapper:
             return signal
 
         # Rule Group B: Knowledge Type 判斷
-        knowledge_type, type_reasons = self._determine_knowledge_type(semantic_output)
+        knowledge_type, type_reasons = self._determine_knowledge_type(semantic_output_for_analysis)
         signal.knowledge_type = knowledge_type
         signal.reason_codes.extend(type_reasons)
 
         # Rule Group C: 穩定性估計
-        stability, stability_reasons = self._estimate_stability(semantic_output)
+        stability, stability_reasons = self._estimate_stability(semantic_output_for_analysis)
         signal.stability_estimate = stability
         signal.reason_codes.extend(stability_reasons)
 
         # Rule Group D: 重用潛力
-        reuse_potential, reuse_reasons = self._calculate_reuse_potential(semantic_output, stability)
+        reuse_potential, reuse_reasons = self._calculate_reuse_potential(
+            semantic_output_for_analysis, stability
+        )
         signal.reuse_potential = reuse_potential
         signal.reason_codes.extend(reuse_reasons)
 
@@ -156,13 +185,21 @@ class KnowledgeSignalMapper:
         signal.skill_candidate = skill_candidate
         signal.reason_codes.extend(skill_reasons)
 
+        # Rule Group F: Internal Only 判斷（2026-02-03 新增）
+        # 判斷是否只能查內部知識庫，還是可以外部搜尋
+        internal_only, internal_reasons = self._check_internal_only(semantic_output_for_analysis)
+        signal.internal_only = internal_only
+        signal.reason_codes.extend(internal_reasons)
+
         # 設置 confidence（基於語義理解的 certainty）
         signal.confidence = semantic_output.certainty
 
         self.logger.info(
             f"Knowledge Signal mapped: {signal}, "
             f"from semantic_output: topics={semantic_output.topics}, "
-            f"action_signals={semantic_output.action_signals}"
+            f"action_signals={semantic_output.action_signals}, "
+            f"entities={semantic_output.entities}, "
+            f"coreference_resolutions={semantic_output.coreference_resolutions}"
         )
 
         return signal
@@ -456,6 +493,108 @@ class KnowledgeSignalMapper:
 
         reasons.append("SKILL_CANDIDATE")
         return True, reasons
+
+    def _check_internal_only(
+        self, semantic_output: SemanticUnderstandingOutput
+    ) -> tuple[bool, List[str]]:
+        """
+        Rule Group F: Internal Only 判斷（2026-02-03 新增）
+
+        判斷是否只能查內部知識庫，還是可以外部搜尋
+
+        默認策略：優先內部知識庫（internal_only=True）
+
+        特殊情況（允許外部搜尋，internal_only=False）：
+        - 明確需要外部資料（上網、google、搜尋引擎）
+        - 涉及實時資訊（天氣、股價、新聞）
+        - 涉及外部服務（具體公司名稱、外部 API）
+
+        Args:
+            semantic_output: L1 語義理解輸出
+
+        Returns:
+            (internal_only, reasons)
+        """
+        reasons = []
+
+        # 默認：優先內部知識庫
+        internal_only = True
+        reasons.append("DEFAULT_INTERNAL_FIRST")
+
+        # 檢查是否明確需要外部搜尋
+        external_keywords = [
+            # 明確的外部搜尋指令
+            "上網搜",
+            "google",
+            "搜尋引擎",
+            "bing",
+            "google搜",
+            "上網找",
+            "網路搜尋",
+            "外部搜尋",
+            # 實時資訊類型
+            "天氣",
+            "股價",
+            "匯率",
+            "新聞",
+            "最新消息",
+            "即時資訊",
+            "現在.*價格",
+            "當前.*價格",
+        ]
+
+        # 檢查 topics 和 entities 是否包含外部搜尋關鍵詞
+        for topic in semantic_output.topics:
+            topic_lower = topic.lower()
+            for keyword in external_keywords:
+                if keyword.lower() in topic_lower:
+                    internal_only = False
+                    reasons.append(f"EXTERNAL_KEYWORD_IN_TOPIC:{keyword}")
+                    self.logger.info(
+                        f"External keyword '{keyword}' found in topic '{topic}', "
+                        f"setting internal_only=False"
+                    )
+                    return internal_only, reasons  # 找到外部關鍵詞，立即返回
+
+        # 檢查 action_signals 是否包含外部搜尋指令
+        for action in semantic_output.action_signals:
+            action_lower = action.lower()
+            for keyword in external_keywords:
+                if keyword.lower() in action_lower:
+                    internal_only = False
+                    reasons.append(f"EXTERNAL_KEYWORD_IN_ACTION:{keyword}")
+                    self.logger.info(
+                        f"External keyword '{keyword}' found in action '{action}', "
+                        f"setting internal_only=False"
+                    )
+                    return internal_only, reasons  # 找到外部關鍵詞，立即返回
+
+        # 檢查 entities 是否包含具體公司名稱（可能是外部查詢）
+        external_company_names = [
+            "台積電",
+            "tsmc",
+            "nvidia",
+            "微軟",
+            "google",
+            "apple",
+            "特斯拉",
+            "tesla",
+        ]
+        for entity in semantic_output.entities:
+            entity_lower = entity.lower()
+            for company in external_company_names:
+                if company.lower() in entity_lower:
+                    internal_only = False
+                    reasons.append(f"EXTERNAL_COMPANY:{company}")
+                    self.logger.info(
+                        f"External company '{company}' found in entity '{entity}', "
+                        f"setting internal_only=False"
+                    )
+                    return internal_only, reasons  # 找到外部公司，立即返回
+
+        self.logger.info(f"Internal Only check: internal_only={internal_only}, reasons={reasons}")
+
+        return internal_only, reasons
 
 
 # 全局單例

@@ -43,6 +43,8 @@ export interface Task {
   deleted_at?: string | null; // 修改時間：2026-01-21 - 添加 Soft Delete 時間
   permanent_delete_at?: string | null; // 修改時間：2026-01-21 - 添加預定永久刪除時間
   messages?: Message[];
+  // 指代消解實體（2026-02-04）
+  entities?: Record<string, string>; // { "RM01-009": "料號", "ABC-123": "訂單" }
   executionConfig?: {
     mode: 'free' | 'assistant' | 'agent';
     assistantId?: string;
