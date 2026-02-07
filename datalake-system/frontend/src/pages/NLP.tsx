@@ -1,10 +1,16 @@
 import { Card, Input, Button, Typography, Row, Col, Tag, Table, Badge, Tooltip } from 'antd';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { SendOutlined, ClearOutlined, ClockCircleOutlined, DatabaseOutlined, CheckCircleOutlined, FileSearchOutlined, BarChartOutlined, SyncOutlined } from '@ant-design/icons';
 import { useDashboardStore } from '../stores/dashboardStore';
-import { mmAgentChat, executeSqlQuery, nlpQuery } from '../lib/api';
+import { useAIStatusStore } from '../stores/aiStatusStore';
+import { useAIStatusSSE } from '../hooks/useAIStatusSSE';
+import BrainIcon from '../components/BrainIcon';
+import AIStatusWindow from '../components/AIStatusWindow';
+import { mmAgentBusinessProcess, mmAgentAutoExecute, executeSqlQuery, nlpQuery } from '../lib/api';
+import { v4 as uuidv4 } from 'uuid';
 
 const FRONTEND_API = 'http://localhost:8005';
+const API_BASE_URL = 'http://localhost:8000';
 import './pages.css';
 
 const { Title, Text } = Typography;
@@ -35,6 +41,7 @@ const EXAMPLE_QUERIES = [
 
 export default function NLPPage() {
   const { chatMessages, addChatMessage, clearChatMessages } = useDashboardStore();
+  const { currentStatus, isConnected, isWindowOpen, toggleWindow, setCurrentStatus } = useAIStatusStore();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [queryStep, setQueryStep] = useState(0);
@@ -50,11 +57,48 @@ export default function NLPPage() {
     missingFields: string[];
     prompts: Record<string, string>;
   } | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useAIStatusSSE({ requestId, enabled: !!requestId });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  const startSSESession = useCallback(async () => {
+    const newRequestId = uuidv4();
+    setRequestId(newRequestId);
+    setCurrentStatus('processing');
+
+    try {
+      await fetch(`${API_BASE_URL}/api/v1/agent-status/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: newRequestId }),
+      });
+      console.log('[SSE] Started tracking:', newRequestId);
+    } catch (error) {
+      console.error('[SSE] Failed to start tracking:', error);
+    }
+  }, [setCurrentStatus]);
+
+  const endSSESession = useCallback(async () => {
+    if (requestId) {
+      try {
+        await fetch(`${API_BASE_URL}/api/v1/agent-status/end`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ request_id: requestId }),
+        });
+        console.log('[SSE] Ended tracking:', requestId);
+      } catch (error) {
+        console.error('[SSE] Failed to end tracking:', error);
+      }
+      setRequestId(null);
+      setCurrentStatus('completed');
+    }
+  }, [requestId, setCurrentStatus]);
 
   // 檢測是否為工作流程回覆
   const isWorkflowMessage = (content: string): boolean => {
@@ -143,6 +187,8 @@ export default function NLPPage() {
     setExecTime('');
     setQueryResult(null);
 
+    await startSSESession();
+
     const startTime = Date.now();
 
     // 輔助函數：獲取庫存數據並過濾塑料件
@@ -173,28 +219,48 @@ export default function NLPPage() {
     };
 
     try {
-      // 調用 MM-Agent API（支持多輪對話）
-      const result = await mmAgentChat(input, sessionId);
-      const endTime = Date.now();
-      const duration = ((endTime - startTime) / 1000).toFixed(2);
-
-      // 保存 sessionId 用於多輪對話
+      // 調用 MM-Agent 業務處理 API（新架構）
+      const result = await mmAgentBusinessProcess(input, sessionId);
+      
+      // 保存 sessionId
       if (result.session_id) {
         setSessionId(result.session_id);
         setShowMultiTurnInfo(true);
         setTurnCount((prev) => prev + 1);
+        
+        // 自動執行所有步驟
+        addChatMessage({
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: result.response || '【自動執行中...】\n\n' + (result.debug_info?.plan?.steps?.map((s: any) => `Step ${s.step_id}: ${s.description}`).join('\n') || ''),
+          timestamp: new Date().toLocaleString(),
+        });
+
+        // 調用自動執行
+        const execResult = await mmAgentAutoExecute(result.session_id, 'yes');
+        
+        const endTime = Date.now();
+        const duration = ((endTime - startTime) / 1000).toFixed(2);
+
+        // 添加執行結果
+        addChatMessage({
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: execResult.final_response || execResult.response || '處理完成',
+          timestamp: new Date().toLocaleString(),
+        });
+        
+        setLoading(false);
+        await endSSESession();
+        return;
       }
 
-      // 檢查是否需要回問/回覆
+      // 檢查是否需要澄清
       if (result.needs_clarification) {
-        // 提取澄清信息
-        const semanticResult = result.debug_info?.semantic_result;
-        const validation = semanticResult?.validation || {};
-        
         setClarificationInfo({
           show: true,
-          missingFields: validation.missing_fields || [],
-          prompts: validation.clarification_prompt || {},
+          missingFields: result.debug_info?.missing_fields || [],
+          prompts: {},
         });
         
         setQueryStep(1);
@@ -211,70 +277,33 @@ export default function NLPPage() {
         addChatMessage({
           id: Date.now().toString(),
           role: 'assistant',
-          content: result.clarification_message || '請重新描述您的問題',
+          content: result.clarification_message || '請提供更多信息',
           timestamp: new Date().toLocaleString(),
         });
         setLoading(false);
         return;
       }
 
-      // 顯示指代消解信息
-      if (result.resolved_query) {
-        setShowMultiTurnInfo(true);
-      }
-
-      // 從轉譯結果提取 SQL 和信息
-      const translation = result.translation || {};
-      const debugInfo = result.debug_info || {};
-      const semanticResult = debugInfo.semantic_result;
-      
-      // 使用新架構的語義分析結果
-      const intent = semanticResult?.intent || debugInfo?.intent || 'unknown';
-      const constraints = semanticResult?.constraints || translation;
-      const validation = semanticResult?.validation || {};
-      
-      const materialCategory = constraints.material_category;
-      const tableName = semanticResult?.schema_binding?.primary_table || translation.table_name || 'img_file';
-      const tlf19 = constraints.tlf19;
-      const partNumber = constraints.material_id || translation.part_number;
-      const warehouse = constraints.inventory_location || constraints.warehouse || translation.warehouse;
-      
-      // 構建 SQL 顯示
+      // 提取 SQL 和結果
       let sql = '';
       let queryResultData: any = { result: { data: [], rowCount: 0 } };
 
-      // 優先使用後端返回的 generated_sql（新架構）
-      if (debugInfo.generated_sql) {
-        sql = debugInfo.generated_sql;
-        console.log('使用後端生成的 SQL:', sql);
-      } else {
-        // 回退到舊的客戶端組裝邏輯
-        console.log('後端未返回 SQL，使用客戶端組裝');
-
-        // 處理物料類別查詢（如塑料件）- 使用客戶端過濾
-        if (materialCategory === 'plastic') {
-          sql = '-- 塑料件庫存查詢（客戶端過濾）\nSELECT * FROM img_file WHERE ...';
-          
-          try {
-            // 從 API 獲取庫存數據並過濾
-            const warehouseCode = warehouse || null;
-            const plasticItems = await fetchPlasticInventory(warehouseCode);
-            
-            if (plasticItems.length > 0) {
-              queryResultData = {
-                result: {
-                  data: plasticItems,
-                  rowCount: plasticItems.length,
-                }
-              };
-            }
-          } catch (execError) {
-            console.error('塑料件查詢錯誤:', execError);
+      // 從 query_results 提取 SQL
+      if (result.query_results) {
+        const taskIds = Object.keys(result.query_results);
+        if (taskIds.length > 0) {
+          const firstTask = result.query_results[taskIds[0]];
+          if (firstTask.sql) {
+            sql = firstTask.sql;
           }
-        } else if (tableName === 'img_file' && partNumber) {
-          sql = `SELECT * FROM img_file WHERE img01 = '${partNumber}' LIMIT 10`;
-        } else if (tableName === 'tlf_file' && tlf19) {
-          sql = `SELECT * FROM tlf_file WHERE tlf02 = '${partNumber}' AND tlf19 = '${tlf19}' ORDER BY tlf06 DESC LIMIT 50`;
+          if (firstTask.rows) {
+            queryResultData = {
+              result: {
+                data: firstTask.rows,
+                rowCount: firstTask.row_count || firstTask.rows.length,
+              }
+            };
+          }
         }
       }
 
@@ -282,52 +311,28 @@ export default function NLPPage() {
       setQueryStep(2);
 
       // 設置意圖信息
-      const intentMap: Record<string, string> = {
-        'QUERY_STOCK': '庫存查詢',
-        'QUERY_PURCHASE': '採購交易查詢',
-        'QUERY_SALES': '銷售交易查詢',
-        'ANALYZE_SHORTAGE': '缺料分析',
-        'GENERATE_ORDER': '生成訂單',
-        'purchase': '採購交易查詢',
-        'sales': '銷售查詢',
-        'inventory': '庫存查詢',
-        'material_issue': '生產領料查詢',
-        'scrapping': '報廢查詢',
-        'unknown': '未知查詢',
-      };
-
-      // 設置倉庫信息
-      let warehouseDisplay = '全部';
-      if (warehouse) {
-        const warehouseNames: Record<string, string> = {
-          'W01': '原料倉',
-          'W02': '成品倉',
-          'W03': '半成品倉',
-          'W04': '不良品倉',
-          'W05': '回收倉',
-        };
-        warehouseDisplay = warehouseNames[warehouse] || warehouse;
-      }
-
       setIntentInfo({
-        intent_type: intent,
-        description: intentMap[intent] || (materialCategory === 'plastic' ? '塑料件庫存查詢' : '查詢完成'),
-        table: tableName,
-        warehouse: warehouseDisplay,
+        intent_type: 'QUERY_PURCHASE',
+        description: '採購交易查詢',
+        table: 'pmn_file',
+        warehouse: '全部',
       });
 
       await new Promise((r) => setTimeout(r, 800));
       setQueryStep(3);
 
-      // 如果還沒有執行查詢（針對非塑料件查詢），則執行 SQL
-      if (!queryResultData.result?.data?.length && sql && !sql.includes('--')) {
+      // 如果後端沒有執行查詢，手動執行
+      if (!queryResultData.result?.data?.length && sql && result.tasks?.length) {
         try {
+          // 直接調用 Data-Agent 執行第一個任務
+          const task = result.tasks[0];
           const execResult = await executeSqlQuery(sql);
-          if (execResult.result?.success) {
+          const innerResult = execResult.result?.result || execResult.result;
+          if (innerResult?.success) {
             queryResultData = {
               result: {
-                data: execResult.result.rows || [],
-                rowCount: execResult.result.row_count || 0,
+                data: innerResult.rows || [],
+                rowCount: innerResult.row_count || 0,
               }
             };
           }
@@ -340,18 +345,11 @@ export default function NLPPage() {
       setExecTime(`${duration} 秒`);
       setQueryStep(4);
 
-      // 構建回覆內容
-      let responseContent = result.response || '查詢完成！';
-      
-      // 如果有指代消解，顯示提示
-      if (result.resolved_query && result.resolved_query !== input) {
-        responseContent += `\n\n（指代消解：「${result.resolved_query}」）`;
-      }
-
+      // 使用後端返回的業務總結
       addChatMessage({
         id: Date.now().toString(),
         role: 'assistant',
-        content: responseContent,
+        content: result.response || '查詢完成！',
         timestamp: new Date().toLocaleString(),
       });
     } catch (error) {
@@ -362,8 +360,10 @@ export default function NLPPage() {
         content: '抱歉，處理您的查詢時發生錯誤。請檢查 MM-Agent 服務是否正常運行（端口 8003）。',
         timestamp: new Date().toLocaleString(),
       });
+      setCurrentStatus('error');
     } finally {
       setLoading(false);
+      await endSSESession();
     }
   };
 
@@ -379,24 +379,27 @@ export default function NLPPage() {
     setQueryStep(0);
     setIntentInfo(null);
     setClarificationInfo(null);
+    setRequestId(null);
+    setCurrentStatus('idle');
   };
 
   return (
     <div className="page-container" style={{ height: '100%' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>
-            🤖 自然語言查詢
+          <Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <BrainIcon />
+            自然語言查詢
             {showMultiTurnInfo && (
               <Tooltip title={`多輪對話模式 - 已進行 ${turnCount} 輪對話`}>
-                <Badge 
-                  count={<SyncOutlined spin={loading} />} 
-                  style={{ backgroundColor: '#52c41a', marginLeft: 12 }}
+                <Badge
+                  count={<SyncOutlined spin={loading} />}
+                  style={{ backgroundColor: '#52c41a' }}
                 />
               </Tooltip>
             )}
           </Title>
-          <Text type="secondary">
+          <Text type="secondary" style={{ marginLeft: 40 }}>
             輸入自然語言，系統自動轉換為 SQL 查詢
             {showMultiTurnInfo && sessionId && (
               <Tag color="green" style={{ marginLeft: 8 }}>
@@ -405,6 +408,7 @@ export default function NLPPage() {
             )}
           </Text>
         </div>
+        <AIStatusWindow />
         {showMultiTurnInfo && (
           <Button size="small" onClick={handleClear}>
             開始新對話

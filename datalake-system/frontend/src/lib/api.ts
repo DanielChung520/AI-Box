@@ -160,3 +160,50 @@ export async function mmAgentCheck(instruction: string) {
   });
   return response.data;
 }
+
+// ============ Data-Agent Text-to-SQL ============
+
+/**
+ * Data-Agent Text-to-SQL（直接生成 SQL）
+ * @param instruction 用戶輸入（自然語言）
+ */
+export async function textToSql(instruction: string) {
+  const response = await dataAgentApi.post('/text-to-sql', {
+    instruction,
+  });
+  return response.data;
+}
+
+// ============ MM-Agent 業務處理（新架構） ============
+
+/**
+ * MM-Agent 業務處理端點（新架構）
+ * @param instruction 用戶輸入（自然語言）
+ * @param sessionId 對話會話 ID（可選）
+ */
+export async function mmAgentBusinessProcess(
+  instruction: string,
+  sessionId?: string
+) {
+  const response = await mmAgentApi.post('/api/v1/chat', {
+    instruction,
+    session_id: sessionId,
+  });
+  return response.data;
+}
+
+/**
+ * MM-Agent 自動執行端點
+ * @param sessionId 對話會話 ID
+ * @param instruction 用戶回覆（用於需要確認的步驟）
+ */
+export async function mmAgentAutoExecute(
+  sessionId: string,
+  instruction: string = "yes"
+) {
+  const response = await mmAgentApi.post('/api/v1/chat/auto-execute', {
+    session_id: sessionId,
+    instruction,
+  });
+  return response.data;
+}

@@ -29,6 +29,8 @@ const getStatusLabel = (status: string) => {
   }
 };
 
+const isHeartbeat = (step: string) => step === 'heartbeat';
+
 export default function AIStatusWindow() {
   const { isWindowOpen, closeWindow, events, currentStatus, isConnected } = useAIStatusStore();
 
@@ -64,15 +66,19 @@ export default function AIStatusWindow() {
                 {events.map((event, index) => (
                   <motion.div
                     key={`${event.request_id}-${index}`}
-                    className="ai-status-item"
+                    className={`ai-status-item ${isHeartbeat(event.step) ? 'heartbeat-item' : ''}`}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.15 }}
                   >
                     <div className="status-item-header">
-                      {getStatusIcon(event.status)}
-                      <span className="status-label">{getStatusLabel(event.status)}</span>
-                      {event.progress > 0 && (
+                      {isHeartbeat(event.step) ? (
+                        <Clock size={16} className="status-icon processing" style={{ animation: 'pulse 1.5s infinite' }} />
+                      ) : (
+                        getStatusIcon(event.status)
+                      )}
+                      <span className="status-label">{isHeartbeat(event.step) ? '執行中' : getStatusLabel(event.status)}</span>
+                      {event.progress > 0 && !isHeartbeat(event.step) && (
                         <div className="progress-bar">
                           <motion.div
                             className="progress-fill"

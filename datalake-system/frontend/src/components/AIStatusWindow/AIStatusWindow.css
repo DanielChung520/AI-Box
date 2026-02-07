@@ -2,7 +2,7 @@
   position: fixed;
   top: 70px;
   right: 16px;
-  width: 360px;
+  width: 720px;
   max-height: calc(100vh - 100px);
   background: #fff;
   border-radius: 12px;
@@ -90,6 +90,20 @@
   background: #f9f9f9;
   border-radius: 8px;
   border-left: 3px solid #e8e8e8;
+}
+
+.heartbeat-item {
+  background: #f0f7ff;
+  border-left: 3px solid #1890ff;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .status-item-header {
