@@ -370,17 +370,34 @@ class SchemaRegistry:
             },
         }
 
-    def generate_where_clause(self, constraints: Dict[str, Any], table_alias: str = "") -> str:
+    def generate_where_clause(
+        self, constraints: Dict[str, Any], table_alias: str = "", intent_name: str = ""
+    ) -> str:
         """根據約束條件生成 WHERE 子句
 
         Args:
             constraints: 約束條件字典
             table_alias: 表別名
+            intent_name: 意圖名稱（用於決定欄位映射）
 
         Returns:
             WHERE 子句字串
         """
         conditions = []
+
+        # 根據意圖決定 material_id 的欄位
+        if intent_name == "QUERY_PURCHASE":
+            material_id_field = "pmn04"  # 採購單身
+        else:
+            material_id_field = "img01"  # 庫存表
+
+        # 根據意圖決定時間欄位
+        if intent_name == "QUERY_PURCHASE":
+            time_field = "pmm02"  # 採購單頭的日期
+        elif intent_name == "QUERY_SALES":
+            time_field = "coptd02"  # 銷售訂單日期
+        else:
+            time_field = "tlf06"  # 交易記錄日期
 
         for key, value in constraints.items():
             if value is None:
@@ -388,7 +405,9 @@ class SchemaRegistry:
 
             # 根據約束類型處理
             if key == "material_id":
-                field_name = f"{table_alias}.img01" if table_alias else "img01"
+                field_name = (
+                    f"{table_alias}.{material_id_field}" if table_alias else material_id_field
+                )
                 conditions.append(f"{field_name} = '{value}'")
 
             elif key == "inventory_location":
@@ -396,8 +415,10 @@ class SchemaRegistry:
                 conditions.append(f"{field_name} = '{value}'")
 
             elif key == "transaction_type":
-                field_name = f"{table_alias}.tlf19" if table_alias else "tlf19"
-                conditions.append(f"{field_name} = '{value}'")
+                # 只有 tlf_file 有 transaction_type (tlf19)
+                if intent_name not in ["QUERY_PURCHASE", "QUERY_SALES"]:
+                    field_name = f"{table_alias}.tlf19" if table_alias else "tlf19"
+                    conditions.append(f"{field_name} = '{value}'")
 
             elif key == "material_category":
                 # 查找 material_category 的映射
@@ -418,7 +439,7 @@ class SchemaRegistry:
             elif key == "time_range":
                 if isinstance(value, dict):
                     time_type = value.get("type", "")
-                    field_name = f"{table_alias}.tlf06" if table_alias else "tlf06"
+                    field_name = f"{table_alias}.{time_field}" if table_alias else time_field
 
                     # 處理日期範圍格式
                     if time_type == "":
@@ -495,6 +516,17 @@ class SchemaRegistry:
 
         return " AND ".join(conditions) if conditions else "1=1"
 
+    def _get_parquet_path(self, table_name: str) -> str:
+        """獲取表的 Parquet 路徑"""
+        parquet_paths = {
+            "img_file": "read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/*/data.parquet', hive_partitioning=true) AS img_file",
+            "ima_file": "read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/*/data.parquet', hive_partitioning=true) AS ima_file",
+            "tlf_file": "read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/*/data.parquet', hive_partitioning=true) AS tlf_file",
+            "pmn_file": "read_parquet('s3://tiptop-raw/raw/v1/pmn_file/year=*/*/data.parquet', hive_partitioning=true) AS pmn_file",
+            "pmm_file": "read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/*/data.parquet', hive_partitioning=true) AS pmm_file",
+        }
+        return parquet_paths.get(table_name, table_name)
+
     def generate_sql(
         self, intent_name: str, constraints: Dict[str, Any], limit: int = 100
     ) -> Optional[str]:
@@ -514,20 +546,21 @@ class SchemaRegistry:
             return None
 
         # 生成 WHERE 子句
-        where_clause = self.generate_where_clause(constraints)
+        where_clause = self.generate_where_clause(constraints, intent_name=intent_name)
         if template.where_clause:
             where_clause = f"{where_clause} AND {template.where_clause}"
 
-        # 構建 JOIN 子句
+        # 構建 JOIN 子句（替換為 Parquet 路徑）
         join_clauses = []
         for join in template.joins:
-            join_clauses.append(f"{join.type} JOIN {join.table} ON {join.on}")
+            parquet_path = self._get_parquet_path(join.table)
+            join_clauses.append(f"{join.type} JOIN {parquet_path} ON {join.on}")
 
         # 構建 SELECT 子句
         select_fields = ", ".join(template.output_fields)
 
-        # 構建 FROM 子句
-        from_clause = template.primary_table
+        # 構建 FROM 子句（替換為 Parquet 路徑）
+        from_clause = self._get_parquet_path(template.primary_table)
 
         # 添加 JOIN
         if join_clauses:

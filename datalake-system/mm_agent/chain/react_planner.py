@@ -10,7 +10,7 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("mm_agent")
 
 
 class Action(BaseModel):
@@ -67,12 +67,25 @@ class ReActPlanner:
         try:
             import requests
 
-            response = requests.get(f"{self._llm_url}/api/tags", timeout=2)
+            response = requests.get(f"{self._llm_url}/api/tags", timeout=5)
             if response.status_code == 200:
                 models = response.json().get("models", [])
                 model_names = [m.get("name", "") for m in models]
                 logger.info(f"[ReActPlanner] 可用的 Ollama 模型: {model_names}")
-                return True
+                # 檢查配置的模型是否存在
+                logger.info(
+                    f"[ReActPlanner] 檢查模型: {self._llm_model} (in list: {self._llm_model in model_names})"
+                )
+                if self._llm_model in model_names:
+                    logger.info(f"[ReActPlanner] LLM 模型 {self._llm_model} 可用")
+                    return True
+                else:
+                    logger.warning(
+                        f"[ReActPlanner] 模型 {self._llm_model} 不在可用列表中，使用 mistral-nemo:12b"
+                    )
+                    self._llm_model = "mistral-nemo:12b"
+                    return True
+            logger.warning(f"[ReActPlanner] LLM API 返回非 200 狀態: {response.status_code}")
             return False
         except Exception as e:
             logger.warning(f"[ReActPlanner] LLM 不可用: {e}")
@@ -88,31 +101,83 @@ class ReActPlanner:
         Returns:
             TodoPlan: 工作計劃
         """
-        # 構建 prompt
-        user_prompt = f"""用戶指令：{instruction}
+        # 每次都檢查 LLM 可用性
+        if not self._check_llm_available():
+            logger.warning(f"[ReActPlanner] LLM 不可用，回退到規則引擎")
+            return self._rule_based_plan(instruction)
 
-上下文：{json.dumps(context or {}, ensure_ascii=False)}
+        instruction_lower = instruction.lower()
 
-請分析這個任務，生成工作計劃。
+        is_data_task = any(
+            kw in instruction_lower
+            for kw in [
+                "執行",
+                "分析",
+                "分類",
+                "計算",
+                "統計",
+                "查詢",
+                "abc",
+                "庫存",
+                "使用量",
+                "金額",
+            ]
+        )
 
-規則：
-1. 如果是簡單的數據查詢，使用 single_query
-2. 如果是操作指引類（如何、怎麼、步驟），使用 guidance
-3. 如果需要多步驟執行，使用 compound_workflow
-4. 如果指令包含模糊的時間（如「最近」），在步驟中加入用戶確認
+        if is_data_task:
+            user_prompt = f"""用戶指令：{instruction}
 
-請僅返回 JSON，不要有其他文字。"""
+這是一個數據分析任務，請生成工作計劃。
 
-        # 嘗試使用 LLM
-        if self._llm_available:
-            try:
-                plan_json = await self._call_llm(user_prompt)
-                return self._parse_plan(instruction, plan_json)
-            except Exception as e:
-                logger.warning(f"[ReActPlanner] LLM 調用失敗，回退到規則引擎: {e}")
+【原則】
+- MM-Agent 不涉及 schema，由 Data-Agent 處理 schema
+- 指令必須包含：需要什麼數據、做什麼計算、用途是什麼
+- 讓 Data-Agent 推斷如何查詢
 
-        # 回退到規則引擎
-        return self._rule_based_plan(instruction)
+【工作流格式】
+[
+  {{
+    "action_type": "knowledge_retrieval",
+    "description": "檢索ABC分類知識",
+    "instruction": "請提供ABC分類的方法論，包括A類(70%)/B類(20%)/C類(10%)的定義"
+  }},
+  {{
+    "action_type": "data_query",
+    "description": "查詢庫存價值",
+    "instruction": "查詢每個料號的庫存數量和單價，我需要計算庫存價值=數量×單價，按價值降序排列，用於ABC分類"
+  }},
+  {{
+    "action_type": "computation",
+    "description": "執行ABC分類",
+    "instruction": "根據以下庫存價值列表，執行ABC分類：A類=累積價值前70%，B類=累積價值70-90%，C類=累積價值90-100%"
+  }},
+  {{
+    "action_type": "response_generation",
+    "description": "生成ABC分類報告",
+    "instruction": "根據ABC分類結果，生成包含A/B/C三類清單、統計摘要和管理建議的報告"
+  }}
+]
+
+只返回 JSON 陣列，確保指令具體且包含用途。"""
+        else:
+            user_prompt = f"""用戶指令：{instruction}
+
+這是一個知識問答任務，請生成工作計劃。
+
+只返回 JSON：
+{{"task_type": "guidance", "steps": [
+  {{"action_type": "knowledge_retrieval", "description": "檢索相關知識", "parameters": {{"query": "知識查詢"}}}},
+  {{"action_type": "response_generation", "description": "生成回覆", "parameters": {{}}}}
+]}}"""
+
+        try:
+            logger.info(f"[ReActPlanner] 調用 LLM: model={self._llm_model}")
+            plan_json = await self._call_llm(user_prompt)
+            logger.info(f"[ReActPlanner] LLM 返回: {plan_json[:200]}...")
+            return self._parse_plan(instruction, plan_json)
+        except Exception as e:
+            logger.warning(f"[ReActPlanner] LLM 調用失敗: {e}，回退到規則引擎")
+            return self._rule_based_plan(instruction)
 
     async def _call_llm(self, user_prompt: str) -> str:
         """調用 LLM"""
@@ -148,15 +213,46 @@ class ReActPlanner:
                 plan_json = plan_json[:-3]
             plan_json = plan_json.strip()
 
+            # 嘗試解析為陣列
+            try:
+                steps_data = json.loads(plan_json)
+                if isinstance(steps_data, list):
+                    # 新格式：直接是步驟陣列
+                    steps = []
+                    for i, step_data in enumerate(steps_data):
+                        action = Action(
+                            step_id=i + 1,
+                            action_type=step_data.get("action_type", "unknown"),
+                            description=step_data.get("description", ""),
+                            parameters={"instruction": step_data.get("instruction", "")},
+                            dependencies=[],
+                            result_key=None,
+                        )
+                        steps.append(action)
+                    return TodoPlan(
+                        task_type="data_analysis",
+                        original_instruction=instruction,
+                        steps=steps,
+                        current_step=1,
+                        completed_steps=[],
+                    )
+                else:
+                    # 舊格式：包含 steps 欄位
+                    steps_data = steps_data.get("steps", [])
+            except json.JSONDecodeError:
+                pass
+
+            # 舊格式解析
             data = json.loads(plan_json)
+            steps_data = data.get("steps", [])
 
             steps = []
-            for i, step_data in enumerate(data.get("steps", [])):
+            for i, step_data in enumerate(steps_data):
                 action = Action(
-                    step_id=i + 1,  # 確保從 1 開始的順序編號
+                    step_id=i + 1,
                     action_type=step_data.get("action_type", "unknown"),
                     description=step_data.get("description", ""),
-                    parameters=step_data.get("parameters", {}),
+                    parameters={"instruction": step_data.get("parameters", {}).get("query", "")},
                     dependencies=step_data.get("dependencies", []),
                     result_key=step_data.get("result_key"),
                 )
@@ -177,6 +273,10 @@ class ReActPlanner:
         """基於規則的計劃生成（回退方案）"""
         instruction_lower = instruction.lower()
 
+        # 檢測是否為數據分析任務（需要編排）
+        data_analysis_keywords = ["執行", "分析", "分類", "計算", "統計", "abc分類"]
+        is_data_analysis = any(kw in instruction_lower for kw in data_analysis_keywords)
+
         # 檢測是否為操作指引類
         guidance_keywords = ["如何", "怎麼", "步驟", "設置", "設定", "建立", "操作", "方法"]
         is_guidance = any(kw in instruction for kw in guidance_keywords)
@@ -189,7 +289,53 @@ class ReActPlanner:
         query_keywords = ["多少", "有多少", "庫存", "採購", "銷售", "進貨"]
         is_query = any(kw in instruction for kw in query_keywords)
 
-        if is_guidance or is_compound:
+        if is_data_analysis:
+            # === 數據分析任務：完整的 4 步編排 ===
+            steps = [
+                Action(
+                    step_id=1,
+                    action_type="knowledge_retrieval",
+                    description="檢索相關領域知識",
+                    parameters={"query": instruction},
+                    dependencies=[],
+                    result_key="knowledge",
+                ),
+                Action(
+                    step_id=2,
+                    action_type="data_query",
+                    description="查詢所需數據",
+                    parameters={"instruction": instruction},
+                    dependencies=[1],
+                    result_key="query_result",
+                ),
+                Action(
+                    step_id=3,
+                    action_type="computation",
+                    description="執行計算分析",
+                    parameters={"instruction": instruction},
+                    dependencies=[2],
+                    result_key="analysis_result",
+                ),
+                Action(
+                    step_id=4,
+                    action_type="response_generation",
+                    description="生成最終報告",
+                    parameters={},
+                    dependencies=[3],
+                    result_key="final_response",
+                ),
+            ]
+
+            logger.info(f"[ReActPlanner] 生成數據分析工作流: {len(steps)} 步驟")
+            return TodoPlan(
+                task_type="data_analysis",
+                original_instruction=instruction,
+                steps=steps,
+                current_step=1,
+                completed_steps=[],
+            )
+
+        elif is_guidance or is_compound:
             # 操作指引或複合工作
             steps = [
                 Action(
@@ -210,23 +356,6 @@ class ReActPlanner:
                 ),
             ]
 
-            # 如果需要數據，加入數據查詢步驟
-            if "abc" in instruction_lower:
-                steps.insert(
-                    1,
-                    Action(
-                        step_id=1,
-                        action_type="user_confirmation",
-                        description="確認是否有數據",
-                        parameters={"question": "您有物料使用數據嗎？"},
-                        dependencies=[],
-                        result_key="data_confirmed",
-                    ),
-                )
-                # 重新編號
-                for i, step in enumerate(steps):
-                    step.step_id = i + 1
-
             return TodoPlan(
                 task_type="guidance",
                 original_instruction=instruction,
@@ -234,6 +363,7 @@ class ReActPlanner:
                 current_step=1,
                 completed_steps=[],
             )
+
         elif is_query:
             # 單一查詢
             steps = [
@@ -262,6 +392,7 @@ class ReActPlanner:
                 current_step=1,
                 completed_steps=[],
             )
+
         else:
             # 默認：簡單處理
             steps = [
@@ -292,7 +423,7 @@ class ReActPlanner:
     def format_plan(self, plan: TodoPlan) -> str:
         """格式化計劃為可讀字符串"""
         if plan.task_type == "single_query":
-            lines = ["這是一個簡單查詢，我來為您執行。"]
+            lines = ["這是一個簡單查詢，我來為您處理。"]
         elif plan.task_type == "guidance":
             lines = ["這是一個操作指引，讓我為您分解步驟：", ""]
         else:
@@ -303,7 +434,7 @@ class ReActPlanner:
             lines.append(f"  └─ 類型：{step.action_type}")
 
         lines.append("")
-        lines.append("【請問您想從哪一步開始？】")
+        lines.append("【自動執行中...】")
 
         return "\n".join(lines)
 

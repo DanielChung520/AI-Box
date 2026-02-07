@@ -407,6 +407,8 @@ class SemanticTranslatorAgent:
             # 處理 time_range 類型（LLM 可能返回字串）
             if "time_range" in llm_constraints and isinstance(llm_constraints["time_range"], str):
                 time_str = llm_constraints["time_range"]
+
+                # 處理相對時間
                 if time_str == "last_month":
                     llm_constraints["time_range"] = {"type": "last_month"}
                 elif time_str == "this_month":
@@ -415,6 +417,20 @@ class SemanticTranslatorAgent:
                     llm_constraints["time_range"] = {"type": "this_year"}
                 elif time_str == "last_year":
                     llm_constraints["time_range"] = {"type": "last_year"}
+                elif time_str.isdigit() and len(time_str) == 4:
+                    # 處理純年份字串，如 "2024"
+                    llm_constraints["time_range"] = {
+                        "type": "date_range",
+                        "start": f"{time_str}-01-01",
+                        "end": f"{time_str}-12-31",
+                    }
+                elif "-" in time_str and len(time_str) == 4:
+                    # 處理年份前綴，如 "2024-05"
+                    llm_constraints["time_range"] = {
+                        "type": "date_range",
+                        "start": f"{time_str}-01",
+                        "end": f"{time_str}-12",
+                    }
 
             # 使用規則引擎提取具體日期（YYYY-MM-DD 格式）
             extracted_date = self._extract_date(user_input)
@@ -479,6 +495,31 @@ class SemanticTranslatorAgent:
                 transaction_type=llm_constraints.get("transaction_type"),
                 quantity=llm_constraints.get("quantity"),
             )
+
+            # 檢測是否需要複雜統計（LLM 生成 SQL）
+            user_input_lower = user_input.lower()
+            complex_keywords = [
+                "每月",
+                "每個月",
+                "每月份",
+                "每日",
+                "每天",
+                "每季",
+                "每季度",
+                "每供應商",
+                "每客戶",
+                "每筆",
+                "按月",
+                "按日",
+                "按季",
+                "各月份",
+                "各供應商",
+                "各客戶",
+                "統計",
+                "分析",
+                "趨勢",
+            ]
+            need_llm_sql = any(kw in user_input for kw in complex_keywords)
 
             return SemanticTranslationResult(
                 intent=intent_name,

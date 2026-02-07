@@ -405,6 +405,39 @@ async def clear_chat_workflow_state(session_id: str) -> dict:
     return {"success": True, "message": "狀態已清除"}
 
 
+@app.post("/api/v1/chat/auto-execute")
+async def auto_execute_workflow(request: ChatRequest) -> dict:
+    """自動執行工作流所有步驟
+
+    無需等待用戶確認，直接執行所有步驟
+    """
+    try:
+        session_id = request.session_id
+        if not session_id:
+            return {"success": False, "error": "需要 session_id"}
+
+        result = await _react_engine.execute_all_steps(
+            session_id=session_id,
+            user_response=request.instruction,
+        )
+
+        return {
+            "success": result.get("success", False),
+            "response": result.get("final_response", ""),
+            "responses": result.get("responses", []),
+            "completed_steps": result.get("completed_steps", []),
+            "total_steps": result.get("total_steps", 0),
+            "debug_info": {
+                "step": "auto_executed",
+                "all_results": result.get("all_results", []),
+            },
+        }
+
+    except Exception as e:
+        logger.error(f"自動執行失敗: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
 @app.post("/api/v1/mm-agent/translate")
 async def translate(request: ChatRequest) -> dict:
     """轉譯端點 - 專業術語轉換"""

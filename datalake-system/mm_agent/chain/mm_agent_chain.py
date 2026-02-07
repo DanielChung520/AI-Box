@@ -5,7 +5,6 @@
 
 """MM-Agent 對話鏈 - 意圖語義分析 + 多輪對話支持"""
 
-import os
 import logging
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
@@ -13,7 +12,7 @@ from pydantic import BaseModel
 from mm_agent.translator import Translator, TranslationResult
 from mm_agent.negative_list import NegativeListChecker
 from mm_agent.coreference_resolver import CoreferenceResolver
-from mm_agent.chain.context_manager import ContextManager, get_context_manager
+from mm_agent.chain.context_manager import get_context_manager
 from mm_agent.semantic_translator import SemanticTranslatorAgent
 from mm_agent.translation_models import SemanticTranslationResult
 from mm_agent.services.schema_registry import get_schema_registry
@@ -92,6 +91,19 @@ class MMAgentChain:
         self._ka_client = None  # KA-Agent 客戶端
         self._use_semantic_translator = use_semantic_translator
 
+        # 初始化 LLM client（用於複雜 SQL 生成）
+        try:
+            from llm.clients.factory import LLMClientFactory
+            from services.api.models.llm_model import LLMProvider
+
+            self._llm_client = LLMClientFactory.create_client(
+                provider=LLMProvider.OLLAMA, use_cache=True
+            )
+            logger.info("MM-Agent: LLM client 已初始化")
+        except Exception as e:
+            logger.warning(f"MM-Agent: 無法初始化 LLM client: {e}")
+            self._llm_client = None
+
         # 初始化 Schema Registry（用於 SQL 生成）
         self._schema_registry = get_schema_registry()
 
@@ -115,7 +127,7 @@ class MMAgentChain:
         messages.append("\n謝謝您的配合！")
         return "\n".join(messages)
 
-    def _generate_sql_from_semantic(
+    async def _generate_sql_from_semantic(
         self, semantic_result: SemanticTranslationResult
     ) -> Optional[str]:
         """根據語義分析結果生成 SQL"""
@@ -125,6 +137,32 @@ class MMAgentChain:
         intent = semantic_result.intent
         if intent == "CLARIFICATION":
             return None
+
+        user_input = semantic_result.raw_text.lower()
+
+        # 複雜查詢關鍵詞
+        complex_keywords = [
+            "每月",
+            "每個月",
+            "每月份",
+            "每日",
+            "每天",
+            "每季",
+            "每季度",
+            "每供應商",
+            "每客戶",
+            "每筆",
+            "按月",
+            "按日",
+            "按季",
+            "各月份",
+            "各供應商",
+            "各客戶",
+            "統計",
+            "分析",
+            "趨勢",
+        ]
+        is_complex = any(kw in user_input for kw in complex_keywords)
 
         # 轉換約束條件為字典
         constraints = {}
@@ -139,19 +177,112 @@ class MMAgentChain:
         if semantic_result.constraints.time_range:
             time_range = semantic_result.constraints.time_range
             if isinstance(time_range, dict):
-                # 保留完整的 time_range 字典（包含 type 和 date/start/end）
                 constraints["time_range"] = time_range
             else:
                 constraints["time_type"] = time_range
         if semantic_result.constraints.quantity:
             constraints["quantity"] = semantic_result.constraints.quantity
 
+        # 複雜查詢：使用 LLM 生成 SQL
+        if is_complex:
+            logger.info(f"[SQL] 複雜查詢，使用 LLM 生成: {user_input[:50]}...")
+            return await self._generate_sql_by_llm(semantic_result)
+
+        # 簡單查詢：使用模板
         try:
             sql = self._schema_registry.generate_sql(intent, constraints)
-            logger.info(f"SQL 生成成功: {sql[:100] if sql else 'None'}...")
+            logger.info(f"SQL 生成成功（模板）: {sql[:100] if sql else 'None'}...")
             return sql
         except Exception as e:
             logger.warning(f"SQL 生成失敗: {e}")
+            return None
+
+    async def _generate_sql_by_llm(
+        self, semantic_result: SemanticTranslationResult
+    ) -> Optional[str]:
+        """使用 LLM 生成複雜 SQL"""
+        if not self._llm_client:
+            logger.warning("LLM client 未初始化，回退到模板")
+            return self._generate_sql_by_template_fallback(semantic_result)
+
+        try:
+            user_input = semantic_result.raw_text
+
+            # 構建 Schema 提示
+            schema_hint = """你可使用的表格結構：
+- img_file: 庫存表 (img01=料號, img02=倉庫, img03=庫位, img10=庫存數量)
+- pmn_file: 採購單身 (pmn01=採購單號, pmn02=項次, pmn04=料號, pmn20=數量)
+- pmm_file: 採購單頭 (pmm01=單號, pmm02=日期, pmm04=供應商)
+- ima_file: 物料主檔 (ima01=料號, ima02=品名)
+- coptd_file: 訂單身 (coptd04=料號, coptd02=日期)
+
+SQL 要求：
+1. **日期欄位類型是 VARCHAR，必須使用 CAST 轉換**
+   - 錯誤写法：DATE_TRUNC('month', pmm02) (❌)
+   - 正確写法：DATE_TRUNC('month', CAST(pmm02 AS DATE)) (✅)
+   - 錯誤写法：pmm02 >= DATE '2024-01-01' (❌)
+   - 正確写法：CAST(pmm02 AS DATE) >= DATE '2024-01-01' (✅)
+2. 使用 DuckDB Parquet 語法：read_parquet('s3://bucket/path/year=*/month=*/data.parquet', hive_partitioning=true)
+3. 表格路徑前綴：s3://tiptop-raw/raw/v1/
+4. 保持格式整齊，適合展示
+5. 如果用戶說"每月"，使用 DATE_TRUNC('month', CAST(日期 AS DATE)) AS month
+6. 如果用戶說"每日"，使用 DATE_TRUNC('day', CAST(日期 AS DATE)) AS day
+7. 只返回 SQL，不要其他說明
+8. 禁止使用：*/*/data.parquet 或 */*/*/data.parquet
+"""
+
+            prompt = f"""{schema_hint}
+
+用戶輸入：{user_input}
+
+約束條件：
+- 料號: {semantic_result.constraints.material_id or "未指定"}
+- 倉庫: {semantic_result.constraints.inventory_location or "未指定"}
+- 時間: {semantic_result.constraints.time_range or "未指定"}
+- 物料類別: {semantic_result.constraints.material_category or "未指定"}
+
+SQL：
+"""
+
+            # 調用 LLM
+            response = await self._llm_client.generate(
+                prompt=prompt,
+                temperature=0.1,
+                max_tokens=1000,
+            )
+
+            # 提取 SQL
+            text = response.get("text", "") or response.get("content", "")
+            sql = text.strip()
+
+            # 清理 SQL（移除可能的 markdown 格式）
+            sql = sql.replace("```sql", "").replace("```", "").strip()
+
+            logger.info(f"LLM SQL 生成成功: {sql[:100]}...")
+            return sql
+
+        except Exception as e:
+            logger.error(f"LLM SQL 生成失敗: {e}")
+            # 回退到模板
+            logger.warning("回退到模板生成")
+            return self._generate_sql_by_template_fallback(semantic_result)
+
+    def _generate_sql_by_template_fallback(
+        self, semantic_result: SemanticTranslationResult
+    ) -> Optional[str]:
+        """模板回退"""
+        intent = semantic_result.intent
+        constraints = {}
+        if semantic_result.constraints.material_id:
+            constraints["material_id"] = semantic_result.constraints.material_id
+        if semantic_result.constraints.inventory_location:
+            constraints["inventory_location"] = semantic_result.constraints.inventory_location
+        if semantic_result.constraints.time_range:
+            constraints["time_range"] = semantic_result.constraints.time_range
+
+        try:
+            return self._schema_registry.generate_sql(intent, constraints)
+        except Exception:
             return None
 
     def _get_ka_client(self):
@@ -534,7 +665,7 @@ class MMAgentChain:
             debug_info["intent"] = semantic_result.intent
 
             # 生成 SQL
-            generated_sql = self._generate_sql_from_semantic(semantic_result)
+            generated_sql = await self._generate_sql_from_semantic(semantic_result)
             if generated_sql:
                 debug_info["generated_sql"] = generated_sql
 
@@ -580,11 +711,11 @@ if __name__ == "__main__":
             session_id = result.session_id
 
             if result.needs_clarification:
-                print(f"助手: ❌ 需要澄清")
+                print("助手: ❌ 需要澄清")
                 print(f"訊息: {result.clarification_message[:60]}...")
             else:
                 trans = result.translation
-                print(f"助手: ✅ 理解成功")
+                print("助手: ✅ 理解成功")
 
                 if result.resolved_query:
                     print(f"   指代消解: {result.resolved_query}")
