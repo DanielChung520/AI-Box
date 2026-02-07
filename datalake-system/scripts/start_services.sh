@@ -63,10 +63,20 @@ start_mm_agent() {
         return 1
     fi
     echo -e "${GREEN}🚀 啟動 MM-Agent (端口 $MM_AGENT_PORT)...${NC}"
-    source "$DATALAKE_ROOT/venv/bin/activate"
     cd "$DATALAKE_ROOT"
-    PYTHONPATH=/home/daniel/ai-box:/home/daniel/ai-box/datalake-system \
-        nohup python "$MM_AGENT_DIR/main.py" >> "$LOG_DIR/mm_agent.log" 2>> "$LOG_DIR/mm_agent_error.log" &
+    /home/daniel/ai-box/venv/bin/python -c "
+import sys
+from pathlib import Path
+datalake_system_dir = Path('$MM_AGENT_DIR').resolve().parent
+ai_box_root = Path('$MM_AGENT_DIR').resolve().parent.parent
+if str(datalake_system_dir) not in sys.path:
+    sys.path.insert(0, str(datalake_system_dir))
+if str(ai_box_root) not in sys.path:
+    sys.path.insert(0, str(ai_box_root))
+import uvicorn
+from mm_agent.main import app
+uvicorn.run(app, host='0.0.0.0', port=int('$MM_AGENT_PORT'))
+" >> "$LOG_DIR/mm_agent.log" 2>> "$LOG_DIR/mm_agent_error.log" &
     echo $! > "$LOG_DIR/mm_agent.pid"
     sleep 3
     if check_port $MM_AGENT_PORT; then
@@ -87,8 +97,7 @@ start_api_server() {
         return 1
     fi
     echo -e "${GREEN}🚀 啟動 API Server (端口 $API_SERVER_PORT)...${NC}"
-    source "$DATALAKE_ROOT/venv/bin/activate"
-    nohup python "$FRONTEND_DIR/api_server.py" >> "$LOG_DIR/api_server.log" 2>> "$LOG_DIR/api_server_error.log" &
+    nohup /home/daniel/ai-box/venv/bin/python "$FRONTEND_DIR/api_server.py" >> "$LOG_DIR/api_server.log" 2>> "$LOG_DIR/api_server_error.log" &
     echo $! > "$LOG_DIR/api_server.pid"
     sleep 3
     if check_port $API_SERVER_PORT; then

@@ -121,6 +121,40 @@ async def capabilities() -> dict:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/text-to-sql")
+async def text_to_sql(request: dict) -> dict:
+    """直接從自然語言生成 SQL
+
+    簡化的 Text-to-SQL 接口：
+    1. 接收自然語言
+    2. AI 直接理解生成 SQL
+    3. 執行 SQL 返回結果
+    """
+    try:
+        instruction = request.get("instruction", "")
+        if not instruction:
+            return {"success": False, "error": "需要提供 instruction 參數"}
+
+        # 生成 SQL
+        sql_result = await data_agent._text_to_sql_service.generate_sql(instruction)
+
+        if not sql_result["success"]:
+            return sql_result
+
+        # 執行 SQL
+        exec_result = await data_agent._handle_execute_sql_direct(sql_result["sql"])
+
+        return {
+            "success": True,
+            "sql": sql_result["sql"],
+            "result": exec_result.get("result", {}),
+        }
+
+    except Exception as e:
+        logger.error(f"Text-to-SQL 失敗: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
 def main() -> None:
     """主函數：啟動服務"""
     # 從環境變數讀取配置

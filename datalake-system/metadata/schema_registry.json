@@ -330,18 +330,23 @@
     "QUERY_PURCHASE": {
       "description": "採購交易查詢",
       "intent_type": "QUERY",
-      "primary_table": "tlf_file",
+      "primary_table": "pmn_file",
       "joins": [
         {
+          "table": "pmm_file",
+          "on": "pmn01 = pmm01",
+          "type": "LEFT"
+        },
+        {
           "table": "ima_file",
-          "on": "tlf01 = ima01",
+          "on": "pmn04 = ima01",
           "type": "LEFT"
         }
       ],
-      "required_fields": ["transaction_type"],
+      "required_fields": [],
       "optional_fields": ["part_number", "time_range", "warehouse"],
-      "output_fields": ["tlf01", "ima02", "SUM(tlf10) as total_qty", "COUNT(*) as tx_count"],
-      "group_by": ["tlf01", "ima02"],
+      "output_fields": ["pmn04", "ima02", "SUM(pmn20) as total_qty", "COUNT(*) as tx_count"],
+      "group_by": ["pmn04", "ima02"],
       "examples": [
         "RM05-008 上月買進多少",
         "上月採購數量",
