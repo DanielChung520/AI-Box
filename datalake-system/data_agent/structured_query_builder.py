@@ -60,53 +60,126 @@ class StructuredQueryBuilder:
         Args:
             structured_query: 結構化查詢參數
                 {
-                    "tlf19": "101",
-                    "part_number": "RM05-008",
-                    "time_expr": "DATE_SUB(CURDATE(), INTERVAL 1 MONTH)",
-                    "table_name": "tlf_file",
-                    "intent": "purchase"
+                    "table": "img_file",
+                    "filters": {"img02": "W01", "img01": "RM05-008"},
+                    "columns": ["img01", "img02", "img10"],
+                    "group_by": ["img01"],
+                    "aggregations": {"SUM": {"column": "img10", "alias": "total_qty"}}
                 }
 
         Returns:
             {"success": True, "sql": "...", "explanation": "..."}
         """
         try:
-            table_name = structured_query.get("table_name", "img_file")
-            part_number = structured_query.get("part_number")
-            tlf19 = structured_query.get("tlf19")
-            time_expr = structured_query.get("time_expr")
-            intent = structured_query.get("intent", "unknown")
+            table_name = structured_query.get("table", "img_file")
+            filters = structured_query.get("filters", {})
+            columns = structured_query.get("columns", ["*"])
+            time_range = structured_query.get("time_range")
+            aggregations = structured_query.get("aggregations")
+            group_by = structured_query.get("group_by")
 
-            if not part_number:
-                return {
-                    "success": False,
-                    "error": "缺少必要參數：part_number（料號）",
-                }
+            # 處理 pmn_file 需要 JOIN pmm_file 的情況
+            needs_join = table_name == "pmn_file" and time_range
+            date_column = time_range.get("date_column", "pmm02") if time_range else None
+            is_pmm_date = date_column in ["pmm02", "pmm.pmm02"] if date_column else False
 
-            # 根據表名構建不同查詢
-            if table_name == "img_file":
-                sql = cls._build_inventory_query(part_number)
-                explanation = f"查詢料號 {part_number} 的庫存資訊"
-
-            elif table_name == "tlf_file":
-                sql = cls._build_transaction_query(part_number, tlf19, time_expr)
-                tlf19_desc = cls.TLF19_MAP.get(tlf19, "未知類別")
-                explanation = f"查詢料號 {part_number} 的{tlf19_desc}記錄"
-
+            # 構建 SELECT 子句
+            if aggregations:
+                select_parts = []
+                for agg_type, agg_info in aggregations.items():
+                    col = agg_info.get("column", "*")
+                    alias = agg_info.get("alias", f"{agg_type.lower()}_{col}")
+                    if agg_type.upper() == "COUNT":
+                        select_parts.append(f"COUNT(*) AS {alias}")
+                    elif agg_type.upper() == "SUM":
+                        select_parts.append(f"SUM(CAST({col} AS DECIMAL(18,4))) AS {alias}")
+                    elif agg_type.upper() == "AVG":
+                        select_parts.append(f"AVG(CAST({col} AS DECIMAL(18,4))) AS {alias}")
+                    elif agg_type.upper() == "MAX":
+                        select_parts.append(f"MAX({col}) AS {alias}")
+                    elif agg_type.upper() == "MIN":
+                        select_parts.append(f"MIN({col}) AS {alias}")
+                select_clause = ", ".join(select_parts)
             else:
-                return {
-                    "success": False,
-                    "error": f"不支持的表名：{table_name}",
-                }
+                select_clause = ", ".join(columns) if columns else "*"
+
+            # 構建 FROM 和 JOIN
+            if needs_join:
+                pmn_path = f"s3://tiptop-raw/raw/v1/pmn_file/year=*/month=*/data.parquet"
+                pmm_path = f"s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet"
+                from_clause = f"read_parquet('{pmn_path}', hive_partitioning=true) AS pmn LEFT JOIN read_parquet('{pmm_path}', hive_partitioning=true) AS pmm ON pmn.pmn01 = pmm.pmm01"
+            else:
+                s3_path = f"s3://tiptop-raw/raw/v1/{table_name}/year=*/month=*/data.parquet"
+                from_clause = f"read_parquet('{s3_path}', hive_partitioning=true)"
+
+            # 構建 WHERE 子句
+            where_parts = []
+            for col, val in filters.items():
+                if val is None:
+                    continue
+                # 處理 LIKE 模式
+                if isinstance(val, dict) and val.get("like"):
+                    where_parts.append(f"{col} LIKE '{val['like']}'")
+                else:
+                    where_parts.append(f"{col} = '{val}'")
+
+            # 時間範圍處理
+            if time_range:
+                if isinstance(time_range, dict):
+                    date_col = time_range.get("date_column", "pmm02")
+                    if needs_join and is_pmm_date:
+                        date_col = "pmm.pmm02"
+                    if time_range.get("start"):
+                        where_parts.append(
+                            f"CAST({date_col} AS DATE) >= DATE '{time_range['start']}'"
+                        )
+                    if time_range.get("end"):
+                        where_parts.append(f"CAST({date_col} AS DATE) < DATE '{time_range['end']}'")
+
+            where_clause = " AND ".join(where_parts) if where_parts else "1=1"
+
+            # 構建 GROUP BY 子句
+            group_clause = ""
+            if group_by:
+                if needs_join and any("pmm02" in str(g) for g in group_by):
+                    # 處理 GROUP BY 中引用 pmm02 的情況
+                    processed_group = []
+                    for g in group_by:
+                        if "pmm02" in str(g):
+                            processed_group.append(f"DATE_TRUNC('month', CAST(pmm.pmm02 AS DATE))")
+                        else:
+                            processed_group.append(str(g))
+                    group_clause = f"GROUP BY {', '.join(processed_group)}"
+                else:
+                    group_clause = f"GROUP BY {', '.join(str(g) for g in group_by)}"
+
+            # 構建完整 SQL
+            sql = f"""
+                SELECT {select_clause}
+                FROM {from_clause}
+                WHERE {where_clause}
+                {group_clause}
+                LIMIT 50
+            """.strip()
+
+            # 生成說明
+            table_desc = {
+                "img_file": "庫存表",
+                "pmn_file": "採購單身",
+                "pmm_file": "採購單頭",
+                "ima_file": "物料主檔",
+                "coptd_file": "訂單身",
+            }.get(table_name, table_name)
+
+            filter_desc = ", ".join([f"{k}={v}" for k, v in filters.items()]) if filters else "無"
+            explanation = f"查詢{table_desc}，條件：{filter_desc}"
 
             return {
                 "success": True,
                 "sql": sql,
                 "explanation": explanation,
-                "table_name": table_name,
-                "part_number": part_number,
-                "tlf19": tlf19,
-                "intent": intent,
+                "table": table_name,
+                "filters": filters,
             }
 
         except Exception as e:

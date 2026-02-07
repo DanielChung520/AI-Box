@@ -493,6 +493,21 @@ class DatalakeService:
 
             self._logger.info(f"SQL 查詢（DuckDB）: {sql_query[:200]}")
 
+            # 如果 SQL 已經包含 read_parquet，直接執行
+            if "read_parquet" in sql_query:
+                self._logger.info("SQL 包含 read_parquet，直接執行")
+                result = self._duckdb_con.execute(sql_query)
+                columns = [desc[0] for desc in result.description]
+                rows_data = result.fetchall()
+                rows = [dict(zip(columns, row)) for row in rows_data]
+                return {
+                    "success": True,
+                    "rows": rows,
+                    "row_count": len(rows),
+                    "sql_query": sql_query,
+                    "query_type": "sql_duckdb",
+                }
+
             # 提取表名（支持 img_file, ima_file, tlf_file 等）
             table_match = re.search(r"FROM\s+(\w+)", sql_query, re.IGNORECASE)
             if not table_match:
@@ -527,9 +542,7 @@ class DatalakeService:
                 }
 
             # 構建 Parquet 文件路徑
-            parquet_path = (
-                f"s3://{self._default_bucket}/raw/v1/{table_mapping[table_name]}/**/*.parquet"
-            )
+            parquet_path = f"s3://{self._default_bucket}/raw/v1/{table_mapping[table_name]}/year=*/*/data.parquet"
 
             # 使用簡單的字串分割方式來處理 FROM 子句
             # 找到 FROM 關鍵字的位置
@@ -548,9 +561,7 @@ class DatalakeService:
             from_alias = from_match.group(2) if from_match.group(2) else None
 
             # 構建 Parquet 文件路徑
-            parquet_path = (
-                f"s3://{self._default_bucket}/raw/v1/{table_mapping[table_name]}/**/*.parquet"
-            )
+            parquet_path = f"s3://{self._default_bucket}/raw/v1/{table_mapping[table_name]}/year=*/*/data.parquet"
 
             # 替換 FROM 子句
             from_replacement = f"FROM read_parquet('{parquet_path}', hive_partitioning=true) t1"

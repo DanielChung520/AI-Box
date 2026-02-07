@@ -506,6 +506,15 @@ class DataAgent(AgentServiceProtocol):
                 error=str(e),
             )
 
+    async def _handle_execute_sql_direct(self, sql: str) -> Dict[str, Any]:
+        """直接執行 SQL（用於 text-to-sql）"""
+        try:
+            result = await self._datalake_service.query_sql(sql_query=sql, max_rows=100)
+            return {"success": True, "result": result}
+        except Exception as e:
+            self._logger.error(f"直接執行 SQL 失敗: {e}")
+            return {"success": False, "error": str(e)}
+
     async def _handle_validate_data(self, request: DataAgentRequest) -> DataAgentResponse:
         """處理數據驗證請求"""
         if not request.schema_id:
@@ -554,29 +563,53 @@ class DataAgent(AgentServiceProtocol):
     async def _handle_execute_structured_query(
         self, request: DataAgentRequest
     ) -> DataAgentResponse:
-        """處理結構化查詢請求（由 MM-Agent 提供的結構化參數）"""
-        if not request.structured_query:
+        """處理結構化查詢請求（由 MM-Agent 提供的結構化參數或自然語言）"""
+        structured_query = request.structured_query
+        natural_language_query = request.natural_language_query
+
+        if not structured_query and not natural_language_query:
             return DataAgentResponse(
                 success=False,
                 action="execute_structured_query",
-                error="structured_query is required for execute_structured_query action",
+                error="structured_query or natural_language_query is required",
             )
 
         try:
-            self._logger.info(f"結構化查詢請求: {request.structured_query}")
+            sql_query = None
+            explanation = "從自然語言轉換而來"
 
-            # 1. 構建 SQL 查詢
-            build_result = StructuredQueryBuilder.build_query(request.structured_query)
+            if natural_language_query and not structured_query:
+                self._logger.info(f"自然語言查詢: {natural_language_query}")
 
-            if not build_result.get("success"):
-                return DataAgentResponse(
-                    success=False,
-                    action="execute_structured_query",
-                    error=build_result.get("error", "構建查詢失敗"),
+                text_to_sql_result = await self._text_to_sql_service.generate_sql(
+                    instruction=natural_language_query
                 )
 
-            sql_query = build_result["sql"]
-            explanation = build_result["explanation"]
+                if not text_to_sql_result.get("success"):
+                    return DataAgentResponse(
+                        success=False,
+                        action="execute_structured_query",
+                        error=text_to_sql_result.get("error", "自然語言轉 SQL 失敗"),
+                    )
+
+                sql_query = text_to_sql_result.get("sql", "")
+                self._logger.info(f"從自然語言生成的 SQL: {sql_query[:100]}...")
+
+            if structured_query:
+                self._logger.info(f"結構化查詢請求: {structured_query}")
+
+                build_result = StructuredQueryBuilder.build_query(structured_query)
+
+                if not build_result.get("success"):
+                    return DataAgentResponse(
+                        success=False,
+                        action="execute_structured_query",
+                        error=build_result.get("error", "構建查詢失敗"),
+                    )
+
+                sql_query = build_result["sql"]
+                explanation = build_result.get("explanation", "")
+                self._logger.info(f"生成的 SQL: {sql_query[:100]}...")
 
             self._logger.info(f"生成的 SQL: {sql_query[:100]}...")
 

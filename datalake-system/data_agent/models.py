@@ -65,6 +65,10 @@ class DataAgentRequest(BaseModel):
     structured_query: Optional[Dict[str, Any]] = Field(
         None, description="結構化查詢參數（tlf19/part_number/time_expr/table_name等）"
     )
+    # 自然語言查詢（execute_structured_query 使用，由 MM-Agent 提供）
+    natural_language_query: Optional[str] = Field(
+        None, description="自然語言查詢（由 MM-Agent 編排後傳入）"
+    )
     # 通用參數
     user_id: Optional[str] = Field(None, description="用戶 ID（可選）")
     tenant_id: Optional[str] = Field(None, description="租戶 ID（可選）")
