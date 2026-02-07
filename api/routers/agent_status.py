@@ -104,11 +104,17 @@ async def generate_status_stream(
                 if event.status == "completed" or event.status == "error":
                     break
             except asyncio.TimeoutError:
+                last_step = events_history[-1] if events_history else None
+                if last_step:
+                    last_step_name = last_step.get("step", "處理中")
+                    message = f"正在執行：{last_step_name}..."
+                else:
+                    message = "AI 正在處理您的請求..."
                 heartbeat = AgentStatusEvent(
                     request_id=request_id,
                     step="heartbeat",
                     status="processing",
-                    message="AI 正在處理...",
+                    message=message,
                     progress=0,
                 )
                 yield json.dumps(heartbeat.model_dump())

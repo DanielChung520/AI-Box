@@ -50,7 +50,7 @@ def _load_node_configs(
         try:
             configs.append(
                 LLMNodeConfig(
-                    name=node.get("name", f"ollama-node-{idx+1}"),
+                    name=node.get("name", f"ollama-node-{idx + 1}"),
                     host=node["host"],
                     port=int(node.get("port", fallback_port)),
                     weight=int(node.get("weight", 1)),
@@ -70,7 +70,9 @@ def get_ollama_settings() -> OllamaSettings:
     host = os.getenv("OLLAMA_REMOTE_HOST", section.get("host", "localhost"))
     port = int(os.getenv("OLLAMA_REMOTE_PORT", section.get("port", 11434)))
     timeout = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", section.get("request_timeout", 60)))
-    default_model = os.getenv("OLLAMA_DEFAULT_MODEL", section.get("default_model", "gpt-oss:120b"))
+    default_model = os.getenv(
+        "OLLAMA_DEFAULT_MODEL", section.get("default_model", "qwen3-coder:30b")
+    )
     embedding_model = os.getenv(
         "OLLAMA_EMBEDDING_MODEL", section.get("embedding_model", "nomic-embed-text")
     )

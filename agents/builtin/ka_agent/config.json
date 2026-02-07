@@ -4,9 +4,9 @@
   "version": "1.5.0",
   "model_routing": {
     "planning_chain": [
-      "gpt-oss:120b-cloud",
-      "gpt-oss:20b",
-      "qwen3-next:latest"
+      "mistral-nemo:12b",
+      "qwen3:32b",
+      "llama3.2:3b-instruct-q4_0"
     ],
     "temperature": 0.2,
     "max_tokens": 4096
