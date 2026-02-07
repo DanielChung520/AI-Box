@@ -80,6 +80,78 @@ MM-Agent 是 AI-Box 系統中的物料管理專業代理，專注於處理物料
 - 料號規格確認
 - 料號替代品查詢
 
+## 複雜分析技能
+
+### ABC 分類分析（帕累托分析）
+
+**業務定義**：
+ABC 分類法是一種庫存分類方法，根據物料的價值佔比進行分類：
+- A 類：累計價值佔 70%（重要物料，嚴格管控）
+- B 類：累計價值佔 20%（一般物料，常規管理）
+- C 類：累計價值佔 10%（不重要物料，簡化管理）
+
+**執行步驟**：
+1. 計算每料號庫存價值 = 庫存數量 × 單價
+2. 計算總庫存價值 = SUM(所有料號庫存價值)
+3. 按價值降序排序
+4. 計算累積百分比 = (當前價值 / 總價值) 的累加
+5. 分類：
+   - 累積 ≤ 70% → A 類
+   - 70% < 累積 ≤ 90% → B 類
+   - 累積 > 90% → C 類
+
+**數據需求**：
+- ima_file（料件主檔）：ima01=料號，ima02=品名，ima44=單價
+- img_file（庫存檔）：img01=料號，img10=庫存數量
+
+**範例查詢**：
+- "幫我列出ABC分類"
+- "顯示A類物料有哪些"
+- "哪些是C類料號"
+
+**SQL 範例**：
+```sql
+-- 計算庫存價值
+SELECT img01 AS material_code,
+       SUM(CAST(img10 AS DECIMAL)) AS total_qty,
+       ima44 AS unit_price,
+       SUM(CAST(img10 AS DECIMAL)) * COALESCE(ima44, 0) AS total_value
+FROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true)
+LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true)
+    ON img01 = ima01
+WHERE CAST(img10 AS DECIMAL) > 0
+GROUP BY img01, ima44
+ORDER BY total_value DESC
+```
+
+### 缺料分析
+
+**業務定義**：
+分析當前庫存是否低於安全水位，識別潛在缺料風險。
+
+**執行步驟**：
+1. 查詢當前庫存數量
+2. 查詢安全庫存水位
+3. 計算缺料數量 = 安全庫存 - 當前庫存
+4. 生成缺料風險報告
+
+**數據需求**：
+- img_file：img01=料號，img10=庫存數量
+- ima_file：ima01=料號，ima159=安全庫存
+
+### 週轉率分析
+
+**業務定義**：
+計算物料的庫存週轉率，評估庫存效率。
+
+**執行步驟**：
+1. 查詢一段期間的出庫數量
+2. 計算平均庫存 = (期初 + 期末) / 2
+3. 週轉率 = 出庫數量 / 平均庫存
+4. 生成週轉率報告
+
+---
+
 ## 使用場景
 
 ### 數據查詢（DATA_QUERY）
@@ -94,6 +166,12 @@ MM-Agent 是 AI-Box 系統中的物料管理專業代理，專注於處理物料
 - "物料管理代理有哪些功能？"
 - "怎麼查詢庫存？"
 
+### 複雜分析（COMPLEX_ANALYSIS）
+當用戶請求複雜分析時，應使用任務編排：
+- "幫我列出ABC分類" → abc_analysis
+- "分析缺料風險" → shortage_analysis
+- "計算週轉率" → turnover_analysis
+
 ## 數據來源
 
 MM-Agent 連接以下系統和數據源：
@@ -107,6 +185,8 @@ MM-Agent 連接以下系統和數據源：
 1. MM-Agent 專注於物料管理領域，不處理其他業務（如 HR、財務等）
 2. 數據查詢需要適當的權限驗證
 3. 系統會自動識別意圖並路由到對應的 Agent
+4. 複雜分析任務需要與用戶確認後才執行
+5. 分析結果應包含業務建議
 """
 
 

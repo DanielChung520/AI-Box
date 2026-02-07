@@ -15,6 +15,8 @@ from pathlib import Path
 # 添加項目根目錄到 Python 路徑
 base_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(base_dir))
+# scripts 目錄內的 datalake_system 符號連結已指向 datalake-system
+# 這樣可以避免在項目根目錄創建符號連結
 
 from dotenv import load_dotenv
 
@@ -26,7 +28,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
-from agents.builtin.data_agent.agent import DataAgent
+from datalake_system.data_agent.agent import DataAgent
 from agents.services.protocol.base import AgentServiceRequest, AgentServiceResponse
 
 # 創建 FastAPI 應用
