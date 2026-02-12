@@ -308,6 +308,9 @@ async def chat_v1(request: ChatRequest) -> ChatResponse:
             )
 
             if wf_result.get("success"):
+                plan = wf_result.get("plan", {})
+                thought_process = plan.get("thought_process", "") if isinstance(plan, dict) else ""
+
                 return ChatResponse(
                     success=True,
                     response=wf_result["response"],
@@ -320,7 +323,9 @@ async def chat_v1(request: ChatRequest) -> ChatResponse:
                         "step": "workflow_started",
                         "task_type": wf_result.get("task_type"),
                         "is_react_workflow": True,
-                        "total_steps": len(wf_result.get("plan", {}).get("steps", [])),
+                        "total_steps": len(plan.get("steps", [])) if isinstance(plan, dict) else 0,
+                        "thought_process": thought_process,
+                        "plan": plan if isinstance(plan, dict) else None,
                     },
                 )
 
@@ -374,7 +379,7 @@ async def execute_step(request: ChatRequest) -> dict:
         )
 
         return {
-            "success": result.success,
+            "success": result.get("success", False),
             "response": result.get("response", ""),
             "step_id": result.get("step_id"),
             "action_type": result.get("action_type"),

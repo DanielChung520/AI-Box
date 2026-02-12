@@ -4,8 +4,7 @@ import { SendOutlined, ClearOutlined, ClockCircleOutlined, DatabaseOutlined, Che
 import { useDashboardStore } from '../stores/dashboardStore';
 import { useAIStatusStore } from '../stores/aiStatusStore';
 import { useAIStatusSSE } from '../hooks/useAIStatusSSE';
-import BrainIcon from '../components/BrainIcon';
-import AIStatusWindow from '../components/AIStatusWindow';
+// BrainIcon 和 AIStatusWindow 已暫時移除
 import { mmAgentBusinessProcess, mmAgentAutoExecute, executeSqlQuery, nlpQuery } from '../lib/api';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -228,31 +227,64 @@ export default function NLPPage() {
         setShowMultiTurnInfo(true);
         setTurnCount((prev) => prev + 1);
         
-        // 自動執行所有步驟
-        addChatMessage({
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: result.response || '【自動執行中...】\n\n' + (result.debug_info?.plan?.steps?.map((s: any) => `Step ${s.step_id}: ${s.description}`).join('\n') || ''),
-          timestamp: new Date().toLocaleString(),
-        });
-
-        // 調用自動執行
-        const execResult = await mmAgentAutoExecute(result.session_id, 'yes');
+        // 格式化計劃
+        const planSteps = result.debug_info?.plan?.steps?.map((s: any) => 
+          `Step ${s.step_id}: ${s.description} (${s.action_type})`
+        ).join('\n') || '';
         
-        const endTime = Date.now();
-        const duration = ((endTime - startTime) / 1000).toFixed(2);
-
-        // 添加執行結果
+        // 格式化思考過程
+        const thoughtProcess = result.debug_info?.thought_process || '';
+        
+        // 顯示思考過程和計劃
         addChatMessage({
           id: Date.now().toString(),
           role: 'assistant',
-          content: execResult.final_response || execResult.response || '處理完成',
+          content: `## 思考過程\n\n${thoughtProcess}\n\n---\n\n## 任務計劃\n\n${planSteps}\n\n是否開始執行？（回复「是」繼續，「否」取消）`,
           timestamp: new Date().toLocaleString(),
         });
         
         setLoading(false);
-        await endSSESession();
         return;
+      }
+
+      // 處理用戶確認（"是" 或 "yes"）
+      if (sessionId && (input.toLowerCase() === '是' || input.toLowerCase() === 'yes' || input.toLowerCase() === 'y')) {
+        setLoading(true);
+        
+        try {
+          const execResult = await mmAgentAutoExecute(sessionId, 'yes');
+          
+          const endTime = Date.now();
+          const duration = ((endTime - startTime) / 1000).toFixed(2);
+          
+          let responseContent = execResult.final_response || execResult.response || '處理完成';
+          
+          // 如果還需要用戶確認，顯示下一步
+          if (execResult.waiting_for_user && execResult.response) {
+            responseContent += '\n\n是否繼續下一步？（回复「是」繼續）';
+          }
+          
+          addChatMessage({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: responseContent,
+            timestamp: new Date().toLocaleString(),
+          });
+          
+          setLoading(false);
+          await endSSESession();
+          return;
+        } catch (execError: any) {
+          console.error('執行錯誤:', execError);
+          addChatMessage({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `執行過程中發生錯誤：${execError.message || '未知錯誤'}`,
+            timestamp: new Date().toLocaleString(),
+          });
+          setLoading(false);
+          return;
+        }
       }
 
       // 檢查是否需要澄清
@@ -383,12 +415,14 @@ export default function NLPPage() {
     setCurrentStatus('idle');
   };
 
-  return (
+    return (
     <div className="page-container" style={{ height: '100%' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* BrainIcon - 暫時隱藏
             <BrainIcon />
+            */}
             自然語言查詢
             {showMultiTurnInfo && (
               <Tooltip title={`多輪對話模式 - 已進行 ${turnCount} 輪對話`}>
@@ -408,7 +442,9 @@ export default function NLPPage() {
             )}
           </Text>
         </div>
+        {/* AIStatusWindow - 暫時隱藏
         <AIStatusWindow />
+        */}
         {showMultiTurnInfo && (
           <Button size="small" onClick={handleClear}>
             開始新對話

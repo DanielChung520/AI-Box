@@ -6,6 +6,7 @@
 
 """ReAct 模式執行器 - 執行 TODO 步驟"""
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
@@ -103,12 +104,12 @@ class ReActEngine:
             context=context,
         )
 
-        await self._sse_publisher.start_tracking(session_id)
+        self._sse_publisher.start_tracking(session_id)
 
         step_names = [s.description for s in (plan.steps if plan else [])]
         total = len(plan.steps) if plan else 0
 
-        await self._sse_publisher.publish(
+        self._sse_publisher.publish(
             request_id=session_id,
             step="workflow_started",
             status="processing",
@@ -117,7 +118,7 @@ class ReActEngine:
         )
 
         for i, step_name in enumerate(step_names):
-            await self._sse_publisher.publish(
+            self._sse_publisher.publish(
                 request_id=session_id,
                 step=step_name,
                 status="pending",
@@ -137,9 +138,11 @@ class ReActEngine:
                         "step_id": s.step_id,
                         "action_type": s.action_type,
                         "description": s.description,
+                        "instruction": s.instruction,
                     }
                     for s in (plan.steps if plan else [])
                 ],
+                "thought_process": plan.thought_process if plan else "",
             },
             "response": self._planner.format_plan(plan) if plan else "無法生成計劃",
         }
@@ -224,7 +227,7 @@ class ReActEngine:
         current = state.current_step
         progress = current / total_steps if total_steps > 0 else 0
 
-        await self._sse_publisher.publish(
+        self._sse_publisher.publish(
             request_id=session_id,
             step=step_data.get("description", f"步驟 {current}"),
             status="processing",
@@ -282,7 +285,7 @@ class ReActEngine:
         success = result.success if result else True
         step_name = step_data.get("description", f"步驟 {current}")
 
-        await self._sse_publisher.publish(
+        self._sse_publisher.publish(
             request_id=session_id,
             step=step_name,
             status="completed" if success else "error",
@@ -339,7 +342,7 @@ class ReActEngine:
         final_response = responses[-1] if responses else "處理完成"
         self._workflows.get(session_id)
 
-        await self._sse_publisher.publish(
+        self._sse_publisher.publish(
             request_id=session_id,
             step="workflow_completed",
             status="completed",
@@ -347,7 +350,7 @@ class ReActEngine:
             progress=1.0,
         )
 
-        await self._sse_publisher.end_tracking(session_id)
+        self._sse_publisher.end_tracking(session_id)
 
         return {
             "success": True,
@@ -946,7 +949,7 @@ class ReActExecutor:
 
 
 class SSEPublisher:
-    """SSE 發布器 - 推送 AI 狀態到前端"""
+    """SSE 發布器 - 推送 AI 狀態到前端（非阻塞）"""
 
     _instance: Optional["SSEPublisher"] = None
 
@@ -954,6 +957,8 @@ class SSEPublisher:
         """初始化 SSE 發布器"""
         self._api_url = api_url
         self._enabled = True
+        self._queue: asyncio.Queue = asyncio.Queue()
+        self._worker_task: Optional[asyncio.Task] = None
         logger.info(f"[SSEPublisher] Initialized: {api_url}")
 
     @classmethod
@@ -963,74 +968,65 @@ class SSEPublisher:
             cls._instance = cls(api_url)
         return cls._instance
 
-    async def publish(
+    async def _worker(self):
+        """後台工作線程 - 處理 SSE 發送"""
+        while True:
+            try:
+                data = await self._queue.get()
+                await self._send_http(data)
+                self._queue.task_done()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.warning(f"[SSEPublisher] Worker error: {e}")
+
+    async def _send_http(self, data: dict):
+        """發送 HTTP 請求"""
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.post(
+                    f"{self._api_url}/api/v1/agent-status/event",
+                    json=data,
+                )
+        except Exception as e:
+            logger.warning(f"[SSEPublisher] Send failed: {e}", exc_info=True)
+
+    def _ensure_worker(self):
+        """確保後台工作線程運行"""
+        if self._worker_task is None or self._worker_task.done():
+            self._worker_task = asyncio.create_task(self._worker())
+
+    def publish(
         self,
         request_id: str,
         step: str,
         status: str,
         message: str,
         progress: float = 0.0,
-    ) -> bool:
-        """發布狀態事件"""
+    ) -> None:
+        """發布狀態事件（非阻塞）"""
         if not self._enabled:
-            return False
+            return
 
-        try:
-            import httpx
+        data = {
+            "request_id": request_id,
+            "step": step,
+            "status": status,
+            "message": message,
+            "progress": progress,
+        }
+        self._queue.put_nowait(data)
+        self._ensure_worker()
 
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
-                    f"{self._api_url}/api/v1/agent-status/event",
-                    json={
-                        "request_id": request_id,
-                        "step": step,
-                        "status": status,
-                        "message": message,
-                        "progress": progress,
-                    },
-                )
+    def start_tracking(self, request_id: str) -> None:
+        """開始追蹤（非阻塞）"""
+        self.publish(request_id, "workflow_started", "processing", "工作流程已啟動", 0.0)
 
-                if response.status_code == 200:
-                    return True
-                else:
-                    logger.warning(f"[SSEPublisher] Failed to publish: {response.status_code}")
-                    return False
-
-        except Exception as e:
-            logger.warning(f"[SSEPublisher] Error: {e}")
-            return False
-
-    async def start_tracking(self, request_id: str) -> bool:
-        """開始追蹤"""
-        try:
-            import httpx
-
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
-                    f"{self._api_url}/api/v1/agent-status/start",
-                    json={"request_id": request_id},
-                )
-                return response.status_code == 200
-
-        except Exception as e:
-            logger.warning(f"[SSEPublisher] Start tracking failed: {e}")
-            return False
-
-    async def end_tracking(self, request_id: str) -> bool:
-        """結束追蹤"""
-        try:
-            import httpx
-
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
-                    f"{self._api_url}/api/v1/agent-status/end",
-                    json={"request_id": request_id},
-                )
-                return response.status_code == 200
-
-        except Exception as e:
-            logger.warning(f"[SSEPublisher] End tracking failed: {e}")
-            return False
+    def end_tracking(self, request_id: str) -> None:
+        """結束追蹤（非阻塞）"""
+        self.publish(request_id, "workflow_completed", "completed", "工作流程已完成", 1.0)
 
 
 def get_sse_publisher() -> SSEPublisher:

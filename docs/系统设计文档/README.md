@@ -320,6 +320,7 @@ graph TB
 
 - [Agent Platform](./核心组件/Agent-Platform.md) - Agent平台三层架构详解
 - [AAM系统](./核心组件/AAM系统.md) - 长短记忆上下文架构
+- [Agent Workflow Orchestrator](./核心组件/Agent平台/Agent-Workflow-Orchestrator.md) - 所有 Agent 共用的 ReAct 工作流执行引擎与 Saga 补偿模式
 - [文件上传架构说明](./核心组件/文件上傳向量圖譜/上傳的功能架構說明-v3.0.md) - 文件处理流程详解（整合文件管理、状态管理、文件存储系统）
 - [强化RAG系统](./核心组件/文件上傳向量圖譜/强化RAG系统.md) - ChromaDB向量化与语义切片
 - [知识图谱系统](./核心组件/文件上傳向量圖譜/知识图谱系统.md) - ArangoDB图存储与NER/RE/RT提取
