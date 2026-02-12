@@ -57,19 +57,19 @@ import { isSystemAdmin } from '../lib/userUtils';
 
   interface ChatAreaProps {
     selectedTask: Task | undefined;
-    browseMode?: boolean;
+    browseMode?: 'assistants' | 'agents' | null;
     onAssistantSelect: (id: string) => void;
     onAgentSelect: (id: string) => void;
     onModelSelect: (id: string) => void;
     onMessageSend: (raw: string) => void;
     resultPanelCollapsed: boolean;
     onResultPanelToggle: () => void;
-    onAssistantFavorite: (id: string, name: string) => void;
+    onAssistantFavorite: (id: string, isFavorite: boolean, name?: string) => void;
     favoriteAssistants?: Map<string, string>;
-    onAgentFavorite: (id: string, name: string) => void;
+    onAgentFavorite: (id: string, isFavorite: boolean, name?: string) => void;
     favoriteAgents?: Map<string, string>;
     onTaskUpdate: (task: Task) => void;
-    currentTaskId?: number;
+    currentTaskId?: string;
     onTaskCreate: (task: Task) => void;
     onTaskDelete: (taskId: number) => void;
     isPreviewMode?: boolean;
@@ -211,6 +211,11 @@ import { isSystemAdmin } from '../lib/userUtils';
         // patches 更新後會自動觸發 applyPatches（在 Context 中）
       }
     }, [streamingPatches, setPatches]);
+
+    // DEBUG: 追蹤 KnowledgeBaseModal 狀態
+    useEffect(() => {
+      console.log('[KnowledgeBaseModal DEBUG] showKnowledgeBaseModal changed:', showKnowledgeBaseModal);
+    }, [showKnowledgeBaseModal]);
 
     // 修改時間：2026-01-06 - 組件卸載時斷開連接
     useEffect(() => {
@@ -657,9 +662,7 @@ import { isSystemAdmin } from '../lib/userUtils';
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {currentAssistants.map(assistant => {
                 // 检查是否收藏 - 兼容 Set 和 Map
-                const isFavorite = favoriteAssistants instanceof Map
-                  ? favoriteAssistants.has(assistant.id)
-                  : favoriteAssistants.has(assistant.id);
+                const isFavorite = favoriteAssistants?.has(assistant.id) ?? false;
 
                 return (
                   <AssistantCard
@@ -767,9 +770,7 @@ import { isSystemAdmin } from '../lib/userUtils';
                   {currentAgents.length > 0 ? (
                     currentAgents.map(agent => {
                       // 检查是否收藏 - 兼容 Set 和 Map
-                      const isFavorite = favoriteAgents instanceof Map
-                        ? favoriteAgents.has(agent.id)
-                        : favoriteAgents.has(agent.id);
+                      const isFavorite = favoriteAgents?.has(agent.id) ?? false;
 
                       return (
                         <AgentCard

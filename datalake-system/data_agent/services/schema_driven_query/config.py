@@ -81,7 +81,7 @@ class S3Config(BaseSettings):
     - DATALAKE_SEAWEEDFS_S3_BUCKET: tiptop-raw
     """
 
-    endpoint: str = "localhost:8334"
+    endpoint: str = "http://seaweedfs-datalake-filer:8334"
     access_key: str = "admin"
     secret_key: str = "admin123"
     bucket: str = "tiptop-raw"

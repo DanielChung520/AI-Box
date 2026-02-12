@@ -5,11 +5,11 @@
  * 最後修改日期: 2026-02-12
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X, Plus, Folder, FolderPlus, Upload, FileText,
-  ChevronRight, ChevronDown, BookOpen, Trash2, Eye,
-  Search, Check, GripHorizontal, Loader2, Settings,
+  ChevronRight, ChevronDown, Trash2, Eye,
+  Search, Check, Loader2, Settings,
   Globe, Tag, Layers, Lock, Calendar, Database, Network, GitBranch
 } from 'lucide-react';
 import { uploadFiles } from '../lib/api';
@@ -25,17 +25,13 @@ function formatFileSize(bytes: number): string {
 }
 
 const KNOWLEDGE_TYPES = [
-  { id: 'ontology', name: 'Ontology（知識本體）', description: '知識結構與關係定義' },
   { id: 'spec', name: '專業知識', description: '領域規格、標準、定義' },
   { id: 'process', name: '流程', description: '工作流程、操作步驟' },
   { id: 'skill', name: '技能', description: '技術技能、操作技能' },
   { id: 'manual', name: '手冊', description: '操作手冊、使用指南' },
-  { id: 'standard', name: '規範', description: '規範、準則、政策' },
-  { id: 'meeting', name: '會議', description: '會議紀錄、討論事項' },
-  { id: 'creative', name: '創意發想', description: '創意構想、提案、靈感' },
-  { id: 'quotation', name: '報價文件', description: '報價單、估價、合約報價' },
-  { id: 'training', name: '教材', description: '培訓教材、教學資料' },
-  { id: 'reference', name: '參考文件', description: '範例、模板、查閱資料' },
+  { id: 'meeting', name: '會議記錄', description: '會議紀錄、討論事項' },
+  { id: 'form', name: '表單', description: '表單、模板、標準文件' },
+  { id: 'plan', name: '計劃', description: '計劃、規劃、策略文件' },
   { id: 'other', name: '其他', description: '不屬於以上類別' }
 ] as const;
 type KnowledgeTypeId = typeof KNOWLEDGE_TYPES[number]['id'];
@@ -83,20 +79,123 @@ export interface KnowledgeFile {
   knowledgeType: KnowledgeTypeId;
   isPrivate: boolean;
   allowInternal: boolean;
+  fileId?: string;
 }
 
 async function fetchOntologyOptions(): Promise<OntologyOption[]> {
   try {
     const response = await fetch('/api/v1/knowledge/ontologies');
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.warn('[KnowledgeBaseModal] API 返回錯誤');
+      return [];
+    }
     const data = await response.json();
     return (data.data?.items || []).map((o: any) => ({
       domain: o.domain,
       domainName: o.domainName,
-      allowedTypes: o.allowedTypes
+      allowedTypes: o.allowedTypes || []
     }));
-  } catch {
+  } catch (error) {
+    console.warn('[KnowledgeBaseModal] API 請求失敗:', error);
     return [];
+  }
+}
+
+// Knowledge Base API functions
+async function fetchKnowledgeBases(): Promise<KnowledgeRoot[]> {
+  try {
+    const response = await fetch('/api/v1/knowledge-bases');
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.data?.items || [];
+  } catch (error) {
+    console.warn('[KnowledgeBaseModal] fetchKnowledgeBases 失敗:', error);
+    return [];
+  }
+}
+
+async function createKnowledgeBase(data: {
+  name: string;
+  domain: string;
+  domainName: string;
+  description?: string;
+  allowedTypes: KnowledgeTypeId[];
+  isPrivate: boolean;
+  allowInternal: boolean;
+}): Promise<KnowledgeRoot | null> {
+  try {
+    const response = await fetch('/api/v1/knowledge-bases', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || '創建失敗');
+    }
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.warn('[KnowledgeBaseModal] createKnowledgeBase 失敗:', error);
+    return null;
+  }
+}
+
+async function deleteKnowledgeBase(id: string): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/v1/knowledge-bases/${id}`, { method: 'DELETE' });
+    return response.ok;
+  } catch (error) {
+    console.warn('[KnowledgeBaseModal] deleteKnowledgeBase 失敗:', error);
+    return false;
+  }
+}
+
+async function fetchKBFolders(kbId: string, parentId: string | null = null): Promise<KnowledgeFolder[]> {
+  try {
+    const url = parentId
+      ? `/api/v1/knowledge-bases/${kbId}/folders?parent_id=${parentId}`
+      : `/api/v1/knowledge-bases/${kbId}/folders`;
+    const response = await fetch(url);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.data?.items || [];
+  } catch (error) {
+    console.warn('[KnowledgeBaseModal] fetchKBFolders 失敗:', error);
+    return [];
+  }
+}
+
+async function createKBFolder(kbId: string, data: {
+  name: string;
+  type: KnowledgeTypeId;
+  parentId?: string | null;
+}): Promise<KnowledgeFolder | null> {
+  try {
+    const response = await fetch(`/api/v1/knowledge-bases/${kbId}/folders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || '創建失敗');
+    }
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.warn('[KnowledgeBaseModal] createKBFolder 失敗:', error);
+    return null;
+  }
+}
+
+async function deleteKBFolder(folderId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/v1/knowledge-bases/folders/${folderId}`, { method: 'DELETE' });
+    return response.ok;
+  } catch (error) {
+    console.warn('[KnowledgeBaseModal] deleteKBFolder 失敗:', error);
+    return false;
   }
 }
 
@@ -148,7 +247,9 @@ interface KnowledgeBaseModalProps {
   onClose: () => void;
 }
 
-export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseModalProps) {
+const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProps) => {
+  if (!isOpen) return null;
+
   const [roots, setRoots] = useState<KnowledgeRoot[]>([]);
   const [folders, setFolders] = useState<KnowledgeFolder[]>([]);
   const [files, setFiles] = useState<KnowledgeFile[]>([]);
@@ -176,31 +277,17 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
     { id: 'ont_sales', domain: 'sales', domainName: '業務與報價', description: '業務報價相關本體', allowedTypes: ['quotation', 'spec', 'process', 'manual', 'meeting', 'reference'], createdAt: '2026-01-10', updatedAt: '2026-01-10' }
   ]);
 
-  const [size, setSize] = useState({ width: '80vw', height: '80vh' });
-  const [isResizing, setIsResizing] = useState(false);
-  const startPos = useRef({ x: 0, y: 0 });
-
-  React.useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const deltaX = e.clientX - startPos.current.x;
-      const deltaY = e.clientY - startPos.current.y;
-      setSize(prev => ({ width: `calc(${prev.width} + ${deltaX}px)`, height: `calc(${prev.height} + ${deltaY}px)` }));
-      startPos.current = { x: e.clientX, y: e.clientY };
-    };
-    const handleMouseUp = () => { setIsResizing(false); document.body.style.cursor = 'default'; };
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'nwse-resize';
-    }
-    return () => { document.removeEventListener('mousemove', handleMouseMove); document.removeEventListener('mouseup', handleMouseUp); };
-  }, [isResizing]);
+  const handleClose = () => {
+    setSelectedRootId(null);
+    setSelectedFolderId(null);
+    onClose();
+  };
 
   const [ontologyOptions, setOntologyOptions] = useState<OntologyOption[]>([]);
   const [newRoot, setNewRoot] = useState({ name: '', domain: '', allowedTypes: [] as KnowledgeTypeId[], isPrivate: true, allowInternal: false });
-  const [newFolder, setNewFolder] = useState({ name: '', type: '' as KnowledgeTypeId });
+  const [newFolder, setNewFolder] = useState({ name: '', type: '' as KnowledgeTypeId, parentId: '' as string | null });
   const [ontologyFiles, setOntologyFiles] = useState({ domain: [] as File[], type: [] as File[], other: [] as File[] });
+  const [isLoading, setIsLoading] = useState(false);
 
   const rootFolders = folders.filter(f => f.rootId === selectedRootId && f.parentId === null);
   const folderFiles = files.filter(f => f.folderId === selectedFolderId);
@@ -224,45 +311,107 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
   useEffect(() => {
     if (isOpen) {
       fetchOntologyOptions().then(setOntologyOptions);
+      loadKnowledgeBases();
     }
   }, [isOpen]);
 
-  const handleCreateRoot = () => {
-    if (!newRoot.name || !newRoot.domain || newRoot.allowedTypes.length === 0) { alert('請填寫完整資訊'); return; }
+  const loadKnowledgeBases = async () => {
+    setIsLoading(true);
+    try {
+      const bases = await fetchKnowledgeBases();
+      setRoots(bases);
+      if (bases.length > 0 && !selectedRootId) {
+        setSelectedRootId(bases[0].id);
+      }
+    } catch (error) {
+      console.warn('[KnowledgeBaseModal] 載入知識庫失敗:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadKBFolders = async (kbId: string) => {
+    try {
+      const folderList = await fetchKBFolders(kbId);
+      setFolders(folderList);
+    } catch (error) {
+      console.warn('[KnowledgeBaseModal] 載入目錄失敗:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedRootId) {
+      loadKBFolders(selectedRootId);
+    }
+  }, [selectedRootId]);
+
+  const handleCreateRoot = async () => {
+    if (!newRoot.name || !newRoot.domain) { alert('請填寫完整資訊'); return; }
+    if (newRoot.allowedTypes.length === 0) { alert('請至少選擇一個類型'); return; }
     const domainInfo = ontologyOptions.find(o => o.domain === newRoot.domain);
-    setRoots([...roots, { 
-      id: `root_${Date.now()}`, 
-      name: newRoot.name, 
-      domain: newRoot.domain, 
-      domainName: domainInfo?.domainName || '', 
-      allowedTypes: newRoot.allowedTypes, 
-      createdAt: new Date().toISOString().split('T')[0],
+
+    const newKB = await createKnowledgeBase({
+      name: newRoot.name,
+      domain: newRoot.domain,
+      domainName: domainInfo?.domainName || '',
+      allowedTypes: newRoot.allowedTypes,
       isPrivate: newRoot.isPrivate,
       allowInternal: newRoot.allowInternal
-    }]);
+    });
+
+    if (newKB) {
+      setRoots([...roots, newKB]);
+      setSelectedRootId(newKB.id);
+    }
+
     setShowCreateRoot(false);
     setNewRoot({ name: '', domain: '', allowedTypes: [], isPrivate: true, allowInternal: false });
   };
 
-  const handleCreateFolder = () => {
-    if (!newFolder.name || !selectedRoot) { alert('請填寫完整資訊'); return; }
-    const root = roots.find(r => r.id === selectedRootId);
-    setFolders([...folders, { 
-      id: `folder_${Date.now()}`, 
-      rootId: selectedRootId!, 
-      parentId: null, 
-      name: newFolder.name, 
-      domain: root?.domain || '', 
-      type: newFolder.type, 
-      path: `/${selectedRoot?.name}/${newFolder.name}`,
-      isPrivate: root?.isPrivate ?? true,
-      allowInternal: root?.allowInternal ?? false
-    }]);
+  const handleCreateFolder = async () => {
+    if (!newFolder.name || !newFolder.type || !selectedRoot) { alert('請填寫完整資訊'); return; }
+
+    const newFolderData = await createKBFolder(selectedRootId, {
+      name: newFolder.name,
+      type: newFolder.type,
+      parentId: null
+    });
+
+    if (newFolderData) {
+      setFolders([...folders, newFolderData]);
+      setSelectedFolderId(newFolderData.id);
+    }
+
     setShowCreateFolder(false);
-    setNewFolder({ name: '', type: '' as KnowledgeTypeId });
+    setNewFolder({ name: '', type: '' as KnowledgeTypeId, parentId: null });
   };
 
   const handleDeleteFile = (fileId: string) => { if (confirm('確定要刪除此文件嗎？')) setFiles(files.filter(f => f.id !== fileId)); };
+
+  const handleDeleteRoot = async (rootId: string) => {
+    if (!confirm('確定要刪除此知識庫嗎？此操作無法復原。')) return;
+    const success = await deleteKnowledgeBase(rootId);
+    if (success) {
+      setRoots(roots.filter(r => r.id !== rootId));
+      if (selectedRootId === rootId) {
+        setSelectedRootId(null);
+        setSelectedFolderId(null);
+        setFolders([]);
+      }
+    }
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    if (!confirm('確定要刪除此目錄嗎？此操作無法復原。')) return;
+    const success = await deleteKBFolder(folderId);
+    if (success) {
+      setFolders(folders.filter(f => f.id !== folderId));
+      if (selectedFolderId === folderId) {
+        setSelectedFolderId(null);
+        setFiles([]);
+      }
+    }
+  };
 
   const handleOpenUpload = () => { setShowUploadModal(true); setUploadFilesList([]); setUploadProgress(0); setUploadStatus('idle'); };
   const handleCloseUpload = () => { if (!isUploading) { setShowUploadModal(false); setUploadFilesList([]); } };
@@ -278,20 +427,25 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
     setIsUploading(true); setUploadStatus('uploading'); setUploadProgress(0);
     try {
       const response = await uploadFiles(uploadFilesList, (progress) => setUploadProgress(progress), selectedFolder.id);
-      if (response.success) {
+      if (response.success && response.data?.uploaded) {
         setUploadStatus('success');
-        setFiles(prev => [...prev, ...uploadFilesList.map((file, index) => ({ 
-          id: `file_${Date.now()}_${index}`, 
-          folderId: selectedFolder.id, 
-          name: file.name, 
-          size: formatFileSize(file.size), 
-          type: file.name.split('.').pop() || 'unknown', 
-          uploadedAt: new Date().toISOString().split('T')[0], 
-          domain: selectedFolder.domain, 
-          knowledgeType: selectedFolder.type,
-          isPrivate: selectedFolder.isPrivate,
-          allowInternal: selectedFolder.allowInternal
-        }))]);
+        const newFiles = uploadFilesList.map((file, index) => {
+          const uploadedInfo = response.data?.uploaded[index];
+          return {
+            id: uploadedInfo?.file_id || `file_${Date.now()}_${index}`,
+            folderId: selectedFolder.id,
+            name: file.name,
+            size: formatFileSize(file.size),
+            type: file.name.split('.').pop() || 'unknown',
+            uploadedAt: new Date().toISOString().split('T')[0],
+            domain: selectedFolder.domain,
+            knowledgeType: selectedFolder.type,
+            isPrivate: selectedFolder.isPrivate,
+            allowInternal: selectedFolder.allowInternal,
+            fileId: uploadedInfo?.file_id
+          };
+        });
+        setFiles(prev => [...prev, ...newFiles]);
         setTimeout(() => { setShowUploadModal(false); setUploadFilesList([]); }, 2000);
       } else { setUploadStatus('error'); }
     } catch { setUploadStatus('error'); }
@@ -302,12 +456,9 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
 
   return (
     <>
-      <div className="fixed inset-0 z-50 overflow-hidden">
-        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl flex flex-col" style={{ width: size.width, height: size.height }}>
-          <div className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize flex items-center justify-center hover:bg-gray-100 rounded-bl-lg" onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); startPos.current = { x: e.clientX, y: e.clientY }; }}>
-            <GripHorizontal className="w-4 h-4 text-gray-400" />
-          </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50" onClick={handleClose} />
+        <div className="relative bg-white rounded-xl shadow-2xl w-[80vw] h-[80vh] flex flex-col">
           <div className="flex flex-col h-full overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
               <div className="flex items-center gap-3"><Database className="w-6 h-6 text-blue-500" /><h2 className="text-xl font-semibold">知識庫管理</h2></div>
@@ -315,7 +466,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
                 <button onClick={() => setShowOntologyManager(true)} className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
                   <Globe className="w-4 h-4" /> 知識本體
                 </button>
-                <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+                <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
               </div>
             </div>
             <div className="flex flex-1 overflow-hidden">
@@ -335,6 +486,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
                         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer ${selectedRootId === root.id ? 'bg-blue-100' : 'hover:bg-gray-200'}`} onClick={() => { setSelectedRootId(root.id); setSelectedFolderId(null); toggleExpand(root.id); }}>
                           {expandedRoots.has(root.id) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           <Folder className="w-5 h-5 text-blue-500" /><span className="text-sm font-medium truncate flex-1">{root.name}</span>{root.isPrivate ? <Lock className="w-3 h-3 text-green-500" /> : <Lock className="w-3 h-3 text-gray-400" />}{root.allowInternal && <Globe className="w-3 h-3 text-blue-500" />}
+                          {selectedRootId === root.id && <button onClick={(e) => { e.stopPropagation(); handleDeleteRoot(root.id); }} className="ml-auto p-1 hover:bg-red-100 rounded"><Trash2 className="w-3 h-3 text-red-500" /></button>}
                         </div>
                         {expandedRoots.has(root.id) && (
                           <div className="ml-6 mt-1 space-y-1">
@@ -348,6 +500,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
                                 <div key={folder.id}>
                                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer ${selectedFolderId === folder.id ? 'bg-blue-50' : 'hover:bg-gray-200'}`} onClick={() => { setSelectedFolderId(folder.id); setSelectedFileId(null); setShowProperties(true); }}>
                                     <Folder className="w-4 h-4 text-gray-400" /><span className="text-sm truncate">{folder.name}</span><span className="text-xs text-gray-400 ml-auto">({getKnowledgeTypeName(folder.type)})</span>
+                                    {selectedFolderId === folder.id && <button onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder.id); }} className="ml-1 p-0.5 hover:bg-red-100 rounded"><Trash2 className="w-3 h-3 text-red-500" /></button>}
                                   </div>
                                 </div>
                               ))
@@ -505,10 +658,8 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
           <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white"><h3 className="text-lg font-semibold">新增知識庫</h3><button onClick={() => setShowCreateRoot(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div>
             <div className="p-6 space-y-4 max-h-[calc(90vh-80px)] overflow-y-auto">
-              <div className="bg-blue-50 rounded-lg p-4"><h4 className="font-medium text-blue-700 mb-3">基本資訊</h4><div><label className="block text-sm font-medium mb-1">知識庫名稱 <span className="text-red-500">*</span></label><input type="text" value={newRoot.name} onChange={(e) => setNewRoot({ ...newRoot, name: e.target.value })} placeholder="例如：MM-Agent 知識庫" className="w-full px-3 py-2 border rounded-lg" /></div><div className="mt-4"><label className="block text-sm font-medium mb-1">選擇領域 <span className="text-red-500">*</span></label><select value={newRoot.domain} onChange={(e) => setNewRoot({ ...newRoot, domain: e.target.value, allowedTypes: [] })} className="w-full px-3 py-2 border rounded-lg"><option value="">請選擇...</option>{ontologyOptions.map(o => <option key={o.domain} value={o.domain}>{o.domainName}</option>)}</select></div></div>
-              {newRoot.domain && (
-                <div className="bg-blue-50 rounded-lg p-4"><h4 className="font-medium text-blue-700 mb-3">允許的知識類型</h4><div className="space-y-2">{ontologyOptions.find(o => o.domain === newRoot.domain)?.allowedTypes.map(typeId => { const typeInfo = KNOWLEDGE_TYPES.find(t => t.id === typeId); return (<label key={typeId} className="flex items-start gap-2 cursor-pointer p-2 hover:bg-gray-100 rounded-lg"><input type="checkbox" checked={newRoot.allowedTypes.includes(typeId)} onChange={(e) => { if (e.target.checked) setNewRoot({ ...newRoot, allowedTypes: [...newRoot.allowedTypes, typeId] }); else setNewRoot({ ...newRoot, allowedTypes: newRoot.allowedTypes.filter(t => t !== typeId) }); }} className="w-4 h-4 mt-0.5" /><div><span className="text-sm font-medium">{typeInfo?.name}</span><p className="text-xs text-gray-500">{typeInfo?.description}</p></div></label>); })}</div></div>
-              )}
+              <div className="bg-blue-50 rounded-lg p-4"><h4 className="font-medium text-blue-700 mb-3">基本資訊</h4><div><label className="block text-sm font-medium mb-1">知識庫名稱 <span className="text-red-500">*</span></label><input type="text" value={newRoot.name} onChange={(e) => setNewRoot({ ...newRoot, name: e.target.value })} placeholder="例如：MM-Agent 知識庫" className="w-full px-3 py-2 border rounded-lg" /></div><div className="mt-4"><label className="block text-sm font-medium mb-1">選擇領域 <span className="text-red-500">*</span></label><select value={newRoot.domain} onChange={(e) => setNewRoot({ ...newRoot, domain: e.target.value })} className="w-full px-3 py-2 border rounded-lg"><option value="">請選擇...</option>{ontologyOptions.map(o => <option key={o.domain} value={o.domain}>{o.domainName}</option>)}</select></div></div>
+              <div className="bg-blue-50 rounded-lg p-4"><h4 className="font-medium text-blue-700 mb-3">類型（可多選）<span className="text-red-500">*</span></h4><div className="grid grid-cols-2 gap-2">{KNOWLEDGE_TYPES.map(type => (<label key={type.id} className="flex items-start gap-2 cursor-pointer p-2 hover:bg-gray-100 rounded-lg"><input type="checkbox" checked={newRoot.allowedTypes.includes(type.id)} onChange={(e) => { if (e.target.checked) setNewRoot({ ...newRoot, allowedTypes: [...newRoot.allowedTypes, type.id] }); else setNewRoot({ ...newRoot, allowedTypes: newRoot.allowedTypes.filter(t => t !== type.id) }); }} className="w-4 h-4 mt-0.5" /><div><span className="text-sm font-medium">{type.name}</span><p className="text-xs text-gray-500">{type.description}</p></div></label>))}</div></div>
               <div className="bg-gray-50 rounded-lg p-4"><h4 className="font-medium text-gray-700 mb-3"><Lock className="w-4 h-4 inline mr-1" />授權設定</h4><div className="space-y-3"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={newRoot.isPrivate} onChange={(e) => setNewRoot({ ...newRoot, isPrivate: e.target.checked })} className="w-4 h-4" /><span className="text-sm">私有（僅創建者可訪問）</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={newRoot.allowInternal} onChange={(e) => setNewRoot({ ...newRoot, allowInternal: e.target.checked })} className="w-4 h-4" /><span className="text-sm">允許內部分類</span></label></div><p className="text-xs text-gray-500 mt-2">子目錄及檔案將繼承此授權設定</p></div>
             </div>
             <div className="flex justify-end gap-2 px-6 py-4 border-t bg-gray-50 sticky bottom-0"><button onClick={() => setShowCreateRoot(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">取消</button><button onClick={handleCreateRoot} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">確認創建</button></div>
@@ -578,7 +729,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
               <button onClick={handleCloseFilePreview} className="p-2 hover:bg-gray-200 rounded-lg"><X className="w-5 h-5" /></button>
             </div>
             <div className="h-[calc(90vh-80px)] overflow-auto">
-              <FileViewer fileUrl="" fileName={previewFile.name} fileId={previewFile.id} />
+              <FileViewer fileUrl="" fileName={previewFile.name} fileId={previewFile.fileId || previewFile.id} />
             </div>
           </div>
         </div>
@@ -591,3 +742,5 @@ export default function KnowledgeBaseModal({ isOpen, onClose }: KnowledgeBaseMod
     </>
   );
 }
+
+export default React.memo(KnowledgeBaseModalComponent);

@@ -67,17 +67,31 @@ class DataAgent(AgentServiceProtocol):
             system_id: 系統 ID（預設 tiptop01）
         """
         config = get_config()
+
+        # 使用 module-level logger
         logger.info(f"Data-Agent 初始化，系統: {system_id}")
 
+        # 初始化 logger
+        self._logger = logger
+
         # 使用 TextToSQLServiceWithRAG（HybridRRAG 架構）
-        self._text_to_sql_service = text_to_sql_service or TextToSQLServiceWithRAG(
-            system_id=system_id,
-        )
+        # TODO: 修復 datalake_system 模組導入問題後啟用
+        # ref: https://github.com/anomalyco/ai-box/issues/XXX
+        try:
+            from .text_to_sql import TextToSQLServiceWithRAG
+
+            self._text_to_sql_service = text_to_sql_service or TextToSQLServiceWithRAG(
+                system_id=system_id,
+            )
+            self._logger.info("TextToSQLServiceWithRAG 初始化成功")
+        except (ImportError, ModuleNotFoundError) as e:
+            self._logger.warning(f"TextToSQLServiceWithRAG 初始化失敗: {e}，text_to_sql 功能不可用")
+            self._text_to_sql_service = None
+
         self._query_gateway_service = query_gateway_service or QueryGatewayService()
         self._datalake_service = datalake_service or DatalakeService()
         self._dictionary_service = dictionary_service or DictionaryService()
         self._schema_service = schema_service or SchemaService()
-        self._logger = logger
 
     async def execute(self, request: AgentServiceRequest) -> AgentServiceResponse:
         """

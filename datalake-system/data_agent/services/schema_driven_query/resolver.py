@@ -31,6 +31,7 @@ from .models import (
     IntentsContainer,
     ConceptsContainer,
     BindingsContainer,
+    OperatorType,
 )
 
 logger = logging.getLogger(__name__)
@@ -260,14 +261,61 @@ class Resolver:
 
     def _resolve_bindings(self, context: ResolverContext) -> ResolverContext:
         """State 3: 解析綁定"""
+        import re
+        from datetime import datetime
+
         context.transition_to(ResolverState.RESOLVE_BINDINGS)
 
         if not context.intent:
             raise ResolverError(ResolverState.RESOLVE_BINDINGS, "No intent definition")
 
-        datasource = (
-            self._bindings.datasource.get("dialect", "ORACLE") if self._bindings else "ORACLE"
-        )
+        datasource = self.config.datasource.upper()
+
+        def parse_time_range_value(value: Any) -> tuple[Optional[str], Optional[str]]:
+            """解析時間範圍值，返回 (start_date, end_date)"""
+            # 處理 dict 格式 {"type": "YEAR", "year": 2026}
+            if isinstance(value, dict):
+                year = value.get("year")
+                if not year:
+                    return None, None
+                month = value.get("month", 1)
+                start_date = f"{year}-{month:02d}-01"
+                if month == 12:
+                    end_date = f"{int(year) + 1}-01-01"
+                else:
+                    end_date = f"{year}-{month + 1:02d}-01"
+                return start_date, end_date
+
+            # 處理字串格式 "2026年1月" 或 "2026-01"
+            if not isinstance(value, str):
+                return None, None
+
+            # 匹配 "2026年1月" 格式
+            match = re.search(r"(\d{4})年(\d{1,2})月?", value)
+            if match:
+                year = match.group(1)
+                month = int(match.group(2))
+                start_date = f"{year}-{month:02d}-01"
+                # 下個月的第一天
+                if month == 12:
+                    end_date = f"{int(year) + 1}-01-01"
+                else:
+                    end_date = f"{year}-{month + 1:02d}-01"
+                return start_date, end_date
+
+            # 匹配 "2026-01" 格式
+            match = re.search(r"(\d{4})-(\d{1,2})", value)
+            if match:
+                year = match.group(1)
+                month = int(match.group(2))
+                start_date = f"{year}-{month:02d}-01"
+                if month == 12:
+                    end_date = f"{int(year) + 1}-01-01"
+                else:
+                    end_date = f"{year}-{month + 1:02d}-01"
+                return start_date, end_date
+
+            return None, None
 
         # 解析所有需要輸出的維度和指標
         for dim in context.intent.output.dimensions:
@@ -310,6 +358,23 @@ class Resolver:
             if not binding:
                 logger.warning(f"No binding for filter: {filter_name}")
                 continue
+
+            # 處理 TIME_RANGE
+            if filter_name == "TIME_RANGE" and matched.value:
+                start_date, end_date = parse_time_range_value(matched.value)
+                if start_date and end_date:
+                    logger.info(f"TIME_RANGE parsed: {start_date} to {end_date}")
+                    context.resolved_bindings.append(
+                        ResolvedBinding(
+                            concept=filter_name,
+                            table=binding.table,
+                            column=binding.column,
+                            aggregation=None,
+                            operator=OperatorType.BETWEEN,
+                            value=f"{start_date} AND {end_date}",
+                        )
+                    )
+                    continue
 
             context.resolved_bindings.append(
                 ResolvedBinding(
@@ -410,11 +475,10 @@ class Resolver:
         if not context.ast:
             raise ResolverError(ResolverState.EMIT_SQL, "No AST built")
 
+        datasource = self.config.datasource.upper()
+
         from .sql_generator import get_sql_generator
 
-        datasource = (
-            self._bindings.datasource.get("dialect", "ORACLE") if self._bindings else "ORACLE"
-        )
         generator = get_sql_generator(datasource)
         context.sql = generator.generate(context.ast)
 

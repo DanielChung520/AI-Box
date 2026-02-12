@@ -283,7 +283,8 @@ export function connectEditingStream(
   requestId?: string,
   listeners: StreamingEventListeners = {}
 ): SSEStreamingClient {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  // 使用相對路徑，讓 Vite 代理處理
+  const baseUrl = '';
   const url = `${baseUrl}/api/v1/streaming/editing/${sessionId}/stream${requestId ? `?request_id=${requestId}` : ''}`;
 
   const client = new SSEStreamingClient(url, listeners);

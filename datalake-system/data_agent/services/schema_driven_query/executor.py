@@ -213,6 +213,10 @@ class ExecutorFactory:
         datasource = datasource or self.config.datasource
         datasource = datasource.upper()
 
+        logger.info(
+            f"ExecutorFactory.get_executor(): datasource={datasource}, config.datasource={self.config.datasource}"
+        )
+
         if datasource not in self._executors:
             self._executors[datasource] = self._create_executor(datasource)
 

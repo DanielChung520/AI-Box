@@ -22,6 +22,27 @@ from .config import DuckDBConfig, S3Config
 logger = logging.getLogger(__name__)
 
 
+def parse_time_range_from_sql(sql: str) -> tuple[Optional[str], Optional[str]]:
+    """從 SQL 中解析 TIME_RANGE，返回 (year, month)"""
+    import re
+
+    # 匹配 BETWEEN '2026-01-01' AND '2026-02-01' 格式
+    match = re.search(
+        r"BETWEEN\s+'(\d{4})-(\d{2})-(\d{2})'\s+AND\s+'(\d{4})-(\d{2})-(\d{2})'", sql, re.IGNORECASE
+    )
+    if match:
+        return match.group(1), match.group(2)  # year, month
+
+    # 匹配 BETWEEN 2026-01-01 AND 2026-02-01 格式
+    match = re.search(
+        r"BETWEEN\s+(\d{4})-(\d{2})-(\d{2})\s+AND\s+(\d{4})-(\d{2})-(\d{2})", sql, re.IGNORECASE
+    )
+    if match:
+        return match.group(1), match.group(2)
+
+    return None, None
+
+
 class S3PathMapper:
     """Oracle Table → S3 Parquet Path 映射"""
 
@@ -101,6 +122,13 @@ class S3PathMapper:
                 sql,
             )
 
+        # 解析 TIME_RANGE 並優化 S3 路徑
+        year, month = parse_time_range_from_sql(sql)
+        if year and month:
+            logger.info(f"Applying TIME_RANGE filter: year={year}, month={month}")
+            # 將 year=*/month=* 替換為特定的 year/month
+            sql = re.sub(r"year=\*/month=\*", f"year={year}/month={month:02d}", sql)
+
         return sql
 
 
@@ -156,6 +184,7 @@ class DuckDBExecutor:
                     "s3_region": self.s3_config.region,
                     "s3_use_ssl": str(self.s3_config.use_ssl).lower(),
                     "s3_url_style": self.s3_config.url_style,
+                    "temp_directory": self.config.temp_directory,
                 },
             )
 

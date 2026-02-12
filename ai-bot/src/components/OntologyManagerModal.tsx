@@ -33,8 +33,16 @@ export interface Ontology {
   domainName: string;
   description: string;
   allowedTypes: KnowledgeTypeId[];
-  createdAt: string;
-  updatedAt: string;
+  version?: string;
+  isActive?: boolean;
+  tags?: string[];
+  useCases?: string[];
+  entityClasses?: string[];
+  objectProperties?: string[];
+  inheritsFrom?: string[];
+  compatibleDomains?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface OntologyManagerModalProps {
@@ -142,13 +150,17 @@ export default function OntologyManagerModal({
   const getKnowledgeTypeName = (typeId: KnowledgeTypeId): string => KNOWLEDGE_TYPES.find(t => t.id === typeId)?.name || typeId;
 
   const handleCreate = async () => {
-    if (!newOntology.domain || !newOntology.domainName || newOntology.allowedTypes.length === 0) {
+    if (!newOntology.domain || !newOntology.domainName) {
       alert('請填寫完整資訊');
       return;
     }
     setCreating(true);
     try {
-      const created = await createOntology(newOntology);
+      const ontologyWithId = {
+        ...newOntology,
+        id: `ont_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      };
+      const created = await createOntology(ontologyWithId);
       setOntologies(prev => [...prev, created]);
       setShowCreateModal(false);
       setNewOntology({ domain: '', domainName: '', description: '', allowedTypes: [] });
@@ -298,81 +310,120 @@ export default function OntologyManagerModal({
 
             <div className="w-2/3 flex flex-col">
               {editingOntology ? (
-                <div className="flex-1 overflow-y-auto p-6">
-                  <h3 className="text-lg font-semibold mb-4">編輯知識本體</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">領域名稱 <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        value={editingOntology.domainName}
-                        onChange={(e) => setEditingOntology({ ...editingOntology, domainName: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">領域代碼</label>
-                      <input
-                        type="text"
-                        value={editingOntology.domain}
-                        disabled
-                        className="w-full px-3 py-2 border rounded-lg bg-gray-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">描述</label>
-                      <textarea
-                        value={editingOntology.description || ''}
-                        onChange={(e) => setEditingOntology({ ...editingOntology, description: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        rows={3}
-                        placeholder="輸入本體的描述..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">允許的知識類型 <span className="text-red-500">*</span></label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {KNOWLEDGE_TYPES.map(type => (
-                          <label key={type.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={editingOntology.allowedTypes.includes(type.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEditingOntology({
-                                    ...editingOntology,
-                                    allowedTypes: [...editingOntology.allowedTypes, type.id]
-                                  });
-                                } else {
-                                  setEditingOntology({
-                                    ...editingOntology,
-                                    allowedTypes: editingOntology.allowedTypes.filter(t => t !== type.id)
-                                  });
-                                }
-                              }}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">{type.name}</span>
-                          </label>
-                        ))}
+                <div className="flex-1 overflow-y-auto">
+                  {/* 標題區域 */}
+                  <div className="px-6 py-4 border-b bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold">{editingOntology.domainName}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">{editingOntology.domain}</span>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">v{editingOntology.version || '1.0'}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingOntology(null)}
+                          className="px-3 py-1.5 border rounded-lg hover:bg-gray-100 text-sm"
+                        >
+                          取消
+                        </button>
+                        <button
+                          onClick={handleUpdate}
+                          disabled={updating || !editingOntology.domainName}
+                          className="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 text-sm flex items-center gap-1"
+                        >
+                          {updating && <Loader2 className="w-3 h-3 animate-spin" />}
+                          儲存
+                        </button>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2 pt-4 border-t">
-                      <button
-                        onClick={() => setEditingOntology(null)}
-                        className="px-4 py-2 border rounded-lg hover:bg-gray-100"
-                      >
-                        取消
-                      </button>
-                      <button
-                        onClick={handleUpdate}
-                        disabled={updating || !editingOntology.domainName || editingOntology.allowedTypes.length === 0}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
-                      >
-                        {updating && <Loader2 className="w-4 h-4 animate-spin" />}
-                        儲存變更
-                      </button>
+                  </div>
+
+                  {/* 內容區域 */}
+                  <div className="p-6 space-y-6">
+                    {/* 描述 */}
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">描述</h4>
+                      <p className="text-sm text-gray-700">{editingOntology.description || '無描述'}</p>
                     </div>
+
+                    {/* Tags */}
+                    {editingOntology.tags && editingOntology.tags.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-2">標籤</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {editingOntology.tags.map((tag, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Use Cases */}
+                    {editingOntology.useCases && editingOntology.useCases.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-2">使用場景</h4>
+                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                          {editingOntology.useCases.map((useCase, idx) => (
+                            <li key={idx}>{useCase}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Entity Classes */}
+                    {editingOntology.entityClasses && editingOntology.entityClasses.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-2">實體類別 ({editingOntology.entityClasses.length})</h4>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">
+                            {JSON.stringify(editingOntology.entityClasses, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Object Properties */}
+                    {editingOntology.objectProperties && editingOntology.objectProperties.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-2">物件屬性 ({editingOntology.objectProperties.length})</h4>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">
+                            {JSON.stringify(editingOntology.objectProperties, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Inherits From */}
+                    {editingOntology.inheritsFrom && editingOntology.inheritsFrom.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-2">繼承自</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {editingOntology.inheritsFrom.map((item, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Metadata */}
+                    {editingOntology.version && (
+                      <div className="pt-4 border-t">
+                        <div className="flex items-center gap-4 text-xs text-gray-400">
+                          <span>版本: {editingOntology.version}</span>
+                          <span>|</span>
+                          <span>建立: {editingOntology.createdAt ? new Date(editingOntology.createdAt).toLocaleDateString() : '-'}</span>
+                          <span>|</span>
+                          <span>更新: {editingOntology.updatedAt ? new Date(editingOntology.updatedAt).toLocaleDateString() : '-'}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -400,24 +451,26 @@ export default function OntologyManagerModal({
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">領域代碼 <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={newOntology.domain}
-                    onChange={(e) => setNewOntology({ ...newOntology, domain: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="例如：mm_agent（小寫字母+底線）"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">領域名稱 <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium mb-1">名稱 <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={newOntology.domainName}
                     onChange={(e) => setNewOntology({ ...newOntology, domainName: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="例如：MM-Agent（物料管理）"
+                    placeholder="例如：MM-Agent 知識本體"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">類型 <span className="text-red-500">*</span></label>
+                  <select
+                    value={newOntology.domain}
+                    onChange={(e) => setNewOntology({ ...newOntology, domain: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="">請選擇...</option>
+                    <option value="domain">領域</option>
+                    <option value="professional">專業</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">描述</label>
@@ -430,31 +483,10 @@ export default function OntologyManagerModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">允許的知識類型 <span className="text-red-500">*</span></label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {KNOWLEDGE_TYPES.map(type => (
-                      <label key={type.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={newOntology.allowedTypes.includes(type.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setNewOntology({
-                                ...newOntology,
-                                allowedTypes: [...newOntology.allowedTypes, type.id]
-                              });
-                            } else {
-                              setNewOntology({
-                                ...newOntology,
-                                allowedTypes: newOntology.allowedTypes.filter(t => t !== type.id)
-                              });
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm">{type.name}</span>
-                      </label>
-                    ))}
+                  <label className="block text-sm font-medium mb-1">選擇檔案</label>
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500">
+                    <FileText className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500">點擊或拖拽上傳檔案</p>
                   </div>
                 </div>
               </div>
@@ -467,7 +499,7 @@ export default function OntologyManagerModal({
                 </button>
                 <button
                   onClick={handleCreate}
-                  disabled={creating || !newOntology.domain || !newOntology.domainName || newOntology.allowedTypes.length === 0}
+                  disabled={creating || !newOntology.domainName || !newOntology.domain}
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
                 >
                   {creating && <Loader2 className="w-4 h-4 animate-spin" />}

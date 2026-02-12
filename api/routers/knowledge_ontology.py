@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/knowledge/ontologies", tags=["Knowledge Ontology"])
 
-ONTOLOGIES_COLLECTION = "kb_ontologies"
+ONTOLOGIES_COLLECTION = "ontologies"
 
 
 def _get_db_client() -> ArangoDBClient:
@@ -34,12 +34,20 @@ def _document_to_dict(doc: Dict[str, Any]) -> Dict[str, Any]:
     """將 ArangoDB document 轉換為 API 響應格式"""
     return {
         "id": doc.get("_key"),
-        "domain": doc.get("domain"),
-        "domainName": doc.get("domainName"),
+        "domain": doc.get("name"),
+        "domainName": doc.get("ontology_name"),
         "description": doc.get("description"),
-        "allowedTypes": doc.get("allowedTypes", []),
-        "createdAt": doc.get("createdAt"),
-        "updatedAt": doc.get("updatedAt"),
+        "allowedTypes": doc.get("entity_classes", []),
+        "version": doc.get("version"),
+        "isActive": doc.get("is_active"),
+        "tags": doc.get("tags", []),
+        "useCases": doc.get("use_cases", []),
+        "entityClasses": doc.get("entity_classes", []),
+        "objectProperties": doc.get("object_properties", []),
+        "inheritsFrom": doc.get("inherits_from", []),
+        "compatibleDomains": doc.get("compatible_domains", []),
+        "createdAt": doc.get("created_at"),
+        "updatedAt": doc.get("updated_at"),
     }
 
 
@@ -53,31 +61,38 @@ async def list_knowledge_ontologies(
         db = client.db
 
         if db is None:
+            logger.warn("ArangoDB 未連接，返回空列表")
             return APIResponse.success(data={"items": []}, message="數據庫未連接")
 
-        collection = db.collection(ONTOLOGIES_COLLECTION)
-
-        if collection is None:
+        try:
+            collection = db.collection(ONTOLOGIES_COLLECTION)
+        except Exception as e:
+            logger.warn(f"集合 {ONTOLOGIES_COLLECTION} 不存在: {e}")
             return APIResponse.success(data={"items": []}, message="集合不存在")
 
         query = """
             FOR doc IN @@collection
-            FILTER doc.isActive == true
-            FILTER @search == null OR CONTAINS(LOWER(doc.domainName), LOWER(@search)) OR CONTAINS(LOWER(doc.domain), LOWER(@search))
-            SORT doc.createdAt DESC
+            FILTER doc.is_active == true
+            SORT doc.created_at DESC
             RETURN doc
         """
 
-        bind_vars = {"@collection": ONTOLOGIES_COLLECTION, "search": search}
+        bind_vars = {"@collection": ONTOLOGIES_COLLECTION}
 
-        cursor = db.aql.execute(query, bind_vars=bind_vars)
-        ontologies = [_document_to_dict(doc) for doc in cursor]
+        try:
+            cursor = db.aql.execute(query, bind_vars=bind_vars)
+            result = list(cursor)
+            ontologies = [_document_to_dict(doc) for doc in result]
+            logger.info(f"AQL 查詢成功，返回 {len(ontologies)} 筆資料")
+        except Exception as e:
+            logger.error(f"AQL 查詢失敗: {e}")
+            return APIResponse.success(data={"items": []}, message=f"查詢失敗: {str(e)}")
 
         return APIResponse.success(data={"items": ontologies})
 
     except Exception as e:
         logger.exception("list_knowledge_ontologies failed: %s", e)
-        return APIResponse.error(message=f"查詢失敗: {str(e)}")
+        return APIResponse.error(message=f"查詢失敗: {str(e)}", status_code=500)
 
 
 @router.get("/{ontology_id}", status_code=status.HTTP_200_OK)

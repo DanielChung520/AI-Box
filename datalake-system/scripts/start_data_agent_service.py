@@ -229,10 +229,23 @@ try:
 
             sql = result["sql"]
 
-            from data_agent.services.schema_driven_query.executor import SQLExecutor
+            from data_agent.services.schema_driven_query.executor import ExecutorFactory
+            from data_agent.services.schema_driven_query.config import get_config
 
-            executor = SQLExecutor()
-            exec_result = executor.execute(sql)
+            config = get_config()
+            # 強制使用 DUCKDB
+            config.datasource = "DUCKDB"
+
+            factory = ExecutorFactory(config=config)
+            executor = factory.get_executor()
+
+            # 添加超時控制
+            timeout = (
+                request.task_data.options.timeout
+                if hasattr(request.task_data, "options") and request.task_data.options
+                else 30
+            )
+            exec_result = executor.execute(sql, timeout=timeout)
 
             query_result = QueryResult(
                 sql=sql,

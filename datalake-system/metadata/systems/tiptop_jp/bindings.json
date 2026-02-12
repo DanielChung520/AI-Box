@@ -679,6 +679,15 @@
         "operator": "=",
         "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
       }
+    },
+    "TIME_RANGE": {
+      "DUCKDB": {
+        "table": "SFAA_T",
+        "column": "SFAA011",
+        "aggregation": "NONE",
+        "operator": "BETWEEN",
+        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet"
+      }
     }
   }
 }

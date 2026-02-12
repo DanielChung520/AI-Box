@@ -53,8 +53,11 @@ def get_executor():
     from data_agent.services.schema_driven_query.executor import ExecutorFactory
 
     config = get_config()
+    logger.info(f"Executor config datasource: {config.datasource}")
     factory = ExecutorFactory(config=config)
-    return factory.get_executor()
+    executor = factory.get_executor()
+    logger.info(f"Executor type: {type(executor).__name__}")
+    return executor
 
 
 @router.get("/jp/health", response_model=HealthResponse)

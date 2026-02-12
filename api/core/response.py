@@ -44,7 +44,7 @@ class APIResponse:
         message: str = "Error",
         error_code: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
-        status_code: int = status.HTTP_400_BAD_REQUEST,
+        status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
     ) -> JSONResponse:
         """
         錯誤響應
