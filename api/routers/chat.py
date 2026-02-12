@@ -14,6 +14,7 @@ import re
 import time
 import uuid
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from threading import Lock
 from typing import Any, AsyncGenerator, Dict, List, Optional
@@ -22,6 +23,295 @@ import structlog
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
+
+
+# ============================================================================
+# GAI 前端意圖分類（第一層）
+# ============================================================================
+
+
+class GAIIntentType(str, Enum):
+    """GAI 前端意圖類型（第一層 AI-Box 處理）
+
+    用於判斷用戶意圖是否需要轉發給 MM-Agent（BPA）進行業務處理。
+    如果匹配到以下意圖，則直接回覆，不轉發給 BPA。
+    """
+
+    GREETING = "GREETING"  # 問候/打招呼
+    CLARIFICATION = "CLARIFICATION"  # 需要澄清（指代詞）
+    CANCEL = "CANCEL"  # 取消任務
+    CONTINUE = "CONTINUE"  # 繼續執行
+    MODIFY = "MODIFY"  # 重新處理
+    HISTORY = "HISTORY"  # 顯示歷史
+    EXPORT = "EXPORT"  # 導出結果
+    CONFIRM = "CONFIRM"  # 確認回覆
+    THANKS = "THANKS"  # 感謝回覆
+    COMPLAIN = "COMPLAIN"  # 道歉處理
+    FEEDBACK = "FEEDBACK"  # 記錄反饋
+    BUSINESS = "BUSINESS"  # 業務請求（轉發 BPA）
+
+
+class BPAIntentType(str, Enum):
+    """BPA 業務意圖類型（第二層 MM-Agent 處理）
+
+    由 MM-Agent 意圖分類端點返回。
+    """
+
+    KNOWLEDGE_QUERY = "KNOWLEDGE_QUERY"  # 業務知識問題
+    SIMPLE_QUERY = "SIMPLE_QUERY"  # 簡單數據查詢
+    COMPLEX_TASK = "COMPLEX_TASK"  # 複雜任務/操作指引
+    CLARIFICATION = "CLARIFICATION"  # 需要澄清
+    CONTINUE_WORKFLOW = "CONTINUE_WORKFLOW"  # 繼續執行工作流
+
+
+def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
+    """第一層 GAI 意圖分類
+
+    根據用戶輸入文本，判斷其意圖類型。
+    優先級：GREETING > THANKS > COMPLAIN > CANCEL > CONTINUE > MODIFY > HISTORY > EXPORT > CONFIRM > FEEDBACK > CLARIFICATION > BUSINESS
+
+    Args:
+        text: 用戶輸入文本
+
+    Returns:
+        GAIIntentType 枚舉值，如果無法匹配返回 None
+    """
+    if not text:
+        return None
+
+    text_lower = text.lower().strip()
+    text_clean = text.strip()
+
+    # 問候語（最高優先級）
+    greeting_keywords = [
+        "你好", "您好", "早安", "午安", "晚安", "早上好",
+        "hi", "hello", "嗨", "在嗎", "在不在",
+        "新年快樂", "聖誕快樂", "生日快樂",
+    ]
+    if any(kw in text_lower for kw in greeting_keywords):
+        # 檢查是否只是問候語（沒有其他業務內容）
+        if len(text_clean) <= 20:
+            return GAIIntentType.GREETING
+
+    # 感謝回覆
+    thanks_keywords = [
+        "謝謝", "感謝", "多謝", "感恩", "thanks", "thank you",
+        "太棒了", "太好了", "很不錯", "好的謝謝",
+    ]
+    if any(kw in text_lower for kw in thanks_keywords):
+        if len(text_clean) <= 30:
+            return GAIIntentType.THANKS
+
+    # 投訴/道歉處理
+    complain_keywords = [
+        "太差", "不好", "不滿意", "爛透了", "很糟", "錯了",
+        "不對", "重新", "再來", "重做", "修正",
+    ]
+    if any(kw in text_lower for kw in complain_keywords):
+        if len(text_clean) <= 30:
+            # 檢查是否為明確的投訴
+            if any(kw in text_lower for kw in ["太差", "不好", "不滿意", "爛透了", "很糟"]):
+                return GAIIntentType.COMPLAIN
+            # 否則視為修改請求
+            return GAIIntentType.MODIFY
+
+    # 取消任務
+    cancel_keywords = [
+        "取消", "停止", "不要了", "終止", "結束",
+        "cancel", "stop", "abort",
+    ]
+    if any(kw in text_lower for kw in cancel_keywords):
+        if len(text_clean) <= 20:
+            return GAIIntentType.CANCEL
+
+    # 繼續執行
+    continue_keywords = [
+        "繼續", "執行", "好的", "是的", "對", "開始",
+        "proceed", "continue", "go ahead", "yes", "ok",
+    ]
+    # 排除含有業務關鍵詞的情況
+    business_keywords = ["庫存", "採購", "銷售", "分析", "查詢", "多少"]
+    if any(kw in text_lower for kw in continue_keywords):
+        if len(text_clean) <= 20 and not any(kw in text_lower for kw in business_keywords):
+            return GAIIntentType.CONTINUE
+
+    # 重新處理
+    modify_keywords = [
+        "重新", "再來一次", "改一下", "修改", "重做",
+        "redo", "retry", "again", "change",
+    ]
+    if any(kw in text_lower for kw in modify_keywords):
+        return GAIIntentType.MODIFY
+
+    # 顯示歷史
+    history_keywords = [
+        "歷史", "之前", "之前說的", "之前的結果", "歷史記錄",
+        "history", "previous", "past",
+    ]
+    if any(kw in text_lower for kw in history_keywords):
+        return GAIIntentType.HISTORY
+
+    # 導出結果
+    export_keywords = [
+        "導出", "匯出", "下載", "輸出", "存檔",
+        "export", "download", "output", "save",
+    ]
+    if any(kw in text_lower for kw in export_keywords):
+        return GAIIntentType.EXPORT
+
+    # 確認回覆
+    confirm_keywords = [
+        "確認", "對嗎", "是嗎", "正確嗎", "就這樣",
+        "confirm", "correct", "right", "ok",
+    ]
+    if any(kw in text_lower for kw in confirm_keywords):
+        if len(text_clean) <= 20:
+            return GAIIntentType.CONFIRM
+
+    # 反饋/建議
+    feedback_keywords = [
+        "反饋", "回饋", "建議", "意見", "想法",
+        "feedback", "suggest", "opinion",
+    ]
+    if any(kw in text_lower for kw in feedback_keywords):
+        return GAIIntentType.FEEDBACK
+
+    # 澄清需求（指代詞）- 放在 BUSINESS 之前
+    # 檢查常見的指代詞
+    anaphora_keywords = [
+        "那個", "那個料", "它", "它的", "這個", "這個料",
+        "哪個", "哪個料", "誰", "什麼", "多少",
+        "之前說的", "剛才的", "上面的", "下麵的",
+    ]
+
+    # 檢查是否包含指代詞
+    has_anaphora = any(kw in text_lower for kw in anaphora_keywords)
+
+    # 如果用戶輸入很短，且包含指代詞，需要澄清
+    if len(text_clean) <= 30 and has_anaphora:
+        # 檢查是否包含具體的料號編號（如 "10-0001"、"ABC-123"）
+        has_material_code = bool(re.search(r'[A-Z]{0,4}-?\d{3,8}', text))
+
+        # 如果沒有具體料號編號，視為 CLARIFICATION
+        if not has_material_code:
+            return GAIIntentType.CLARIFICATION
+
+    # 默認為業務請求
+    return GAIIntentType.BUSINESS
+
+
+def get_gai_intent_response(intent: GAIIntentType, user_text: str) -> Optional[str]:
+    """根據 GAI 意圖返回相應的回覆
+
+    Args:
+        intent: GAI 意圖類型
+        user_text: 用戶原始輸入
+
+    Returns:
+        回覆文本，如果不需要回覆返回 None
+    """
+    import random
+
+    responses = {
+        GAIIntentType.GREETING: [
+            "您好！我是 AI-Box 助手，請問有什麼可以幫您？",
+            "嗨！很高興為您服務，請問需要什麼協助？",
+            "您好！請告訴我您想要查詢或處理的內容。",
+        ],
+        GAIIntentType.THANKS: [
+            "不客氣！很高興能幫到您。",
+            "這是我的榮幸！如有其他問題隨時問我。",
+            "謝謝您的肯定，有需要再告訴我！",
+        ],
+        GAIIntentType.COMPLAIN: [
+            "非常抱歉造成您的困擾，請告訴我具體問題，我會立即為您修正。",
+            "對不起，請讓我知道哪裡需要改進，我會立即處理。",
+            "很抱歉聽到這個回饋，請給我機會彌補，具體是哪裡需要調整？",
+        ],
+        GAIIntentType.CANCEL: [
+            "已取消當前任務。如果您有其他需求，請隨時告訴我。",
+            "任務已終止。請問還需要什麼協助嗎？",
+            "好的，已停止執行。有需要時再叫我！",
+        ],
+        GAIIntentType.CONTINUE: [
+            "好的，繼續執行之前的任務。",
+            "收到，馬上繼續！",
+            "了解，繼續執行中...",
+        ],
+        GAIIntentType.MODIFY: [
+            "好的，我來重新處理。",
+            "收到，馬上修改並重新執行！",
+            "了解，正在為您重新處理...",
+        ],
+        GAIIntentType.HISTORY: [
+            "這是之前的對話記錄：\n{history}",
+            "讓我調出之前的結果...",
+        ],
+        GAIIntentType.EXPORT: [
+            "正在為您導出結果...",
+            "好的，開始導出...",
+            "了解，正在處理導出請求...",
+        ],
+        GAIIntentType.CONFIRM: [
+            "好的，確認執行。",
+            "收到，馬上確認並執行！",
+            "了解，確認中...",
+        ],
+        GAIIntentType.FEEDBACK: [
+            "謝謝您的反饋！我會記錄下來並持續改進。",
+            "感謝您的建議，這對我們非常重要。",
+            "好的，已記錄您的反饋。",
+        ],
+        GAIIntentType.CLARIFICATION: [
+            "為了更好地幫助您，請提供更多細節。",
+            "我需要更多資訊才能回答這個問題。",
+            "請問您具體指的是什麼？可以再詳細說明嗎？",
+        ],
+    }
+
+    if intent in responses:
+        return random.choice(responses[intent])
+
+    return None
+
+
+def should_forward_to_bpa(
+    text: str,
+    gai_intent: GAIIntentType,
+    has_selected_agent: bool = False,
+    agent_id: Optional[str] = None,
+) -> bool:
+    """判斷是否應該轉發給 BPA（MM-Agent）
+
+    優先級：
+    1. 如果是 GAI 前端意圖（GREETING, THANKS, CANCEL 等），不轉發
+    2. 如果用戶選擇了非 MM-Agent，不轉發
+    3. 如果用戶選擇了 MM-Agent 且是 BUSINESS 意圖，轉發
+    4. 如果是 BUSINESS 意圖且沒有選擇特定 Agent，轉發
+
+    Args:
+        text: 用戶輸入文本
+        gai_intent: GAI 意圖分類結果
+        has_selected_agent: 是否已選擇特定 Agent
+        agent_id: 已選擇的 Agent ID
+
+    Returns:
+        True 如果應該轉發，False 否則
+    """
+    # 優先級 1：如果是 GAI 前端意圖（BUSINESS 除外），不轉發
+    # 這保證了問候、取消等意圖由 AI-Box 直接處理
+    if gai_intent != GAIIntentType.BUSINESS:
+        return False
+
+    # 到這裡說明是 BUSINESS 意圖
+    # 優先級 2：如果用戶選擇了非 MM-Agent，不轉發
+    if has_selected_agent and agent_id and agent_id != "mm-agent":
+        return False
+
+    # 優先級 3 或 4：轉發給 MM-Agent
+    # - 用戶選擇了 MM-Agent
+    # - 或沒有選擇特定 Agent（預設轉發）
+    return True
 
 from agents.task_analyzer.analyzer import TaskAnalyzer
 from agents.task_analyzer.classifier import TaskClassifier
@@ -1481,6 +1771,111 @@ async def _process_chat_request(
     )
 
     # ============================================
+    # 第一層：GAI 前端意圖分類
+    # ============================================
+    # 2026-02-09 新增：GAI 意圖分類
+    # 判斷用戶意圖是否需要轉發給 MM-Agent（BPA）進行業務處理
+    gai_intent = classify_gai_intent(last_user_text)
+
+    # 記錄 GAI 分類結果
+    logger.info(
+        "gai_intent_classified",
+        session_id=session_id,
+        intent=gai_intent.value if gai_intent else None,
+        user_text=last_user_text[:100],
+    )
+
+    # 處理不需要轉發的 GAI 前端意圖
+    gai_direct_intents = [
+        GAIIntentType.GREETING,
+        GAIIntentType.THANKS,
+        GAIIntentType.COMPLAIN,
+        GAIIntentType.CANCEL,
+        GAIIntentType.CONTINUE,
+        GAIIntentType.MODIFY,
+        GAIIntentType.HISTORY,
+        GAIIntentType.EXPORT,
+        GAIIntentType.CONFIRM,
+        GAIIntentType.FEEDBACK,
+        GAIIntentType.CLARIFICATION,
+    ]
+
+    if gai_intent is not None and gai_intent in gai_direct_intents:
+        # 生成回覆
+        response_text = get_gai_intent_response(gai_intent, last_user_text)
+
+        logger.info(
+            "gai_intent_direct_response",
+            session_id=session_id,
+            intent=gai_intent.value,
+        )
+
+        # 返回直接回覆
+        return ChatResponse(
+            content=response_text or f"已收到：{last_user_text}",
+            session_id=session_id,
+            task_id=task_id,
+            routing=RoutingInfo(
+                provider="gai",
+                model="gai-intent",
+                strategy="gai-direct",
+            ),
+            observability=ObservabilityInfo(
+                request_id=request_id,
+                session_id=session_id,
+                task_id=task_id,
+            ),
+        )
+
+    # ============================================
+    # 第一層分支：轉發給 MM-Agent 或調用 Task Analyzer
+    # ============================================
+    # 2026-02-09 新增：轉發邏輯
+    user_selected_agent_id = request_body.agent_id
+
+    # 檢查是否應該轉發給 MM-Agent
+    # 注意：gai_intent 可能是 None，需要處理
+    effective_gai_intent = gai_intent if gai_intent is not None else GAIIntentType.BUSINESS
+
+    should_forward = should_forward_to_bpa(
+        text=last_user_text,
+        gai_intent=effective_gai_intent,
+        has_selected_agent=user_selected_agent_id is not None,
+        agent_id=user_selected_agent_id,
+    )
+
+    # 添加詳細日誌追蹤
+    logger.info(
+        "routing_decision",
+        session_id=session_id,
+        user_text=last_user_text[:50],
+        gai_intent=gai_intent.value if gai_intent else None,
+        user_selected_agent=user_selected_agent_id,
+        should_forward_to_bpa=should_forward,
+    )
+
+    # 添加 stderr 日誌
+    import sys
+    sys.stderr.write(
+        f"\n[ROUTING] 📊 路由決策追蹤:\n"
+        f"  - user_text: {last_user_text[:50]}...\n"
+        f"  - gai_intent: {gai_intent.value if gai_intent else None}\n"
+        f"  - user_selected_agent: {user_selected_agent_id}\n"
+        f"  - should_forward: {should_forward}\n"
+    )
+    sys.stderr.flush()
+
+    # 如果需要轉發給 MM-Agent
+    if should_forward:
+        logger.info(
+            "forwarding_to_bpa",
+            session_id=session_id,
+            user_text=last_user_text[:50],
+            endpoint="mm-agent",
+        )
+        # 轉發邏輯在後面實現
+
+    # ============================================
     # 集成 Task Analyzer（4 层渐进式路由架构）
     # ============================================
     task_analyzer_result = None
@@ -1571,10 +1966,12 @@ async def _process_chat_request(
         )
 
         # 2026-02-04 新增：如果是 mm-agent，直接調用 MM-Agent，跳過 Task Analyzer 和 RAG
-        if user_selected_agent_id == "mm-agent":
+        # 2026-02-09 更新：也支援 should_forward_to_bpa() 判斷
+        if user_selected_agent_id == "mm-agent" or should_forward:
             sys.stderr.write(
-                f"\n[mm-agent] 🔀 檢測到 mm-agent，直接調用 MM-Agent\n"
+                f"\n[mm-agent] 🔀 轉發給 MM-Agent\n"
                 f"  - user_selected_agent_id: {user_selected_agent_id}\n"
+                f"  - should_forward: {should_forward}\n"
                 f"  - query: {last_user_text[:100]}...\n"
             )
             sys.stderr.flush()
@@ -1619,7 +2016,20 @@ async def _process_chat_request(
                         if "result" in mm_result:
                             result_data = mm_result["result"]
                             if isinstance(result_data, dict):
-                                result_text = str(result_data.get("result", str(result_data)))
+                                # 檢查是否有嵌套的 result 欄位（MM-Agent 返回格式）
+                                if "result" in result_data and isinstance(result_data["result"], dict):
+                                    inner_result = result_data["result"]
+                                    # 優先使用 response 欄位
+                                    if "response" in inner_result and inner_result["response"]:
+                                        result_text = inner_result["response"]
+                                    elif "response" in result_data and result_data["response"]:
+                                        result_text = result_data["response"]
+                                    else:
+                                        result_text = str(result_data)
+                                elif "response" in result_data and result_data["response"]:
+                                    result_text = result_data["response"]
+                                else:
+                                    result_text = str(result_data)
                             else:
                                 result_text = str(result_data)
                         elif "content" in mm_result:
@@ -1915,7 +2325,20 @@ async def _process_chat_request(
                         if "result" in mm_result:
                             result_data = mm_result["result"]
                             if isinstance(result_data, dict):
-                                result_text = str(result_data.get("result", str(result_data)))
+                                # 檢查是否有嵌套的 result 欄位（MM-Agent 返回格式）
+                                if "result" in result_data and isinstance(result_data["result"], dict):
+                                    inner_result = result_data["result"]
+                                    # 優先使用 response 欄位
+                                    if "response" in inner_result and inner_result["response"]:
+                                        result_text = inner_result["response"]
+                                    elif "response" in result_data and result_data["response"]:
+                                        result_text = result_data["response"]
+                                    else:
+                                        result_text = str(result_data)
+                                elif "response" in result_data and result_data["response"]:
+                                    result_text = result_data["response"]
+                                else:
+                                    result_text = str(result_data)
                             else:
                                 result_text = str(result_data)
                         elif "content" in mm_result:

@@ -1,0 +1,197 @@
+{
+  "version": "1.0",
+  "system": "jp_tiptop_erp",
+  "language": "zh-TW",
+  "description": "JP TiTop ERP 30個自然語言查詢場景",
+  "scenarios": [
+    {
+      "id": "JP_001",
+      "category": "庫存管理",
+      "description": "查詢所有在庫的總數量",
+      "natural_language": "請查詢所有料號的現有庫存總數量"
+    },
+    {
+      "id": "JP_002",
+      "category": "庫存管理",
+      "description": "查詢特定倉庫的在庫",
+      "natural_language": "查詢8802倉庫中所有料號的庫存數量"
+    },
+    {
+      "id": "JP_003",
+      "category": "庫存管理",
+      "description": "查詢特定料號的在庫",
+      "natural_language": "查詢料號8021107403900001在所有倉庫的庫存數量"
+    },
+    {
+      "id": "JP_004",
+      "category": "庫存管理",
+      "description": "倉庫別在庫匯總",
+      "natural_language": "按倉庫統計庫存總數量，列出每個倉庫的庫存匯總"
+    },
+    {
+      "id": "JP_005",
+      "category": "庫存管理",
+      "description": "查詢特定儲位的庫存",
+      "natural_language": "查詢2101倉庫中所有儲位的庫存明細"
+    },
+    {
+      "id": "JP_006",
+      "category": "庫存管理",
+      "description": "零庫存料號查詢",
+      "natural_language": "查詢所有庫存數量為0的料號列表"
+    },
+    {
+      "id": "JP_007",
+      "category": "工單管理",
+      "description": "查詢所有工單數量",
+      "natural_language": "請查詢系統中總共有多少筆工單"
+    },
+    {
+      "id": "JP_008",
+      "category": "工單管理",
+      "description": "查詢工單狀態分布",
+      "natural_language": "統計各狀態工單的數量分布（M、F、C、N、Y、X）"
+    },
+    {
+      "id": "JP_009",
+      "category": "工單管理",
+      "description": "查詢進行中的工單",
+      "natural_language": "查詢狀態為M（製造中）的所有工單"
+    },
+    {
+      "id": "JP_010",
+      "category": "工單管理",
+      "description": "查詢特定工單詳情",
+      "natural_language": "查詢工單CNJ-P12-201405080002的詳細資訊"
+    },
+    {
+      "id": "JP_011",
+      "category": "工單管理",
+      "description": "查詢工單報廢數量",
+      "natural_language": "查詢所有工單的報廢數量總和"
+    },
+    {
+      "id": "JP_012",
+      "category": "製造進度",
+      "description": "查詢工單製造進度",
+      "natural_language": "查詢工單CNJ-P12-201405080002的生產數量和完工數量"
+    },
+    {
+      "id": "JP_013",
+      "category": "製造進度",
+      "description": "查詢工單當前工序",
+      "natural_language": "查詢工單CNJ-P12-201405080002目前的工序和製造明細"
+    },
+    {
+      "id": "JP_014",
+      "category": "製造進度",
+      "description": "查詢工序1901的產出",
+      "natural_language": "查詢工序1901的所有工作站產出統計"
+    },
+    {
+      "id": "JP_015",
+      "category": "製造進度",
+      "description": "查詢工作站良品率",
+      "natural_language": "查詢各工作站的良品流入和良品流出數量"
+    },
+    {
+      "id": "JP_016",
+      "category": "製造進度",
+      "description": "查詢WIP在製品數量",
+      "natural_language": "查詢所有工序的在製品數量總和"
+    },
+    {
+      "id": "JP_017",
+      "category": "出貨管理",
+      "description": "查詢所有出貨通知",
+      "natural_language": "請查詢系統中總共有多少筆出貨通知"
+    },
+    {
+      "id": "JP_018",
+      "category": "出貨管理",
+      "description": "查詢已完成出貨",
+      "natural_language": "查詢狀態為Y的出貨通知列表"
+    },
+    {
+      "id": "JP_019",
+      "category": "出貨管理",
+      "description": "查詢業務部門出貨統計",
+      "natural_language": "按業務部門統計出貨數量和出貨金額"
+    },
+    {
+      "id": "JP_020",
+      "category": "出貨管理",
+      "description": "查詢特定出貨單詳情",
+      "natural_language": "查詢出貨單CNJ-P62-201410140001的出貨明細"
+    },
+    {
+      "id": "JP_021",
+      "category": "出貨管理",
+      "description": "查詢銷售類別出貨統計",
+      "natural_language": "按銷售類別S01統計出貨數量"
+    },
+    {
+      "id": "JP_022",
+      "category": "品質管理",
+      "description": "查詢報廢統計",
+      "natural_language": "查詢各站點的報廢數量總和"
+    },
+    {
+      "id": "JP_023",
+      "category": "品質管理",
+      "description": "查詢重工統計",
+      "natural_language": "查詢各工作站的重工流入和重工流出數量"
+    },
+    {
+      "id": "JP_024",
+      "category": "品質管理",
+      "description": "查詢待PQC數量",
+      "natural_language": "查詢所有待PQC檢驗的數量"
+    },
+    {
+      "id": "JP_025",
+      "category": "品質管理",
+      "description": "查詢良品率統計",
+      "natural_language": "統計各工站的良品率和報廢率"
+    },
+    {
+      "id": "JP_026",
+      "category": "外包管理",
+      "description": "查詢外包加工數量",
+      "natural_language": "查詢所有工單的外包加工數量總和"
+    },
+    {
+      "id": "JP_027",
+      "category": "外包管理",
+      "description": "查詢外包完工數量",
+      "natural_language": "查詢所有工單的外包完工數量總和"
+    },
+    {
+      "id": "JP_028",
+      "category": "售價管理",
+      "description": "查詢所有售價審核",
+      "natural_language": "請查詢系統中總共有多少筆售價審核單"
+    },
+    {
+      "id": "JP_029",
+      "category": "售價管理",
+      "description": "查詢已核准售價",
+      "natural_language": "查詢狀態為Y的售價審核單列表"
+    },
+    {
+      "id": "JP_030",
+      "category": "售價管理",
+      "description": "查詢客戶售價",
+      "natural_language": "查詢客戶的所有有效售價記錄"
+    }
+  ],
+  "dimensions": {
+    "warehouses": ["8802", "2101", "3400", "2205", "3000", "2201", "2700", "3100", "3500", "2207"],
+    "work_order_status": ["M", "F", "C", "N", "Y", "X"],
+    "shipping_status": ["Y", "N", "X", "H", "Q", "W"],
+    "price_status": ["Y", "N", "R", "X", "D", "W"],
+    "operations": ["1901", "0304", "0201", "2102", "0503", "0502", "0603", "1211", "1701", "2601"],
+    "sales_departments": ["MKTS3", "MKTS1", "MKTS2", "MKTS4", "MKTS5"],
+    "sales_categories": ["S01", "A01", "A02", "S03", "P01"]
+  }
+}

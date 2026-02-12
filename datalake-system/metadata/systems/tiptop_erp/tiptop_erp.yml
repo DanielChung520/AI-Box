@@ -1,0 +1,597 @@
+# =============================================================================
+# TiTop ERP Schema Definition
+# =============================================================================
+# 特性：
+# - 支持多系統表名映射（Canonical → TiTop/Oracle/SAP）
+# - 表格關聯使用 Canonical Name
+# - Intent 模板支持 Few-shot Learning
+# =============================================================================
+
+version: "1.0.0"
+
+system:
+  id: "tiptop_erp"
+  name: "TiTop ERP"
+  full_name: "TiTop 進銷存管理系統"
+  dialect: "duckdb"
+  naming_convention: "tiptop"
+  bucket: "tiptop-raw"
+
+tables:
+  - name: "item_master"
+    canonical_name: "item_master"
+    names:
+      tiptop: "ima_file"
+      oracle: "MTL_SYSTEM_ITEMS_B"
+      sap: "MARA"
+    description: "料件主檔"
+    type: "dimension"
+    source: "raw"
+    aliases:
+      - "料件"
+      - "物料"
+      - "產品"
+      - "Item"
+    columns:
+      - id: "item_code"
+        names:
+          tiptop: "ima01"
+          oracle: "INVENTORY_ITEM_ID"
+          sap: "MATNR"
+        type: "string"
+        description: "料號"
+        example: "10-0001"
+        primary_key: true
+      - id: "item_name"
+        names:
+          tiptop: "ima02"
+          oracle: "DESCRIPTION"
+          sap: "MAKTX"
+        type: "string"
+        description: "品名"
+      - id: "specification"
+        names:
+          tiptop: "ima021"
+          oracle: "ITEM_SPECIFICATION"
+          sap: "GROES"
+        type: "string"
+        description: "規格"
+      - id: "item_type"
+        names:
+          tiptop: "ima08"
+          oracle: "ITEM_TYPE_CODE"
+          sap: "MTART"
+        type: "string"
+        description: "物料類別"
+        values:
+          tiptop:
+            - "M": "成品"
+            - "P": "原料"
+            - "S": "半成品"
+      - id: "unit"
+        names:
+          tiptop: "ima25"
+          oracle: "UNIT_OF_MEASURE"
+          sap: "MEINS"
+        type: "string"
+        description: "庫存單位"
+
+  - name: "inventory"
+    canonical_name: "inventory"
+    names:
+      tiptop: "img_file"
+      oracle: "MTL_ONHAND_QUANTITIES_V"
+      sap: "MARD"
+    description: "倉庫庫存明細檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      - "庫存"
+      - "存貨"
+    columns:
+      - id: "item_code"
+        names:
+          tiptop: "img01"
+          oracle: "INVENTORY_ITEM_ID"
+          sap: "MATNR"
+        type: "string"
+        description: "料號"
+        fk: "item_master.item_code"
+      - id: "warehouse"
+        names:
+          tiptop: "img02"
+          oracle: "WAREHOUSE_CODE"
+          sap: "WERKS"
+        type: "string"
+        description: "倉庫代號"
+        fk: "warehouse_master.warehouse_code"
+      - id: "storage_location"
+        names:
+          tiptop: "img03"
+          oracle: "STORAGE_LOCATION"
+          sap: "LGORT"
+        type: "string"
+        description: "儲位"
+      - id: "quantity"
+        names:
+          tiptop: "img10"
+          oracle: "PRIMARY_TRANSACTION_QUANTITY"
+          sap: "LABST"
+        type: "decimal"
+        description: "庫存數量"
+        aggregate: "sum"
+
+  - name: "warehouse_master"
+    canonical_name: "warehouse_master"
+    names:
+      tiptop: "imd_file"
+      oracle: "MTL_SECONDARY_INVENTORIES"
+      sap: "T001L"
+    description: "倉庫主檔"
+    type: "dimension"
+    source: "raw"
+    aliases:
+      - "倉庫"
+      - "倉別"
+    columns:
+      - id: "warehouse_code"
+        names:
+          tiptop: "imd01"
+          oracle: "SECONDARY_INVENTORY_NAME"
+          sap: "LGORT"
+        type: "string"
+        description: "倉庫代號"
+        primary_key: true
+        example: "W01"
+      - id: "warehouse_name"
+        names:
+          tiptop: "imd02"
+          oracle: "DESCRIPTION"
+          sap: "LGobe"
+        type: "string"
+        description: "倉庫名稱"
+        example: "成品倉"
+
+  - name: "purchase_header"
+    canonical_name: "purchase_header"
+    names:
+      tiptop: "pmm_file"
+      oracle: "PO_HEADERS_ALL"
+      sap: "EKKO"
+    description: "採購單頭檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      - "採購單"
+      - "採購訂單"
+      - "PO"
+    columns:
+      - id: "po_number"
+        names:
+          tiptop: "pmm01"
+          oracle: "PO_HEADER_ID"
+          sap: "EBELN"
+        type: "string"
+        description: "採購單號"
+        primary_key: true
+        example: "PO-2024010001"
+      - id: "po_date"
+        names:
+          tiptop: "pmm02"
+          oracle: "CREATION_DATE"
+          sap: "BEDAT"
+        type: "date"
+        description: "採購日期"
+      - id: "supplier_code"
+        names:
+          tiptop: "pmm04"
+          oracle: "VENDOR_ID"
+          sap: "LIFNR"
+        type: "string"
+        description: "供應商代號"
+        fk: "supplier.supplier_code"
+
+  - name: "purchase_line"
+    canonical_name: "purchase_line"
+    names:
+      tiptop: "pmn_file"
+      oracle: "PO_LINES_ALL"
+      sap: "EKPO"
+    description: "採購單身檔"
+    type: "fact"
+    source: "raw"
+    columns:
+      - id: "po_number"
+        names:
+          tiptop: "pmn01"
+          oracle: "PO_HEADER_ID"
+          sap: "EBELN"
+        type: "string"
+        description: "採購單號"
+        fk: "purchase_header.po_number"
+      - id: "line_number"
+        names:
+          tiptop: "pmn02"
+          oracle: "LINE_NUM"
+          sap: "EBELP"
+        type: "integer"
+        description: "項次"
+      - id: "item_code"
+        names:
+          tiptop: "pmn04"
+          oracle: "ITEM_ID"
+          sap: "MATNR"
+        type: "string"
+        description: "料號"
+        fk: "item_master.item_code"
+      - id: "quantity"
+        names:
+          tiptop: "pmn20"
+          oracle: "QUANTITY"
+          sap: "MENGE"
+        type: "decimal"
+        description: "採購數量"
+        aggregate: "sum"
+
+  - name: "supplier"
+    canonical_name: "supplier"
+    names:
+      tiptop: "pmc_file"
+      oracle: "AP_SUPPLIERS"
+      sap: "LFA1"
+    description: "供應商主檔"
+    type: "dimension"
+    source: "raw"
+    aliases:
+      - "供應商"
+      - "廠商"
+      - "Vendor"
+    columns:
+      - id: "supplier_code"
+        names:
+          tiptop: "pmc01"
+          oracle: "VENDOR_ID"
+          sap: "LIFNR"
+        type: "string"
+        description: "供應商代號"
+        primary_key: true
+      - id: "supplier_name"
+        names:
+          tiptop: "pmc03"
+          oracle: "VENDOR_NAME"
+          sap: "NAME1"
+        type: "string"
+        description: "供應商名稱"
+
+  - name: "customer"
+    canonical_name: "customer"
+    names:
+      tiptop: "cmc_file"
+      oracle: "AR_CUSTOMERS"
+      sap: "KNA1"
+    description: "客戶主檔"
+    type: "dimension"
+    source: "raw"
+    aliases:
+      - "客戶"
+      - "Customer"
+    columns:
+      - id: "customer_code"
+        names:
+          tiptop: "cmc01"
+          oracle: "CUSTOMER_ID"
+          sap: "KUNNR"
+        type: "string"
+        description: "客戶代號"
+        primary_key: true
+      - id: "customer_name"
+        names:
+          tiptop: "cmc02"
+          oracle: "CUSTOMER_NAME"
+          sap: "STCD1"
+        type: "string"
+        description: "客戶名稱"
+
+  - name: "tlf_file"
+    canonical_name: "tlf_file"
+    names:
+      tiptop: "tlf_file"
+      oracle: "INV_TRANSACTIONS"
+      sap: "MSEG"
+    description: "庫存交易明細檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      - "交易"
+      - "異動"
+      - "銷貨"
+      - "進貨"
+    columns:
+      - id: "item_code"
+        names:
+          tiptop: "tlf01"
+          oracle: "MATERIAL_ID"
+          sap: "MATNR"
+        type: "string"
+        description: "料號"
+        fk: "item_master.item_code"
+      - id: "transaction_date"
+        names:
+          tiptop: "tlf06"
+          oracle: "POSTING_DATE"
+          sap: "BUDAT"
+        type: "date"
+        description: "單據日期"
+      - id: "quantity"
+        names:
+          tiptop: "tlf10"
+          oracle: "QUANTITY"
+          sap: "MENGE"
+        type: "decimal"
+        description: "異動數量"
+      - id: "source_document"
+        names:
+          tiptop: "tlf13"
+          oracle: "SOURCE_DOC"
+          sap: "BELNR"
+        type: "string"
+        description: "來源單號"
+      - id: "transaction_type"
+        names:
+          tiptop: "tlf19"
+          oracle: "MOVEMENT_TYPE"
+          sap: "BWART"
+        type: "string"
+        description: "交易類型"
+        values:
+          tiptop:
+            - "101": "採購進貨"
+            - "102": "完工入庫"
+            - "201": "生產領料"
+            - "202": "銷售出庫"
+            - "301": "庫存報廢"
+      - id: "warehouse"
+        names:
+          tiptop: "tlf061"
+          oracle: "PLANT"
+          sap: "WERKS"
+        type: "string"
+        description: "倉庫代號"
+        fk: "warehouse_master.warehouse_code"
+
+  - name: "rvb_file"
+    canonical_name: "rvb_file"
+    names:
+      tiptop: "rvb_file"
+      oracle: "PO_RECEIPTS"
+      sap: "EKBE"
+    description: "收料單身檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      - "收料"
+      - "驗收"
+    columns:
+      - id: "receipt_number"
+        names:
+          tiptop: "rvb01"
+          oracle: "RECEIPT_NUM"
+          sap: "EBELN"
+        type: "string"
+        description: "收料單號"
+      - id: "item_code"
+        names:
+          tiptop: "rvb05"
+          oracle: "MATERIAL_ID"
+          sap: "MATNR"
+        type: "string"
+        description: "料號"
+        fk: "item_master.item_code"
+      - id: "po_number"
+        names:
+          tiptop: "rvb07"
+          oracle: "PO_LINE_ID"
+          sap: "EBELP"
+        type: "string"
+        description: "採購單號"
+        fk: "purchase_line.po_number"
+      - id: "accepted_quantity"
+        names:
+          tiptop: "rvb33"
+          oracle: "ACCEPTED_QTY"
+          sap: "ERFMG"
+        type: "decimal"
+        description: "驗收數量"
+
+  - name: "prc_file"
+    canonical_name: "prc_file"
+    names:
+      tiptop: "prc_file"
+      oracle: "ITEM_PRICES"
+      sap: "A903"
+    description: "訂價單檔"
+    type: "dimension"
+    source: "raw"
+    aliases:
+      - "單價"
+      - "價格"
+      - "報價"
+    columns:
+      - id: "item_code"
+        names:
+          tiptop: "prc01"
+          oracle: "INVENTORY_ITEM_ID"
+          sap: "MATNR"
+        type: "string"
+        description: "料號"
+        fk: "item_master.item_code"
+      - id: "unit_price"
+        names:
+          tiptop: "prc02"
+          oracle: "UNIT_PRICE"
+          sap: "NETWR"
+        type: "decimal"
+        description: "單價"
+      - id: "approved_date"
+        names:
+          tiptop: "prc03"
+          oracle: "APPROVED_DATE"
+          sap: "STPRS"
+        type: "date"
+        description: "批准日期"
+      - id: "approval_status"
+        names:
+          tiptop: "prc04"
+          oracle: "STATUS"
+          sap: "STPRK"
+        type: "string"
+        description: "批准狀態"
+        values:
+          tiptop:
+            - "Y": "已批准"
+            - "N": "待批准"
+      - id: "effective_date"
+        names:
+          tiptop: "prc05"
+          oracle: "EFFECTIVE_DATE"
+          sap: "DATAB"
+        type: "date"
+        description: "生效日"
+      - id: "expiration_date"
+        names:
+          tiptop: "prc06"
+          oracle: "EXPIRATION_DATE"
+          sap: "DATBI"
+        type: "date"
+        description: "失效日"
+
+  - name: "ime_file"
+    canonical_name: "ime_file"
+    names:
+      tiptop: "ime_file"
+      oracle: "STORAGE_LOCATIONS"
+      sap: "T001L"
+    description: "儲位代號檔"
+    type: "dimension"
+    source: "raw"
+    aliases:
+      - "儲位"
+      - "位置"
+    columns:
+      - id: "warehouse_code"
+        names:
+          tiptop: "ime01"
+          oracle: "PLANT"
+          sap: "WERKS"
+        type: "string"
+        description: "倉庫代號"
+        fk: "warehouse_master.warehouse_code"
+      - id: "storage_location_code"
+        names:
+          tiptop: "ime02"
+          oracle: "STORAGE_LOCATION"
+          sap: "LGORT"
+        type: "string"
+        description: "儲位代號"
+        primary_key: true
+      - id: "storage_location_name"
+        names:
+          tiptop: "ime03"
+          oracle: "DESCRIPTION"
+          sap: "LGOBE"
+        type: "string"
+        description: "儲位名稱"
+
+relationships:
+  - from_table: "inventory"
+    from_column: "item_code"
+    to_table: "item_master"
+    to_column: "item_code"
+    description: "庫存關聯料件"
+    type: "many-to-one"
+    join_type: "LEFT JOIN"
+  - from_table: "inventory"
+    from_column: "warehouse"
+    to_table: "warehouse_master"
+    to_column: "warehouse_code"
+    description: "庫存關聯倉庫"
+    type: "many-to-one"
+  - from_table: "purchase_line"
+    from_column: "po_number"
+    to_table: "purchase_header"
+    to_column: "po_number"
+    description: "採購身關聯採購頭"
+    type: "many-to-one"
+    warning: "使用 po_number，不是 pmm01！"
+  - from_table: "purchase_line"
+    from_column: "item_code"
+    to_table: "item_master"
+    to_column: "item_code"
+    description: "採購料號關聯料件"
+    type: "many-to-one"
+  - from_table: "purchase_header"
+    from_column: "supplier_code"
+    to_table: "supplier"
+    to_column: "supplier_code"
+    description: "採購關聯供應商"
+    type: "many-to-one"
+
+intents:
+  - name: "QUERY_STOCK"
+    description: "庫存查詢"
+    patterns:
+      - "庫存"
+      - "還有多少"
+      - "有多少庫存"
+    tables:
+      - "inventory"
+      - "item_master"
+      - "warehouse_master"
+    example_queries:
+      - "查詢 W01 倉庫的庫存"
+      - "料號 10-0001 的庫存"
+      - "各倉庫總庫存"
+
+  - name: "QUERY_PURCHASE"
+    description: "採購查詢"
+    patterns:
+      - "採購"
+      - "採購單"
+      - "PO"
+    tables:
+      - "purchase_header"
+      - "purchase_line"
+      - "supplier"
+    example_queries:
+      - "查詢採購單 PO-2024010001"
+      - "按供應商統計採購單"
+
+  - name: "QUERY_SUPPLIER"
+    description: "供應商查詢"
+    patterns:
+      - "供應商"
+      - "廠商"
+    tables:
+      - "supplier"
+    example_queries:
+      - "查詢所有供應商"
+
+  - name: "QUERY_CUSTOMER"
+    description: "客戶查詢"
+    patterns:
+      - "客戶"
+    tables:
+      - "customer"
+    example_queries:
+      - "查詢所有客戶"
+
+  - name: "QUERY_ITEM"
+    description: "料件查詢"
+    patterns:
+      - "料號"
+      - "品名"
+      - "規格"
+    tables:
+      - "item_master"
+    example_queries:
+      - "料號 10-0001 的品名"

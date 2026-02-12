@@ -1,0 +1,81 @@
+# ========================================
+# Workflow: ABC 分類 - 按消耗量
+# ========================================
+
+name: "abc_classification_consumption"
+description: "依年度消耗量計算 ABC 分類"
+version: "1.0.0"
+
+triggers:
+  - "abc分類"
+  - "abc分類分析"
+  - "消耗量abc"
+  - "按消耗量"
+  - "依消耗量"
+  - "做abc分類"
+  - "做ABC分類"
+  - "abc"
+
+workflow:
+  steps:
+    - step_id: 1
+      action_type: "knowledge_retrieval"
+      description: "了解 ABC 分類理論"
+      instruction: |
+        請整 ABC 分類搜尋並彙（Pareto 分析）在庫存管理中的完整方法：
+        - A 類＝累積消耗前 70% 的物料
+        - B 類＝累積消耗 70%~90% 的物料
+        - C 類＝累積消耗 90%~100% 的物料
+        - 分類目的與管理策略差異
+
+    - step_id: 2
+      action_type: "data_query"
+      description: "查詢消耗與單價資料"
+      instruction: |
+        Data-Agent，請使用 pmn_file 查詢每個料號的年度消耗量與最近採購單價：
+
+        SQL 範例：
+        SELECT
+            pmn04 as 料號,
+            SUM(pmn20) as 年度消耗數量,
+            MAX(pmn09) as 單價
+        FROM pmn_file
+        GROUP BY pmn04
+
+        產出欄位：料號、年度消耗數量、單價、消耗價值（數量×單價）
+        按消耗價值降序排列。
+
+    - step_id: 3
+      action_type: "computation"
+      description: "執行 ABC 分類計算"
+      instruction: |
+        根據上一步取得的消耗資料，請執行以下計算：
+
+        1. 計算總消耗價值
+        2. 按消耗價值降序排序
+        3. 計算累積價值與累積百分比
+        4. 套用 ABC 分類規則：
+           - A 類：累積百分比 ≤ 70%
+           - B 類：累積百分比 70% ~ 90%
+           - C 類：累積百分比 > 90%
+        5. 產出：
+           - A 類料號清單
+           - B 類料號清單
+           - C 類料號清單
+           - 各類統計摘要
+
+    - step_id: 4
+      action_type: "response_generation"
+      description: "生成分類報告"
+      instruction: |
+        根據 ABC 分類結果，請生成管理報告，內容包括：
+
+        1. 三類物料清單（料號、年度消耗量、單價、消耗價值、分類）
+        2. 各類統計摘要：
+           - A 類：X 種，佔 Y%（金額佔比）
+           - B 類：X 種，佔 Y%
+           - C 類：X 種，佔 Y%
+        3. 管理建議：
+           - A 類：重點管理、安全庫存策略
+           - B 類：適度關注、週期性盤點
+           - C 類：簡化管理、JIT 採購

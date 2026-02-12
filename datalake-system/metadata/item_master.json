@@ -1,0 +1,508 @@
+{
+  "version": "1.0",
+  "system": "jp_tiptop_erp",
+  "description": "料件主檔（Top 100 高庫存料號）",
+  "total_items": 100,
+  "items": [
+    {
+      "item_no": "NI001",
+      "location_count": 16,
+      "total_stock": 1000005403198
+    },
+    {
+      "item_no": "ZPLJ002PX_2A",
+      "location_count": 4,
+      "total_stock": 39999999996
+    },
+    {
+      "item_no": "ZPLJ002PX_2",
+      "location_count": 4,
+      "total_stock": 39999999996
+    },
+    {
+      "item_no": "ZPLJ002PX_1",
+      "location_count": 3,
+      "total_stock": 29999999997
+    },
+    {
+      "item_no": "ZPLJ002PX_3",
+      "location_count": 3,
+      "total_stock": 29999999997
+    },
+    {
+      "item_no": "81459GG05392",
+      "location_count": 2,
+      "total_stock": 24016107264
+    },
+    {
+      "item_no": "81453GG00849",
+      "location_count": 3,
+      "total_stock": 12008152132
+    },
+    {
+      "item_no": "ZPLJ001PX_5",
+      "location_count": 1,
+      "total_stock": 9999999899
+    },
+    {
+      "item_no": "ZPLJ001PX_6",
+      "location_count": 1,
+      "total_stock": 9999999899
+    },
+    {
+      "item_no": "ZPLJ001PX_2",
+      "location_count": 1,
+      "total_stock": 9999999599
+    },
+    {
+      "item_no": "ZPLJ001PX_4",
+      "location_count": 1,
+      "total_stock": 9999999219
+    },
+    {
+      "item_no": "ZPLJ001PX_1",
+      "location_count": 1,
+      "total_stock": 9999999199
+    },
+    {
+      "item_no": "ZPLJ001PX_3",
+      "location_count": 1,
+      "total_stock": 9999999199
+    },
+    {
+      "item_no": "81453GG00111",
+      "location_count": 7,
+      "total_stock": 888593768
+    },
+    {
+      "item_no": "100001050100",
+      "location_count": 10,
+      "total_stock": 666431001
+    },
+    {
+      "item_no": "81453GG00595",
+      "location_count": 2,
+      "total_stock": 444296000
+    },
+    {
+      "item_no": "PBSHELL_LARGE",
+      "location_count": 2,
+      "total_stock": 100000152
+    },
+    {
+      "item_no": "PBSHELL_SMALL",
+      "location_count": 3,
+      "total_stock": 100000149
+    },
+    {
+      "item_no": "A01396000",
+      "location_count": 1,
+      "total_stock": 100000000
+    },
+    {
+      "item_no": "BATTERYCELL_800",
+      "location_count": 1,
+      "total_stock": 99999999
+    },
+    {
+      "item_no": "BATTERYCELL_1000",
+      "location_count": 1,
+      "total_stock": 99999967
+    },
+    {
+      "item_no": "BATTERYCELL_4000",
+      "location_count": 2,
+      "total_stock": 99999849
+    },
+    {
+      "item_no": "SCRAP01-AMP",
+      "location_count": 2,
+      "total_stock": 99986925
+    },
+    {
+      "item_no": "F022241401001",
+      "location_count": 4,
+      "total_stock": 90904346
+    },
+    {
+      "item_no": "G22310009500",
+      "location_count": 5,
+      "total_stock": 29992640
+    },
+    {
+      "item_no": "81499GG00693",
+      "location_count": 1,
+      "total_stock": 20610000
+    },
+    {
+      "item_no": "A0139610001",
+      "location_count": 6,
+      "total_stock": 10011993
+    },
+    {
+      "item_no": "9001.30.1001",
+      "location_count": 2,
+      "total_stock": 10000120
+    },
+    {
+      "item_no": "9001.30.1002",
+      "location_count": 1,
+      "total_stock": 10000000
+    },
+    {
+      "item_no": "G22010018200",
+      "location_count": 1,
+      "total_stock": 9999990
+    },
+    {
+      "item_no": "NI002",
+      "location_count": 1,
+      "total_stock": 9998999
+    },
+    {
+      "item_no": "81472GG00006",
+      "location_count": 1,
+      "total_stock": 9050000
+    },
+    {
+      "item_no": "81436GG00009",
+      "location_count": 1,
+      "total_stock": 6262500
+    },
+    {
+      "item_no": "YS01-04",
+      "location_count": 2,
+      "total_stock": 4999040
+    },
+    {
+      "item_no": "81499GG00685",
+      "location_count": 1,
+      "total_stock": 4500000
+    },
+    {
+      "item_no": "NS001",
+      "location_count": 2,
+      "total_stock": 4460020
+    },
+    {
+      "item_no": "90001",
+      "location_count": 3,
+      "total_stock": 3997238
+    },
+    {
+      "item_no": "81472GG00004",
+      "location_count": 1,
+      "total_stock": 3385000
+    },
+    {
+      "item_no": "81499GG00677",
+      "location_count": 1,
+      "total_stock": 2352000
+    },
+    {
+      "item_no": "90003",
+      "location_count": 1,
+      "total_stock": 1999960
+    },
+    {
+      "item_no": "90002",
+      "location_count": 1,
+      "total_stock": 1996918
+    },
+    {
+      "item_no": "9001.10.1001",
+      "location_count": 4,
+      "total_stock": 1315296
+    },
+    {
+      "item_no": "1001.10.1002",
+      "location_count": 2,
+      "total_stock": 1190480
+    },
+    {
+      "item_no": "81499GG00678",
+      "location_count": 2,
+      "total_stock": 1110000
+    },
+    {
+      "item_no": "YS01",
+      "location_count": 24,
+      "total_stock": 1048392
+    },
+    {
+      "item_no": "82105G700004",
+      "location_count": 4,
+      "total_stock": 1023680
+    },
+    {
+      "item_no": "ZPLJ002",
+      "location_count": 2,
+      "total_stock": 1010400
+    },
+    {
+      "item_no": "00001",
+      "location_count": 5,
+      "total_stock": 1001478
+    },
+    {
+      "item_no": "7131211270101400",
+      "location_count": 7,
+      "total_stock": 1000084
+    },
+    {
+      "item_no": "81457GG00633",
+      "location_count": 4,
+      "total_stock": 889532
+    },
+    {
+      "item_no": "81499GG00694",
+      "location_count": 1,
+      "total_stock": 883700
+    },
+    {
+      "item_no": "2001.10.1001",
+      "location_count": 6,
+      "total_stock": 818220
+    },
+    {
+      "item_no": "82199K800001",
+      "location_count": 2,
+      "total_stock": 645851
+    },
+    {
+      "item_no": "81457GG00605",
+      "location_count": 3,
+      "total_stock": 598081
+    },
+    {
+      "item_no": "1001.10.1001",
+      "location_count": 7,
+      "total_stock": 492781
+    },
+    {
+      "item_no": "82105A700002",
+      "location_count": 2,
+      "total_stock": 464583
+    },
+    {
+      "item_no": "81453GG00513",
+      "location_count": 5,
+      "total_stock": 454122
+    },
+    {
+      "item_no": "82105A700003",
+      "location_count": 2,
+      "total_stock": 419000
+    },
+    {
+      "item_no": "81469GG00176",
+      "location_count": 1,
+      "total_stock": 413044
+    },
+    {
+      "item_no": "81457GG00705",
+      "location_count": 6,
+      "total_stock": 410200
+    },
+    {
+      "item_no": "81499GG00775",
+      "location_count": 4,
+      "total_stock": 400499
+    },
+    {
+      "item_no": "81103GG00073",
+      "location_count": 3,
+      "total_stock": 348543
+    },
+    {
+      "item_no": "82499M100002",
+      "location_count": 1,
+      "total_stock": 342000
+    },
+    {
+      "item_no": "ZTLJ002_P",
+      "location_count": 7,
+      "total_stock": 338000
+    },
+    {
+      "item_no": "81105GG00133",
+      "location_count": 1,
+      "total_stock": 334880
+    },
+    {
+      "item_no": "81457GG00587",
+      "location_count": 2,
+      "total_stock": 314934
+    },
+    {
+      "item_no": "81102GG00014",
+      "location_count": 2,
+      "total_stock": 306662
+    },
+    {
+      "item_no": "ZTLJ001_P",
+      "location_count": 9,
+      "total_stock": 294998
+    },
+    {
+      "item_no": "81457GG00694",
+      "location_count": 5,
+      "total_stock": 286857
+    },
+    {
+      "item_no": "81499GG00706",
+      "location_count": 1,
+      "total_stock": 274500
+    },
+    {
+      "item_no": "81499GG01930",
+      "location_count": 1,
+      "total_stock": 274320
+    },
+    {
+      "item_no": "81467GG00091",
+      "location_count": 5,
+      "total_stock": 271800
+    },
+    {
+      "item_no": "82436AM00003",
+      "location_count": 1,
+      "total_stock": 250000
+    },
+    {
+      "item_no": "82436AM00004",
+      "location_count": 2,
+      "total_stock": 249160
+    },
+    {
+      "item_no": "81453GG01222",
+      "location_count": 9,
+      "total_stock": 238680
+    },
+    {
+      "item_no": "81499GG02701",
+      "location_count": 1,
+      "total_stock": 233961
+    },
+    {
+      "item_no": "82105A700023",
+      "location_count": 2,
+      "total_stock": 230330
+    },
+    {
+      "item_no": "81105GG00110",
+      "location_count": 1,
+      "total_stock": 219648
+    },
+    {
+      "item_no": "81453GG01197",
+      "location_count": 12,
+      "total_stock": 213840
+    },
+    {
+      "item_no": "81452GG00403",
+      "location_count": 2,
+      "total_stock": 206718
+    },
+    {
+      "item_no": "G22010019300",
+      "location_count": 1,
+      "total_stock": 199990
+    },
+    {
+      "item_no": "81452GG00659",
+      "location_count": 6,
+      "total_stock": 177851
+    },
+    {
+      "item_no": "82105G700005",
+      "location_count": 4,
+      "total_stock": 172623
+    },
+    {
+      "item_no": "81453GG01018",
+      "location_count": 3,
+      "total_stock": 165351
+    },
+    {
+      "item_no": "82105G700006",
+      "location_count": 3,
+      "total_stock": 161850
+    },
+    {
+      "item_no": "81452GG00126",
+      "location_count": 3,
+      "total_stock": 150390
+    },
+    {
+      "item_no": "81459GG00032",
+      "location_count": 2,
+      "total_stock": 149390
+    },
+    {
+      "item_no": "81101GG01835",
+      "location_count": 1,
+      "total_stock": 145000
+    },
+    {
+      "item_no": "81457GG00046",
+      "location_count": 1,
+      "total_stock": 143560
+    },
+    {
+      "item_no": "81463GG01188",
+      "location_count": 1,
+      "total_stock": 138851
+    },
+    {
+      "item_no": "81453GG01016",
+      "location_count": 5,
+      "total_stock": 134163
+    },
+    {
+      "item_no": "81499GG00020",
+      "location_count": 2,
+      "total_stock": 129099
+    },
+    {
+      "item_no": "81105GG00131",
+      "location_count": 1,
+      "total_stock": 128160
+    },
+    {
+      "item_no": "81105GG00105",
+      "location_count": 1,
+      "total_stock": 126000
+    },
+    {
+      "item_no": "81457GG00016",
+      "location_count": 2,
+      "total_stock": 119411
+    },
+    {
+      "item_no": "81463GG01191",
+      "location_count": 1,
+      "total_stock": 117983
+    },
+    {
+      "item_no": "81435GG00011",
+      "location_count": 3,
+      "total_stock": 116280
+    },
+    {
+      "item_no": "81101GG00564",
+      "location_count": 1,
+      "total_stock": 114000
+    },
+    {
+      "item_no": "81101GG03802",
+      "location_count": 2,
+      "total_stock": 108273
+    },
+    {
+      "item_no": "81453GG00684",
+      "location_count": 2,
+      "total_stock": 107329
+    }
+  ]
+}

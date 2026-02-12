@@ -196,3 +196,235 @@ class PromptManager:
             except json.JSONDecodeError as e:
                 self._logger.error(f"無法解析LLM響應為JSON: {e}, 響應內容: {response}")
                 raise ValueError(f"無法解析LLM響應為JSON: {e}") from e
+
+    async def generate_stock_response(
+        self,
+        warehouse: str,
+        stock_list: list,
+        count: int,
+        user_instruction: str = "",
+    ) -> str:
+        """使用 LLM 生成庫存查詢回覆
+
+        Args:
+            warehouse: 倉庫代碼
+            stock_list: 庫存資料列表
+            count: 總筆數
+            user_instruction: 用戶原始指令
+
+        Returns:
+            LLM 生成的格式化回覆
+        """
+        system_prompt = """你是一個專業的庫存管理助手，專門將查詢結果整理成對用户友善的回覆。
+
+## 格式化規則
+
+### 數值格式
+- 數量使用千分位分隔（如：100,416）
+- 金額保留小數點兩位（如：1,234.56）
+- 比例顯示為百分比（如：25.30%）
+
+### 日期格式
+- 所有日期使用 yyyy-mm-dd 格式（如：2026-02-09）
+
+### 欄位名稱
+- 使用有意義的中文欄位名稱
+- 不要使用資料庫欄位名（如 img01, img02）
+- 範例：
+  - img01 → 料號
+  - img02 → 倉庫
+  - img04 → 批次
+  - img10 → 庫存數量
+
+### 回覆格式選擇
+1. **單筆資料**：用簡潔的摘要格式
+2. **多筆資料（<10筆）**：用列表格式
+3. **多筆資料（>=10筆）**：用 Markdown 表格
+
+### 標題規則
+- 使用有意義的標題
+- 標題要包含查詢結果的關鍵資訊
+- 範例：「W03 倉庫庫存清單（共 15 筆）」
+
+## 請將以下庫存資料整理成對用户友善的回覆："""
+
+        # 構建庫存數據摘要
+        stock_data = []
+        for i, item in enumerate(stock_list[:50], 1):
+            part_no = item.get("part_number", "-")
+            batch = item.get("batch_no", "-")
+            qty = item.get("quantity", 0)
+            stock_data.append(f"{i}. 料號: {part_no}, 批次: {batch}, 數量: {qty:,}")
+
+        data_summary = "\n".join(stock_data)
+        if len(stock_list) > 50:
+            data_summary += f"\n... 還有 {len(stock_list) - 50} 筆資料"
+
+        # 計算總數量
+        total_quantity = sum(item.get("quantity", 0) for item in stock_list)
+
+        user_prompt = f"""用戶指令：{user_instruction}
+
+倉庫代碼：{warehouse}
+資料筆數：{count}
+
+庫存數據：
+{data_summary}
+
+庫存總數量：{total_quantity:,} 件
+
+請將上述庫存數據整理成專業、易讀的回覆。"""
+
+        try:
+            response = await self.call_llm(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.3,
+                max_tokens=2000,
+            )
+            if response and response.strip():
+                return response.strip()
+        except Exception as e:
+            self._logger.warning(f"LLM 生成庫存回覆失敗: {e}")
+
+        # 回退到手動格式（簡單表格）
+        if warehouse == "所有倉庫":
+            explanation = f"### 📦 所有倉庫庫存清單（共 {count} 筆）\n\n"
+        else:
+            explanation = f"### 📦 {warehouse} 倉庫庫存清單（共 {count} 筆）\n\n"
+        explanation += "| 序號 | 料號 | 批次 | 數量 |\n"
+        explanation += "|------|------|------|------|\n"
+        for i, item in enumerate(stock_list[:30], 1):
+            part_no = item.get("part_number", "-")
+            batch = item.get("batch_no", "-")
+            qty = item.get("quantity", 0)
+            explanation += f"| {i} | {part_no} | {batch} | {qty:,} |\n"
+        if count > 30:
+            explanation += f"\n*... 還有 {count - 30} 筆，請縮小查詢範圍*\n"
+        return explanation
+
+    async def generate_transaction_response(
+        self,
+        part_number: str,
+        transactions: list,
+        count: int,
+        start_date: str = "",
+        end_date: str = "",
+        user_instruction: str = "",
+    ) -> str:
+        """使用 LLM 生成交易歷史回覆
+
+        Args:
+            part_number: 料號
+            transactions: 交易記錄列表
+            count: 總筆數
+            start_date: 開始日期
+            end_date: 結束日期
+            user_instruction: 用戶原始指令
+
+        Returns:
+            LLM 生成的格式化回覆
+        """
+        # 交易類型說明
+        transaction_types = {
+            "101": "採購進貨",
+            "102": "退貨入庫",
+            "201": "銷售出庫",
+            "202": "退貨出庫",
+            "301": "調撥出庫",
+        }
+
+        system_prompt = """你是一個專業的庫存管理助手，專門將交易記錄整理成對用户友善的回覆。
+
+## 格式化規則
+
+### 日期格式
+- 所有日期使用 yyyy-mm-dd 格式（如：2024-10-23）
+
+### 數值格式
+- 數量使用千分位分隔（如：-46, 1,234）
+- 正數表示入庫，負數表示出庫
+
+### 交易類型
+- 101：採購進貨
+- 102：退貨入庫
+- 201：銷售出庫
+- 202：退貨出庫
+- 301：調撥出庫
+
+### 回覆格式
+- 使用 Markdown 表格呈現交易記錄
+- 標題要包含料號和時間範圍
+- 適當說明交易類型（入庫/出庫）
+
+## 請將以下交易記錄整理成對用户友善的回覆："""
+
+        # 構建交易數據摘要
+        tx_data = []
+        for i, tx in enumerate(transactions[:30], 1):
+            tx_type = tx.get("transaction_type", "-")
+            tx_date = tx.get("trans_date", "-")
+            qty = tx.get("quantity", 0)
+            unit = tx.get("unit", "件")
+            warehouse = tx.get("warehouse", "-")
+            tx_type_name = transaction_types.get(tx_type, f"類型{tx_type}")
+            tx_data.append(
+                f"{i}. 日期: {tx_date}, {tx_type_name}, 數量: {qty:,} {unit}, 倉庫: {warehouse}"
+            )
+
+        data_summary = "\n".join(tx_data)
+        if len(transactions) > 30:
+            data_summary += f"\n... 還有 {len(transactions) - 30} 筆交易記錄"
+
+        # 計算入庫和出庫總數
+        inbound_qty = sum(tx.get("quantity", 0) for tx in transactions if tx.get("quantity", 0) > 0)
+        outbound_qty = sum(
+            abs(tx.get("quantity", 0)) for tx in transactions if tx.get("quantity", 0) < 0
+        )
+
+        time_range = f"{start_date} ~ {end_date}" if start_date and end_date else "全部時間"
+
+        user_prompt = f"""用戶指令：{user_instruction}
+
+料號：{part_number}
+時間範圍：{time_range}
+資料筆數：{count}
+
+交易記錄：
+{data_summary}
+
+入庫總數量：{inbound_qty:,} 件
+出庫總數量：{outbound_qty:,} 件
+
+請將上述交易記錄整理成專業、易讀的回覆。"""
+
+        try:
+            response = await self.call_llm(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.3,
+                max_tokens=2000,
+            )
+            if response and response.strip():
+                return response.strip()
+        except Exception as e:
+            self._logger.warning(f"LLM 生成交易回覆失敗: {e}")
+
+        # 回退到手動格式
+        if count == 0:
+            return f"料號 {part_number} 在 {time_range} 期間沒有交易記錄。"
+
+        explanation = f"### 📋 {part_number} 交易記錄（{time_range}，共 {count} 筆）\n\n"
+        explanation += "| 日期 | 交易類型 | 數量 | 單位 | 倉庫 |\n"
+        explanation += "|------|----------|------|------|------|\n"
+        for tx in transactions[:30]:
+            tx_type = tx.get("transaction_type", "-")
+            tx_date = tx.get("trans_date", "-")
+            qty = tx.get("quantity", 0)
+            unit = tx.get("unit", "件")
+            warehouse = tx.get("warehouse", "-")
+            tx_type_name = transaction_types.get(tx_type, f"類型{tx_type}")
+            explanation += f"| {tx_date} | {tx_type_name} | {qty:,} | {unit} | {warehouse} |\n"
+        if count > 30:
+            explanation += f"\n*... 還有 {count - 30} 筆，請縮小查詢範圍*\n"
+        return explanation

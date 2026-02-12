@@ -1,0 +1,1085 @@
+[
+  {
+    "test_id": "B01",
+    "query": "查詢 W01 倉庫的庫存",
+    "start_time": 1770712930.824203,
+    "mm_response": {
+      "task_id": "test-B01",
+      "status": "completed",
+      "result": {
+        "success": true,
+        "task_type": "query_stock",
+        "result": {
+          "success": true,
+          "part_number": null,
+          "warehouse": "W01",
+          "stock_list": [
+            {
+              "img01": "RM01-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1579334
+            },
+            {
+              "img01": "RM01-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1549219
+            },
+            {
+              "img01": "RM01-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1588690
+            },
+            {
+              "img01": "RM01-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1596934
+            },
+            {
+              "img01": "RM01-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1615302
+            },
+            {
+              "img01": "RM01-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1632942
+            },
+            {
+              "img01": "RM01-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1602580
+            },
+            {
+              "img01": "RM01-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1557101
+            },
+            {
+              "img01": "RM01-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1593348
+            },
+            {
+              "img01": "RM01-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1532518
+            },
+            {
+              "img01": "RM02-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1582575
+            },
+            {
+              "img01": "RM02-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1666380
+            },
+            {
+              "img01": "RM02-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1515999
+            },
+            {
+              "img01": "RM02-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1573468
+            },
+            {
+              "img01": "RM02-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1535834
+            },
+            {
+              "img01": "RM02-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1561421
+            },
+            {
+              "img01": "RM02-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1644262
+            },
+            {
+              "img01": "RM02-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1525321
+            },
+            {
+              "img01": "RM02-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1562123
+            },
+            {
+              "img01": "RM02-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1608666
+            },
+            {
+              "img01": "RM03-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1527395
+            },
+            {
+              "img01": "RM03-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1585961
+            },
+            {
+              "img01": "RM03-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1661822
+            },
+            {
+              "img01": "RM03-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1572169
+            },
+            {
+              "img01": "RM03-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1581804
+            },
+            {
+              "img01": "RM03-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1570013
+            },
+            {
+              "img01": "RM03-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1537846
+            },
+            {
+              "img01": "RM03-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1547207
+            },
+            {
+              "img01": "RM03-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1550577
+            },
+            {
+              "img01": "RM03-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1529323
+            },
+            {
+              "img01": "RM04-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1572326
+            },
+            {
+              "img01": "RM04-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1509973
+            },
+            {
+              "img01": "RM04-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1585962
+            },
+            {
+              "img01": "RM04-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1553123
+            },
+            {
+              "img01": "RM04-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1624575
+            },
+            {
+              "img01": "RM04-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1617538
+            },
+            {
+              "img01": "RM04-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1616572
+            },
+            {
+              "img01": "RM04-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1583081
+            },
+            {
+              "img01": "RM04-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1582899
+            },
+            {
+              "img01": "RM04-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1581535
+            },
+            {
+              "img01": "RM05-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1534923
+            },
+            {
+              "img01": "RM05-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1622252
+            },
+            {
+              "img01": "RM05-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1566731
+            },
+            {
+              "img01": "RM05-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1543719
+            },
+            {
+              "img01": "RM05-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1558254
+            },
+            {
+              "img01": "RM05-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1627494
+            },
+            {
+              "img01": "RM05-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1582815
+            },
+            {
+              "img01": "RM05-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1622248
+            },
+            {
+              "img01": "RM05-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1527325
+            },
+            {
+              "img01": "RM05-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1615445
+            },
+            {
+              "img01": "RM06-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1587541
+            },
+            {
+              "img01": "RM06-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1663387
+            },
+            {
+              "img01": "RM06-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1594887
+            },
+            {
+              "img01": "RM06-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1591990
+            },
+            {
+              "img01": "RM06-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1563773
+            },
+            {
+              "img01": "RM06-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1621756
+            },
+            {
+              "img01": "RM06-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1626065
+            },
+            {
+              "img01": "RM06-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1560701
+            },
+            {
+              "img01": "RM06-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1542993
+            },
+            {
+              "img01": "RM06-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1616299
+            },
+            {
+              "img01": "RM07-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1528934
+            },
+            {
+              "img01": "RM07-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1650369
+            },
+            {
+              "img01": "RM07-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1575376
+            },
+            {
+              "img01": "RM07-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1503573
+            },
+            {
+              "img01": "RM07-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1575951
+            },
+            {
+              "img01": "RM07-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1638471
+            },
+            {
+              "img01": "RM07-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1626327
+            },
+            {
+              "img01": "RM07-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1596266
+            },
+            {
+              "img01": "RM07-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1552743
+            },
+            {
+              "img01": "RM07-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1562569
+            },
+            {
+              "img01": "RM08-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1539323
+            },
+            {
+              "img01": "RM08-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1532676
+            },
+            {
+              "img01": "RM08-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1633099
+            },
+            {
+              "img01": "RM08-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1580187
+            },
+            {
+              "img01": "RM08-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1595812
+            },
+            {
+              "img01": "RM08-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1515147
+            },
+            {
+              "img01": "RM08-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1593691
+            },
+            {
+              "img01": "RM08-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1556704
+            },
+            {
+              "img01": "RM08-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1582562
+            },
+            {
+              "img01": "RM08-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1535889
+            },
+            {
+              "img01": "RM09-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1585130
+            },
+            {
+              "img01": "RM09-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1598491
+            },
+            {
+              "img01": "RM09-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1593740
+            },
+            {
+              "img01": "RM09-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1514112
+            },
+            {
+              "img01": "RM09-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1593922
+            },
+            {
+              "img01": "RM09-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1583460
+            },
+            {
+              "img01": "RM09-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1516857
+            },
+            {
+              "img01": "RM09-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1583208
+            },
+            {
+              "img01": "RM09-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1538629
+            },
+            {
+              "img01": "RM09-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1608683
+            },
+            {
+              "img01": "RM10-001",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1555157
+            },
+            {
+              "img01": "RM10-002",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1624206
+            },
+            {
+              "img01": "RM10-003",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1581282
+            },
+            {
+              "img01": "RM10-004",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1519902
+            },
+            {
+              "img01": "RM10-005",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1593430
+            },
+            {
+              "img01": "RM10-006",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1612252
+            },
+            {
+              "img01": "RM10-007",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1568996
+            },
+            {
+              "img01": "RM10-008",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1525448
+            },
+            {
+              "img01": "RM10-009",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1557180
+            },
+            {
+              "img01": "RM10-010",
+              "img02": "W01",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 1608146
+            }
+          ],
+          "count": 100,
+          "response": "**W01 倉庫庫存清單（共 100 筆）**\n\n| 料號 | 批次 | 庫存數量 |\n|------|------|----------|\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n|"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock",
+          "confidence": 0.99,
+          "parameters": {
+            "part_number": null,
+            "quantity": null,
+            "location": "W01",
+            "start_date": null,
+            "end_date": null
+          },
+          "original_instruction": "查詢 W01 倉庫的庫存",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存信息",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error": null,
+      "metadata": null
+    },
+    "status": "NO_DATA",
+    "error": "MM-Agent 完成但無回覆",
+    "duration_ms": 84415.09127616882
+  },
+  {
+    "test_id": "B03",
+    "query": "查詢料號 10-0001 的庫存信息",
+    "start_time": 1770713015.239297,
+    "mm_response": {
+      "task_id": "test-B03",
+      "status": "completed",
+      "result": {
+        "success": true,
+        "task_type": "query_stock",
+        "result": {
+          "success": true,
+          "part_number": "10-0001",
+          "warehouse": null,
+          "stock_info": {
+            "img01": "10-0001",
+            "img02": "W03",
+            "img03": "L01",
+            "img04": "BATCH-001",
+            "img10": 100416
+          },
+          "response": "料號 10-0001 的庫存資料如下：\n• 存放倉庫：W03\n• 批次編號：-\n• 目前庫存數量：100,416 件"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock",
+          "confidence": 0.99,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null,
+            "location": null,
+            "start_date": null,
+            "end_date": null
+          },
+          "original_instruction": "查詢料號 10-0001 的庫存信息",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存信息",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error": null,
+      "metadata": null
+    },
+    "status": "NO_DATA",
+    "error": "MM-Agent 完成但無回覆",
+    "duration_ms": 9929.348230361938
+  },
+  {
+    "test_id": "B05",
+    "query": "料號 10-0001 在 W03 倉庫有多少",
+    "start_time": 1770713025.1686482,
+    "mm_response": {
+      "task_id": "test-B05",
+      "status": "completed",
+      "result": {
+        "success": true,
+        "task_type": "query_stock",
+        "result": {
+          "success": true,
+          "part_number": "10-0001",
+          "warehouse": "W03",
+          "stock_info": {
+            "img01": "10-0001",
+            "img02": "W03",
+            "img03": "L01",
+            "img04": "BATCH-001",
+            "img10": 100416
+          },
+          "response": "料號 10-0001 的庫存資料如下：\n• 存放倉庫：W03\n• 批次編號：-\n• 目前庫存數量：100,416 件"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock",
+          "confidence": 0.99,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null,
+            "location": "W03",
+            "start_date": null,
+            "end_date": null
+          },
+          "original_instruction": "料號 10-0001 在 W03 倉庫有多少",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存信息",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error": null,
+      "metadata": null
+    },
+    "status": "NO_DATA",
+    "error": "MM-Agent 完成但無回覆",
+    "duration_ms": 9768.283128738403
+  },
+  {
+    "test_id": "B06",
+    "query": "W03 和 W01 倉庫的庫存比較",
+    "start_time": 1770713034.9369335,
+    "mm_response": {
+      "task_id": "test-B06",
+      "status": "completed",
+      "result": {
+        "success": true,
+        "task_type": "query_stock",
+        "result": {
+          "success": true,
+          "part_number": null,
+          "warehouse": "W03,W01",
+          "stock_list": [],
+          "count": 0,
+          "response": "**W03、W01 倉庫庫存比較（共 0 筆）**\n\n目前查詢到的資料中，**W03** 與 **W01** 兩個倉庫均未有庫存紀錄，總庫存量為 **0 件**。如需查詢其他倉庫或指定商品的庫存資訊，請隨時告訴我！祝您工作順利。"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock",
+          "confidence": 0.97,
+          "parameters": {
+            "part_number": null,
+            "quantity": null,
+            "location": "W03,W01",
+            "start_date": null,
+            "end_date": null
+          },
+          "original_instruction": "W03 和 W01 倉庫的庫存比較",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存信息",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error": null,
+      "metadata": null
+    },
+    "status": "NO_DATA",
+    "error": "MM-Agent 完成但無回覆",
+    "duration_ms": 18411.637783050537
+  },
+  {
+    "test_id": "C02",
+    "query": "料號 10-0001 在 2024 年的交易",
+    "start_time": 1770713053.348575,
+    "mm_response": {
+      "task_id": "test-C02",
+      "status": "failed",
+      "result": {
+        "success": false,
+        "task_type": "clarification_needed",
+        "result": {
+          "success": false,
+          "error": "需要澄清用戶意圖",
+          "clarification_questions": [
+            "請明確您要執行哪個操作？",
+            "1. 查詢料號信息",
+            "2. 查詢庫存",
+            "3. 缺料分析",
+            "4. 生成採購單"
+          ],
+          "response": "請明確您要執行哪個操作？\n1. 查詢料號信息\n2. 查詢庫存\n3. 缺料分析\n4. 生成採購單"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": null,
+          "confidence": 0.0,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null
+          },
+          "original_instruction": "料號 10-0001 在 2024 年的交易",
+          "clarification_needed": true,
+          "clarification_questions": []
+        },
+        "responsibility": "需要澄清用戶意圖",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error": "需要澄清用戶意圖",
+      "metadata": null
+    },
+    "status": "MM_ERROR",
+    "error": "需要澄清用戶意圖",
+    "duration_ms": 1.9741058349609375
+  },
+  {
+    "test_id": "C03",
+    "query": "料號 10-0001 上個月的入庫記錄",
+    "start_time": 1770713053.3505511,
+    "mm_response": {
+      "task_id": "test-C03",
+      "status": "completed",
+      "result": {
+        "success": true,
+        "task_type": "query_stock_history",
+        "result": {
+          "success": true,
+          "part_number": "10-0001",
+          "transactions": [],
+          "count": 0,
+          "response": "**料號：10-0001**  \n**時間範圍：2026-01-01 ~ 2026-01-31**  \n**查詢類型：入庫記錄（正數為入庫，負數為出庫）**\n\n---\n\n### 交易明細\n\n| 日期       | 交易類型 | 數量 (件) | 說明 |\n|------------|----------|-----------|------|\n| —          | —        | —         | **本期間無入庫交易** |\n\n> **入庫總數量：** 0 件  \n> **出庫總數量：** 0 件  \n\n---\n\n> 目前在 2026‑01‑01 至 2026‑01‑31 期間，料號 **10‑0001** 沒有任何入庫（或出庫）紀錄。如需查詢其他時間段或其他料號，請隨時告訴我！"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock_history",
+          "confidence": 0.98,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null,
+            "location": null,
+            "start_date": "2026-01-01",
+            "end_date": "2026-01-31"
+          },
+          "original_instruction": "料號 10-0001 上個月的入庫記錄",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存/進貨歷史",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error": null,
+      "metadata": null
+    },
+    "status": "NO_DATA",
+    "error": "MM-Agent 完成但無回覆",
+    "duration_ms": 22124.996423721313
+  },
+  {
+    "test_id": "D02",
+    "query": "上月採購了多少 10-0001",
+    "start_time": 1770713075.4755497,
+    "mm_response": {
+      "task_id": "test-D02",
+      "status": "completed",
+      "result": {
+        "success": true,
+        "task_type": "query_stock",
+        "result": {
+          "success": true,
+          "part_number": "10-0001",
+          "warehouse": null,
+          "stock_info": {
+            "img01": "10-0001",
+            "img02": "W03",
+            "img03": "L01",
+            "img04": "BATCH-001",
+            "img10": 100416
+          },
+          "response": "料號 10-0001 的庫存資料如下：\n• 存放倉庫：W03\n• 批次編號：-\n• 目前庫存數量：100,416 件"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock",
+          "confidence": 0.96,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null,
+            "location": null,
+            "start_date": "2026-01-01",
+            "end_date": "2026-01-31"
+          },
+          "original_instruction": "料號 10-0001 上月採購了多少 10-0001",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存信息",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error": null,
+      "metadata": null
+    },
+    "status": "NO_DATA",
+    "error": "MM-Agent 完成但無回覆",
+    "duration_ms": 14541.482925415039
+  },
+  {
+    "test_id": "E02",
+    "query": "上月銷售了多少 10-0001",
+    "start_time": 1770713090.0170522,
+    "mm_response": {
+      "task_id": "test-E02",
+      "status": "completed",
+      "result": {
+        "success": true,
+        "task_type": "query_stock_history",
+        "result": {
+          "success": true,
+          "part_number": "10-0001",
+          "transactions": [],
+          "count": 0,
+          "response": "**料號：10‑0001**  \n**時間範圍：2026‑01‑01 ~ 2026‑01‑31**  \n\n---\n\n### 交易紀錄\n\n| 日期 | 交易類型 | 數量 |\n|------|----------|------|\n| — | — | — |\n| *無交易紀錄* |  |  |\n\n> **說明**  \n> - 101、102 為入庫（正數）  \n> - 201、202、301 為出庫（負數）  \n\n---\n\n### 本期統計\n\n| 項目 | 數量 |\n|------|------|\n| 入庫總數量 | 0 件 |\n| 出庫總數量（銷售） | 0 件 |\n\n> 於 2026‑01‑01 至 2026‑01‑31 期間，料號 **10‑0001** 沒有任何入庫或出庫紀錄，故本月銷售量為 **0 件**。若需要查詢其他時間區間或料號，請隨時告知！"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock_history",
+          "confidence": 0.97,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null,
+            "location": null,
+            "start_date": "2026-01-01",
+            "end_date": "2026-01-31"
+          },
+          "original_instruction": "料號 10-0001 上月銷售了多少 10-0001",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存/進貨歷史",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error": null,
+      "metadata": null
+    },
+    "status": "NO_DATA",
+    "error": "MM-Agent 完成但無回覆",
+    "duration_ms": 21512.0370388031
+  }
+]

@@ -2,7 +2,9 @@
 
 ## 概述
 
-Data-Agent 是 Tiptop 數據湖系統的核心服務，負責將自然語言查詢轉換為 SQL 並執行。
+Data-Agent 是 Tiptop 數據湖系統的核心服務，負責接受 BPA（如 MM-Agent）提供的自然語言查詢，依 metadata schema（`schema_registry.json`）進行 Text-to-SQL，透過 DuckDB 對資料湖執行查詢，並做基礎驗證後回傳給 BPA。目標是將 Datalake 資料架構抽象化，便於未來切換不同 schema，讓 BPA 專注業務流程。
+
+**現況與待修訂**：詳見 [Data-Agent-規格書.md](Data-Agent-規格書.md) 第 9 章「待修訂」。
 
 ## 目錄結構
 

@@ -1,0 +1,36 @@
+# =============================================================================
+# SQL Macros - 共享 SQL 宏定義
+# =============================================================================
+
+macros:
+  count: "COUNT(*)"
+  sum: "SUM({column})"
+  avg: "AVG({column})"
+  group_by: "GROUP BY {columns}"
+  order_by: "ORDER BY {columns}"
+  left_join: "LEFT JOIN {table} ON {left}.{col} = {right}.{col}"
+
+templates:
+  stock_query: |
+    SELECT
+      item.item_code,
+      item.item_name,
+      SUM(inv.quantity) AS total_qty
+    FROM {inventory_table} inv
+    LEFT JOIN {item_table} item ON inv.item_code = item.item_code
+    {% if warehouse %}
+    WHERE inv.warehouse = '{{ warehouse }}'
+    {% endif %}
+    GROUP BY item.item_code, item.item_name
+
+  purchase_summary: |
+    SELECT
+      poh.po_number,
+      poh.po_date,
+      sup.supplier_code,
+      sup.supplier_name,
+      SUM(pol.quantity) AS total_qty
+    FROM {purchase_header_table} poh
+    LEFT JOIN {purchase_line_table} pol ON poh.po_number = pol.po_number
+    LEFT JOIN {supplier_table} sup ON poh.supplier_code = sup.supplier_code
+    GROUP BY poh.po_number, poh.po_date, sup.supplier_code, sup.supplier_name

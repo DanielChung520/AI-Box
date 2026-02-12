@@ -8,8 +8,10 @@
 import logging
 import os
 import sys
+import json
 from pathlib import Path
 from typing import Optional
+from sse_starlette.sse import EventSourceResponse
 
 # 添加 datalake-system 目錄到 Python 路徑
 datalake_system_dir = Path(__file__).resolve().parent.parent
@@ -22,10 +24,11 @@ if str(ai_box_root) not in sys.path:
     sys.path.insert(0, str(ai_box_root))
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
 # 顯式加載 .env 文件
 env_path = ai_box_root / ".env"
@@ -42,9 +45,12 @@ from agents.services.protocol.base import AgentServiceRequest
 # 配置日誌
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# 全局字典：存儲待執行的工作流（從 WebSocket 生成計劃後，用戶確認時使用）
+PENDING_WORKFLOWS: dict = {}
 
 # 檢查是否啟用語義轉譯
 USE_SEMANTIC_TRANSLATOR = os.getenv("MM_AGENT_USE_SEMANTIC_TRANSLATOR", "false").lower() == "true"
@@ -76,6 +82,7 @@ app.add_middleware(
         "http://localhost:3000",  # 備選前端端口
         "http://127.0.0.1:8503",
         "http://127.0.0.1:3000",
+        "*",  # 允許所有來源（WebSocket）
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -243,6 +250,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None  # 對話會話 ID（多輪對話支持）
     user_id: Optional[str] = None
     context: Optional[dict] = None
+    metadata: Optional[dict] = None  # 擴展元數據（如意圖分類結果）
 
 
 class ChatResponse(BaseModel):
@@ -424,6 +432,7 @@ async def auto_execute_workflow(request: ChatRequest) -> dict:
         result = await _react_engine.execute_all_steps(
             session_id=session_id,
             user_response=request.instruction,
+            instruction=request.instruction,
         )
 
         return {
@@ -441,6 +450,52 @@ async def auto_execute_workflow(request: ChatRequest) -> dict:
     except Exception as e:
         logger.error(f"自動執行失敗: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
+
+
+
+@app.get("/api/v1/chat/stream")
+async def chat_stream_get(sid: str, instruction: str):
+    """串流對話端點 - 思考過程即時顯示 (GET)
+
+    流程：
+    1. 調用 Ollama 串流
+    2. 解析 <thinking> 標籤
+    3. 透過 SSE 即時發送思考過程到前端
+    """
+    from mm_agent.stream_endpoint import generate_stream
+
+    session_id = sid or f"stream-{id(None)}"
+
+    return await generate_stream(instruction, session_id)
+
+
+@app.post("/api/v1/chat/stream")
+async def chat_stream_post(request: ChatRequest):
+    """串流對話端點 - 思考過程即時顯示 (POST)
+
+    流程：
+    1. 調用 Ollama 串流
+    2. 解析 <thinking> 標籤
+    3. 透過 SSE 即時發送思考過程到前端
+    """
+    from mm_agent.stream_endpoint import generate_stream
+
+    instruction = request.instruction
+    session_id = request.session_id or f"stream-{id(request)}"
+
+    return await generate_stream(instruction, session_id)
+
+    return generate_stream(instruction, session_id)
+
+
+@app.websocket("/api/v1/chat/ws")
+async def websocket_chat(websocket: WebSocket):
+    """WebSocket 串流端點 - 更可靠的實時通信"""
+    from mm_agent.websocket_endpoint import websocket_generate_stream
+    
+    # 允許所有 WebSocket 連接（解決 CORS 問題）
+    await websocket.accept()
+    await websocket_generate_stream(websocket)
 
 
 @app.post("/api/v1/mm-agent/translate")
@@ -471,6 +526,387 @@ async def check_negative_list(request: ChatRequest) -> dict:
     except Exception as e:
         logger.error(f"負面表列檢查失敗: {e}")
         return {"success": False, "error": str(e)}
+
+
+@app.post("/api/v1/chat/intent")
+async def classify_intent(request: ChatRequest) -> dict:
+    """意圖分類端點
+
+    流程：
+    1. 檢查是否有進行中的工作流（session_id 存在且 waiting_for_user=True）
+    2. 如果是延續對話，直接執行下一步
+    3. 如果是新對話，進行意圖分類
+    """
+    from mm_agent.intent_endpoint import classify_intent as llm_classify_intent
+
+    try:
+        instruction = request.instruction
+        session_id = request.session_id or f"intent-{id(request)}"
+
+        logger.info(f"[Intent] 收到請求: instruction='{instruction[:50]}...', session_id='{session_id}'")
+
+        # 檢查工作流狀態
+        all_workflows = list(_react_engine._workflows.keys()) if hasattr(_react_engine, '_workflows') else []
+        logger.info(f"[Intent] 所有工作流: {all_workflows}")
+        
+        # 檢查 PENDING_WORKFLOWS（從 SSE/WebSocket 生成的計劃）
+        try:
+            from mm_agent.main import PENDING_WORKFLOWS
+            pending_keys = list(PENDING_WORKFLOWS.keys())
+            logger.info(f"[Intent] 待執行工作流 (PENDING_WORKFLOWS): {pending_keys}")
+        except Exception as e:
+            logger.error(f"[Intent] 讀取 PENDING_WORKFLOWS 失敗: {e}")
+            pending_keys = []
+
+        # 檢查是否有進行中的工作流（用戶回覆場景）
+        if session_id:
+            # 首先檢查 PENDING_WORKFLOWS（從 SSE/WebSocket 生成的計劃）
+            if session_id in PENDING_WORKFLOWS:
+                pending = PENDING_WORKFLOWS.pop(session_id)
+                logger.info(f"[Intent] 找到待執行工作流，開始執行: {pending.get('instruction', '')[:50]}...")
+
+                # 啟動工作流
+                wf_result = await _react_engine.start_workflow(
+                    instruction=pending["instruction"],
+                    session_id=session_id,
+                    context={"original_plan": pending.get("plan")}
+                )
+
+                if wf_result.get("success"):
+                    return {
+                        "success": True,
+                        "intent": "CONTINUE_WORKFLOW",
+                        "confidence": 1.0,
+                        "is_simple_query": False,
+                        "needs_clarification": False,
+                        "missing_fields": [],
+                        "clarification_prompts": {},
+                        "thought_process": "已啟動工作流，開始執行第一步",
+                        "session_id": session_id,
+                        "workflow_result": wf_result,
+                    }
+                else:
+                    logger.error(f"[Intent] 啟動工作流失敗: {wf_result}")
+
+            # 檢查 _react_engine 中的現有工作流
+            state = _react_engine.get_state(session_id)
+            logger.info(f"[Intent] 查詢工作流狀態: session={session_id}, state={state}")
+
+            if state:
+                # 有進行中的工作流，檢查是否在等待用戶回覆
+                current_step = state.get("current_step", 0)
+                completed_steps = state.get("completed_steps", [])
+                total_steps = state.get("total_steps", 0)
+
+                logger.info(f"[Intent] 工作流狀態: current_step={current_step}, total_steps={total_steps}")
+
+                # 如果還有步驟未完成，視為用戶回覆，繼續執行
+                if current_step < total_steps:
+                    logger.info(f"[Intent] 檢測到進行中的工作流，session={session_id}，執行下一步")
+
+                    # 直接執行下一步，將用戶回覆傳入
+                    step_result = await _react_engine.execute_next_step(
+                        session_id=session_id,
+                        user_response=instruction,
+                    )
+
+                    if step_result.get("success"):
+                        return {
+                            "success": True,
+                            "intent": "CONTINUE_WORKFLOW",
+                            "confidence": 1.0,
+                            "is_simple_query": False,
+                            "needs_clarification": False,
+                            "missing_fields": [],
+                            "clarification_prompts": {},
+                            "thought_process": "檢測到進行中的工作流，直接執行下一步",
+                            "session_id": session_id,
+                            "workflow_result": step_result,
+                        }
+
+        # 沒有進行中的工作流，進行意圖分類
+        result = await llm_classify_intent(instruction, session_id)
+
+        return {
+            "success": True,
+            "intent": result.intent.value,
+            "confidence": result.confidence,
+            "is_simple_query": result.is_simple_query,
+            "needs_clarification": result.needs_clarification,
+            "missing_fields": result.missing_fields,
+            "clarification_prompts": result.clarification_prompts,
+            "thought_process": result.thought_process,
+            "session_id": session_id,
+        }
+    except Exception as e:
+        logger.error(f"意圖分類失敗: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e),
+            "intent": "SIMPLE_QUERY",
+            "confidence": 0.5,
+            "is_simple_query": True,
+            "needs_clarification": False,
+        }
+
+
+@app.get("/api/v1/chat/intent")
+async def classify_intent_get(sid: str, instruction: str):
+    """意圖分類端點 - GET 方法
+
+    流程：
+    1. 檢查是否有進行中的工作流（session_id 存在且 waiting_for_user=True）
+    2. 如果是延續對話，直接執行下一步
+    3. 如果是新對話，進行意圖分類
+    """
+    from mm_agent.intent_endpoint import classify_intent as llm_classify_intent
+
+    session_id = sid or f"intent-{id(None)}"
+
+    # 檢查是否有進行中的工作流（用戶回覆場景）
+    if session_id and sid:
+        state = _react_engine.get_state(session_id)
+        if state:
+            # 有進行中的工作流，檢查是否在等待用戶回覆
+            current_step = state.get("current_step", 0)
+            total_steps = state.get("total_steps", 0)
+
+            # 如果還有步驟未完成，視為用戶回覆，繼續執行
+            if current_step < total_steps:
+                logger.info(f"[Intent] 檢測到進行中的工作流，session={session_id}，執行下一步")
+
+                # 直接執行下一步，將用戶回覆傳入
+                step_result = await _react_engine.execute_next_step(
+                    session_id=session_id,
+                    user_response=instruction,
+                )
+
+                if step_result.get("success"):
+                    return {
+                        "success": True,
+                        "intent": "CONTINUE_WORKFLOW",
+                        "confidence": 1.0,
+                        "is_simple_query": False,
+                        "needs_clarification": False,
+                        "missing_fields": [],
+                        "clarification_prompts": {},
+                        "thought_process": "檢測到進行中的工作流，直接執行下一步",
+                        "session_id": session_id,
+                        "workflow_result": step_result,
+                    }
+
+    # 沒有進行中的工作流，進行意圖分類
+    result = await llm_classify_intent(instruction, session_id)
+
+    return {
+        "success": True,
+        "intent": result.intent.value,
+        "confidence": result.confidence,
+        "is_simple_query": result.is_simple_query,
+        "needs_clarification": result.needs_clarification,
+        "missing_fields": result.missing_fields,
+        "clarification_prompts": result.clarification_prompts,
+        "thought_process": result.thought_process,
+        "session_id": session_id,
+    }
+
+
+@app.post("/api/v1/chat/intent/stream")
+async def classify_intent_stream(request: ChatRequest):
+    """意圖分類 SSE 串流端點
+
+    流程：
+    1. 檢查是否有進行中的工作流（session_id 存在且 waiting_for_user=True）
+    2. 如果是延續對話，發送特殊事件通知前端
+    3. 如果是新對話，進行意圖分類 SSE 串流
+    """
+    from mm_agent.intent_endpoint import generate_intent_stream
+    import json
+    from sse_starlette.sse import EventSourceResponse
+
+    instruction = request.instruction
+    session_id = request.session_id or f"intent-{id(request)}"
+
+    # 檢查是否有進行中的工作流（用戶回覆場景）
+    if session_id and request.session_id:
+        state = _react_engine.get_state(session_id)
+        if state:
+            current_step = state.get("current_step", 0)
+            total_steps = state.get("total_steps", 0)
+
+            if current_step < total_steps:
+                logger.info(f"[Intent Stream] 檢測到進行中的工作流，session={session_id}")
+
+                async def workflow_continue_generator():
+                    # 發送事件通知前端繼續工作流
+                    yield {
+                        "event": "message",
+                        "data": json.dumps({
+                            "type": "workflow_continue",
+                            "message": "檢測到進行中的工作流，正在執行下一步...",
+                            "session_id": session_id,
+                        }),
+                    }
+
+                    # 執行下一步
+                    step_result = await _react_engine.execute_next_step(
+                        session_id=session_id,
+                        user_response=instruction,
+                    )
+
+                    if step_result.get("success"):
+                        yield {
+                            "event": "message",
+                            "data": json.dumps({
+                                "type": "workflow_step_completed",
+                                "response": step_result.get("response", ""),
+                                "waiting_for_user": step_result.get("waiting_for_user", False),
+                                "completed_steps": step_result.get("completed_steps", []),
+                                "total_steps": step_result.get("total_steps", 0),
+                                "session_id": session_id,
+                            }),
+                        }
+
+                    yield {
+                        "event": "message",
+                        "data": json.dumps({
+                            "type": "complete",
+                            "message": "完成",
+                            "session_id": session_id,
+                        }),
+                    }
+
+                return EventSourceResponse(workflow_continue_generator(), media_type="text/event-stream")
+
+    # 沒有進行中的工作流，進行意圖分類 SSE 串流
+    return await generate_intent_stream(instruction, session_id)
+
+
+@app.post("/api/v1/chat/knowledge")
+async def knowledge_query(request: ChatRequest) -> dict:
+    """知識查詢端點
+
+    處理 KNOWLEDGE_QUERY 意圖，調用 KA-Agent 或 LLM 回退
+
+    Args:
+        request: 聊天請求
+
+    Returns:
+        知識查詢結果
+    """
+    from mm_agent.knowledge_service import get_knowledge_service, KnowledgeSourceType
+
+    try:
+        instruction = request.instruction
+        session_id = request.session_id or f"knowledge-{id(request)}"
+
+        # 從意圖分類結果中獲取來源類型
+        # 如果沒有來源類型，預設為 external
+        source_type_str = request.metadata.get("knowledge_source_type", "external") if request.metadata else "external"
+        try:
+            source_type = KnowledgeSourceType(source_type_str)
+        except ValueError:
+            source_type = KnowledgeSourceType.EXTERNAL
+
+        knowledge_service = get_knowledge_service()
+        result = await knowledge_service.query(
+            query=instruction,
+            source_type=source_type,
+            session_id=session_id,
+        )
+
+        # 格式化回覆
+        answer = result.answer
+        if result.sources:
+            sources_text = "\n\n**參考來源：**\n"
+            for s in result.sources[:3]:
+                if isinstance(s, dict):
+                    sources_text += f"- {s.get('title', s.get('source', '未知來源'))}\n"
+                else:
+                    sources_text += f"- {s}\n"
+            answer += sources_text
+
+        return {
+            "success": result.success,
+            "answer": answer,
+            "sources": result.sources,
+            "source_type": result.source_type.value,
+            "query_time_ms": result.query_time_ms,
+            "error": result.error,
+            "session_id": session_id,
+        }
+
+    except Exception as e:
+        logger.error(f"知識查詢失敗: {e}", exc_info=True)
+        return {
+            "success": False,
+            "answer": "",
+            "sources": [],
+            "source_type": "unknown",
+            "query_time_ms": 0,
+            "error": str(e),
+            "session_id": request.session_id or f"knowledge-{id(request)}",
+        }
+
+
+@app.get("/api/v1/chat/knowledge")
+async def knowledge_query_get(sid: str, query: str, source_type: str = "external"):
+    """知識查詢端點 - GET 方法
+
+    Args:
+        sid: 會話 ID
+        query: 查詢問題
+        source_type: 知識來源類型 (internal/external)
+
+    Returns:
+        知識查詢結果
+    """
+    from mm_agent.knowledge_service import get_knowledge_service, KnowledgeSourceType
+
+    try:
+        try:
+            st = KnowledgeSourceType(source_type)
+        except ValueError:
+            st = KnowledgeSourceType.EXTERNAL
+
+        knowledge_service = get_knowledge_service()
+        result = await knowledge_service.query(
+            query=query,
+            source_type=st,
+            session_id=sid,
+        )
+
+        answer = result.answer
+        if result.sources:
+            sources_text = "\n\n**參考來源：**\n"
+            for s in result.sources[:3]:
+                if isinstance(s, dict):
+                    sources_text += f"- {s.get('title', s.get('source', '未知來源'))}\n"
+                else:
+                    sources_text += f"- {s}\n"
+            answer += sources_text
+
+        return {
+            "success": result.success,
+            "answer": answer,
+            "sources": result.sources,
+            "source_type": result.source_type.value,
+            "query_time_ms": result.query_time_ms,
+            "error": result.error,
+            "session_id": sid,
+        }
+
+    except Exception as e:
+        logger.error(f"知識查詢失敗: {e}", exc_info=True)
+        return {
+            "success": False,
+            "answer": "",
+            "sources": [],
+            "source_type": "unknown",
+            "query_time_ms": 0,
+            "error": str(e),
+            "session_id": sid,
+        }
 
 
 if __name__ == "__main__":

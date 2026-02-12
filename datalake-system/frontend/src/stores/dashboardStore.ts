@@ -42,6 +42,7 @@ interface DashboardState {
   setOrderData: (data: { coptc: any[]; coptd: any[]; prc: any[]; customers: any[] }) => void;
   chatMessages: Message[];
   addChatMessage: (message: Message) => void;
+  updateChatMessage: (id: string, updates: Partial<Message>) => void;
   clearChatMessages: () => void;
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
@@ -65,6 +66,12 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   chatMessages: [],
   addChatMessage: (message) =>
     set((state) => ({ chatMessages: [...state.chatMessages, message] })),
+  updateChatMessage: (id, updates) =>
+    set((state) => ({
+      chatMessages: state.chatMessages.map((msg) =>
+        msg.id === id ? { ...msg, ...updates } : msg
+      ),
+    })),
   clearChatMessages: () => set({ chatMessages: [] }),
   sidebarCollapsed: false,
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),

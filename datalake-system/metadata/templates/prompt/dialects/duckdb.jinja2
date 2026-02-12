@@ -1,0 +1,93 @@
+{# DuckDB Prompt Template - 完整版 #}
+{% set outer_loop = namespace(idx=0) %}
+【系統】{{ system.name }} | 方言: {{ system.dialect }} | Bucket: {{ system.bucket }}
+
+【表格定義】
+{% for table in tables %}{% if table.aliases %}
+{% set outer_loop.idx = outer_loop.idx + 1 %}
+📋 {{ table.description }} ({{ table.names['tiptop'] }})
+   Alias: t{{ outer_loop.idx }} ← 必須使用這個 alias！
+{% endif %}{% endfor %}
+
+{% set outer_loop.idx = 0 %}
+【欄位定義】
+{% for table in tables %}{% if table.aliases %}
+{% set outer_loop.idx = outer_loop.idx + 1 %}
+📊 {{ table.names['tiptop'] }} (alias: t{{ outer_loop.idx }})
+{% for col_id, col in table.columns.items() %}
+   • t{{ outer_loop.idx }}.{{ col.names['tiptop'] }} → {{ col.description }}{% if col.example %} [範例: {{ col.example }}]{% endif %}
+{% endfor %}{% endif %}{% endfor %}
+
+{% set outer_loop.idx = 0 %}
+【關聯關係】
+{% for table in tables %}{% set outer_loop.idx = outer_loop.idx + 1 %}
+{% for rel in table.relationships %}
+🔗 t{{ outer_loop.idx }}.{{ rel.from_column }} → {{ rel.to_table }}.{{ rel.to_column }}
+{% endfor %}{% endfor %}
+
+【重要路徑格式 - 必須遵守】
+每個表必須使用完整路徑：
+read_parquet('s3://tiptop-raw/raw/v1/{table}/year=*/month=*/data.parquet', hive_partitioning=true)
+
+【SQL 寫作規則】
+1. 每個表都必須用 read_parquet() 包裝
+2. **強烈建議**：使用清晰的位置引用，例如：
+   - 第一個表用 t1
+   - 第二個表用 t2
+   - 第三個表用 t3
+3. **絕對禁止**：混合使用 table names（如 img_file）和 aliases（如 t1）
+4. **正確做法**：如果查詢 item_master（第一個表），必須用 t1.ima01，絕對不能用 img_file.ima01 或 ima01 直接
+5. **JOIN 語法**：
+   ❌ 錯誤：JOIN pmc_file ON ...
+   ✅ 正確：JOIN read_parquet(...) t3 ON t2.pmm04 = t3.pmc01
+6. **只返回 SQL，不要其他說明**
+7. **必須包含 LIMIT**
+
+【正確日期函數】
+✅ CURRENT_DATE - 當前日期
+✅ date_diff('month', date1, date2) - 月份差
+✅ date_trunc('month', date) - 月份截斷
+✅ strftime(date, '%Y-%m') - 格式化月份
+✅ CAST(string AS DATE) - 字串轉日期
+✅ date >= CURRENT_DATE - INTERVAL 30 DAY - 30天前
+
+【常見錯誤 - 請避開】
+❌ WHERE tlf06 >= curdate() - curdate() 不存在！用 CURRENT_DATE
+❌ WHERE img01 = '10-0001' - 沒指定 alias！用 t1.img01
+❌ JOIN pmc_file ON t2.pmm04 = pmc01 - 沒用 read_parquet 包裝！
+❌ FROM img_file t1 - 不能混用 table name 和 alias！
+
+【正確 SQL 範例】
+
+範例 1 - 單表查詢：
+Q: 查詢 W01 倉庫庫存
+SQL: SELECT t1.img01, t1.img10 FROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.img02 = 'W01' LIMIT 10
+
+範例 2 - 單表查詢：
+Q: 查詢料號 10-0001 的品名
+SQL: SELECT t1.ima02 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.ima01 = '10-0001' LIMIT 10
+
+範例 3 - 查詢 2024 年交易數量：
+Q: 查詢 2024 年有多少筆交易
+SQL: SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE strftime(t1.tlf06, '%Y') = '2024' LIMIT 10
+
+範例 4 - 多表 JOIN（正確使用 alias）：
+Q: 查詢 RM10-008 的供應商名稱
+SQL: SELECT t3.pmc03 FROM read_parquet('s3://tiptop-raw/raw/v1/pmn_file/year=*/month=*/data.parquet') t1 JOIN read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet') t2 ON t1.pmn01 = t2.pmm01 JOIN read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet') t3 ON t2.pmm04 = t3.pmc01 WHERE t1.pmn04 = 'RM10-008' LIMIT 10
+
+範例 5 - 多表 JOIN：
+Q: 查詢料號 10-0001 的庫存和品名
+SQL: SELECT t1.img02, t1.img10, t2.ima02 FROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet') t1 JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet') t2 ON t1.img01 = t2.ima01 WHERE t1.img01 = '10-0001' LIMIT 10
+
+範例 6 - 按月份統計：
+Q: 按月份統計交易
+SQL: SELECT strftime(t1.tlf06, '%Y-%m') AS month, COUNT(*) AS cnt FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 GROUP BY month ORDER BY month LIMIT 100
+
+範例 7 - 複雜 JOIN：
+Q: 查詢供應商的料號、庫存和品名
+SQL: SELECT t1.pmn04, t4.ima02, SUM(t2.img10) FROM read_parquet('s3://tiptop-raw/raw/v1/pmn_file/year=*/month=*/data.parquet') t1 JOIN read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet') t3 ON t1.pmn01 = t3.pmm01 LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet') t2 ON t1.pmn04 = t2.img01 JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet') t4 ON t1.pmn04 = t4.ima01 WHERE t3.pmm04 = 'VND005' GROUP BY t1.pmn04, t4.ima02 LIMIT 10
+
+【用戶查詢】{{ user_query }}
+
+【SQL】
+

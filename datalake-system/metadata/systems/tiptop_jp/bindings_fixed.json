@@ -1,0 +1,411 @@
+{
+  "version": "1.0",
+  "datasource": {
+    "id": "JP_TIPTOP_ERP",
+    "type": "RDBMS",
+    "dialect": "oracle",
+    "bucket": "jp-tiptop-raw"
+  },
+  "bindings": {
+    "ENT": {
+      "JP_TIPTOP_ERP": {
+        "table": "INAG_T",
+        "column": "INAGENT",
+        "type": "number"
+      }
+    },
+    "SITE": {
+      "JP_TIPTOP_ERP": {
+        "table": "INAG_T",
+        "column": "INAGSITE",
+        "type": "string"
+      }
+    },
+    "ITEM_NO": {
+      "JP_TIPTOP_ERP": {
+        "table": "INAG_T",
+        "column": "INAG001",
+        "type": "string"
+      }
+    },
+    "WAREHOUSE_NO": {
+      "JP_TIPTOP_ERP": {
+        "table": "INAG_T",
+        "column": "INAG004",
+        "type": "string"
+      }
+    },
+    "LOCATION_NO": {
+      "JP_TIPTOP_ERP": {
+        "table": "INAG_T",
+        "column": "INAG005",
+        "type": "string"
+      }
+    },
+    "UNIT": {
+      "JP_TIPTOP_ERP": {
+        "table": "INAG_T",
+        "column": "INAG007",
+        "type": "string"
+      }
+    },
+    "EXISTING_STOCKS": {
+      "JP_TIPTOP_ERP": {
+        "table": "INAG_T",
+        "column": "INAG008",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "SCRAP_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFAA_T",
+        "column": "SFAA056",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "SO_ORDER": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFAA_T",
+        "column": "SFAA022",
+        "type": "string"
+      }
+    },
+    "SO_LINE": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFAA_T",
+        "column": "SFAA023",
+        "type": "string"
+      }
+    },
+    "CUSTOMER_NO": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFAA_T",
+        "column": "SFAA009",
+        "type": "string"
+      }
+    },
+    "MO_DOC_NO": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCA_T",
+        "column": "SFCADOCNO",
+        "type": "string"
+      }
+    },
+    "MO_DOC_SEQ": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCA_T",
+        "column": "SFCA002",
+        "type": ""number(10)""
+      }
+    },
+    "RUN_CARD_NO": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCA_T",
+        "column": "SFCA001",
+        "type": ""number(20)""
+      }
+    },
+    "PRODUCTION_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCA_T",
+        "column": "SFCA003",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "COMPLETION_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCA_T",
+        "column": "SFCA004",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "LN": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB002",
+        "type": "number"
+      }
+    },
+    "CURRENT_OPERATION": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB003",
+        "type": "string"
+      }
+    },
+    "OPERATION_SEQ": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB004",
+        "type": "string"
+      }
+    },
+    "WORKSTATION": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB011",
+        "type": "string"
+      }
+    },
+    "STANDARD_OUTPUT": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB027",
+        "type": ""number(15,3)""
+      }
+    },
+    "GOOD_ITEMS_IN": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB028",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "GOOD_ITEMS_OUT": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB033",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "REWORK_IN": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB029",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "REWORK_OUT": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB034",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "WIP_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB050",
+        "type": ""number(15,3)""
+      }
+    },
+    "SCRAP_IN_STATION": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB036",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "PENDING_PQC_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB051",
+        "type": ""number(15,3)""
+      }
+    },
+    "OUTSOURCED_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB041",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "OUTSOURCED_FINISH_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB042",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "DOC_NO": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDG_T",
+        "column": "XMDGDOCNO",
+        "type": "string"
+      }
+    },
+    "DOC_DATE": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDG_T",
+        "column": "XMDGDOCDT",
+        "type": "date"
+      }
+    },
+    "STATUS": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDG_T",
+        "column": "XMDGSTUS",
+        "type": "string"
+      }
+    },
+    "SALES_PERSON": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDG_T",
+        "column": "XMDG002",
+        "type": "string"
+      }
+    },
+    "SALES_DEPT": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDG_T",
+        "column": "XMDG003",
+        "type": "string"
+      }
+    },
+    "EXPECTED_DATE": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDG_T",
+        "column": "XMDG028",
+        "type": "date"
+      }
+    },
+    "SALES_CATEGORY": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDG_T",
+        "column": "XMDG027",
+        "type": "string"
+      }
+    },
+    "SEQ": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDH_T",
+        "column": "XMDHSEQ",
+        "type": ""number(5)""
+      }
+    },
+    "CUSTOMER_PO_NO": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDH_T",
+        "column": "XMDHUD001",
+        "type": "string"
+      }
+    },
+    "REQUEST_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDH_T",
+        "column": "XMDH016",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "ACTUAL_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDH_T",
+        "column": "XMDH017",
+        "aggregation": "SUM",
+        "type": ""number(15,3)""
+      }
+    },
+    "UNIT_PRICE": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDH_T",
+        "column": "XMDH023",
+        "type": ""number(15,3)""
+      }
+    },
+    "APPLICANT": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDT_T",
+        "column": "XMDT002",
+        "type": "string"
+      }
+    },
+    "DEPT": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDT_T",
+        "column": "XMDT003",
+        "type": "string"
+      }
+    },
+    "VALID_DATE": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDT_T",
+        "column": "XMDT015",
+        "type": "date"
+      }
+    },
+    "ORDER_LINE_SN": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFAA_T",
+        "column": "SFAA024",
+        "type": "string"
+      }
+    },
+    "ORDER_BATCH_SEQ": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFAA_T",
+        "column": "SFAA025",
+        "type": "string"
+      }
+    }
+  },
+  "joins": {
+    "inventory_item": {
+      "from_table": "INAG_T",
+      "from_column": "INAG001",
+      "to_table": "ITEM_MASTER",
+      "to_column": "ITEM_NO",
+      "join_type": "LEFT JOIN"
+    },
+    "inventory_warehouse": {
+      "from_table": "INAG_T",
+      "from_column": "INAG004",
+      "to_table": "WAREHOUSE_MASTER",
+      "to_column": "WAREHOUSE_NO",
+      "join_type": "LEFT JOIN"
+    },
+    "inventory_location": {
+      "from_table": "INAG_T",
+      "from_column": "INAG005",
+      "to_table": "STORAGE_LOCATION",
+      "to_column": "LOCATION_NO",
+      "join_type": "LEFT JOIN"
+    },
+    "work_order_customer": {
+      "from_table": "SFAA_T",
+      "from_column": "SFAA009",
+      "to_table": "CUSTOMER",
+      "to_column": "CUSTOMER_NO",
+      "join_type": "LEFT JOIN"
+    },
+    "shipping_header": {
+      "from_table": "XMDG_T",
+      "from_column": "XMDG005",
+      "to_table": "CUSTOMER",
+      "to_column": "CUSTOMER_NO",
+      "join_type": "LEFT JOIN"
+    },
+    "shipping_details": {
+      "from_table": "XMDH_T",
+      "from_column": "XMDHDOCNO",
+      "to_table": "XMDG_T",
+      "to_column": "XMDGDOCNO",
+      "join_type": "LEFT JOIN"
+    },
+    "price_header": {
+      "from_table": "XMDT_T",
+      "from_column": "XMDT004",
+      "to_table": "CUSTOMER",
+      "to_column": "CUSTOMER_NO",
+      "join_type": "LEFT JOIN"
+    },
+    "price_details": {
+      "from_table": "XMDU_T",
+      "from_column": "XMDUDOCNO",
+      "to_table": "XMDT_T",
+      "to_column": "XMDTDOCNO",
+      "join_type": "LEFT JOIN"
+    }
+  }
+}

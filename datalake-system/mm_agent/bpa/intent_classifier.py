@@ -13,7 +13,8 @@ from pydantic import BaseModel
 class QueryIntent(str, Enum):
     """查詢意圖枚舉"""
 
-    QUERY_STOCK = "QUERY_STOCK"  # 庫存查詢
+    QUERY_STOCK = "QUERY_STOCK"  # 庫存查詢（當前庫存）
+    QUERY_STOCK_HISTORY = "QUERY_STOCK_HISTORY"  # 庫存歷史查詢
     QUERY_PURCHASE = "QUERY_PURCHASE"  # 採購交易查詢
     QUERY_SALES = "QUERY_SALES"  # 銷售交易查詢
     ANALYZE_SHORTAGE = "ANALYZE_SHORTAGE"  # 缺料分析
@@ -146,9 +147,11 @@ class IntentClassifier:
                 missing.append("料號或交易類型")
 
         if intent == QueryIntent.QUERY_STOCK:
+            # 庫存查詢可以只提供倉庫，不一定要料號
             has_material = bool(re.search(r"[A-Z]{2,4}-?\d{2,6}", text))
-            if not has_material:
-                missing.append("料號")
+            has_warehouse = bool(re.search(r"\b(W\d{2})\b", text))
+            if not has_material and not has_warehouse:
+                missing.append("料號或倉庫")
 
         # 檢查上下文
         if context and not missing:

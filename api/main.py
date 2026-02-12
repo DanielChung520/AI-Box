@@ -85,7 +85,7 @@ from api.routers import (
     file_metadata,
     file_upload,
     health,
-    # knowledge_ontology,  # 註釋掉：檔案位置錯誤導致循環引用
+    knowledge_ontology,
     llm_models,
     mcp,
     moe,
@@ -488,7 +488,7 @@ app.include_router(chat.router, prefix=API_PREFIX, tags=["Chat"])
 app.include_router(chat_module.router, prefix="/api/v2", tags=["Chat V2"])
 app.include_router(config_definitions.router, prefix=API_PREFIX, tags=["Config Definitions"])
 app.include_router(ontology.router, prefix=API_PREFIX)
-# app.include_router(knowledge_ontology.router, prefix=API_PREFIX, tags=["Knowledge Ontology"])  # 註釋掉：檔案位置錯誤
+app.include_router(knowledge_ontology.router, prefix=API_PREFIX, tags=["Knowledge Ontology"])
 app.include_router(llm_models.router, prefix=API_PREFIX, tags=["LLM Models"])
 app.include_router(moe.router, prefix=API_PREFIX, tags=["MoE"])
 app.include_router(moe_metrics.router, prefix=API_PREFIX, tags=["MoE Metrics"])

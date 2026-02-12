@@ -5,115 +5,13 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { VitePWA } from "vite-plugin-pwa";
+// import { VitePWA } from "vite-plugin-pwa";
 
 function getPlugins() {
   const plugins = [
     react(),
     tsconfigPaths(),
-    VitePWA({
-      registerType: "prompt", // 改为 prompt，让用户手动更新，避免自动缓存
-      // 排除大文件，使用 runtime caching 处理
-      includeAssets: [],
-      workbox: {
-        // 排除大文件，只缓存小文件
-        globPatterns: ["**/*.{js,css,html,ico,png,woff,woff2}"],
-        // 排除 SVG 文件（太大，使用 runtime caching）
-        globIgnores: ["**/*.svg"],
-        // 增加文件大小限制（用于 JS 文件）
-        maximumFileSizeToCacheInBytes: 30 * 1024 * 1024, // 30 MB
-        runtimeCaching: [
-          {
-            // SVG 文件使用 runtime caching
-            urlPattern: /\.svg$/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "svg-cache",
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "cdnjs-cache",
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|gif|webp)/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "images-cache",
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
-            },
-          },
-          {
-            urlPattern: /\/api\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 5, // 5 minutes
-              },
-              networkTimeoutSeconds: 10,
-            },
-          },
-        ],
-      },
-      manifest: {
-        name: "AI GenAI Chat Room",
-        short_name: "AI Chat",
-        description: "AI 生成式聊天室 - 智能對話助手平台",
-        theme_color: "#9333ea",
-        background_color: "#1a1a1a",
-        display: "standalone",
-        orientation: "portrait-primary",
-        scope: "/",
-        start_url: "/",
-        icons: [
-          {
-            src: "/SmartQ.-logo.svg",
-            sizes: "any",
-            type: "image/svg+xml",
-            purpose: "any maskable",
-          },
-        ],
-        shortcuts: [
-          {
-            name: "開始聊天",
-            short_name: "聊天",
-            description: "開始新的對話",
-            url: "/",
-            icons: [
-              {
-                src: "/SmartQ.-logo.svg",
-                sizes: "any",
-                type: "image/svg+xml",
-              },
-            ],
-          },
-        ],
-        categories: ["productivity", "utilities"],
-      },
-      devOptions: {
-        enabled: false, // 暂时禁用开发时的 PWA，确保修改能及时生效
-        type: "module",
-      },
-    }),
+    // VitePWA temporarily disabled to fix API request issue
   ];
   return plugins;
 }

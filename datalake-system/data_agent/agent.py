@@ -31,7 +31,7 @@ from .models import DataAgentRequest, DataAgentResponse
 from .query_gateway import QueryGatewayService
 from .schema_service import SchemaService
 from .structured_query_builder import StructuredQueryBuilder
-from .text_to_sql import TextToSQLService
+from .text_to_sql import TextToSQLServiceWithRAG  # 保持原有 HybridRRAG 架構
 
 logger = logging.getLogger(__name__)
 
@@ -48,27 +48,31 @@ class DataAgent(AgentServiceProtocol):
 
     def __init__(
         self,
-        text_to_sql_service: Optional[TextToSQLService] = None,
+        text_to_sql_service: Optional["TextToSQLServiceWithRAG"] = None,
         query_gateway_service: Optional[QueryGatewayService] = None,
         datalake_service: Optional[DatalakeService] = None,
         dictionary_service: Optional[DictionaryService] = None,
         schema_service: Optional[SchemaService] = None,
+        system_id: str = "tiptop01",
     ):
         """
         初始化 Data Agent
 
         Args:
-            text_to_sql_service: Text-to-SQL 服務（可選，如果不提供則自動創建）
+            text_to_sql_service: Text-to-SQL 服務（可選，預設使用 TextToSQLServiceWithRAG）
             query_gateway_service: 查詢閘道服務（可選，如果不提供則自動創建）
             datalake_service: Datalake 查詢服務（可選，如果不提供則自動創建）
             dictionary_service: 數據字典服務（可選，如果不提供則自動創建）
             schema_service: Schema 服務（可選，如果不提供則自動創建）
+            system_id: 系統 ID（預設 tiptop01）
         """
-        # 讀取配置
         config = get_config()
-        logger.info(f"Data-Agent 初始化，使用配置: llm_models={config.get_llm_models()[:2]}...")
+        logger.info(f"Data-Agent 初始化，系統: {system_id}")
 
-        self._text_to_sql_service = text_to_sql_service or TextToSQLService()
+        # 使用 TextToSQLServiceWithRAG（HybridRRAG 架構）
+        self._text_to_sql_service = text_to_sql_service or TextToSQLServiceWithRAG(
+            system_id=system_id,
+        )
         self._query_gateway_service = query_gateway_service or QueryGatewayService()
         self._datalake_service = datalake_service or DatalakeService()
         self._dictionary_service = dictionary_service or DictionaryService()
@@ -566,6 +570,8 @@ class DataAgent(AgentServiceProtocol):
         """處理結構化查詢請求（由 MM-Agent 提供的結構化參數或自然語言）"""
         structured_query = request.structured_query
         natural_language_query = request.natural_language_query
+        pagination = request.pagination or {}
+        options = request.options or {}
 
         if not structured_query and not natural_language_query:
             return DataAgentResponse(
@@ -573,6 +579,21 @@ class DataAgent(AgentServiceProtocol):
                 action="execute_structured_query",
                 error="structured_query or natural_language_query is required",
             )
+
+        # SQL 注入檢測
+        if natural_language_query:
+            try:
+                from .text_to_sql import sanitize_natural_language_query
+
+                is_safe, error_msg = sanitize_natural_language_query(natural_language_query)
+                if not is_safe:
+                    return DataAgentResponse(
+                        success=False,
+                        action="execute_structured_query",
+                        error=error_msg,
+                    )
+            except Exception as e:
+                self._logger.warning(f"SQL 注入檢測異常: {e}")
 
         try:
             sql_query = None
@@ -613,38 +634,157 @@ class DataAgent(AgentServiceProtocol):
 
             self._logger.info(f"生成的 SQL: {sql_query[:100]}...")
 
-            # 2. 執行查詢
+            # 分頁處理
+            page = pagination.get("page", 1)
+            page_size = pagination.get("page_size", 50)
+            return_total = options.get("return_total", False)
+
+            # 計算 OFFSET
+            offset = (page - 1) * page_size
+            effective_max_rows = page_size
+
+            # 檢查 SQL 是否已有 ORDER BY 和 LIMIT
+            sql_upper = sql_query.upper().strip()
+            has_order_by = "ORDER BY" in sql_upper
+            has_limit = "LIMIT" in sql_upper
+
+            # 如果需要分頁，添加 OFFSET 和 LIMIT
+            if page > 1 or return_total or page_size != 1000:
+                import re
+
+                limit_clause = f"\nLIMIT {effective_max_rows} OFFSET {offset}"
+                sql_query = sql_query.rstrip(";")
+
+                if has_limit:
+                    sql_query = re.sub(
+                        r"\bLIMIT\s+\d+(\s+OFFSET\s+\d+)?",
+                        f"LIMIT {effective_max_rows} OFFSET {offset}",
+                        sql_query,
+                        flags=re.IGNORECASE,
+                    )
+                else:
+                    sql_query = sql_query + limit_clause
+
+                if not has_order_by:
+                    order_by_clause = "\nORDER BY 1\n"
+                    limit_match = re.search(r"\bLIMIT\b", sql_query, re.IGNORECASE)
+                    if limit_match:
+                        sql_query = (
+                            sql_query[: limit_match.start()]
+                            + order_by_clause
+                            + sql_query[limit_match.start() :]
+                        )
+                    else:
+                        sql_query = sql_query + "\n" + order_by_clause.rstrip("\n")
+
+                self._logger.info(f"分頁 SQL: page={page}, page_size={page_size}, offset={offset}")
+
+            # 執行查詢
             query_result = await self._datalake_service.query_sql(
                 sql_query=sql_query,
-                max_rows=request.max_rows or 50,
+                max_rows=effective_max_rows,
             )
 
             if not query_result.get("success"):
+                err = query_result.get("error", "查詢執行失敗")
+                if "No files found" in str(err) and natural_language_query:
+                    q = natural_language_query or ""
+                    if "倉庫" in q or "W0" in q:
+                        err = "找不到對應的倉庫資料"
+                    else:
+                        err = "目前無交易明細資料"
                 return DataAgentResponse(
                     success=False,
                     action="execute_structured_query",
-                    error=query_result.get("error", "查詢執行失敗"),
+                    error=err,
                     result={
                         "sql_query": sql_query,
                         "explanation": explanation,
                     },
                 )
 
-            # 3. 返回結果
+            # 返回結果
+            rows = query_result.get("rows", [])
+            row_count = query_result.get("row_count", 0)
+            output_data_size = len(str(rows).encode("utf-8"))
+
+            # 構建分頁 metadata
+            pagination_info = {
+                "page": page,
+                "page_size": page_size,
+                "effective_max_rows": effective_max_rows,
+            }
+
+            # 如果需要返回總筆數，執行 COUNT 查詢
+            if return_total:
+                self._logger.info("執行總筆數查詢...")
+                import re
+
+                count_sql = f"SELECT COUNT(*) as total FROM ({sql_query}) subquery"
+                count_sql = re.sub(
+                    r"\bLIMIT\s+\d+(\s+OFFSET\s+\d+)?", "", count_sql, flags=re.IGNORECASE
+                )
+                count_sql = re.sub(r"\s+OFFSET\s+\d+", "", count_sql, flags=re.IGNORECASE)
+
+                count_result = await self._datalake_service.query_sql(
+                    sql_query=count_sql,
+                    max_rows=1,
+                )
+
+                if count_result.get("success") and count_result.get("rows"):
+                    total_count = count_result["rows"][0].get("count_star()", 0) or count_result[
+                        "rows"
+                    ][0].get("total", row_count)
+                    pagination_info["total_count"] = total_count
+                    pagination_info["total_pages"] = (total_count + page_size - 1) // page_size
+                    pagination_info["has_next"] = page < pagination_info["total_pages"]
+                    pagination_info["has_prev"] = page > 1
+                else:
+                    pagination_info["total_count"] = None
+                    pagination_info["total_pages"] = None
+                    pagination_info["has_next"] = None
+                    pagination_info["has_prev"] = None
+            else:
+                pagination_info["total_count"] = None
+                pagination_info["total_pages"] = None
+                pagination_info["has_next"] = None
+                pagination_info["has_prev"] = None
+
+            # 更新 TextToSQLService 的輸出統計
+            if hasattr(request, "task_id") and request.task_id:
+                self._text_to_sql_service.update_output_stats(
+                    task_id=request.task_id,
+                    rows=row_count,
+                    data_size=output_data_size,
+                )
+
             return DataAgentResponse(
                 success=True,
                 action="execute_structured_query",
                 result={
                     "sql_query": sql_query,
                     "explanation": explanation,
-                    "rows": query_result.get("rows", []),
-                    "row_count": query_result.get("row_count", 0),
+                    "rows": rows,
+                    "row_count": row_count,
+                    "pagination": pagination_info,
                     "structured_query": request.structured_query,
+                    "usage_stats": {
+                        "prompt_tokens": text_to_sql_result.get("tokens", {}).get(
+                            "prompt_tokens", 0
+                        ),
+                        "completion_tokens": text_to_sql_result.get("tokens", {}).get(
+                            "completion_tokens", 0
+                        ),
+                        "total_tokens": text_to_sql_result.get("tokens", {}).get("total_tokens", 0),
+                        "latency_ms": text_to_sql_result.get("latency_ms", 0),
+                        "output_size_bytes": output_data_size,
+                        "output_rows": row_count,
+                    },
                 },
             )
 
         except Exception as e:
-            self._logger.error(f"Execute structured query failed: {e}")
+            self._logger.error(f"Execute structured query failed: {e}", exc_info=True)
             return DataAgentResponse(
                 success=False,
                 action="execute_structured_query",

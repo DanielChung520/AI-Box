@@ -1,0 +1,29 @@
+# =============================================================================
+# SQL Rules - 共享 SQL 規則定義
+# =============================================================================
+
+sql_rules:
+  - "日期欄位類型可能是 VARCHAR，必須使用 CAST 轉換"
+  - "GROUP BY 必須包含 DATE_TRUNC 完整表達式，不能只寫別名"
+  - "關聯表用 LEFT JOIN"
+  - "GROUP BY 要包含所有非聚合欄位"
+  - "只返回 SQL，不要其他說明"
+
+duckdb_rules:
+  - "使用 read_parquet 讀取 Parquet 檔案"
+  - "使用 hive_partitioning=true 參數"
+  - "路徑格式：s3://bucket/raw/v1/table/year=*/month=*/data.parquet"
+
+oracle_rules:
+  - "使用標準 Oracle 表名"
+  - "日期使用 TO_DATE 轉換"
+  - "分頁使用 ROWNUM"
+
+type_conversions:
+  VARCHAR: "VARCHAR"
+  N: "DECIMAL"
+  D: "DATE"
+  string: "VARCHAR"
+  integer: "INTEGER"
+  decimal: "DECIMAL"
+  date: "DATE"

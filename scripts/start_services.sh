@@ -858,10 +858,11 @@ show_usage() {
     echo "  monitoring  啟動監控系統 (Prometheus, Grafana, Alertmanager)"
     echo ""
     echo "應用服務:"
-    echo "  fastapi|api  啟動 FastAPI (API 服務)"
+    echo "  fastapi|api 啟動 FastAPI (API 服務)"
     echo "  mcp        啟動 MCP Server"
     echo "  frontend   啟動前端服務 (Vite)"
-    echo "  worker     啟動 RQ Worker (後台任務處理)"
+    echo "  worker     啟動 RQ Worker (後台任務處理: kg/vec/file)"
+    echo "  mm-worker  啟動 MM-Agent Worker (genai_chat 隊列)"
     echo "  dashboard  啟動 RQ Dashboard (任務監控界面)"
     echo ""
     echo "Ollama (本地 LLM):"
@@ -944,11 +945,11 @@ start_worker() {
     # 啟動 Worker Service（監聽所有隊列，啟用監控）
     echo -e "${GREEN}啟動 RQ Worker Service...${NC}"
     echo -e "${GREEN}  Worker 數量: ${WORKER_NUM:-5}${NC}"
-    echo -e "${GREEN} 監聽隊列: kg_extraction, vectorization, file_processing${NC}"
+    echo -e "${GREEN} 監聽隊列: kg_extraction, vectorization, file_processing, agent_todo${NC}"
     echo -e "${GREEN} 監控模式: 啟用${NC}"
     echo -e "${GREEN} 日誌文件: $LOG_DIR/worker_service.log${NC}"
 
-    nohup "$PYTHON_CMD" -m workers.service         --queues kg_extraction vectorization file_processing         --num-workers ${WORKER_NUM:-5}         --monitor         --check-interval 30         --name rq_worker_ai_box         > "$LOG_DIR/worker_service.log" 2>&1 &
+    nohup "$PYTHON_CMD" -m workers.service         --queues kg_extraction vectorization file_processing agent_todo         --num-workers ${WORKER_NUM:-5}         --monitor         --check-interval 30         --name rq_worker_ai_box         > "$LOG_DIR/worker_service.log" 2>&1 &
 
     local worker_pid=$!
     sleep 2

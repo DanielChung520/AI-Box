@@ -8,22 +8,21 @@
  * 用於統一管理前端與後端的 API 通信
  */
 
-// 從環境變量獲取 API 基礎 URL，如果沒有則使用默認值
-// 注意：生產環境應使用 HTTPS 和完整的域名，避免本地網絡請求限制
-// 如果當前頁面是 HTTPS，且沒有設置 VITE_API_BASE_URL，則使用當前域名（避免 CORS 問題）
+// 從環境變量獲取 API 基礎 URL，如果沒有則使用相對路徑（通過 Vite 代理）
+// 注意：使用相對路徑 /api，讓 Vite dev server 的代理功能處理請求
 const getDefaultApiUrl = () => {
-  // 開發環境：使用 localhost
+  // 開發環境：使用相對路徑，讓 Vite 代理處理
+  // Vite 代理配置：'/api' -> 'http://localhost:8000'
   if (import.meta.env.DEV) {
-    return 'http://localhost:8000';
+    return '';  // 使用相對路徑，通過 Vite 代理
   }
 
-  // 如果當前頁面是 HTTPS，使用當前域名（避免 CORS 問題）
+  // 生產環境：使用當前域名
   if (window.location.protocol === 'https:') {
     return window.location.origin;
   }
 
-  // 默認：使用當前域名
-  return window.location.origin;
+  return '';
 };
 
 // 優先使用環境變量，如果設置了 VITE_API_BASE_URL，則使用它

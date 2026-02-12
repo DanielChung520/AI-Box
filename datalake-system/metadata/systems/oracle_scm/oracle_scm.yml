@@ -1,0 +1,221 @@
+# =============================================================================
+# Oracle SCM Schema Definition
+# =============================================================================
+# 說明：Oracle SCM 系統的 Schema，共享相同的 Canonical Name 結構
+#      但使用 Oracle 特定的表名和欄位名
+# =============================================================================
+
+version: "1.0.0"
+
+system:
+  id: "oracle_scm"
+  name: "Oracle SCM"
+  full_name: "Oracle Supply Chain Management"
+  dialect: "oracle"
+  naming_convention: "oracle"
+  bucket: "oracle-raw"
+
+tables:
+  - name: "item_master"
+    canonical_name: "item_master"
+    names:
+      tiptop: "ima_file"
+      oracle: "MTL_SYSTEM_ITEMS_B"
+      sap: "MARA"
+    description: "Item Master"
+    type: "dimension"
+    columns:
+      - id: "item_code"
+        names:
+          tiptop: "ima01"
+          oracle: "INVENTORY_ITEM_ID"
+          sap: "MATNR"
+        type: "string"
+        description: "Item Code"
+        primary_key: true
+      - id: "item_name"
+        names:
+          tiptop: "ima02"
+          oracle: "DESCRIPTION"
+          sap: "MAKTX"
+        type: "string"
+        description: "Item Name"
+      - id: "specification"
+        names:
+          tiptop: "ima021"
+          oracle: "ITEM_SPECIFICATION"
+          sap: "GROES"
+        type: "string"
+        description: "Specification"
+
+  - name: "inventory"
+    canonical_name: "inventory"
+    names:
+      tiptop: "img_file"
+      oracle: "MTL_ONHAND_QUANTITIES_V"
+      sap: "MARD"
+    description: "Inventory"
+    type: "fact"
+    columns:
+      - id: "item_code"
+        names:
+          tiptop: "img01"
+          oracle: "INVENTORY_ITEM_ID"
+          sap: "MATNR"
+        type: "string"
+        description: "Item Code"
+        fk: "item_master.item_code"
+      - id: "warehouse"
+        names:
+          tiptop: "img02"
+          oracle: "ORGANIZATION_ID"
+          sap: "WERKS"
+        type: "string"
+        description: "Organization"
+      - id: "quantity"
+        names:
+          tiptop: "img10"
+          oracle: "PRIMARY_TRANSACTION_QUANTITY"
+          sap: "LABST"
+        type: "decimal"
+        description: "Quantity"
+
+  - name: "supplier"
+    canonical_name: "supplier"
+    names:
+      tiptop: "pmc_file"
+      oracle: "AP_SUPPLIERS"
+      sap: "LFA1"
+    description: "Supplier"
+    type: "dimension"
+    columns:
+      - id: "supplier_code"
+        names:
+          tiptop: "pmc01"
+          oracle: "VENDOR_ID"
+          sap: "LIFNR"
+        type: "string"
+        description: "Vendor ID"
+        primary_key: true
+      - id: "supplier_name"
+        names:
+          tiptop: "pmc03"
+          oracle: "VENDOR_NAME"
+          sap: "NAME1"
+        type: "string"
+        description: "Vendor Name"
+
+  - name: "purchase_header"
+    canonical_name: "purchase_header"
+    names:
+      tiptop: "pmm_file"
+      oracle: "PO_HEADERS_ALL"
+      sap: "EKKO"
+    description: "Purchase Order Header"
+    type: "fact"
+    columns:
+      - id: "po_number"
+        names:
+          tiptop: "pmm01"
+          oracle: "SEGMENT1"
+          sap: "EBELN"
+        type: "string"
+        description: "PO Number"
+        primary_key: true
+      - id: "po_date"
+        names:
+          tiptop: "pmm02"
+          oracle: "CREATION_DATE"
+          sap: "BEDAT"
+        type: "date"
+        description: "PO Date"
+      - id: "supplier_code"
+        names:
+          tiptop: "pmm04"
+          oracle: "VENDOR_ID"
+          sap: "LIFNR"
+        type: "string"
+        description: "Vendor ID"
+        fk: "supplier.supplier_code"
+
+  - name: "purchase_line"
+    canonical_name: "purchase_line"
+    names:
+      tiptop: "pmn_file"
+      oracle: "PO_LINES_ALL"
+      sap: "EKPO"
+    description: "Purchase Order Line"
+    type: "fact"
+    columns:
+      - id: "po_number"
+        names:
+          tiptop: "pmn01"
+          oracle: "PO_HEADER_ID"
+          sap: "EBELN"
+        type: "string"
+        description: "PO Number"
+        fk: "purchase_header.po_number"
+      - id: "line_number"
+        names:
+          tiptop: "pmn02"
+          oracle: "LINE_NUM"
+          sap: "EBELP"
+        type: "integer"
+        description: "Line Number"
+      - id: "item_code"
+        names:
+          tiptop: "pmn04"
+          oracle: "ITEM_ID"
+          sap: "MATNR"
+        type: "string"
+        description: "Item Code"
+        fk: "item_master.item_code"
+      - id: "quantity"
+        names:
+          tiptop: "pmn20"
+          oracle: "QUANTITY"
+          sap: "MENGE"
+        type: "decimal"
+        description: "Quantity"
+
+relationships:
+  - from_table: "purchase_line"
+    from_column: "po_number"
+    to_table: "purchase_header"
+    to_table_column: "po_number"
+    description: "PO Line to Header"
+    type: "many-to-one"
+  - from_table: "purchase_header"
+    from_column: "supplier_code"
+    to_table: "supplier"
+    to_table_column: "supplier_code"
+    description: "PO to Supplier"
+    type: "many-to-one"
+
+intents:
+  - name: "QUERY_STOCK"
+    description: "Inventory Query"
+    patterns:
+      - "inventory"
+      - "stock"
+      - "quantity"
+    tables:
+      - "inventory"
+      - "item_master"
+    example_queries:
+      - "Check inventory levels"
+      - "Show stock for item"
+
+  - name: "QUERY_PURCHASE"
+    description: "Purchase Order Query"
+    patterns:
+      - "purchase"
+      - "PO"
+      - "order"
+    tables:
+      - "purchase_header"
+      - "purchase_line"
+      - "supplier"
+    example_queries:
+      - "Show purchase orders"
+      - "PO details"

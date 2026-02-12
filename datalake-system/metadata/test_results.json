@@ -1,0 +1,148 @@
+{
+  "timestamp": "2026-02-09T22:54:02.243649",
+  "metrics": {
+    "total_tests": 19,
+    "passed_tests": 19,
+    "failed_tests": 0,
+    "avg_duration_ms": 5.5824430365311475,
+    "min_duration_ms": 0.7860660552978516,
+    "max_duration_ms": 17.015457153320312,
+    "p50_duration_ms": 2.9268741607666016,
+    "p95_duration_ms": 17.015457153320312
+  },
+  "tests": [
+    {
+      "name": "料件主檔查詢",
+      "passed": true,
+      "duration_ms": 17.015457153320312,
+      "details": "返回 10 筆",
+      "result_count": 10
+    },
+    {
+      "name": "交易類型概念",
+      "passed": true,
+      "duration_ms": 12.897968292236328,
+      "details": "返回 8 筆",
+      "result_count": 8
+    },
+    {
+      "name": "庫存查詢意圖",
+      "passed": true,
+      "duration_ms": 4.245281219482422,
+      "details": "返回 10 筆",
+      "result_count": 10
+    },
+    {
+      "name": "料號庫存混合",
+      "passed": true,
+      "duration_ms": 5.537986755371094,
+      "details": "返回 10 筆",
+      "result_count": 10
+    },
+    {
+      "name": "採購相關全部",
+      "passed": true,
+      "duration_ms": 14.875650405883789,
+      "details": "返回 13 筆",
+      "result_count": 13
+    },
+    {
+      "name": "庫存位置",
+      "passed": true,
+      "duration_ms": 4.101037979125977,
+      "details": "返回 11 筆",
+      "result_count": 11
+    },
+    {
+      "name": "鋁合金料號",
+      "passed": true,
+      "duration_ms": 9.32765007019043,
+      "details": "返回 10 筆",
+      "result_count": 10
+    },
+    {
+      "name": "效能測試-表格",
+      "passed": true,
+      "duration_ms": 6.191253662109375,
+      "details": "avg=6.19ms, p50=3.68ms, p95=17.08ms",
+      "result_count": 0
+    },
+    {
+      "name": "效能測試-概念",
+      "passed": true,
+      "duration_ms": 8.017158508300781,
+      "details": "avg=8.02ms, p50=7.82ms, p95=16.75ms",
+      "result_count": 0
+    },
+    {
+      "name": "效能測試-意圖",
+      "passed": true,
+      "duration_ms": 2.898263931274414,
+      "details": "avg=2.90ms, p50=2.74ms, p95=3.49ms",
+      "result_count": 0
+    },
+    {
+      "name": "效能測試-混合",
+      "passed": true,
+      "duration_ms": 2.9268741607666016,
+      "details": "avg=2.93ms, p50=2.84ms, p95=3.43ms",
+      "result_count": 0
+    },
+    {
+      "name": "策略-vector",
+      "passed": true,
+      "duration_ms": 2.1164417266845703,
+      "details": "返回 10 筆",
+      "result_count": 10
+    },
+    {
+      "name": "策略-graph",
+      "passed": true,
+      "duration_ms": 0.7860660552978516,
+      "details": "返回 6 筆",
+      "result_count": 6
+    },
+    {
+      "name": "策略-hybrid",
+      "passed": true,
+      "duration_ms": 2.5606155395507812,
+      "details": "返回 11 筆",
+      "result_count": 11
+    },
+    {
+      "name": "空查詢",
+      "passed": true,
+      "duration_ms": 2.4433135986328125,
+      "details": "返回 15 筆",
+      "result_count": 15
+    },
+    {
+      "name": "隨機字符串",
+      "passed": true,
+      "duration_ms": 2.533435821533203,
+      "details": "返回 10 筆",
+      "result_count": 10
+    },
+    {
+      "name": "不存在系統",
+      "passed": true,
+      "duration_ms": 2.5255680084228516,
+      "details": "返回 0 筆",
+      "result_count": 0
+    },
+    {
+      "name": "不存在類型",
+      "passed": true,
+      "duration_ms": 2.425670623779297,
+      "details": "返回 1 筆",
+      "result_count": 1
+    },
+    {
+      "name": "極長查詢",
+      "passed": true,
+      "duration_ms": 2.6407241821289062,
+      "details": "返回 12 筆",
+      "result_count": 12
+    }
+  ]
+}

@@ -34,17 +34,6 @@ class SemanticAnalyzer:
                 r"記錄.*",
                 r"記得.*",
             ],
-            "query_part": [
-                r"查詢.*料號",
-                r"查詢.*物料",
-                r"料號.*信息",
-                r"料號.*規格",
-                r"料號.*供應商",
-                r"供應商.*誰",
-                r"物料.*信息",
-                r"part.*info",
-                r"query.*part",
-            ],
             "query_stock": [
                 r"查詢.*庫存",
                 r"庫存.*數量",
@@ -55,6 +44,21 @@ class SemanticAnalyzer:
                 r"current.*stock",
                 r"存放在.*哪裡",
                 r"存放.*位置",
+                r"現有庫存",
+                r"庫存總數",
+                r"所有.*庫存",
+                r"料號.*庫存",
+            ],
+            "query_part": [
+                r"查詢.*料號",
+                r"查詢.*物料",
+                r"料號.*信息",
+                r"料號.*規格",
+                r"料號.*供應商",
+                r"供應商.*誰",
+                r"物料.*信息",
+                r"part.*info",
+                r"query.*part",
             ],
             "query_stock_history": [
                 r"進料",
@@ -136,12 +140,63 @@ class SemanticAnalyzer:
         """
         # 簡單指令特徵：
         # 1. 長度較短（< 50 字符）
-        # 2. 包含明確的關鍵詞和料號
+        # 2. 包含明確的關鍵詞和料號，或者匹配庫房查詢模式
         # 3. 不包含指代或上下文依賴
         # 4. 不包含複雜意圖關鍵詞（如進料、採購記錄等）
 
         if len(instruction) > 50:
             return False
+
+        # 檢查是否包含指代
+        if any(word in instruction for word in ["剛才", "那個", "這個", "它", "他"]):
+            return False
+
+        # 檢查是否包含複雜意圖關鍵詞（這些需要 LLM 識別）
+        complex_keywords = [
+            "進料",
+            "進貨",
+            "採購",
+            "入庫",
+            "出庫",
+            "交易",
+            "歷史",
+            "記錄",
+            "最近",
+            "上個月",
+            "上週",
+            "今年",
+            "去年",
+            "歷史記錄",
+        ]
+        if any(kw in instruction for kw in complex_keywords):
+            return False
+
+        # 檢查是否匹配庫存查詢模式（優先）
+        stock_patterns = [
+            r"庫存.*數量",
+            r"現有庫存",
+            r"庫存總數",
+            r"所有.*庫存",
+        ]
+        if any(re.search(pattern, instruction, re.IGNORECASE) for pattern in stock_patterns):
+            return True
+
+        # 檢查是否包含明確的料號
+        if re.search(r"[A-Z]{2,4}\d{2,6}-\d{2,6}", instruction, re.IGNORECASE):
+            return True
+
+        # 檢查是否匹配庫房查詢模式
+        warehouse_patterns = [
+            r"庫房.*有哪些料號",
+            r"庫房.*有哪些",
+            r"有哪些料號",
+            r"所有料號",
+            r"列出.*料號",
+        ]
+        if any(re.search(pattern, instruction, re.IGNORECASE) for pattern in warehouse_patterns):
+            return True
+
+        return False
 
         # 檢查是否包含指代
         if any(word in instruction for word in ["剛才", "那個", "這個", "它", "他"]):

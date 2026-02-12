@@ -1,0 +1,404 @@
+{
+  "timestamp": "2026-02-10T16:22:30.444979",
+  "summary": {
+    "total": 7,
+    "passed": 5,
+    "failed": 2,
+    "total_duration_ms": 50190.303802490234
+  },
+  "results": [
+    {
+      "scenario_id": "SQ-001",
+      "category": "库存查询",
+      "description": "料号 10-0001 的库存",
+      "duration_ms": 4744.116544723511,
+      "success": true,
+      "correctness": true,
+      "performance": true,
+      "error_handling": null,
+      "sql_query": "",
+      "result_data": {
+        "success": true,
+        "task_type": "query_stock",
+        "result": {
+          "success": true,
+          "part_number": "10-0001",
+          "warehouse": null,
+          "stock_info": {
+            "img01": "10-0001",
+            "img02": "W03",
+            "img03": "L01",
+            "img04": "BATCH-001",
+            "img10": 100416
+          },
+          "response": "料號 10-0001 的庫存資料如下：\n• 存放倉庫：W03\n• 批次編號：-\n• 目前庫存數量：100,416 件"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock",
+          "confidence": 0.99,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null,
+            "location": null,
+            "start_date": null,
+            "end_date": null
+          },
+          "original_instruction": "執行 query_stock，參數: {\"part_number\": \"10-0001\"}",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存信息",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error_message": null,
+      "notes": null
+    },
+    {
+      "scenario_id": "SQ-002",
+      "category": "库存查询",
+      "description": "W03 仓库的库存",
+      "duration_ms": 17385.260105133057,
+      "success": true,
+      "correctness": true,
+      "performance": true,
+      "error_handling": null,
+      "sql_query": null,
+      "result_data": {
+        "success": true,
+        "task_type": "query_stock",
+        "result": {
+          "success": true,
+          "part_number": null,
+          "warehouse": "W03",
+          "stock_list": [
+            {
+              "img01": "10-0001",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 100416
+            },
+            {
+              "img01": "10-0002",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 106873
+            },
+            {
+              "img01": "10-0003",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 104177
+            },
+            {
+              "img01": "10-0004",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 100041
+            },
+            {
+              "img01": "10-0005",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 97762
+            },
+            {
+              "img01": "10-0006",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 101155
+            },
+            {
+              "img01": "10-0007",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 102264
+            },
+            {
+              "img01": "10-0008",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 100356
+            },
+            {
+              "img01": "10-0009",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 99639
+            },
+            {
+              "img01": "10-0010",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 102527
+            },
+            {
+              "img01": "10-0011",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 98709
+            },
+            {
+              "img01": "10-0012",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 98159
+            },
+            {
+              "img01": "10-0013",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 99949
+            },
+            {
+              "img01": "10-0014",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 100669
+            },
+            {
+              "img01": "10-0015",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 100217
+            },
+            {
+              "img01": "10-0016",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 100678
+            },
+            {
+              "img01": "10-0017",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 101053
+            },
+            {
+              "img01": "10-0018",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 103557
+            },
+            {
+              "img01": "10-0019",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 101777
+            },
+            {
+              "img01": "10-0020",
+              "img02": "W03",
+              "img03": "L01",
+              "img04": "BATCH-001",
+              "img10": 98376
+            }
+          ],
+          "count": 20,
+          "response": "**W03 倉庫庫存清單（共 20 筆）**\n\n| 料號 | 批次 | 庫存數量（件） |\n|------|------|----------------|\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n| - | - | 0 |\n\n**庫存總數量：0 件**"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock",
+          "confidence": 0.99,
+          "parameters": {
+            "part_number": null,
+            "quantity": null,
+            "location": "W03",
+            "start_date": null,
+            "end_date": null
+          },
+          "original_instruction": "執行 query_stock，參數: {\"warehouse\": \"W03\"}",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存信息",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error_message": null,
+      "notes": null
+    },
+    {
+      "scenario_id": "SQ-003",
+      "category": "库存查询",
+      "description": "料号 10-0001 在 W03 仓库的库存",
+      "duration_ms": 6372.359275817871,
+      "success": true,
+      "correctness": true,
+      "performance": true,
+      "error_handling": null,
+      "sql_query": null,
+      "result_data": {
+        "success": true,
+        "task_type": "query_stock",
+        "result": {
+          "success": true,
+          "part_number": "10-0001",
+          "warehouse": "W03",
+          "stock_info": {
+            "img01": "10-0001",
+            "img02": "W03",
+            "img03": "L01",
+            "img04": "BATCH-001",
+            "img10": 100416
+          },
+          "response": "料號 10-0001 的庫存資料如下：\n• 存放倉庫：W03\n• 批次編號：-\n• 目前庫存數量：100,416 件"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock",
+          "confidence": 0.99,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null,
+            "location": "W03",
+            "start_date": null,
+            "end_date": null
+          },
+          "original_instruction": "執行 query_stock，參數: {\"part_number\": \"10-0001\", \"warehouse\": \"W03\"}",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存信息",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error_message": null,
+      "notes": null
+    },
+    {
+      "scenario_id": "SQ-011",
+      "category": "交易历史",
+      "description": "料号 10-0001 的交易历史",
+      "duration_ms": 7310.073614120483,
+      "success": false,
+      "correctness": null,
+      "performance": null,
+      "error_handling": null,
+      "sql_query": null,
+      "result_data": {
+        "success": false,
+        "task_type": "query_stock_history",
+        "result": {
+          "success": false,
+          "error": "Conversion Error: Could not convert string '' to INT64\n\nLINE 3:                 WHERE tlf01 = '10-0001' AND tlf06 >= ''\n                                                             ^"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_stock_history",
+          "confidence": 0.99,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null,
+            "location": null,
+            "start_date": null,
+            "end_date": null
+          },
+          "original_instruction": "執行 query_stock_history，參數: {\"part_number\": \"10-0001\"}",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢庫存/進貨歷史",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error_message": "Conversion Error: Could not convert string '' to INT64\n\nLINE 3:                 WHERE tlf01 = '10-0001' AND tlf06 >= ''\n                                                             ^",
+      "notes": null
+    },
+    {
+      "scenario_id": "SQ-012",
+      "category": "交易历史",
+      "description": "料号 10-0001 在 2024 年的交易",
+      "duration_ms": 3111.3839149475098,
+      "success": false,
+      "correctness": null,
+      "performance": null,
+      "error_handling": null,
+      "sql_query": null,
+      "result_data": {
+        "success": false,
+        "task_type": "query_part",
+        "result": {
+          "success": false,
+          "error": "Data Agent調用失敗: Data Agent調用失敗: HTTP 404, {\"detail\":\"Agent not found: data-agent\"}"
+        },
+        "error": null,
+        "metadata": null,
+        "semantic_analysis": {
+          "intent": "query_part",
+          "confidence": 0.8,
+          "parameters": {
+            "part_number": "10-0001",
+            "quantity": null
+          },
+          "original_instruction": "執行 query_stock_history，參數: {\"part_number\": \"10-0001\", \"start_date\": \"2024-01-01\", \"end_date\": \"2024-12-31\"}",
+          "clarification_needed": false,
+          "clarification_questions": []
+        },
+        "responsibility": "查詢物料基本信息",
+        "data_queries": [],
+        "validation": null,
+        "anomalies": []
+      },
+      "error_message": "Data Agent調用失敗: Data Agent調用失敗: HTTP 404, {\"detail\":\"Agent not found: data-agent\"}",
+      "notes": null
+    },
+    {
+      "scenario_id": "SQ-031",
+      "category": "异常处理",
+      "description": "缺少必需参数",
+      "duration_ms": 6472.0330238342285,
+      "success": true,
+      "correctness": null,
+      "performance": null,
+      "error_handling": true,
+      "sql_query": null,
+      "result_data": null,
+      "error_message": "請提供料號或倉庫代碼",
+      "notes": null
+    },
+    {
+      "scenario_id": "SQ-032",
+      "category": "异常处理",
+      "description": "查询不存在的料号",
+      "duration_ms": 4794.842481613159,
+      "success": true,
+      "correctness": null,
+      "performance": null,
+      "error_handling": true,
+      "sql_query": null,
+      "result_data": null,
+      "error_message": null,
+      "notes": null
+    }
+  ]
+}

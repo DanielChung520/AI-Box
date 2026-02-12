@@ -1,0 +1,73 @@
+{
+    "version": "1.0",
+    "domain": "inventory_management",
+    "concepts": {
+      "INVENTORY_LOCATION": {
+        "type": "ENUM",
+        "description": "庫存所在的業務位置",
+        "values": {
+          "W01": {
+            "labels": {
+              "zh": ["原料倉", "原料庫"],
+              "en": ["raw material warehouse"]
+            }
+          },
+          "W02": {
+            "labels": {
+              "zh": ["成品倉"],
+              "en": ["finished goods warehouse"]
+            }
+          },
+          "W03": {
+            "labels": {
+              "zh": ["半成品倉"],
+              "en": ["semi-finished warehouse"]
+            }
+          }
+        }
+      },
+  
+      "PART_NO": {
+        "type": "ENTITY",
+        "description": "料號",
+        "patterns": ["[A-Z0-9\\-]{4,20}"]
+      },
+  
+      "TIME_RANGE": {
+        "type": "RANGE",
+        "description": "查詢的時間區間（語義）",
+        "values": {
+          "TODAY": {
+            "labels": ["今天"]
+          },
+          "LAST_7_DAYS": {
+            "labels": ["最近7天", "近7天"]
+          },
+          "LAST_30_DAYS": {
+            "labels": ["最近30天", "近一個月"]
+          },
+          "CUSTOM_RANGE": {
+            "labels": ["從", "到"],
+            "params": ["start_date", "end_date"]
+          }
+        }
+      },
+  
+      "STOCK_STATUS": {
+        "type": "ENUM",
+        "description": "庫存狀態",
+        "values": {
+          "ON_HAND": {
+            "labels": ["在庫", "現有庫存"]
+          },
+          "AVAILABLE": {
+            "labels": ["可用庫存"]
+          },
+          "RESERVED": {
+            "labels": ["已保留", "已預留"]
+          }
+        }
+      }
+    }
+  }
+  

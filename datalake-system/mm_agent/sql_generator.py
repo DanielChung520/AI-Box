@@ -31,7 +31,7 @@ class SQLGenerator:
         """,
         QueryIntent.QUERY_PURCHASE.value: """
             SELECT {fields}
-            FROM tlf_file
+            FROM tlf_file_large
             LEFT JOIN ima_file ON tlf01 = ima01
             WHERE {conditions}
             {group_by}
@@ -40,7 +40,7 @@ class SQLGenerator:
         """,
         QueryIntent.QUERY_SALES.value: """
             SELECT {fields}
-            FROM tlf_file
+            FROM tlf_file_large
             LEFT JOIN ima_file ON tlf01 = ima01
             WHERE tlf19 = '202'
             AND {conditions}

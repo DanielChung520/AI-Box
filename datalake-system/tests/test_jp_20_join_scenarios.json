@@ -1,0 +1,199 @@
+{
+  "version": "1.0",
+  "system": "jp_tiptop_erp",
+  "language": "zh-TW",
+  "description": "JP TiTop ERP 20個 JOIN 查詢場景",
+  "scenarios": [
+    {
+      "id": "JP_JOIN_001",
+      "category": "工單製造",
+      "description": "工單製造頭檔 + 明細檔",
+      "tables": ["SFCA_T", "SFCB_T"],
+      "join_key": "SFCADOCNO",
+      "natural_language": "查詢工單CNJ-P12-201405080002的製造明細，包括生產數量、完工數量、各工序進度"
+    },
+    {
+      "id": "JP_JOIN_002",
+      "category": "工單製造",
+      "description": "查詢工單在各工作站的良品率",
+      "tables": ["SFCA_T", "SFCB_T"],
+      "join_key": "SFCADOCNO",
+      "natural_language": "查詢工單CNJ-P12-201405080002在各工作站的良品流入、良品流出、報廢數量和良品率"
+    },
+    {
+      "id": "JP_JOIN_003",
+      "category": "工單製造",
+      "description": "查詢工單的當前工序和WIP數量",
+      "tables": ["SFCA_T", "SFCB_T"],
+      "join_key": "SFCADOCNO",
+      "natural_language": "查詢工單CNJ-P12-201405080002當前所在的工序和各工序的WIP在製品數量"
+    },
+    {
+      "id": "JP_JOIN_004",
+      "category": "工單製造",
+      "description": "查詢工單的外包加工進度",
+      "tables": ["SFCA_T", "SFCB_T"],
+      "join_key": "SFCADOCNO",
+      "natural_language": "查詢工單CNJ-P12-201405080002的外包加工數量和外包完工數量"
+    },
+    {
+      "id": "JP_JOIN_005",
+      "category": "工單製造",
+      "description": "統計各工作站的報廢數量",
+      "tables": ["SFCA_T", "SFCB_T"],
+      "join_key": "SFCADOCNO",
+      "natural_language": "統計所有工單在各工作站的報廢數量總和，按工作站降序排列"
+    },
+    {
+      "id": "JP_JOIN_006",
+      "category": "出貨管理",
+      "description": "出貨通知頭檔 + 明細檔",
+      "tables": ["XMDG_T", "XMDH_T"],
+      "join_key": "XMDGDOCNO",
+      "natural_language": "查詢出貨單CNJ-P62-201410140001的出貨明細，包括日期、狀態、料號、數量、單價"
+    },
+    {
+      "id": "JP_JOIN_007",
+      "category": "出貨管理",
+      "description": "按客戶統計出貨數量和金額",
+      "tables": ["XMDG_T", "XMDH_T"],
+      "join_key": "XMDGDOCNO",
+      "natural_language": "按客戶統計出貨總數量和出貨金額總和"
+    },
+    {
+      "id": "JP_JOIN_008",
+      "category": "出貨管理",
+      "description": "按業務部門統計出貨",
+      "tables": ["XMDG_T", "XMDH_T"],
+      "join_key": "XMDGDOCNO",
+      "natural_language": "按業務部門MKTS3統計出貨數量、出貨金額和出貨單數量"
+    },
+    {
+      "id": "JP_JOIN_009",
+      "category": "出貨管理",
+      "description": "按銷售類別統計出貨",
+      "tables": ["XMDG_T", "XMDH_T"],
+      "join_key": "XMDGDOCNO",
+      "natural_language": "按銷售類別S01統計出貨數量、出貨金額和出貨單數量"
+    },
+    {
+      "id": "JP_JOIN_010",
+      "category": "出貨管理",
+      "description": "查詢待出貨的訂單",
+      "tables": ["XMDG_T", "XMDH_T"],
+      "join_key": "XMDGDOCNO",
+      "natural_language": "查詢狀態為N（未出貨）的出貨通知列表及其明細"
+    },
+    {
+      "id": "JP_JOIN_011",
+      "category": "售價管理",
+      "description": "售價審核頭檔 + 明細檔",
+      "tables": ["XMDT_T", "XMDU_T"],
+      "join_key": "XMDTDOCNO",
+      "natural_language": "查詢售價審核單CNJ-HJD-151100000002的審核明細，包括日期、狀態、料號、單價"
+    },
+    {
+      "id": "JP_JOIN_012",
+      "category": "售價管理",
+      "description": "按客戶統計售價審核",
+      "tables": ["XMDT_T", "XMDU_T"],
+      "join_key": "XMDTDOCNO",
+      "natural_language": "按客戶統計售價審核單數量和平均單價"
+    },
+    {
+      "id": "JP_JOIN_013",
+      "category": "售價管理",
+      "description": "按申請部門統計售價審核",
+      "tables": ["XMDT_T", "XMDU_T"],
+      "join_key": "XMDTDOCNO",
+      "natural_language": "按申請部門統計售價審核單數量和審核金額"
+    },
+    {
+      "id": "JP_JOIN_014",
+      "category": "售價管理",
+      "description": "查詢有效售價",
+      "tables": ["XMDT_T", "XMDU_T"],
+      "join_key": "XMDTDOCNO",
+      "natural_language": "查詢狀態為Y（已核准）且在有效日期內的售價記錄"
+    },
+    {
+      "id": "JP_JOIN_015",
+      "category": "售價管理",
+      "description": "查詢料號的平均售價",
+      "tables": ["XMDT_T", "XMDU_T"],
+      "join_key": "XMDTDOCNO",
+      "natural_language": "查詢每個料號的平均售價、最高售價和最低售價"
+    },
+    {
+      "id": "JP_JOIN_016",
+      "category": "製造分析",
+      "description": "各工作站綜合效能分析",
+      "tables": ["SFCA_T", "SFCB_T"],
+      "join_key": "SFCADOCNO",
+      "natural_language": "統計各工作站的良品流入、良品流出、報廢、重工流入、重工流出和綜合良品率"
+    },
+    {
+      "id": "JP_JOIN_017",
+      "category": "製造分析",
+      "description": "各工序產出分析",
+      "tables": ["SFCA_T", "SFCB_T"],
+      "join_key": "SFCADOCNO",
+      "natural_language": "統計各工序的工單數量、總生產數量、總完工數量和完功率"
+    },
+    {
+      "id": "JP_JOIN_018",
+      "category": "出貨分析",
+      "description": "客戶出貨趨勢分析",
+      "tables": ["XMDG_T", "XMDH_T"],
+      "join_key": "XMDGDOCNO",
+      "natural_language": "按客戶和月份統計出貨數量和金額，分析出貨趨勢"
+    },
+    {
+      "id": "JP_JOIN_019",
+      "category": "出貨分析",
+      "description": "按業務人員統計出貨績效",
+      "tables": ["XMDG_T", "XMDH_T"],
+      "join_key": "XMDGDOCNO",
+      "natural_language": "按業務人員統計出貨數量、出貨金額和出貨單數量"
+    },
+    {
+      "id": "JP_JOIN_020",
+      "category": "交叉分析",
+      "description": "出貨明細按料號統計",
+      "tables": ["XMDG_T", "XMDH_T"],
+      "join_key": "XMDGDOCNO",
+      "natural_language": "按料號統計出貨總數量、平均單價和出貨總金額"
+    }
+  ],
+  "join_relationships": {
+    "SFCA_T_SFCB_T": {
+      "description": "工單製造頭檔 → 明細檔",
+      "join_key": "SFCADOCNO",
+      "join_type": "INNER JOIN",
+      "purpose": "查詢工單的製造明細、工序進度、工作站產出、品質數據"
+    },
+    "XMDG_T_XMDH_T": {
+      "description": "出貨通知頭檔 → 明細檔",
+      "join_key": "XMDGDOCNO",
+      "join_type": "INNER JOIN",
+      "purpose": "查詢出貨明細、料號、數量、單價、客戶、業務部門"
+    },
+    "XMDT_T_XMDU_T": {
+      "description": "售價審核頭檔 → 明細檔",
+      "join_key": "XMDTDOCNO",
+      "join_type": "INNER JOIN",
+      "purpose": "查詢售價審核明細、料號、單價、客戶、申請部門"
+    }
+  },
+  "examples": {
+    "JP_JOIN_001": {
+      "sql": "SELECT sf.SFCADOCNO, sf.SFCA003 as 生產數量, sf.SFCA004 as 完工數量, sb.SFCB003 as 工序, sb.SFCB011 as 工作站, sb.SFCB028 as 良品流入 FROM SFCA_T sf INNER JOIN SFCB_T sb ON sf.SFCADOCNO = sb.SFCBDOCNO WHERE sf.SFCADOCNO = 'CNJ-P12-201405080002'"
+    },
+    "JP_JOIN_006": {
+      "sql": "SELECT g.XMDGDOCNO, g.XMDGDOCDT as 出貨日期, g.XMDGSTUS as 狀態, h.XMDHSEQ as 項次, h.XMDH006 as 料號, h.XMDH017 as 數量, h.XMDH023 as 單價 FROM XMDG_T g INNER JOIN XMDH_T h ON g.XMDGDOCNO = h.XMDHDOCNO WHERE g.XMDGDOCNO = 'CNJ-P62-201410140001'"
+    },
+    "JP_JOIN_011": {
+      "sql": "SELECT t.XMDTDOCNO, t.XMDTDOCDT as 日期, t.XMDTSTUS as 狀態, u.XMDUSEQ as 項次, u.XMDU002 as 料號, u.XMDU011 as 單價 FROM XMDT_T t INNER JOIN XMDU_T u ON t.XMDTDOCNO = u.XMDUDOCNO WHERE t.XMDTDOCNO = 'CNJ-HJD-151100000002'"
+    }
+  }
+}

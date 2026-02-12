@@ -1,0 +1,162 @@
+[
+  {
+    "scenario_id": "INT-01",
+    "user_input": "什麼是 ABC 分類法",
+    "expected_intent": "KNOWLEDGE_QUERY",
+    "actual_intent": "KNOWLEDGE_QUERY",
+    "confidence": 0.97,
+    "knowledge_source_type": "external",
+    "thought_process": "用戶詢問「什麼是 ABC 分類法」是純粹的概念性知識問題，沒有涉及具體數據查詢或操作步驟，屬於外部專業知識範疇，符合 KNOWLEDGE_QUERY 的定義。",
+    "is_simple_query": false,
+    "needs_clarification": false,
+    "intent_passed": true,
+    "execution_time_ms": 62759.48091899045,
+    "downstream_result": {
+      "success": true,
+      "answer_preview": "**ABC 分類法（ABC Analysis）**  \n又稱 **「重要度分級法」**，是庫存管理中最常用的「費洛特（Pareto）原則」應用，將全部存貨依 **「價值」或「貢獻度」** 切成三類（A、B、C），以便集中資源管理最重要的少量品項。\n\n---\n\n## 1. 基本概念\n\n| 類別 | 佔品項比例（%） | 佔年度消耗額/毛利額比例（%） | 管理重點 |\n|------|-------",
+      "sources_count": 1,
+      "source_type": "external"
+    },
+    "downstream_passed": true,
+    "total_passed": true,
+    "error": null,
+    "category": "KNOWLEDGE_QUERY"
+  },
+  {
+    "scenario_id": "INT-02",
+    "user_input": "ERP 收料操作步驟",
+    "expected_intent": "KNOWLEDGE_QUERY",
+    "actual_intent": "KNOWLEDGE_QUERY",
+    "confidence": 0.96,
+    "knowledge_source_type": "internal",
+    "thought_process": "輸入內容為「ERP 收料操作步驟」，屬於詢問公司內部 ERP 系統的具體操作流程，符合 KNOWLEDGE_QUERY（內部知識）定義。不是問候、也不是簡短且缺乏關鍵資訊的情況，亦不涉及比較、排行或多步驟分析的複雜任務，因此判定為 KNOWLEDGE_QUERY。",
+    "is_simple_query": false,
+    "needs_clarification": false,
+    "intent_passed": true,
+    "execution_time_ms": 10900.93281911686,
+    "downstream_result": {
+      "success": true,
+      "data": {
+        "success": true,
+        "message": "Agent execution completed",
+        "data": {
+          "agent_id": "ka-agent",
+          "task_id": "task_ka-agent_265658427273568",
+          "status": "failed",
+          "result": {
+            "error_type": "missing_required_parameter",
+            "user_message": "您的指令缺少必要的參數：**instruction** （請提供您想執行的操作或查詢）\n\n請提供此參數以便我能正確執行您的請求。",
+            "technical_details": null,
+            "suggested_action": "provide_parameter",
+            "clarifying_questions": [
+              "請問您想要指定的「instruction」是什麼？"
+            ],
+            "example_usage": null,
+            "metadata": {
+              "parameter_name": "instruction",
+              "context": "請提供您想執行的操作或查詢"
+            }
+          },
+          "error": "[KA-Agent 反饋]\n\n您的指令缺少必要的參數：**instruction** （請提供您想執行的操作或查詢）\n\n請提供此參數以便我能正確執行您的請求。\n\n\n我需要了解：\n- 請問您想要指定的「instruction」是什麼？\n\n建議：請提供缺少的參數",
+          "metadata": {
+            "requested_by": "systemAdmin"
+          }
+        }
+      }
+    },
+    "downstream_passed": true,
+    "total_passed": true,
+    "error": null,
+    "category": "KNOWLEDGE_QUERY"
+  },
+  {
+    "scenario_id": "INT-03",
+    "user_input": "比較近三個月採購金額",
+    "expected_intent": "COMPLEX_TASK",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "knowledge_source_type": "unknown",
+    "thought_process": "輸入包含關鍵詞「比較」，且要求對近三個月的採購金額進行比較，符合比較分析類的複雜任務定義，需要多步驟執行（查詢三個月採購金額、彙總、比較、回覆），因此判定為 COMPLEX_TASK。",
+    "is_simple_query": false,
+    "needs_clarification": false,
+    "intent_passed": true,
+    "execution_time_ms": 39813.315386883914,
+    "downstream_result": {
+      "success": false,
+      "error": "RQ 調用失敗: "
+    },
+    "downstream_passed": false,
+    "total_passed": false,
+    "error": null,
+    "category": "COMPLEX_TASK"
+  },
+  {
+    "scenario_id": "INT-04",
+    "user_input": "料號 10-0001 的品名",
+    "expected_intent": "SIMPLE_QUERY",
+    "actual_intent": "SIMPLE_QUERY",
+    "confidence": 0.97,
+    "knowledge_source_type": "unknown",
+    "thought_process": "輸入包含明確的查詢對象「料號 10-0001」以及查詢項目「品名」，符合單一資料查詢的特徵，且不含比較、總覽或操作步驟等關鍵詞，故判定為 SIMPLE_QUERY。",
+    "is_simple_query": true,
+    "needs_clarification": false,
+    "intent_passed": true,
+    "execution_time_ms": 28409.919157158583,
+    "downstream_result": {
+      "success": true,
+      "sql": null,
+      "row_count": 0,
+      "data_preview": []
+    },
+    "downstream_passed": true,
+    "total_passed": true,
+    "error": null,
+    "category": "SIMPLE_QUERY"
+  },
+  {
+    "scenario_id": "INT-05",
+    "user_input": "W03 倉庫的庫存數量",
+    "expected_intent": "SIMPLE_QUERY",
+    "actual_intent": "SIMPLE_QUERY",
+    "confidence": 0.97,
+    "knowledge_source_type": "unknown",
+    "thought_process": "輸入包含明確的查詢目標「W03 倉庫」以及查詢內容「庫存數量」，屬於單一的庫存查詢，沒有比較、排名或多步驟需求，也不是問候或知識問題，符合 SIMPLE_QUERY 的定義。",
+    "is_simple_query": true,
+    "needs_clarification": false,
+    "intent_passed": true,
+    "execution_time_ms": 27834.092874079943,
+    "downstream_result": {
+      "success": true,
+      "sql": null,
+      "row_count": 0,
+      "data_preview": []
+    },
+    "downstream_passed": true,
+    "total_passed": true,
+    "error": null,
+    "category": "SIMPLE_QUERY"
+  },
+  {
+    "scenario_id": "INT-06",
+    "user_input": "查詢最近 10 筆採購單",
+    "expected_intent": "SIMPLE_QUERY",
+    "actual_intent": "SIMPLE_QUERY",
+    "confidence": 0.96,
+    "knowledge_source_type": "unknown",
+    "thought_process": "輸入包含明確的資料查詢目標——最近 10 筆採購單，沒有問候語、也不是知識問題，也不含比較、排名、總覽等關鍵詞，因此屬於單一資料查詢，符合 SIMPLE_QUERY 定義。",
+    "is_simple_query": true,
+    "needs_clarification": false,
+    "intent_passed": true,
+    "execution_time_ms": 29962.739913957193,
+    "downstream_result": {
+      "success": true,
+      "sql": null,
+      "row_count": 0,
+      "data_preview": []
+    },
+    "downstream_passed": true,
+    "total_passed": true,
+    "error": null,
+    "category": "SIMPLE_QUERY"
+  }
+]

@@ -1,0 +1,42 @@
+# ========================================
+# Workflow: inbound_management
+# ========================================
+
+name: "inbound_management"
+description: "正確接收並上架物料"
+version: "1.0.0"
+
+triggers:
+  - "入庫"
+  - "收貨"
+  - "到貨"
+  - "每有到貨通知"
+  - "每日盤點前"
+
+workflow:
+  steps:
+    - step_id: 1
+      action_type: "data_query"
+      description: "向 Data-Agent 查詢：『請拉取當天到貨物料清單與採購單匹配的物料編號、..."
+      instruction: |
+        向 Data-Agent 查詢：『請拉取當天到貨物料清單與採購單匹配的物料編號、數量、批次號與有效期，返回 JSON』
+    - step_id: 2
+      action_type: "data_query"
+      description: "資料完整性檢查：確認所有到貨物料都有編號、數量、批次號，缺失則標記並重新查詢"
+      instruction: |
+        資料完整性檢查：確認所有到貨物料都有編號、數量、批次號，缺失則標記並重新查詢
+    - step_id: 3
+      action_type: "data_query"
+      description: "更新 ERP 入庫紀錄"
+      instruction: |
+        更新 ERP 入庫紀錄
+    - step_id: 4
+      action_type: "data_query"
+      description: "將物料分類上架（依 ABC 分類及倉位規則）"
+      instruction: |
+        將物料分類上架（依 ABC 分類及倉位規則）
+    - step_id: 5
+      action_type: "data_query"
+      description: "標記入庫完成狀態"
+      instruction: |
+        標記入庫完成狀態

@@ -1,0 +1,202 @@
+[
+  {
+    "id": "51",
+    "input": "ERP 系統如何新增採購單",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "COMPLEX_TASK",
+    "confidence": 0.97,
+    "time": 8236.703556030989,
+    "source": "unknown",
+    "passed": false
+  },
+  {
+    "id": "52",
+    "input": "什麼是 JIT 存貨管理",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "KNOWLEDGE_QUERY",
+    "confidence": 0.98,
+    "time": 9999.29485609755,
+    "source": "external",
+    "passed": true
+  },
+  {
+    "id": "53",
+    "input": "公司對供應商的評核標準是什麼",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "KNOWLEDGE_QUERY",
+    "confidence": 0.96,
+    "time": 9488.469961099327,
+    "source": "internal",
+    "passed": true
+  },
+  {
+    "id": "54",
+    "input": "如何計算庫存週轉天數",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "KNOWLEDGE_QUERY",
+    "confidence": 0.97,
+    "time": 13296.8993159011,
+    "source": "external",
+    "passed": true
+  },
+  {
+    "id": "55",
+    "input": "採購單審核權限怎麼設定",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "time": 16171.426362823695,
+    "source": "internal",
+    "passed": false
+  },
+  {
+    "id": "56",
+    "input": "什麼是 ABC 分類法",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "KNOWLEDGE_QUERY",
+    "confidence": 0.97,
+    "time": 10908.819023054093,
+    "source": "external",
+    "passed": true
+  },
+  {
+    "id": "57",
+    "input": "我們公司的退貨處理流程",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "KNOWLEDGE_QUERY",
+    "confidence": 0.96,
+    "time": 24421.31791310385,
+    "source": "internal",
+    "passed": true
+  },
+  {
+    "id": "58",
+    "input": "安全庫存與最低庫存的差別",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "KNOWLEDGE_QUERY",
+    "confidence": 0.98,
+    "time": 11358.26733103022,
+    "source": "external",
+    "passed": true
+  },
+  {
+    "id": "59",
+    "input": "MPS 與 MRP 有什麼不同",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "KNOWLEDGE_QUERY",
+    "confidence": 0.98,
+    "time": 13576.771181076765,
+    "source": "external",
+    "passed": true
+  },
+  {
+    "id": "60",
+    "input": "請說明公司採購流程的五大階段",
+    "expected": "KNOWLEDGE_QUERY",
+    "actual": "KNOWLEDGE_QUERY",
+    "confidence": 0.97,
+    "time": 10633.263924857602,
+    "source": "internal",
+    "passed": true
+  },
+  {
+    "id": "61",
+    "input": "幫我分析 W01、W02、W03 三個倉庫的庫存水位並製作圖表",
+    "expected": "COMPLEX_TASK",
+    "actual": "COMPLEX_TASK",
+    "confidence": 0.97,
+    "time": 18824.995204107836,
+    "source": "unknown",
+    "passed": true
+  },
+  {
+    "id": "62",
+    "input": "比較 2024 年 Q1 與 Q4 的採購金額成長率",
+    "expected": "COMPLEX_TASK",
+    "actual": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "time": 13167.880143970251,
+    "source": "unknown",
+    "passed": true
+  },
+  {
+    "id": "63",
+    "input": "帮我生成 2024 年度採購分析報告",
+    "expected": "COMPLEX_TASK",
+    "actual": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "time": 12872.656968887895,
+    "source": "unknown",
+    "passed": true
+  },
+  {
+    "id": "64",
+    "input": "為料號 10-0001 建立補貨建議方案",
+    "expected": "COMPLEX_TASK",
+    "actual": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "time": 12577.265706146136,
+    "source": "unknown",
+    "passed": true
+  },
+  {
+    "id": "65",
+    "input": "分析主要供應商的交貨準時率並排名",
+    "expected": "COMPLEX_TASK",
+    "actual": "COMPLEX_TASK",
+    "confidence": 0.97,
+    "time": 11228.64417009987,
+    "source": "unknown",
+    "passed": true
+  },
+  {
+    "id": "69",
+    "input": "查詢料號 10-0001 最近三筆採購記錄",
+    "expected": "SIMPLE_QUERY",
+    "actual": "SIMPLE_QUERY",
+    "confidence": 0.97,
+    "time": 10345.23542993702,
+    "source": "unknown",
+    "passed": true
+  },
+  {
+    "id": "70",
+    "input": "W01 倉庫目前的在途庫存有多少",
+    "expected": "SIMPLE_QUERY",
+    "actual": "SIMPLE_QUERY",
+    "confidence": 0.97,
+    "time": 13927.640468813479,
+    "source": "unknown",
+    "passed": true
+  },
+  {
+    "id": "71",
+    "input": "找出所有庫存低於安全庫存的料號",
+    "expected": "SIMPLE_QUERY",
+    "actual": "SIMPLE_QUERY",
+    "confidence": 0.96,
+    "time": 12216.764331096783,
+    "source": "unknown",
+    "passed": true
+  },
+  {
+    "id": "72",
+    "input": "料號 10-0001 的供應商是誰",
+    "expected": "SIMPLE_QUERY",
+    "actual": "SIMPLE_QUERY",
+    "confidence": 0.98,
+    "time": 11721.317399060354,
+    "source": "unknown",
+    "passed": true
+  },
+  {
+    "id": "73",
+    "input": "2024-01-01 到 2024-01-31 的進貨總數量",
+    "expected": "SIMPLE_QUERY",
+    "actual": "SIMPLE_QUERY",
+    "confidence": 0.96,
+    "time": 12699.997635092586,
+    "source": "unknown",
+    "passed": true
+  }
+]

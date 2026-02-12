@@ -1,0 +1,57 @@
+{# Oracle Prompt Template #}
+
+{# ============ 系統信息 ============ #}
+【System Information】
+System Name: {{ system.name }}
+SQL Dialect: {{ system.dialect }}
+
+{# ============ Table Selection Rules ============ #}
+【Table Selection Rules】
+{% for table in tables %}
+  {% if table.aliases %}
+- {{ table.description }} ({{ table.aliases | join(", ") }}) → {{ table.canonical_name }}
+  {% endif %}
+{% endfor %}
+
+{# ============ Table Definitions ============ #}
+【Table Definitions】
+{% for table in tables %}
+【{{ table.canonical_name }}】{{ table.description }}
+  {% if table.names.oracle %}
+  (Oracle: {{ table.names.oracle }})
+  {% endif %}
+  {% for col_id, col in table.columns.items() %}
+  - {{ col.description }} ({{ col.canonical_id }}) [{{ col.type }}]
+    {% if col.fk %}    FK → {{ col.fk }}{% endif %}
+  {% endfor %}
+{% endfor %}
+
+{# ============ Relationships ============ #}
+【Table Relationships】
+{% for table in tables %}
+  {% for rel in table.relationships %}
+- {{ rel.from_table }}.{{ rel.from_column }} → {{ rel.to_table }}.{{ rel.to_column }}
+  {% endfor %}
+{% endfor %}
+
+{# ============ Important Rules ============ #}
+【Important Rules】
+{% for rule in rules %}
+- {{ rule }}
+{% endfor %}
+- Use Oracle table names directly
+- Date fields: TO_DATE(column, 'YYYY-MM-DD')
+- Pagination: ROWNUM <= {n}
+
+{# ============ User Query ============ #}
+User Question: {{ user_query }}
+
+{# ============ SQL Requirements ============ #}
+【SQL Requirements】
+1. Return only SQL, no explanations
+2. Use Oracle SQL syntax
+3. Handle date fields with TO_DATE
+4. Use ROWNUM for pagination
+5. Return only SQL, no markdown markers
+
+SQL：

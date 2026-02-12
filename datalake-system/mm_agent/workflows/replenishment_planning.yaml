@@ -1,0 +1,47 @@
+# ========================================
+# Workflow: replenishment_planning
+# ========================================
+
+name: "replenishment_planning"
+description: "維持物料供應穩定，避免缺料"
+version: "1.0.0"
+
+triggers:
+  - "補貨"
+  - "補貨計劃"
+  - "再訂購點"
+  - "每日或每週自動生成"
+  - "庫存低於 ROP"
+
+workflow:
+  steps:
+    - step_id: 1
+      action_type: "data_query"
+      description: "向 Data-Agent 查詢：『請提供過去 12 個月所有物料的消耗量、庫存餘..."
+      instruction: |
+        向 Data-Agent 查詢：『請提供過去 12 個月所有物料的消耗量、庫存餘額及 ABC 分類，JSON 格式』
+    - step_id: 2
+      action_type: "data_query"
+      description: "資料完整性檢查：確認每個物料都有消耗量、庫存與 ABC 分類，缺失則標記並重新查..."
+      instruction: |
+        資料完整性檢查：確認每個物料都有消耗量、庫存與 ABC 分類，缺失則標記並重新查詢
+    - step_id: 3
+      action_type: "computation"
+      description: "計算每個物料安全庫存與再訂購點（ROP）"
+      instruction: |
+        計算每個物料安全庫存與再訂購點（ROP）
+    - step_id: 4
+      action_type: "computation"
+      description: "分析 A/B/C 類物料補貨策略"
+      instruction: |
+        分析 A/B/C 類物料補貨策略
+    - step_id: 5
+      action_type: "computation"
+      description: "生成補貨建議單並提交採購"
+      instruction: |
+        生成補貨建議單並提交採購
+    - step_id: 6
+      action_type: "computation"
+      description: "記錄補貨建議與分析參數"
+      instruction: |
+        記錄補貨建議與分析參數

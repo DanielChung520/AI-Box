@@ -243,7 +243,15 @@ class WorkerService:
 
             # 修改時間：2025-12-31 - 確保 Worker 進程能夠訪問環境變數
             # 重新加載 .env 文件以確保環境變數可用（因為 Worker 是子進程）
-            worker_env = {**os.environ, "PYTHONPATH": str(PROJECT_ROOT)}
+            # 修改時間：2026-02-08 - 添加 datalake-system 到 PYTHONPATH 以支援 MM-Agent
+            # 修改時間：2026-02-08 - 使用 wrapper 腳本確保路徑正確
+            worker_env = {
+                **os.environ,
+                "PYTHONPATH": f"{PROJECT_ROOT}:{PROJECT_ROOT}/datalake-system",
+            }
+
+            # 使用 wrapper 腳本啟動 Worker（確保 datalake-system 可導入）
+            wrapper_script = PROJECT_ROOT / "workers" / "mm_worker_wrapper.py"
 
             # 確保 .env 文件中的環境變數被包含在 worker_env 中
             try:
@@ -252,7 +260,6 @@ class WorkerService:
                 env_file = PROJECT_ROOT / ".env"
                 if env_file.exists():
                     env_vars = dotenv_values(env_file)
-                    # 將 .env 文件中的變數添加到 worker_env（不覆蓋已存在的環境變數）
                     for key, value in env_vars.items():
                         if value is not None and key not in worker_env:
                             worker_env[key] = value
@@ -260,7 +267,7 @@ class WorkerService:
                         "已將 .env 文件中的環境變數添加到 Worker 環境", env_file=str(env_file)
                     )
             except ImportError:
-                logger.warning("python-dotenv 未安裝，無法從 .env 文件加載環境變數到 Worker")
+                pass
             except Exception as e:
                 logger.warning("加載 .env 文件到 Worker 環境時發生錯誤", error=str(e))
 
@@ -285,7 +292,23 @@ class WorkerService:
                 )
 
                 # 構建該實例的命令（使用實例名稱）
-                if self.rq_command:
+                # 修改時間：2026-02-08 - 優先使用 wrapper 腳本確保 datalake-system 可導入
+                if wrapper_script.exists() and wrapper_script.is_file():
+                    # 使用 wrapper 腳本
+                    instance_cmd = [
+                        self.python_path,
+                        str(wrapper_script),
+                        "--url",
+                        self.redis_url,
+                        "--name",
+                        instance_name,
+                    ]
+                    if self.queue_names:
+                        instance_cmd.extend(self.queue_names)
+                    logger.info(
+                        "使用 MM-Agent wrapper 腳本啟動 Worker", wrapper=str(wrapper_script)
+                    )
+                elif self.rq_command:
                     instance_cmd = [
                         self.rq_command,
                         "worker",

@@ -1,0 +1,848 @@
+[
+  {
+    "test_id": "A01",
+    "query": "查詢料號 10-0001 的品名和規格",
+    "sql": "SELECT\n    t1.ima02,\n    t1.ima021\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) AS t1\nWHERE\n    t1.ima01 = '10-0001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 4857.88,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "A02",
+    "query": "列出所有料件",
+    "sql": "SELECT t1.*\nFROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 2981.21,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "A03",
+    "query": "有多少種料件",
+    "sql": "SELECT COUNT(DISTINCT ima01) FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 1994.66,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "A04",
+    "query": "查詢所有料件的品名",
+    "sql": "SELECT t1.ima02 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 1936.93,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "A05",
+    "query": "料號 10-0001 是什麼",
+    "sql": "SELECT t1.ima02 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.ima01 = '10-0001' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 4214.14,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "A06",
+    "query": "查詢料號開頭為 10- 的成品",
+    "sql": "SELECT t1.ima01 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.ima01 LIKE '10-%' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 20,
+    "elapsed_ms": 2437.27,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "A07",
+    "query": "查詢所有原料",
+    "sql": "SELECT t1.ima01, t1.ima02 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.ima08 = '原料' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 3627.73,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "A08",
+    "query": "查詢庫存單位為 PCS 的料號",
+    "sql": "SELECT t1.ima01\nFROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE t1.ima25 = 'PCS'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 42,
+    "elapsed_ms": 4199.66,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "A09",
+    "query": "查詢料號 RM01-001 的資訊",
+    "sql": "SELECT t1.ima01, t1.ima02, t1.ima021, t1.ima08, t1.ima25 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.ima01 = 'RM01-001' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 3552.09,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "A10",
+    "query": "按來源碼統計料件數量",
+    "sql": "SELECT\n    ima08 AS 源碼,\n    COUNT(*) AS 料件數量\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nGROUP BY\n    ima08\nORDER BY\n    料件數量 DESC\nLIMIT 50 OFFSET 0",
+    "row_count": 2,
+    "elapsed_ms": 4391.34,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B01",
+    "query": "查詢 W01 倉庫的庫存",
+    "sql": "SELECT t1.img01, t1.img10\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE t1.img02 = 'W01'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 4040.56,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B02",
+    "query": "計算各倉庫的總庫存量",
+    "sql": "SELECT\n    t3.imd01,\n    SUM(t2.img10) AS total_stock\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nJOIN\n    read_parquet('s3://tiptop-raw/raw/v1/imd_file/year=*/month=*/data.parquet') t3 ON t2.img02 = t3.imd01\nGROUP BY\n    t3.imd01\nORDER BY\n    total_stock DESC\nLIMIT 50 OFFSET 0",
+    "row_count": 2,
+    "elapsed_ms": 4984.05,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B03",
+    "query": "查詢料號 10-0001 的庫存信息",
+    "sql": "SELECT\n    t1.img01,\n    t1.img02,\n    t1.img03,\n    t1.img10\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE\n    t1.img01 = '10-0001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 5096.2,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B04",
+    "query": "列出所有負庫存的物料",
+    "sql": "SELECT t1.img01, t1.img10 FROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.img10 < 0 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 3627.69,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B05",
+    "query": "列出前 10 個庫存量最多的物料",
+    "sql": "SELECT\n    t1.img01,\n    SUM(t1.img10) AS total_quantity\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nGROUP BY\n    t1.img01\nORDER BY\n    total_quantity DESC\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 4553.66,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B06",
+    "query": "統計 W03 成品倉的總庫存量",
+    "sql": "SELECT SUM(t2.img10) AS total_stock\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nJOIN read_parquet('s3://tiptop-raw/raw/v1/imd_file/year=*/month=*/data.parquet', hive_partitioning=true) t3 ON t2.img02 = t3.imd01\nWHERE t3.imd01 = 'W03'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 5662.09,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B07",
+    "query": "計算各倉庫的平均庫存量",
+    "sql": "SELECT\n    t3.imd01 AS warehouse_code,\n    AVG(t2.img10) AS average_inventory\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nJOIN\n    read_parquet('s3://tiptop-raw/raw/v1/imd_file/year=*/month=*/data.parquet') t3 ON t2.img02 = t3.imd01\nGROUP BY\n    t3.imd01\nORDER BY\n    average_inventory DESC\nLIMIT 50 OFFSET 0",
+    "row_count": 2,
+    "elapsed_ms": 5162.21,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B08",
+    "query": "查詢庫存為 0 的料號",
+    "sql": "SELECT t1.img01\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE t1.img10 = 0\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 4071.18,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B09",
+    "query": "原料倉存貨總額",
+    "sql": "SELECT SUM(t2.img10) AS total_stock\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nJOIN read_parquet('s3://tiptop-raw/raw/v1/imd_file/year=*/month=*/data.parquet', hive_partitioning=true) t3 ON t2.img02 = t3.imd01\nWHERE t3.imd01 LIKE 'R%'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 5702.47,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B10",
+    "query": "成品倉各料號庫存",
+    "sql": "SELECT\n    t1.img01,\n    t1.img10\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE\n    t1.img02 = 'W01'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 4495.49,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B11",
+    "query": "W02 倉有多少庫存",
+    "sql": "SELECT SUM(t2.img10) FROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t2 JOIN read_parquet('s3://tiptop-raw/raw/v1/imd_file/year=*/month=*/data.parquet', hive_partitioning=true) t3 ON t2.img02 = t3.imd01 WHERE t3.imd01 = 'W02' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 5405.92,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B12",
+    "query": "各倉庫庫存數量統計",
+    "sql": "SELECT\n    t3.imd01 AS warehouse_code,\n    SUM(t2.img10) AS total_quantity\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nJOIN\n    read_parquet('s3://tiptop-raw/raw/v1/imd_file/year=*/month=*/data.parquet') t3 ON t2.img02 = t3.imd01\nGROUP BY\n    t3.imd01\nORDER BY\n    total_quantity DESC\nLIMIT 50 OFFSET 0",
+    "row_count": 2,
+    "elapsed_ms": 5051.35,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B13",
+    "query": "查詢料號 RM01-003 的庫存",
+    "sql": "SELECT t1.img01, t1.img10 FROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.img01 = 'RM01-003' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 4330.07,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B14",
+    "query": "庫存量最高的 5 個物料",
+    "sql": "SELECT\n    t1.img01,\n    SUM(t1.img10) AS total_quantity\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nGROUP BY\n    t1.img01\nORDER BY\n    total_quantity DESC\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 4936.26,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "B15",
+    "query": "找出庫存最少的 10 個料號",
+    "sql": "SELECT\n    t1.img01,\n    SUM(t1.img10) AS total_quantity\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nGROUP BY\n    t1.img01\nORDER BY\n    total_quantity ASC\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 4907.41,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "C01",
+    "query": "查詢 2024 年有多少筆採購進貨",
+    "sql": "SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t2 WHERE strftime(t2.pmm02, '%Y') = '2024' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 4084.19,
+    "success": false,
+    "error": "Binder Error: Could not choose a best candidate function for the function call \"strftime(VARCHAR, STRING_LITERAL)\". In order to select one, please add explicit type casts.\n\tCandidate functions:\n\tstrftime(VARCHAR, TIMESTAMP) -> VARCHAR\n\tstrftime(VARCHAR, TIMESTAMP_NS) -> VARCHAR\n\tstrftime(VARCHAR, DATE) -> VARCHAR\n\n\nLINE 1: ...=*/month=*/data.parquet', hive_partitioning=true) t2 WHERE strftime(t2.pmm02, '%Y') = '2024' \n                                                                      ^"
+  },
+  {
+    "test_id": "C02",
+    "query": "查詢所有採購進貨交易",
+    "sql": "SELECT * FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t4 WHERE t4.tlf19 = '採購進貨' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 2349.41,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "C03",
+    "query": "查詢 W04 倉庫的進貨記錄",
+    "sql": "SELECT t5.tlf06 AS 日期, t5.tlf19 AS 交易類型, t5.tlf13 AS 來源單號, t5.tlf07 AS 入庫數量\nFROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t5\nJOIN read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t2 ON t5.tlf01 = t2.img01\nWHERE t2.img02 = 'W04' AND t5.tlf19 IN ('入庫', '調整')\nORDER BY t5.tlf06 DESC, t5.tlf13\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 8505.65,
+    "success": false,
+    "error": "Binder Error: Table \"t5\" does not have a column named \"tlf07\"\n\nCandidate bindings: : \"tlf01\", \"tlf06\", \"tlf10\", \"tlf061\", \"tlf062\"\n\nLINE 1: ... t5.tlf06 AS 日期, t5.tlf19 AS 交易類型, t5.tlf13 AS 來源單號, t5.tlf07 AS 入庫數量\n                                                                          ^"
+  },
+  {
+    "test_id": "C04",
+    "query": "查詢 2024 年 1 月的交易記錄",
+    "sql": "SELECT * FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE strftime(t1.tlf06, '%Y-%m') = '2024-01' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 4197.58,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "C05",
+    "query": "最近 30 天的進貨",
+    "sql": "SELECT t3.tlf06 AS 日期, t3.item_code AS 料號, SUM(t3.tlf10) AS 進貨數量\nFROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t3\nJOIN read_parquet('s3://tiptop-raw/raw/v1/item_master/year=*/month=*/data.parquet', hive_partitioning=true) t1 ON t3.item_code = t1.item_code\nWHERE t3.tlf06 >= CURRENT_DATE - INTERVAL 30 DAY AND t3.tlf19 = '進貨'\nGROUP BY t3.tlf06, t3.item_code\nORDER BY t3.tlf06 DESC\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 8138.85,
+    "success": false,
+    "error": "目前無交易明細資料"
+  },
+  {
+    "test_id": "C06",
+    "query": "計算 2024 年採購總數量",
+    "sql": "SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t2 WHERE strftime(t2.pmm02, '%Y') = '2024' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 3760.18,
+    "success": false,
+    "error": "Binder Error: Could not choose a best candidate function for the function call \"strftime(VARCHAR, STRING_LITERAL)\". In order to select one, please add explicit type casts.\n\tCandidate functions:\n\tstrftime(VARCHAR, TIMESTAMP) -> VARCHAR\n\tstrftime(VARCHAR, TIMESTAMP_NS) -> VARCHAR\n\tstrftime(VARCHAR, DATE) -> VARCHAR\n\n\nLINE 1: ...=*/month=*/data.parquet', hive_partitioning=true) t2 WHERE strftime(t2.pmm02, '%Y') = '2024' \n                                                                      ^"
+  },
+  {
+    "test_id": "C07",
+    "query": "查詢所有銷貨記錄",
+    "sql": "SELECT * FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.tlf19 = 'X' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 3250.24,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "C08",
+    "query": "2024 年銷售出庫筆數",
+    "sql": "SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE strftime(t1.tlf06, '%Y') = '2024' AND t1.tlf19 = '出庫' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 4116.9,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "C09",
+    "query": "查詢完工入庫記錄",
+    "sql": "SELECT\n    t1.tlf01 AS 料號,\n    t1.tlf06 AS 單據日期,\n    t1.tlf10 AS 異動數量,\n    t1.tlf13 AS 來源單號,\n    t1.tlf19 AS 交易類型,\n    t1.tlf061 AS 倉庫代號\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE\n    t1.tlf19 = '完工入庫'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 6320.39,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "C10",
+    "query": "查詢生產領料記錄",
+    "sql": "SELECT t6.tll01, t6.tll02, t6.tll03, t5.imd02, t4.pmm02\nFROM read_parquet('s3://tiptop-raw/raw/v1/tll_file/year=*/month=*/data.parquet', hive_partitioning=true) t6\nJOIN read_parquet('s3://tiptop-raw/raw/v1/tlm_file/year=*/month=*/data.parquet') t7 ON t6.tll01 = t7.tlm01\nJOIN read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet') t2 ON t7.tlm04 = t2.img01\nJOIN read_parquet('s3://tiptop-raw/raw/v1/imd_file/year=*/month=*/data.parquet') t5 ON t2.img02 = t5.imd01\nJOIN read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet') t4 ON t6.tll04 = t4.pmm01\nWHERE t6.tll02 >= CURRENT_DATE - INTERVAL 30 DAY\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 12115.13,
+    "success": false,
+    "error": "目前無交易明細資料"
+  },
+  {
+    "test_id": "C11",
+    "query": "查詢庫存報廢記錄",
+    "sql": "SELECT t2.img01, t2.img03, t2.img10\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nJOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet') t1 ON t2.img01 = t1.ima01\nWHERE t1.ima08 = '報廢'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 5715.11,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "C12",
+    "query": "按交易類型統計數量",
+    "sql": "SELECT\n    t1.tlf19,\n    COUNT(*) AS cnt\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nGROUP BY\n    t1.tlf19\nORDER BY\n    cnt DESC\nLIMIT 50 OFFSET 0",
+    "row_count": 4,
+    "elapsed_ms": 4090.19,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "C13",
+    "query": "查詢料號 10-0001 的所有交易",
+    "sql": "SELECT t1.tlf06 AS 交易日期, t1.tlf13 AS 來源單號, t1.tlf19 AS 交易類型, t1.tlf10 AS 異動數量\nFROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE t1.item_code = '10-0001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 5830.61,
+    "success": false,
+    "error": "Binder Error: Table \"t1\" does not have a column named \"item_code\"\n\nCandidate bindings: : \"month\"\n\nLINE 3: WHERE t1.item_code = '10-0001'\n              ^"
+  },
+  {
+    "test_id": "C14",
+    "query": "查詢某來源單號的交易",
+    "sql": "SELECT * FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.tlf13 = '您要查詢的來源單號' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 3537.79,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "C15",
+    "query": "查詢某倉庫的交易趨勢",
+    "sql": "SELECT\n    strftime(t4.tlf06, '%Y-%m') AS month,\n    SUM(CASE WHEN t4.tlf19 = '入' THEN t4.tlf10 ELSE -t4.tlf10 END) AS trend\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t4\nJOIN\n    read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet') t2 ON t4.tlf01 = t2.img01\nWHERE\n    t2.img02 = 'W01'\nGROUP BY\n    month\nORDER BY\n    month\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 7501.43,
+    "success": false,
+    "error": "Binder Error: Ambiguous reference to column name \"month\" (use: \"t4.month\" or \"t2.month\")"
+  },
+  {
+    "test_id": "D01",
+    "query": "查詢所有供應商",
+    "sql": "SELECT t1.pmc01, t1.pmc03 FROM read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 15,
+    "elapsed_ms": 3283.7,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "D02",
+    "query": "供應商 VND001 的聯絡人是誰",
+    "sql": "SELECT t2.pmc03 FROM read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t2 WHERE t2.pmc01 = 'VND001' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 3634.15,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "D03",
+    "query": "查詢供應商 VND003 的詳細資訊",
+    "sql": "SELECT t1.* FROM read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.pmc01 = 'VND003' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 3442.23,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "D04",
+    "query": "統計供應商數量",
+    "sql": "SELECT COUNT(DISTINCT pmc01) FROM read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 2039.73,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "D05",
+    "query": "查詢所有供應商名稱",
+    "sql": "SELECT t1.pmc03 FROM read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 15,
+    "elapsed_ms": 1970.79,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "D06",
+    "query": "查詢電話為 02-xxxx 的供應商",
+    "sql": "SELECT t4.pmc03\nFROM read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t4\nWHERE t4.pmc05 LIKE '02-%'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 4096.65,
+    "success": false,
+    "error": "Binder Error: Table \"t4\" does not have a column named \"pmc05\"\n\nCandidate bindings: : \"pmc01\", \"pmc03\", \"pmc08\", \"pmc24\"\n\nLINE 3: WHERE t4.pmc05 LIKE '02-%'\n              ^"
+  },
+  {
+    "test_id": "D07",
+    "query": "查詢聯絡人為 張先生的供應商",
+    "sql": "SELECT t1.pmc01, t1.pmc03 FROM read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.pmc04 = '張先生' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 3736.27,
+    "success": false,
+    "error": "Binder Error: Table \"t1\" does not have a column named \"pmc04\"\n\nCandidate bindings: : \"pmc01\", \"pmc03\", \"pmc24\", \"pmc08\"\n\nLINE 1: ...=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.pmc04 = '張先生' \n                                                                      ^"
+  },
+  {
+    "test_id": "D08",
+    "query": "按供應商類型統計",
+    "sql": "SELECT pmc02, COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 GROUP BY pmc02 ORDER BY pmc02 LIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 2428.69,
+    "success": false,
+    "error": "Binder Error: Referenced column \"pmc02\" not found in FROM clause!\nCandidate bindings: \"pmc01\", \"pmc03\", \"pmc08\", \"pmc24\"\n\nLINE 1: ...=*/month=*/data.parquet', hive_partitioning=true) t1 GROUP BY pmc02 ORDER BY pmc02 LIMIT 50 OFFSET 0\n                                                                         ^"
+  },
+  {
+    "test_id": "E01",
+    "query": "查詢所有採購單",
+    "sql": "SELECT * FROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t2 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 3109.18,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "E02",
+    "query": "按供應商統計採購單數量",
+    "sql": "SELECT\n    t3.pmc01,\n    COUNT(*) AS po_count\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nJOIN\n    read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet') t3 ON t2.pmm04 = t3.pmc01\nGROUP BY\n    t3.pmc01\nORDER BY\n    po_count DESC\nLIMIT 50 OFFSET 0",
+    "row_count": 15,
+    "elapsed_ms": 5087.14,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "E03",
+    "query": "2024 年有多少筆採購單",
+    "sql": "SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t2 WHERE strftime(t2.pmm02, '%Y') = '2024' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 2551.98,
+    "success": false,
+    "error": "Binder Error: Could not choose a best candidate function for the function call \"strftime(VARCHAR, STRING_LITERAL)\". In order to select one, please add explicit type casts.\n\tCandidate functions:\n\tstrftime(VARCHAR, TIMESTAMP) -> VARCHAR\n\tstrftime(VARCHAR, TIMESTAMP_NS) -> VARCHAR\n\tstrftime(VARCHAR, DATE) -> VARCHAR\n\n\nLINE 1: ...=*/month=*/data.parquet', hive_partitioning=true) t2 WHERE strftime(t2.pmm02, '%Y') = '2024' \n                                                                      ^"
+  },
+  {
+    "test_id": "E04",
+    "query": "查詢供應商 VND001 的採購單",
+    "sql": "SELECT t2.*\nFROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nJOIN read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t3 ON t2.pmm04 = t3.pmc01\nWHERE t3.pmc01 = 'VND001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 17,
+    "elapsed_ms": 4431.75,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "E05",
+    "query": "按月份統計採購單數量",
+    "sql": "SELECT\n    strftime(t2.pmm06, '%Y-%m') AS month,\n    COUNT(*) AS cnt\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nGROUP BY\n    month\nORDER BY\n    month\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 3190.84,
+    "success": false,
+    "error": "Binder Error: Table \"t2\" does not have a column named \"pmm06\"\n\nCandidate bindings: : \"pmm01\", \"pmm02\", \"pmm04\", \"pmm09\"\n\nLINE 2:     strftime(t2.pmm06, '%Y-%m') AS month,\n                     ^"
+  },
+  {
+    "test_id": "E06",
+    "query": "查詢採購單 PO-2024010001 的明細",
+    "sql": "SELECT\n    t5.rvb01 AS 收料單號,\n    t5.rvb05 AS 料號,\n    t5.rvb07 AS 採購單號,\n    t5.rvb33 AS 驗收數量\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/rvb_file/year=*/month=*/data.parquet', hive_partitioning=true) t5\nWHERE\n    t5.rvb07 = 'PO-2024010001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 6272.7,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "E07",
+    "query": "查詢料號 10-0001 的採購數量",
+    "sql": "SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet') t4 JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet') t1 ON t4.pmm02 = t1.ima01 WHERE t1.ima01 = '10-0001' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 5670.78,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "E08",
+    "query": "查詢已交貨數量",
+    "sql": "SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.tlf07 = 'Y' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 3616.91,
+    "success": false,
+    "error": "Binder Error: Table \"t1\" does not have a column named \"tlf07\"\n\nCandidate bindings: : \"tlf01\", \"tlf06\", \"tlf10\", \"tlf061\", \"tlf062\"\n\nLINE 1: ...'s3://tiptop-raw/raw/v1/tlf_file_large/**/*.parquet') t1 WHERE t1.tlf07 = 'Y' \n                                                                          ^"
+  },
+  {
+    "test_id": "E09",
+    "query": "查詢所有收料記錄",
+    "sql": "SELECT *\nFROM read_parquet('s3://tiptop-raw/raw/v1/rvb_file/year=*/month=*/data.parquet', hive_partitioning=true) t3\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 3149.35,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "E10",
+    "query": "查詢採購單 PO-2024010001 的收料記錄",
+    "sql": "SELECT\n    t5.rvb01 AS 收料單號,\n    t5.rvb05 AS 料號,\n    t5.rvb07 AS 採購單號,\n    t5.rvb33 AS 驗收數量\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/rvb_file/year=*/month=*/data.parquet', hive_partitioning=true) t5\nJOIN\n    read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet') t2 ON t5.rvb07 = t2.pmm01\nWHERE\n    t2.pmm01 = 'PO-2024010001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 8133.25,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "E11",
+    "query": "查詢料號 10-0001 的收料數量",
+    "sql": "SELECT SUM(t6.rvb33) AS total_received\nFROM read_parquet('s3://tiptop-raw/raw/v1/rvb_file/year=*/month=*/data.parquet', hive_partitioning=true) t6\nJOIN read_parquet('s3://tiptop-raw/raw/v1/t5_file/year=*/month=*/data.parquet', hive_partitioning=true) t5 ON t6.rvb07 = t5.tlf13\nWHERE t6.rvb05 = '10-0001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 6741.99,
+    "success": false,
+    "error": "目前無交易明細資料"
+  },
+  {
+    "test_id": "E12",
+    "query": "查詢最近 10 筆採購單",
+    "sql": "SELECT *\nFROM (\n    SELECT\n        pmn_file.*,\n        ROW_NUMBER() OVER (ORDER BY pmm02 DESC) AS row_num\n    FROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) pmn_file\n)\nWHERE row_num <= 10\nLIMIT 50 OFFSET 0",
+    "row_count": 10,
+    "elapsed_ms": 4565.74,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "E13",
+    "query": "查詢採購人員的採購單",
+    "sql": "SELECT t2.pmm01, t2.pmm02, t3.pmc03\nFROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\nJOIN read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t3 ON t2.pmm04 = t3.pmc01\nWHERE t2.pmm05 = '採購人員'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 6387.3,
+    "success": false,
+    "error": "Binder Error: Table \"t2\" does not have a column named \"pmm05\"\n\nCandidate bindings: : \"pmm01\", \"pmm02\", \"pmm04\", \"pmm09\"\n\nLINE 4: WHERE t2.pmm05 = '採購人員'\n              ^"
+  },
+  {
+    "test_id": "E14",
+    "query": "計算採購單總數量",
+    "sql": "SELECT SUM(t2.pmm06) AS total_quantity\nFROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t2\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 2307.67,
+    "success": false,
+    "error": "Binder Error: Table \"t2\" does not have a column named \"pmm06\"\n\nCandidate bindings: : \"pmm01\", \"pmm02\", \"pmm04\", \"pmm09\"\n\nLINE 1: SELECT SUM(t2.pmm06) AS total_quantity\n                   ^"
+  },
+  {
+    "test_id": "E15",
+    "query": "查詢預計到貨日為 2024-01-15 的採購單",
+    "sql": "SELECT t4.pmm01, t4.pmm02\nFROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t4\nWHERE CAST(t4.pmm05 AS DATE) = '2024-01-15'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 5045.25,
+    "success": false,
+    "error": "Binder Error: Table \"t4\" does not have a column named \"pmm05\"\n\nCandidate bindings: : \"pmm01\", \"pmm02\", \"pmm04\", \"pmm09\"\n\nLINE 3: WHERE CAST(t4.pmm05 AS DATE) = '2024-01-15'\n                   ^"
+  },
+  {
+    "test_id": "F01",
+    "query": "查詢所有客戶",
+    "sql": "SELECT t1.cmc01, t1.cmc02 FROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 15,
+    "elapsed_ms": 3226.37,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "F02",
+    "query": "客戶 D003 的聯絡人是誰",
+    "sql": "SELECT t1.cmc06 FROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.cmc01 = 'D003' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 2397.25,
+    "success": false,
+    "error": "Binder Error: Table \"t1\" does not have a column named \"cmc06\"\n\nCandidate bindings: : \"cmc01\", \"cmc02\", \"cmc03\", \"cmc08\"\n\nLINE 1: SELECT t1.cmc06 FROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file...\n               ^"
+  },
+  {
+    "test_id": "F03",
+    "query": "查詢客戶 D010 的詳細資訊",
+    "sql": "SELECT t1.cmc01, t1.cmc02 FROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.cmc01 = 'D010' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 2619.3,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "F04",
+    "query": "統計客戶數量",
+    "sql": "SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 1816.01,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "F05",
+    "query": "查詢所有客戶名稱",
+    "sql": "SELECT t1.cmc02 FROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 15,
+    "elapsed_ms": 1898.16,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "F06",
+    "query": "查詢電話為 0x-xxxx 的客戶",
+    "sql": "SELECT t1.cmc01, t1.cmc02 FROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.cmc04 LIKE '0x-%' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 2597.5,
+    "success": false,
+    "error": "Binder Error: Table \"t1\" does not have a column named \"cmc04\"\n\nCandidate bindings: : \"cmc01\", \"cmc02\", \"cmc03\", \"cmc08\"\n\nLINE 1: ...=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.cmc04 LIKE '0x-%' \n                                                                      ^"
+  },
+  {
+    "test_id": "F07",
+    "query": "查詢聯絡人為 李小姐的客戶",
+    "sql": "SELECT t1.cmc01, t1.cmc02\nFROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE t1.cmc04 = '李小姐'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 2698.55,
+    "success": false,
+    "error": "Binder Error: Table \"t1\" does not have a column named \"cmc04\"\n\nCandidate bindings: : \"cmc01\", \"cmc02\", \"cmc03\", \"cmc08\"\n\nLINE 3: WHERE t1.cmc04 = '李小姐'\n              ^"
+  },
+  {
+    "test_id": "F08",
+    "query": "查詢客戶名稱包含 企業 的客戶",
+    "sql": "SELECT t1.cmc02 FROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.cmc02 LIKE '%企業%' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 2368.97,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "G01",
+    "query": "查詢所有訂單",
+    "sql": "SELECT * FROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 3208.48,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "G02",
+    "query": "統計每個客户的訂單數量",
+    "sql": "SELECT\n    t6.cus_code,\n    COUNT(*) AS order_count\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t6\nGROUP BY\n    t6.cus_code\nORDER BY\n    order_count DESC\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 3055.95,
+    "success": false,
+    "error": "Binder Error: Table \"t6\" does not have a column named \"cus_code\"\n\nCandidate bindings: : \"year\"\n\nLINE 7:     t6.cus_code\n            ^"
+  },
+  {
+    "test_id": "G03",
+    "query": "查詢最近 10 筆訂單",
+    "sql": "SELECT * FROM read_parquet('s3://tiptop-raw/raw/v1/so_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 ORDER BY t1.so06 DESC LIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 3426.87,
+    "success": false,
+    "error": "目前無交易明細資料"
+  },
+  {
+    "test_id": "G04",
+    "query": "客戶 D003 的訂單",
+    "sql": "SELECT t1.tlf01, t1.tlf06\nFROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nJOIN read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet') t2 ON t1.tlf04 = t2.cmc01\nWHERE t2.cmc01 = 'D003'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 5485.91,
+    "success": false,
+    "error": "Binder Error: Table \"t1\" does not have a column named \"tlf04\"\n\nCandidate bindings: : \"tlf01\", \"tlf06\", \"tlf10\", \"tlf061\", \"tlf062\"\n\nLINE 3: ...-raw/raw/v1/cmc_file/year=*/month=*/data.parquet') t2 ON t1.tlf04 = t2.cmc01\n                                                                    ^"
+  },
+  {
+    "test_id": "G05",
+    "query": "統計未出貨訂單數量",
+    "sql": "SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.tlf19 = '未出貨' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 3364.3,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "G06",
+    "query": "查詢已出貨訂單",
+    "sql": "SELECT t1.tlf01, t1.tlf06, t1.tlf13\nFROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nJOIN read_parquet('s3://tiptop-raw/raw/v1/oms_order/year=*/month=*/data.parquet') t2 ON t1.tlf13 = t2.order_id\nWHERE t2.status = '已出貨'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 4504.47,
+    "success": false,
+    "error": "目前無交易明細資料"
+  },
+  {
+    "test_id": "G07",
+    "query": "2024 年有多少筆訂單",
+    "sql": "SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t4 WHERE strftime(t4.pmm02, '%Y') = '2024' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 4017.44,
+    "success": false,
+    "error": "Binder Error: Could not choose a best candidate function for the function call \"strftime(VARCHAR, STRING_LITERAL)\". In order to select one, please add explicit type casts.\n\tCandidate functions:\n\tstrftime(VARCHAR, TIMESTAMP) -> VARCHAR\n\tstrftime(VARCHAR, TIMESTAMP_NS) -> VARCHAR\n\tstrftime(VARCHAR, DATE) -> VARCHAR\n\n\nLINE 1: ...=*/month=*/data.parquet', hive_partitioning=true) t4 WHERE strftime(t4.pmm02, '%Y') = '2024' \n                                                                      ^"
+  },
+  {
+    "test_id": "G08",
+    "query": "按月份統計訂單數量",
+    "sql": "SELECT\n    strftime(t4.pmm06, '%Y-%m') AS month,\n    COUNT(*) AS order_count\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t4\nGROUP BY\n    month\nORDER BY\n    month\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 3234.05,
+    "success": false,
+    "error": "Binder Error: Table \"t4\" does not have a column named \"pmm06\"\n\nCandidate bindings: : \"pmm01\", \"pmm02\", \"pmm04\", \"pmm09\"\n\nLINE 2:     strftime(t4.pmm06, '%Y-%m') AS month,\n                     ^"
+  },
+  {
+    "test_id": "G09",
+    "query": "查詢訂單 SO-2024010001 的明細",
+    "sql": "SELECT\n    t1.tlf01 AS 料號,\n    t1.tlf06 AS 單據日期,\n    t1.tlf10 AS 異動數量,\n    t1.tlf13 AS 來源單號,\n    t1.tlf19 AS 交易類型,\n    t1.tlf061 AS 倉庫代號\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE\n    t1.tlf13 = 'SO-2024010001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 6611.09,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "G10",
+    "query": "查詢訂單 SO-2024010001 的總金額",
+    "sql": "SELECT SUM(t1.tlf10) AS total_amount\nFROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE t1.tlf13 = 'SO-2024010001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 3112.76,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "G11",
+    "query": "查詢料號 10-0001 的訂購數量",
+    "sql": "SELECT SUM(t6.rvb33) AS total_quantity\nFROM read_parquet('s3://tiptop-raw/raw/v1/rvb_file/year=*/month=*/data.parquet', hive_partitioning=true) t6\nJOIN read_parquet('s3://tiptop-raw/raw/v1/t5/year=*/month=*/data.parquet') t5 ON t6.rvb07 = t5.po_number\nWHERE t6.rvb05 = '10-0001'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 6294.14,
+    "success": false,
+    "error": "目前無交易明細資料"
+  },
+  {
+    "test_id": "G12",
+    "query": "查詢已出貨數量",
+    "sql": "SELECT SUM(t1.tlf10) AS out_shipped_quantity\nFROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE t1.tlf19 = '出貨'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 1,
+    "elapsed_ms": 3801.76,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "G13",
+    "query": "按客户統計訂單金額",
+    "sql": "SELECT\n    pmc03 AS customer_name,\n    SUM(pmm06) AS total_order_amount\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) t4\nJOIN\n    read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet') t5 ON t4.pmm04 = t5.pmc01\nGROUP BY\n    customer_name\nORDER BY\n    total_order_amount DESC\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 6496.74,
+    "success": false,
+    "error": "Binder Error: Referenced column \"pmm06\" not found in FROM clause!\nCandidate bindings: \"pmm01\", \"pmm02\", \"pmm04\", \"pmm09\", \"pmc01\"\n\nLINE 3:     SUM(pmm06) AS total_order_amount\n                ^"
+  },
+  {
+    "test_id": "G14",
+    "query": "查詢部分出貨的訂單",
+    "sql": "SELECT t1.tlf01, t1.tlf06, t1.tlf10\nFROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nJOIN read_parquet('s3://tiptop-raw/raw/v1/ord_file/year=*/month=*/data.parquet') t2 ON t1.tlf13 = t2.ord04\nWHERE t2.ord05 = '部分出貨'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 5807.78,
+    "success": false,
+    "error": "目前無交易明細資料"
+  },
+  {
+    "test_id": "G15",
+    "query": "查詢業務人員的訂單",
+    "sql": "SELECT pmn04, COUNT(*) AS order_count\nFROM read_parquet('s3://tiptop-raw/raw/v1/pmn_file/year=*/month=*/data.parquet') t1\nJOIN read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet') t2 ON t1.pmn01 = t2.pmm01\nWHERE t2.pmm04 = '業務人員代號'\nGROUP BY pmn04\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 5953.39,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "H01",
+    "query": "查詢料號 10-0001 的單價",
+    "sql": "SELECT t7.prc02 FROM read_parquet('s3://tiptop-raw/raw/v1/prc_file/year=*/month=*/data.parquet', hive_partitioning=true) t7 WHERE t7.prc01 = '10-0001' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 7,
+    "elapsed_ms": 4232.85,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "H02",
+    "query": "料號 10-0001 的最新報價",
+    "sql": "SELECT t7.prc01, MAX(t7.prc02) AS latest_price\nFROM read_parquet('s3://tiptop-raw/raw/v1/prc_file/year=*/month=*/data.parquet', hive_partitioning=true) t7\nWHERE t7.prc01 = '10-0001'\nGROUP BY t7.prc01\nORDER BY t7.prc05 DESC\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 3728.96,
+    "success": false,
+    "error": "Binder Error: column \"prc05\" must appear in the GROUP BY clause or must be part of an aggregate function.\nEither add it to the GROUP BY list, or use \"ANY_VALUE(prc05)\" if the exact value of \"prc05\" is not important.\n\nLINE 5: ORDER BY t7.prc05 DESC\n                 ^"
+  },
+  {
+    "test_id": "H03",
+    "query": "所有料件的價格列表",
+    "sql": "SELECT\n    t3.prc01 AS unit_price,\n    t3.prc02 AS item_code,\n    t3.prc03 AS approval_date,\n    t3.prc04 AS approval_status,\n    t3.prc05 AS effective_date,\n    t3.prc06 AS expiration_date\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/prc_file/year=*/month=*/data.parquet', hive_partitioning=true) t3\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 5484.58,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "H04",
+    "query": "查詢已批准的訂價",
+    "sql": "SELECT t1.tpp01, t1.tpp03 FROM read_parquet('s3://tiptop-raw/raw/v1/tpp_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.tpp02 = '已批准' \nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 4053.48,
+    "success": false,
+    "error": "目前無交易明細資料"
+  },
+  {
+    "test_id": "H05",
+    "query": "查詢待批准的訂價",
+    "sql": "SELECT t1.tpp01, t1.tpp03\nFROM read_parquet('s3://tiptop-raw/raw/v1/tpp_file/year=*/month=*/data.parquet', hive_partitioning=true) t1\nWHERE t1.tpp04 = '待批准'\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": null,
+    "elapsed_ms": 2757.9,
+    "success": false,
+    "error": "目前無交易明細資料"
+  },
+  {
+    "test_id": "H06",
+    "query": "查詢料號 10-0001 的歷史價格",
+    "sql": "SELECT\n    t7.prc01,\n    t7.prc02,\n    t7.prc03,\n    t7.prc04,\n    t7.prc05,\n    t7.prc06\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/prc_file/year=*/month=*/data.parquet', hive_partitioning=true) t7\nWHERE\n    t7.prc01 = '10-0001'\nORDER BY\n    t7.prc03 DESC\nLIMIT 50 OFFSET 0",
+    "row_count": 7,
+    "elapsed_ms": 6345.55,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "H07",
+    "query": "計算料號的平均價格",
+    "sql": "SELECT\n    t7.prc01,\n    AVG(t7.prc02) AS average_price\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/prc_file/year=*/month=*/data.parquet', hive_partitioning=true) t7\nJOIN\n    read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet') t1 ON t7.prc01 = t1.ima01\nGROUP BY\n    t7.prc01\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 50,
+    "elapsed_ms": 5048.24,
+    "success": true,
+    "error": null
+  },
+  {
+    "test_id": "H08",
+    "query": "查詢有效期內的價格",
+    "sql": "SELECT\n    t3.prc01 AS price,\n    t3.prc05 AS effective_date,\n    t3.prc06 AS expiration_date\nFROM\n    read_parquet('s3://tiptop-raw/raw/v1/prc_file/year=*/month=*/data.parquet', hive_partitioning=true) t3\nWHERE\n    t3.prc04 = 'Approved'\n    AND CAST(t3.prc05 AS DATE) <= CURRENT_DATE\n    AND (t3.prc06 IS NULL OR CAST(t3.prc06 AS DATE) >= CURRENT_DATE)\n\nORDER BY 1\nLIMIT 50 OFFSET 0",
+    "row_count": 0,
+    "elapsed_ms": 6393.14,
+    "success": true,
+    "error": null
+  }
+]

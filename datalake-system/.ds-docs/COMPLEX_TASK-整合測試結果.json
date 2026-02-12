@@ -1,0 +1,372 @@
+[
+  {
+    "scenario_id": "CT-01",
+    "user_input": "幫我做 ABC 庫存分類分析",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "thought_process": "使用者要求「ABC 庫存分類分析」，包含關鍵詞「ABC」與「分類分析」，屬於分類分析類的複雜任務，需要多步驟的資料取得、計算與報表產出，符合 COMPLEX_TASK 的判斷條件。",
+    "intent_passed": true,
+    "todo_plan": null,
+    "todo_passed": true,
+    "rq_enqueued": false,
+    "rq_task_id": null,
+    "rq_executed": true,
+    "rq_result": {
+      "success": true,
+      "response": "任務類型：abc_classification_consumption\n\nStep 1: 了解 ABC 分類理論\n  └─ 類型：knowledge_retrieval\nStep 2: 查詢消耗與單價資料\n  └─ 類型：data_query\nStep 3: 執行 ABC 分類計算\n  └─ 類型：computation\nStep 4: 生成分類報告\n  └─ 類型：response_generation\n\n【自動執行中...】",
+      "needs_clarification": false,
+      "clarification_message": null,
+      "session_id": "test-CT-01-4d4ff357",
+      "resolved_query": null,
+      "translation": null,
+      "debug_info": {
+        "step": "workflow_started",
+        "task_type": "abc_classification_consumption",
+        "is_react_workflow": true,
+        "total_steps": 4,
+        "thought_process": "我理解用戶想要：幫我做 ABC 庫存分類分析\n這是一個需要 4 步驟處理的任務。\n\n分析：\n- 目標：依年度消耗量計算 ABC 分類\n- 匹配的工作流：abc_classification_consumption (v1.0.0)\n\n計劃執行以下 4 個步驟：\n1. 了解 ABC 分類理論 (knowledge_retrieval)\n2. 查詢消耗與單價資料 (data_query)\n3. 執行 ABC 分類計算 (computation)\n4. 生成分類報告 (response_generation)",
+        "plan": {
+          "task_type": "abc_classification_consumption",
+          "steps": [
+            {
+              "step_id": 1,
+              "action_type": "knowledge_retrieval",
+              "description": "了解 ABC 分類理論",
+              "instruction": "請整 ABC 分類搜尋並彙（Pareto 分析）在庫存管理中的完整方法：\n- A 類＝累積消耗前 70% 的物料\n- B 類＝累積消耗 70%~90% 的物料\n- C 類＝累積消耗 90%~100% 的物料\n- 分類目的與管理策略差異\n"
+            },
+            {
+              "step_id": 2,
+              "action_type": "data_query",
+              "description": "查詢消耗與單價資料",
+              "instruction": "Data-Agent，請使用 pmn_file 查詢每個料號的年度消耗量與最近採購單價：\n\nSQL 範例：\nSELECT\n    pmn04 as 料號,\n    SUM(pmn20) as 年度消耗數量,\n    MAX(pmn09) as 單價\nFROM pmn_file\nGROUP BY pmn04\n\n產出欄位：料號、年度消耗數量、單價、消耗價值（數量×單價）\n按消耗價值降序排列。\n"
+            },
+            {
+              "step_id": 3,
+              "action_type": "computation",
+              "description": "執行 ABC 分類計算",
+              "instruction": "根據上一步取得的消耗資料，請執行以下計算：\n\n1. 計算總消耗價值\n2. 按消耗價值降序排序\n3. 計算累積價值與累積百分比\n4. 套用 ABC 分類規則：\n   - A 類：累積百分比 ≤ 70%\n   - B 類：累積百分比 70% ~ 90%\n   - C 類：累積百分比 > 90%\n5. 產出：\n   - A 類料號清單\n   - B 類料號清單\n   - C 類料號清單\n   - 各類統計摘要\n"
+            },
+            {
+              "step_id": 4,
+              "action_type": "response_generation",
+              "description": "生成分類報告",
+              "instruction": "根據 ABC 分類結果，請生成管理報告，內容包括：\n\n1. 三類物料清單（料號、年度消耗量、單價、消耗價值、分類）\n2. 各類統計摘要：\n   - A 類：X 種，佔 Y%（金額佔比）\n   - B 類：X 種，佔 Y%\n   - C 類：X 種，佔 Y%\n3. 管理建議：\n   - A 類：重點管理、安全庫存策略\n   - B 類：適度關注、週期性盤點\n   - C 類：簡化管理、JIT 採購\n"
+            }
+          ],
+          "thought_process": "我理解用戶想要：幫我做 ABC 庫存分類分析\n這是一個需要 4 步驟處理的任務。\n\n分析：\n- 目標：依年度消耗量計算 ABC 分類\n- 匹配的工作流：abc_classification_consumption (v1.0.0)\n\n計劃執行以下 4 個步驟：\n1. 了解 ABC 分類理論 (knowledge_retrieval)\n2. 查詢消耗與單價資料 (data_query)\n3. 執行 ABC 分類計算 (computation)\n4. 生成分類報告 (response_generation)"
+        }
+      }
+    },
+    "total_passed": true,
+    "execution_time_ms": 10856.67379386723,
+    "error": null
+  },
+  {
+    "scenario_id": "CT-02",
+    "user_input": "比較近三個月採購金額",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "thought_process": "輸入包含關鍵詞「比較」，且要求對近三個月的採購金額進行比較，屬於比較分析類的複雜任務，需要多步驟執行（查詢三個月的採購資料、彙總、比較），因此判定為 COMPLEX_TASK。",
+    "intent_passed": true,
+    "todo_plan": null,
+    "todo_passed": true,
+    "rq_enqueued": false,
+    "rq_task_id": null,
+    "rq_executed": true,
+    "rq_result": {
+      "success": true,
+      "response": "已收到指令：比較近三個月採購金額",
+      "needs_clarification": false,
+      "clarification_message": null,
+      "session_id": "test-CT-02-36aba0d4",
+      "resolved_query": null,
+      "translation": {
+        "tlf19": "101",
+        "tlf19_description": "採購進貨",
+        "time_expr": null,
+        "time_description": null,
+        "part_number": null,
+        "quantity": null,
+        "table_name": "pmn_file",
+        "warehouse": null,
+        "material_category": null
+      },
+      "debug_info": {
+        "step": "analyzed",
+        "intent": "QUERY_PURCHASE",
+        "has_context_entities": false,
+        "context_entities": {},
+        "translation": {
+          "tlf19": "101",
+          "tlf19_description": "採購進貨",
+          "time_expr": null,
+          "time_description": null,
+          "part_number": null,
+          "quantity": null,
+          "table_name": "pmn_file",
+          "warehouse": null,
+          "material_category": null
+        },
+        "used_knowledge_retrieval": false,
+        "knowledge_used": false,
+        "semantic_result": {
+          "intent": "QUERY_PURCHASE",
+          "concepts": [
+            {
+              "canonical_id": "TRANSACTION_TYPE",
+              "source_terms": [
+                "採購"
+              ],
+              "confidence": 0.9
+            }
+          ],
+          "schema_binding": {
+            "primary_table": "pmn_file",
+            "tables": [
+              "pmn_file"
+            ],
+            "columns": []
+          },
+          "constraints": {
+            "material_id": null,
+            "inventory_location": null,
+            "material_category": null,
+            "time_range": null,
+            "transaction_type": "101",
+            "quantity": null,
+            "supplier": null,
+            "customer": null
+          },
+          "validation": {
+            "requires_confirmation": false,
+            "missing_fields": [],
+            "notes": "請指定交易類型（採購/買進/進貨）"
+          },
+          "raw_text": "比較近三個月採購金額"
+        },
+        "generated_sql": "SELECT pmn04, ima02, SUM(pmn20) as total_qty, COUNT(*) as tx_count\nFROM read_parquet('s3://tiptop-raw/raw/v1/pmn_file/year=*/*/data.parquet', hive_partitioning=true) AS pmn_file LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/*/data.parquet', hive_partitioning=true) AS pmm_file ON pmn01 = pmm01 LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/*/data.parquet', hive_partitioning=true) AS ima_file ON pmn04 = ima01\nWHERE 1=1\nGROUP BY pmn04, ima02\n\nLIMIT 100"
+      }
+    },
+    "total_passed": true,
+    "execution_time_ms": 56306.18574982509,
+    "error": null
+  },
+  {
+    "scenario_id": "CT-03",
+    "user_input": "幫我分析 W01、W02、W03 三個倉庫的庫存水位",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "thought_process": "使用者要求分析 W01、W02、W03 三個倉庫的庫存水位，涉及多倉庫的比較與分析，屬於比較分析類的複雜任務，需要多步驟查詢、彙總與分析，因此判定為 COMPLEX_TASK。",
+    "intent_passed": true,
+    "todo_plan": null,
+    "todo_passed": true,
+    "rq_enqueued": false,
+    "rq_task_id": null,
+    "rq_executed": true,
+    "rq_result": {
+      "success": false,
+      "response": "",
+      "needs_clarification": true,
+      "clarification_message": "為了更準確地回答您的問題，請提供以下信息：\n\n謝謝您的配合！",
+      "session_id": "test-CT-03-35ea1bf7",
+      "resolved_query": null,
+      "translation": {
+        "tlf19": null,
+        "tlf19_description": "",
+        "time_expr": null,
+        "time_description": null,
+        "part_number": null,
+        "quantity": null,
+        "table_name": null,
+        "warehouse": null,
+        "material_category": null
+      },
+      "debug_info": {
+        "step": "semantic_translation",
+        "intent": "CLARIFICATION",
+        "semantic_result": {
+          "intent": "CLARIFICATION",
+          "concepts": [],
+          "schema_binding": {
+            "primary_table": null,
+            "tables": [],
+            "columns": []
+          },
+          "constraints": {
+            "material_id": null,
+            "inventory_location": null,
+            "material_category": null,
+            "time_range": null,
+            "transaction_type": null,
+            "quantity": null,
+            "supplier": null,
+            "customer": null
+          },
+          "validation": {
+            "requires_confirmation": true,
+            "missing_fields": [],
+            "notes": "轉譯失敗: 1 validation error for Constraints\ninventory_location\n  Input should be a valid string [type=string_type, input_value=['W01', 'W02', 'W03'], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.11/v/string_type"
+          },
+          "raw_text": "幫我分析 W01、W02、W03 三個倉庫的庫存水位"
+        },
+        "requires_confirmation": true
+      }
+    },
+    "total_passed": true,
+    "execution_time_ms": 69388.12389387749,
+    "error": null
+  },
+  {
+    "scenario_id": "CT-04",
+    "user_input": "為料號 10-0001 建立補貨建議方案",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "thought_process": "使用者要求為特定料號 10-0001 建立補貨建議方案，這涉及多步驟的分析與計畫生成（如需求預測、庫存檢視、補貨策略制定），屬於需要比較、分析與產出計畫的複雜任務，符合 COMPLEX_TASK 的判斷條件。",
+    "intent_passed": true,
+    "todo_plan": null,
+    "todo_passed": true,
+    "rq_enqueued": false,
+    "rq_task_id": null,
+    "rq_executed": true,
+    "rq_result": {
+      "success": true,
+      "response": "任務類型：replenishment_planning\n\nStep 1: 向 Data-Agent 查詢：『請提供過去 12 個月所有物料的消耗量、庫存餘...\n  └─ 類型：data_query\nStep 2: 資料完整性檢查：確認每個物料都有消耗量、庫存與 ABC 分類，缺失則標記並重新查...\n  └─ 類型：data_query\nStep 3: 計算每個物料安全庫存與再訂購點（ROP）\n  └─ 類型：computation\nStep 4: 分析 A/B/C 類物料補貨策略\n  └─ 類型：computation\nStep 5: 生成補貨建議單並提交採購\n  └─ 類型：computation\nStep 6: 記錄補貨建議與分析參數\n  └─ 類型：computation\n\n【自動執行中...】",
+      "needs_clarification": false,
+      "clarification_message": null,
+      "session_id": "test-CT-04-eda0ad1f",
+      "resolved_query": null,
+      "translation": null,
+      "debug_info": {
+        "step": "workflow_started",
+        "task_type": "replenishment_planning",
+        "is_react_workflow": true,
+        "total_steps": 6,
+        "thought_process": "我理解用戶想要：為料號 10-0001 建立補貨建議方案\n這是一個需要 6 步驟處理的任務。\n\n分析：\n- 目標：維持物料供應穩定，避免缺料\n- 匹配的工作流：replenishment_planning (v1.0.0)\n\n計劃執行以下 6 個步驟：\n1. 向 Data-Agent 查詢：『請提供過去 12 個月所有物料的消耗量、庫存餘... (data_query)\n2. 資料完整性檢查：確認每個物料都有消耗量、庫存與 ABC 分類，缺失則標記並重新查... (data_query)\n3. 計算每個物料安全庫存與再訂購點（ROP） (computation)\n4. 分析 A/B/C 類物料補貨策略 (computation)\n5. 生成補貨建議單並提交採購 (computation)\n6. 記錄補貨建議與分析參數 (computation)",
+        "plan": {
+          "task_type": "replenishment_planning",
+          "steps": [
+            {
+              "step_id": 1,
+              "action_type": "data_query",
+              "description": "向 Data-Agent 查詢：『請提供過去 12 個月所有物料的消耗量、庫存餘...",
+              "instruction": "向 Data-Agent 查詢：『請提供過去 12 個月所有物料的消耗量、庫存餘額及 ABC 分類，JSON 格式』\n"
+            },
+            {
+              "step_id": 2,
+              "action_type": "data_query",
+              "description": "資料完整性檢查：確認每個物料都有消耗量、庫存與 ABC 分類，缺失則標記並重新查...",
+              "instruction": "資料完整性檢查：確認每個物料都有消耗量、庫存與 ABC 分類，缺失則標記並重新查詢\n"
+            },
+            {
+              "step_id": 3,
+              "action_type": "computation",
+              "description": "計算每個物料安全庫存與再訂購點（ROP）",
+              "instruction": "計算每個物料安全庫存與再訂購點（ROP）\n"
+            },
+            {
+              "step_id": 4,
+              "action_type": "computation",
+              "description": "分析 A/B/C 類物料補貨策略",
+              "instruction": "分析 A/B/C 類物料補貨策略\n"
+            },
+            {
+              "step_id": 5,
+              "action_type": "computation",
+              "description": "生成補貨建議單並提交採購",
+              "instruction": "生成補貨建議單並提交採購\n"
+            },
+            {
+              "step_id": 6,
+              "action_type": "computation",
+              "description": "記錄補貨建議與分析參數",
+              "instruction": "記錄補貨建議與分析參數\n"
+            }
+          ],
+          "thought_process": "我理解用戶想要：為料號 10-0001 建立補貨建議方案\n這是一個需要 6 步驟處理的任務。\n\n分析：\n- 目標：維持物料供應穩定，避免缺料\n- 匹配的工作流：replenishment_planning (v1.0.0)\n\n計劃執行以下 6 個步驟：\n1. 向 Data-Agent 查詢：『請提供過去 12 個月所有物料的消耗量、庫存餘... (data_query)\n2. 資料完整性檢查：確認每個物料都有消耗量、庫存與 ABC 分類，缺失則標記並重新查... (data_query)\n3. 計算每個物料安全庫存與再訂購點（ROP） (computation)\n4. 分析 A/B/C 類物料補貨策略 (computation)\n5. 生成補貨建議單並提交採購 (computation)\n6. 記錄補貨建議與分析參數 (computation)"
+        }
+      }
+    },
+    "total_passed": true,
+    "execution_time_ms": 15293.851288966835,
+    "error": null
+  },
+  {
+    "scenario_id": "CT-05",
+    "user_input": "分析主要供應商的交貨準時率並排名",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "thought_process": "使用者要求「分析主要供應商的交貨準時率並排名」。這包含了資料分析、計算交貨準時率以及依結果排序，屬於比較/分析類的多步驟任務，符合 COMPLEX_TASK 的定義。輸入長度足夠且主題明確，故不屬於 GREETING、CLARIFICATION、KNOWLEDGE_QUERY 或 SIMPLE_QUERY。",
+    "intent_passed": true,
+    "todo_plan": null,
+    "todo_passed": true,
+    "rq_enqueued": false,
+    "rq_task_id": null,
+    "rq_executed": true,
+    "rq_result": {
+      "success": true,
+      "response": "已收到指令：分析主要供應商的交貨準時率並排名",
+      "needs_clarification": false,
+      "clarification_message": null,
+      "session_id": "test-CT-05-6d0e1072",
+      "resolved_query": null,
+      "translation": {
+        "tlf19": null,
+        "tlf19_description": "",
+        "time_expr": null,
+        "time_description": null,
+        "part_number": null,
+        "quantity": null,
+        "table_name": null,
+        "warehouse": null,
+        "material_category": null
+      },
+      "debug_info": {
+        "step": "analyzed",
+        "intent": "CLARIFICATION",
+        "has_context_entities": false,
+        "context_entities": {},
+        "translation": {
+          "tlf19": null,
+          "tlf19_description": "",
+          "time_expr": null,
+          "time_description": null,
+          "part_number": null,
+          "quantity": null,
+          "table_name": null,
+          "warehouse": null,
+          "material_category": null
+        },
+        "used_knowledge_retrieval": false,
+        "knowledge_used": false,
+        "semantic_result": {
+          "intent": "CLARIFICATION",
+          "concepts": [],
+          "schema_binding": {
+            "primary_table": "",
+            "tables": [],
+            "columns": []
+          },
+          "constraints": {
+            "material_id": null,
+            "inventory_location": null,
+            "material_category": null,
+            "time_range": null,
+            "transaction_type": null,
+            "quantity": null,
+            "supplier": null,
+            "customer": null
+          },
+          "validation": {
+            "requires_confirmation": false,
+            "missing_fields": [],
+            "notes": ""
+          },
+          "raw_text": "分析主要供應商的交貨準時率並排名"
+        }
+      }
+    },
+    "total_passed": true,
+    "execution_time_ms": 49891.58076001331,
+    "error": null
+  }
+]

@@ -4,9 +4,9 @@
     "default_max_tokens": 1000,
     "fallback_enabled": true,
     "model_priority": [
-      "mistral-nemo:12b",
-      "qwen3:32b",
-      "llama3:8b"
+      "qwen3-coder:30b",
+      "gpt-oss:120b",
+      "mistral-nemo:12b"
     ]
   },
   "embedding": {

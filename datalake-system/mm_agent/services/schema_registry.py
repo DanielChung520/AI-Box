@@ -167,9 +167,9 @@ class SchemaRegistry:
         for table_name, table_data in tables_data.items():
             columns = [
                 ColumnDefinition(
-                    id=col["id"],
-                    name=col["name"],
-                    type=col["type"],
+                    id=col.get("id", ""),
+                    name=col.get("name", ""),
+                    type=col.get("type", "string"),
                     description=col.get("description", ""),
                 )
                 for col in table_data.get("columns", [])

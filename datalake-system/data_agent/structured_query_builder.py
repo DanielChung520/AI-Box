@@ -1,57 +1,52 @@
 # 代碼功能說明: 結構化查詢構建器
 # 創建日期: 2026-01-31
 # 創建人: Daniel Chung
+# 最後修改日期: 2026-02-07
 
-"""結構化查詢構建器 - 將 MM-Agent 的結構化輸出轉換為 SQL"""
+"""結構化查詢構建器 - 將 MM-Agent 的結構化輸出轉換為 SQL，表/欄位自 schema_registry 載入"""
 
 from typing import Any, Dict, Optional
 
+from .config_manager import get_config
+from .schema_registry_loader import (
+    get_table_columns_map,
+    get_table_mapping_for_duckdb,
+    get_tables,
+    get_transaction_type_map,
+)
+
+
+def _table_map_from_registry() -> Dict[str, Dict[str, Any]]:
+    """自 schema_registry 組出 TABLE_MAP 結構（name, description, columns id->name）。"""
+    tables = get_tables()
+    cols_map = get_table_columns_map()
+    return {
+        name: {
+            "name": name,
+            "description": info.get("tiptop_name", name),
+            "columns": cols_map.get(name, {}),
+        }
+        for name, info in tables.items()
+    }
+
+
+def _default_bucket() -> str:
+    """預設 Datalake bucket（與 DatalakeService 一致）。"""
+    return get_config().get_datalake_bucket()
+
 
 class StructuredQueryBuilder:
-    """結構化查詢構建器"""
+    """結構化查詢構建器，表與欄位定義自 schema_registry.json 載入。"""
 
-    # Tiptop ERP 表名映射
-    TABLE_MAP = {
-        "img_file": {
-            "name": "img_file",
-            "description": "庫存明細檔",
-            "columns": {
-                "img01": "料號",
-                "img02": "倉庫代號",
-                "img03": "儲位代號",
-                "img04": "庫存數量",
-                "img05": "單位",
-                "img09": "最近更新日期",
-            },
-        },
-        "tlf_file": {
-            "name": "tlf_file",
-            "description": "異動明細檔",
-            "columns": {
-                "tlf01": "異動序號",
-                "tlf02": "料號",
-                "tlf06": "單據日期",
-                "tlf07": "異動別",
-                "tlf08": "單據單號",
-                "tlf09": "單據項次",
-                "tlf10": "異動數量",
-                "tlf11": "異動單位",
-                "tlf12": "單據確認碼",
-                "tlf13": "異動金額",
-                "tlf17": "倉庫代號",
-                "tlf19": "異動分類",  # 101=採購進貨, 102=完工入庫, 201=生產領料, 202=銷售出庫, 301=報廢
-            },
-        },
-    }
+    @classmethod
+    def _get_table_map(cls) -> Dict[str, Dict[str, Any]]:
+        """取得表名→表定義（自 schema_registry）。"""
+        return _table_map_from_registry()
 
-    # tlf19 交易類別映射
-    TLF19_MAP = {
-        "101": "採購進貨",
-        "102": "完工入庫",
-        "201": "生產領料",
-        "202": "銷售出庫",
-        "301": "庫存報廢",
-    }
+    @classmethod
+    def _get_tlf19_map(cls) -> Dict[str, str]:
+        """取得 tlf19 交易類別映射（自 schema_registry concepts.TRANSACTION_TYPE）。"""
+        return get_transaction_type_map()
 
     @classmethod
     def build_query(cls, structured_query: Dict[str, Any]) -> Dict[str, Any]:
@@ -103,13 +98,21 @@ class StructuredQueryBuilder:
             else:
                 select_clause = ", ".join(columns) if columns else "*"
 
+            # 表名須在 schema_registry 中
+            table_mapping = get_table_mapping_for_duckdb()
+            if table_name not in table_mapping:
+                return {
+                    "success": False,
+                    "error": f"不支援的表名: {table_name}，請使用 schema_registry 中定義的表",
+                }
+            bucket = _default_bucket()
             # 構建 FROM 和 JOIN
             if needs_join:
-                pmn_path = f"s3://tiptop-raw/raw/v1/pmn_file/year=*/month=*/data.parquet"
-                pmm_path = f"s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet"
+                pmn_path = f"s3://{bucket}/raw/v1/pmn_file/year=*/month=*/data.parquet"
+                pmm_path = f"s3://{bucket}/raw/v1/pmm_file/year=*/month=*/data.parquet"
                 from_clause = f"read_parquet('{pmn_path}', hive_partitioning=true) AS pmn LEFT JOIN read_parquet('{pmm_path}', hive_partitioning=true) AS pmm ON pmn.pmn01 = pmm.pmm01"
             else:
-                s3_path = f"s3://tiptop-raw/raw/v1/{table_name}/year=*/month=*/data.parquet"
+                s3_path = f"s3://{bucket}/raw/v1/{table_name}/year=*/month=*/data.parquet"
                 from_clause = f"read_parquet('{s3_path}', hive_partitioning=true)"
 
             # 構建 WHERE 子句
@@ -146,7 +149,7 @@ class StructuredQueryBuilder:
                     processed_group = []
                     for g in group_by:
                         if "pmm02" in str(g):
-                            processed_group.append(f"DATE_TRUNC('month', CAST(pmm.pmm02 AS DATE))")
+                            processed_group.append("DATE_TRUNC('month', CAST(pmm.pmm02 AS DATE))")
                         else:
                             processed_group.append(str(g))
                     group_clause = f"GROUP BY {', '.join(processed_group)}"
@@ -162,14 +165,9 @@ class StructuredQueryBuilder:
                 LIMIT 50
             """.strip()
 
-            # 生成說明
-            table_desc = {
-                "img_file": "庫存表",
-                "pmn_file": "採購單身",
-                "pmm_file": "採購單頭",
-                "ima_file": "物料主檔",
-                "coptd_file": "訂單身",
-            }.get(table_name, table_name)
+            # 生成說明（自 schema_registry 的 tiptop_name）
+            table_map = cls._get_table_map()
+            table_desc = table_map.get(table_name, {}).get("description", table_name)
 
             filter_desc = ", ".join([f"{k}={v}" for k, v in filters.items()]) if filters else "無"
             explanation = f"查詢{table_desc}，條件：{filter_desc}"
@@ -192,7 +190,7 @@ class StructuredQueryBuilder:
     def _build_inventory_query(cls, part_number: str) -> str:
         """構建庫存查詢"""
         return f"""
-            SELECT 
+            SELECT
                 img01 as part_number,
                 img02 as warehouse,
                 img03 as location,
@@ -227,7 +225,7 @@ class StructuredQueryBuilder:
         where_clause = " AND ".join(where_conditions)
 
         return f"""
-            SELECT 
+            SELECT
                 tlf01 as seq,
                 tlf02 as part_number,
                 tlf06 as trans_date,
@@ -246,24 +244,24 @@ class StructuredQueryBuilder:
 
 
 if __name__ == "__main__":
-    # 測試結構化查詢構建
+    # 測試結構化查詢構建（table 對應 build_query 參數）
     test_cases = [
         {
             "tlf19": "101",
             "part_number": "RM05-008",
             "time_expr": "DATE_SUB(CURDATE(), INTERVAL 1 MONTH)",
-            "table_name": "tlf_file",
+            "table": "tlf_file",
             "intent": "purchase",
         },
         {
             "part_number": "RM05-008",
-            "table_name": "img_file",
+            "table": "img_file",
             "intent": "inventory",
         },
         {
             "tlf19": "202",
             "part_number": "ABC-123",
-            "table_name": "tlf_file",
+            "table": "tlf_file",
             "intent": "sales",
         },
     ]
@@ -277,7 +275,7 @@ if __name__ == "__main__":
         print(f"  輸入: {query}")
         result = StructuredQueryBuilder.build_query(query)
         if result.get("success"):
-            print(f"  ✅ 成功")
+            print("  ✅ 成功")
             print(f"  SQL: {result['sql'][:100]}...")
             print(f"  說明: {result['explanation']}")
         else:

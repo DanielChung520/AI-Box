@@ -1,0 +1,315 @@
+{
+  "version": "1.0",
+  "language": "ja",
+  "domain": "jp_tiptop_erp",
+  "intents": {
+    "QUERY_INVENTORY": {
+      "description": "在庫照会",
+      "input": {
+        "filters": [
+          "ITEM_NO",
+          "WAREHOUSE_NO",
+          "LOCATION_NO",
+          "UNIT",
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "EXISTING_STOCKS"
+        ],
+        "dimensions": [
+          "ITEM_NO",
+          "WAREHOUSE_NO",
+          "LOCATION_NO",
+          "UNIT"
+        ]
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      }
+    },
+    "QUERY_INVENTORY_BY_WAREHOUSE": {
+      "description": "倉庫別在庫集計",
+      "input": {
+        "filters": [
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "EXISTING_STOCKS"
+        ],
+        "dimensions": [
+          "WAREHOUSE_NO"
+        ]
+      },
+      "constraints": {
+        "aggregation": "GROUP BY"
+      }
+    },
+    "QUERY_WORK_ORDER": {
+      "description": "工單照会",
+      "input": {
+        "filters": [
+          "MO_DOC_NO",
+          "ITEM_NO",
+          "CUSTOMER_NO",
+          "STATUS",
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "PRODUCTION_QTY",
+          "COMPLETION_QTY",
+          "SCRAP_QTY"
+        ],
+        "dimensions": [
+          "MO_DOC_NO",
+          "ITEM_NO",
+          "CUSTOMER_NO",
+          "STATUS"
+        ]
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      }
+    },
+    "QUERY_MANUFACTURING_PROGRESS": {
+      "description": "製造進捗照会",
+      "input": {
+        "filters": [
+          "MO_DOC_NO",
+          "CURRENT_OPERATION",
+          "WORKSTATION",
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "GOOD_ITEMS_OUT",
+          "REWORK_IN",
+          "REWORK_OUT",
+          "SCRAP_IN_STATION"
+        ],
+        "dimensions": [
+          "MO_DOC_NO",
+          "LN",
+          "CURRENT_OPERATION",
+          "OPERATION_SEQ",
+          "WORKSTATION"
+        ]
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      }
+    },
+    "QUERY_WORKSTATION_OUTPUT": {
+      "description": "工作站產出照会",
+      "input": {
+        "filters": [
+          "WORKSTATION",
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "STANDARD_OUTPUT",
+          "GOOD_ITEMS_OUT"
+        ],
+        "dimensions": [
+          "WORKSTATION",
+          "CURRENT_OPERATION"
+        ]
+      },
+      "constraints": {
+        "aggregation": "GROUP BY"
+      }
+    },
+    "QUERY_QUALITY": {
+      "description": "品質関連照会",
+      "input": {
+        "filters": [
+          "MO_DOC_NO",
+          "WORKSTATION",
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "SCRAP_IN_STATION",
+          "PENDING_PQC_QTY",
+          "REWORK_IN",
+          "REWORK_OUT"
+        ],
+        "dimensions": [
+          "MO_DOC_NO",
+          "WORKSTATION"
+        ]
+      }
+    },
+    "QUERY_OUTSOURCING": {
+      "description": "外包加工照会",
+      "input": {
+        "filters": [
+          "MO_DOC_NO",
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "OUTSOURCED_QTY",
+          "OUTSOURCED_FINISH_QTY"
+        ],
+        "dimensions": [
+          "MO_DOC_NO"
+        ]
+      }
+    },
+    "QUERY_SHIPPING": {
+      "description": "出荷通知照会",
+      "input": {
+        "filters": [
+          "DOC_NO",
+          "CUSTOMER_NO",
+          "STATUS",
+          "SALES_CATEGORY",
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "REQUEST_QTY",
+          "ACTUAL_QTY"
+        ],
+        "dimensions": [
+          "DOC_NO",
+          "DOC_DATE",
+          "CUSTOMER_NO",
+          "SALES_PERSON",
+          "SALES_DEPT",
+          "STATUS"
+        ]
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      }
+    },
+    "QUERY_SHIPPING_BY_CUSTOMER": {
+      "description": "客戶別出荷集計",
+      "input": {
+        "filters": [
+          "CUSTOMER_NO",
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "REQUEST_QTY",
+          "ACTUAL_QTY",
+          "UNIT_PRICE"
+        ],
+        "dimensions": [
+          "CUSTOMER_NO",
+          "SALES_PERSON"
+        ]
+      },
+      "constraints": {
+        "aggregation": "GROUP BY"
+      }
+    },
+    "QUERY_SHIPPING_DETAILS": {
+      "description": "出荷明细照会",
+      "input": {
+        "filters": [
+          "DOC_NO",
+          "ITEM_NO",
+          "SO_ORDER"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "REQUEST_QTY",
+          "ACTUAL_QTY",
+          "UNIT_PRICE"
+        ],
+        "dimensions": [
+          "DOC_NO",
+          "SEQ",
+          "ITEM_NO",
+          "SO_ORDER",
+          "SO_LINE"
+        ]
+      }
+    },
+    "QUERY_PRICE_APPROVAL": {
+      "description": "售價審核照会",
+      "input": {
+        "filters": [
+          "DOC_NO",
+          "CUSTOMER_NO",
+          "STATUS",
+          "ITEM_NO",
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "UNIT_PRICE"
+        ],
+        "dimensions": [
+          "DOC_NO",
+          "DOC_DATE",
+          "CUSTOMER_NO",
+          "APPLICANT",
+          "DEPT",
+          "STATUS"
+        ]
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      }
+    },
+    "QUERY_PRICE_DETAILS": {
+      "description": "售價明细照会",
+      "input": {
+        "filters": [
+          "DOC_NO",
+          "ITEM_NO"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "UNIT_PRICE"
+        ],
+        "dimensions": [
+          "DOC_NO",
+          "SEQ",
+          "ITEM_NO",
+          "UNIT"
+        ]
+      }
+    },
+    "QUERY_CUSTOMER_PRICE": {
+      "description": "客戶售價列表",
+      "input": {
+        "filters": [
+          "CUSTOMER_NO",
+          "ITEM_NO"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "UNIT_PRICE"
+        ],
+        "dimensions": [
+          "CUSTOMER_NO",
+          "ITEM_NO",
+          "DOC_NO",
+          "VALID_DATE"
+        ]
+      }
+    }
+  }
+}

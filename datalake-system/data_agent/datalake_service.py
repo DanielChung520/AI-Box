@@ -31,7 +31,9 @@ if str(ai_box_root) not in sys.path:
 from dotenv import load_dotenv
 
 from storage.s3_storage import S3FileStorage, SeaweedFSService
+
 from .config_manager import get_config
+from .schema_registry_loader import get_table_mapping_for_duckdb, get_table_path_pattern_for_duckdb
 
 # 加載環境變數（使用絕對路徑）
 # datalake-system 在 AI-Box 項目中，需要指向 AI-Box 根目錄的 .env
@@ -52,6 +54,10 @@ class DatalakeService:
         self._logger = logger
         # 從配置讀取預設 bucket
         self._default_bucket = self._config.get_datalake_bucket()
+        # 表名→路徑映射自 schema_registry.json 統一載入
+        self._table_mapping = get_table_mapping_for_duckdb()
+        # 表名→路徑模式映射（處理 _large 表的 data_batch_*.parquet）
+        self._path_pattern = get_table_path_pattern_for_duckdb()
         # 初始化 DuckDB
         self._duckdb_con = duckdb.connect(":memory:")
         self._configure_duckdb()
@@ -493,9 +499,15 @@ class DatalakeService:
 
             self._logger.info(f"SQL 查詢（DuckDB）: {sql_query[:200]}")
 
-            # 如果 SQL 已經包含 read_parquet，直接執行
+            # 如果 SQL 已經包含 read_parquet，嘗試替換為正確的路徑
             if "read_parquet" in sql_query:
-                self._logger.info("SQL 包含 read_parquet，直接執行")
+                self._logger.info("SQL 包含 read_parquet，檢查是否需要替換路徑")
+
+                # 提取原始表名並替換路徑
+                sql_query = await self._replace_parquet_path(sql_query)
+
+                self._logger.info(f"替換後的 SQL: {sql_query[:200]}...")
+
                 result = self._duckdb_con.execute(sql_query)
                 columns = [desc[0] for desc in result.description]
                 rows_data = result.fetchall()
@@ -517,23 +529,7 @@ class DatalakeService:
                 }
 
             table_name = table_match.group(1).strip()
-
-            # 映射表名到實際的 S3 Parquet 路徑
-            table_mapping = {
-                "img_file": "img_file",
-                "ima_file": "ima_file",
-                "tlf_file": "tlf_file",
-                "tlf_file_large": "tlf_file_large",
-                "pmc_file": "pmc_file",
-                "pmn_file": "pmn_file",
-                "imd_file": "imd_file",
-                "ime_file": "ime_file",
-                # 新增表（2026-01 JP-PoC 擴展）
-                "cmc_file": "cmc_file",
-                "coptc_file": "coptc_file",
-                "coptd_file": "coptd_file",
-                "prc_file": "prc_file",
-            }
+            table_mapping = self._table_mapping
 
             if table_name not in table_mapping:
                 return {
@@ -541,8 +537,12 @@ class DatalakeService:
                     "error": f"不支援的表名: {table_name}",
                 }
 
-            # 構建 Parquet 文件路徑
-            parquet_path = f"s3://{self._default_bucket}/raw/v1/{table_mapping[table_name]}/year=*/*/data.parquet"
+            # 構建 Parquet 文件路徑（使用映射後的表名獲取正確路徑模式）
+            mapped_table = table_mapping[table_name]
+            path_pattern = self._path_pattern.get(mapped_table, "year=*/month=*/data.parquet")
+            parquet_path = f"s3://{self._default_bucket}/raw/v1/{mapped_table}/{path_pattern}"
+
+            self._logger.info(f"查詢路徑: {parquet_path}")
 
             # 使用簡單的字串分割方式來處理 FROM 子句
             # 找到 FROM 關鍵字的位置
@@ -557,11 +557,12 @@ class DatalakeService:
             if not from_match:
                 return {"success": False, "error": "無法解析 SQL 中的 FROM 子句"}
 
-            table_name_in_sql = from_match.group(1)
             from_alias = from_match.group(2) if from_match.group(2) else None
 
             # 構建 Parquet 文件路徑
-            parquet_path = f"s3://{self._default_bucket}/raw/v1/{table_mapping[table_name]}/year=*/*/data.parquet"
+            parquet_path = (
+                f"s3://{self._default_bucket}/raw/v1/{table_mapping[table_name]}/{path_pattern}"
+            )
 
             # 替換 FROM 子句
             from_replacement = f"FROM read_parquet('{parquet_path}', hive_partitioning=true) t1"
@@ -632,185 +633,44 @@ class DatalakeService:
                 "error": str(e),
             }
 
-            table_name = table_match.group(1).strip()
+    async def _replace_parquet_path(self, sql_query: str) -> str:
+        """替換 SQL 中的 Parquet 路徑為正確的路徑
 
-            # 映射表名到實際的 S3 Parquet 路徑
-            table_mapping = {
-                "img_file": "img_file",
-                "ima_file": "ima_file",
-                "tlf_file": "tlf_file",
-                "tlf_file_large": "tlf_file_large",
-                "pmc_file": "pmc_file",
-                "pmn_file": "pmn_file",
-                "imd_file": "imd_file",
-                "ime_file": "ime_file",
-                # 新增表（2026-01 JP-PoC 擴展）
-                "cmc_file": "cmc_file",
-                "coptc_file": "coptc_file",
-                "coptd_file": "coptd_file",
-                "prc_file": "prc_file",
-            }
+        例如：
+        - tlf_file/year=*/month=*/data.parquet → tlf_file_large/year=*/*/*.parquet
 
-            if table_name not in table_mapping:
-                return {
-                    "success": False,
-                    "error": f"不支援的表名: {table_name}",
-                }
+        Args:
+            sql_query: 原始 SQL 查詢
 
-            # 構建 Parquet 文件路徑
-            parquet_path = (
-                f"s3://{self._default_bucket}/raw/v1/{table_mapping[table_name]}/**/*.parquet"
-            )
+        Returns:
+            替換後的 SQL 查詢
+        """
+        # 提取表名並替換路徑
+        for original_table, mapped_table in self._table_mapping.items():
+            if original_table == mapped_table:
+                continue  # 跳過沒有映射的表
 
-            # 將表名替換為 Parquet 文件路徑
-            # 先檢查 FROM 子句後是否有別名
-            from_match = re.search(
-                r"FROM\s+" + re.escape(table_name) + r"(?:\s+(\w+))?", sql_query, re.IGNORECASE
-            )
+            # 構建舊路徑模式和新路徑模式
+            path_pattern = self._path_pattern.get(mapped_table, "year=*/month=*/data.parquet")
+            new_pattern = f"/{mapped_table}/{path_pattern}'"
 
-            # 檢查捕獲的別名是否是 SQL 關鍵字
-            sql_keywords = [
-                "WHERE",
-                "GROUP",
-                "ORDER",
-                "HAVING",
-                "LIMIT",
-                "JOIN",
-                "LEFT",
-                "RIGHT",
-                "INNER",
-                "OUTER",
+            # 嘗試多種舊路徑模式
+            old_patterns = [
+                f"/{original_table}/year=*/month=*/data.parquet', hive_partitioning=true",
+                f"/{original_table}/year=*/month=*/data.parquet')",
+                f'/{original_table}/year=*/month=*/data.parquet"',
+                f"/{original_table}/year=*/month=*/data.parquet",
             ]
-            from_alias = None
-            if from_match and from_match.group(1):
-                alias = from_match.group(1)
-                if alias.upper() not in sql_keywords:
-                    from_alias = alias
 
-            # 構建主表的替換（不包含 FROM 關鍵字）
-            from_replacement = f"read_parquet('{parquet_path}', hive_partitioning=true) t1"
+            for old_pattern in old_patterns:
+                if old_pattern in sql_query:
+                    self._logger.info(f"替換路徑: {old_pattern} → {new_pattern}")
+                    sql_query = sql_query.replace(old_pattern, new_pattern)
+                    return sql_query
 
-            # 精確替換 FROM 子句（只替換第一個 FROM 子句）
-            duckdb_query = re.sub(
-                r"(FROM\s+)" + re.escape(table_name) + r"(\s+\w+)?",
-                r"\1" + from_replacement,
-                sql_query,
-                flags=re.IGNORECASE,
-                count=1,
-            )
+        return sql_query
 
-            from_alias = from_match.group(2) if from_match and from_match.group(2) else None
-
-            # 構建主表的替換（不包含 FROM 關鍵字）
-            from_replacement = f"read_parquet('{parquet_path}', hive_partitioning=true) t1"
-
-            # 精確替換 FROM 子句（只替換第一個 FROM 子句）
-            duckdb_query = re.sub(
-                r"(FROM\s+)" + re.escape(table_name) + r"(\s+\w+)?",
-                r"\1" + from_replacement,
-                sql_query,
-                flags=re.IGNORECASE,
-                count=1,
-            )
-
-            # 替換主表別名引用為 t1
-            if from_alias:
-                # 替換所有的別名引用（如 i.img01 → t1.img01）
-                duckdb_query = duckdb_query.replace(f"{from_alias}.", "t1.")
-                # 替換 ON 條件中的別名
-                duckdb_query = duckdb_query.replace(
-                    r"ON\s+" + re.escape(from_alias) + r"\.",
-                    "ON t1.",
-                    duckdb_query,
-                    flags=re.IGNORECASE,
-                )
-
-            # 精確替換 FROM 子句（只替換第一個 FROM 子句）
-            duckdb_query = re.sub(
-                r"(FROM\s+)" + re.escape(table_name) + r"(\s+\w+)?",
-                r"\1" + from_replacement,
-                sql_query,
-                flags=re.IGNORECASE,
-                count=1,
-            )
-
-            # 替換主表別名引用為 t1
-            if from_alias:
-                # 替換所有的別名引用（如 i.img01 → t1.img01）
-                duckdb_query = duckdb_query.replace(f"{from_alias}.", "t1.")
-                # 替換 ON 條件中的別名
-                duckdb_query = re.sub(
-                    r"ON\s+" + re.escape(from_alias) + r"\.",
-                    "ON t1.",
-                    duckdb_query,
-                    flags=re.IGNORECASE,
-                )
-
-            # 替換主表別名引用為 t1
-            if from_alias:
-                # 替換所有的別名引用（如 i.img01 → t1.img01）
-                duckdb_query = duckdb_query.replace(f"{from_alias}.", "t1.")
-                # 替換 ON 條件中的別名
-                duckdb_query = re.sub(
-                    r"ON\s+" + re.escape(from_alias) + r"\.",
-                    "ON t1.",
-                    duckdb_query,
-                    flags=re.IGNORECASE,
-                )
-
-            # 處理 JOIN（將多個表名替換為 Parquet 路徑）
-            join_count = 2
-            for table_key in table_mapping:
-                if table_key == table_name:
-                    continue
-                # 查找包含此表名的 JOIN 語句
-                join_pattern = (
-                    r"(JOIN|LEFT\s+JOIN|RIGHT\s+JOIN|INNER\s+JOIN)\s+"
-                    + re.escape(table_key)
-                    + r"(\s+\w+)?"
-                )
-                for match in re.finditer(join_pattern, duckdb_query, re.IGNORECASE):
-                    join_type = match.group(1)
-                    join_alias = match.group(2) if match.group(2) else table_key
-                    join_parquet_path = f"s3://{self._default_bucket}/raw/v1/{table_mapping[table_key]}/**/*.parquet"
-                    replacement = f"{join_type} read_parquet('{join_parquet_path}', hive_partitioning=true) t{join_count}"
-                    duckdb_query = duckdb_query.replace(match.group(0), replacement)
-                    # 替換別名引用
-                    if join_alias and join_alias != table_key:
-                        duckdb_query = duckdb_query.replace(f"{join_alias}.", f"t{join_count}.")
-                    join_count += 1
-
-            # 添加 LIMIT 子句（如果不存在）
-            if "LIMIT" not in duckdb_query.upper():
-                duckdb_query += f" LIMIT {max_rows}"
-
-            self._logger.info(f"DuckDB 執行查詢: {duckdb_query[:500]}")
-
-            # 執行查詢
-            result = self._duckdb_con.execute(duckdb_query)
-
-            # 獲取結果
-            columns = [desc[0] for desc in result.description]
-            rows_data = result.fetchall()
-
-            # 轉換為字典列表
-            rows = [dict(zip(columns, row)) for row in rows_data]
-
-            return {
-                "success": True,
-                "rows": rows,
-                "row_count": len(rows),
-                "sql_query": sql_query,
-                "duckdb_query": duckdb_query,
-                "query_type": "sql_duckdb",
-            }
-
-        except Exception as e:
-            self._logger.error(f"SQL query (DuckDB) failed: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": str(e),
-            }
+        return sql_query
 
     def _parse_where_clause(self, where_clause: str) -> list:
         """解析 WHERE 子句為條件列表

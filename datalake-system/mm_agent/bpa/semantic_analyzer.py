@@ -171,12 +171,13 @@ class BPASemanticAnalyzer:
         extractions = {}
 
         # 優先檢查：倉庫代碼 + 倉庫關鍵詞（如 W01 倉庫）
-        warehouse_pattern = r"\b(W\d{2})\b"
+        # 注意：不用 \b 單詞邊界，因為中文環境下會有問題
+        warehouse_pattern = r"(W\d{2})(?!\d)"
         warehouse_match = re.search(warehouse_pattern, text, re.IGNORECASE)
 
         if warehouse_match and any(kw in text for kw in ["倉庫", "倉", "庫", "區"]):
             # W01 倉庫 → 識別為倉庫
-            w_code = warehouse_match.group(1)
+            w_code = warehouse_match.group(1)  # 完整代碼如 W01
             extractions["warehouse"] = EntityExtraction(
                 entity_type="warehouse",
                 value=w_code,

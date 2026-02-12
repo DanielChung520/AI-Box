@@ -74,7 +74,7 @@ class DataAgentConfig:
     TABLE_PATHS = {
         "img_file": "s3://{bucket}/raw/v1/img_file/year=*/*/data.parquet",
         "ima_file": "s3://{bucket}/raw/v1/ima_file/year=*/*/data.parquet",
-        "tlf_file": "s3://{bucket}/raw/v1/tlf_file/year=*/*/data.parquet",
+        "tlf_file_large": "s3://{bucket}/raw/v1/tlf_file_large/**/*.parquet",
         "pmn_file": "s3://{bucket}/raw/v1/pmn_file/year=*/*/data.parquet",
         "pmm_file": "s3://{bucket}/raw/v1/pmm_file/year=*/*/data.parquet",
     }

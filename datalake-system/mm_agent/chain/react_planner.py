@@ -118,6 +118,19 @@ class ReActPlanner:
         Returns:
             TodoPlan: 工作計劃
         """
+        # 【新增】首先嘗試從 workflow YAML 載入匹配的流程
+        try:
+            from .workflow_loader import get_workflow_loader
+
+            loader = get_workflow_loader()
+            workflow = loader.match_workflow(instruction)
+
+            if workflow:
+                logger.info(f"[ReActPlanner] 從 workflow YAML 載入: {workflow.name}")
+                return self._workflow_based_plan(workflow, instruction)
+        except Exception as e:
+            logger.warning(f"[ReActPlanner] workflow 載入失敗，回退到 LLM 生成: {e}")
+
         # 每次都檢查 LLM 可用性
         if not self._check_llm_available():
             logger.warning("[ReActPlanner] LLM 不可用，回退到規則引擎")
@@ -133,13 +146,25 @@ class ReActPlanner:
                 "分類",
                 "計算",
                 "統計",
-                "查詢",
                 "abc",
                 "庫存",
                 "使用量",
                 "金額",
             ]
         )
+
+        # 【新增】簡單查詢檢測：只包含「查詢/庫存/料號」關鍵字，無「如何/怎麼/步驟/計算/統計/分類」
+        is_simple_query = any(
+            kw in instruction
+            for kw in ["查詢", "庫存", "料號", "品名", "規格", "單價"]
+        ) and not any(
+            kw in instruction_lower
+            for kw in ["如何", "怎麼", "步驟", "計算", "統計", "分類", "abc", "推薦", "建議"]
+        )
+
+        if is_simple_query:
+            logger.info(f"[ReActPlanner] 檢測到簡單查詢，使用 2 步計劃: {instruction}")
+            return self._simple_query_plan(instruction)
 
         if is_data_task:
             user_prompt = f"""你是一位專業的庫存管理 AI Agent。用戶指令是：{instruction}
@@ -149,14 +174,24 @@ class ReActPlanner:
 2. 動態生成一個靈活的工作流程來完成這個任務
 3. 每個步驟都要有明確的 instruction，告訴下一個 Agent 具體要做什麼
 
-【重要原則】
-- 不要預設固定的步驟數量！根據任務複雜度決定步驟
-- 例如簡單查詢可能只需 2-3 步，複雜分析可能需要 5-7 步
-- 每個步驟的 instruction 必須非常具體，告訴接收者：
-  * 要做什麼
-  * 需要什麼數據
-  * 輸出什麼格式
-  * 有什麼特殊要求
+【重要原則 - 根據任務複雜度決定步驟數量】
+- **簡單查詢**（只需查詢並返回結果）：2 步
+  * data_query → response_generation
+  * 例如：「查詢W03所有庫存」、「查詢料號10-0001的品名」
+
+- **中等複雜**（需要計算或分析）：3 步
+  * knowledge_retrieval → data_query → response_generation
+  * 例如：「計算庫存價值」、「統計每月銷售」
+
+- **複雜分析**（需要多步驟處理）：4-6 步
+  * knowledge_retrieval → data_query → computation → response_generation
+  * 例如：「ABC分類分析」、「年度採購分析」
+
+【不要過度分解】
+- 不要為簡單查詢添加不必要的 knowledge_retrieval 或 computation 步驟
+- 問「怎麼操作」才需要 knowledge_retrieval
+- 問「計算/統計/分類」才需要 computation
+- 問「查詢」只需要 data_query
 
 【action_type 類型】
 - knowledge_retrieval: 搜尋相關知識/理論
@@ -188,12 +223,12 @@ AI 動態生成：
     "description": "理解ABC分類理論",
     "instruction": "請搜尋並彙整 ABC 分類（Pareto 分析）的完整方法論，包括：A 類＝累積價值前 70% 的物料、B 類＝累積價值 70%~90% 的物料、C 類＝累積價值 90%~100% 的物料。說明分類目的（庫存重點管理）、常見分類比例、以及這個方法在供應鏈管理中的實際應用場景。"
   }},
-  {{
-    "step_id": 2,
-    "action_type": "data_query",
-    "description": "查詢庫存價值資料",
-    "instruction": "Data-Agent你好，我需要進行 ABC 分類分析，請從庫存系統查詢以下資料：\n1. 所有有料號的庫存數量（imgl04 欄位）\n2. 最近交易單價（pmn09 欄位）\n3. 料號（imgl01）\n4. 倉庫代碼（imgl02）\n\n請計算每個料號的庫存價值 = 數量 × 單價，然後按料號彙總，按總價值降序排列，取前 100 筆。產出欄位：料號、總數量、單價、總價值。"
-  }},
+   {{
+     "step_id": 2,
+     "action_type": "data_query",
+     "description": "查詢消耗與單價資料",
+     "instruction": "Data-Agent你好，我需要進行 ABC 分類分析（按消耗量），請使用 pmn_file 查詢：\n1. 每個料號的年度消耗數量（pmn20 欄位的 SUM）\n2. 最近採購單價（pmn09 欄位）\n3. 料號（pmn04 欄位）\n\nSQL 範例：\nSELECT pmn04 as 料號, SUM(pmn20) as 年度消耗數量, MAX(pmn09) as 單價\nFROM pmn_file GROUP BY pmn04\n\n然後計算：消耗價值 = 年度消耗數量 × 單價\n產出欄位：料號、年度消耗數量、單價、消耗價值，按消耗價值降序排列。"
+   }},
   {{
     "step_id": 3,
     "action_type": "computation",
@@ -208,13 +243,32 @@ AI 動態生成：
   }}
 ]
 
+【範例 - 簡單查詢】
+用戶：「查詢 W03 倉庫所有庫存列表」
+
+AI 生成（2 步）：
+[
+  {{
+    "step_id": 1,
+    "action_type": "data_query",
+    "description": "查詢 W03 庫存",
+    "instruction": "請查詢 W03 倉庫的所有庫存資料，包含：料號、倉庫、儲位、數量。SQL 需要過濾 img02 = 'W03'。"
+  }},
+  {{
+    "step_id": 2,
+    "action_type": "response_generation",
+    "description": "生成回覆",
+    "instruction": "根據查詢結果，用表格呈現所有庫存資訊。"
+  }}
+]
+
 【你的任務】
 用戶指令：{instruction}
 
 請根據這個具體需求，動態生成合適的工作流程。記住：
-- 步驟數量由任務決定，不要硬編碼
+- 步驟數量由任務決定
+- 簡單查詢 2 步、複雜分析 4-6 步
 - 每個 instruction 都要具體到執行者可以直接執行
-- 考慮數據流向：誰提供輸入、誰處理、誰產出
 
 只返回 JSON 陣列，不要返回 markdown 代碼塊。"""
         else:
@@ -545,6 +599,77 @@ AI 動態生成：
                 current_step=1,
                 completed_steps=[],
             )
+
+    def _simple_query_plan(self, instruction: str) -> TodoPlan:
+        """簡單查詢計劃：2 步（data_query + response_generation）"""
+        logger.info(f"[ReActPlanner] 生成簡單查詢工作流: 2 步驟")
+
+        steps = [
+            Action(
+                step_id=1,
+                action_type="data_query",
+                description="執行數據查詢",
+                parameters={"instruction": instruction},
+                dependencies=[],
+                result_key="query_result",
+            ),
+            Action(
+                step_id=2,
+                action_type="response_generation",
+                description="生成查詢回覆",
+                parameters={},
+                dependencies=[1],
+                result_key=None,
+            ),
+        ]
+
+        return TodoPlan(
+            task_type="simple_query",
+            original_instruction=instruction,
+            steps=steps,
+            current_step=1,
+            completed_steps=[],
+        )
+
+    def _workflow_based_plan(self, workflow, instruction: str) -> TodoPlan:
+        """從 workflow YAML 配置生成工作計劃"""
+        logger.info(f"[ReActPlanner] 從 workflow 生成計劃: {workflow.name}, {len(workflow.steps)} 步驟")
+
+        # 生成思考過程
+        thought_process = f"""我理解用戶想要：{instruction}
+這是一個需要 {len(workflow.steps)} 步驟處理的任務。
+
+分析：
+- 目標：{workflow.description}
+- 匹配的工作流：{workflow.name} (v{workflow.version})
+
+計劃執行以下 {len(workflow.steps)} 個步驟："""
+
+        for step in workflow.steps:
+            thought_process += f"\n{step.step_id}. {step.description} ({step.action_type})"
+
+        steps = []
+        for step in workflow.steps:
+            action = Action(
+                step_id=step.step_id,
+                action_type=step.action_type,
+                description=step.description,
+                instruction=step.instruction,
+                parameters={},
+                dependencies=[],
+                result_key=None,
+            )
+            steps.append(action)
+            logger.info(f"[ReActPlanner]   Step {step.step_id}: {step.action_type} - {step.description}")
+
+        return TodoPlan(
+            task_type=workflow.name,
+            original_instruction=instruction,
+            steps=steps,
+            current_step=1,
+            completed_steps=[],
+            thought_process=thought_process,
+        )
 
     def get_current_step(self, plan: TodoPlan) -> Optional[Action]:
         """獲取當前待執行的步驟"""

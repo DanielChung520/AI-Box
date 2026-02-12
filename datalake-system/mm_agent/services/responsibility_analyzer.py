@@ -53,7 +53,7 @@ class ResponsibilityAnalyzer:
                     "分析庫存狀態",
                     "格式化返回結果",
                 ],
-                required_data=["part_number"],
+                required_data=[],  # 不強制要求參數，Data-Agent 處理通用查詢
             )
 
         elif intent == "query_stock_history":

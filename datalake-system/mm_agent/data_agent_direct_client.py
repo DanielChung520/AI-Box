@@ -35,7 +35,11 @@ logger = logging.getLogger(__name__)
 
 
 class DataAgentDirectClient:
-    """Data Agent直接客戶端 - 用於獨立測試"""
+    """Data Agent直接客戶端 - 用於獨立測試
+
+    注意：Data-Agent-JP 的 /jp/execute 端點僅支持自然語言查詢（Schema Driven Query），
+          不支持結構化查詢。對於結構化查詢，請直接使用 StructuredQueryHandler。
+    """
 
     def __init__(self, use_http: bool = True) -> None:
         """初始化Data Agent直接客戶端
@@ -45,6 +49,7 @@ class DataAgentDirectClient:
         """
         self._use_http = use_http
         self._data_agent_service_url = os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8004")
+        self._jp_execute_endpoint = "/jp/execute"  # Data-Agent-JP Schema Driven Query 端點
         self._logger = logger
         self._timeout = 30.0
         self._data_agent_instance: Optional[Any] = None
@@ -105,7 +110,9 @@ class DataAgentDirectClient:
         }
 
         # 直接調用Data Agent HTTP API
-        url = f"{self._data_agent_service_url}/execute"
+        # 注意：Data-Agent-JP 使用 /jp/execute 端點，但接口格式可能不兼容
+        # 建議使用 StructuredQueryHandler 直接調用
+        url = f"{self._data_agent_service_url}{self._jp_execute_endpoint}"
         last_error: Optional[Exception] = None
 
         for attempt in range(max_retries):
@@ -126,7 +133,9 @@ class DataAgentDirectClient:
                     )
 
                     if response.status_code != 200:
-                        error_msg = f"Data Agent調用失敗: HTTP {response.status_code}, {response.text}"
+                        error_msg = (
+                            f"Data Agent調用失敗: HTTP {response.status_code}, {response.text}"
+                        )
                         self._logger.error(error_msg)
                         raise RuntimeError(error_msg)
 
@@ -234,7 +243,9 @@ class DataAgentDirectClient:
 
         # 直接調用Data Agent
         try:
-            self._logger.debug(f"直接實例化調用Data Agent: action={action}, task_id={request.task_id}")
+            self._logger.debug(
+                f"直接實例化調用Data Agent: action={action}, task_id={request.task_id}"
+            )
 
             response = await self._data_agent_instance.execute(agent_request)
 

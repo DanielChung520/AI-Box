@@ -1,0 +1,749 @@
+# =============================================================================
+# JP TiTop ERP Schema Definition (日本 TiTop ERP)
+# =============================================================================
+# 特性：
+# - 支持日本在地化命名慣例
+# - 多系統表名映射（Canonical → TiTop日本）
+# - 表格關聯使用 Canonical Name
+# - 支持 Schema-Driven Query 架構
+# =============================================================================
+
+version: "1.0.0"
+
+system:
+  id: "jp_tiptop_erp"
+  name: "JP TiTop ERP"
+  full_name: "日本 TiTop 基幹業務システム"
+  dialect: "oracle"
+  naming_convention: "tiptop_jp"
+  bucket: "jp-tiptop-raw"
+  language: "ja"
+
+tables:
+  - name: "inag_file"
+    canonical_name: "inag_file"
+    names:
+      tiptop_jp: "INAG_T"
+    description: "Inventory Details 在庫明細"
+    type: "fact"
+    source: "raw"
+    aliases:
+      ja:
+        - "在庫"
+        - "手持在庫"
+        - "在庫明细"
+      en:
+        - "inventory"
+        - "stock"
+    columns:
+      - id: "ent"
+        names:
+          tiptop_jp: "INAGENT"
+        type: "number"
+        description: "企業編號"
+      - id: "site"
+        names:
+          tiptop_jp: "INAGSITE"
+        type: "string"
+        description: "營運據點"
+      - id: "item_no"
+        names:
+          tiptop_jp: "INAG001"
+        type: "string"
+        description: "料件編號"
+        fk: "item_master.item_no"
+      - id: "warehouse_no"
+        names:
+          tiptop_jp: "INAG004"
+        type: "string"
+        description: "倉庫編號"
+        fk: "warehouse_master.warehouse_no"
+      - id: "location_no"
+        names:
+          tiptop_jp: "INAG005"
+        type: "string"
+        description: "儲位編號"
+        fk: "storage_location.location_no"
+      - id: "unit"
+        names:
+          tiptop_jp: "INAG007"
+        type: "string"
+        description: "單位"
+      - id: "existing_stocks"
+        names:
+          tiptop_jp: "INAG008"
+        type: "number(15,3)"
+        description: "現有庫存"
+        aggregate: "sum"
+
+  - name: "sfaa_file"
+    canonical_name: "sfaa_file"
+    names:
+      tiptop_jp: "SFAA_T"
+    description: "WO Header 工單頭檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      ja:
+        - "工單"
+        - "製造指図"
+        - "WO"
+      en:
+        - "work order"
+        - "production order"
+    columns:
+      - id: "ent"
+        names:
+          tiptop_jp: "SFAAENT"
+        type: "number"
+        description: "企業編號"
+      - id: "site"
+        names:
+          tiptop_jp: "SFAASITE"
+        type: "string"
+        description: "營運據點"
+      - id: "item_no"
+        names:
+          tiptop_jp: "SFAA010"
+        type: "string"
+        description: "料件編號"
+        fk: "item_master.item_no"
+      - id: "scrap_qty"
+        names:
+          tiptop_jp: "SFAA056"
+        type: "number(15,3)"
+        description: "報廢數量"
+        aggregate: "sum"
+      - id: "so_order"
+        names:
+          tiptop_jp: "SFAA022"
+        type: "string"
+        description: "訂單編號"
+        fk: "sales_header.order_no"
+      - id: "so_line"
+        names:
+          tiptop_jp: "SFAA023"
+        type: "string"
+        description: "訂單項次"
+      - id: "order_line_sn"
+        names:
+          tiptop_jp: "SFAA024"
+        type: "string"
+        description: "訂單批次序號"
+      - id: "order_batch_seq"
+        names:
+          tiptop_jp: "SFAA025"
+        type: "string"
+        description: "訂單批次序號"
+      - id: "customer_no"
+        names:
+          tiptop_jp: "SFAA009"
+        type: "string"
+        description: "客戶編號"
+        fk: "customer.customer_no"
+      - id: "location_no"
+        names:
+          tiptop_jp: "SFAA034"
+        type: "string"
+        description: "儲位編號"
+        fk: "storage_location.location_no"
+      - id: "warehouse_no"
+        names:
+          tiptop_jp: "SFAA035"
+        type: "string"
+        description: "倉庫編號"
+        fk: "warehouse_master.warehouse_no"
+      - id: "status"
+        names:
+          tiptop_jp: "SFAASTUS"
+        type: "string"
+        description: "狀態"
+
+  - name: "sfca_file"
+    canonical_name: "sfca_file"
+    names:
+      tiptop_jp: "SFCA_T"
+    description: "WO Manufacturing Header 工單製造頭檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      ja:
+        - "工單製造"
+        - "生産"
+      en:
+        - "manufacturing header"
+        - "production"
+    columns:
+      - id: "ent"
+        names:
+          tiptop_jp: "SFCAENT"
+        type: "number"
+        description: "企業編號"
+      - id: "site"
+        names:
+          tiptop_jp: "SFCASITE"
+        type: "string"
+        description: "營運據點"
+      - id: "mo_doc_no"
+        names:
+          tiptop_jp: "SFCADOCNO"
+        type: "string"
+        description: "工單編號"
+        fk: "sfaa_file.mo_doc_no"
+      - id: "mo_doc_seq"
+        names:
+          tiptop_jp: "SFCA002"
+        type: "number(10)"
+        description: "工單項次"
+      - id: "run_card_no"
+        names:
+          tiptop_jp: "SFCA001"
+        type: "number(20)"
+        description: "RUN CARD 編號"
+      - id: "production_qty"
+        names:
+          tiptop_jp: "SFCA003"
+        type: "number(15,3)"
+        description: "生產數量"
+        aggregate: "sum"
+      - id: "completion_qty"
+        names:
+          tiptop_jp: "SFCA004"
+        type: "number(15,3)"
+        description: "完工數量"
+        aggregate: "sum"
+
+  - name: "sfcb_file"
+    canonical_name: "sfcb_file"
+    names:
+      tiptop_jp: "SFCB_T"
+    description: "WO Manufacturing Details 工單製造明细檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      ja:
+        - "工單明细"
+        - "製造工程"
+      en:
+        - "manufacturing details"
+        - "production steps"
+    columns:
+      - id: "ent"
+        names:
+          tiptop_jp: "SFCBENT"
+        type: "number"
+        description: "企業編號"
+      - id: "site"
+        names:
+          tiptop_jp: "SFCBSITE"
+        type: "string"
+        description: "營運據點"
+      - id: "mo_doc_no"
+        names:
+          tiptop_jp: "SFCBDOCNO"
+        type: "string"
+        description: "工單編號"
+        fk: "sfca_file.mo_doc_no"
+      - id: "ln"
+        names:
+          tiptop_jp: "SFCB002"
+        type: "number"
+        description: "項次"
+      - id: "current_operation"
+        names:
+          tiptop_jp: "SFCB003"
+        type: "string"
+        description: "目前工序"
+      - id: "operation_seq"
+        names:
+          tiptop_jp: "SFCB004"
+        type: "string"
+        description: "工序序號"
+      - id: "workstation"
+        names:
+          tiptop_jp: "SFCB011"
+        type: "string"
+        description: "工作站"
+      - id: "standard_output"
+        names:
+          tiptop_jp: "SFCB027"
+        type: "number(15,3)"
+        description: "標準產出"
+      - id: "good_items_in"
+        names:
+          tiptop_jp: "SFCB028"
+        type: "number(15,3)"
+        description: "良品流入"
+        aggregate: "sum"
+      - id: "rework_out"
+        names:
+          tiptop_jp: "SFCB034"
+        type: "number(15,3)"
+        description: "重工流出"
+        aggregate: "sum"
+      - id: "rework_in"
+        names:
+          tiptop_jp: "SFCB029"
+        type: "number(15,3)"
+        description: "重工流入"
+        aggregate: "sum"
+      - id: "wip_qty"
+        names:
+          tiptop_jp: "SFCB050"
+        type: "number(15,3)"
+        description: "在製品數量"
+      - id: "scrap_station"
+        names:
+          tiptop_jp: "SFCB036"
+        type: "number(15,3)"
+        description: "站點報廢"
+        aggregate: "sum"
+      - id: "pending_pqc_qty"
+        names:
+          tiptop_jp: "SFCB051"
+        type: "number(15,3)"
+        description: "待PQC數量"
+      - id: "good_items_out"
+        names:
+          tiptop_jp: "SFCB033"
+        type: "number(15,3)"
+        description: "良品流出"
+        aggregate: "sum"
+      - id: "outsourced_qty"
+        names:
+          tiptop_jp: "SFCB041"
+        type: "number(15,3)"
+        description: "外包加工數量"
+        aggregate: "sum"
+      - id: "outsourced_finish_qty"
+        names:
+          tiptop_jp: "SFCB042"
+        type: "number(15,3)"
+        description: "外包完工數量"
+        aggregate: "sum"
+
+  - name: "xmdg_file"
+    canonical_name: "xmdg_file"
+    names:
+      tiptop_jp: "XMDG_T"
+    description: "Expenditure List Header 出貨通知頭檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      ja:
+        - "出荷通知"
+        - "出貨"
+        - "Ship"
+      en:
+        - "shipping notice"
+        - "shipment"
+    columns:
+      - id: "ent"
+        names:
+          tiptop_jp: "XMDGENT"
+        type: "number"
+        description: "企業編號"
+      - id: "site"
+        names:
+          tiptop_jp: "XMDGSITE"
+        type: "string"
+        description: "營運據點"
+      - id: "doc_no"
+        names:
+          tiptop_jp: "XMDGDOCNO"
+        type: "string"
+        description: "出貨通知編號"
+        primary_key: true
+      - id: "doc_date"
+        names:
+          tiptop_jp: "XMDGDOCDT"
+        type: "date"
+        description: "單據日期"
+      - id: "status"
+        names:
+          tiptop_jp: "XMDGSTUS"
+        type: "string"
+        description: "狀態"
+      - id: "sales_person"
+        names:
+          tiptop_jp: "XMDG002"
+        type: "string"
+        description: "業務人員"
+      - id: "sales_dept"
+        names:
+          tiptop_jp: "XMDG003"
+        type: "string"
+        description: "業務部門"
+      - id: "customer_no"
+        names:
+          tiptop_jp: "XMDG005"
+        type: "string"
+        description: "客戶編號"
+        fk: "customer.customer_no"
+      - id: "expected_date"
+        names:
+          tiptop_jp: "XMDG028"
+        type: "date"
+        description: "預計出貨日期"
+      - id: "sales_category"
+        names:
+          tiptop_jp: "XMDG027"
+        type: "string"
+        description: "銷售類別"
+
+  - name: "xmdh_file"
+    canonical_name: "xmdh_file"
+    names:
+      tiptop_jp: "XMDH_T"
+    description: "Quotation Details 出貨通知明细檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      ja:
+        - "出荷明细"
+        - "出貨项目"
+      en:
+        - "shipping details"
+        - "shipment items"
+    columns:
+      - id: "ent"
+        names:
+          tiptop_jp: "XMDHENT"
+        type: "number"
+        description: "企業編號"
+      - id: "site"
+        names:
+          tiptop_jp: "XMDHSITE"
+        type: "string"
+        description: "營運據點"
+      - id: "doc_no"
+        names:
+          tiptop_jp: "XMDHDOCNO"
+        type: "string"
+        description: "出貨通知編號"
+        fk: "xmdg_file.doc_no"
+      - id: "seq"
+        names:
+          tiptop_jp: "XMDHSEQ"
+        type: "number(5)"
+        description: "項次"
+      - id: "order_no"
+        names:
+          tiptop_jp: "XMDH001"
+        type: "string"
+        description: "訂單編號"
+        fk: "sales_header.order_no"
+      - id: "so_line"
+        names:
+          tiptop_jp: "XMDH002"
+        type: "number(10)"
+        description: "訂單項次"
+      - id: "order_line_sn"
+        names:
+          tiptop_jp: "XMDH003"
+        type: "number(10)"
+        description: "訂單批次序號"
+      - id: "order_batch_seq"
+        names:
+          tiptop_jp: "XMDH004"
+        type: "number(10)"
+        description: "訂單批次序號"
+      - id: "customer_po_no"
+        names:
+          tiptop_jp: "XMDHUD001"
+        type: "string"
+        description: "客戶PO編號"
+      - id: "item_no"
+        names:
+          tiptop_jp: "XMDH006"
+        type: "string"
+        description: "料件編號"
+        fk: "item_master.item_no"
+      - id: "request_qty"
+        names:
+          tiptop_jp: "XMDH016"
+        type: "number(15,3)"
+        description: "請算出貨數量"
+        aggregate: "sum"
+      - id: "actual_qty"
+        names:
+          tiptop_jp: "XMDH017"
+        type: "number(15,3)"
+        description: "實際出貨數量"
+        aggregate: "sum"
+      - id: "unit_price"
+        names:
+          tiptop_jp: "XMDH023"
+        type: "number(15,3)"
+        description: "單價"
+
+  - name: "xmdt_file"
+    canonical_name: "xmdt_file"
+    names:
+      tiptop_jp: "XMDT_T"
+    description: "Sales Price Approval Header 售價審核頭檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      ja:
+        - "售價審核"
+        - "価格承認"
+      en:
+        - "price approval"
+        - "price review"
+    columns:
+      - id: "ent"
+        names:
+          tiptop_jp: "XMDTENT"
+        type: "number"
+        description: "企業編號"
+      - id: "site"
+        names:
+          tiptop_jp: "XMDTSITE"
+        type: "string"
+        description: "營運據點"
+      - id: "doc_no"
+        names:
+          tiptop_jp: "XMDTDOCNO"
+        type: "string"
+        description: "售價審核編號"
+        primary_key: true
+      - id: "doc_date"
+        names:
+          tiptop_jp: "XMDTDOCDT"
+        type: "date"
+        description: "單據日期"
+      - id: "customer_no"
+        names:
+          tiptop_jp: "XMDT004"
+        type: "string"
+        description: "售價客戶"
+        fk: "customer.customer_no"
+      - id: "applicant"
+        names:
+          tiptop_jp: "XMDT002"
+        type: "string"
+        description: "申請人"
+      - id: "dept"
+        names:
+          tiptop_jp: "XMDT003"
+        type: "string"
+        description: "申請部門"
+      - id: "status"
+        names:
+          tiptop_jp: "XMDTSTUS"
+        type: "string"
+        description: "狀態"
+      - id: "valid_date"
+        names:
+          tiptop_jp: "XMDT015"
+        type: "date"
+        description: "有效日期"
+
+  - name: "xmdu_file"
+    canonical_name: "xmdu_file"
+    names:
+      tiptop_jp: "XMDU_T"
+    description: "Sales Price Approval Details 售價審核明细檔"
+    type: "fact"
+    source: "raw"
+    aliases:
+      ja:
+        - "售價明细"
+        - "価格明细"
+      en:
+        - "price details"
+        - "pricing items"
+    columns:
+      - id: "ent"
+        names:
+          tiptop_jp: "XMDUENT"
+        type: "number"
+        description: "企業編號"
+      - id: "site"
+        names:
+          tiptop_jp: "XMDUSITE"
+        type: "string"
+        description: "營運據點"
+      - id: "doc_no"
+        names:
+          tiptop_jp: "XMDUDOCNO"
+        type: "string"
+        description: "售價審核編號"
+        fk: "xmdt_file.doc_no"
+      - id: "seq"
+        names:
+          tiptop_jp: "XMDUSEQ"
+        type: "number(5)"
+        description: "項次"
+      - id: "item_no"
+        names:
+          tiptop_jp: "XMDU002"
+        type: "string"
+        description: "料件編號"
+        fk: "item_master.item_no"
+      - id: "unit"
+        names:
+          tiptop_jp: "XMDU008"
+        type: "string"
+        description: "單位"
+      - id: "unit_price"
+        names:
+          tiptop_jp: "XMDU011"
+        type: "number(15,3)"
+        description: "單價"
+
+relationships:
+  - from_table: "inag_file"
+    from_column: "item_no"
+    to_table: "item_master"
+    to_column: "item_no"
+    description: "在庫關聯料件"
+    type: "many-to-one"
+  - from_table: "inag_file"
+    from_column: "warehouse_no"
+    to_table: "warehouse_master"
+    to_column: "warehouse_no"
+    description: "在庫關聯倉庫"
+    type: "many-to-one"
+  - from_table: "inag_file"
+    from_column: "location_no"
+    to_table: "storage_location"
+    to_column: "location_no"
+    description: "在庫關聯儲位"
+    type: "many-to-one"
+  - from_table: "sfaa_file"
+    from_column: "customer_no"
+    to_table: "customer"
+    to_column: "customer_no"
+    description: "工單關聯客戶"
+    type: "many-to-one"
+  - from_table: "xmdg_file"
+    from_column: "customer_no"
+    to_table: "customer"
+    to_column: "customer_no"
+    description: "出貨通知關聯客戶"
+    type: "many-to-one"
+  - from_table: "xmdh_file"
+    from_column: "doc_no"
+    to_table: "xmdg_file"
+    to_column: "doc_no"
+    description: "出貨明细關聯頭檔"
+    type: "many-to-one"
+  - from_table: "xmdh_file"
+    from_column: "order_no"
+    to_table: "sales_header"
+    to_column: "order_no"
+    description: "出貨明细關聯訂單"
+    type: "many-to-one"
+  - from_table: "xmdt_file"
+    from_column: "customer_no"
+    to_table: "customer"
+    to_column: "customer_no"
+    description: "售價審核關聯客戶"
+    type: "many-to-one"
+  - from_table: "xmdu_file"
+    from_column: "doc_no"
+    to_table: "xmdt_file"
+    to_column: "doc_no"
+    description: "售價明细關聯頭檔"
+    type: "many-to-one"
+
+intents:
+  - name: "QUERY_INVENTORY"
+    description: "在庫照会"
+    patterns:
+      ja:
+        - "在庫"
+        - "手持"
+        - "庫存"
+      en:
+        - "inventory"
+        - "stock"
+        - "on hand"
+    tables:
+      - "inag_file"
+    example_queries:
+      ja:
+        - "料件的所有在庫"
+        - "各倉庫的庫存"
+        - "W01倉庫的在庫"
+
+  - name: "QUERY_WORK_ORDER"
+    description: "工單照会"
+    patterns:
+      ja:
+        - "工單"
+        - "製造指図"
+        - "WO"
+      en:
+        - "work order"
+        - "production order"
+    tables:
+      - "sfaa_file"
+      - "sfca_file"
+      - "sfcb_file"
+    example_queries:
+      ja:
+        - "工單狀態查詢"
+        - "生產中的工單"
+        - "工單的生產數量"
+
+  - name: "QUERY_MANUFACTURING"
+    description: "製造工程照会"
+    patterns:
+      ja:
+        - "製造"
+        - "生産"
+        - "工程"
+      en:
+        - "manufacturing"
+        - "production"
+        - "process"
+    tables:
+      - "sfcb_file"
+    example_queries:
+      ja:
+        - "工單的目前工序"
+        - "各站點的產出"
+        - "良品率"
+
+  - name: "QUERY_SHIPPING"
+    description: "出貨通知照会"
+    patterns:
+      ja:
+        - "出荷"
+        - "出貨"
+        - "Ship"
+      en:
+        - "shipping"
+        - "shipment"
+        - "delivery"
+    tables:
+      - "xmdg_file"
+      - "xmdh_file"
+    example_queries:
+      ja:
+        - "出貨通知列表"
+        - "待出貨的訂單"
+        - "出貨數量統計"
+
+  - name: "QUERY_PRICE_APPROVAL"
+    description: "售價審核照会"
+    patterns:
+      ja:
+        - "售價"
+        - "価格"
+        - "單價"
+      en:
+        - "price"
+        - "unit price"
+        - "pricing"
+    tables:
+      - "xmdt_file"
+      - "xmdu_file"
+    example_queries:
+      ja:
+        - "售價審核列表"
+        - "料件的單價"
+        - "客戶售價"

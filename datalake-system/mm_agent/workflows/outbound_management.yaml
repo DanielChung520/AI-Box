@@ -1,0 +1,42 @@
+# ========================================
+# Workflow: outbound_management
+# ========================================
+
+name: "outbound_management"
+description: "準確發出物料，支持生產與銷售"
+version: "1.0.0"
+
+triggers:
+  - "出庫"
+  - "揀料"
+  - "發貨"
+  - "訂單生成時"
+  - "緊急缺料通知"
+
+workflow:
+  steps:
+    - step_id: 1
+      action_type: "data_query"
+      description: "向 Data-Agent 查詢：『請根據生產訂單和銷售訂單，返回所需物料編號、名..."
+      instruction: |
+        向 Data-Agent 查詢：『請根據生產訂單和銷售訂單，返回所需物料編號、名稱、批次號及庫存數量，JSON 格式』
+    - step_id: 2
+      action_type: "data_cleaning"
+      description: "資料完整性檢查：確認所有物料都有編號、批次號與庫存數量，缺失則標記並重新調用"
+      instruction: |
+        資料完整性檢查：確認所有物料都有編號、批次號與庫存數量，缺失則標記並重新調用
+    - step_id: 3
+      action_type: "data_query"
+      description: "執行撿料與出庫操作"
+      instruction: |
+        執行撿料與出庫操作
+    - step_id: 4
+      action_type: "data_query"
+      description: "更新 ERP 出庫紀錄"
+      instruction: |
+        更新 ERP 出庫紀錄
+    - step_id: 5
+      action_type: "computation"
+      description: "生成出庫單與庫存變動報告"
+      instruction: |
+        生成出庫單與庫存變動報告

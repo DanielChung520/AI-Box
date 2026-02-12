@@ -74,7 +74,8 @@ class WarehouseAgentResponse(BaseModel):
 
     success: bool = Field(..., description="是否成功")
     task_type: str = Field(..., description="任務類型")
-    result: Optional[Dict[str, Any]] = Field(None, description="執行結果")
+    response: Optional[str] = Field(None, description="格式化回覆（用戶友善的消息）")
+    result: Optional[Dict[str, Any]] = Field(None, description="執行結果（原始數據）")
     error: Optional[str] = Field(None, description="錯誤信息")
     metadata: Optional[Dict[str, Any]] = Field(None, description="元數據")
     semantic_analysis: Optional[Dict[str, Any]] = Field(None, description="語義分析結果")

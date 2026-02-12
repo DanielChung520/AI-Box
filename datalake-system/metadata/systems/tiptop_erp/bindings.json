@@ -1,0 +1,58 @@
+{
+    "version": "1.0",
+    "datasources": {
+      "TIPTOP_ERP": {
+        "type": "RDBMS",
+        "dialect": "MYSQL"
+      }
+    },
+  
+    "bindings": {
+      "PART_NO": {
+        "TIPTOP_ERP": {
+          "table": "img_file",
+          "column": "img01"
+        }
+      },
+  
+      "INVENTORY_LOCATION": {
+        "TIPTOP_ERP": {
+          "table": "img_file",
+          "column": "img02",
+          "operator": "="
+        }
+      },
+  
+      "ON_HAND_QTY": {
+        "TIPTOP_ERP": {
+          "table": "img_file",
+          "column": "img10",
+          "aggregation": "SUM"
+        }
+      },
+  
+      "AVAILABLE_QTY": {
+        "TIPTOP_ERP": {
+          "table": "img_file",
+          "column": "img11",
+          "aggregation": "SUM"
+        }
+      },
+  
+      "SAFETY_STOCK_QTY": {
+        "TIPTOP_ERP": {
+          "table": "img_file",
+          "column": "img20"
+        }
+      },
+  
+      "TIME_RANGE": {
+        "TIPTOP_ERP": {
+          "table": "img_file",
+          "column": "img_date",
+          "operator": "BETWEEN"
+        }
+      }
+    }
+  }
+  

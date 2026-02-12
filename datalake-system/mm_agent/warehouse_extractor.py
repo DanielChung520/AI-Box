@@ -487,7 +487,9 @@ class WarehouseExtractor:
     def _extract_warehouse_code(self, text: str) -> Optional[WarehouseMatch]:
         """提取倉庫編碼"""
         # W01, W02, W03 等
-        pattern = r"\bW(\d{2})\b"
+        # 注意：不用 \b 單詞邊界，因為中文環境下會有問題
+        # 使用 \d{2} 確保匹配兩位數字，後面跟非數字字符
+        pattern = r"W(\d{2})(?!\d)"
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             code = f"W{match.group(1)}"
@@ -499,7 +501,7 @@ class WarehouseExtractor:
             )
 
         # RAW01, RAW02, FIN01 等
-        pattern = r"\b(RAW|SEMI|FIN|PKG|CON|RET|QA|TRN|HAZ|COLD)(\d{2})\b"
+        pattern = r"(RAW|SEMI|FIN|PKG|CON|RET|QA|TRN|HAZ|COLD)(\d{2})(?!\d)"
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             code = f"{match.group(1).upper()}{match.group(2)}"

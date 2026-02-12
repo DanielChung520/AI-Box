@@ -30,7 +30,9 @@ class Responsibility(BaseModel):
     steps: List[str] = Field(default_factory=list, description="執行步驟")
     required_data: List[str] = Field(default_factory=list, description="必需的數據")
     optional_data: List[str] = Field(default_factory=list, description="可選的數據")
-    clarification_questions: List[str] = Field(default_factory=list, description="澄清問題（如果需要）")
+    clarification_questions: List[str] = Field(
+        default_factory=list, description="澄清問題（如果需要）"
+    )
 
 
 class ConversationContext(BaseModel):
@@ -72,13 +74,14 @@ class WarehouseAgentResponse(BaseModel):
 
     success: bool = Field(..., description="是否成功")
     task_type: str = Field(..., description="任務類型")
-    result: Optional[Dict[str, Any]] = Field(None, description="執行結果")
+    response: Optional[str] = Field(None, description="格式化回覆（用戶友善的消息）")
+    result: Optional[Dict[str, Any]] = Field(None, description="執行結果（原始數據）")
     error: Optional[str] = Field(None, description="錯誤信息")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="元數據")
-    semantic_analysis: Optional[Dict[str, Any]] = Field(None, description="語義分析結果")
-    responsibility: Optional[str] = Field(None, description="履行的職責")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="元數據")
+    semantic_analysis: Optional[Dict[str, Any]] = Field(default=None, description="語義分析結果")
+    responsibility: Optional[str] = Field(default=None, description="履行的職責")
     data_queries: List[Dict[str, Any]] = Field(default_factory=list, description="數據查詢記錄")
-    validation: Optional[Dict[str, Any]] = Field(None, description="數據驗證結果")
+    validation: Optional[Dict[str, Any]] = Field(default=None, description="數據驗證結果")
     anomalies: List[str] = Field(default_factory=list, description="異常情況列表")
 
 

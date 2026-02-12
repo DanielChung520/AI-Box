@@ -1,0 +1,362 @@
+[
+  {
+    "test_id": "A01",
+    "query": "查詢料號 10-0001 的品名和規格",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 8.01,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "A02",
+    "query": "列出所有料件",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.5,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "A03",
+    "query": "有多少種料件",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 4.36,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "A04",
+    "query": "查詢所有料件的品名",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.23,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "A05",
+    "query": "料號 10-0001 是什麼",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.37,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "A06",
+    "query": "查詢料號開頭為 10- 的成品",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 2.95,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "A07",
+    "query": "查詢所有原料",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.18,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "A08",
+    "query": "查詢庫存單位為 PCS 的料號",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.01,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "A09",
+    "query": "查詢料號 RM01-001 的資訊",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.13,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "A10",
+    "query": "按來源碼統計料件數量",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.74,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B01",
+    "query": "查詢 W01 倉庫的庫存",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.9,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B02",
+    "query": "計算各倉庫的總庫存量",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.47,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B03",
+    "query": "查詢料號 10-0001 的庫存信息",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.24,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B04",
+    "query": "列出所有負庫存的物料",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.18,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B05",
+    "query": "列出前 10 個庫存量最多的物料",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.26,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B06",
+    "query": "統計 W03 成品倉的總庫存量",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.21,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B07",
+    "query": "計算各倉庫的平均庫存量",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.14,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B08",
+    "query": "查詢庫存為 0 的料號",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.84,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B09",
+    "query": "原料倉存貨總額",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.8,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B10",
+    "query": "成品倉各料號庫存",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.84,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B11",
+    "query": "W02 倉有多少庫存",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.15,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B12",
+    "query": "各倉庫庫存數量統計",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.21,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B13",
+    "query": "查詢料號 RM01-003 的庫存",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.42,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B14",
+    "query": "庫存量最高的 5 個物料",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.09,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "B15",
+    "query": "找出庫存最少的 10 個料號",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.73,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C01",
+    "query": "查詢 2024 年有多少筆採購進貨",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.24,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C02",
+    "query": "查詢所有採購進貨交易",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.83,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C03",
+    "query": "查詢 W04 倉庫的進貨記錄",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.44,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C04",
+    "query": "查詢 2024 年 1 月的交易記錄",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.74,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C05",
+    "query": "最近 30 天的進貨",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.62,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C06",
+    "query": "計算 2024 年採購總數量",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.47,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C07",
+    "query": "查詢所有銷貨記錄",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.59,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C08",
+    "query": "2024 年銷售出庫筆數",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.21,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C09",
+    "query": "查詢完工入庫記錄",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.15,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C10",
+    "query": "查詢生產領料記錄",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.31,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C11",
+    "query": "查詢庫存報廢記錄",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.15,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C12",
+    "query": "按交易類型統計數量",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.14,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C13",
+    "query": "查詢料號 10-0001 的所有交易",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.15,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C14",
+    "query": "查詢某來源單號的交易",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.28,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  },
+  {
+    "test_id": "C15",
+    "query": "查詢某倉庫的交易趨勢",
+    "sql": "",
+    "row_count": null,
+    "elapsed_ms": 3.12,
+    "success": false,
+    "error": "'jinja2.runtime.LoopContext object' has no attribute 'parent'"
+  }
+]

@@ -1,0 +1,296 @@
+<mxfile host="draw.io" modified="2026-02-08T00:00:00.000Z" agent="MiniMax-M2.1" etag="mm-agent-flow-v1" version="24.1.0" type="device" pages="1">
+  <diagram id="mm-agent-flowchart" name="MM-Agent Todo Execution Flow">
+    <mxGraphModel dx="2000" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title_1" value="MM-Agent Todo 執行流程架構圖" vertex="1" parent="1">
+          <mxGeometry x="400" y="30" width="400" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="title_2" value="Agent Todo Execution Architecture" vertex="1" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=0;" vertex="1" connectable="0" parent="title_1">
+          <mxGeometry x="50" y="25" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 1: User & Gen-AI -->
+        <mxCell id="layer1_title" value="Gen-AI Layer" vertex="1" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=30;horizontal=0;" vertex="1" connectable="0">
+          <mxGeometry x="40" y="100" width="1120" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user" value="用戶輸入" vertex="1" parent="layer1_title" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" connectable="0">
+          <mxGeometry x="50" y="50" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user_arrow" value="" vertex="1" parent="layer1_title" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" connectable="0" parent="layer1_title">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="80" y="80" as="sourcePoint" />
+            <mxPoint x="130" y="80" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="nlp" value="NLP 理解&lt;br&gt;(意圖識別)" vertex="1" parent="layer1_title" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" connectable="0">
+          <mxGeometry x="130" y="55" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 2: BPA Layer -->
+        <mxCell id="layer2_title" value="BPA Layer (Business Process Agent)" vertex="1" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=30;horizontal=0;" vertex="1" connectable="0">
+          <mxGeometry x="40" y="240" width="1120" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bpa_box" value="BPA 業務流程代理" vertex="1" parent="layer2_title" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" connectable="0">
+          <mxGeometry x="100" y="45" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mm_agent" value="MM-Agent&lt;br&gt;(製造管理)" vertex="1" parent="layer2_title" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" connectable="0">
+          <mxGeometry x="280" y="35" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="po_agent" value="PO-Agent&lt;br&gt;(採購管理)" vertex="1" parent="layer2_title" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" connectable="0">
+          <mxGeometry x="280" y="95" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fi_agent" value="FI-Agent&lt;br&gt;(財務管理)" vertex="1" parent="layer2_title" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" connectable="0">
+          <mxGeometry x="400" y="95" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dots_agents" value="..." vertex="1" parent="layer2_title" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" connectable="0">
+          <mxGeometry x="390" y="40" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- LLM Planning -->
+        <mxCell id="llm_planning" value="LLM 編排&lt;br&gt;(ReAct Planner)" vertex="1" parent="layer2_title" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" connectable="0">
+          <mxGeometry x="500" y="45" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="create_todo" value="建立 Todo&lt;br&gt;(ArangoDB)" vertex="1" parent="layer2_title" style="shape=parallelogram;whiteSpace=wrap;html=1;perimeter=spacingPlus;" vertex="1" connectable="0">
+          <mxGeometry x="650" y="45" width="130" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 3: Todo Queue -->
+        <mxCell id="layer3_title" value="Todo Queue Layer" vertex="1" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=30;horizontal=0;" vertex="1" connectable="0">
+          <mxGeometry x="40" y="400" width="1120" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="todo_queue" value="agent_todo&lt;br&gt;隊列" vertex="1" parent="layer3_title" style="shape=queue;whiteSpace=wrap;html=1;size=20;" vertex="1" connectable="0">
+          <mxGeometry x="480" y="35" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 4: RQ Worker -->
+        <mxCell id="layer4_title" value="RQ Worker Layer" vertex="1" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=30;horizontal=0;" vertex="1" connectable="0">
+          <mxGeometry x="40" y="520" width="1120" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rq_worker" value="RQ Worker&lt;br&gt;(workers.service)" vertex="1" parent="layer4_title" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" connectable="0">
+          <mxGeometry x="80" y="50" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="todo_processor" value="Todo Processor&lt;br&gt;(rq_task.py)" vertex="1" parent="layer4_title" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" connectable="0">
+          <mxGeometry x="260" y="50" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Action Types -->
+        <mxCell id="data_query_action" value="data_query" vertex="1" parent="layer4_title" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" connectable="0">
+          <mxGeometry x="450" y="35" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="knowledge_action" value="knowledge_retrieval" vertex="1" parent="layer4_title" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" connectable="0">
+          <mxGeometry x="450" y="85" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="computation_action" value="computation" vertex="1" parent="layer4_title" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" connectable="0">
+          <mxGeometry x="590" y="35" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="response_action" value="response_generation" vertex="1" parent="layer4_title" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" connectable="0">
+          <mxGeometry x="590" y="85" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 5: Services -->
+        <mxCell id="layer5_title" value="通用服務層 (Shared Services)" vertex="1" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=30;horizontal=0;" vertex="1" connectable="0">
+          <mxGeometry x="40" y="700" width="1120" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data_agent" value="Data-Agent&lt;br&gt;port: 8004" vertex="1" parent="layer5_title" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" connectable="0">
+          <mxGeometry x="100" y="50" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ka_agent" value="KA-Agent&lt;br&gt;port: 8000" vertex="1" parent="layer5_title" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" connectable="0">
+          <mxGeometry x="280" y="50" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="llm_service" value="LLM&lt;br&gt;(Ollama)" vertex="1" parent="layer5_title" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" connectable="0">
+          <mxGeometry x="460" y="50" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Data Agent Details -->
+        <mxCell id="text_to_sql" value="Text-to-SQL&lt;br&gt;(Schema Registry)" vertex="1" parent="layer5_title" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" connectable="0">
+          <mxGeometry x="100" y="95" width="100" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="datalake" value="DataLake&lt;br&gt;(PostgreSQL)" vertex="1" parent="layer5_title" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" connectable="0">
+          <mxGeometry x="250" y="95" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- SSE Layer -->
+        <mxCell id="layer6_title" value="SSE 實時狀態" vertex="1" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=30;horizontal=0;" vertex="1" connectable="0">
+          <mxGeometry x="40" y="870" width="1120" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse_publisher" value="SSE Publisher&lt;br&gt;(API Gateway:8000)" vertex="1" parent="layer6_title" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" connectable="0">
+          <mxGeometry x="120" y="25" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="frontend" value="Frontend&lt;br&gt;(AIStateWindow)" vertex="1" parent="layer6_title" style="shape=iframe;whiteSpace=wrap;html=1;" vertex="1" connectable="0">
+          <mxGeometry x="400" y="20" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ArangoDB -->
+        <mxCell id="arangodb" value="ArangoDB&lt;br&gt;port: 8529" vertex="1" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" connectable="0">
+          <mxGeometry x="700" y="250" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Redis -->
+        <mxCell id="redis" value="Redis&lt;br&gt;port: 6379" vertex="1" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" connectable="0">
+          <mxGeometry x="700" y="420" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows and Connectors -->
+        <mxCell id="arrow1" value="意圖理解" edge="1" parent="1" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="240" y="160" as="sourcePoint" />
+            <mxPoint x="340" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow2" value="選擇 BPA" edge="1" parent="1" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="340" y="160" as="sourcePoint" />
+            <mxPoint x="440" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow3" value="生成計劃" edge="1" parent="1" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="440" y="290" as="sourcePoint" />
+            <mxPoint x="500" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow4" value="儲存 Todo" edge="1" parent="1" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="650" y="290" as="sourcePoint" />
+            <mxPoint x="700" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow5" value="交付任務" edge="1" parent="1" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="640" y="380" as="sourcePoint" />
+            <mxPoint x="640" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow6" value="取出任務" edge="1" parent="1" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="640" y="500" as="sourcePoint" />
+            <mxPoint x="640" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow7" value="數據查詢" edge="1" parent="1" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d79b00;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="560" y="590" as="sourcePoint" />
+            <mxPoint x="640" y="590" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow8" value="知識檢索" edge="1" parent="1" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d79b00;dashed=1;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="560" y="610" as="sourcePoint" />
+            <mxPoint x="670" y="610" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow9" value="SQL 查詢" edge="1" parent="1" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="180" y="750" as="sourcePoint" />
+            <mxPoint x="250" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow10" value="返回結果" edge="1" parent="1" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="360" y="730" as="sourcePoint" />
+            <mxPoint x="200" y="730" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow11" value="SSE 事件" edge="1" parent="1" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="690" as="sourcePoint" />
+            <mxPoint x="200" y="720" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow12" value="狀態更新" edge="1" parent="1" style="endArrow=classic;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;dashed=1;strokeColor=#82b366;">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="750" y="330" as="sourcePoint" />
+            <mxPoint x="640" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="圖例" vertex="1" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=25;horizontal=0;" vertex="1" connectable="0">
+          <mxGeometry x="850" y="100" width="280" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_box1" value="BPA" vertex="1" parent="legend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" connectable="0">
+          <mxGeometry x="20" y="35" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_box2" value="通用服務" vertex="1" parent="legend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" connectable="0">
+          <mxGeometry x="20" y="75" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_box3" value="RQ Worker" vertex="1" parent="legend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" connectable="0">
+          <mxGeometry x="20" y="115" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_box4" value="資料庫" vertex="1" parent="legend" style="shape=cylinder3;whiteSpace=wrap;html=1;size=15;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" connectable="0">
+          <mxGeometry x="20" y="155" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Process Flow Labels -->
+        <mxCell id="flow1" value="1. 用戶輸入指令" vertex="1" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" connectable="0">
+          <mxGeometry x="240" y="140" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow2" value="2. 選擇 BPA &amp; 生成計劃" vertex="1" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" connectable="0">
+          <mxGeometry x="440" y="250" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow3" value="3. 建立 Todo" vertex="1" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" connectable="0">
+          <mxGeometry x="660" y="270" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow4" value="4. 交付到 Queue" vertex="1" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" connectable="0">
+          <mxGeometry x="660" y="390" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow5" value="5. Worker 處理" vertex="1" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" connectable="0">
+          <mxGeometry x="500" y="500" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow6" value="6. 調用服務" vertex="1" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" connectable="0">
+          <mxGeometry x="620" y="580" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow7" value="7. SSE 回報" vertex="1" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" connectable="0">
+          <mxGeometry x="220" y="820" width="80" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

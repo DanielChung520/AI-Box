@@ -1,11 +1,13 @@
 import axios from 'axios';
 
 // Data-Agent API (端口 8004 - 使用 DuckDB)
-const DATA_AGENT_API = 'http://localhost:8004';
+// 使用代理路徑避免 CORS
+const DATA_AGENT_API = '';  // 空字串，路徑在請求時指定
 // Frontend API (端口 8005 - DataLakeClient)
 const FRONTEND_API = 'http://localhost:8005';
 // MM-Agent API (端口 8003)
-const MM_AGENT_API = 'http://localhost:8003';
+// 使用代理路徑避免 CORS
+const MM_AGENT_API = '';  // 空字串，路徑在請求時指定
 
 // Data-Agent 實例 (用於 executeSqlQuery)
 export const dataAgentApi = axios.create({

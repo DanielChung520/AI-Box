@@ -93,11 +93,15 @@ class MMAgent(AgentServiceProtocol):
         self._part_service = part_service or PartService(self._orchestrator_client)
         self._stock_service = stock_service or StockService()
         self._shortage_analyzer = shortage_analyzer or ShortageAnalyzer(
-            self._part_service, self._stock_service, self._data_validator
+            self._part_service, self._data_validator
         )
         self._purchase_service = purchase_service or PurchaseService(
             self._part_service, self._shortage_analyzer
         )
+
+        from data_agent.structured_query_handler import StructuredQueryHandler
+
+        self._query_handler = StructuredQueryHandler()
 
     async def execute(
         self,
@@ -234,13 +238,7 @@ class MMAgent(AgentServiceProtocol):
             return await self._query_part_info(part_number, request)
 
         elif responsibility_type == "query_stock":
-            part_number = parameters.get("part_number")
-            if not part_number:
-                return {
-                    "success": False,
-                    "error": "缺少料號參數（part_number）",
-                }
-            return await self._query_stock_info(part_number, request)
+            return await self._query_stock_info(request)
 
         elif responsibility_type == "query_stock_history":
             part_number = parameters.get("part_number")
@@ -347,36 +345,53 @@ class MMAgent(AgentServiceProtocol):
 
     async def _query_stock_info(
         self,
-        part_number: str,
         request: AgentServiceRequest,
     ) -> Dict[str, Any]:
         """查詢庫存信息
 
+        使用 Data-Agent 的 StructuredQueryHandler 處理庫存查詢。
+        Data-Agent 負責參數提取和 Schema 映射。
+
         Args:
-            part_number: 料號
             request: Agent服務請求
 
         Returns:
             查詢結果
         """
         try:
-            user_id = request.metadata.get("user_id") if request.metadata else None
-            stock_info = await self._stock_service.query_stock_info(part_number, user_id=user_id)
+            self._logger.info(f"[Agent] 查詢庫存")
 
-            # 生成自然語言解釋
-            warehouse = stock_info.get("warehouse", "未知倉庫")
-            batch_no = stock_info.get("batch_no", "-")
-            quantity = stock_info.get("quantity", 0)
+            result = await self._query_handler.execute(
+                intent="query_stock_info",
+                parameters={},
+                limit=100,
+            )
 
-            explanation = f"料號 {part_number} 的庫存資料如下：\n"
-            explanation += f"• 存放倉庫：{warehouse}\n"
-            explanation += f"• 批次編號：{batch_no}\n"
-            explanation += f"• 目前庫存數量：{quantity:,} 件"
+            if not result.success:
+                raise ValueError(result.error or "查詢庫存失敗")
+
+            rows = result.rows
+            stock_list = rows
+            count = len(rows)
+
+            explanation = f"庫存查詢結果：共找到 {count} 筆資料\n\n"
+
+            if stock_list:
+                for i, row in enumerate(stock_list[:10], 1):
+                    part_no = row.get("part_number", row.get("ma001", "-"))
+                    warehouse = row.get("warehouse", row.get("mb002", "-"))
+                    quantity = row.get("quantity", row.get("mb010", 0))
+                    explanation += f"{i}. 料號：{part_no}\n"
+                    explanation += f"   倉庫：{warehouse}\n"
+                    explanation += f"   數量：{quantity:,}\n\n"
+
+                if count > 10:
+                    explanation += f"... 還有 {count - 10} 筆資料"
 
             return {
                 "success": True,
-                "part_number": part_number,
-                "stock_info": stock_info,
+                "stock_list": stock_list,
+                "count": count,
                 "response": explanation,
             }
         except Exception as e:

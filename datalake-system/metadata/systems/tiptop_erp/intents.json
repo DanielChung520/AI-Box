@@ -1,0 +1,198 @@
+{
+  "version": "1.0",
+  "domain": "inventory_management",
+  "intents": {
+    "QUERY_STOCK": {
+      "description": "查詢當前庫存狀況（不含歷史）",
+      "input": {
+        "filters": [
+          "INVENTORY_LOCATION",
+          "PART_NO"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "ON_HAND_QTY",
+          "AVAILABLE_QTY"
+        ],
+        "dimensions": [
+          "PART_NO",
+          "INVENTORY_LOCATION"
+        ]
+      },
+      "constraints": {
+        "require_at_least_one_filter": true
+      }
+    },
+
+    "QUERY_STOCK_SNAPSHOT": {
+      "description": "查詢某時間點或區間的庫存狀況",
+      "input": {
+        "filters": [
+          "INVENTORY_LOCATION",
+          "PART_NO",
+          "TIME_RANGE",
+          "STOCK_STATUS"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "ON_HAND_QTY",
+          "AVAILABLE_QTY"
+        ],
+        "dimensions": [
+          "PART_NO",
+          "INVENTORY_LOCATION"
+        ]
+      },
+      "constraints": {
+        "require_at_least_one_filter": true
+      }
+    },
+
+    "QUERY_STOCK_HISTORY": {
+      "description": "查詢庫存交易歷史記錄",
+      "input": {
+        "filters": [
+          "PART_NO",
+          "TIME_RANGE",
+          "TRANSACTION_TYPE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "TRANSACTION_QTY"
+        ],
+        "dimensions": [
+          "PART_NO",
+          "TRANSACTION_TYPE",
+          "TRANSACTION_DATE"
+        ]
+      },
+      "constraints": {
+        "require_part_no": true,
+        "time_range_recommended": true
+      }
+    },
+
+    "QUERY_PURCHASE": {
+      "description": "查詢採購交易記錄",
+      "input": {
+        "filters": [
+          "PART_NO",
+          "TIME_RANGE",
+          "SUPPLIER"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "PURCHASE_QTY",
+          "PURCHASE_AMOUNT"
+        ],
+        "dimensions": [
+          "PART_NO",
+          "SUPPLIER",
+          "PURCHASE_DATE"
+        ]
+      },
+      "constraints": {
+        "require_part_no": true
+      }
+    },
+
+    "QUERY_SALES": {
+      "description": "查詢銷售交易記錄",
+      "input": {
+        "filters": [
+          "PART_NO",
+          "TIME_RANGE",
+          "CUSTOMER"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "SALES_QTY",
+          "SALES_AMOUNT"
+        ],
+        "dimensions": [
+          "PART_NO",
+          "CUSTOMER",
+          "SALES_DATE"
+        ]
+      },
+      "constraints": {
+        "require_part_no": true
+      }
+    },
+
+    "QUERY_LOW_STOCK": {
+      "description": "查詢低於安全庫存的料件",
+      "input": {
+        "filters": [
+          "INVENTORY_LOCATION"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "ON_HAND_QTY",
+          "SAFETY_STOCK_QTY"
+        ],
+        "dimensions": [
+          "PART_NO",
+          "INVENTORY_LOCATION"
+        ]
+      }
+    },
+
+    "ANALYZE_SHORTAGE": {
+      "description": "分析缺料情況並建議補貨",
+      "input": {
+        "filters": [
+          "INVENTORY_LOCATION",
+          "PART_NO"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "SHORTAGE_QTY",
+          "SUGGESTED_ORDER_QTY"
+        ],
+        "dimensions": [
+          "PART_NO",
+          "INVENTORY_LOCATION",
+          "REQUIRED_DATE"
+        ]
+      },
+      "constraints": {
+        "require_at_least_one_filter": true
+      }
+    },
+
+    "GENERATE_ORDER": {
+      "description": "生成採購訂單或補貨建議",
+      "input": {
+        "filters": [
+          "PART_NO",
+          "INVENTORY_LOCATION",
+          "REQUIRED_DATE",
+          "ORDER_QUANTITY"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "ORDER_AMOUNT",
+          "DELIVERY_DATE"
+        ],
+        "dimensions": [
+          "SUPPLIER",
+          "PART_NO"
+        ]
+      },
+      "constraints": {
+        "require_part_no": true,
+        "require_quantity": true
+      }
+    }
+  }
+}
+  

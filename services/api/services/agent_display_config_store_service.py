@@ -323,7 +323,7 @@ class AgentDisplayConfigStoreService:
 
         # 獲取所有 categories（1 次查詢）
         categories = self.get_categories(tenant_id=tenant_id, include_inactive=include_inactive)
-        
+
         # 優化：一次性獲取所有 agents（1 次查詢），避免 N+1 問題
         aql = """
         FOR doc IN agent_display_configs
@@ -702,22 +702,53 @@ class AgentDisplayConfigStoreService:
         獲取單個代理配置
 
         Args:
-            agent_id: 代理 ID
+            agent_id: 代理 ID (使用 agent_config.id，而非 _key)
             tenant_id: 租戶 ID（可選，None 表示系統級）
 
         Returns:
             代理配置，如果不存在返回 None
         """
-        config_key = _generate_config_key("agent", agent_id=agent_id, tenant_id=tenant_id)
-        doc = self._collection.get(config_key)
+        if self._client.db is None or self._client.db.aql is None:
+            raise RuntimeError("AQL is not available")
 
-        if doc is None or not doc.get("is_active", True):
+        # 使用 AQL 查詢，按 agent_id 字段搜索（而非 _key）
+        aql = """
+        FOR doc IN agent_display_configs
+        FILTER doc.config_type == @config_type
+        AND doc.tenant_id == @tenant_id
+        AND doc.agent_config.id == @agent_id
+        AND (@include_inactive OR doc.is_active == true)
+        LIMIT 1
+        RETURN doc
+        """
+        bind_vars = {
+            "config_type": "agent",
+            "tenant_id": tenant_id,
+            "agent_id": agent_id,
+            "include_inactive": True,
+        }
+
+        try:
+            cursor = self._client.db.aql.execute(aql, bind_vars=bind_vars)
+            docs = list(cursor)
+
+            if not docs:
+                return None
+
+            doc = docs[0]
+            if doc.get("agent_config"):
+                return AgentConfig(**doc["agent_config"])
+
             return None
-
-        if doc.get("agent_config"):
-            return AgentConfig(**doc["agent_config"])
-
-        return None
+        except Exception as exc:
+            self._logger.error(
+                "get_agent_config_failed",
+                agent_id=agent_id,
+                tenant_id=tenant_id,
+                error=str(exc),
+                exc_info=True,
+            )
+            raise
 
     def get_category_config(
         self, category_id: str, tenant_id: Optional[str] = None

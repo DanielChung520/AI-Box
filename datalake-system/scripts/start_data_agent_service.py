@@ -12,6 +12,13 @@ import os
 import sys
 from pathlib import Path
 
+ORACLE_LIB_PATH = os.getenv("ORACLE_LIB_PATH", "/home/daniel/instantclient_23_26")
+if ORACLE_LIB_PATH and os.path.exists(ORACLE_LIB_PATH):
+    os.environ["LD_LIBRARY_PATH"] = f"{ORACLE_LIB_PATH}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+    print(f"✅ Oracle Client library path 設定完成: {ORACLE_LIB_PATH}")
+else:
+    print(f"⚠️ Oracle Client library not found at: {ORACLE_LIB_PATH}")
+
 # 獲取 datalake-system 目錄
 DATALAKE_SYSTEM_DIR = Path(__file__).resolve().parent.parent
 # 獲取 AI-Box 根目錄
@@ -48,6 +55,14 @@ try:
 except Exception as e:
     print(f"⚠️ 清除 Ollama 設定緩存失敗: {e}")
 
+import sys
+from pathlib import Path
+
+# 添加 AI-Box 根目錄到 Python 路徑
+ai_box_root = Path(__file__).resolve().parent.parent
+if str(ai_box_root) not in sys.path:
+    sys.path.insert(0, str(ai_box_root))
+
 import uvicorn
 from data_agent.agent import DataAgent
 from fastapi import FastAPI, HTTPException
@@ -64,16 +79,25 @@ app = FastAPI(
 )
 
 # CORS 配置
+from starlette.middleware.cors import CORSMiddleware as StarletteCORSMiddleware
+
 app.add_middleware(
-    CORSMiddleware,
+    StarletteCORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=86400,
 )
 
-# 初始化 Data Agent
-data_agent = DataAgent()
+# Schema RAG 配置路徑
+schema_config_path = str(DATALAKE_SYSTEM_DIR / "metadata" / "config" / "schema_rag_config.yaml")
+
+# 初始化 Data Agent（使用新版 TextToSQLServiceWithRAG）
+data_agent = DataAgent(
+    text_to_sql_service=None,  # 使用預設的 TextToSQLServiceWithRAG
+)
 
 
 @app.post("/execute", response_model=AgentServiceResponse)
@@ -153,6 +177,105 @@ async def text_to_sql(request: dict) -> dict:
     except Exception as e:
         logger.error(f"Text-to-SQL 失敗: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
+
+
+# =============================================================================
+# Data-Agent-JP (Schema Driven Query) 路由
+# =============================================================================
+try:
+    from data_agent.services.schema_driven_query.parser import SimpleNLQParser
+    from data_agent.services.schema_driven_query.models import (
+        ExecuteRequest,
+        ExecuteResponse,
+        HealthResponse,
+        QueryResult,
+    )
+    from data_agent.services.schema_driven_query.resolver import Resolver
+    from data_agent.services.schema_driven_query.loaders import get_schema_loader
+
+    _resolver_instance = None
+
+    def get_resolver() -> Resolver:
+        global _resolver_instance
+        if _resolver_instance is None:
+            from data_agent.services.schema_driven_query.config import get_config
+
+            config = get_config()
+            loader = get_schema_loader(config)
+            resolver = Resolver(
+                config=config,
+                intents=loader.load_intents(),
+                concepts=loader.load_concepts(),
+                bindings=loader.load_bindings(),
+            )
+            _resolver_instance = resolver
+        return _resolver_instance
+
+    @app.post("/jp/execute")
+    async def jp_execute(request: ExecuteRequest) -> ExecuteResponse:
+        """Data-Agent-JP Schema Driven Query 執行"""
+
+        try:
+            resolver = get_resolver()
+            result = resolver.resolve(request.task_data.nlq)
+
+            if result["status"] == "error":
+                return ExecuteResponse(
+                    status="error",
+                    task_id=request.task_id,
+                    error_code=result.get("error_code", "UNKNOWN_ERROR"),
+                    message=result.get("message", "Unknown error"),
+                )
+
+            sql = result["sql"]
+
+            from data_agent.services.schema_driven_query.executor import SQLExecutor
+
+            executor = SQLExecutor()
+            exec_result = executor.execute(sql)
+
+            query_result = QueryResult(
+                sql=sql,
+                data=exec_result.get("data", []),
+                row_count=exec_result.get("row_count", 0),
+                execution_time_ms=exec_result.get("execution_time_ms", 0),
+            )
+
+            return ExecuteResponse(
+                status="success",
+                task_id=request.task_id,
+                result=query_result,
+            )
+
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
+            return ExecuteResponse(
+                status="error", task_id=request.task_id, error_code="INTERNAL_ERROR", message=str(e)
+            )
+
+    @app.get("/jp/health", response_model=HealthResponse)
+    async def jp_health() -> HealthResponse:
+        """Data-Agent-JP 健康檢查"""
+        return HealthResponse(status="healthy", service="data-agent-jp", version="1.0.0")
+
+    print("✅ Data-Agent-JP (Schema Driven Query) 路由已載入")
+
+except ImportError as e:
+    import traceback
+
+    traceback.print_exc()
+    print(f"⚠️ Data-Agent-JP 路由載入失敗: {e}")
+    """主函數：啟動服務"""
+    # 從環境變數讀取配置
+    host = os.getenv("DATA_AGENT_SERVICE_HOST", "localhost")
+    port = int(os.getenv("DATA_AGENT_SERVICE_PORT", "8004"))
+
+    print(f"Starting Data Agent Service (Datalake System) on {host}:{port}")
+    print(f"Health check: http://{host}:{port}/health")
+    print(f"Capabilities: http://{host}:{port}/capabilities")
+    print(f"Execute endpoint: http://{host}:{port}/execute")
 
 
 def main() -> None:

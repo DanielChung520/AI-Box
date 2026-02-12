@@ -1,0 +1,46 @@
+# Schema Registry RAG 配置
+# 用於 HybridRRAG 查詢服務
+
+# Qdrant 配置
+qdrant:
+  host: "localhost"
+  port: 6333
+  grpc_port: 6334
+  collection_name: "schema_registry"
+  vector_size: 1024
+  timeout: 30
+
+# ArangoDB 配置
+arangodb:
+  host: "localhost"
+  port: 8529
+  username: "root"
+  password: "ai_box_arangodb_password"
+  database: "ai_box_kg"
+  collection_prefix: "schema_"
+
+# Embedding 配置
+embedding:
+  model: "nomic-embed-text:latest"
+  dimension: 1024
+
+# 檢索配置
+retrieval:
+  top_k: 10
+  score_threshold: 0.7
+  vector_weight: 0.6
+  graph_weight: 0.4
+
+# 系統配置
+systems:
+  default: "tiptop"
+  supported:
+    - "tiptop"
+    - "erp"
+    - "mes"
+    - "wms"
+
+# 日誌配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

@@ -2,13 +2,25 @@
 """
 Data-Agent 100 場景完整測試腳本
 會持續優化直到全部通過
+
+若在非 TTY 環境出現「stty: 標準輸入: 不希望的裝置輸出入控制 (ioctl)」可忽略；
+  欲抑制可改為：python3 run_full_tests.py < /dev/null
+
+分類執行（建議，避免單次逾時）：
+  --list-categories           列出類別與場景數
+  --category A                僅執行 A（料件主檔，10 場景）
+  --category A,B               僅執行 A 與 B
+  --category B                僅執行 B（庫存，15 場景）
+  ... 依此類推，最後可合併各類別報告。
 """
 
 import asyncio
-import httpx
-import time
 import json
+import time
 from datetime import datetime
+from pathlib import Path
+
+import httpx
 
 # 100 場景測試清單
 TEST_CASES = []
@@ -166,58 +178,98 @@ TEST_CASES.extend(
     ]
 )
 
-# J. 異常處理 (J01-J10)
+# J. 異常處理 (J01-J10) — 對齊 Data-Agent-100場景測試計劃.md
 TEST_CASES.extend(
     [
         ("J01", "查詢不存在的料號 XYZ-999"),
         ("J02", "查詢不存在的倉庫 W99"),
         ("J03", "查詢不存在的訂單 XYZ-999"),
+        ("J04", "從料件表刪除所有資料"),
+        ("J05", ""),  # 缺少必要參數：空查詢
+        ("J06", "刪除所有料件"),
+        ("J07", "查詢料號 10-0001' OR '1'='1"),
+        ("J08", "查詢 2030 年的採購進貨"),
+        ("J09", "查詢料號 @#$%^&*"),
+        ("J10", "列出所有料件前 999999 筆"),
     ]
 )
+
+# 類別代碼與名稱（對齊 Data-Agent-100場景測試計劃.md 0.2）
+CATEGORY_NAMES = {
+    "A": "料件主檔查詢",
+    "B": "庫存查詢",
+    "C": "交易記錄查詢",
+    "D": "供應商查詢",
+    "E": "採購單查詢",
+    "F": "客戶查詢",
+    "G": "訂單查詢",
+    "H": "價格查詢",
+    "I": "倉庫儲位查詢",
+    "J": "異常處理",
+}
+
+
+def _is_exception_test(test_id: str) -> bool:
+    """J04-J07 預期 API 返回錯誤為通過；J01-J03/J08-J10 為邊界/正常查詢。"""
+    return test_id in ("J04", "J05", "J06", "J07")
 
 
 async def run_test(client: httpx.AsyncClient, test_id: str, query: str, expected_rows: str = None):
     """執行單個測試"""
     start_time = time.time()
     try:
+        payload = {
+            "task_id": f"test_{test_id}",
+            "task_type": "data_query",
+            "task_data": {
+                "action": "execute_structured_query",
+                "natural_language_query": query,
+            },
+        }
+        # J05 空查詢：不傳 natural_language_query 或傳空
+        if test_id == "J05":
+            payload["task_data"] = {"action": "execute_structured_query"}
+
         response = await client.post(
             "http://localhost:8004/execute",
-            json={
-                "task_id": f"test_{test_id}",
-                "task_type": "data_query",
-                "task_data": {
-                    "action": "execute_structured_query",
-                    "natural_language_query": query,
-                },
-            },
+            json=payload,
             timeout=120.0,
         )
         elapsed = (time.time() - start_time) * 1000
-
         result = response.json()
-        inner_result = result.get("result", {})
-        actual_result = inner_result.get("result", {})
+        status = result.get("status", "")
+        inner_result = result.get("result") or {}
+        if isinstance(inner_result, dict):
+            actual_result = inner_result.get("result") or {}
+            error_msg = inner_result.get("error", "")
+        else:
+            actual_result = {}
+            error_msg = str(inner_result) if inner_result else ""
 
-        sql = actual_result.get("sql_query", "")
-        row_count = actual_result.get("row_count")
+        sql = (actual_result or {}).get("sql_query", "")
+        row_count = (actual_result or {}).get("row_count")
 
-        # 基本成功標準：有 SQL 且有結果
-        success = sql and sql.strip() and row_count is not None
+        # 異常場景 J04-J07：預期返回錯誤為通過
+        if _is_exception_test(test_id):
+            success = status in ("failed", "error") or bool(error_msg)
+        else:
+            # 一般場景：有 SQL 且 row_count 有值（可為 0）
+            success = bool(sql and sql.strip()) and row_count is not None
 
         return {
             "test_id": test_id,
-            "query": query,
+            "query": query or "(空查詢)",
             "sql": sql,
             "row_count": row_count,
             "elapsed_ms": round(elapsed, 2),
             "success": success,
-            "error": None,
+            "error": error_msg or None,
         }
     except Exception as e:
         elapsed = (time.time() - start_time) * 1000
         return {
             "test_id": test_id,
-            "query": query,
+            "query": query or "(空查詢)",
             "sql": "",
             "row_count": None,
             "elapsed_ms": round(elapsed, 2),
@@ -226,12 +278,17 @@ async def run_test(client: httpx.AsyncClient, test_id: str, query: str, expected
         }
 
 
-async def run_all_tests():
-    """執行所有測試"""
+async def run_all_tests(limit: int = 0, categories: list[str] | None = None):
+    """執行測試。limit>0 僅執行前 N 個；categories 為類別代碼列表（如 ['A','B']）時僅執行該類別。"""
+    cases = TEST_CASES
+    if categories:
+        cases = [(tid, q) for tid, q in cases if tid and tid[0] in categories]
+    if limit > 0:
+        cases = cases[:limit]
     results = []
     async with httpx.AsyncClient() as client:
         current_category = ""
-        for test_id, query in TEST_CASES:
+        for test_id, query in cases:
             category = test_id[0]
             if category != current_category:
                 current_category = category
@@ -253,9 +310,10 @@ def analyze_results(results):
     total = len(results)
     passed = sum(1 for r in results if r["success"])
     failed = total - passed
+    pct = (passed / total * 100) if total else 0
 
     print(f"\n{'=' * 70}")
-    print(f"測試摘要: {passed}/{total} 通過 ({passed / total * 100:.1f}%)")
+    print(f"測試摘要: {passed}/{total} 通過 ({pct:.1f}%)")
     print(f"{'=' * 70}")
 
     # 按類別統計
@@ -273,7 +331,7 @@ def analyze_results(results):
     print("\n按類別:")
     for cat in sorted(categories.keys()):
         c = categories[cat]
-        rate = c["passed"] / c["total"] * 100
+        rate = (c["passed"] / c["total"] * 100) if c["total"] else 0
         print(f"  {cat}: {c['passed']}/{c['total']} ({rate:.0f}%)", end="")
         if c["failed"]:
             print(f" ❌ {', '.join(c['failed'])}")
@@ -283,19 +341,20 @@ def analyze_results(results):
     return categories
 
 
-def generate_report(results, iteration=1):
-    """生成測試報告"""
+def generate_report(results, iteration=1, subtitle=""):
+    """生成測試報告（含摘要、100 場景明細、失敗分析、改進建議）。"""
     total = len(results)
     passed = sum(1 for r in results if r["success"])
 
-    report = f"""# Data-Agent 100 場景測試報告 (第 {iteration} 輪)
+    report = f"""# Data-Agent 100 場景測試報告{subtitle}
 
 **測試日期**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+**適用**: 新結構（schema_registry 載入、無硬編碼表名/路徑）
 **通過率**: {passed}/{total} ({passed / total * 100:.1f}%)
 
 ---
 
-## 測試摘要
+## 1. 測試摘要
 
 | 類別 | 總數 | 通過 | 失敗 | 通過率 |
 |------|------|------|------|--------|
@@ -319,36 +378,163 @@ def generate_report(results, iteration=1):
 
     report += f"| **合計** | **{total}** | **{passed}** | **{total - passed}** | **{passed / total * 100:.1f}%** |\n\n"
 
-    # 失敗清單
+    # 2. 100 場景詳細列表
+    report += "## 2. 場景詳細列表\n\n"
+    report += "| 場景ID | 自然語言 | 生成SQL | 返回筆數 | 耗時(ms) | 狀態 | 失敗原因 |\n"
+    report += "|--------|----------|---------|----------|----------|------|----------|\n"
+    for r in results:
+        q_short = (r["query"] or "")[:36] + ("..." if len(r["query"] or "") > 36 else "")
+        sql_short = (r["sql"] or "")[:50] + ("..." if len(r["sql"] or "") > 50 else "")
+        rows = r["row_count"] if r["row_count"] is not None else "-"
+        status_str = "通過" if r["success"] else "失敗"
+        err = (r["error"] or "")[:30] + ("..." if len(r["error"] or "") > 30 else "") if r["error"] else ""
+        report += f"| {r['test_id']} | {q_short} | {sql_short} | {rows} | {r['elapsed_ms']} | {status_str} | {err} |\n"
+
+    # 3. 失敗場景分析
     failed_tests = [r for r in results if not r["success"]]
     if failed_tests:
-        report += "## 失敗場景\n\n"
-        report += "| 測試ID | 查詢 | 錯誤 |\n"
-        report += "|--------|------|------|\n"
+        report += "\n## 3. 失敗場景分析\n\n"
+        report += "| 場景ID | 自然語言 | 錯誤/原因 |\n"
+        report += "|--------|----------|------------|\n"
         for r in failed_tests:
-            report += f"| {r['test_id']} | {r['query'][:40]}... | SQL 生成失敗 |\n"
+            err = (r["error"] or "無錯誤訊息")[:60]
+            report += f"| {r['test_id']} | {(r['query'] or '')[:40]}... | {err} |\n"
+    else:
+        report += "\n## 3. 失敗場景分析\n\n無失敗場景。\n"
+
+    # 4. 改進建議
+    report += "\n## 4. 改進建議\n\n"
+    if failed_tests:
+        report += "- 針對上表失敗場景檢查：SQL 語義、schema_registry 表/欄位對應、LLM prompt。\n"
+        report += "- 異常類 J04-J07 預期返回錯誤；若返回成功需加強危險語句與參數校驗。\n"
+    else:
+        report += "- 全部通過，可考慮增加邊界與效能回歸測試。\n"
 
     return report
 
 
+# 統一報告用：合併結果的 JSON 預設路徑
+DEFAULT_RESULTS_JSON = (
+    "/home/daniel/ai-box/datalake-system/.ds-docs/Data-Agent/testing/"
+    "Data-Agent-100場景-合併結果.json"
+)
+
+
+def load_merged_results(path: str) -> list:
+    """從 JSON 載入已合併的結果列表。"""
+    if not path or not Path(path).exists():
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data if isinstance(data, list) else []
+
+
+def save_merged_results(path: str, results: list) -> None:
+    """將結果列表寫入 JSON（依 test_id 排序）。"""
+    by_id = {r["test_id"]: r for r in results}
+    ordered = [by_id[tid] for tid, _ in TEST_CASES if tid in by_id]
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(ordered, f, ensure_ascii=False, indent=2)
+
+
 if __name__ == "__main__":
-    print("=" * 70)
-    print("Data-Agent 100 場景測試")
-    print("=" * 70)
+    import argparse
 
-    results = asyncio.run(run_all_tests())
-    categories = analyze_results(results)
+    parser = argparse.ArgumentParser(
+        description="Data-Agent 100 場景測試（可依類別分次執行，結果可合併為統一報告）",
+        epilog="範例: --category A --output-json 結果.json | 最後 --from-json 結果.json --report-only",
+    )
+    parser.add_argument("--limit", type=int, default=0, help="僅執行前 N 個場景（0=不限制）")
+    parser.add_argument(
+        "--category",
+        type=str,
+        default="",
+        help="僅執行指定類別，可多個逗號分隔，如 A 或 A,B,C",
+    )
+    parser.add_argument("--list-categories", action="store_true", help="列出類別代碼與場景數後結束")
+    parser.add_argument(
+        "--output-json",
+        type=str,
+        default="",
+        help="將本次結果合併寫入此 JSON；與 --category 搭配可分批跑完後做統一報告",
+    )
+    parser.add_argument(
+        "--from-json",
+        type=str,
+        default="",
+        help="從 JSON 載入結果（與 --report-only 同用可只產統一報告）",
+    )
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="僅從 --from-json 載入結果並產出報告，不執行測試",
+    )
+    args = parser.parse_args()
 
-    report = generate_report(results, 1)
+    if args.list_categories:
+        print("類別代碼與場景數（對齊測試計劃 0.2）:\n")
+        for code, name in CATEGORY_NAMES.items():
+            n = sum(1 for tid, _ in TEST_CASES if tid and tid[0] == code)
+            print(f"  {code}: {name} ({n} 場景)")
+        print(f"\n合計: {len(TEST_CASES)} 場景")
+        raise SystemExit(0)
+
+    # 僅產報告：從 JSON 載入 → 產出統一報告
+    if args.report_only and args.from_json:
+        json_path = args.from_json
+        results = load_merged_results(json_path)
+        if not results:
+            print(f"無結果可載入: {json_path}")
+            raise SystemExit(1)
+        # 依 TEST_CASES 順序排列
+        by_id = {r["test_id"]: r for r in results}
+        ordered = [by_id[tid] for tid, _ in TEST_CASES if tid in by_id]
+        report = generate_report(ordered, 1, "（新結構・統一報告）")
+        date_str = datetime.now().strftime("%Y%m%d")
+        report_path = (
+            "/home/daniel/ai-box/datalake-system/.ds-docs/Data-Agent/testing/"
+            f"Data-Agent-100場景測試報告-新結構-統一-{date_str}.md"
+        )
+        with open(report_path, "w", encoding="utf-8") as f:
+            f.write(report)
+        print(f"統一報告已保存: {report_path}（共 {len(ordered)} 場景）")
+        raise SystemExit(0)
+
+    categories_list = [c.strip().upper() for c in args.category.split(",") if c.strip()] or None
+
+    print("=" * 70)
+    print("Data-Agent 100 場景測試（新結構）")
+    print("=" * 70)
+    if categories_list:
+        names = [f"{c}({CATEGORY_NAMES.get(c, '?')})" for c in categories_list]
+        print(f"僅執行類別: {', '.join(names)}\n")
+    if args.limit > 0:
+        print(f"僅執行前 {args.limit} 個場景\n")
+
+    results = asyncio.run(run_all_tests(limit=args.limit, categories=categories_list))
+    analyze_results(results)
+
+    # 合併寫入 JSON（與既有結果依 test_id 合併）
+    if args.output_json:
+        existing = load_merged_results(args.output_json)
+        current_ids = {r["test_id"] for r in results}
+        merged = [r for r in existing if r["test_id"] not in current_ids] + results
+        save_merged_results(args.output_json, merged)
+        print(f"\n結果已合併寫入: {args.output_json}（目前共 {len(merged)} 筆）")
+
+    subtitle = "（新結構）"
+    if categories_list:
+        subtitle += f" 類別{''.join(categories_list)}"
+    report = generate_report(results, 1, subtitle)
     print(report)
 
-    # 保存報告
-    with open(
-        "/home/daniel/ai-box/datalake-system/.ds-docs/Data-Agent/testing/test_report_latest.md", "w"
-    ) as f:
+    date_str = datetime.now().strftime("%Y%m%d")
+    slug = "".join(categories_list) if categories_list else "全部"
+    report_path = (
+        f"/home/daniel/ai-box/datalake-system/.ds-docs/Data-Agent/testing/"
+        f"Data-Agent-100場景測試報告-新結構-{slug}-{date_str}.md"
+    )
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write(report)
 
-    # 如果有失敗，繼續優化
-    passed = sum(1 for r in results if r["success"])
-    if passed < len(results):
-        print(f"\n需要優化，已保存報告到 test_report_latest.md")
+    print(f"\n報告已保存: {report_path}")

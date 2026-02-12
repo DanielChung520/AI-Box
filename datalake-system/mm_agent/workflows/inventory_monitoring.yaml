@@ -1,0 +1,42 @@
+# ========================================
+# Workflow: inventory_monitoring
+# ========================================
+
+name: "inventory_monitoring"
+description: "確保庫存數量準確，及時發現異常"
+version: "1.0.0"
+
+triggers:
+  - "庫存監控"
+  - "庫存異常"
+  - "安全庫存"
+  - "每天早上 08:00"
+  - "庫存異常警示"
+
+workflow:
+  steps:
+    - step_id: 1
+      action_type: "data_query"
+      description: "向 Data-Agent 發出自然語言查詢：『請查詢 ERP 庫存表中所有物料的..."
+      instruction: |
+        向 Data-Agent 發出自然語言查詢：『請查詢 ERP 庫存表中所有物料的實際庫存數量、物料編號、名稱與批次號，返回 JSON 格式』
+    - step_id: 2
+      action_type: "data_cleaning"
+      description: "資料完整性檢查：確認 JSON 中所有物料都有編號、庫存數量與名稱，缺失則標記並..."
+      instruction: |
+        資料完整性檢查：確認 JSON 中所有物料都有編號、庫存數量與名稱，缺失則標記並重新調用 Data-Agent
+    - step_id: 3
+      action_type: "computation"
+      description: "計算每個物料庫存差異：實際庫存 - 安全庫存"
+      instruction: |
+        計算每個物料庫存差異：實際庫存 - 安全庫存
+    - step_id: 4
+      action_type: "data_query"
+      description: "標註庫存不足或過量物料"
+      instruction: |
+        標註庫存不足或過量物料
+    - step_id: 5
+      action_type: "computation"
+      description: "生成異常庫存清單並通知相關部門"
+      instruction: |
+        生成異常庫存清單並通知相關部門

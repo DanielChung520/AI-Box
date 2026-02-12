@@ -1,0 +1,53 @@
+# ========================================
+# Workflow: reporting_analysis
+# ========================================
+
+name: "reporting_analysis"
+description: "提供管理層決策依據"
+version: "1.0.0"
+
+triggers:
+  - "報表分析"
+  - "庫存報表"
+  - "分析報告"
+  - "每週或每月生成"
+  - "管理層請求報表"
+  - "向 Data-Agent 發出自然語言查詢：『請提供所有物料的現有庫存數量與標準成本，JSON 格式』"
+
+workflow:
+  steps:
+    - step_id: 1
+      action_type: "data_query"
+      description: "向 Data-Agent 查詢：『請提供 ERP 中所有出入庫資料及庫存數據，J..."
+      instruction: |
+        向 Data-Agent 查詢：『請提供 ERP 中所有出入庫資料及庫存數據，JSON 格式』
+    - step_id: 2
+      action_type: "data_cleaning"
+      description: "資料完整性檢查：確認資料完整，缺失則重新調用"
+      instruction: |
+        資料完整性檢查：確認資料完整，缺失則重新調用
+    - step_id: 3
+      action_type: "data_query"
+      description: "匯總庫存數據與出入庫明細"
+      instruction: |
+        匯總庫存數據與出入庫明細
+    - step_id: 4
+      action_type: "computation"
+      description: "計算庫存週轉率、滯料物料、ABC 分類分布"
+      instruction: |
+        計算庫存週轉率、滯料物料、ABC 分類分布
+    - step_id: 5
+      action_type: "computation"
+      description: "生成可視化報表（表格/圖表）"
+      instruction: |
+        生成可視化報表（表格/圖表）
+    - step_id: 6
+      action_type: "data_query"
+      description: "標註異常或需關注物料"
+      instruction: |
+        標註異常或需關注物料
+    - step_id: 7
+      action_type: "data_query"
+      description: "提供策略建議給管理層"
+      instruction: |
+        提供策略建議給管理層

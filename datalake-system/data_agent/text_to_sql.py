@@ -1,15 +1,21 @@
 # 代碼功能說明: Text-to-SQL 轉換服務
 # 創建日期: 2026-01-08
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-02-07
+# 最後修改日期: 2026-02-10
+#
+# 架構說明:
+# - 使用 RAG 檢索相關表格
+# - 使用 metadata/services/ 生成 Prompt
+# - 完整的 Token 使用統計（用於計費）
 
-"""Text-to-SQL 轉換服務 - 將自然語言直接轉換為 SQL"""
+"""Text-to-SQL 轉換服務 - 使用 RAG + Metadata Services"""
 
-import json
 import logging
+import re
 import sys
+import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 ai_box_root = Path(__file__).resolve().parent.parent.parent
 if str(ai_box_root) not in sys.path:
@@ -20,178 +26,168 @@ from llm.clients.factory import get_client
 
 logger = logging.getLogger(__name__)
 
-
-def load_schema_from_registry(schema_path: str = None) -> Dict[str, Any]:
-    """從 schema_registry.json 加載 Schema 定義"""
-    if schema_path is None:
-        schema_path = ai_box_root / "datalake-system" / "metadata" / "schema_registry.json"
-
-    try:
-        with open(schema_path, "r", encoding="utf-8") as f:
-            schema = json.load(f)
-        logger.info(f"已加載 Schema 定義: {len(schema.get('tables', {}))} 個表格")
-        return schema
-    except Exception as e:
-        logger.error(f"加載 Schema 失敗: {e}")
-        return {}
+# Token 統計服務（全局）
+_token_stats_service = None
 
 
-def generate_schema_prompt(schema: Dict[str, Any]) -> str:
-    """根據 Schema 定義生成 Prompt"""
+def _get_token_stats_service():
+    """獲取 Token 統計服務（延遲導入）"""
+    global _token_stats_service
+    if _token_stats_service is None:
+        try:
+            from services.api.services.token_stats_service import get_token_stats_service
 
-    prompt_parts = []
-    prompt_parts.append("=== 資料庫 Schema ===\n")
+            _token_stats_service = get_token_stats_service()
+        except Exception:
+            return None
+    return _token_stats_service
 
-    # 表格選擇規則
-    prompt_parts.append("【表格選擇規則】")
-    prompt_parts.append("- 查詢「料號、品名、規格」→ 使用 ima_file（物料主檔）")
-    prompt_parts.append("- 查詢「庫存數量、倉庫、儲位」→ 使用 img_file（庫存明細檔）")
-    prompt_parts.append("- 查詢「採購單、收料」→ 使用 pmm_file, pmn_file, rvb_file")
-    prompt_parts.append("- 查詢「供應商」→ 使用 pmc_file")
-    prompt_parts.append("- 查詢「客戶」→ 使用 cmc_file")
-    prompt_parts.append("- 查詢「訂單」→ 使用 coptc_file, coptd_file")
-    prompt_parts.append("- 查詢「價格」→ 使用 prc_file")
-    prompt_parts.append("- 查詢「倉庫代號」→ 使用 imd_file")
-    prompt_parts.append("")
 
-    # 表格定義
-    tables = schema.get("tables", {})
-    for table_name, table_info in tables.items():
-        prompt_parts.append(f"【{table_info.get('tiptop_name', table_name)}】{table_name}")
-        for col in table_info.get("columns", []):
-            col_desc = f"- {col['id']}: {col['name']}"
-            if col.get("description"):
-                col_desc += f" ({col['description']})"
-            prompt_parts.append(col_desc)
-        prompt_parts.append("")
+class TokenStats:
+    """Token 使用統計"""
 
-    # Parquet 路徑
-    prompt_parts.append("【Parquet 路徑】")
-    prompt_parts.append("s3://tiptop-raw/raw/v1/{table}/year=*/month=*/data.parquet")
-    prompt_parts.append("使用 hive_partitioning=true")
-    prompt_parts.append("")
+    def __init__(
+        self,
+        task_id: str = "",
+        user_id: str = "",
+        operation: str = "text_to_sql",
+    ):
+        self.task_id = task_id
+        self.user_id = user_id
+        self.operation = operation
+        self.start_time = time.time()
 
-    # SQL 範例
-    prompt_parts.append("【SQL 範例】")
-    prompt_parts.append("")
-    prompt_parts.append("範例 1 - 查詢料件主檔：")
-    prompt_parts.append('"料號 10-0001 的品名"')
-    prompt_parts.append(
-        "SQL: SELECT ima01, ima02 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) WHERE ima01 = '10-0001' LIMIT 10"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 2 - 查詢所有成品：")
-    prompt_parts.append('"查詢料號開頭為 10- 的成品"')
-    prompt_parts.append(
-        "SQL: SELECT ima01, ima02 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) WHERE ima01 LIKE '10-%' AND ima08 = 'M' LIMIT 20"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 3 - 查詢所有原料：")
-    prompt_parts.append('"查詢所有原料"')
-    prompt_parts.append(
-        "SQL: SELECT ima01, ima02 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) WHERE ima08 = 'P' LIMIT 20"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 4 - 查詢庫存：")
-    prompt_parts.append('"W01 原料倉的庫存"')
-    prompt_parts.append(
-        "SQL: SELECT img01, img02, img03, img10 FROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) WHERE img02 = 'W01' LIMIT 20"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 5 - 查詢供應商：")
-    prompt_parts.append('"查詢所有供應商"')
-    prompt_parts.append(
-        "SQL: SELECT pmc01, pmc03 FROM read_parquet('s3://tiptop-raw/raw/v1/pmc_file/year=*/month=*/data.parquet', hive_partitioning=true) LIMIT 20"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 6 - 查詢客戶：")
-    prompt_parts.append('"查詢所有客戶"')
-    prompt_parts.append(
-        "SQL: SELECT cmc01, cmc02 FROM read_parquet('s3://tiptop-raw/raw/v1/cmc_file/year=*/month=*/data.parquet', hive_partitioning=true) LIMIT 20"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 7 - 採購進貨統計：")
-    prompt_parts.append('"RM05-008 上月買進多少"')
-    prompt_parts.append(
-        "SQL: SELECT pmn04, ima02, SUM(CAST(pnm20 AS DECIMAL)) as total_qty FROM read_parquet('s3://tiptop-raw/raw/v1/pmn_file/year=*/month=*/data.parquet', hive_partitioning=true) LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) ON pmn01 = pmm01 LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) ON pmn04 = ima01 WHERE pmn04 = 'RM05-008' AND pmm02 >= DATE '2024-12-01' AND pmm02 < DATE '2025-02-01' GROUP BY pmn04, ima02"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 8 - 每月統計：")
-    prompt_parts.append('"2024年RM05-008每月的採購進貨筆數"')
-    prompt_parts.append(
-        "SQL: SELECT DATE_TRUNC('month', CAST(pmm02 AS DATE)) as month, COUNT(*) as procurement_count FROM read_parquet('s3://tiptop-raw/raw/v1/pmn_file/year=*/month=*/data.parquet', hive_partitioning=true) LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) ON pmn01 = pmm01 WHERE pmn04 = 'RM05-008' AND CAST(pmm02 AS DATE) >= DATE '2024-01-01' AND CAST(pmm02 AS DATE) < DATE '2025-01-01' GROUP BY DATE_TRUNC('month', CAST(pmm02 AS DATE)) ORDER BY month"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 9 - 所有負庫存：")
-    prompt_parts.append('"列出所有負庫存的物料"')
-    prompt_parts.append(
-        "SQL: SELECT img01, img02, img03, img10 FROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/month=*/data.parquet', hive_partitioning=true) WHERE CAST(img10 AS DECIMAL) < 0 LIMIT 50"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 10 - 按月份統計訂單：")
-    prompt_parts.append('"按月份統計訂單數量"')
-    prompt_parts.append(
-        "SQL: SELECT DATE_TRUNC('month', CAST(coptc03 AS DATE)) AS month, COUNT(*) AS order_count FROM read_parquet('s3://tiptop-raw/raw/v1/coptc_file/year=*/month=*/data.parquet', hive_partitioning=true) GROUP BY DATE_TRUNC('month', CAST(coptc03 AS DATE)) ORDER BY month"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 11 - 按供應商統計：")
-    prompt_parts.append('"按供應商統計採購單數量"')
-    prompt_parts.append(
-        "SQL: SELECT pmm04 AS supplier, COUNT(*) AS order_count FROM read_parquet('s3://tiptop-raw/raw/v1/pmm_file/year=*/month=*/data.parquet', hive_partitioning=true) GROUP BY pmm04 ORDER BY order_count DESC"
-    )
-    prompt_parts.append("")
-    prompt_parts.append("範例 12 - 按客戶統計訂單：")
-    prompt_parts.append('"按客戶統計訂單金額"')
-    prompt_parts.append(
-        "SQL: SELECT coptc02 AS customer, SUM(CAST(coptd20 AS DECIMAL) * CAST(coptd30 AS DECIMAL)) AS total_amount FROM read_parquet('s3://tiptop-raw/raw/v1/coptc_file/year=*/month=*/data.parquet', hive_partitioning=true) AS coptc LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/coptd_file/year=*/month=*/data.parquet', hive_partitioning=true) AS coptd ON coptc.coptc01 = coptd.coptd01 GROUP BY coptc02 ORDER BY total_amount DESC"
-    )
-    prompt_parts.append("")
+        # Prompt 相關
+        self.prompt_length = 0
+        self.prompt_tokens = 0
 
-    # 重要規則
-    prompt_parts.append("【重要】")
-    prompt_parts.append("- **日期欄位類型是 VARCHAR，必須使用 CAST 轉換**")
-    prompt_parts.append("- 錯誤写法：DATE_TRUNC('month', pmm02) (❌)")
-    prompt_parts.append("- 正確認识：DATE_TRUNC('month', CAST(pmm02 AS DATE)) (✅)")
-    prompt_parts.append("- 錯誤写法：pmm02 >= DATE '2024-01-01' (❌)")
-    prompt_parts.append("- 正確認识：CAST(pmm02 AS DATE) >= DATE '2024-01-01' (✅)")
-    prompt_parts.append("- GROUP BY 必須包含 DATE_TRUNC 完整表達式，不能只寫別名")
-    prompt_parts.append("- 錯誤写法：GROUP BY month (❌ where month is an alias)")
-    prompt_parts.append("- 正確認识：GROUP BY DATE_TRUNC('month', CAST(coptc03 AS DATE)) (✅)")
-    prompt_parts.append("- 關聯表用 LEFT JOIN")
-    prompt_parts.append("- GROUP BY 要包含所有非聚合欄位")
-    prompt_parts.append("- 只返回 SQL，不要其他說明")
-    prompt_parts.append("")
+        # LLM 回應相關
+        self.completion_tokens = 0
+        self.response_length = 0
+        self.response_text = ""
 
-    # 嚴格要求 - 路徑格式
-    prompt_parts.append("【嚴格要求 - 路徑格式】")
-    prompt_parts.append("- 必須使用：year=*/month=*/data.parquet")
-    prompt_parts.append("- 禁止使用：*/*/data.parquet 或 */*/*/data.parquet")
-    prompt_parts.append("- 錯誤格式：s3://tiptop-raw/raw/v1/pmn_file/*/*/data.parquet (❌)")
-    prompt_parts.append(
-        "- 正確認识：s3://tiptop-raw/raw/v1/pmn_file/year=*/month=*/data.parquet (✅)"
-    )
-    prompt_parts.append("")
+        # 回送數據相關
+        self.output_data_size = 0
+        self.output_rows = 0
 
-    # 嚴格要求 - Hive Partitioning
-    prompt_parts.append("【嚴格要求 - Hive Partitioning】")
-    prompt_parts.append("- 使用 hive_partitioning=true (不是 =>)")
-    prompt_parts.append("- 錯誤語法：hive_partitioning => true (❌)")
-    prompt_parts.append("- 正確認识：hive_partitioning=true (✅)")
+        # 錯誤統計
+        self._error = None
+        self.success = True
 
-    return "\n".join(prompt_parts)
+    @property
+    def error(self) -> Optional[str]:
+        return self._error
+
+    @error.setter
+    def error(self, value: str):
+        self._error = value
+
+    def to_dict(self) -> Dict[str, Any]:
+        """轉換為字典"""
+        elapsed_ms = int((time.time() - self.start_time) * 1000)
+        return {
+            "task_id": self.task_id,
+            "user_id": self.user_id,
+            "operation": self.operation,
+            "prompt": {
+                "length": self.prompt_length,
+                "tokens": self.prompt_tokens,
+            },
+            "response": {
+                "length": self.response_length,
+                "tokens": self.completion_tokens,
+            },
+            "output": {
+                "data_size_bytes": self.output_data_size,
+                "rows": self.output_rows,
+            },
+            "latency_ms": elapsed_ms,
+            "success": self.success,
+            "error": self.error,
+            "total_tokens": self.prompt_tokens + self.completion_tokens,
+        }
+
+
+# SQL 注入檢測模式
+SQL_INJECTION_PATTERNS = [
+    r"\bOR\b.*=.*",
+    r"'.*UNION.*",
+    r"\bDROP\b",
+    r"\bDELETE\b",
+    r"\bINSERT\b",
+    r"\bUPDATE\b",
+    r"\bALTER\b",
+    r"\bCREATE\b",
+    r"\bTRUNCATE\b",
+    r"\bEXEC\b",
+    r"\bEXECUTE\b",
+    r"\b--\b",
+    r"\b;\s*\w",
+    r"'\s*OR\s+'1'\s*=\s*'1'",
+]
+
+
+def sanitize_natural_language_query(query: str) -> Tuple[bool, str]:
+    """
+    檢測並清理自然語言查詢，防止 SQL 注入攻擊
+    """
+    if not query:
+        return True, ""
+
+    query_upper = query.upper()
+
+    for pattern in SQL_INJECTION_PATTERNS:
+        if re.search(pattern, query_upper):
+            return False, "檢測到潛在 SQL 注入攻擊，請重新輸入查詢"
+
+    return True, ""
+
+
+def estimate_tokens(text: str) -> int:
+    """
+    估算 Token 數量（中英文混合）
+
+    估算方法：
+    - 英文：平均 4 字符 = 1 token
+    - 中文：平均 1-2 字符 = 1 token
+    - 混合：使用簡化估算
+    """
+    if not text:
+        return 0
+
+    # 簡化估算：中文字符約 2 字符/token，英文字符約 4 字符/token
+    chinese_chars = sum(1 for c in text if ord(c) > 127)
+    english_chars = len(text) - chinese_chars
+
+    # 中文按 1.5 字符/token 估算，英文按 4 字符/token 估算
+    return int(chinese_chars / 1.5 + english_chars / 4)
 
 
 class TextToSQLService:
-    """Text-to-SQL 轉換服務 - 直接理解自然語言生成 SQL"""
+    """Text-to-SQL 轉換服務 - 使用 RAG + Metadata Services"""
 
-    def __init__(self, llm_provider: Optional[LLMProvider] = None, schema_path: str = None):
+    def __init__(
+        self,
+        llm_provider: Optional[LLMProvider] = None,
+        system_id: str = "tiptop_erp",
+        metadata_root: Optional[Path] = None,
+    ):
         self._llm_provider = llm_provider or LLMProvider.OLLAMA
         self._llm_client = None
         self._logger = logger
+        self._system_id = system_id
 
-        # 從 schema_registry.json 加載 Schema
-        self._schema = load_schema_from_registry(schema_path)
-        self._schema_prompt = generate_schema_prompt(self._schema)
+        from datalake_system.metadata.services import PromptBuilder, SmartSchemaLoader
+        from datalake_system.data_agent.schema_rag import SchemaRAGService
+
+        if metadata_root is None:
+            metadata_root = ai_box_root / "datalake-system" / "metadata"
+
+        self._loader = SmartSchemaLoader(metadata_root)
+        self._builder = PromptBuilder(self._loader)
+        self._rag = SchemaRAGService(metadata_root)
+
+        logger.info(f"TextToSQLService 初始化完成，系統: {system_id}")
 
     def _get_llm_client(self):
         """獲取 LLM client"""
@@ -199,59 +195,176 @@ class TextToSQLService:
             self._llm_client = get_client(self._llm_provider)
         return self._llm_client
 
-    async def generate_sql(self, instruction: str) -> Dict[str, Any]:
-        """直接從自然語言生成 SQL
+    async def generate_sql(
+        self,
+        instruction: str,
+        task_id: str = "",
+        user_id: str = "",
+    ) -> Dict[str, Any]:
+        """
+        從自然語言生成 SQL
 
         Args:
             instruction: 用戶輸入（自然語言）
+            task_id: 任務 ID（用於 Token 統計）
+            user_id: 用戶 ID（用於 Token 統計）
 
         Returns:
-            {'success': bool, 'sql': str, 'error': str}
+            {
+                'success': bool,
+                'sql': str,
+                'error': str,
+                'tokens': {
+                    'prompt_tokens': int,
+                    'completion_tokens': int,
+                    'total_tokens': int,
+                },
+                'latency_ms': int,
+            }
         """
+        stats = TokenStats(task_id=task_id, user_id=user_id, operation="text_to_sql")
+
         try:
+            # 1. RAG 檢索相關表格（必選！）
+            rag_results = self._rag.retrieve(
+                query=instruction,
+                system_id=self._system_id,
+                top_k=7,
+            )
+            relevant_tables = self._rag.get_table_names(rag_results)
+
+            logger.info(f"RAG 檢索結果: {relevant_tables}")
+
+            # 2. 生成 Prompt（只包含相關表）
+            from datalake_system.metadata.services import SQLDialect
+
+            prompt = self._builder.build_schema_prompt(
+                system_id=self._system_id,
+                table_names=relevant_tables,
+                user_query=instruction,
+                dialect=SQLDialect.DUCKDB,
+            )
+
+            # 統計 Prompt
+            stats.prompt_length = len(prompt)
+            stats.prompt_tokens = estimate_tokens(prompt)
+
+            # 3. 調用 LLM
             client = self._get_llm_client()
-
-            prompt = f"""{self._schema_prompt}
-
-用戶問題：{instruction}
-
-請直接生成可執行的 DuckDB SQL 查詢語句。
-
-要求：
-1. 只返回 SQL，不需要任何說明
-2. 使用 DuckDB Parquet語法：read_parquet('s3://tiptop-raw/raw/v1/{{table}}/year=*/month=*/data.parquet', hive_partitioning=true)
-3. 正確關聯表格（pmn ↔ pmm 用 pmn01=pmm01）
-4. 正確處理日期欄位（可能是 VARCHAR，需要 CAST）
-5. 如果用戶說"每月"，添加 GROUP BY DATE_TRUNC('month', 日期欄位)
-6. 如果結果多於 10 筆，添加 LIMIT 10
-
-SQL：
-"""
-
+            start_time = time.time()
             response = await client.generate(
                 prompt=prompt,
                 temperature=0.1,
                 max_tokens=800,
             )
+            latency_ms = int((time.time() - start_time) * 1000)
 
             sql = response.get("text", "") or response.get("content", "")
             sql = sql.strip()
             sql = sql.replace("```sql", "").replace("```", "").strip()
 
+            # 統計回應
+            stats.response_length = len(sql)
+            stats.response_text = sql
+
+            # 從 LLM 回應提取 Token 使用量
+            if "usage" in response:
+                stats.prompt_tokens = response["usage"].get("prompt_tokens", stats.prompt_tokens)
+                stats.completion_tokens = response["usage"].get("completion_tokens", 0)
+            else:
+                stats.completion_tokens = estimate_tokens(sql)
+
+            # 4. 記錄 Token 統計
+            self._log_token_stats(stats, latency_ms)
+
             return {
                 "success": True,
                 "sql": sql,
                 "error": None,
+                "tokens": {
+                    "prompt_tokens": stats.prompt_tokens,
+                    "completion_tokens": stats.completion_tokens,
+                    "total_tokens": stats.prompt_tokens + stats.completion_tokens,
+                },
+                "latency_ms": latency_ms,
             }
 
         except Exception as e:
+            stats.success = False
+            stats.error = str(e)
             self._logger.error(f"Text-to-SQL 失敗: {e}")
+
+            # 記錄錯誤統計
+            self._log_token_stats(stats, int((time.time() - stats.start_time) * 1000))
+
             return {
                 "success": False,
                 "sql": None,
                 "error": str(e),
+                "tokens": {
+                    "prompt_tokens": stats.prompt_tokens,
+                    "completion_tokens": stats.completion_tokens,
+                    "total_tokens": stats.prompt_tokens + stats.completion_tokens,
+                },
+                "latency_ms": int((time.time() - stats.start_time) * 1000),
             }
+
+    def _log_token_stats(self, stats: TokenStats, latency_ms: int):
+        """記錄 Token 統計"""
+        try:
+            service = _get_token_stats_service()
+            if service is None:
+                return
+
+            # 記錄到服務
+            stats_data = stats.to_dict()
+            stats_data["latency_ms"] = latency_ms
+
+            # 異步記錄（不阻塞）
+            import threading
+
+            threading.Thread(
+                target=service.record_usage,
+                args=(stats_data,),
+                daemon=True,
+            ).start()
+
+            # 同時記錄到日誌
+            total_tokens = stats.prompt_tokens + stats.completion_tokens
+            self._logger.info(
+                f"Token 統計: "
+                f"prompt={stats.prompt_tokens}, "
+                f"completion={stats.completion_tokens}, "
+                f"total={total_tokens}, "
+                f"latency={latency_ms}ms, "
+                f"success={stats.success}"
+            )
+
+        except Exception as e:
+            self._logger.warning(f"記錄 Token 統計失敗: {e}")
+
+    def update_output_stats(self, task_id: str, rows: int, data_size: int):
+        """更新輸出數據統計（SQL 執行完成後調用）"""
+        try:
+            service = _get_token_stats_service()
+            if service is None:
+                return
+
+            # 異步更新
+            import threading
+
+            threading.Thread(
+                target=service.update_output,
+                args=(task_id, rows, data_size),
+                daemon=True,
+            ).start()
+
+        except Exception as e:
+            self._logger.warning(f"更新輸出統計失敗: {e}")
 
     async def convert(self, natural_language: str, **kwargs) -> Dict[str, Any]:
         """轉換自然語言為 SQL（兼容舊接口）"""
         return await self.generate_sql(natural_language)
+
+
+TextToSQLServiceWithRAG = TextToSQLService

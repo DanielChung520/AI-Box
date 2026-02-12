@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useContext } from 'react';
-import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, BookOpen } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AgentCard from './AgentCard';
 import AssistantCard from './AssistantCard';
@@ -12,6 +12,7 @@ import AgentDisplayConfigModal from './AgentDisplayConfigModal';
 import DeleteAgentConfirmModal from './DeleteAgentConfirmModal';
 import AssistantMaintenanceModal from './AssistantMaintenanceModal';
 import ChatSearchModal from './ChatSearchModal';
+import KnowledgeBaseModal from './KnowledgeBaseModal';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage, languageNames, languageIcons } from '../contexts/languageContext';
 import { useFileEditing } from '../contexts/fileEditingContext';
@@ -100,6 +101,8 @@ import { isSystemAdmin } from '../lib/userUtils';
     const [deletingAgentId, setDeletingAgentId] = useState<string | null>(null);
     const [deletingAgentName, setDeletingAgentName] = useState<string>('');
     const [showDeleteAgentModal, setShowDeleteAgentModal] = useState(false);
+    // 修改時間：2026-02-12 - 知識庫管理 Modal 狀態
+    const [showKnowledgeBaseModal, setShowKnowledgeBaseModal] = useState(false);
 
     // 修改時間：2026-01-06 - 文件編輯相關狀態
     const { editingFileId, setEditingFile, setPatches, clearEditing, setCurrentRequestId: setEditingRequestId } = useFileEditing();
@@ -481,6 +484,16 @@ import { isSystemAdmin } from '../lib/userUtils';
               </div>
             )}
           </div>
+          {/* 知識庫管理按鈕 - 修改時間：2026-02-12 */}
+          <button
+            className="p-2 rounded-full hover:bg-tertiary transition-colors relative group"
+            onClick={() => setShowKnowledgeBaseModal(true)}
+            title="知識庫管理"
+            aria-label="知識庫管理"
+          >
+            <BookOpen className="w-5 h-5 text-tertiary group-hover:text-blue-400 transition-colors" />
+          </button>
+
           {/* 系統管理菜單（僅 system_admin 可見） */}
           {isAdmin && (
             <div className="relative system-menu-container">
@@ -1010,6 +1023,12 @@ import { isSystemAdmin } from '../lib/userUtils';
             refetchAgentConfig();
           }
         }}
+      />
+
+      {/* 知識庫管理 Modal - 修改時間：2026-02-12 */}
+      <KnowledgeBaseModal
+        isOpen={showKnowledgeBaseModal}
+        onClose={() => setShowKnowledgeBaseModal(false)}
       />
     </div>
   );

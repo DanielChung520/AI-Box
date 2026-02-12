@@ -1,10 +1,10 @@
 # 代碼功能說明: ReAct 模式執行器 - 執行 TODO 步驟
 # 創建日期: 2026-02-04
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-02-07
-# v1.1 更新: 集成 Agent-todo (Preconditions, Retry, Heartbeat)
+# 最後修改日期: 2026-02-08
+# v1.2 更新: 集成 Saga 補償機制
 
-"""ReAct 模式執行器 - 執行 TODO 步驟"""
+"""ReAct 模式執行器 - 執行 TODO 步驟（帶補償機制）"""
 
 import asyncio
 import logging
@@ -27,9 +27,24 @@ from shared.agents.todo.preconditions import PreconditionChecker, PreconditionTy
 from shared.agents.contracts.heartbeat import get_heartbeat_manager
 from shared.database.arango_client import SharedArangoClient
 
+from .compensation import get_compensation_manager
 from .react_planner import Action, TodoPlan, ReActPlanner
 
 logger = logging.getLogger(__name__)
+
+
+def _get_rq_queue():
+    """Lazy import RQ queue"""
+    from database.rq.queue import get_task_queue, AGENT_TODO_QUEUE
+
+    return get_task_queue(AGENT_TODO_QUEUE)
+
+
+def _get_enqueue_function():
+    """Lazy import enqueue function"""
+    from .rq_task import enqueue_agent_todo
+
+    return enqueue_agent_todo
 
 
 _react_engine_instance = None
@@ -51,22 +66,30 @@ class WorkflowState(BaseModel):
     plan: Optional[Dict[str, Any]] = None
     current_step: int = 0
     completed_steps: List[int] = []
+    failed_steps: List[int] = []
     results: Dict[str, Any] = {}
     context: Optional[Dict[str, Any]] = None
+
+    # Saga 補償機制
+    compensations: List[Dict] = []  # 補償動作列表
+    compensation_history: List[Dict] = []  # 補償歷史
+    status: str = "pending"  # pending/running/completed/failed/compensating
+
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()
 
 
 class ReActEngine:
-    """ReAct 模式引擎 - 管理工作流程"""
+    """ReAct 模式引擎 - 管理工作流程（帶補償機制）"""
 
     def __init__(self):
         """初始化引擎"""
         self._planner = ReActPlanner()
         self._executor = ReActExecutor()
+        self._compensation_mgr = None  # 延遲初始化
         self._workflows: Dict[str, WorkflowState] = {}
         self._sse_publisher = SSEPublisher.get_instance()
-        logger.info("[ReActEngine] ReAct 引擎初始化完成")
+        logger.info("[ReActEngine] ReAct 引擎初始化完成（帶補償機制）")
 
     async def start_workflow(
         self,
@@ -92,7 +115,70 @@ class ReActEngine:
             logger.info("[ReActEngine] 會話已存在，清除舊狀態")
             del self._workflows[session_id]
 
+        # 發布 LLM 思考開始
+        self._sse_publisher.publish_thinking(
+            request_id=session_id,
+            thinking="正在分析用戶需求...",
+            progress=0.0,
+        )
+
         plan = await self._planner.plan(instruction, context)
+
+        # 發布工作流計劃
+        if plan and plan.steps:
+            plan_steps = [
+                {
+                    "step_id": s.step_id,
+                    "action_type": s.action_type,
+                    "description": s.description,
+                }
+                for s in plan.steps
+            ]
+            self._sse_publisher.publish_workflow_plan(
+                request_id=session_id,
+                instruction=instruction,
+                steps=plan_steps,
+            )
+        else:
+            logger.warning("[ReActEngine] 無法生成計劃")
+            return {
+                "success": False,
+                "task_type": "unknown",
+                "error": "無法生成計劃",
+            }
+
+        # 初始化補償管理器
+        comp_mgr = get_compensation_manager()
+
+        # 為每個步驟創建補償動作
+        compensations = []
+        if plan and plan.steps:
+            for step in plan.steps:
+                compensation = comp_mgr.create_compensation(
+                    step_id=step.step_id,
+                    action_type=step.action_type,
+                    params={
+                        "description": step.description,
+                        "instruction": step.instruction,
+                    },
+                )
+                compensations.append(compensation)
+                logger.info(
+                    f"[ReActEngine] Created compensation: step={step.step_id}, type={compensation.compensation_type}"
+                )
+
+        # 將 CompensationAction 轉換為 Dict
+        compensations_dict = [
+            {
+                "action_id": c.action_id,
+                "step_id": c.step_id,
+                "action_type": c.action_type,
+                "compensation_type": c.compensation_type,
+                "params": c.params,
+                "status": c.status,
+            }
+            for c in compensations
+        ]
 
         self._workflows[session_id] = WorkflowState(
             session_id=session_id,
@@ -100,8 +186,11 @@ class ReActEngine:
             plan=plan.model_dump() if plan else None,
             current_step=0,
             completed_steps=[],
+            failed_steps=[],
             results={},
             context=context,
+            compensations=compensations_dict,
+            status="pending",
         )
 
         self._sse_publisher.start_tracking(session_id)
@@ -192,6 +281,18 @@ class ReActEngine:
 
         step_data = steps_data[state.current_step - 1]
         action_type = step_data.get("action_type", "unknown")
+        description = step_data.get("description", "")
+        total_steps = len(steps_data)
+        current = state.current_step
+
+        # 發布步驟開始
+        self._sse_publisher.publish_step_start(
+            request_id=session_id,
+            step_id=current,
+            action_type=action_type,
+            description=description,
+            total_steps=total_steps,
+        )
 
         if action_type == "user_confirmation":
             state.completed_steps.append(state.current_step)
@@ -212,7 +313,7 @@ class ReActEngine:
         action = Action(
             step_id=step_data.get("step_id", state.current_step),
             action_type=action_type,
-            description=step_data.get("description", ""),
+            description=description,
             parameters=step_data.get("parameters", {}),
             dependencies=step_data.get("dependencies", []),
             result_key=step_data.get("result_key"),
@@ -223,22 +324,76 @@ class ReActEngine:
         plan_obj = TodoPlan(**plan_dict)
         previous_results = {k: v for k, v in state.results.items() if k != "final_response"}
 
-        total_steps = len(steps_data)
-        current = state.current_step
         progress = current / total_steps if total_steps > 0 else 0
 
         self._sse_publisher.publish(
             request_id=session_id,
-            step=step_data.get("description", f"步驟 {current}"),
+            step=f"step_{current}_{action_type}",
             status="processing",
-            message=f"正在執行: {step_data.get('description', '')}",
+            message=f"正在執行: {description}",
             progress=progress,
         )
 
-        result = await self._executor.execute_step(action, plan_obj, previous_results)
+        result = await self._executor.execute_step(action, plan_obj, previous_results, session_id)
+
+        # 檢查步驟是否失敗
+        step_failed = (
+            result is None
+            or (hasattr(result, "success") and not result.success)
+            or (isinstance(result, dict) and not result.get("success", True))
+        )
+
+        if step_failed:
+            logger.warning(
+                f"[ReActEngine] 步驟失敗: step={state.current_step}, action={action_type}"
+            )
+            state.failed_steps.append(state.current_step)
+            state.status = "compensating"
+
+            # 執行補償
+            if state.compensations:
+                comp_mgr = get_compensation_manager()
+                completed_comps = [c for c in state.compensations if c.get("status") == "pending"]
+                if completed_comps:
+                    logger.info(f"[ReActEngine] 執行補償，共 {len(completed_comps)} 個補償動作")
+                    comp_result = await comp_mgr.compensate_all(completed_comps, state.results)
+                    state.compensation_history.append(
+                        {
+                            "triggered_at": datetime.now().isoformat(),
+                            "failed_step": state.current_step,
+                            "results": comp_result,
+                        }
+                    )
+
+            state.status = "failed"
+            self._sse_publisher.publish(
+                request_id=session_id,
+                step=step_data.get("description", f"步驟 {current}"),
+                status="error",
+                message="步驟失敗，已執行補償",
+                progress=1.0,
+            )
+            return {
+                "success": False,
+                "response": f"步驟執行失敗: {result.observation if hasattr(result, 'observation') else result.get('observation', '未知錯誤')}",
+                "step_id": state.current_step,
+                "action_type": action_type,
+                "completed_steps": state.completed_steps,
+                "failed_steps": state.failed_steps,
+                "total_steps": len(steps_data),
+                "waiting_for_user": False,
+                "compensated": True,
+                "debug_info": {
+                    "step": "step_failed_compensated",
+                    "observation": result.observation if hasattr(result, "observation") else "",
+                    "compensation_result": comp_result if "comp_result" in dir() else None,
+                },
+            }
 
         state.completed_steps.append(state.current_step)
-        state.results[str(state.current_step)] = result.result if result else {}
+        state.results[str(state.current_step)] = (
+            result.result if hasattr(result, "result") else result.get("result", {})
+        )
 
         if result and result.result:
             for k, v in result.result.items():
@@ -282,27 +437,18 @@ class ReActEngine:
             },
         }
 
-        success = result.success if result else True
-        step_name = step_data.get("description", f"步驟 {current}")
-
-        self._sse_publisher.publish(
-            request_id=session_id,
-            step=step_name,
-            status="completed" if success else "error",
-            message=result.observation if result else "處理完成",
-            progress=1.0,
-        )
-
     async def execute_all_steps(
         self,
         session_id: str,
         user_response: Optional[str] = None,
+        instruction: Optional[str] = None,
     ) -> Dict[str, Any]:
         """自動執行所有步驟
 
         Args:
             session_id: 會話 ID
             user_response: 用戶回覆
+            instruction: 用戶指令（用於啟動工作流）
 
         Returns:
             所有步驟執行結果
@@ -310,7 +456,11 @@ class ReActEngine:
         logger.info(f"[ReActEngine] 自動執行所有步驟: session_id={session_id}")
 
         if session_id not in self._workflows:
-            return {"success": False, "error": "會話不存在"}
+            if instruction:
+                logger.info(f"[ReActEngine] 工作流不存在，自動啟動: session_id={session_id}")
+                await self.start_workflow(instruction, session_id, {})
+            else:
+                return {"success": False, "error": "會話不存在，請先啟動工作流"}
 
         responses = []
         all_results = []
@@ -425,7 +575,7 @@ class TodoTracker:
             return
 
         try:
-            await TodoTracker._sse_client.publish(
+            TodoTracker._sse_client.publish(
                 request_id=self._session_id,
                 step=step,
                 status=status,
@@ -573,20 +723,49 @@ class TodoTracker:
         return True
 
 
+# ==================== RQ Task Integration ====================
+# RQ 任務已移到 rq_task.py 模組，避免循環導入問題
+
+# 導入新的 RQ 任務模組
+from .rq_task import enqueue_agent_todo, execute_agent_todo_sync, AGENT_TODO_QUEUE
+
+
+def enqueue_rq_task(
+    session_id: str,
+    step_id: int,
+    action_type: str,
+    instruction: str,
+    parameters: Dict[str, Any],
+    total_steps: int,
+) -> str:
+    """交付 RQ 任務並返回 job_id（使用新模組）"""
+    return enqueue_agent_todo(
+        session_id=session_id,
+        step_id=step_id,
+        action_type=action_type,
+        instruction=instruction,
+        parameters=parameters,
+        total_steps=total_steps,
+    )
+
+
 class ReActExecutor:
-    """ReAct 模式執行器 - 集成 Agent-todo"""
+    """ReAct 模式執行器 - 集成 Agent-todo + RQ 任務交付"""
 
     def __init__(self):
         """初始化執行器"""
         self._knowledge_client = None
         self._data_client = None
         self._tracker = TodoTracker()
+        self._use_rq = True  # 是否使用 RQ 交付
+        self._sse_publisher = SSEPublisher.get_instance()  # SSE 發布器
 
     async def execute_step(
         self,
         action: Action,
         plan: TodoPlan,
         previous_results: Dict[str, Any],
+        session_id: str = "unknown",
     ) -> ExecutionResult:
         """執行單一步驟
 
@@ -594,6 +773,7 @@ class ReActExecutor:
             action: 行動定義
             plan: 工作計劃
             previous_results: 之前的執行結果
+            session_id: 會話 ID
 
         Returns:
             ExecutionResult: 執行結果
@@ -604,9 +784,50 @@ class ReActExecutor:
         total_steps = len(plan.steps)
 
         # 1. 建立 Todo（含 Heartbeat）
-        await self._tracker.create_todo(action.step_id, action, instruction, total_steps)
+        todo_id = await self._tracker.create_todo(action.step_id, action, instruction, total_steps)
 
-        # 2. 檢查 Preconditions
+        # 2. 使用 RQ 交付任務（非同步執行）
+        if self._use_rq:
+            try:
+                from .rq_task import enqueue_agent_todo
+
+                job_id = enqueue_agent_todo(
+                    session_id=session_id,
+                    step_id=action.step_id,
+                    action_type=action.action_type,
+                    instruction=instruction,
+                    parameters=action.parameters,
+                    total_steps=total_steps,
+                )
+                logger.info(f"[ReActExecutor] RQ 任務已交付: job_id={job_id}")
+
+                # 發布 RQ 交付事件
+                self._sse_publisher.publish_rq_delivery(
+                    request_id=session_id,
+                    step_id=action.step_id,
+                    action_type=action.action_type,
+                    job_id=job_id,
+                )
+
+                # RQ 交付後直接返回，讓 Worker 異步執行
+                await self._tracker.dispatch_todo(str(action.step_id))
+                await self._tracker.update_progress(
+                    str(action.step_id), step=1, message=f"任務已交付到 RQ: {job_id}"
+                )
+
+                return ExecutionResult(
+                    step_id=action.step_id,
+                    action_type=action.action_type,
+                    success=True,
+                    result={"job_id": job_id, "rq_delivered": True},
+                    observation=f"步驟已交付到 RQ 隊列，job_id={job_id}",
+                )
+
+            except Exception as e:
+                logger.warning(f"[ReActExecutor] RQ 交付失敗，回退到同步執行: {e}")
+                self._use_rq = False
+
+        # 3. 同步執行模式（回退）
         preconditions_ok = await self._tracker.check_preconditions(action)
         if not preconditions_ok:
             error_result = ExecutionResult(
@@ -623,7 +844,7 @@ class ReActExecutor:
             )
             return error_result
 
-        # 3. 分派 Todo
+        # 分派 Todo
         await self._tracker.dispatch_todo(str(action.step_id))
         await self._tracker.update_progress(
             str(action.step_id), step=1, message=f"執行 {action.action_type}"
@@ -632,11 +853,17 @@ class ReActExecutor:
         try:
             # 4. 執行步驟
             if action.action_type == "knowledge_retrieval":
-                result = await self._execute_knowledge_retrieval(action, previous_results)
+                result = await self._execute_knowledge_retrieval(
+                    action, previous_results, session_id
+                )
             elif action.action_type == "data_query":
-                result = await self._execute_data_query(action, previous_results)
+                result = await self._execute_data_query(action, previous_results, session_id)
+            elif action.action_type == "data_cleaning":
+                result = await self._execute_data_cleaning(action, previous_results)
             elif action.action_type == "computation":
                 result = await self._execute_computation(action, previous_results)
+            elif action.action_type == "visualization":
+                result = await self._execute_visualization(action, previous_results)
             elif action.action_type == "user_confirmation":
                 result = await self._execute_user_confirmation(action, previous_results)
             elif action.action_type == "response_generation":
@@ -674,7 +901,7 @@ class ReActExecutor:
             return error_result
 
     async def _execute_knowledge_retrieval(
-        self, action: Action, previous_results: Dict[str, Any]
+        self, action: Action, previous_results: Dict[str, Any], session_id: str = "unknown"
     ) -> ExecutionResult:
         """執行知識庫檢索"""
         query = action.parameters.get("query", action.description)
@@ -732,6 +959,14 @@ class ReActExecutor:
             except Exception as e:
                 logger.warning(f"[Knowledge] LLM 生成知識失敗: {e}")
 
+        # 發布知識檢索結果
+        self._sse_publisher.publish_knowledge_result(
+            request_id=session_id,
+            step_id=action.step_id,
+            source=source,
+            knowledge_length=len(knowledge) if knowledge else 0,
+        )
+
         return ExecutionResult(
             step_id=action.step_id,
             action_type="knowledge_retrieval",
@@ -741,9 +976,9 @@ class ReActExecutor:
         )
 
     async def _execute_data_query(
-        self, action: Action, previous_results: Dict[str, Any]
+        self, action: Action, previous_results: Dict[str, Any], session_id: str = "unknown"
     ) -> ExecutionResult:
-        """執行數據查詢"""
+        """執行數據查詢 - 使用 Data-Agent-JP"""
         instruction = action.parameters.get("instruction", action.description)
 
         try:
@@ -751,26 +986,32 @@ class ReActExecutor:
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
-                    "http://localhost:8004/execute",
+                    "http://localhost:8004/jp/execute",
                     json={
                         "task_id": f"react_data_{id(instruction)}",
-                        "task_type": "data_query",
+                        "task_type": "schema_driven_query",
                         "task_data": {
-                            "action": "execute_structured_query",
-                            "natural_language_query": instruction,
+                            "nlq": instruction,
                         },
                     },
                 )
 
                 result = response.json()
 
-                if result.get("status") == "completed":
-                    inner_result = result.get("result", {})
-                    actual_result = inner_result.get("result", {})
-                    rows = actual_result.get("rows", [])
-                    sql = actual_result.get("sql_query", "")
+                if result.get("status") == "success":
+                    rows = result.get("result", {}).get("data", [])
+                    sql = result.get("result", {}).get("sql", "")
 
                     logger.info(f"[Data] Data-Agent 返回: rows={len(rows)}")
+
+                    # 發布數據查詢結果
+                    self._sse_publisher.publish_data_result(
+                        request_id=session_id,
+                        step_id=action.step_id,
+                        sql=sql,
+                        row_count=len(rows),
+                        sample_data=rows[:3],
+                    )
 
                     return ExecutionResult(
                         step_id=action.step_id,
@@ -805,6 +1046,92 @@ class ReActExecutor:
                     "instruction": instruction,
                 },
                 observation="使用模擬數據",
+            )
+
+    async def _execute_data_cleaning(
+        self, action: Action, previous_results: Dict[str, Any]
+    ) -> ExecutionResult:
+        """執行數據清洗"""
+        _ = action.parameters.get("instruction", action.description)
+
+        query_result = None
+        for step_id, step_result in previous_results.items():
+            if isinstance(step_result, dict) and "data" in step_result:
+                query_result = step_result["data"]
+                break
+
+        if not query_result:
+            return ExecutionResult(
+                step_id=action.step_id,
+                action_type="data_cleaning",
+                success=True,
+                result={"cleaned_data": [], "summary": "無數據可清洗"},
+                observation="無數據，跳過清洗",
+            )
+
+        try:
+            cleaned_data = []
+            errors = []
+
+            for idx, row in enumerate(query_result):
+                try:
+                    cleaned_row = {}
+
+                    for key, value in row.items():
+                        if value is None:
+                            cleaned_row[key] = None
+                        elif isinstance(value, str):
+                            cleaned_row[key] = value.strip()
+                        elif isinstance(value, (int, float)):
+                            cleaned_row[key] = value
+                        else:
+                            cleaned_row[key] = str(value)
+
+                    if "material_code" not in cleaned_row and "img01" in row:
+                        cleaned_row["material_code"] = row["img01"]
+                    if "inventory_value" not in cleaned_row:
+                        if "StockValue" in row:
+                            cleaned_row["inventory_value"] = float(row["StockValue"])
+                        elif "inventory_value" in row:
+                            cleaned_row["inventory_value"] = float(row["inventory_value"])
+                        else:
+                            cleaned_row["inventory_value"] = 0
+
+                    if "material_code" in cleaned_row and cleaned_row["material_code"]:
+                        cleaned_data.append(cleaned_row)
+                    else:
+                        errors.append(f"Row {idx}: 缺少料號")
+
+                except Exception as row_error:
+                    errors.append(f"Row {idx}: {str(row_error)}")
+
+            summary = {
+                "total_rows": len(query_result),
+                "cleaned_rows": len(cleaned_data),
+                "errors": len(errors),
+                "columns": list(cleaned_data[0].keys()) if cleaned_data else [],
+            }
+
+            return ExecutionResult(
+                step_id=action.step_id,
+                action_type="data_cleaning",
+                success=True,
+                result={
+                    "cleaned_data": cleaned_data,
+                    "summary": summary,
+                    "errors": errors,
+                },
+                observation=f"數據清洗完成：{len(cleaned_data)}/{len(query_result)} 行有效",
+            )
+
+        except Exception as e:
+            logger.error(f"[DataCleaning] 清洗失敗: {e}")
+            return ExecutionResult(
+                step_id=action.step_id,
+                action_type="data_cleaning",
+                success=False,
+                error=str(e),
+                observation=f"數據清洗失敗: {str(e)}",
             )
 
     async def _execute_computation(
@@ -909,6 +1236,68 @@ class ReActExecutor:
             observation="用戶確認步驟",
         )
 
+    async def _execute_visualization(
+        self, action: Action, previous_results: Dict[str, Any]
+    ) -> ExecutionResult:
+        """生成可視化"""
+        _ = action.parameters.get("instruction", action.description)
+
+        abc_result = None
+        for step_id, step_result in previous_results.items():
+            if isinstance(step_result, dict) and "abc_result" in step_result:
+                abc_result = step_result["abc_result"]
+                break
+
+        try:
+            visualization = {
+                "type": "chart",
+                "chart_type": "bar",
+                "title": "ABC 分類分布",
+                "data": {},
+            }
+
+            if abc_result:
+                a_items = abc_result.get("A類", [])
+                b_items = abc_result.get("B類", [])
+                c_items = abc_result.get("C類", [])
+                a_value = abc_result.get("A類價值", 0)
+                b_value = abc_result.get("B類價值", 0)
+                c_value = abc_result.get("C類價值", 0)
+
+                total = a_value + b_value + c_value
+                if total > 0:
+                    visualization["data"] = {
+                        "labels": ["A 類", "B 類", "C 類"],
+                        "values": [a_value, b_value, c_value],
+                        "percentages": [
+                            round(a_value / total * 100, 1),
+                            round(b_value / total * 100, 1),
+                            round(c_value / total * 100, 1),
+                        ],
+                        "counts": [len(a_items), len(b_items), len(c_items)],
+                    }
+
+            return ExecutionResult(
+                step_id=action.step_id,
+                action_type="visualization",
+                success=True,
+                result={
+                    "visualization": visualization,
+                    "description": "ABC 分類分布圖表",
+                },
+                observation="可視化生成完成",
+            )
+
+        except Exception as e:
+            logger.error(f"[Visualization] 生成失敗: {e}")
+            return ExecutionResult(
+                step_id=action.step_id,
+                action_type="visualization",
+                success=False,
+                error=str(e),
+                observation=f"可視化生成失敗: {str(e)}",
+            )
+
     async def _execute_response_generation(
         self, action: Action, previous_results: Dict[str, Any]
     ) -> ExecutionResult:
@@ -1005,8 +1394,18 @@ class SSEPublisher:
         status: str,
         message: str,
         progress: float = 0.0,
+        extra: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """發布狀態事件（非阻塞）"""
+        """發布狀態事件（非阻塞）
+
+        Args:
+            request_id: 請求 ID
+            step: 當前步驟名稱
+            status: 狀態 (processing/completed/error)
+            message: 狀態描述
+            progress: 進度 0-1
+            extra: 額外信息 (action_type, sql, row_count, job_id 等)
+        """
         if not self._enabled:
             return
 
@@ -1016,9 +1415,175 @@ class SSEPublisher:
             "status": status,
             "message": message,
             "progress": progress,
+            "timestamp": datetime.now().isoformat(),
         }
+        if extra:
+            data["extra"] = extra
+
         self._queue.put_nowait(data)
         self._ensure_worker()
+
+    def publish_thinking(
+        self,
+        request_id: str,
+        thinking: str,
+        progress: float = 0.0,
+    ) -> None:
+        """發布 LLM 思考過程"""
+        self.publish(
+            request_id=request_id,
+            step="llm_thinking",
+            status="processing",
+            message=thinking,
+            progress=progress,
+            extra={"type": "thinking"},
+        )
+
+    def publish_step_start(
+        self,
+        request_id: str,
+        step_id: int,
+        action_type: str,
+        description: str,
+        total_steps: int,
+    ) -> None:
+        """發布步驟開始"""
+        progress = (step_id - 1) / total_steps if total_steps > 0 else 0
+        self.publish(
+            request_id=request_id,
+            step=f"step_{step_id}_{action_type}",
+            status="processing",
+            message=description,
+            progress=progress,
+            extra={
+                "type": "step_start",
+                "step_id": step_id,
+                "action_type": action_type,
+                "total_steps": total_steps,
+            },
+        )
+
+    def publish_step_complete(
+        self,
+        request_id: str,
+        step_id: int,
+        action_type: str,
+        result_summary: str,
+        row_count: Optional[int] = None,
+        sql: Optional[str] = None,
+    ) -> None:
+        """發布步驟完成"""
+        self.publish(
+            request_id=request_id,
+            step=f"step_{step_id}_{action_type}",
+            status="processing",
+            message=result_summary,
+            progress=1.0,
+            extra={
+                "type": "step_complete",
+                "step_id": step_id,
+                "action_type": action_type,
+                "row_count": row_count,
+                "sql": sql[:200] if sql else None,
+            },
+        )
+
+    def publish_rq_delivery(
+        self,
+        request_id: str,
+        step_id: int,
+        action_type: str,
+        job_id: str,
+    ) -> None:
+        """發布 RQ 任務交付"""
+        self.publish(
+            request_id=request_id,
+            step=f"step_{step_id}_{action_type}",
+            status="processing",
+            message=f"任務已交付到隊列: {job_id}",
+            progress=0.5,
+            extra={
+                "type": "rq_delivery",
+                "step_id": step_id,
+                "action_type": action_type,
+                "job_id": job_id,
+            },
+        )
+
+    def publish_data_result(
+        self,
+        request_id: str,
+        step_id: int,
+        sql: str,
+        row_count: int,
+        sample_data: Optional[List[Dict]] = None,
+    ) -> None:
+        """發布數據查詢結果"""
+        self.publish(
+            request_id=request_id,
+            step=f"step_{step_id}_data_query",
+            status="processing",
+            message=f"查詢完成，返回 {row_count} 行數據",
+            progress=0.8,
+            extra={
+                "type": "data_result",
+                "step_id": step_id,
+                "sql": sql[:500],
+                "row_count": row_count,
+                "sample": sample_data[:3] if sample_data else None,
+            },
+        )
+
+    def publish_knowledge_result(
+        self,
+        request_id: str,
+        step_id: int,
+        source: str,
+        knowledge_length: int,
+    ) -> None:
+        """發布知識檢索結果"""
+        self.publish(
+            request_id=request_id,
+            step=f"step_{step_id}_knowledge_retrieval",
+            status="processing",
+            message=f"知識獲取成功，來源: {source}，長度: {knowledge_length} 字",
+            progress=0.8,
+            extra={
+                "type": "knowledge_result",
+                "step_id": step_id,
+                "source": source,
+                "knowledge_length": knowledge_length,
+            },
+        )
+
+    def publish_workflow_plan(
+        self,
+        request_id: str,
+        instruction: str,
+        steps: List[Dict],
+    ) -> None:
+        """發布工作流計劃"""
+        step_list = [
+            {
+                "step_id": s.get("step_id"),
+                "action_type": s.get("action_type"),
+                "description": s.get("description"),
+            }
+            for s in steps
+        ]
+        self.publish(
+            request_id=request_id,
+            step="workflow_planned",
+            status="processing",
+            message=f"已分析需求，生成 {len(steps)} 個步驟",
+            progress=0.1,
+            extra={
+                "type": "workflow_plan",
+                "instruction": instruction[:100],
+                "steps": step_list,
+                "total_steps": len(steps),
+            },
+        )
 
     def start_tracking(self, request_id: str) -> None:
         """開始追蹤（非阻塞）"""

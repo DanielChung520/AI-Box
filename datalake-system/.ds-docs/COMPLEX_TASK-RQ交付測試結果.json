@@ -1,0 +1,101 @@
+[
+  {
+    "scenario_id": "RQ-01",
+    "user_input": "幫我做 ABC 庫存分類分析",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.97,
+    "intent_passed": true,
+    "job_ids": [
+      "0cc56398-c787-4961-8043-6a8b67b003cd",
+      "b1c3e03a-906c-4cd0-92d5-566b11e061b9",
+      "35d59248-a539-4a85-8d73-06312d03a852",
+      "69f1e3ce-8838-450d-b47b-6c07a3edfc66"
+    ],
+    "rq_delivered": true,
+    "rq_status": "COMPLETED",
+    "steps_completed": 4,
+    "total_steps": 4,
+    "execution_time_ms": 7823.92058102414,
+    "total_passed": true,
+    "error": null
+  },
+  {
+    "scenario_id": "RQ-02",
+    "user_input": "比較近三個月採購金額",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "intent_passed": true,
+    "job_ids": [
+      "ce1e1e50-b354-471b-ba05-d9f85440824d",
+      "76cbc24d-25a2-4c18-be32-8fa603b16754",
+      "07cc8525-6192-4c3a-80d7-876a93ac926c"
+    ],
+    "rq_delivered": true,
+    "rq_status": "COMPLETED",
+    "steps_completed": 3,
+    "total_steps": 3,
+    "execution_time_ms": 61506.478016031906,
+    "total_passed": true,
+    "error": null
+  },
+  {
+    "scenario_id": "RQ-03",
+    "user_input": "為料號 10-0001 建立補貨建議",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.96,
+    "intent_passed": true,
+    "job_ids": [
+      "41473cf9-3779-4e95-aacc-b47ffa4d22af",
+      "96a7181d-999e-4376-abe9-5c0a74a58c11",
+      "4a3ac221-fa7b-4c77-b085-3988db4054bf",
+      "c4ffff6f-7682-4146-986d-0e817f3e3ea2",
+      "44395504-e8c9-469d-86ed-e43d4f951c8e",
+      "9560ca92-41da-438e-84d0-2bb72805d2c0"
+    ],
+    "rq_delivered": true,
+    "rq_status": "COMPLETED",
+    "steps_completed": 6,
+    "total_steps": 6,
+    "execution_time_ms": 31172.95433487743,
+    "total_passed": true,
+    "error": null
+  },
+  {
+    "scenario_id": "RQ-04",
+    "user_input": "分析 W01 倉庫的庫存水位",
+    "actual_intent": "SIMPLE_QUERY",
+    "confidence": 0.96,
+    "intent_passed": false,
+    "job_ids": [],
+    "rq_delivered": false,
+    "rq_status": null,
+    "steps_completed": 0,
+    "total_steps": 0,
+    "execution_time_ms": 42223.086789948866,
+    "total_passed": false,
+    "error": "Intent is not COMPLEX_TASK: SIMPLE_QUERY"
+  },
+  {
+    "scenario_id": "RQ-05",
+    "user_input": "生成年度採購分析報告",
+    "actual_intent": "COMPLEX_TASK",
+    "confidence": 0.97,
+    "intent_passed": true,
+    "job_ids": [
+      "09e173b2-3154-4fdb-8834-ac73a58d4d52",
+      "415e1980-2652-4a4b-9c0d-568ecdf064e1",
+      "35e94fd0-6f34-4a32-8817-dfb0904f0173",
+      "b2decb13-9755-4bdb-9faf-0faa8f96242f",
+      "da1e2519-1878-4e6a-b2f6-bd2ba1141c5e",
+      "693cf901-4d7c-4c9f-b824-8098c455b7de",
+      "51ac7e7e-b441-4a79-afd9-95a1c091c38f"
+    ],
+    "rq_delivered": true,
+    "rq_status": "COMPLETED",
+    "steps_completed": 7,
+    "total_steps": 7,
+    "execution_time_ms": 24515.739466995,
+    "total_passed": true,
+    "error": null
+  }
+]

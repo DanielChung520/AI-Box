@@ -1,0 +1,46 @@
+# ========================================
+# Workflow: exception_handling
+# ========================================
+
+name: "exception_handling"
+description: "處理缺料、損耗、退貨等異常"
+version: "1.0.0"
+
+triggers:
+  - "異常處理"
+  - "異常"
+  - "缺料"
+  - "異常事件發生時"
+
+workflow:
+  steps:
+    - step_id: 1
+      action_type: "data_query"
+      description: "向 Data-Agent 查詢：『請提供 ERP 中涉及異常事件的物料資料，包括..."
+      instruction: |
+        向 Data-Agent 查詢：『請提供 ERP 中涉及異常事件的物料資料，包括庫存、批次號及出入庫歷史，JSON 格式』
+    - step_id: 2
+      action_type: "data_cleaning"
+      description: "資料完整性檢查：確認資料完整且有效，缺失則重查"
+      instruction: |
+        資料完整性檢查：確認資料完整且有效，缺失則重查
+    - step_id: 3
+      action_type: "computation"
+      description: "分析異常原因與影響"
+      instruction: |
+        分析異常原因與影響
+    - step_id: 4
+      action_type: "data_query"
+      description: "更新庫存紀錄（報廢、退回、調整）"
+      instruction: |
+        更新庫存紀錄（報廢、退回、調整）
+    - step_id: 5
+      action_type: "computation"
+      description: "通知相關部門並生成異常處理報告"
+      instruction: |
+        通知相關部門並生成異常處理報告
+    - step_id: 6
+      action_type: "data_query"
+      description: "建立防範措施或調整策略"
+      instruction: |
+        建立防範措施或調整策略

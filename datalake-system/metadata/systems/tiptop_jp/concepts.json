@@ -1,0 +1,237 @@
+{
+  "version": "1.0",
+  "language": "ja",
+  "domain": "jp_tiptop_erp",
+  "concepts": {
+    "ENT": {
+      "description": "企業編號",
+      "type": "DIMENSION"
+    },
+    "SITE": {
+      "description": "營運據點",
+      "type": "DIMENSION"
+    },
+    "ITEM_NO": {
+      "description": "料件編號",
+      "type": "DIMENSION",
+      "pattern": "^[A-Za-z0-9-]+$"
+    },
+    "WAREHOUSE_NO": {
+      "description": "倉庫編號",
+      "type": "DIMENSION"
+    },
+    "LOCATION_NO": {
+      "description": "儲位編號",
+      "type": "DIMENSION"
+    },
+    "UNIT": {
+      "description": "單位",
+      "type": "DIMENSION"
+    },
+    "EXISTING_STOCKS": {
+      "description": "現有庫存",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "SCRAP_QTY": {
+      "description": "報廢數量",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "SO_ORDER": {
+      "description": "訂單編號",
+      "type": "DIMENSION"
+    },
+    "SO_LINE": {
+      "description": "訂單項次",
+      "type": "DIMENSION"
+    },
+    "CUSTOMER_NO": {
+      "description": "客戶編號",
+      "type": "DIMENSION"
+    },
+    "MO_DOC_NO": {
+      "description": "工單編號",
+      "type": "DIMENSION"
+    },
+    "MO_DOC_SEQ": {
+      "description": "工單項次",
+      "type": "DIMENSION"
+    },
+    "RUN_CARD_NO": {
+      "description": "RUN CARD 編號",
+      "type": "DIMENSION"
+    },
+    "PRODUCTION_QTY": {
+      "description": "生產數量",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "COMPLETION_QTY": {
+      "description": "完工數量",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "LN": {
+      "description": "項次",
+      "type": "DIMENSION"
+    },
+    "CURRENT_OPERATION": {
+      "description": "目前工序",
+      "type": "DIMENSION"
+    },
+    "OPERATION_SEQ": {
+      "description": "工序序號",
+      "type": "DIMENSION"
+    },
+    "WORKSTATION": {
+      "description": "工作站",
+      "type": "DIMENSION"
+    },
+    "STANDARD_OUTPUT": {
+      "description": "標準產出",
+      "type": "METRIC"
+    },
+    "GOOD_ITEMS_IN": {
+      "description": "良品流入",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "GOOD_ITEMS_OUT": {
+      "description": "良品流出",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "REWORK_IN": {
+      "description": "重工流入",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "REWORK_OUT": {
+      "description": "重工流出",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "WIP_QTY": {
+      "description": "在製品數量",
+      "type": "METRIC"
+    },
+    "SCRAP_IN_STATION": {
+      "description": "站點報廢",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "PENDING_PQC_QTY": {
+      "description": "待PQC數量",
+      "type": "METRIC"
+    },
+    "OUTSOURCED_QTY": {
+      "description": "外包加工數量",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "OUTSOURCED_FINISH_QTY": {
+      "description": "外包完工數量",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "DOC_NO": {
+      "description": "單據編號",
+      "type": "DIMENSION"
+    },
+    "DOC_DATE": {
+      "description": "單據日期",
+      "type": "DIMENSION"
+    },
+    "STATUS": {
+      "description": "狀態",
+      "type": "ENUM"
+    },
+    "SALES_PERSON": {
+      "description": "業務人員",
+      "type": "DIMENSION"
+    },
+    "SALES_DEPT": {
+      "description": "業務部門",
+      "type": "DIMENSION"
+    },
+    "EXPECTED_DATE": {
+      "description": "預計日期",
+      "type": "DIMENSION"
+    },
+    "SALES_CATEGORY": {
+      "description": "銷售類別",
+      "type": "DIMENSION"
+    },
+    "SEQ": {
+      "description": "項次",
+      "type": "DIMENSION"
+    },
+    "CUSTOMER_PO_NO": {
+      "description": "客戶PO編號",
+      "type": "DIMENSION"
+    },
+    "REQUEST_QTY": {
+      "description": "請算出貨數量",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "ACTUAL_QTY": {
+      "description": "實際出貨數量",
+      "type": "METRIC",
+      "aggregation": "SUM"
+    },
+    "UNIT_PRICE": {
+      "description": "單價",
+      "type": "METRIC"
+    },
+    "APPLICANT": {
+      "description": "申請人",
+      "type": "DIMENSION"
+    },
+    "DEPT": {
+      "description": "部門",
+      "type": "DIMENSION"
+    },
+    "VALID_DATE": {
+      "description": "有效日期",
+      "type": "DIMENSION"
+    },
+    "ORDER_LINE_SN": {
+      "description": "訂單批次序號",
+      "type": "DIMENSION"
+    },
+    "ORDER_BATCH_SEQ": {
+      "description": "訂單批次序號",
+      "type": "DIMENSION"
+    },
+    "TIME_RANGE": {
+      "description": "時間範圍",
+      "type": "RANGE"
+    },
+    "AGGREGATION": {
+      "description": "集計方法",
+      "type": "ENUM",
+      "values": {
+        "SUM": {
+          "labels": {
+            "ja": ["合計", "総額"],
+            "en": ["sum", "total"]
+          }
+        },
+        "AVG": {
+          "labels": {
+            "ja": ["平均"],
+            "en": ["average"]
+          }
+        },
+        "COUNT": {
+          "labels": {
+            "ja": ["件数", "件数"],
+            "en": ["count"]
+          }
+        }
+      }
+    }
+  }
+}

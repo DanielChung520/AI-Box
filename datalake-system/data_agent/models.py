@@ -74,6 +74,13 @@ class DataAgentRequest(BaseModel):
     tenant_id: Optional[str] = Field(None, description="租戶 ID（可選）")
     timeout: Optional[int] = Field(30, description="查詢超時時間（秒，可選）")
     max_rows: Optional[int] = Field(1000, description="最大返回行數（可選）")
+    # 分頁參數
+    pagination: Optional[Dict[str, int]] = Field(
+        None, description="分頁參數（可選）{page: 頁碼, page_size: 每頁筆數}"
+    )
+    options: Optional[Dict[str, Any]] = Field(
+        None, description="選項（可選）{return_total: 是否返回總筆數}"
+    )
 
 
 class DataAgentResponse(BaseModel):
