@@ -24,6 +24,7 @@ from . import (
     health,
     kg_builder,
     kg_query,
+    # knowledge_ontology,  # 註釋掉：檔案位置錯誤導致循環引用
     llm,
     mcp,
     ner,
@@ -81,4 +82,5 @@ __all__ = [
     "service_monitor",
     "user_account",
     "user_sessions",
+    # "knowledge_ontology",  # 註釋掉：檔案位置錯誤導致循環引用
 ]
