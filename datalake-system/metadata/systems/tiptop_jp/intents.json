@@ -29,6 +29,23 @@
         "require_at_least_one_filter": false
       }
     },
+    "QUERY_WORK_ORDER_COUNT": {
+      "description": "工單數量統計",
+      "input": {
+        "filters": [
+          "TIME_RANGE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "WORK_ORDER_COUNT"
+        ],
+        "dimensions": []
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      }
+    },
     "QUERY_INVENTORY_BY_WAREHOUSE": {
       "description": "倉庫別在庫集計",
       "input": {
@@ -49,12 +66,11 @@
       }
     },
     "QUERY_WORK_ORDER": {
-      "description": "工單照会",
+      "description": "工單照会（使用 SFCA_T 單表，客戶/物料資訊參考寬表 mart_work_order_wide）",
       "input": {
         "filters": [
           "MO_DOC_NO",
           "ITEM_NO",
-          "CUSTOMER_NO",
           "STATUS",
           "TIME_RANGE"
         ]
@@ -62,18 +78,17 @@
       "output": {
         "metrics": [
           "PRODUCTION_QTY",
-          "COMPLETION_QTY",
-          "SCRAP_QTY"
+          "COMPLETION_QTY"
         ],
         "dimensions": [
           "MO_DOC_NO",
           "ITEM_NO",
-          "CUSTOMER_NO",
           "STATUS"
         ]
       },
       "constraints": {
-        "require_at_least_one_filter": false
+        "require_at_least_one_filter": false,
+        "note": "SCRAP_QTY 在 SFAA_T，如需請使用 mart_work_order_wide"
       }
     },
     "QUERY_MANUFACTURING_PROGRESS": {

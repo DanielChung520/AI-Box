@@ -647,7 +647,8 @@ function getAuthToken(): string | null {
 export async function uploadFiles(
   files: File[],
   onProgress?: (progress: number) => void,
-  taskId?: string
+  taskId?: string,
+  kbFolderId?: string
 ): Promise<FileUploadResponse> {
   if (files.length === 0) {
     throw new Error('請選擇至少一個文件');
@@ -660,8 +661,13 @@ export async function uploadFiles(
 
   // 修改時間：2025-01-27 - 移除 temp-workspace，task_id 必須提供
   // 如果未提供 task_id，後端會自動創建新任務
+  // 修改時間：2026-02-13 - 添加 kb_folder_id 支持知識庫文件上傳
   if (taskId) {
     formData.append('task_id', taskId);
+  }
+  
+  if (kbFolderId) {
+    formData.append('kb_folder_id', kbFolderId);
   }
 
   const url = `${API_URL}/files/v2/upload`;

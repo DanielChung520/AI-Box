@@ -94,8 +94,13 @@ class MasterDataSync:
             metadata_path: Master Data 檔案路徑
             embedding_model: 向量化模型（需有 encode 方法）
         """
+        # 更新 metadata_path 以適應新的目錄結構
+        # script_dir = data_agent/RAG/sync/
+        # 需要找到 datalake-system/metadata/
         if metadata_path is None:
-            metadata_path = Path(__file__).parent.parent / "metadata"
+            script_dir = Path(__file__).resolve().parent
+            datalake_root = script_dir.parent.parent.parent
+            metadata_path = datalake_root / "metadata"
 
         self.metadata_path = Path(metadata_path)
         self.embedding_model = embedding_model

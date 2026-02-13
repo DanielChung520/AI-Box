@@ -1,8 +1,11 @@
 /**
- * 代碼功能說明: Markdown 文件預覽組件 - 支持流式編輯實時預覽
- * 創建日期: 2025-12-06
+ * 代碼功能說明: Markdown 文件預覽組件（已棄用，請使用 FileViewer）
+ * 創建日期: 2025-01-27
  * 創建人: Daniel Chung
- * 最後修改日期: 2026-01-31 19:45 UTC+8
+ * 最後修改日期: 2026-02-13
+ * 
+ * @deprecated 此組件已棄用，請使用 FileViewer 組件
+ *              FileViewer 會自動根據文件類型選擇對應的預覽器
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -321,7 +324,7 @@ interface MarkdownViewerProps {
 
 type PreviewMode = 'text' | 'vector' | 'graph';
 
-export default function MarkdownViewer({ content, fileName, fileId, patches = [], showHeader = true }: MarkdownViewerProps) {
+export default function MarkdownViewer({ content: contentProp, fileName, fileId, patches = [], showHeader = true }: MarkdownViewerProps) {
   const { t } = useLanguage();
   const [mode, setMode] = useState<PreviewMode>('text'); // 默認為文件模式
   const [markdownParts, setMarkdownParts] = useState<Array<{type: 'text' | 'mermaid', content: string}>>([]);
@@ -339,6 +342,34 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
   const [regenerationStartTime, setRegenerationStartTime] = useState<number | null>(null);
   const [isApplyingPatches, setIsApplyingPatches] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  // 修改時間：2026-02-13 - 當 content 為空但有 fileId 時，從 API 加載內容
+  const [loadedContent, setLoadedContent] = useState<string>('');
+  const content = contentProp || loadedContent;
+  
+  // 加載文件內容
+  useEffect(() => {
+    if (!contentProp && fileId && !loadedContent) {
+      const loadContent = async () => {
+        setLoading(true);
+        try {
+          // 修改時間：2026-02-13 - 使用 /preview API 獲取文件內容
+          const response = await fetch(`/api/v1/files/${fileId}/preview`);
+          if (response.ok) {
+            const data = await response.json();
+            const text = data.data?.content || '';
+            setLoadedContent(text);
+            setTextAvailable(!!text);
+          }
+        } catch (err) {
+          console.warn('[MarkdownViewer] 加載文件內容失敗:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadContent();
+    }
+  }, [fileId, contentProp]);
 
   /**
    * 應用 Search-and-Replace patches 到內容
@@ -457,9 +488,10 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
       }, 100);
       return () => clearTimeout(timer);
     } else {
-      setTextAvailable(!!content);
+      // 修改時間：2026-02-13 - 支持從 API 加載的內容
+      setTextAvailable(!!content || !!loadedContent);
     }
-  }, [fileId, content]);
+  }, [fileId, content, loadedContent]);
 
   // 清理刷新定時器
   useEffect(() => {
@@ -635,8 +667,8 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
   const checkDataAvailability = async () => {
     if (!fileId) return;
 
-    // 檢查文本內容
-    setTextAvailable(!!content);
+    // 檢查文本內容（支持從 API 加載的內容）
+    setTextAvailable(!!content || !!loadedContent);
 
     // 修改時間：2025-12-14 14:20:04 (UTC+8) - 草稿檔跳過向量和圖譜資料檢查（尚未提交後端）
     if (isDraftFile(fileId)) {
@@ -1060,7 +1092,12 @@ export default function MarkdownViewer({ content, fileName, fileId, patches = []
           <>
             {mode === 'text' && (
               <>
-                {!textAvailable ? (
+                {loading ? (
+                  <div className="text-center py-8 text-tertiary theme-transition">
+                    <Loader2 className="w-16 h-16 mx-auto mb-4 animate-spin" />
+                    <p className="text-lg text-primary theme-transition">正在加載文件內容...</p>
+                  </div>
+                ) : !textAvailable ? (
                   <div className="text-center py-8 text-tertiary theme-transition">
                     <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p className="text-lg text-primary theme-transition">未成功生成</p>

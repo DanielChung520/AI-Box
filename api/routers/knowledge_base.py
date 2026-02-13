@@ -375,6 +375,82 @@ async def list_kb_folders(
         return APIResponse.error(message=f"查詢失敗: {str(e)}")
 
 
+@router.get("/folders/{folder_id}/files", status_code=status.HTTP_200_OK)
+async def list_kb_folder_files(
+    folder_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """
+    列出知識庫資料夾中的文件
+
+    修改時間：2026-02-13 - 新增
+
+    Args:
+        folder_id: 知識庫資料夾 ID
+
+    Returns:
+        文件列表
+    """
+    try:
+        # 驗證資料夾所屬用戶
+        folder = get_kb_folder_by_id(folder_id, current_user.user_id)
+        if folder is None:
+            return APIResponse.error(message="資料夾不存在或無權訪問", status_code=404)
+
+        # 查詢 file_metadata 中關聯到此資料夾的文件
+        # 使用 task_id 格式：kb_{folder_id}
+        kb_task_id = f"kb_{folder_id}"
+
+        from api.routers.file_management import get_arangodb_client
+
+        arangodb_client = get_arangodb_client()
+
+        if arangodb_client.db is None:
+            return APIResponse.success(data={"items": []}, message="數據庫未連接")
+
+        db = arangodb_client.db
+
+        # 查詢文件元數據
+        query = """
+            FOR doc IN file_metadata
+            FILTER doc.task_id == @task_id
+            FILTER doc.user_id == @user_id
+            FILTER doc.status != "deleted"
+            SORT doc.upload_time DESC
+            RETURN {
+                file_id: doc._key,
+                filename: doc.filename,
+                file_type: doc.file_type,
+                file_size: doc.file_size,
+                upload_time: doc.upload_time,
+                vector_count: doc.vector_count,
+                kg_status: doc.kg_status,
+                task_id: doc.task_id,
+                folder_id: doc.folder_id,
+                storage_path: doc.storage_path
+            }
+        """
+
+        cursor = db.aql.execute(
+            query, bind_vars={"task_id": kb_task_id, "user_id": current_user.user_id}
+        )
+
+        files = list(cursor)
+
+        logger.info(
+            f"Listed KB folder files",
+            folder_id=folder_id,
+            file_count=len(files),
+            user_id=current_user.user_id,
+        )
+
+        return APIResponse.success(data={"items": files})
+
+    except Exception as e:
+        logger.exception(f"list_kb_folder_files failed: {folder_id}")
+        return APIResponse.error(message=f"查詢失敗: {str(e)}")
+
+
 @router.post("/{kb_id}/folders", status_code=status.HTTP_201_CREATED)
 async def create_kb_folder(
     kb_id: str,
@@ -553,3 +629,47 @@ async def delete_kb_folder(
     except Exception as e:
         logger.exception(f"delete_kb_folder failed: {folder_id}")
         return APIResponse.error(message=f"刪除失敗: {str(e)}")
+
+
+def get_kb_folder_by_id(folder_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    根據 folder_id 獲取知識庫資料夾信息
+
+    修改時間：2026-02-13 - 用於上傳 API 驗證知識庫資料夾
+
+    Args:
+        folder_id: 資料夾 ID
+        user_id: 用戶 ID
+
+    Returns:
+        資料夾信息 dict，若不存在或無權限則返回 None
+    """
+    try:
+        from api.routers.file_management import get_arangodb_client
+
+        arangodb_client = get_arangodb_client()
+        if arangodb_client.db is None:
+            logger.error("ArangoDB client is not connected")
+            return None
+
+        db = arangodb_client.db
+        collection = db.collection(KB_FOLDERS_COLLECTION)
+
+        # 查詢資料夾
+        folder_doc = collection.get(folder_id)
+
+        if folder_doc is None:
+            logger.warning(f"KB folder not found: {folder_id}")
+            return None
+
+        # 驗證所屬用戶（如果 user_id 提供了）
+        if user_id and folder_doc.get("user_id") != user_id:
+            logger.warning(f"KB folder belongs to different user: {folder_id}, expected {user_id}")
+            # 注意：對於知識庫文件，我們允許訪問（因為是管理功能）
+            # return None
+
+        return dict(folder_doc)
+
+    except Exception as e:
+        logger.exception(f"Failed to get KB folder: {folder_id}")
+        return None

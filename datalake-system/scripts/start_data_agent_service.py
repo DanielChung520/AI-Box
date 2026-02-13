@@ -239,13 +239,36 @@ try:
             factory = ExecutorFactory(config=config)
             executor = factory.get_executor()
 
-            # 添加超時控制
+            # 添加超時控制（複雜查詢需要更長的時間）
             timeout = (
                 request.task_data.options.timeout
                 if hasattr(request.task_data, "options") and request.task_data.options
-                else 30
+                else 60  # 增加到60秒
             )
-            exec_result = executor.execute(sql, timeout=timeout)
+
+            try:
+                exec_result = executor.execute(sql, timeout=timeout)
+            except Exception as exec_error:
+                # 捕獲執行錯誤，返回錯誤訊息而不是崩潰
+                error_msg = str(exec_error)
+                if "memory" in error_msg.lower() or "out of memory" in error_msg.lower():
+                    error_msg = f"Query requires too much memory. Please simplify the query or add more specific filters. Original error: {error_msg}"
+                return ExecuteResponse(
+                    status="error",
+                    task_id=request.task_id,
+                    error_code="QUERY_TOO_COMPLEX",
+                    message=error_msg,
+                )
+            finally:
+                # 確保連線被關閉
+                try:
+                    executor.close()
+                except Exception:
+                    pass
+                # 強制垃圾回收
+                import gc
+
+                gc.collect()
 
             query_result = QueryResult(
                 sql=sql,
@@ -262,10 +285,29 @@ try:
 
         except Exception as e:
             import traceback
+            import gc
+            import sys
+
+            # 強制垃圾回收，釋放記憶體
+            gc.collect()
 
             traceback.print_exc()
+
+            # 檢查記憶體使用量
+            try:
+                import psutil
+
+                process = psutil.Process()
+                mem_info = process.memory_info()
+                logger.warning(f"Memory usage: {mem_info.rss / 1024 / 1024:.1f} MB")
+            except ImportError:
+                pass
+
             return ExecuteResponse(
-                status="error", task_id=request.task_id, error_code="INTERNAL_ERROR", message=str(e)
+                status="error",
+                task_id=request.task_id,
+                error_code="INTERNAL_ERROR",
+                message=f"{str(e)} (Memory may be exhausted)",
             )
 
     @app.get("/jp/health", response_model=HealthResponse)

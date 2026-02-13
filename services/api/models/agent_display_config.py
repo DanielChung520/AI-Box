@@ -49,8 +49,12 @@ class AgentConfig(BaseModel):
         pattern="^(registering|online|maintenance|deprecated)$",
         description="狀態：registering/online/maintenance/deprecated",
     )
-    usage_count: Optional[int] = Field(default=None, ge=0, description="使用次數（可選，可從實際使用統計獲取）")
-    agent_id: Optional[str] = Field(default=None, description="實際的 Agent ID（用於關聯註冊的 Agent）")
+    usage_count: Optional[int] = Field(
+        default=None, ge=0, description="使用次數（可選，可從實際使用統計獲取）"
+    )
+    agent_id: Optional[str] = Field(
+        default=None, description="實際的 Agent ID（用於關聯註冊的 Agent）"
+    )
     metadata: Optional[Dict[str, Any]] = Field(default=None, description="額外元數據（可選）")
 
     # ============================================
@@ -94,6 +98,10 @@ class AgentConfig(BaseModel):
         default=None,
         description="工具調用列表（預留，下個迭代使用）",
     )
+    knowledge_bases: Optional[list[str]] = Field(
+        default=None,
+        description="關聯的知識庫 ID 列表",
+    )
 
 
 class AgentDisplayConfigModel(BaseModel):
@@ -103,7 +111,9 @@ class AgentDisplayConfigModel(BaseModel):
 
     key: str = Field(alias="_key", description="文檔唯一標識")
     tenant_id: Optional[str] = Field(default=None, description="租戶 ID（null 表示系統級）")
-    config_type: str = Field(pattern="^(category|agent)$", description="配置類型：category 或 agent")
+    config_type: str = Field(
+        pattern="^(category|agent)$", description="配置類型：category 或 agent"
+    )
     category_id: Optional[str] = Field(default=None, description="分類 ID（category 類型時使用）")
     agent_id: Optional[str] = Field(default=None, description="代理 ID（agent 類型時使用）")
     category_config: Optional[CategoryConfig] = Field(

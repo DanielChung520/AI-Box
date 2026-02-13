@@ -2227,14 +2227,19 @@ async def upload_files(
     target_folder_id: Optional[str] = Form(
         None, description="目標資料夾ID（可選，未提供則放任務工作區）"
     ),
+    kb_folder_id: Optional[str] = Form(
+        None, description="知識庫資料夾ID（可選，用於知識庫文件上傳）"
+    ),
     current_user: User = Depends(require_consent(ConsentType.FILE_UPLOAD)),
 ) -> JSONResponse:
     # 修改時間：2025-01-27 - 添加日誌記錄以便調試 JWT 認證問題
+    # 修改時間：2026-02-13 - 添加 kb_folder_id 支持知識庫文件上傳
     logger.debug(
         "File upload request received",
         user_id=current_user.user_id,
         username=current_user.username,
         task_id=task_id,
+        kb_folder_id=kb_folder_id,
         file_count=len(files) if files else 0,
         request_path=request.url.path,
     )
@@ -2277,6 +2282,7 @@ async def upload_files(
     final_task_id: Optional[str] = None
     task_title: Optional[str] = None
     final_folder_id: Optional[str] = target_folder_id
+    skip_task_creation = False  # 是否跳過任務創建
 
     if task_id:
         # 提供了 task_id，檢查任務是否存在且屬於當前用戶
@@ -2353,6 +2359,39 @@ async def upload_files(
             task_id=final_task_id,
             required_permission=Permission.FILE_UPLOAD.value,
         )
+    elif kb_folder_id:
+        # 修改時間：2026-02-13 - 知識庫文件上傳邏輯
+        # 知識庫文件不關聯到任務，而是關聯到知識庫資料夾
+        # 但為了保持 S3 存儲和向量處理的統一，我們仍然需要一個 task_id
+        # 這裡我們使用 kb_folder_id 作為標識，創建一個虛擬任務
+
+        # 驗證 KB 資料夾是否存在且屬於當前用戶
+        from api.routers.knowledge_base import get_kb_folder_by_id
+
+        kb_folder = get_kb_folder_by_id(kb_folder_id, current_user.user_id)
+
+        if kb_folder is None:
+            return APIResponse.error(
+                message="知識庫資料夾不存在或無權訪問",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        # 使用 KB 資料夾 ID 作為標識，創建虛擬任務 ID
+        # 格式：kb_{kb_folder_id}
+        final_task_id = f"kb_{kb_folder_id}"
+        final_folder_id = kb_folder_id  # 關聯到 KB 資料夾
+
+        logger.info(
+            "知識庫文件上傳，使用 KB 資料夾",
+            kb_folder_id=kb_folder_id,
+            task_id=final_task_id,
+            user_id=current_user.user_id,
+        )
+
+        # KB 文件不需要檢查任務權限，也不需要創建任務工作區
+        # 跳過任務創建和工作區創建
+        # 直接跳到文件保存邏輯
+        skip_task_creation = True
     else:
         # 未提供 task_id，必須創建新任務
         # 生成新的 task_id
@@ -2408,12 +2447,14 @@ async def upload_files(
     validator = get_validator()
     storage = get_storage()
 
-    # 確保任務工作區存在
-    workspace_service = get_task_workspace_service()
-    workspace_service.create_workspace(task_id=final_task_id, user_id=current_user.user_id)
+    # 確保任務工作區存在（知識庫文件跳過）
+    if not skip_task_creation:
+        workspace_service = get_task_workspace_service()
+        workspace_service.create_workspace(task_id=final_task_id, user_id=current_user.user_id)
 
     # 驗證目標資料夾；若未提供，預設為該任務的工作區
-    if final_folder_id:
+    # 知識庫文件跳過驗證（因爲是 KB 資料夾，不是任務資料夾）
+    if final_folder_id and not skip_task_creation:
         from api.routers.file_management import get_arangodb_client
 
         arangodb_client = get_arangodb_client()
@@ -2430,7 +2471,7 @@ async def upload_files(
                 message="目標資料夾不存在或不屬於當前用戶/任務",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
-    else:
+    elif not final_folder_id:
         final_folder_id = f"{final_task_id}_workspace"
 
     results = []

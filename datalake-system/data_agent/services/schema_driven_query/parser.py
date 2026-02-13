@@ -109,42 +109,30 @@ class NLQParser:
         self._intents = intents
 
     def _build_prompt(self, nlq: str) -> str:
-        """建構 Prompt"""
+        """建構 Prompt（簡化版）"""
         if not self._intents:
             raise ValueError("Intents not loaded")
 
-        intent_descriptions = []
+        intents_list = []
         for name, intent in self._intents.intents.items():
-            desc = f"""
-### {name}
-- 描述: {intent.description}
-- 可用過濾器: {", ".join(intent.input.filters) or "無"}
-- 必需過濾器: {", ".join(intent.input.required_filters) or "無"}
-- 可用指標: {", ".join(intent.output.metrics) or "無"}
-- 可用維度: {", ".join(intent.output.dimensions) or "無"}
-"""
-            intent_descriptions.append(desc)
+            filters = ", ".join(intent.input.filters) if intent.input.filters else "無"
+            metrics = ", ".join(intent.output.metrics) if intent.output.metrics else "無"
+            dims = ", ".join(intent.output.dimensions) if intent.output.dimensions else "無"
+            intents_list.append(
+                f"{name}: {intent.description} | filters:{filters} | metrics:{metrics} | dims:{dims}"
+            )
 
-        return f"""你是一個 SQL 查詢意圖解析器。
+        intents_str = " | ".join(intents_list)
 
-## 可用意圖
-{"".join(intent_descriptions)}
+        return f"""分析查詢意圖。
 
-## 用戶查詢
-{nlq}
+可用意圖: {intents_str}
 
-## 輸出格式
-返回 JSON:
-{{
-  "intent": "意圖名稱",
-  "confidence": 0.0-1.0,
-  "params": {{"PARAM_NAME": "參數值"}}
-}}
+規則: 庫存用INAG_T, 工單用SFCA_T, 出貨用XMDG_T, 製造用SFCB_T, 單價用XMDU_T
 
-## 規則
-1. 只選擇可用意圖之一
-2. 參數名稱必須對應 filters
-3. 無法識別時 confidence 設為 0.0"""
+用戶查詢: {nlq}
+
+返回JSON: {{"intent":"意圖名","confidence":0.0-1.0,"params":{{"PARAM":"值"}}}}"""
 
 
 class LLMNLQParser(NLQParser):
@@ -213,7 +201,7 @@ class LLMNLQParser(NLQParser):
                         "model": self.config.model,
                         "prompt": prompt,
                         "stream": False,
-                        "options": {"temperature": 0.1, "num_predict": 500},
+                        "options": {"temperature": 0.05, "num_predict": 150},
                     },
                 )
                 response.raise_for_status()
@@ -272,8 +260,19 @@ class SimpleNLQParser:
     INTENT_PATTERNS = {
         "QUERY_INVENTORY": ["庫存", "在庫", "手持", "stock", "inventory", "料號"],
         "QUERY_INVENTORY_BY_WAREHOUSE": ["倉庫別在庫", "倉庫別庫存", "倉庫的庫存", "每個倉庫"],
+        "QUERY_WORK_ORDER_COUNT": [
+            "工單總數",
+            "工單數量",
+            "工單有多少",
+            "多少工單",
+            "工單 Count",
+            "工單 count",
+            "WO總數",
+            "WO數量",
+        ],
         "QUERY_WORK_ORDER": ["工單", "WO", "work order", "工別", "製造工單"],
-        "QUERY_MANUFACTURING_PROGRESS": ["製造進捗", "工序進捗", "生產進度", "進度"],
+        "QUERY_WORKSTATION_OUTPUT": ["工作站產出", "機台產出", "產出"],
+        "QUERY_MANUFACTURING_PROGRESS": ["製造進捗", "工序進捗", "生產進度", "進步"],
         "QUERY_WORKSTATION_OUTPUT": ["工作站產出", "機台產出", "產出"],
         "QUERY_QUALITY": ["品質", "quality", "不良", "pqc", "報廢", "重工"],
         "QUERY_OUTSOURCING": ["外包", "委外", "outsourcing"],

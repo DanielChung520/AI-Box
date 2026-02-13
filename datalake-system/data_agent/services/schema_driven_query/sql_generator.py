@@ -123,11 +123,16 @@ class SQLGenerator:
             if value is None:
                 op_sql = "IS NULL" if operator == "=" else "IS NOT NULL"
                 conditions_sql.append(f"{column} {op_sql}")
-            # 處理 BETWEEN
+            # 處理 BETWEEN（日期範圍）- 使用字串比較
             elif isinstance(value, dict) and value.get("type") == "BETWEEN":
-                conditions_sql.append(
-                    f"{column} BETWEEN '{value.get('start')}' AND '{value.get('end')}'"
-                )
+                # 提取日期字串（去掉引號）
+                start_val = value.get("start", "").strip("'\"")
+                end_val = value.get("end", "").strip("'\"")
+                # 將日期轉換為 YYYYMMDD 格式進行字串比較
+                start_str = start_val.replace("-", "").replace("/", "")
+                end_str = end_val.replace("-", "").replace("/", "")
+                # 使用字串 BETWEEN 進行比較
+                conditions_sql.append(f"{column} BETWEEN '{start_str}' AND '{end_str}'")
             # 處理 IN
             elif isinstance(value, list):
                 values_str = ", ".join([self._quote_value(v) for v in value])
@@ -156,39 +161,52 @@ class SQLGenerator:
 class DuckDBSQLGenerator(SQLGenerator):
     """DuckDB SQL 生成器
 
-    支援 S3 Parquet 路徑映射
+    支援動態綁定（從 bindings.json 取得 S3 路徑）
     """
 
-    TABLE_S3_PATH = {
-        "INAG_T": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet",
-        "SFAA_T": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet",
-        "SFCA_T": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet",
-        "SFCB_T": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet",
-        "XMDG_T": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet",
-        "XMDH_T": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDH_T/year=*/month=*/data.parquet",
-        "XMDT_T": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet",
-        "XMDU_T": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet",
-    }
-
-    def __init__(self, bucket: str = "tiptop-raw", dialect: Optional[str] = None):
+    def __init__(
+        self,
+        bucket: str = "tiptop-raw",
+        dialect: Optional[str] = None,
+        bindings: Optional[Dict[str, Any]] = None,
+    ):
         super().__init__(dialect=self.DIALECT_DUCKDB)
         self.bucket = bucket
+        self._bindings = bindings or {}
 
-    def _map_table_to_s3(self, table_name: str) -> str:
-        """將 Table 名稱映射為 S3 Parquet 路徑"""
-        if table_name in self.TABLE_S3_PATH:
-            path = self.TABLE_S3_PATH[table_name]
-            return path.replace("s3://tiptop-raw", f"s3://{self.bucket}")
-        return table_name
+    def _get_table_path(self, table_name: str) -> Optional[str]:
+        """從 bindings 動態取得表格路徑"""
+        table_upper = table_name.upper()
+
+        if self._bindings and table_upper in self._bindings:
+            binding = self._bindings[table_upper].get("DUCKDB", {})
+            s3_path = binding.get("s3_path")
+            if s3_path:
+                return s3_path
+        return None
+
+    def _is_mart_table(self, table_name: str) -> bool:
+        """判斷是否為 mart 寬表"""
+        return table_name.lower().startswith("mart_")
 
     def _build_from_clause(self, from_tables: List[str]) -> str:
-        """建構 FROM 子句 (支援 S3 Path)"""
+        """建構 FROM 子句 (支援 S3 Path / DuckDB 寬表)"""
         mapped_tables = []
         for table in from_tables:
-            if table.upper() in self.TABLE_S3_PATH:
-                s3_path = self._map_table_to_s3(table.upper())
-                mapped_tables.append(f"read_parquet('{s3_path}')")
+            table_upper = table.upper()
+
+            # 優先從 bindings 取得路徑
+            s3_path = self._get_table_path(table_upper)
+
+            if s3_path:
+                # 判斷是否為 DuckDB 寬表
+                if self._is_mart_table(table):
+                    mapped_tables.append(f"{table}")
+                else:
+                    path = s3_path.replace("s3://tiptop-raw", f"s3://{self.bucket}")
+                    mapped_tables.append(f"read_parquet('{path}')")
             else:
+                # Fallback: 使用表名作為 DuckDB 表格
                 mapped_tables.append(table)
         return ", ".join(mapped_tables)
 

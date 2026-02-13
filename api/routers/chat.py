@@ -84,9 +84,20 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
 
     # 問候語（最高優先級）
     greeting_keywords = [
-        "你好", "您好", "早安", "午安", "晚安", "早上好",
-        "hi", "hello", "嗨", "在嗎", "在不在",
-        "新年快樂", "聖誕快樂", "生日快樂",
+        "你好",
+        "您好",
+        "早安",
+        "午安",
+        "晚安",
+        "早上好",
+        "hi",
+        "hello",
+        "嗨",
+        "在嗎",
+        "在不在",
+        "新年快樂",
+        "聖誕快樂",
+        "生日快樂",
     ]
     if any(kw in text_lower for kw in greeting_keywords):
         # 檢查是否只是問候語（沒有其他業務內容）
@@ -95,8 +106,16 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
 
     # 感謝回覆
     thanks_keywords = [
-        "謝謝", "感謝", "多謝", "感恩", "thanks", "thank you",
-        "太棒了", "太好了", "很不錯", "好的謝謝",
+        "謝謝",
+        "感謝",
+        "多謝",
+        "感恩",
+        "thanks",
+        "thank you",
+        "太棒了",
+        "太好了",
+        "很不錯",
+        "好的謝謝",
     ]
     if any(kw in text_lower for kw in thanks_keywords):
         if len(text_clean) <= 30:
@@ -104,8 +123,17 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
 
     # 投訴/道歉處理
     complain_keywords = [
-        "太差", "不好", "不滿意", "爛透了", "很糟", "錯了",
-        "不對", "重新", "再來", "重做", "修正",
+        "太差",
+        "不好",
+        "不滿意",
+        "爛透了",
+        "很糟",
+        "錯了",
+        "不對",
+        "重新",
+        "再來",
+        "重做",
+        "修正",
     ]
     if any(kw in text_lower for kw in complain_keywords):
         if len(text_clean) <= 30:
@@ -117,8 +145,14 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
 
     # 取消任務
     cancel_keywords = [
-        "取消", "停止", "不要了", "終止", "結束",
-        "cancel", "stop", "abort",
+        "取消",
+        "停止",
+        "不要了",
+        "終止",
+        "結束",
+        "cancel",
+        "stop",
+        "abort",
     ]
     if any(kw in text_lower for kw in cancel_keywords):
         if len(text_clean) <= 20:
@@ -126,8 +160,17 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
 
     # 繼續執行
     continue_keywords = [
-        "繼續", "執行", "好的", "是的", "對", "開始",
-        "proceed", "continue", "go ahead", "yes", "ok",
+        "繼續",
+        "執行",
+        "好的",
+        "是的",
+        "對",
+        "開始",
+        "proceed",
+        "continue",
+        "go ahead",
+        "yes",
+        "ok",
     ]
     # 排除含有業務關鍵詞的情況
     business_keywords = ["庫存", "採購", "銷售", "分析", "查詢", "多少"]
@@ -137,32 +180,59 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
 
     # 重新處理
     modify_keywords = [
-        "重新", "再來一次", "改一下", "修改", "重做",
-        "redo", "retry", "again", "change",
+        "重新",
+        "再來一次",
+        "改一下",
+        "修改",
+        "重做",
+        "redo",
+        "retry",
+        "again",
+        "change",
     ]
     if any(kw in text_lower for kw in modify_keywords):
         return GAIIntentType.MODIFY
 
     # 顯示歷史
     history_keywords = [
-        "歷史", "之前", "之前說的", "之前的結果", "歷史記錄",
-        "history", "previous", "past",
+        "歷史",
+        "之前",
+        "之前說的",
+        "之前的結果",
+        "歷史記錄",
+        "history",
+        "previous",
+        "past",
     ]
     if any(kw in text_lower for kw in history_keywords):
         return GAIIntentType.HISTORY
 
     # 導出結果
     export_keywords = [
-        "導出", "匯出", "下載", "輸出", "存檔",
-        "export", "download", "output", "save",
+        "導出",
+        "匯出",
+        "下載",
+        "輸出",
+        "存檔",
+        "export",
+        "download",
+        "output",
+        "save",
     ]
     if any(kw in text_lower for kw in export_keywords):
         return GAIIntentType.EXPORT
 
     # 確認回覆
     confirm_keywords = [
-        "確認", "對嗎", "是嗎", "正確嗎", "就這樣",
-        "confirm", "correct", "right", "ok",
+        "確認",
+        "對嗎",
+        "是嗎",
+        "正確嗎",
+        "就這樣",
+        "confirm",
+        "correct",
+        "right",
+        "ok",
     ]
     if any(kw in text_lower for kw in confirm_keywords):
         if len(text_clean) <= 20:
@@ -170,8 +240,14 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
 
     # 反饋/建議
     feedback_keywords = [
-        "反饋", "回饋", "建議", "意見", "想法",
-        "feedback", "suggest", "opinion",
+        "反饋",
+        "回饋",
+        "建議",
+        "意見",
+        "想法",
+        "feedback",
+        "suggest",
+        "opinion",
     ]
     if any(kw in text_lower for kw in feedback_keywords):
         return GAIIntentType.FEEDBACK
@@ -179,9 +255,21 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
     # 澄清需求（指代詞）- 放在 BUSINESS 之前
     # 檢查常見的指代詞
     anaphora_keywords = [
-        "那個", "那個料", "它", "它的", "這個", "這個料",
-        "哪個", "哪個料", "誰", "什麼", "多少",
-        "之前說的", "剛才的", "上面的", "下麵的",
+        "那個",
+        "那個料",
+        "它",
+        "它的",
+        "這個",
+        "這個料",
+        "哪個",
+        "哪個料",
+        "誰",
+        "什麼",
+        "多少",
+        "之前說的",
+        "剛才的",
+        "上面的",
+        "下麵的",
     ]
 
     # 檢查是否包含指代詞
@@ -190,7 +278,7 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
     # 如果用戶輸入很短，且包含指代詞，需要澄清
     if len(text_clean) <= 30 and has_anaphora:
         # 檢查是否包含具體的料號編號（如 "10-0001"、"ABC-123"）
-        has_material_code = bool(re.search(r'[A-Z]{0,4}-?\d{3,8}', text))
+        has_material_code = bool(re.search(r"[A-Z]{0,4}-?\d{3,8}", text))
 
         # 如果沒有具體料號編號，視為 CLARIFICATION
         if not has_material_code:
@@ -312,6 +400,7 @@ def should_forward_to_bpa(
     # - 用戶選擇了 MM-Agent
     # - 或沒有選擇特定 Agent（預設轉發）
     return True
+
 
 from agents.task_analyzer.analyzer import TaskAnalyzer
 from agents.task_analyzer.classifier import TaskClassifier
@@ -875,6 +964,110 @@ def _format_agent_result_for_llm(agent_id: str, agent_result: Any) -> str:
 
     # 如果是字符串或其他類型
     return str(agent_result)
+
+
+def _is_knowledge_base_query(query: str) -> bool:
+    """
+    檢測用戶查詢是否與知識庫相關
+    """
+    kb_keywords = [
+        "知識庫",
+        "知識庫裡",
+        "知識庫中",
+        "知識庫有多少",
+        "文件數量",
+        "文件多少",
+        "有幾個文件",
+        "文件列表",
+        "上傳了",
+        "已上傳",
+        "已向量",
+        "向量化",
+        "知識庫文件",
+        "我的文件",
+        "文件統計",
+        "knowledge base",
+        "how many files",
+        "file count",
+        "uploaded files",
+        "vectorized files",
+    ]
+    query_lower = query.lower()
+    return any(keyword.lower() in query_lower for keyword in kb_keywords)
+
+
+async def _handle_knowledge_base_query(
+    query: str,
+    user_id: str,
+    selected_kb_ids: list[str],
+) -> str:
+    """
+    處理知識庫查詢（統計文件數量等）
+    """
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # 查詢選擇的知識庫的文件數量
+            total_files = 0
+            kb_details = []
+
+            for kb_id in selected_kb_ids:
+                try:
+                    kb_response = await client.get(
+                        f"http://localhost:8000/api/v1/knowledge-bases/{kb_id}/folders",
+                        params={"user_id": user_id},
+                    )
+                    if kb_response.status_code == 200:
+                        data = kb_response.json()
+                        folders = data.get("data", {}).get("items", [])
+                        for folder in folders:
+                            folder_id = folder.get("id")
+                            if folder_id:
+                                files_response = await client.get(
+                                    f"http://localhost:8000/api/v1/knowledge-bases/folders/{folder_id}/files",
+                                    params={"user_id": user_id},
+                                )
+                                if files_response.status_code == 200:
+                                    files_data = files_response.json()
+                                    files = files_data.get("data", {}).get("items", [])
+                                    vectorized_count = sum(
+                                        1
+                                        for f in files
+                                        if f.get("hasS3") and f.get("vectorCount", 0) > 0
+                                    )
+                                    total_files += len(files)
+                                    kb_name = folder.get("name", kb_id)
+                                    kb_details.append(
+                                        f"  - {kb_name}: {len(files)} 個文件 ({vectorized_count} 個已向量化)"
+                                    )
+                except Exception as e:
+                    logger.warning(f"[knowledge_base] 查詢知識庫 {kb_id} 失敗: {e}")
+
+            # 構建回覆
+            if total_files > 0:
+                response = f"""【知識庫統計】
+
+✅ 已找到 **{total_files} 個** 知識庫文件
+
+已向量的文件可以進行檢索和問答。
+
+詳情：
+{chr(10).join(kb_details)}
+
+如需查看特定文件，請使用「文件管理」功能。"""
+            else:
+                response = """【知識庫統計】
+
+⚠️ 知識庫中暫時沒有文件。
+
+請使用「上傳文件」功能將文件上傳到知識庫，上傳完成並向量化後即可進行檢索和問答。"""
+
+            return response
+
+    except Exception as e:
+        logger.error(f"[knowledge_base] 查詢失敗: {e}")
+        return "目前無法查詢知識庫統計信息，請稍後再試。"
 
 
 def get_moe_manager() -> LLMMoEManager:
@@ -1856,6 +2049,7 @@ async def _process_chat_request(
 
     # 添加 stderr 日誌
     import sys
+
     sys.stderr.write(
         f"\n[ROUTING] 📊 路由決策追蹤:\n"
         f"  - user_text: {last_user_text[:50]}...\n"
@@ -2017,7 +2211,9 @@ async def _process_chat_request(
                             result_data = mm_result["result"]
                             if isinstance(result_data, dict):
                                 # 檢查是否有嵌套的 result 欄位（MM-Agent 返回格式）
-                                if "result" in result_data and isinstance(result_data["result"], dict):
+                                if "result" in result_data and isinstance(
+                                    result_data["result"], dict
+                                ):
                                     inner_result = result_data["result"]
                                     # 優先使用 response 欄位
                                     if "response" in inner_result and inner_result["response"]:
@@ -2285,6 +2481,49 @@ async def _process_chat_request(
             )
             sys.stderr.flush()
 
+            # 2026-02-13 新增：如果是知識庫查詢，先處理知識庫統計
+            if _is_knowledge_base_query(last_user_text):
+                sys.stderr.write(f"\n[mm-agent] 📚 檢測到知識庫查詢，改為查詢知識庫統計\n")
+                sys.stderr.flush()
+
+                # 獲取 Agent 配置中選擇的知識庫
+                selected_kb_ids = []
+                try:
+                    from services.api.services.agent_display_config_store_service import (
+                        AgentDisplayConfigStoreService,
+                    )
+
+                    store = AgentDisplayConfigStoreService()
+                    agent_config = store.get_agent_config("mm-agent", tenant_id=None)
+                    if agent_config and hasattr(agent_config, "knowledge_bases"):
+                        selected_kb_ids = agent_config.knowledge_bases or []
+                except Exception as e:
+                    logger.warning(f"[mm-agent] 獲取知識庫配置失敗: {e}")
+
+                # 查詢知識庫統計
+                kb_response = await _handle_knowledge_base_query(
+                    query=last_user_text,
+                    user_id=current_user.user_id,
+                    selected_kb_ids=selected_kb_ids,
+                )
+
+                response = ChatResponse(
+                    content=kb_response,
+                    session_id=session_id,
+                    task_id=task_id,
+                    routing=RoutingInfo(
+                        provider="mm-agent",
+                        model="mm-agent-http",
+                        strategy="mm-agent-knowledge-base",
+                    ),
+                    observability=ObservabilityInfo(
+                        request_id=request_id,
+                        session_id=session_id,
+                        task_id=task_id,
+                    ),
+                )
+                return response
+
             # 構造 MM-Agent 請求
             from agents.services.registry.registry import get_agent_registry
 
@@ -2326,7 +2565,9 @@ async def _process_chat_request(
                             result_data = mm_result["result"]
                             if isinstance(result_data, dict):
                                 # 檢查是否有嵌套的 result 欄位（MM-Agent 返回格式）
-                                if "result" in result_data and isinstance(result_data["result"], dict):
+                                if "result" in result_data and isinstance(
+                                    result_data["result"], dict
+                                ):
                                     inner_result = result_data["result"]
                                     # 優先使用 response 欄位
                                     if "response" in inner_result and inner_result["response"]:

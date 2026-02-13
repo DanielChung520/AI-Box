@@ -2,7 +2,7 @@
  * 代碼功能說明: 知識庫管理 UI 組件
  * 創建日期: 2026-02-12
  * 創建人: Daniel Chung
- * 最後修改日期: 2026-02-12
+ * 最後修改日期: 2026-02-13
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -12,8 +12,8 @@ import {
   Search, Check, Loader2, Settings,
   Globe, Tag, Layers, Lock, Calendar, Database, Network, GitBranch
 } from 'lucide-react';
-import { uploadFiles } from '../lib/api';
-import FileViewer from './FileViewer';
+import { uploadFiles, FileMetadata } from '../lib/api';
+import FilePreview from './FilePreview';
 import OntologyManagerModal from './OntologyManagerModal';
 
 function formatFileSize(bytes: number): string {
@@ -166,6 +166,50 @@ async function fetchKBFolders(kbId: string, parentId: string | null = null): Pro
   }
 }
 
+export interface KnowledgeFile {
+  id: string;
+  fileId?: string;
+  folderId: string;
+  name: string;
+  size: string;
+  type: string;
+  uploadedAt: string;
+  domain?: string;
+  knowledgeType?: string;
+  isPrivate?: boolean;
+  allowInternal?: boolean;
+  vectorCount?: number;
+  kgStatus?: string;
+  hasS3?: boolean;
+}
+
+async function fetchKBFolderFiles(folderId: string): Promise<KnowledgeFile[]> {
+  try {
+    const response = await fetch(`/api/v1/knowledge-bases/folders/${folderId}/files`);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (data.data?.items || []).map((item: any) => ({
+      id: item.file_id,
+      fileId: item.file_id,
+      folderId: folderId,
+      name: item.filename,
+      size: formatFileSize(item.file_size || 0),
+      type: item.file_type || 'unknown',
+      uploadedAt: item.upload_time ? item.upload_time.split('T')[0] : '',
+      domain: item.domain,
+      knowledgeType: item.knowledgeType,
+      isPrivate: item.isPrivate,
+      allowInternal: item.allowInternal,
+      vectorCount: item.vector_count,
+      kgStatus: item.kg_status,
+      hasS3: !!item.storage_path,
+    }));
+  } catch (error) {
+    console.warn('[KnowledgeBaseModal] fetchKBFolderFiles 失敗:', error);
+    return [];
+  }
+}
+
 async function createKBFolder(kbId: string, data: {
   name: string;
   type: KnowledgeTypeId;
@@ -242,12 +286,14 @@ function FileUploadZone({ label, required, uploadedFiles, onFilesSelected, onRem
   );
 }
 
+FileUploadZone.displayName = 'FileUploadZone';
+
 interface KnowledgeBaseModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProps) => {
+function KnowledgeBaseModalComponent({ isOpen, onClose }: KnowledgeBaseModalProps) {
   if (!isOpen) return null;
 
   const [roots, setRoots] = useState<KnowledgeRoot[]>([]);
@@ -286,7 +332,7 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
   const [ontologyOptions, setOntologyOptions] = useState<OntologyOption[]>([]);
   const [newRoot, setNewRoot] = useState({ name: '', domain: '', allowedTypes: [] as KnowledgeTypeId[], isPrivate: true, allowInternal: false });
   const [newFolder, setNewFolder] = useState({ name: '', type: '' as KnowledgeTypeId, parentId: '' as string | null });
-  const [ontologyFiles, setOntologyFiles] = useState({ domain: [] as File[], type: [] as File[], other: [] as File[] });
+  const [ontologyFiles, setOntologyFiles] = useState({ domain: [] as File[], major: [] as File[], others: [] as File[] });
   const [isLoading, setIsLoading] = useState(false);
 
   const rootFolders = folders.filter(f => f.rootId === selectedRootId && f.parentId === null);
@@ -321,7 +367,9 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
       const bases = await fetchKnowledgeBases();
       setRoots(bases);
       if (bases.length > 0 && !selectedRootId) {
-        setSelectedRootId(bases[0].id);
+        const firstRootId = bases[0].id;
+        setSelectedRootId(firstRootId);
+        setExpandedRoots(prev => new Set([...prev, firstRootId]));
       }
     } catch (error) {
       console.warn('[KnowledgeBaseModal] 載入知識庫失敗:', error);
@@ -344,6 +392,24 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
       loadKBFolders(selectedRootId);
     }
   }, [selectedRootId]);
+
+  // 加載知識庫文件
+  const loadKBFiles = async (folderId: string) => {
+    try {
+      const fileList = await fetchKBFolderFiles(folderId);
+      setFiles(fileList);
+    } catch (error) {
+      console.warn('[KnowledgeBaseModal] 載入文件失敗:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedFolderId) {
+      loadKBFiles(selectedFolderId);
+    } else {
+      setFiles([]);
+    }
+  }, [selectedFolderId]);
 
   const handleCreateRoot = async () => {
     if (!newRoot.name || !newRoot.domain) { alert('請填寫完整資訊'); return; }
@@ -426,26 +492,13 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
     if (uploadFilesList.length === 0 || !selectedFolder) return;
     setIsUploading(true); setUploadStatus('uploading'); setUploadProgress(0);
     try {
-      const response = await uploadFiles(uploadFilesList, (progress) => setUploadProgress(progress), selectedFolder.id);
+      // 修改時間：2026-02-13 - 傳遞 kb_folder_id 參數
+      const response = await uploadFiles(uploadFilesList, (progress) => setUploadProgress(progress), undefined, selectedFolder.id);
       if (response.success && response.data?.uploaded) {
         setUploadStatus('success');
-        const newFiles = uploadFilesList.map((file, index) => {
-          const uploadedInfo = response.data?.uploaded[index];
-          return {
-            id: uploadedInfo?.file_id || `file_${Date.now()}_${index}`,
-            folderId: selectedFolder.id,
-            name: file.name,
-            size: formatFileSize(file.size),
-            type: file.name.split('.').pop() || 'unknown',
-            uploadedAt: new Date().toISOString().split('T')[0],
-            domain: selectedFolder.domain,
-            knowledgeType: selectedFolder.type,
-            isPrivate: selectedFolder.isPrivate,
-            allowInternal: selectedFolder.allowInternal,
-            fileId: uploadedInfo?.file_id
-          };
-        });
-        setFiles(prev => [...prev, ...newFiles]);
+        // 重新加載文件列表
+        const uploadedFiles = await fetchKBFolderFiles(selectedFolder.id);
+        setFiles(uploadedFiles);
         setTimeout(() => { setShowUploadModal(false); setUploadFilesList([]); }, 2000);
       } else { setUploadStatus('error'); }
     } catch { setUploadStatus('error'); }
@@ -458,7 +511,7 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="fixed inset-0 bg-black/50" onClick={handleClose} />
-        <div className="relative bg-white rounded-xl shadow-2xl w-[80vw] h-[80vh] flex flex-col">
+        <div className="relative bg-white text-gray-900 rounded-xl shadow-2xl w-[80vw] h-[80vh] flex flex-col">
           <div className="flex flex-col h-full overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
               <div className="flex items-center gap-3"><Database className="w-6 h-6 text-blue-500" /><h2 className="text-xl font-semibold">知識庫管理</h2></div>
@@ -483,9 +536,9 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
                   ) : (
                     roots.map(root => (
                       <div key={root.id}>
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer ${selectedRootId === root.id ? 'bg-blue-100' : 'hover:bg-gray-200'}`} onClick={() => { setSelectedRootId(root.id); setSelectedFolderId(null); toggleExpand(root.id); }}>
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border-l-4 transition-all duration-200 ${selectedRootId === root.id ? 'bg-blue-200 border-blue-600 shadow-sm' : 'border-gray-300 bg-white hover:bg-gray-100'}`} onClick={() => { setSelectedRootId(root.id); setSelectedFolderId(null); toggleExpand(root.id); }}>
                           {expandedRoots.has(root.id) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                          <Folder className="w-5 h-5 text-blue-500" /><span className="text-sm font-medium truncate flex-1">{root.name}</span>{root.isPrivate ? <Lock className="w-3 h-3 text-green-500" /> : <Lock className="w-3 h-3 text-gray-400" />}{root.allowInternal && <Globe className="w-3 h-3 text-blue-500" />}
+                          <Folder className={`w-5 h-5 ${selectedRootId === root.id ? 'text-blue-800' : 'text-blue-600'}`} /><span className={`text-sm font-semibold truncate flex-1 ${selectedRootId === root.id ? 'text-blue-900' : 'text-gray-800'}`}>{root.name}</span>{root.isPrivate ? <Lock className="w-3 h-3 text-green-500" /> : <Lock className="w-3 h-3 text-gray-500" />}{root.allowInternal && <Globe className="w-3 h-3 text-blue-500" />}
                           {selectedRootId === root.id && <button onClick={(e) => { e.stopPropagation(); handleDeleteRoot(root.id); }} className="ml-auto p-1 hover:bg-red-100 rounded"><Trash2 className="w-3 h-3 text-red-500" /></button>}
                         </div>
                         {expandedRoots.has(root.id) && (
@@ -498,8 +551,18 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
                             ) : (
                               rootFolders.filter(f => f.rootId === root.id).map(folder => (
                                 <div key={folder.id}>
-                                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer ${selectedFolderId === folder.id ? 'bg-blue-50' : 'hover:bg-gray-200'}`} onClick={() => { setSelectedFolderId(folder.id); setSelectedFileId(null); setShowProperties(true); }}>
-                                    <Folder className="w-4 h-4 text-gray-400" /><span className="text-sm truncate">{folder.name}</span><span className="text-xs text-gray-400 ml-auto">({getKnowledgeTypeName(folder.type)})</span>
+                                  <div 
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border-l-4 transition-all duration-200 ${selectedFolderId === folder.id ? 'bg-blue-200 border-blue-600 shadow-sm' : 'border-gray-300 bg-white hover:bg-gray-100'}`} 
+                                    onClick={() => { 
+                                      console.log('[KnowledgeBaseModal] 點擊子目錄:', folder.id, folder.name);
+                                      setSelectedFolderId(folder.id); 
+                                      setSelectedFileId(null); 
+                                      setShowProperties(true); 
+                                    }}
+                                  >
+                                    <Folder className={`w-4 h-4 ${selectedFolderId === folder.id ? 'text-blue-800' : 'text-gray-600'}`} />
+                                    <span className={`text-sm truncate ${selectedFolderId === folder.id ? 'text-blue-900 font-semibold' : 'text-gray-700'}`}>{folder.name}</span>
+                                    <span className={`text-xs ml-auto px-1.5 py-0.5 rounded ${selectedFolderId === folder.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>{getKnowledgeTypeName(folder.type)}</span>
                                     {selectedFolderId === folder.id && <button onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder.id); }} className="ml-1 p-0.5 hover:bg-red-100 rounded"><Trash2 className="w-3 h-3 text-red-500" /></button>}
                                   </div>
                                 </div>
@@ -539,25 +602,34 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
                               {filteredFiles.map(file => (
                                 <div
                                   key={file.id}
-                                  className={`flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${selectedFileId === file.id ? 'border-blue-500 bg-blue-50' : ''}`}
-                                  onClick={() => { setSelectedFileId(file.id); setSelectedFolderId(null); setShowProperties(true); }}
-                                  onDoubleClick={() => handleOpenFilePreview(file)}
+                                  className={`group relative flex items-center gap-3 p-3 border rounded-lg transition-all duration-150 ${selectedFileId === file.id ? 'border-blue-500 bg-blue-100 shadow-sm' : 'hover:border-blue-400 hover:bg-blue-50'}`}
+                                  onClick={() => { setSelectedFileId(file.id); setShowProperties(true); }}
+                                  onDoubleClick={(e) => { e.stopPropagation(); handleOpenFilePreview(file); }}
                                 >
-                                  <FileText className="w-8 h-8 text-blue-500 flex-shrink-0" />
+                                  <FileText className={`w-8 h-8 flex-shrink-0 ${selectedFileId === file.id ? 'text-blue-700' : 'text-blue-500 group-hover:text-blue-700'}`} />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                      <p className="font-medium text-sm truncate">{file.name}</p>
-                                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded flex-shrink-0">{getKnowledgeTypeName(file.knowledgeType)}</span>
+                                      <p className={`font-medium text-sm truncate ${selectedFileId === file.id ? 'text-blue-900' : 'text-gray-800 group-hover:text-gray-900'}`}>{file.name}</p>
+                                      <span className="px-1.5 py-0.5 bg-blue-200 text-blue-800 text-xs rounded flex-shrink-0">{getKnowledgeTypeName(file.knowledgeType)}</span>
                                     </div>
                                     <div className="flex items-center gap-3 mt-1">
-                                      <span className="text-xs text-gray-400 flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> S3</span>
-                                      <span className="text-xs text-gray-400 flex items-center gap-1"><Loader2 className="w-3 h-3 text-yellow-500 animate-spin" /> 向量</span>
-                                      <span className="text-xs text-gray-400 flex items-center gap-1"><Network className="w-3 h-3 text-yellow-500" /> 圖譜</span>
+                                      <span className={`text-xs flex items-center gap-1 ${file.hasS3 ? 'text-green-600' : 'text-gray-400'}`}>
+                                        {file.hasS3 ? <Check className="w-3 h-3" /> : <Loader2 className="w-3 h-3 animate-spin" />}
+                                        S3
+                                      </span>
+                                      <span className={`text-xs flex items-center gap-1 ${(file.vectorCount && file.vectorCount > 0) ? 'text-green-600' : 'text-gray-400'}`}>
+                                        {(file.vectorCount && file.vectorCount > 0) ? <Check className="w-3 h-3" /> : <Loader2 className="w-3 h-3 animate-spin" />}
+                                        向量 {file.vectorCount ? `(${file.vectorCount})` : ''}
+                                      </span>
+                                      <span className={`text-xs flex items-center gap-1 ${file.kgStatus === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+                                        {file.kgStatus === 'completed' ? <Check className="w-3 h-3" /> : <Loader2 className="w-3 h-3 animate-spin" />}
+                                        圖譜
+                                      </span>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-1 flex-shrink-0">
-                                    <button onClick={(e) => { e.stopPropagation(); handleOpenFilePreview(file); }} className="p-1.5 hover:bg-gray-200 rounded"><Eye className="w-4 h-4" /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id); }} className="p-1.5 hover:bg-red-100 text-red-500 rounded"><Trash2 className="w-4 h-4" /></button>
+                                  <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                    <button onClick={(e) => { e.stopPropagation(); handleOpenFilePreview(file); }} className="p-1.5 hover:bg-blue-200 rounded text-blue-700" title="預覽"><Eye className="w-4 h-4" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id); }} className="p-1.5 hover:bg-red-100 text-red-500 rounded" title="刪除"><Trash2 className="w-4 h-4" /></button>
                                   </div>
                                 </div>
                               ))}
@@ -584,11 +656,11 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
                                 </div>
                                 <div className="space-y-3">
                                   <label className="block text-xs font-medium text-gray-500">名稱</label>
-                                  <input type="text" value={selectedFolder.name} onChange={(e) => setFolders(folders.map(f => f.id === selectedFolder.id ? { ...f, name: e.target.value } : f))} className="w-full px-3 py-2 border rounded-lg text-sm" />
+                                  <input type="text" value={selectedFolder?.name || ''} onChange={(e) => setFolders(folders.map(f => f.id === selectedFolder?.id ? { ...f, name: e.target.value } : f))} className="w-full px-3 py-2 border rounded-lg text-sm" />
                                 </div>
                                 <div className="space-y-3">
                                   <label className="block text-xs font-medium text-gray-500">類別</label>
-                                  <select value={selectedFolder.type} onChange={(e) => setFolders(folders.map(f => f.id === selectedFolder.id ? { ...f, type: e.target.value as KnowledgeTypeId } : f))} className="w-full px-3 py-2 border rounded-lg text-sm">
+                                  <select value={selectedFolder?.type || ''} onChange={(e) => setFolders(folders.map(f => f.id === selectedFolder?.id ? { ...f, type: e.target.value as KnowledgeTypeId } : f))} className="w-full px-3 py-2 border rounded-lg text-sm">
                                     {selectedRoot?.allowedTypes.map(typeId => (<option key={typeId} value={typeId}>{getKnowledgeTypeName(typeId)}</option>))}
                                   </select>
                                 </div>
@@ -655,7 +727,7 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
       {showCreateRoot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowCreateRoot(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-md bg-white text-gray-900 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white"><h3 className="text-lg font-semibold">新增知識庫</h3><button onClick={() => setShowCreateRoot(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div>
             <div className="p-6 space-y-4 max-h-[calc(90vh-80px)] overflow-y-auto">
               <div className="bg-blue-50 rounded-lg p-4"><h4 className="font-medium text-blue-700 mb-3">基本資訊</h4><div><label className="block text-sm font-medium mb-1">知識庫名稱 <span className="text-red-500">*</span></label><input type="text" value={newRoot.name} onChange={(e) => setNewRoot({ ...newRoot, name: e.target.value })} placeholder="例如：MM-Agent 知識庫" className="w-full px-3 py-2 border rounded-lg" /></div><div className="mt-4"><label className="block text-sm font-medium mb-1">選擇領域 <span className="text-red-500">*</span></label><select value={newRoot.domain} onChange={(e) => setNewRoot({ ...newRoot, domain: e.target.value })} className="w-full px-3 py-2 border rounded-lg"><option value="">請選擇...</option>{ontologyOptions.map(o => <option key={o.domain} value={o.domain}>{o.domainName}</option>)}</select></div></div>
@@ -670,16 +742,21 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
       {showCreateFolder && selectedRoot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowCreateFolder(false)} />
-          <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-2xl bg-white text-gray-900 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white"><h3 className="text-lg font-semibold">新增子目錄</h3><button onClick={() => setShowCreateFolder(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div>
             <div className="p-6 space-y-6">
               <div className="bg-blue-50 rounded-lg p-4"><h4 className="font-medium text-blue-700 mb-3">目錄資訊</h4><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1">目錄名稱 <span className="text-red-500">*</span></label><input type="text" value={newFolder.name} onChange={(e) => setNewFolder({ ...newFolder, name: e.target.value })} placeholder="例如：規格文件" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">知識類型 <span className="text-red-500">*</span></label><select value={newFolder.type} onChange={(e) => setNewFolder({ ...newFolder, type: e.target.value as KnowledgeTypeId })} className="w-full px-3 py-2 border rounded-lg"><option value="">請選擇...</option>{selectedRoot.allowedTypes.map(typeId => (<option key={typeId} value={typeId}>{getKnowledgeTypeName(typeId)}</option>))}</select></div></div></div>
               <div className="bg-gray-50 rounded-lg p-4"><h4 className="font-medium text-gray-700 mb-3"><Globe className="w-4 h-4 inline mr-1" />領域資訊（繼承自知識庫）</h4><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs text-gray-500 mb-1">領域</label><div className="px-3 py-2 bg-blue-100 rounded-lg text-sm text-blue-700">{selectedRoot.domainName || selectedRoot.domain}</div></div><div><label className="block text-xs text-gray-500 mb-1">領域代碼</label><div className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">{selectedRoot.domain}</div></div></div></div>
               <div className="bg-gray-50 rounded-lg p-4"><h4 className="font-medium text-gray-700 mb-3"><Lock className="w-4 h-4 inline mr-1" />授權設定（繼承自知識庫）</h4><div className="grid grid-cols-2 gap-4"><div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg"><input type="checkbox" checked={selectedRoot.isPrivate} disabled className="w-4 h-4" /><span className="text-sm">{selectedRoot.isPrivate ? '私有' : '公開'}</span></div><div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg"><input type="checkbox" checked={selectedRoot.allowInternal} disabled className="w-4 h-4" /><span className="text-sm">{selectedRoot.allowInternal ? '允許內部分類' : '不允許內部分類'}</span></div></div><p className="text-xs text-gray-500 mt-2">授權設定將自動繼承至子目錄及檔案</p></div>
-              <div className="bg-gray-50 rounded-lg p-4"><h4 className="font-medium text-gray-700 mb-3">Ontology 文件上傳</h4><FileUploadZone label="領域（Domain）文件" required={true} uploadedFiles={ontologyFiles.domain} onFilesSelected={(files) => setOntologyFiles({ ...ontologyFiles, domain: files })} onRemoveFile={(index) => setOntologyFiles({ ...ontologyFiles, domain: ontologyFiles.domain.filter((_, i) => i !== index) })} /><div className="mt-4"><FileUploadZone label="類型（Type）文件" required={false} uploadedFiles={ontologyFiles.type} onFilesSelected={(files) => setOntologyFiles({ ...ontologyFiles, type: files })} onRemoveFile={(index) => setOntologyFiles({ ...ontologyFiles, type: ontologyFiles.type.filter((_, i) => i !== index) })} /></div><div className="mt-4"><FileUploadZone label="其他（Other）文件" required={false} uploadedFiles={ontologyFiles.other} onFilesSelected={(files) => setOntologyFiles({ ...ontologyFiles, other: files })} onRemoveFile={(index) => setOntologyFiles({ ...ontologyFiles, other: ontologyFiles.other.filter((_, i) => i !== index) })} /></div></div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-700 mb-3">Ontology 文件上傳</h4>
+                <FileUploadZone label="領域（Domain）文件" required={true} uploadedFiles={ontologyFiles.domain} onFilesSelected={(files) => setOntologyFiles({ ...ontologyFiles, domain: files })} onRemoveFile={(index) => setOntologyFiles({ ...ontologyFiles, domain: ontologyFiles.domain.filter((_, i) => i !== index) })} />
+                <div className="mt-4"><FileUploadZone label="專業（Major）文件" required={false} uploadedFiles={ontologyFiles.major} onFilesSelected={(files) => setOntologyFiles({ ...ontologyFiles, major: files })} onRemoveFile={(index) => setOntologyFiles({ ...ontologyFiles, major: ontologyFiles.major.filter((_, i) => i !== index) })} /></div>
+                <div className="mt-4"><FileUploadZone label="其他（Others）文件" required={false} uploadedFiles={ontologyFiles.others} onFilesSelected={(files) => setOntologyFiles({ ...ontologyFiles, others: files })} onRemoveFile={(index) => setOntologyFiles({ ...ontologyFiles, others: ontologyFiles.others.filter((_, i) => i !== index) })} /></div>
+              </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3"><p className="text-sm text-yellow-700">💡 提示：Domain 文件為必填，類型文件和其他文件為選填。</p></div>
             </div>
-            <div className="flex justify-end gap-2 px-6 py-4 border-t bg-gray-50 sticky bottom-0"><button onClick={() => { setShowCreateFolder(false); setOntologyFiles({ domain: [], type: [], other: [] }); }} className="px-4 py-2 border rounded-lg hover:bg-gray-100">取消</button><button onClick={handleCreateFolder} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">確認創建</button></div>
+            <div className="flex justify-end gap-2 px-6 py-4 border-t bg-gray-50 sticky bottom-0"><button onClick={() => { setShowCreateFolder(false); setOntologyFiles({ domain: [], major: [], others: [] }); }} className="px-4 py-2 border rounded-lg hover:bg-gray-100">取消</button><button onClick={handleCreateFolder} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">確認創建</button></div>
           </div>
         </div>
       )}
@@ -687,7 +764,7 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/50" onClick={handleCloseUpload} />
-          <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl max-h-[80vh] overflow-hidden">
+          <div className="relative w-full max-w-2xl bg-white text-gray-900 rounded-xl shadow-2xl max-h-[80vh] overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
               <div className="flex items-center gap-3"><Upload className="w-5 h-5 text-green-500" /><div><h3 className="text-lg font-semibold">上傳文件</h3>{selectedFolder && <p className="text-xs text-gray-500">上傳到：{selectedFolder.path}</p>}</div></div>
               <button onClick={handleCloseUpload} disabled={isUploading} className="p-2 hover:bg-gray-200 rounded-lg disabled:opacity-50"><X className="w-5 h-5" /></button>
@@ -720,17 +797,20 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
       {showFilePreview && previewFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/50" onClick={handleCloseFilePreview} />
-          <div className="relative w-full max-w-6xl bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
-              <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-blue-500" />
-                <div><h3 className="text-lg font-semibold">文件預覽</h3><p className="text-xs text-gray-500 truncate max-w-md">{previewFile.name}</p></div>
-              </div>
-              <button onClick={handleCloseFilePreview} className="p-2 hover:bg-gray-200 rounded-lg"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="h-[calc(90vh-80px)] overflow-auto">
-              <FileViewer fileUrl="" fileName={previewFile.name} fileId={previewFile.fileId || previewFile.id} />
-            </div>
+          <div className="relative w-full max-w-6xl bg-white text-gray-900 rounded-xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <FilePreview
+              file={{
+                file_id: previewFile.fileId || previewFile.id,
+                filename: previewFile.name,
+                file_type: previewFile.type || 'text/markdown',
+                file_size: 0,
+                tags: [],
+                upload_time: new Date().toISOString(),
+              } as FileMetadata}
+              isOpen={showFilePreview}
+              onClose={handleCloseFilePreview}
+              inline={true}
+            />
           </div>
         </div>
       )}
@@ -743,4 +823,6 @@ const KnowledgeBaseModalComponent = ({ isOpen, onClose }: KnowledgeBaseModalProp
   );
 }
 
-export default React.memo(KnowledgeBaseModalComponent);
+KnowledgeBaseModalComponent.displayName = 'KnowledgeBaseModalComponent';
+
+export default KnowledgeBaseModalComponent;

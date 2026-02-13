@@ -1,0 +1,97 @@
+# sources.yml
+-- 代碼功能說明: dbt 資料來源定義
+-- 創建日期: 2026-02-13
+-- 創建人: Daniel Chung
+
+version: 2
+
+sources:
+  - name: tiptop_raw
+    description: TiTop ERP 原始資料 (S3 Parquet)
+    database: tiptop_raw
+    schema: raw
+    loader: tiptop_etl
+    freshness:
+      warn_after: {count: 12, period: hour}
+      error_after: {count: 24, period: hour}
+    loaded_at_field: _btloddt
+    tables:
+      - name: inag_t
+        description: 庫存明細表
+        identifier: INAG_T
+        columns:
+          - name: INAG001
+            description: 料件編號
+          - name: INAG004
+            description: 倉庫編號
+          - name: INAG008
+            description: 現有庫存
+
+      - name: sfaa_t
+        description: 工單頭檔
+        identifier: SFAA_T
+        columns:
+          - name: SFAA010
+            description: 料件編號
+          - name: SFAA009
+            description: 客戶編號
+          - name: SFAASTUS
+            description: 狀態
+
+      - name: sfca_t
+        description: 工單製造頭檔
+        identifier: SFCA_T
+        columns:
+          - name: SFCADOCNO
+            description: 工單編號
+          - name: SFCA003
+            description: 生產數量
+
+      - name: sfcb_t
+        description: 工單製造明細檔
+        identifier: SFCB_T
+        columns:
+          - name: SFCBDOCNO
+            description: 工單編號
+          - name: SFCB003
+            description: 目前工序
+
+      - name: xmdg_t
+        description: 出貨通知頭檔
+        identifier: XMDG_T
+        columns:
+          - name: XMDGDOCNO
+            description: 出貨通知編號
+          - name: XMDG005
+            description: 客戶編號
+
+      - name: xmdh_t
+        description: 出貨通知明細檔
+        identifier: XMDH_T
+        columns:
+          - name: XMDHDOCNO
+            description: 出貨通知編號
+          - name: XMDH006
+            description: 料件編號
+          - name: XMDH017
+            description: 實際出貨數量
+
+      - name: ma_t
+        description: 物料主檔
+        identifier: MA_T
+        columns:
+          - name: ma001
+            description: 料件編號
+          - name: ma002
+            description: 品名
+          - name: ma003
+            description: 規格
+
+      - name: ooef_t
+        description: 客戶主檔
+        identifier: OEEF_T
+        columns:
+          - name: ooef001
+            description: 客戶編號
+          - name: ooef011
+            description: 客戶名稱

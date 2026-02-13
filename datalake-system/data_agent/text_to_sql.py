@@ -177,8 +177,9 @@ class TextToSQLService:
         self._logger = logger
         self._system_id = system_id
 
-        from datalake_system.metadata.services import PromptBuilder, SmartSchemaLoader
-        from datalake_system.data_agent.schema_rag import SchemaRAGService
+        from metadata.services.prompt_builder import PromptBuilder
+        from metadata.services.schema_loader import SmartSchemaLoader
+        from data_agent.schema_rag import SchemaRAGService
 
         if metadata_root is None:
             metadata_root = ai_box_root / "datalake-system" / "metadata"
@@ -236,7 +237,7 @@ class TextToSQLService:
             logger.info(f"RAG 檢索結果: {relevant_tables}")
 
             # 2. 生成 Prompt（只包含相關表）
-            from datalake_system.metadata.services import SQLDialect
+            from metadata.services.sql_renderer import SQLDialect
 
             prompt = self._builder.build_schema_prompt(
                 system_id=self._system_id,

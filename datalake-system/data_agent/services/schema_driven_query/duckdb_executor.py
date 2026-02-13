@@ -13,6 +13,7 @@
 
 import logging
 import time
+import re
 from typing import Any, Dict, List, Optional
 
 import duckdb
@@ -75,7 +76,14 @@ class S3PathMapper:
 
         for table_name in self.TABLE_S3_PATH:
             s3_path = self.map_table(table_name)
-            read_parquet_func = f"read_parquet('{s3_path}')"
+            read_parquet_func = f"read_parquet('{s3_path}') AS _{table_name.lower().rstrip('_t')}"
+
+            # Handle FROM clause with comma-separated tables (implicit JOIN)
+            sql = re.sub(
+                rf"(?i)(FROM\s+)({table_name})(?=\s*[,)])",
+                rf"\1{read_parquet_func}",
+                sql,
+            )
 
             # Handle FROM clause with alias
             sql = re.sub(
@@ -91,15 +99,27 @@ class S3PathMapper:
                 sql,
             )
 
-            # Handle FROM clause WITHOUT alias (standalone table)
+            # Handle FROM clause WITHOUT alias (standalone table) - 添加別名
             sql = re.sub(
                 rf"(?i)(FROM\s+)({table_name})(?=\s+(?:INNER|LEFT|RIGHT|OUTER|CROSS|WHERE|GROUP|ORDER|LIMIT|HAVING|$|and|OR))",
                 rf"\1{read_parquet_func}",
                 sql,
             )
 
-            # Handle FROM clause without alias at end of statement
+            # Handle FROM clause without alias at end of statement - 添加別名
             sql = re.sub(rf"(?i)(FROM\s+)({table_name})(?=\s*$)", rf"\1{read_parquet_func}", sql)
+
+            # Handle comma-separated table in FROM (e.g., "FROM INAG_T, SFCA_T")
+            sql = re.sub(
+                rf"(?i)(,\s*){table_name}(?=\s*[,)])",
+                rf", {read_parquet_func}",
+                sql,
+            )
+            sql = re.sub(
+                rf"(?i)(,\s*){table_name}(?=\s+(?:WHERE|GROUP|ORDER|LIMIT|HAVING|$))",
+                rf", {read_parquet_func}",
+                sql,
+            )
 
             # Handle JOIN clause with alias
             sql = re.sub(
@@ -115,9 +135,16 @@ class S3PathMapper:
                 sql,
             )
 
-            # Handle JOIN clause WITHOUT alias
+            # Handle JOIN clause WITHOUT alias - 添加別名
             sql = re.sub(
                 rf"(?i)(JOIN\s+)({table_name})(?=\s+(?:INNER|LEFT|RIGHT|OUTER|CROSS|WHERE|GROUP|ORDER|LIMIT|ON|and|OR|$))",
+                rf"\1{read_parquet_func}",
+                sql,
+            )
+
+            # Handle JOIN clause without alias at end
+            sql = re.sub(
+                rf"(?i)(JOIN\s+)({table_name})(?=\s*$)",
                 rf"\1{read_parquet_func}",
                 sql,
             )
@@ -146,8 +173,18 @@ class DuckDBExecutor:
         self._path_mapper = S3PathMapper(self.s3_config)
 
     def _map_sql(self, sql: str) -> str:
-        """映射 SQL 中的 Table 為 S3 Path"""
-        return self._path_mapper.map_sql(sql)
+        """映射 SQL 中的 Table 為 S3 Path，並優化 TIME_RANGE"""
+        # 先映射表格
+        mapped_sql = self._path_mapper.map_sql(sql)
+
+        # 解析 TIME_RANGE 並優化 S3 路徑
+        year, month = parse_time_range_from_sql(mapped_sql)
+        if year and month:
+            logger.info(f"Applying TIME_RANGE optimization: year={year}, month={month}")
+            # 將 year=*/month=* 替換為特定的 year/month
+            mapped_sql = re.sub(r"year=\*/month=\*", f"year={year}/month={month:02d}", mapped_sql)
+
+        return mapped_sql
 
     def execute(self, sql: str, timeout: Optional[int] = None) -> Dict[str, Any]:
         """
@@ -185,8 +222,13 @@ class DuckDBExecutor:
                     "s3_use_ssl": str(self.s3_config.use_ssl).lower(),
                     "s3_url_style": self.s3_config.url_style,
                     "temp_directory": self.config.temp_directory,
+                    "memory_limit": self.config.memory_limit,
+                    "worker_threads": self.config.threads,
                 },
             )
+
+            # 設定工作記憶體（使用正確的 DuckDB 參數名稱）
+            connection.execute(f"SET memory_limit = '{self.config.max_memory}'")
 
             mapped_sql = self._map_sql(sql)
             logger.debug(f"Executing mapped SQL: {mapped_sql[:200]}...")

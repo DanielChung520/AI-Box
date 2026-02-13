@@ -184,8 +184,13 @@ def sync_to_arangodb(bindings_path: str, system_id: str = "tiptop_jp"):
 
 def main():
     """主程式"""
+    # script_dir = data_agent/RAG/sync/
+    # 需要找到 datalake-system/metadata/systems/tiptop_jp/
     script_dir = Path(__file__).resolve().parent
-    metadata_dir = script_dir.parent / "metadata" / "systems" / "tiptop_jp"
+    datalake_root = (
+        script_dir.parent.parent.parent
+    )  # data_agent/RAG/sync → RAG → data_agent → datalake-system
+    metadata_dir = datalake_root / "metadata" / "systems" / "tiptop_jp"
 
     concepts_path = metadata_dir / "concepts.json"
     intents_path = metadata_dir / "intents.json"
@@ -193,6 +198,7 @@ def main():
 
     print("=" * 60)
     print("  Data-Agent-JP Schema Sync Tool")
+    print("  (移至 data_agent/RAG/sync/)")
     print("=" * 60)
     print(f"\n📁 Metadata 目錄: {metadata_dir}")
 

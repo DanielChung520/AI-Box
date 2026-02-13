@@ -1,0 +1,2460 @@
+{
+  "warehouses": [
+    {
+      "warehouse_no": "001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 116,
+      "distinct_items": 79,
+      "total_stock": 194857.0
+    },
+    {
+      "warehouse_no": "002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 48.0
+    },
+    {
+      "warehouse_no": "00939-001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 26,
+      "distinct_items": 20,
+      "total_stock": 107.0
+    },
+    {
+      "warehouse_no": "00939-01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 129,
+      "distinct_items": 59,
+      "total_stock": -1487504.0
+    },
+    {
+      "warehouse_no": "00939-0928",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 5.0
+    },
+    {
+      "warehouse_no": "00939-1001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 1001.0
+    },
+    {
+      "warehouse_no": "00939-BF",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 4,
+      "total_stock": 11.0
+    },
+    {
+      "warehouse_no": "00939-CB",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 20,
+      "distinct_items": 14,
+      "total_stock": 2542.0
+    },
+    {
+      "warehouse_no": "00939-CG1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 3,
+      "total_stock": 943.0
+    },
+    {
+      "warehouse_no": "00939-CG2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 9.0
+    },
+    {
+      "warehouse_no": "00939-CG7",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": -1.0
+    },
+    {
+      "warehouse_no": "00939-CGA",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": -10.0
+    },
+    {
+      "warehouse_no": "00939-CX1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 1,
+      "total_stock": 15.0
+    },
+    {
+      "warehouse_no": "00939-CX2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": -1.0
+    },
+    {
+      "warehouse_no": "00939-CX3",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 100.0
+    },
+    {
+      "warehouse_no": "00939-DBF",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "00939-DBF1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 1.0
+    },
+    {
+      "warehouse_no": "00939-F",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 7.0
+    },
+    {
+      "warehouse_no": "00939-FCB",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 15,
+      "distinct_items": 10,
+      "total_stock": 84.0
+    },
+    {
+      "warehouse_no": "00939-FZ",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 31,
+      "distinct_items": 10,
+      "total_stock": 10013802.0
+    },
+    {
+      "warehouse_no": "00939-KBK",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 37.0
+    },
+    {
+      "warehouse_no": "00939-SP",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 15,
+      "distinct_items": 9,
+      "total_stock": 2614.0
+    },
+    {
+      "warehouse_no": "00939-T",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 48,
+      "distinct_items": 21,
+      "total_stock": 1003392.0
+    },
+    {
+      "warehouse_no": "00939-ZTC",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 15,
+      "distinct_items": 14,
+      "total_stock": 213.0
+    },
+    {
+      "warehouse_no": "00939-ZTF",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 2,
+      "total_stock": 1.0
+    },
+    {
+      "warehouse_no": "0093901",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8,
+      "distinct_items": 8,
+      "total_stock": 23.0
+    },
+    {
+      "warehouse_no": "0093903",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 10000000.0
+    },
+    {
+      "warehouse_no": "01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "01101",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 300.0
+    },
+    {
+      "warehouse_no": "012301",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 1100.0
+    },
+    {
+      "warehouse_no": "012302",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 4,
+      "total_stock": 346.0
+    },
+    {
+      "warehouse_no": "025001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8,
+      "distinct_items": 5,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "06-01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 30.0
+    },
+    {
+      "warehouse_no": "1001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 4,
+      "total_stock": 20.0
+    },
+    {
+      "warehouse_no": "1002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "1101",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 19.0
+    },
+    {
+      "warehouse_no": "137025",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "151109",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 200.0
+    },
+    {
+      "warehouse_no": "2101",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 60792,
+      "distinct_items": 21670,
+      "total_stock": 65961702.0
+    },
+    {
+      "warehouse_no": "2102",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 99,
+      "distinct_items": 62,
+      "total_stock": 37332115690.0
+    },
+    {
+      "warehouse_no": "2103",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 650.0
+    },
+    {
+      "warehouse_no": "2104",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1996,
+      "distinct_items": 1949,
+      "total_stock": 34.0
+    },
+    {
+      "warehouse_no": "2106",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 5,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2201",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 12619,
+      "distinct_items": 2660,
+      "total_stock": 9654428.0
+    },
+    {
+      "warehouse_no": "2202",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1726,
+      "distinct_items": 1054,
+      "total_stock": 27969.0
+    },
+    {
+      "warehouse_no": "2203",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 168,
+      "distinct_items": 146,
+      "total_stock": 116627.0
+    },
+    {
+      "warehouse_no": "2204",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6093,
+      "distinct_items": 1137,
+      "total_stock": 3295580.0
+    },
+    {
+      "warehouse_no": "2205",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 24866,
+      "distinct_items": 5337,
+      "total_stock": 49412351.0
+    },
+    {
+      "warehouse_no": "2206",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5923,
+      "distinct_items": 987,
+      "total_stock": 2371037.0
+    },
+    {
+      "warehouse_no": "2207",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8297,
+      "distinct_items": 979,
+      "total_stock": 408012.0
+    },
+    {
+      "warehouse_no": "2208",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 2,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2209",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 55,
+      "distinct_items": 32,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2210",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 15,
+      "distinct_items": 8,
+      "total_stock": 2098.0
+    },
+    {
+      "warehouse_no": "2211",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 302,
+      "distinct_items": 290,
+      "total_stock": 1703.0
+    },
+    {
+      "warehouse_no": "2212",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2415,
+      "distinct_items": 1016,
+      "total_stock": 39850.0
+    },
+    {
+      "warehouse_no": "2213",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2214",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 97,
+      "distinct_items": 85,
+      "total_stock": 5141.0
+    },
+    {
+      "warehouse_no": "2300",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1630,
+      "distinct_items": 1390,
+      "total_stock": 23722.0
+    },
+    {
+      "warehouse_no": "2301",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 610,
+      "distinct_items": 387,
+      "total_stock": 9074.0
+    },
+    {
+      "warehouse_no": "2330",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 4,
+      "total_stock": 1009762.0
+    },
+    {
+      "warehouse_no": "2400",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3654,
+      "distinct_items": 2307,
+      "total_stock": 149863.0
+    },
+    {
+      "warehouse_no": "2401",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1677,
+      "distinct_items": 45,
+      "total_stock": 2432.0
+    },
+    {
+      "warehouse_no": "2500",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 84,
+      "distinct_items": 61,
+      "total_stock": 3628.0
+    },
+    {
+      "warehouse_no": "2501",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2502",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2600",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2471,
+      "distinct_items": 1618,
+      "total_stock": 279700.0
+    },
+    {
+      "warehouse_no": "2601",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2033,
+      "distinct_items": 1695,
+      "total_stock": 650.0
+    },
+    {
+      "warehouse_no": "2602",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1966,
+      "distinct_items": 1436,
+      "total_stock": 455.0
+    },
+    {
+      "warehouse_no": "2603",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 775,
+      "distinct_items": 616,
+      "total_stock": 28072.0
+    },
+    {
+      "warehouse_no": "2604",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 733,
+      "distinct_items": 460,
+      "total_stock": 2.0
+    },
+    {
+      "warehouse_no": "2605",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 32,
+      "distinct_items": 31,
+      "total_stock": 61.0
+    },
+    {
+      "warehouse_no": "2606",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 10,
+      "distinct_items": 10,
+      "total_stock": 44.0
+    },
+    {
+      "warehouse_no": "2700",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 10412,
+      "distinct_items": 10375,
+      "total_stock": 9778819.0
+    },
+    {
+      "warehouse_no": "2701",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 415,
+      "distinct_items": 358,
+      "total_stock": 70652.0
+    },
+    {
+      "warehouse_no": "2800",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 72,
+      "distinct_items": 50,
+      "total_stock": 2.0
+    },
+    {
+      "warehouse_no": "2900",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1859,
+      "distinct_items": 790,
+      "total_stock": 840138.0
+    },
+    {
+      "warehouse_no": "2901",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2617,
+      "distinct_items": 1130,
+      "total_stock": 51866.0
+    },
+    {
+      "warehouse_no": "2902",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 181,
+      "distinct_items": 110,
+      "total_stock": 2415.0
+    },
+    {
+      "warehouse_no": "2903",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1005,
+      "distinct_items": 481,
+      "total_stock": 2721.0
+    },
+    {
+      "warehouse_no": "2903-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 356,
+      "distinct_items": 318,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2903-2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 113,
+      "distinct_items": 73,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2903-3",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 391,
+      "distinct_items": 197,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2903-4",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 570,
+      "distinct_items": 80,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2903-5",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 418,
+      "distinct_items": 102,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2903-6",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 26,
+      "distinct_items": 20,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2904-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 16,
+      "distinct_items": 16,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2904-2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 28,
+      "distinct_items": 23,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2904-3",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 138,
+      "distinct_items": 113,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2904-4",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1726,
+      "distinct_items": 84,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "2904-5",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 511,
+      "distinct_items": 170,
+      "total_stock": 185.0
+    },
+    {
+      "warehouse_no": "2904-6",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 22,
+      "distinct_items": 16,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "3000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 15424,
+      "distinct_items": 11694,
+      "total_stock": 166670.0
+    },
+    {
+      "warehouse_no": "3000-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 61,
+      "distinct_items": 61,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "3001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 250.0
+    },
+    {
+      "warehouse_no": "3100",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 10145,
+      "distinct_items": 7985,
+      "total_stock": 29746.0
+    },
+    {
+      "warehouse_no": "3101",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 350.0
+    },
+    {
+      "warehouse_no": "3200",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3163,
+      "distinct_items": 1911,
+      "total_stock": 3969.0
+    },
+    {
+      "warehouse_no": "3300",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1912,
+      "distinct_items": 1280,
+      "total_stock": 3162.0
+    },
+    {
+      "warehouse_no": "3333",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1543,
+      "distinct_items": 534,
+      "total_stock": 47398.0
+    },
+    {
+      "warehouse_no": "3400",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 25601,
+      "distinct_items": 3363,
+      "total_stock": 171147.0
+    },
+    {
+      "warehouse_no": "3500",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 9395,
+      "distinct_items": 9388,
+      "total_stock": 18.0
+    },
+    {
+      "warehouse_no": "360",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 4,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "3600",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1148,
+      "distinct_items": 780,
+      "total_stock": 54999.0
+    },
+    {
+      "warehouse_no": "3700",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 304,
+      "distinct_items": 154,
+      "total_stock": 2530.0
+    },
+    {
+      "warehouse_no": "3800",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1390,
+      "distinct_items": 893,
+      "total_stock": 43059.0
+    },
+    {
+      "warehouse_no": "3900",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 532,
+      "distinct_items": 413,
+      "total_stock": 87378.0
+    },
+    {
+      "warehouse_no": "4000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3760,
+      "distinct_items": 2631,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "4100",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3460,
+      "distinct_items": 1335,
+      "total_stock": 269993.0
+    },
+    {
+      "warehouse_no": "4200",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1474,
+      "distinct_items": 604,
+      "total_stock": 402849.0
+    },
+    {
+      "warehouse_no": "4300",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 245,
+      "distinct_items": 130,
+      "total_stock": 4071.0
+    },
+    {
+      "warehouse_no": "5000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 425,
+      "distinct_items": 359,
+      "total_stock": 6675.0
+    },
+    {
+      "warehouse_no": "5001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 433,
+      "distinct_items": 303,
+      "total_stock": 133717.0
+    },
+    {
+      "warehouse_no": "5002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1633,
+      "distinct_items": 1154,
+      "total_stock": 5208.0
+    },
+    {
+      "warehouse_no": "5003",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1351,
+      "distinct_items": 580,
+      "total_stock": 38691.0
+    },
+    {
+      "warehouse_no": "531001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 21,
+      "distinct_items": 18,
+      "total_stock": 118.0
+    },
+    {
+      "warehouse_no": "531002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 25,
+      "distinct_items": 17,
+      "total_stock": 100009650.0
+    },
+    {
+      "warehouse_no": "531003",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "6001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4284,
+      "distinct_items": 4161,
+      "total_stock": 6317.0
+    },
+    {
+      "warehouse_no": "6003",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "6004",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4641,
+      "distinct_items": 3703,
+      "total_stock": 100092910.0
+    },
+    {
+      "warehouse_no": "6005",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 338,
+      "distinct_items": 338,
+      "total_stock": 3100.0
+    },
+    {
+      "warehouse_no": "6006",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 334,
+      "distinct_items": 328,
+      "total_stock": 6146.0
+    },
+    {
+      "warehouse_no": "6007",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 121,
+      "distinct_items": 113,
+      "total_stock": 1494.0
+    },
+    {
+      "warehouse_no": "6008",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 140,
+      "distinct_items": 140,
+      "total_stock": 3126.0
+    },
+    {
+      "warehouse_no": "6009",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 2,
+      "total_stock": 25.0
+    },
+    {
+      "warehouse_no": "7001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 810,
+      "distinct_items": 810,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "7777",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2286,
+      "distinct_items": 1548,
+      "total_stock": 15235.0
+    },
+    {
+      "warehouse_no": "8801",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 293,
+      "distinct_items": 275,
+      "total_stock": 18739.0
+    },
+    {
+      "warehouse_no": "8802",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 103788,
+      "distinct_items": 459,
+      "total_stock": 4257320.0
+    },
+    {
+      "warehouse_no": "8803",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 786,
+      "distinct_items": 408,
+      "total_stock": 87890.0
+    },
+    {
+      "warehouse_no": "8811",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1414,
+      "distinct_items": 859,
+      "total_stock": 22179.0
+    },
+    {
+      "warehouse_no": "8812",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 83,
+      "distinct_items": 66,
+      "total_stock": 9660.0
+    },
+    {
+      "warehouse_no": "8888",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 2,
+      "total_stock": 2600.0
+    },
+    {
+      "warehouse_no": "9999",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 54,
+      "distinct_items": 54,
+      "total_stock": 20.0
+    },
+    {
+      "warehouse_no": "A0001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 15,
+      "distinct_items": 13,
+      "total_stock": 3752.0
+    },
+    {
+      "warehouse_no": "A0002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 12.0
+    },
+    {
+      "warehouse_no": "A001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 141,
+      "distinct_items": 64,
+      "total_stock": 1000686679887.0
+    },
+    {
+      "warehouse_no": "A002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 7,
+      "distinct_items": 4,
+      "total_stock": 120.0
+    },
+    {
+      "warehouse_no": "A01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 65,
+      "distinct_items": 61,
+      "total_stock": 101415.0
+    },
+    {
+      "warehouse_no": "A88",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 2,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "A89",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 4,
+      "total_stock": -297.0
+    },
+    {
+      "warehouse_no": "A90",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "B0001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8,
+      "distinct_items": 8,
+      "total_stock": 100.0
+    },
+    {
+      "warehouse_no": "B0002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "B001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "B002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8,
+      "distinct_items": 7,
+      "total_stock": 40.0
+    },
+    {
+      "warehouse_no": "BCT10010",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 5,
+      "total_stock": 1588.0
+    },
+    {
+      "warehouse_no": "BG02",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 3,
+      "total_stock": -42.0
+    },
+    {
+      "warehouse_no": "BG06",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 5,
+      "total_stock": 7100.0
+    },
+    {
+      "warehouse_no": "C0001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 55,
+      "distinct_items": 43,
+      "total_stock": 20537.0
+    },
+    {
+      "warehouse_no": "C0002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 13,
+      "distinct_items": 12,
+      "total_stock": 1579.0
+    },
+    {
+      "warehouse_no": "C0003",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 4,
+      "total_stock": 100.0
+    },
+    {
+      "warehouse_no": "C0004",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 2,
+      "total_stock": 298.0
+    },
+    {
+      "warehouse_no": "C0005",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 7.0
+    },
+    {
+      "warehouse_no": "C0006",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 370.0
+    },
+    {
+      "warehouse_no": "C001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 7,
+      "distinct_items": 6,
+      "total_stock": -1.0
+    },
+    {
+      "warehouse_no": "C0011",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 4,
+      "total_stock": 39920.0
+    },
+    {
+      "warehouse_no": "C002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "C003",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "C004",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "C01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 5,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "CCT0000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 100.0
+    },
+    {
+      "warehouse_no": "CCT3001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 1,
+      "total_stock": 138.0
+    },
+    {
+      "warehouse_no": "CCT3001C",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "DC031",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 1000.0
+    },
+    {
+      "warehouse_no": "ENYW001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 1,
+      "total_stock": 55.0
+    },
+    {
+      "warehouse_no": "ENYW4001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 10.0
+    },
+    {
+      "warehouse_no": "ENYW901",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "FG01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 12,
+      "distinct_items": 8,
+      "total_stock": 89945430.0
+    },
+    {
+      "warehouse_no": "FMY_S1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8,
+      "distinct_items": 6,
+      "total_stock": 73.0
+    },
+    {
+      "warehouse_no": "FMY_S2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 1.0
+    },
+    {
+      "warehouse_no": "G001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 3,
+      "total_stock": 1090.0
+    },
+    {
+      "warehouse_no": "HTK001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 1,
+      "total_stock": 15.0
+    },
+    {
+      "warehouse_no": "HTK003",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 1,
+      "total_stock": 10.0
+    },
+    {
+      "warehouse_no": "INV01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 40,
+      "distinct_items": 14,
+      "total_stock": 500200215.0
+    },
+    {
+      "warehouse_no": "INV04",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 370.0
+    },
+    {
+      "warehouse_no": "K001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 1190.0
+    },
+    {
+      "warehouse_no": "KW01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "L001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "L01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "LIU001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 37,
+      "distinct_items": 15,
+      "total_stock": 10011834.0
+    },
+    {
+      "warehouse_no": "LIU0011",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "LIU002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 7,
+      "distinct_items": 3,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "LJ00",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 30,
+      "distinct_items": 24,
+      "total_stock": 14760.0
+    },
+    {
+      "warehouse_no": "LJ01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 38,
+      "distinct_items": 8,
+      "total_stock": 11.0
+    },
+    {
+      "warehouse_no": "LJ03",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 2,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "LS001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 43,
+      "distinct_items": 33,
+      "total_stock": 5114524.0
+    },
+    {
+      "warehouse_no": "M001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 4,
+      "total_stock": 56.0
+    },
+    {
+      "warehouse_no": "MMT10010",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 1000.0
+    },
+    {
+      "warehouse_no": "N",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 4,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "NJ200",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 10,
+      "distinct_items": 6,
+      "total_stock": 1116.0
+    },
+    {
+      "warehouse_no": "NJ200_1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 7.0
+    },
+    {
+      "warehouse_no": "NJ210",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 221.0
+    },
+    {
+      "warehouse_no": "NJ210_1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 5.0
+    },
+    {
+      "warehouse_no": "NJ211",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 20,
+      "distinct_items": 20,
+      "total_stock": 1919.0
+    },
+    {
+      "warehouse_no": "NJ2118",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 56.0
+    },
+    {
+      "warehouse_no": "NJ211_1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 6,
+      "total_stock": 607.0
+    },
+    {
+      "warehouse_no": "NJ212",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 11,
+      "distinct_items": 11,
+      "total_stock": 83.0
+    },
+    {
+      "warehouse_no": "NJ218",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 11,
+      "distinct_items": 11,
+      "total_stock": 3573.0
+    },
+    {
+      "warehouse_no": "NJ218_1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 6,
+      "total_stock": 3000.0
+    },
+    {
+      "warehouse_no": "NJ219",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 3.0
+    },
+    {
+      "warehouse_no": "NJ221",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 5,
+      "total_stock": 27.0
+    },
+    {
+      "warehouse_no": "NJ300007",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 20.0
+    },
+    {
+      "warehouse_no": "NJ310",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 9,
+      "distinct_items": 9,
+      "total_stock": 69415.0
+    },
+    {
+      "warehouse_no": "NJ320",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 11,
+      "distinct_items": 11,
+      "total_stock": 1025.0
+    },
+    {
+      "warehouse_no": "NJ32001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 100.0
+    },
+    {
+      "warehouse_no": "P001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 27,
+      "distinct_items": 19,
+      "total_stock": 1889.0
+    },
+    {
+      "warehouse_no": "P002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 55,
+      "distinct_items": 30,
+      "total_stock": 9460.0
+    },
+    {
+      "warehouse_no": "P003",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 21,
+      "distinct_items": 10,
+      "total_stock": 1771.0
+    },
+    {
+      "warehouse_no": "P100",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 9,
+      "distinct_items": 7,
+      "total_stock": 90.0
+    },
+    {
+      "warehouse_no": "P1000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 38,
+      "distinct_items": 25,
+      "total_stock": 4917.0
+    },
+    {
+      "warehouse_no": "P2000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 14,
+      "distinct_items": 13,
+      "total_stock": 17223.0
+    },
+    {
+      "warehouse_no": "P3000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 78,
+      "distinct_items": 57,
+      "total_stock": 11016.0
+    },
+    {
+      "warehouse_no": "P4000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 34,
+      "distinct_items": 19,
+      "total_stock": 893221.0
+    },
+    {
+      "warehouse_no": "P5000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 5,
+      "total_stock": 26.0
+    },
+    {
+      "warehouse_no": "P6000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 13,
+      "distinct_items": 13,
+      "total_stock": 179.0
+    },
+    {
+      "warehouse_no": "P7000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 7,
+      "distinct_items": 7,
+      "total_stock": 1451.0
+    },
+    {
+      "warehouse_no": "P8000",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 7,
+      "distinct_items": 7,
+      "total_stock": -114.0
+    },
+    {
+      "warehouse_no": "Q001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 1010.0
+    },
+    {
+      "warehouse_no": "QC20",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 25,
+      "distinct_items": 24,
+      "total_stock": 435294.0
+    },
+    {
+      "warehouse_no": "QC21",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 4,
+      "total_stock": 13900.0
+    },
+    {
+      "warehouse_no": "QC22",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 6,
+      "total_stock": 453.0
+    },
+    {
+      "warehouse_no": "QM-001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 7,
+      "distinct_items": 6,
+      "total_stock": 677.0
+    },
+    {
+      "warehouse_no": "RM01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 4,
+      "total_stock": 37574.0
+    },
+    {
+      "warehouse_no": "S002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8,
+      "distinct_items": 6,
+      "total_stock": 10.0
+    },
+    {
+      "warehouse_no": "S01366-A",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 4,
+      "total_stock": 940.0
+    },
+    {
+      "warehouse_no": "S01366-B",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 7,
+      "distinct_items": 7,
+      "total_stock": 80.0
+    },
+    {
+      "warehouse_no": "S01366-C",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 9,
+      "distinct_items": 7,
+      "total_stock": 2505.0
+    },
+    {
+      "warehouse_no": "S01366-D",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 4,
+      "total_stock": 141.0
+    },
+    {
+      "warehouse_no": "S01366-E1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 35.0
+    },
+    {
+      "warehouse_no": "S01366-E2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 12.0
+    },
+    {
+      "warehouse_no": "SA01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 7,
+      "distinct_items": 5,
+      "total_stock": 1400.0
+    },
+    {
+      "warehouse_no": "SA02",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 10,
+      "distinct_items": 5,
+      "total_stock": 160.0
+    },
+    {
+      "warehouse_no": "SB02",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 10,
+      "distinct_items": 5,
+      "total_stock": 2000.0
+    },
+    {
+      "warehouse_no": "SB03",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8,
+      "distinct_items": 5,
+      "total_stock": 440.0
+    },
+    {
+      "warehouse_no": "SC01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 10,
+      "distinct_items": 5,
+      "total_stock": 2600.0
+    },
+    {
+      "warehouse_no": "SCUD10",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8,
+      "distinct_items": 8,
+      "total_stock": 2225971.0
+    },
+    {
+      "warehouse_no": "SCUD20",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 20,
+      "distinct_items": 20,
+      "total_stock": 1392226.0
+    },
+    {
+      "warehouse_no": "SCUD20-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 2000.0
+    },
+    {
+      "warehouse_no": "SCUD21",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 500.0
+    },
+    {
+      "warehouse_no": "SCUD22",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "SCUD23",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 500.0
+    },
+    {
+      "warehouse_no": "SZ1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 5994106.0
+    },
+    {
+      "warehouse_no": "SZ2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 2000000.0
+    },
+    {
+      "warehouse_no": "TCA01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "TCA02",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "TEST",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 10,
+      "distinct_items": 9,
+      "total_stock": 1001469.0
+    },
+    {
+      "warehouse_no": "TEST01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "TH001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 1,
+      "total_stock": 772.0
+    },
+    {
+      "warehouse_no": "TH002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 1,
+      "total_stock": 101.0
+    },
+    {
+      "warehouse_no": "TH003",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 1,
+      "total_stock": 59.0
+    },
+    {
+      "warehouse_no": "TH011-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 10598.0
+    },
+    {
+      "warehouse_no": "TH011-2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 4500.0
+    },
+    {
+      "warehouse_no": "TH0121",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 1793.0
+    },
+    {
+      "warehouse_no": "TH012101",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 22,
+      "distinct_items": 22,
+      "total_stock": 17081.0
+    },
+    {
+      "warehouse_no": "TH012102",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 372.0
+    },
+    {
+      "warehouse_no": "TH012106",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 206.0
+    },
+    {
+      "warehouse_no": "V001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 4,
+      "total_stock": 19010.0
+    },
+    {
+      "warehouse_no": "V002",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 4,
+      "total_stock": 10.0
+    },
+    {
+      "warehouse_no": "VMI01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 1,
+      "total_stock": 180.0
+    },
+    {
+      "warehouse_no": "VMI02",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 2,
+      "total_stock": 8.0
+    },
+    {
+      "warehouse_no": "W0001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 100.0
+    },
+    {
+      "warehouse_no": "W1001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 200.0
+    },
+    {
+      "warehouse_no": "WHT10010",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 696.0
+    },
+    {
+      "warehouse_no": "Y001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "YS01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 35,
+      "distinct_items": 9,
+      "total_stock": 89212.0
+    },
+    {
+      "warehouse_no": "Z001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 4,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "Z005",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 12,
+      "distinct_items": 8,
+      "total_stock": 41.0
+    },
+    {
+      "warehouse_no": "Z006",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 4,
+      "total_stock": 28.0
+    },
+    {
+      "warehouse_no": "Z00812-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 16,
+      "distinct_items": 11,
+      "total_stock": 599.0
+    },
+    {
+      "warehouse_no": "Z00812-203",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 8,
+      "distinct_items": 7,
+      "total_stock": 71.0
+    },
+    {
+      "warehouse_no": "Z1-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": -5.0
+    },
+    {
+      "warehouse_no": "Z1211",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 10.0
+    },
+    {
+      "warehouse_no": "Z150213-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 3,
+      "total_stock": 10.0
+    },
+    {
+      "warehouse_no": "Z150213-2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 1,
+      "total_stock": 2.0
+    },
+    {
+      "warehouse_no": "Z151209-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 1.0
+    },
+    {
+      "warehouse_no": "Z151209-2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 1.0
+    },
+    {
+      "warehouse_no": "Z1W1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 32,
+      "distinct_items": 6,
+      "total_stock": 936.0
+    },
+    {
+      "warehouse_no": "Z1W2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 19,
+      "distinct_items": 7,
+      "total_stock": 229.0
+    },
+    {
+      "warehouse_no": "Z1W3",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 23,
+      "distinct_items": 5,
+      "total_stock": 1135.0
+    },
+    {
+      "warehouse_no": "Z2031",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 9,
+      "distinct_items": 4,
+      "total_stock": 106.0
+    },
+    {
+      "warehouse_no": "ZA1-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 10.0
+    },
+    {
+      "warehouse_no": "ZA1-2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "ZB-01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 242.0
+    },
+    {
+      "warehouse_no": "ZB-Z1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 65.0
+    },
+    {
+      "warehouse_no": "ZB1-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 188.0
+    },
+    {
+      "warehouse_no": "ZD-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 33.0
+    },
+    {
+      "warehouse_no": "ZD-2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 16.0
+    },
+    {
+      "warehouse_no": "ZLL5_01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 19,
+      "distinct_items": 9,
+      "total_stock": 179999998297.0
+    },
+    {
+      "warehouse_no": "ZLLCK01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 3,
+      "distinct_items": 2,
+      "total_stock": 400.0
+    },
+    {
+      "warehouse_no": "ZLLCK02",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 150.0
+    },
+    {
+      "warehouse_no": "ZLL_01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 5,
+      "distinct_items": 3,
+      "total_stock": 19999998698.0
+    },
+    {
+      "warehouse_no": "ZLL_B001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 30,
+      "distinct_items": 5,
+      "total_stock": 1792998.0
+    },
+    {
+      "warehouse_no": "ZSCK001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 22,
+      "distinct_items": 10,
+      "total_stock": 10400.0
+    },
+    {
+      "warehouse_no": "ZTH-01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 6,
+      "total_stock": 2210.0
+    },
+    {
+      "warehouse_no": "ZTH-02",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 2197.0
+    },
+    {
+      "warehouse_no": "ZW001",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 7,
+      "distinct_items": 6,
+      "total_stock": 97.0
+    },
+    {
+      "warehouse_no": "ZW007",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "ZW101",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "ZW1013-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 36,
+      "distinct_items": 22,
+      "total_stock": 3220.0
+    },
+    {
+      "warehouse_no": "ZW1013-2",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 14,
+      "distinct_items": 9,
+      "total_stock": 150.0
+    },
+    {
+      "warehouse_no": "ZW1013-3",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 6,
+      "distinct_items": 6,
+      "total_stock": 22.0
+    },
+    {
+      "warehouse_no": "ZW1014-3",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 10.0
+    },
+    {
+      "warehouse_no": "ZW914-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 10.0
+    },
+    {
+      "warehouse_no": "ZW922-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 0
+    },
+    {
+      "warehouse_no": "ZW94-1",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 2,
+      "distinct_items": 2,
+      "total_stock": 11.0
+    },
+    {
+      "warehouse_no": "lut01",
+      "warehouse_name": "待確認",
+      "location": "待確認",
+      "record_count": 1,
+      "distinct_items": 1,
+      "total_stock": 0
+    }
+  ]
+}

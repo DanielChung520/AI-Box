@@ -682,11 +682,83 @@
     },
     "TIME_RANGE": {
       "DUCKDB": {
-        "table": "SFAA_T",
-        "column": "SFAA011",
+        "table": "SFCA_T",
+        "column": "SFCAENT",
         "aggregation": "NONE",
         "operator": "BETWEEN",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet"
+        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
+      }
+    },
+    "WORK_ORDER_COUNT": {
+      "DUCKDB": {
+        "table": "SFCA_T",
+        "column": "SFCADOCNO",
+        "aggregation": "COUNT",
+        "operator": "=",
+        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
+      }
+    },
+    "MART_INVENTORY_WIDE": {
+      "DUCKDB": {
+        "table": "mart_inventory_wide",
+        "column": "item_no",
+        "aggregation": "NONE",
+        "operator": "=",
+        "s3_path": "duckdb://mart_inventory_wide"
+      }
+    },
+    "MART_WORK_ORDER_WIDE": {
+      "DUCKDB": {
+        "table": "mart_work_order_wide",
+        "column": "item_no",
+        "aggregation": "NONE",
+        "operator": "=",
+        "s3_path": "duckdb://mart_work_order_wide"
+      }
+    },
+    "MART_SHIPPING_WIDE": {
+      "DUCKDB": {
+        "table": "mart_shipping_wide",
+        "column": "doc_no",
+        "aggregation": "NONE",
+        "operator": "=",
+        "s3_path": "duckdb://mart_shipping_wide"
+      }
+    },
+    "ITEM_MASTER": {
+      "DUCKDB": {
+        "table": "item_master",
+        "column": "item_no",
+        "aggregation": "NONE",
+        "operator": "=",
+        "s3_path": "arangodb://mm_master?type=item"
+      }
+    },
+    "WAREHOUSE_MASTER": {
+      "DUCKDB": {
+        "table": "warehouse_master",
+        "column": "warehouse_no",
+        "aggregation": "NONE",
+        "operator": "=",
+        "s3_path": "arangodb://mm_master?type=warehouse"
+      }
+    },
+    "WORKSTATION_MASTER": {
+      "DUCKDB": {
+        "table": "workstation_master",
+        "column": "workstation_id",
+        "aggregation": "NONE",
+        "operator": "=",
+        "s3_path": "arangodb://mm_master?type=workstation"
+      }
+    },
+    "CUSTOMER_MASTER": {
+      "DUCKDB": {
+        "table": "customer_master",
+        "column": "customer_no",
+        "aggregation": "NONE",
+        "operator": "=",
+        "s3_path": "arangodb://mm_master?type=customer"
       }
     }
   }

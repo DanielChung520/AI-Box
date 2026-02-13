@@ -570,26 +570,47 @@ class AgentDisplayConfigStoreService:
         Returns:
             是否更新成功
         """
-        config_key = _generate_config_key("agent", agent_id=agent_id, tenant_id=tenant_id)
-        doc = self._collection.get(config_key)
+        if self._client.db is None or self._client.db.aql is None:
+            raise RuntimeError("AQL is not available")
 
-        if doc is None:
-            self._logger.warning(
-                "agent_config_not_found",
-                agent_id=agent_id,
-                tenant_id=tenant_id,
-            )
-            return False
-
-        now = datetime.utcnow().isoformat()
-        update_data = {
-            "_key": config_key,
-            "agent_config": agent_config.model_dump(),
-            "updated_at": now,
-            "updated_by": updated_by,
+        # 使用 AQL 按 agent_id 查詢（而非 _key）
+        aql = """
+        FOR doc IN agent_display_configs
+        FILTER doc.config_type == @config_type
+        AND doc.tenant_id == @tenant_id
+        AND doc.agent_config.id == @agent_id
+        LIMIT 1
+        RETURN doc
+        """
+        bind_vars = {
+            "config_type": "agent",
+            "tenant_id": tenant_id,
+            "agent_id": agent_id,
         }
 
         try:
+            cursor = self._client.db.aql.execute(aql, bind_vars=bind_vars)
+            docs = list(cursor)
+
+            if not docs:
+                self._logger.warning(
+                    "agent_config_not_found",
+                    agent_id=agent_id,
+                    tenant_id=tenant_id,
+                )
+                return False
+
+            doc = docs[0]
+            config_key = doc.get("_key")
+
+            now = datetime.utcnow().isoformat()
+            update_data = {
+                "_key": config_key,
+                "agent_config": agent_config.model_dump(),
+                "updated_at": now,
+                "updated_by": updated_by,
+            }
+
             self._collection.update(update_data)
             self._logger.info(
                 "agent_config_updated",

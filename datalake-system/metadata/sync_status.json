@@ -1,0 +1,22 @@
+{
+  "start_time": "2026-02-13T06:47:45.398471+00:00",
+  "end_time": null,
+  "duration_seconds": null,
+  "items": {
+    "documents": 0,
+    "vectors": 0
+  },
+  "warehouses": {
+    "documents": 0,
+    "vectors": 0
+  },
+  "workstations": {
+    "documents": 0,
+    "vectors": 0
+  },
+  "total_documents": 0,
+  "total_vectors": 0,
+  "errors": [
+    "ArangoDB: name 'ItemDocument' is not defined"
+  ]
+}

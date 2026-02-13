@@ -1,0 +1,6 @@
+# packages.yml
+# dbt 套件依賴
+
+packages:
+  - package: dbt-labs/dbt_utils
+    version: 1.3.0

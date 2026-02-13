@@ -108,10 +108,12 @@ class DuckDBConfig(BaseSettings):
     """DuckDB 配置"""
 
     s3: S3Config = Field(default_factory=S3Config)
-    memory_limit: str = "8GB"
+    memory_limit: str = "4GB"
     threads: int = 4
     temp_directory: str = "/tmp/duckdb"
     enable_external_access: bool = True
+    max_memory: str = "8GB"
+    optimizer_timeout: int = 10000
 
     class Config:
         env_prefix = "DATA_AGENT_JP_DUCKDB_"
@@ -121,10 +123,10 @@ class LLMConfig(BaseSettings):
     """LLM 配置"""
 
     endpoint: str = "http://localhost:11434"
-    model: str = "qwen3-coder:30b"
-    fallback_model: str = "gpt-oss:120b"
-    temperature: float = 0.3
-    timeout: int = 30
+    model: str = "llama3.2:3b-instruct-q4_0"
+    fallback_model: str = "llama3:8b"
+    temperature: float = 0.05
+    timeout: int = 45
 
     class Config:
         env_prefix = "DATA_AGENT_JP_LLM_"

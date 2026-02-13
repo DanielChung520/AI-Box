@@ -1,7 +1,7 @@
 // 代碼功能說明: Agent Display Config 編輯模態框組件
 // 創建日期: 2026-01-13
 // 創建人: Daniel Chung
-// 最後修改日期: 2026-01-15 09:16 UTC+8
+// 最後修改日期: 2026-02-13 10:00 UTC+8
 
 /**
  * Agent Display Config 編輯模態框
@@ -15,6 +15,7 @@ import { cn } from '../lib/utils';
 import { getAgentConfig, updateAgentConfig, verifySecret, generateSecret } from '../lib/api';
 import type { AgentConfig, MultilingualText } from '../types/agentDisplayConfig';
 import IconPicker from './IconPicker';
+import { Folder, Database, Loader2, Check } from 'lucide-react';
 
 interface AgentDisplayConfigModalProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ interface AgentDisplayConfigModalProps {
 type AgentType = 'planning' | 'execution' | 'review' | '';
 type ProtocolType = 'http' | 'mcp';
 
-export default function AgentDisplayConfigModal({
+function AgentDisplayConfigModal({
   isOpen,
   agentId,
   categoryId,
@@ -52,6 +53,11 @@ export default function AgentDisplayConfigModal({
   const [agentType, setAgentType] = useState<AgentType>('execution');
   const [capabilities, setCapabilities] = useState<string[]>([]);
   const [capabilityInput, setCapabilityInput] = useState('');
+
+  // 知識庫選擇
+  const [availableKnowledgeBases, setAvailableKnowledgeBases] = useState<Array<{id: string, name: string, domain: string, domainName: string}>>([]);
+  const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState<string[]>([]);
+  const [isLoadingKB, setIsLoadingKB] = useState(false);
 
   // 多語言名稱
   const [nameEn, setNameEn] = useState('');
@@ -88,6 +94,46 @@ export default function AgentDisplayConfigModal({
 
   const removeCapability = (cap: string) => {
     setCapabilities(capabilities.filter((c) => c !== cap));
+  };
+
+  // 獲取知識庫列表
+  const fetchKnowledgeBases = useCallback(async () => {
+    setIsLoadingKB(true);
+    try {
+      const response = await fetch('/api/v1/knowledge-bases');
+      if (response.ok) {
+        const data = await response.json();
+        const kbs = (data.data?.items || []).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          domain: item.domain,
+          domainName: item.domainName || item.domain,
+        }));
+        setAvailableKnowledgeBases(kbs);
+      }
+    } catch (error) {
+      console.warn('[AgentDisplayConfigModal] 獲取知識庫失敗:', error);
+    } finally {
+      setIsLoadingKB(false);
+    }
+  }, []);
+
+  // 切換知識庫選擇
+  const toggleKnowledgeBase = (kbId: string) => {
+    setSelectedKnowledgeBases(prev =>
+      prev.includes(kbId)
+        ? prev.filter(id => id !== kbId)
+        : [...prev, kbId]
+    );
+  };
+
+  // 知識庫全選/取消全選
+  const toggleAllKnowledgeBases = (selectAll: boolean) => {
+    if (selectAll) {
+      setSelectedKnowledgeBases(availableKnowledgeBases.map(kb => kb.id));
+    } else {
+      setSelectedKnowledgeBases([]);
+    }
   };
 
   // Secret 驗證處理
@@ -136,6 +182,8 @@ export default function AgentDisplayConfigModal({
       setStatus(config.status || 'online');
       setAgentType((config.agent_type as AgentType) || 'execution');
       setCapabilities(config.capabilities || []);
+      // 填充選擇的知識庫
+      setSelectedKnowledgeBases(config.knowledge_bases || []);
 
       // 填充多語言名稱
       if (config.name) {
@@ -207,22 +255,19 @@ export default function AgentDisplayConfigModal({
     setSecretVerificationError(null);
     setError(null);
     setActiveTab('basic');
+    setSelectedKnowledgeBases([]);
   }, [isEditMode, categoryId]);
 
   useEffect(() => {
-    if (isOpen && isEditMode && agentId) {
-      loadAgentConfig();
-    } else if (isOpen && !isEditMode) {
-      // 創建模式：重置表單
-      resetForm();
+    if (isOpen) {
+      fetchKnowledgeBases();
+      if (isEditMode && agentId) {
+        loadAgentConfig();
+      } else if (!isEditMode) {
+        resetForm();
+      }
     }
-  }, [isOpen, agentId, isEditMode, loadAgentConfig, resetForm]);
-
-  // 調試：監聽 capabilities 變化
-  useEffect(() => {
-    console.log('[AgentDisplayConfigModal] capabilities 變化', capabilities);
-  }, [capabilities]);
-
+  }, [isOpen, agentId, isEditMode, loadAgentConfig, resetForm, fetchKnowledgeBases]);
 
   const handleClose = () => {
     if (!isSubmitting && !isLoading) {
@@ -322,6 +367,7 @@ export default function AgentDisplayConfigModal({
         secret_id: isInternal ? undefined : secretId.trim(),
         secret_key: isInternal ? undefined : secretKey.trim(),
         capabilities,
+        knowledge_bases: selectedKnowledgeBases,
       };
 
       // 調用 API 更新
@@ -613,93 +659,93 @@ export default function AgentDisplayConfigModal({
                     </div>
                   </div>
 
-                  {/* 能力列表 */}
+                  {/* 知識庫選擇 */}
                   <div>
                     <label className="block text-sm font-medium text-primary mb-2">
-                      {t('agentConfig.fields.capabilities', '能力列表')}
+                      知識庫選擇
                     </label>
-                    <div className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={capabilityInput}
-                        onChange={(e) => setCapabilityInput(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            addCapability();
-                          }
-                        }}
-                        className="flex-1 px-4 py-2 bg-tertiary border border-primary rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={t('agentConfig.placeholders.capability', '輸入能力並按 Enter 添加')}
-                        disabled={isSubmitting || isLoading}
-                      />
-                      <button
-                        onClick={addCapability}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                        disabled={isSubmitting || isLoading}
-                      >
-                        <i className="fa-solid fa-plus"></i>
-                      </button>
-                    </div>
-                    
-                    {/* 常用能力快捷按鈕 */}
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          console.log('[AgentDisplayConfigModal] 點擊 MM-Agent 知識庫按鈕', {
-                            currentCapabilities: capabilities,
-                            includes: capabilities.includes('mm_agent_knowledge'),
-                            isSubmitting,
-                            isLoading,
-                          });
-                          if (!capabilities.includes('mm_agent_knowledge')) {
-                            const newCapabilities = [...capabilities, 'mm_agent_knowledge'];
-                            console.log('[AgentDisplayConfigModal] 更新 capabilities', newCapabilities);
-                            setCapabilities(newCapabilities);
-                          } else {
-                            console.log('[AgentDisplayConfigModal] mm_agent_knowledge 已存在，不添加');
-                          }
-                        }}
-                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                          capabilities.includes('mm_agent_knowledge')
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/50'
-                            : 'bg-tertiary text-tertiary hover:text-primary border border-primary/30'
-                        }`}
-                        disabled={isSubmitting || isLoading}
-                      >
-                        <i className="fa-solid fa-database mr-1"></i>
-                        MM-Agent 知識庫
-                      </button>
-                    </div>
-                    
-                    {capabilities.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {capabilities.map((cap) => (
-                          <span
-                            key={cap}
-                            className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm flex items-center gap-2"
-                          >
-                            {cap === 'mm_agent_knowledge' && (
-                              <i className="fa-solid fa-database text-xs"></i>
-                            )}
-                            {cap}
-                            <button
-                              onClick={() => {
-                                console.log('[AgentDisplayConfigModal] 移除 capability', cap);
-                                removeCapability(cap);
-                              }}
-                              className="hover:text-red-400"
-                              disabled={isSubmitting || isLoading}
-                            >
-                              <i className="fa-solid fa-times text-xs"></i>
-                            </button>
-                          </span>
-                        ))}
+
+                    {isLoadingKB ? (
+                      <div className="flex items-center gap-2 text-tertiary py-4">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">載入知識庫中...</span>
                       </div>
-                    )}
-                    {capabilities.length === 0 && (
-                      <p className="text-xs text-tertiary">尚未添加任何能力</p>
+                    ) : availableKnowledgeBases.length === 0 ? (
+                      <div className="text-center py-8 text-tertiary">
+                        <Folder className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm">尚未創建知識庫</p>
+                        <p className="text-xs mt-1">請先在知識庫管理中創建知識庫</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* 全選/取消全選 */}
+                        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-primary/30">
+                          <button
+                            type="button"
+                            onClick={() => toggleAllKnowledgeBases(true)}
+                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                            disabled={isSubmitting || isLoading}
+                          >
+                            全選
+                          </button>
+                          <span className="text-tertiary">|</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleAllKnowledgeBases(false)}
+                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                            disabled={isSubmitting || isLoading}
+                          >
+                            取消全選
+                          </button>
+                          <span className="text-xs text-tertiary ml-auto">
+                            已選擇 {selectedKnowledgeBases.length} / {availableKnowledgeBases.length}
+                          </span>
+                        </div>
+
+                        {/* 知識庫列表 */}
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {availableKnowledgeBases.map((kb) => (
+                            <label
+                              key={kb.id}
+                              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                selectedKnowledgeBases.includes(kb.id)
+                                  ? 'border-blue-500 bg-blue-500/10'
+                                  : 'border-primary/30 hover:bg-tertiary/50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedKnowledgeBases.includes(kb.id)}
+                                onChange={() => toggleKnowledgeBase(kb.id)}
+                                className="w-4 h-4 rounded border-primary bg-tertiary text-blue-500 focus:ring-blue-500"
+                                disabled={isSubmitting || isLoading}
+                              />
+                              <Database className={`w-5 h-5 flex-shrink-0 ${
+                                selectedKnowledgeBases.includes(kb.id) ? 'text-blue-400' : 'text-tertiary'
+                              }`} />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${
+                                  selectedKnowledgeBases.includes(kb.id) ? 'text-blue-300' : 'text-primary'
+                                }`}>
+                                  {kb.name}
+                                </p>
+                                <p className="text-xs text-tertiary truncate">
+                                  {kb.domainName}
+                                </p>
+                              </div>
+                              {selectedKnowledgeBases.includes(kb.id) && (
+                                <Check className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                              )}
+                            </label>
+                          ))}
+                        </div>
+
+                        {selectedKnowledgeBases.length === 0 && (
+                          <p className="text-xs text-tertiary mt-3 text-center">
+                            尚未選擇任何知識庫
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -1040,3 +1086,7 @@ export default function AgentDisplayConfigModal({
     </div>
   );
 }
+
+AgentDisplayConfigModal.displayName = 'AgentDisplayConfigModal';
+
+export default AgentDisplayConfigModal;

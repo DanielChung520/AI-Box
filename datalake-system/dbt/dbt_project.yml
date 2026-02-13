@@ -1,0 +1,24 @@
+# dbt project.yml
+# 代碼功能說明: dbt 專案配置
+# 創建日期: 2026-02-13
+# 創建人: Daniel Chung
+
+name: tiptop_jp
+version: '1.0.0'
+profile: tiptop_jp
+
+config-version: 2
+
+vars:
+  # 資料來源配置
+  raw_database: tiptop_raw
+  raw_schema: raw
+  mart_database: tiptop_mart
+  mart_schema: mart
+
+# 模型配置
+models:
+  tiptop_jp:
+    marts:
+      +materialized: table
+      +schema: mart

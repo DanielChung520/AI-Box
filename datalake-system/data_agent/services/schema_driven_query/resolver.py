@@ -200,12 +200,24 @@ class Resolver:
 
     def _parse_nlq(self, context: ResolverContext) -> ResolverContext:
         """State 1: 解析 NLQ"""
-        from .parser import SimpleNLQParser
+        from .parser import SimpleNLQParser, LLMNLQParser
 
         context.transition_to(ResolverState.PARSE_NLQ)
 
-        parser = SimpleNLQParser(self._intents)
-        parsed = parser.parse(context.nlq)
+        # 使用 LLM 作為主要解析器
+        llm_parser = LLMNLQParser(skip_validation=True)
+        llm_parser.load_intents(self._intents)
+
+        parsed = llm_parser.parse(context.nlq)
+
+        # 如果 LLM 解析失敗或信心度低，嘗試簡單解析器
+        if parsed.confidence < 0.3:
+            logger.warning(
+                f"LLM parsing confidence too low ({parsed.confidence}), falling back to simple parser"
+            )
+            simple_parser = SimpleNLQParser(skip_validation=True)
+            simple_parser.load_intents(self._intents)
+            parsed = simple_parser.parse(context.nlq)
 
         if parsed.confidence < 0.3:
             raise ResolverError(
@@ -215,7 +227,9 @@ class Resolver:
             )
 
         context.parsed = parsed
-        logger.info(f"Parsed intent: {parsed.intent}, params: {parsed.params}")
+        logger.info(
+            f"Parsed intent: {parsed.intent}, params: {parsed.params}, confidence: {parsed.confidence}"
+        )
 
         return context
 
@@ -361,6 +375,16 @@ class Resolver:
 
             # 處理 TIME_RANGE
             if filter_name == "TIME_RANGE" and matched.value:
+                # 對於簡單統計查詢（只有 COUNT），跳過時間過濾
+                # 因為 S3 path 已經按 year/month 分區
+                is_simple_count = (
+                    len(context.intent.output.metrics) == 1
+                    and len(context.intent.output.dimensions) == 0
+                )
+                if is_simple_count:
+                    logger.info("Skipping TIME_RANGE for simple COUNT query")
+                    continue
+
                 start_date, end_date = parse_time_range_value(matched.value)
                 if start_date and end_date:
                     logger.info(f"TIME_RANGE parsed: {start_date} to {end_date}")
@@ -371,7 +395,11 @@ class Resolver:
                             column=binding.column,
                             aggregation=None,
                             operator=OperatorType.BETWEEN,
-                            value=f"{start_date} AND {end_date}",
+                            value={
+                                "type": "BETWEEN",
+                                "start": f"'{start_date}'",
+                                "end": f"'{end_date}'",
+                            },
                         )
                     )
                     continue
@@ -457,8 +485,16 @@ class Resolver:
         if context.parsed:
             if context.parsed.limit:
                 ast.limit = context.parsed.limit
+            elif ast.limit is None:
+                # 預設 LIMIT，防止全表掃描
+                ast.limit = 100
+                logger.info("Added default LIMIT=100 to prevent full table scan")
             if context.parsed.offset:
                 ast.offset = context.parsed.offset
+        elif ast.limit is None:
+            # 預設 LIMIT，防止全表掃描
+            ast.limit = 100
+            logger.info("Added default LIMIT=100 to prevent full table scan")
 
         context.ast = ast
 
@@ -477,9 +513,23 @@ class Resolver:
 
         datasource = self.config.datasource.upper()
 
-        from .sql_generator import get_sql_generator
+        from .sql_generator import DuckDBSQLGenerator, get_sql_generator
 
-        generator = get_sql_generator(datasource)
+        # 獲取 bindings
+        bindings_data = {}
+        if self._bindings:
+            bindings_data = self._bindings.bindings
+
+        # 根據資料源創建生成器
+        if datasource == "DUCKDB":
+            generator = DuckDBSQLGenerator(
+                bucket="tiptop-raw",
+                dialect=datasource,
+                bindings=bindings_data,
+            )
+        else:
+            generator = get_sql_generator(datasource)
+
         context.sql = generator.generate(context.ast)
 
         logger.info(f"SQL generated (dialect={datasource}): {context.sql[:100]}...")

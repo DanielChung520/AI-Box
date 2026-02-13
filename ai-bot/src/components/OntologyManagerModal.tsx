@@ -203,7 +203,7 @@ export default function OntologyManagerModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl max-h-[90vh] flex flex-col">
+      <div className="relative w-full max-w-4xl bg-white text-gray-900 rounded-xl shadow-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-3">
             <Database className="w-6 h-6 text-blue-500" />
@@ -442,7 +442,7 @@ export default function OntologyManagerModal({
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="fixed inset-0 bg-black/50" onClick={() => setShowCreateModal(false)} />
-            <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="relative w-full max-w-lg bg-white text-gray-900 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white">
                 <h3 className="text-lg font-semibold">新增知識本體</h3>
                 <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
