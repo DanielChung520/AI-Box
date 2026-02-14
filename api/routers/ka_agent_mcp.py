@@ -393,9 +393,7 @@ async def get_knowledge_base_stats(
                                     files = files_data.get("data", {}).get("items", [])
                                     kb_total += len(files)
                                     kb_vectorized += sum(
-                                        1
-                                        for f in files
-                                        if f.get("hasS3") and f.get("vectorCount", 0) > 0
+                                        1 for f in files if f.get("vector_count", 0) > 0
                                     )
 
                         stats.append(
