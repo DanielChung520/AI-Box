@@ -1042,22 +1042,21 @@ async def _handle_knowledge_base_query(
                 except Exception as e:
                     logger.warning(f"[knowledge_base] 查詢知識庫 {kb_id} 失敗: {e}")
 
-            # 構建回覆
+            # 構建回覆 - 直接明確的回答，不需要 LLM 重新生成
             if total_files > 0:
-                response = f"""【知識庫統計】
+                files_list = "\n".join(kb_details)
+                response = f"""【知識庫文件統計】
 
-✅ 已找到 **{total_files} 個** 知識庫文件
+目前知識庫共有 **{total_files} 個** 文件已成功向量化，可以進行檢索和問答。
 
-已向量的文件可以進行檢索和問答。
+已向量化文件列表：
+{files_list}
 
-詳情：
-{chr(10).join(kb_details)}
-
-如需查看特定文件，請使用「文件管理」功能。"""
+已向量化完成的文件可以直接進行語意搜尋和問答。"""
             else:
-                response = """【知識庫統計】
+                response = """【知識庫文件統計】
 
-⚠️ 知識庫中暫時沒有文件。
+⚠️ 知識庫中尚未有任何文件。
 
 請使用「上傳文件」功能將文件上傳到知識庫，上傳完成並向量化後即可進行檢索和問答。"""
 
