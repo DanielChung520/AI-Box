@@ -2606,6 +2606,58 @@ async def _process_chat_request(
                 else:
                     logger.error(f"[mm-agent] MM-Agent 調用失敗: HTTP {response.status_code}")
 
+        # 2026-02-14 新增：一般 Chat 知識庫查詢處理
+        # 如果不是 MM-Agent，但用戶選擇了其他 Agent，且查詢是知識庫相關
+        elif user_selected_agent_id and user_selected_agent_id != "mm-agent":
+            if _is_knowledge_base_query(last_user_text):
+                sys.stderr.write(
+                    f"\n[chat] 📚 檢測到知識庫查詢 (Agent: {user_selected_agent_id})\n"
+                    f"  - query: {last_user_text[:100]}...\n"
+                )
+                sys.stderr.flush()
+
+                # 獲取 Agent 配置中選擇的知識庫
+                selected_kb_ids = []
+                try:
+                    from services.api.services.agent_display_config_store_service import (
+                        AgentDisplayConfigStoreService,
+                    )
+
+                    store = AgentDisplayConfigStoreService()
+                    agent_config = store.get_agent_config(user_selected_agent_id, tenant_id=None)
+                    if agent_config and hasattr(agent_config, "knowledge_bases"):
+                        selected_kb_ids = agent_config.knowledge_bases or []
+                except Exception as e:
+                    logger.warning(f"[chat] 獲取 Agent 知識庫配置失敗: {e}")
+
+                if selected_kb_ids:
+                    # 調用 KA-Agent 進行檢索
+                    kb_response = await _handle_knowledge_base_query(
+                        query=last_user_text,
+                        user_id=current_user.user_id,
+                        selected_kb_ids=selected_kb_ids,
+                    )
+
+                    response = ChatResponse(
+                        content=kb_response,
+                        session_id=session_id,
+                        task_id=task_id,
+                        routing=RoutingInfo(
+                            provider=user_selected_agent_id,
+                            model="knowledge-query",
+                            strategy="ka-agent-retrieval",
+                        ),
+                        observability=ObservabilityInfo(
+                            request_id=request_id,
+                            session_id=session_id,
+                            task_id=task_id,
+                        ),
+                    )
+                    return response
+                else:
+                    sys.stderr.write(f"\n[chat] Agent {user_selected_agent_id} 未配置知識庫\n")
+                    sys.stderr.flush()
+
     # G3：用 windowed history 作為 MoE 的 messages（並保留前端提供的 system message）
     system_messages = [m for m in messages if m.get("role") == "system"]
     windowed_history = context_manager.get_context_with_window(session_id=session_id)
