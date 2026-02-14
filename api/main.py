@@ -87,6 +87,7 @@ from api.routers import (
     health,
     knowledge_base,
     knowledge_ontology,
+    ka_agent_mcp,
     llm_models,
     mcp,
     moe,
@@ -491,6 +492,7 @@ app.include_router(config_definitions.router, prefix=API_PREFIX, tags=["Config D
 app.include_router(ontology.router, prefix=API_PREFIX)
 app.include_router(knowledge_base.router, prefix=API_PREFIX, tags=["Knowledge Base"])
 app.include_router(knowledge_ontology.router, prefix=API_PREFIX, tags=["Knowledge Ontology"])
+app.include_router(ka_agent_mcp.router, prefix=API_PREFIX, tags=["KA-Agent MCP"])
 app.include_router(llm_models.router, prefix=API_PREFIX, tags=["LLM Models"])
 app.include_router(moe.router, prefix=API_PREFIX, tags=["MoE"])
 app.include_router(moe_metrics.router, prefix=API_PREFIX, tags=["MoE Metrics"])
