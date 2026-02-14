@@ -200,11 +200,18 @@ class Resolver:
 
     def _parse_nlq(self, context: ResolverContext) -> ResolverContext:
         """State 1: 解析 NLQ"""
-        from .parser import SimpleNLQParser, LLMNLQParser
+        from .parser import SimpleNLQParser, LLMNLQParser, UltraFastParser
 
         context.transition_to(ResolverState.PARSE_NLQ)
 
-        # 使用 LLM 作為主要解析器
+        # 優先使用 UltraFastParser（完全不呼叫 LLM）
+        ultra_parsed = UltraFastParser.parse(context.nlq)
+        if ultra_parsed and ultra_parsed.confidence >= 0.6:
+            logger.info(f"UltraFastParser matched: {ultra_parsed.intent}")
+            context.parsed = ultra_parsed
+            return context
+
+        # 如果 UltraFastParser 失敗，使用 LLM
         llm_parser = LLMNLQParser(skip_validation=True)
         llm_parser.load_intents(self._intents)
 

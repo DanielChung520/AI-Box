@@ -9,18 +9,63 @@
 - 執行 DuckDB SQL 查詢
 - 連接 S3 (SeaweedFS)
 - 管理連線和錯誤處理
+- 查詢結果快取
 """
 
 import logging
 import time
 import re
+import hashlib
 from typing import Any, Dict, List, Optional
+from collections import OrderedDict
+from threading import Lock
 
 import duckdb
 
 from .config import DuckDBConfig, S3Config
 
 logger = logging.getLogger(__name__)
+
+
+class QueryResultCache:
+    """查詢結果快取"""
+
+    def __init__(self, max_size: int = 100, ttl_seconds: int = 300):
+        self.max_size = max_size
+        self.ttl = ttl_seconds
+        self.cache: OrderedDict = OrderedDict()
+        self.lock = Lock()
+
+    def _make_key(self, sql: str) -> str:
+        return hashlib.md5(sql.encode("utf-8")).hexdigest()
+
+    def get(self, sql: str) -> Optional[Dict]:
+        with self.lock:
+            key = self._make_key(sql)
+            if key not in self.cache:
+                return None
+
+            entry = self.cache[key]
+            if time.time() - entry["timestamp"] > self.ttl:
+                del self.cache[key]
+                return None
+
+            self.cache.move_to_end(key)
+            logger.info(f"Query result cache hit")
+            return entry["data"]
+
+    def set(self, sql: str, data: Dict):
+        with self.lock:
+            key = self._make_key(sql)
+            if key in self.cache:
+                del self.cache[key]
+            elif len(self.cache) >= self.max_size:
+                self.cache.popitem(last=False)
+
+            self.cache[key] = {"data": data, "timestamp": time.time()}
+
+
+_query_result_cache = QueryResultCache(max_size=50, ttl_seconds=600)
 
 
 def parse_time_range_from_sql(sql: str) -> tuple[Optional[str], Optional[str]]:
@@ -183,6 +228,10 @@ class DuckDBExecutor:
             logger.info(f"Applying TIME_RANGE optimization: year={year}, month={month}")
             # 將 year=*/month=* 替換為特定的 year/month
             mapped_sql = re.sub(r"year=\*/month=\*", f"year={year}/month={month:02d}", mapped_sql)
+
+        # 添加預設 LIMIT（如果沒有的話）
+        if "LIMIT" not in mapped_sql.upper():
+            mapped_sql = mapped_sql.strip().rstrip(";") + " LIMIT 100"
 
         return mapped_sql
 

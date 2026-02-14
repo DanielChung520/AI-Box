@@ -7,17 +7,22 @@ Data-Agent-JP NLQ 解析器
 - 識別意圖和參數
 - 支援 Master Data Validation
 - 新增分頁功能（LIMIT/OFFSET）
+- 新增 LLM 回應快取
 
 建立日期: 2026-02-10
 建立人: Daniel Chung
-最後修改日期: 2026-02-11
+最後修改日期: 2026-02-14
 """
 
 import json
 import logging
 import re
 import httpx
+import hashlib
+import time
 from typing import Dict, Any, Optional, List
+from collections import OrderedDict
+from threading import Lock
 
 from .config import get_config, LLMConfig
 from .models import ParsedIntent, IntentDefinition, IntentsContainer
@@ -30,6 +35,60 @@ from .exceptions import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class LRUCache:
+    """簡單 LRU 快取"""
+
+    def __init__(self, max_size: int = 1000, ttl_seconds: int = 3600):
+        self.max_size = max_size
+        self.ttl = ttl_seconds
+        self.cache: OrderedDict = OrderedDict()
+        self.lock = Lock()
+
+    def _make_key(self, nlq: str) -> str:
+        """產生快取 key"""
+        return hashlib.md5(nlq.encode("utf-8")).hexdigest()
+
+    def get(self, key: str) -> Optional[Dict]:
+        """取得快取"""
+        with self.lock:
+            if key not in self.cache:
+                return None
+
+            entry = self.cache[key]
+            # 檢查 TTL
+            if time.time() - entry["timestamp"] > self.ttl:
+                del self.cache[key]
+                return None
+
+            # 移到末尾（最近使用）
+            self.cache.move_to_end(key)
+            return entry["data"]
+
+    def set(self, key: str, data: Dict):
+        """設定快取"""
+        with self.lock:
+            if key in self.cache:
+                del self.cache[key]
+            elif len(self.cache) >= self.max_size:
+                # 移除最舊的項目
+                self.cache.popitem(last=False)
+
+            self.cache[key] = {"data": data, "timestamp": time.time()}
+
+    def clear(self):
+        """清除快取"""
+        with self.lock:
+            self.cache.clear()
+
+    @property
+    def size(self) -> int:
+        return len(self.cache)
+
+
+# 全域 LLM 回應快取
+_llm_cache = LRUCache(max_size=500, ttl_seconds=7200)
 
 
 class PaginationExtractor:
@@ -93,6 +152,144 @@ class PaginationExtractor:
         return result
 
 
+class IntentPreprocessor:
+    """意圖預處理器 - 快速判斷查詢類型"""
+
+    INTENT_CATEGORIES = {
+        "INVENTORY": ["庫存", "在庫", "料號", "stock", "inventory"],
+        "WORK_ORDER": ["工單", "WO", "work order", "製造工單"],
+        "MANUFACTURING": ["製造", "工序", "工作站", "進捗"],
+        "SHIPPING": ["出貨", "出荷", "出貨通知"],
+        "PRICE": ["售價", "單價", "價格"],
+        "QUALITY": ["品質", "不良", "報廢", "重工"],
+    }
+
+    @staticmethod
+    def categorize(nlq: str) -> str:
+        nlq_lower = nlq.lower()
+        scores = {}
+        for category, keywords in IntentPreprocessor.INTENT_CATEGORIES.items():
+            score = sum(1 for kw in keywords if kw.lower() in nlq_lower)
+            if score > 0:
+                scores[category] = score
+        if scores:
+            best = max(scores.items(), key=lambda x: x[1])
+            return best[0]
+        return "OTHER"
+
+    @staticmethod
+    def get_table_hint(category: str) -> str:
+        hints = {
+            "INVENTORY": "INAG_T: INAG001=料號, INAG004=倉庫, INAG008=庫存",
+            "WORK_ORDER": "SFCA_T: SFCADOCNO=工單號, SFCA003=產量",
+            "MANUFACTURING": "SFCB_T: SFCB004=工序, SFCB011=工作站",
+            "SHIPPING": "XMDG_T: XMDGDOCNO=單據號, XMDGSTUS=狀態",
+            "PRICE": "XMDU_T: XMDU011=單價",
+        }
+        return hints.get(category, "使用簡單查詢")
+
+
+class UltraFastParser:
+    """超快解析器 - 純規則匹配，完全不呼叫 LLM"""
+
+    INTENT_PATTERNS = {
+        "QUERY_INVENTORY": [
+            (r"庫存", 0.8),
+            (r"在庫", 0.8),
+            (r"料號", 0.7),
+            (r"倉庫", 0.7),
+            (r"stock|inventory", 0.6),
+        ],
+        "QUERY_WORK_ORDER_COUNT": [
+            (r"工單", 0.8),
+            (r"WO\b", 0.8),
+            (r"work order", 0.6),
+            (r"工單數量", 0.85),
+            (r"工單總數", 0.85),
+        ],
+        "QUERY_MANUFACTURING_PROGRESS": [
+            (r"製造進捗", 0.9),
+            (r"工序進捗", 0.9),
+            (r"生產進度", 0.8),
+        ],
+        "QUERY_SHIPPING": [
+            (r"出貨", 0.8),
+            (r"出荷", 0.8),
+            (r"出貨通知", 0.85),
+            (r"出貨記錄", 0.85),
+            (r"出貨單", 0.85),
+            (r"出貨數量", 0.85),
+            (r"出貨金額", 0.85),
+        ],
+        "QUERY_STATS": [
+            (r"統計", 0.7),
+            (r"有多少", 0.6),
+            (r"數量", 0.5),
+            (r"金額", 0.5),
+            (r"按.*統計", 0.6),
+            (r"按.*分類", 0.6),
+        ],
+    }
+
+    PARAM_PATTERNS = {
+        "ITEM_NO": r"\b([A-Z0-9]{15,})\b",
+        "WAREHOUSE_NO": r"\b([0-9]{4})\b",
+        "MO_DOC_NO": r"([A-Z]{3}-[A-Z0-9]{2,}-\d{8,})",
+    }
+
+    @classmethod
+    def parse(cls, nlq: str) -> Optional[ParsedIntent]:
+        """快速解析（完全不呼叫 LLM）"""
+        nlq_lower = nlq.lower()
+
+        # 匹配意圖
+        best_intent = None
+        best_score = 0
+
+        for intent, patterns in cls.INTENT_PATTERNS.items():
+            for pattern, base_score in patterns:
+                if re.search(pattern, nlq_lower):
+                    score = base_score + (0.1 if re.search(pattern, nlq) else 0)
+                    if score > best_score:
+                        best_score = score
+                        best_intent = intent
+
+        if not best_intent or best_score < 0.5:
+            return None
+
+        # 提取參數
+        params = {}
+
+        # 提取料號
+        item_match = re.search(cls.PARAM_PATTERNS["ITEM_NO"], nlq)
+        if item_match:
+            params["ITEM_NO"] = item_match.group(1)
+
+        # 提取工單號
+        wo_match = re.search(cls.PARAM_PATTERNS["MO_DOC_NO"], nlq)
+        if wo_match:
+            params["MO_DOC_NO"] = wo_match.group(1)
+
+        # 提取倉庫編號
+        warehouse_matches = re.findall(cls.PARAM_PATTERNS["WAREHOUSE_NO"], nlq)
+        if warehouse_matches and "ITEM_NO" not in params:
+            params["WAREHOUSE_NO"] = warehouse_matches[0]
+
+        # 提取時間
+        year_match = re.search(r"(202[0-9])年", nlq)
+        if year_match:
+            params["TIME_RANGE"] = {"type": "YEAR", "year": int(year_match.group(1))}
+
+        return ParsedIntent(
+            intent=best_intent,
+            confidence=best_score,
+            params=params,
+            token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            limit=100,
+            offset=0,
+        )
+
+
 class NLQParser:
     """
     自然語言查詢解析器（基礎類）
@@ -109,28 +306,30 @@ class NLQParser:
         self._intents = intents
 
     def _build_prompt(self, nlq: str) -> str:
-        """建構 Prompt（簡化版）"""
+        """建構 Prompt（超簡化版 + 意圖預處理）"""
         if not self._intents:
             raise ValueError("Intents not loaded")
 
-        intents_list = []
-        for name, intent in self._intents.intents.items():
-            filters = ", ".join(intent.input.filters) if intent.input.filters else "無"
-            metrics = ", ".join(intent.output.metrics) if intent.output.metrics else "無"
-            dims = ", ".join(intent.output.dimensions) if intent.output.dimensions else "無"
-            intents_list.append(
-                f"{name}: {intent.description} | filters:{filters} | metrics:{metrics} | dims:{dims}"
-            )
+        # 意圖預處理
+        category = IntentPreprocessor.categorize(nlq)
+        table_hint = IntentPreprocessor.get_table_hint(category)
 
-        intents_str = " | ".join(intents_list)
+        # 簡化意圖列表
+        intents_map = {
+            "QUERY_INVENTORY": ["庫存查詢"],
+            "QUERY_WORK_ORDER": ["工單查詢"],
+            "QUERY_MANUFACTURING_PROGRESS": ["製造進度"],
+            "QUERY_SHIPPING": ["出貨查詢"],
+            "QUERY_STATS": ["統計分析"],
+        }
 
-        return f"""分析查詢意圖。
+        intents_str = " | ".join([f"{k}:{v[0]}" for k, v in intents_map.items()])
 
-可用意圖: {intents_str}
+        return f"""分析NLQ: {nlq}
 
-規則: 庫存用INAG_T, 工單用SFCA_T, 出貨用XMDG_T, 製造用SFCB_T, 單價用XMDU_T
+意圖類型: {intents_str}
 
-用戶查詢: {nlq}
+{table_hint}
 
 返回JSON: {{"intent":"意圖名","confidence":0.0-1.0,"params":{{"PARAM":"值"}}}}"""
 
@@ -181,7 +380,7 @@ class LLMNLQParser(NLQParser):
         skip_validation: Optional[bool] = None,
     ) -> ParsedIntent:
         """
-        解析自然語言查詢
+        解析自然語言查詢（使用快取）
 
         Args:
             nlq: 自然語言查詢
@@ -190,7 +389,29 @@ class LLMNLQParser(NLQParser):
         Returns:
             ParsedIntent: 解析後的意圖
         """
+        global _llm_cache
+
         skip_validation = skip_validation if skip_validation is not None else self._skip_validation
+
+        # 檢查快取
+        cache_key = _llm_cache._make_key(nlq)
+        cached_result = _llm_cache.get(cache_key)
+        if cached_result:
+            logger.info(f"LLM cache hit for: {nlq[:30]}...")
+            return ParsedIntent(
+                intent=cached_result.get("intent", ""),
+                confidence=cached_result.get("confidence", 0.0),
+                params=cached_result.get("params", {}),
+                token_usage={
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                    "cache_hit": True,
+                },
+                limit=cached_result.get("limit", 100),
+                offset=cached_result.get("offset", 0),
+            )
+
         prompt = self._build_prompt(nlq)
 
         try:
@@ -201,7 +422,7 @@ class LLMNLQParser(NLQParser):
                         "model": self.config.model,
                         "prompt": prompt,
                         "stream": False,
-                        "options": {"temperature": 0.05, "num_predict": 150},
+                        "options": {"temperature": 0.03, "num_predict": 200},
                     },
                 )
                 response.raise_for_status()
@@ -236,6 +457,16 @@ class LLMNLQParser(NLQParser):
 
             # 提取分頁參數
             pagination = self._pagination_extractor.extract(nlq)
+
+            # 快取結果
+            cache_data = {
+                "intent": parsed.get("intent", ""),
+                "confidence": parsed.get("confidence", 0.0),
+                "params": params,
+                "limit": pagination.get("limit"),
+                "offset": pagination.get("offset"),
+            }
+            _llm_cache.set(cache_key, cache_data)
 
             return ParsedIntent(
                 intent=parsed.get("intent", ""),

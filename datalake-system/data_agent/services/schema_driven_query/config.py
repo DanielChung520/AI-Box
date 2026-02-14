@@ -126,7 +126,7 @@ class LLMConfig(BaseSettings):
     model: str = "llama3.2:3b-instruct-q4_0"
     fallback_model: str = "llama3:8b"
     temperature: float = 0.05
-    timeout: int = 45
+    timeout: int = 60
 
     class Config:
         env_prefix = "DATA_AGENT_JP_LLM_"

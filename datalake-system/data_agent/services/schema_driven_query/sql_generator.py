@@ -6,18 +6,54 @@ Data-Agent-JP SQL 生成器
 - 根據 Query AST 生成 Oracle SQL
 - 處理 dialect 差異
 - 支援 LIMIT 和 OFFSET 分頁
+- 新增 SQL 快取
 
 建立日期: 2026-02-10
 建立人: Daniel Chung
-最後修改日期: 2026-02-11
+最後修改日期: 2026-02-14
 """
 
 import logging
+import hashlib
 from typing import Dict, Any, List, Optional
+from collections import OrderedDict
 
 from .models import QueryAST
 
 logger = logging.getLogger(__name__)
+
+
+class SQLCache:
+    """SQL 生成快取"""
+
+    def __init__(self, max_size: int = 500):
+        self.max_size = max_size
+        self.cache: OrderedDict = OrderedDict()
+
+    def _make_key(self, key_str: str) -> str:
+        return hashlib.md5(key_str.encode("utf-8")).hexdigest()
+
+    def get(self, intent: str, params) -> Optional[str]:
+        key = self._make_key(f"{intent}:{params}")
+        if key in self.cache:
+            self.cache.move_to_end(key)
+            return self.cache[key]
+        return None
+
+    def set(self, intent: str, params, sql: str):
+        key = self._make_key(f"{intent}:{params}")
+        if key in self.cache:
+            del self.cache[key]
+        elif len(self.cache) >= self.max_size:
+            self.cache.popitem(last=False)
+        self.cache[key] = sql
+
+    @property
+    def size(self) -> int:
+        return len(self.cache)
+
+
+_sql_cache = SQLCache(max_size=500)
 
 
 class SQLGenerator:
