@@ -64,15 +64,9 @@ class Translator:
         "301": "庫存報廢",
     }
 
-    TABLE_MAP = {
-        "101": "tlf_file",
-        "102": "tlf_file",
-        "201": "tlf_file",
-        "202": "tlf_file",
-        "301": "tlf_file",
-        "inventory": "img_file",
-        "庫存": "img_file",
-    }
+    # TABLE_MAP - 已廢棄，SQL 生成交給 Data-Agent
+    # 保留此處僅為向後兼容，不應再使用
+    TABLE_MAP = {}
 
     MATERIAL_CATEGORY_MAP = {
         "塑料件": "plastic",
@@ -116,7 +110,7 @@ class Translator:
             try:
                 from .semantic_translator import SemanticTranslatorAgent
 
-                self._semantic_translator = SemanticTranslatorAgent()
+                self._semantic_translator = SemanticTranslatorAgent(use_rules_engine=True)
                 logger.info("語義轉譯 Agent 已啟用")
             except Exception as e:
                 logger.warning(f"無法初始化語義轉譯 Agent，將使用關鍵詞匹配: {e}")

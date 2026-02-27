@@ -1,11 +1,33 @@
 # 代碼功能說明: 結構化查詢構建器
 # 創建日期: 2026-01-31
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-02-07
+# 最後修改日期: 2026-02-19
+#
+# ⚠️  DEPRECATED - 已棄用  ⚠️
+# 此模組不再用於 JP 查詢，請使用 schema_driven_query 模組
+#
+# JP 查詢請使用：
+#   - routers/data_agent_jp/__init__.py
+#   - services/schema_driven_query/resolver.py
+#   - services/schema_driven_query/sql_generator.py
+#   - services/schema_driven_query/duckdb_executor.py
+#
+# 如需使用此模組，請設置環境變數：
+#   export FORCE_USE_OLD_BUILDER=1
 
 """結構化查詢構建器 - 將 MM-Agent 的結構化輸出轉換為 SQL，表/欄位自 schema_registry 載入"""
 
+import os
+import warnings
 from typing import Any, Dict, Optional
+
+# 防護機制：防止意外使用棄用的模組
+if not os.getenv("FORCE_USE_OLD_BUILDER"):
+    warnings.warn(
+        "⚠️ DEPRECATED: structured_query_builder.py 已棄用，請使用 schema_driven_query 模組",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
 from .config_manager import get_config
 from .schema_registry_loader import (
@@ -55,7 +77,7 @@ class StructuredQueryBuilder:
         Args:
             structured_query: 結構化查詢參數
                 {
-                    "table": "img_file",
+                    "table": "mart_inventory_wide",
                     "filters": {"img02": "W01", "img01": "RM05-008"},
                     "columns": ["img01", "img02", "img10"],
                     "group_by": ["img01"],
@@ -66,7 +88,7 @@ class StructuredQueryBuilder:
             {"success": True, "sql": "...", "explanation": "..."}
         """
         try:
-            table_name = structured_query.get("table", "img_file")
+            table_name = structured_query.get("table", "mart_inventory_wide")
             filters = structured_query.get("filters", {})
             columns = structured_query.get("columns", ["*"])
             time_range = structured_query.get("time_range")
@@ -197,7 +219,7 @@ class StructuredQueryBuilder:
                 img04 as quantity,
                 img05 as unit,
                 img09 as last_update
-            FROM img_file
+            FROM mart_inventory_wide
             WHERE img01 = '{part_number}'
             LIMIT 10
         """.strip()
@@ -236,7 +258,7 @@ class StructuredQueryBuilder:
                 tlf11 as unit,
                 tlf17 as warehouse,
                 tlf19 as tlf19_type
-            FROM tlf_file
+            FROM mart_work_order_wide
             WHERE {where_clause}
             ORDER BY tlf06 DESC
             LIMIT 50
@@ -250,18 +272,18 @@ if __name__ == "__main__":
             "tlf19": "101",
             "part_number": "RM05-008",
             "time_expr": "DATE_SUB(CURDATE(), INTERVAL 1 MONTH)",
-            "table": "tlf_file",
+            "table": "mart_work_order_wide",
             "intent": "purchase",
         },
         {
             "part_number": "RM05-008",
-            "table": "img_file",
+            "table": "mart_inventory_wide",
             "intent": "inventory",
         },
         {
             "tlf19": "202",
             "part_number": "ABC-123",
-            "table": "tlf_file",
+            "table": "mart_work_order_wide",
             "intent": "sales",
         },
     ]

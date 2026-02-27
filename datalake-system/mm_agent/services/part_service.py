@@ -1,17 +1,13 @@
 # 代碼功能說明: 料號查詢服務
 # 創建日期: 2026-01-13
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-13
+# 最後修改日期: 2026-02-17
 
-"""料號查詢服務 - 通過Data Agent查詢物料信息"""
+"""料號查詢服務 - 通過 Data-Agent 直接查詢物料信息"""
 
 import logging
 import os
-from typing import Any, Dict, Optional
-
-from agents.services.protocol.base import AgentServiceRequest
-
-from ..orchestrator_client import OrchestratorClient
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -21,63 +17,105 @@ class PartService:
 
     def __init__(
         self,
-        orchestrator_client: Optional[Any] = None,
     ) -> None:
-        """初始化料號查詢服務
-
-        Args:
-            orchestrator_client: Orchestrator客戶端或Data Agent直接客戶端（可選）
-        """
-        # 如果沒有提供客戶端，根據環境變數決定使用哪個
-        if orchestrator_client is None:
-            use_direct = os.getenv("WAREHOUSE_AGENT_USE_DIRECT_CLIENT", "false").lower() == "true"
-            if use_direct:
-                from ..data_agent_direct_client import DataAgentDirectClient
-
-                orchestrator_client = DataAgentDirectClient()
-            else:
-                orchestrator_client = OrchestratorClient()
-
-        self._orchestrator_client = orchestrator_client
+        """初始化料號查詢服務"""
         self._logger = logger
 
     async def query_part_info(
         self,
         part_number: str,
-        request: AgentServiceRequest,
     ) -> Dict[str, Any]:
         """查詢物料信息
 
+        直接調用 Data-Agent 的 /jp/execute 端點進行查詢。
+
         Args:
             part_number: 料號
-            request: Agent服務請求
 
         Returns:
             物料信息
-
-        Raises:
-            ValueError: 查詢失敗或物料不存在時拋出異常
         """
         try:
-            result = await self._orchestrator_client.call_data_agent(
-                action="query_datalake",
-                parameters={
-                    "bucket": "bucket-datalake-assets",
-                    "key": f"parts/{part_number}.json",
-                    "query_type": "exact",
-                },
-                request=request,
-            )
+            import httpx
 
-            if not result.get("success"):
-                error_msg = result.get("error", "Failed to query part info")
-                raise ValueError(f"Failed to query part info: {error_msg}")
+            # 直接調用 Data-Agent /api/v1/data-agent/jp/execute 端點
+            data_agent_url = os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8004")
+            endpoint = f"{data_agent_url}/api/v1/data-agent/jp/execute"
 
-            rows = result.get("rows", [])
-            if not rows:
-                raise ValueError(f"Part not found: {part_number}")
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                # 先嘗試供應商查詢
+                response = await client.post(
+                    endpoint,
+                    json={
+                        "task_id": f"part_query_{part_number}",
+                        "task_type": "schema_driven_query",
+                        "task_data": {
+                            "nlq": f"料號 {part_number} 的供應商是誰",
+                        },
+                    },
+                )
 
-            return rows[0]  # 返回第一個結果
+                if response.status_code != 200:
+                    raise ValueError(f"Data-Agent 調用失敗: HTTP {response.status_code}")
+
+                result = response.json()
+
+                if result.get("status") != "success":
+                    # 嘗試庫存查詢（回退）
+                    stock_response = await client.post(
+                        endpoint,
+                        json={
+                            "task_id": f"part_stock_{part_number}",
+                            "task_type": "schema_driven_query",
+                            "task_data": {
+                                "nlq": f"料號 {part_number} 的庫存數量",
+                            },
+                        },
+                    )
+                    stock_result = stock_response.json()
+                    if stock_result.get("status") == "success":
+                        stock_data = stock_result.get("result", {}).get("data", [])
+                        return {
+                            "success": True,
+                            "part_number": part_number,
+                            "stock_info": stock_data,
+                            "response": f"料號 {part_number} 查詢結果：\n庫存數據：{stock_data}",
+                        }
+
+                    raise ValueError(f"Data-Agent 查詢失敗: {result.get('message')}")
+
+                # 提取查詢結果
+                data = result.get("result", {}).get("data", [])
+                if not data:
+                    # 嘗試庫存查詢（回退）
+                    stock_response = await client.post(
+                        endpoint,
+                        json={
+                            "task_id": f"part_stock_{part_number}",
+                            "task_type": "schema_driven_query",
+                            "task_data": {
+                                "nlq": f"料號 {part_number} 的庫存數量",
+                            },
+                        },
+                    )
+                    stock_result = stock_response.json()
+                    if stock_result.get("status") == "success":
+                        stock_data = stock_result.get("result", {}).get("data", [])
+                        return {
+                            "success": True,
+                            "part_number": part_number,
+                            "stock_info": stock_data,
+                            "response": f"料號 {part_number} 查詢結果：\n庫存數據：{stock_data}",
+                        }
+
+                    raise ValueError(f"查無料號 {part_number} 的資料")
+
+                return {
+                    "success": True,
+                    "part_number": part_number,
+                    "data": data,
+                    "response": f"料號 {part_number} 查詢結果：\n{data}",
+                }
 
         except Exception as e:
             self._logger.error(f"查詢物料信息失敗: part_number={part_number}, error={e}")

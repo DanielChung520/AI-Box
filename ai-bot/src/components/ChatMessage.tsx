@@ -266,7 +266,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
       <div ref={ref} className="mb-6" id={`message-${message.id}`}>
         <div className="flex items-start mb-2">
         <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
+          className={`message-avatar w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
             message.sender === 'ai' ? 'bg-blue-600' : 'bg-tertiary'
           }`}
         >
@@ -284,8 +284,8 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
         </div>
       </div>
       <div
-        className={`p-[11.2px] rounded-lg ml-11 ${
-          message.sender === 'ai' ? 'bg-secondary' : 'bg-blue-900/30'
+        className={`message-bubble message-bubble-${message.sender} p-[11.2px] rounded-lg ml-11 ${
+          message.sender === 'ai' ? 'bg-[var(--bg-secondary)]' : 'bg-tertiary/50'
         }`}
       >
         <div
@@ -304,11 +304,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
         </div>
         {/* AI 消息下方顯示操作按鈕 */}
         {message.sender === 'ai' && (
-          <>
-            <MessageActions messageId={message.id} messageContent={message.content} />
-            {/* AI 回复下方的细线 */}
-            <div className="mt-3 pt-3 border-t border-primary/20"></div>
-          </>
+          <MessageActions messageId={message.id} messageContent={message.content} />
         )}
       </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useContext } from 'react';
-import { PanelRightClose, PanelRightOpen, BookOpen } from 'lucide-react';
+import { PanelRightClose, PanelRight, BookOpenIcon } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { cn } from '../lib/utils';
 import AgentCard from './AgentCard';
 import AssistantCard from './AssistantCard';
 import ChatInput from './ChatInput';
@@ -424,7 +425,10 @@ import { isSystemAdmin } from '../lib/userUtils';
   return (
     <div className="flex-1 flex flex-col h-full bg-primary theme-transition">
        {/* 聊天区域头部 */}
-      <div className="p-4 border-b border-primary flex items-center justify-between">
+      <div className={cn(
+        "p-4 border-b border-primary flex items-center justify-between header",
+        theme === 'blue-light' ? "" : ""
+      )}>
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <h2 className="text-base font-bold text-primary flex-shrink-0">
             {selectedTask ? `${t('chat.task')}${selectedTask.title}` : t('chat.title')}
@@ -446,12 +450,20 @@ import { isSystemAdmin } from '../lib/userUtils';
           <button
             className="p-2 rounded-full hover:bg-tertiary transition-all duration-300 relative group"
             onClick={toggleTheme}
-            title={`切换到${theme === 'dark' ? '浅色' : '深色'}主题`}
-            aria-label={`切换到${theme === 'dark' ? '浅色' : '深色'}主题`}
+            title={`切换主题（当前：${theme === 'dark' ? '深色' : theme === 'light' ? '浅色' : '浅蓝色'}）`}
+            aria-label={`切换主题（当前：${theme === 'dark' ? '深色' : theme === 'light' ? '浅色' : '浅蓝色'}）`}
           >
-            <i className={`fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} text-tertiary group-hover:text-yellow-400 transition-all duration-300 transform group-hover:scale-110`}></i>
+            <i className={`fa-solid ${
+              theme === 'dark' ? 'fa-sun' : 
+              theme === 'light' ? 'fa-moon' : 
+              'fa-cloud'
+            } text-tertiary group-hover:text-yellow-400 transition-all duration-300 transform group-hover:scale-110`}></i>
             {/* 显示当前主题状态的小圆点 */}
-            <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-secondary ${theme === 'dark' ? 'bg-yellow-400' : 'bg-blue-400'}`}></span>
+            <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-secondary ${
+              theme === 'dark' ? 'bg-yellow-400' : 
+              theme === 'light' ? 'bg-gray-400' : 
+              'bg-blue-400'
+            }`}></span>
           </button>
           <div className="relative">
             <button
@@ -470,7 +482,7 @@ import { isSystemAdmin } from '../lib/userUtils';
                   <button
                     key={lang}
                     className={`w-full text-left px-4 py-2 text-[11.2px] hover:bg-tertiary transition-colors flex items-center ${
-                      language === lang ? 'text-blue-400 bg-blue-900/20' : 'text-secondary'
+                      language === lang ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20' : 'text-secondary'
                     }`}
                   onClick={() => {
                     // 安全地切换语言
@@ -496,7 +508,7 @@ import { isSystemAdmin } from '../lib/userUtils';
             title="知識庫管理"
             aria-label="知識庫管理"
           >
-            <BookOpen className="w-5 h-5 text-tertiary group-hover:text-blue-400 transition-colors" />
+            <BookOpenIcon className="w-5 h-5 text-tertiary group-hover:text-blue-400 transition-colors" />
           </button>
 
           {/* 系統管理菜單（僅 system_admin 可見） */}
@@ -575,7 +587,7 @@ import { isSystemAdmin } from '../lib/userUtils';
               aria-label={resultPanelCollapsed ? t('chat.expandPanel') : t('chat.collapsePanel')}
             >
               {resultPanelCollapsed ? (
-                <PanelRightOpen className="w-5 h-5 text-tertiary" />
+                <PanelRight className="w-5 h-5 text-tertiary" />
               ) : (
                 <PanelRightClose className="w-5 h-5 text-tertiary" />
               )}
@@ -585,7 +597,7 @@ import { isSystemAdmin } from '../lib/userUtils';
       </div>
 
       {/* 聊天内容区域 */}
-      <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef}>
+      <div className="chat-messages flex-1 overflow-y-auto p-4" ref={messagesContainerRef}>
         {/* 優先顯示任務內容：如果有選中的任務，優先顯示任務內容，而不是瀏覽頁面 */}
         {selectedTask && selectedTask.messages ? (
           // 显示任务相关的对话
@@ -618,9 +630,9 @@ import { isSystemAdmin } from '../lib/userUtils';
           // 显示助理列表（使用分类 Tabs，与 Agent 相同的方式）
           <>
             {/* 欢迎消息 */}
-            <div className="mb-8">
+            <div className="chat-welcome mb-8">
               <div className="flex items-start mb-2">
-                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-3">
+                <div className="welcome-avatar w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-3">
                   <i className="fa-solid fa-robot"></i>
                 </div>
                 <div>
@@ -659,7 +671,7 @@ import { isSystemAdmin } from '../lib/userUtils';
             </div>
 
             {/* Assistant卡片展示区域 */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="agent-assistant-cards mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {currentAssistants.map(assistant => {
                 // 检查是否收藏 - 兼容 Set 和 Map
                 const isFavorite = favoriteAssistants?.has(assistant.id) ?? false;
@@ -695,9 +707,9 @@ import { isSystemAdmin } from '../lib/userUtils';
           // 显示代理列表（带分类 Tabs：HR、Logistics、Finance 等）
           <>
             {/* 欢迎消息 */}
-            <div className="mb-8">
+            <div className="agent-welcome mb-8">
               <div className="flex items-start mb-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                <div className="agent-welcome-avatar w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
                   <i className="fa-solid fa-robot"></i>
                 </div>
                 <div>
@@ -766,7 +778,7 @@ import { isSystemAdmin } from '../lib/userUtils';
                 </div>
 
                 {/* Agent卡片展示区域 */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="agent-assistant-cards mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {currentAgents.length > 0 ? (
                     currentAgents.map(agent => {
                       // 检查是否收藏 - 兼容 Set 和 Map

@@ -170,46 +170,26 @@ class IntentAnalyzer:
             "最後": {"order": "ASC", "limit": 1, "meaning": "取最後一筆"},
             "最新": {"order": "DESC", "limit": 1, "meaning": "取最新一筆"},
             # 庫存相關
-            "庫存量": {"field": "img10", "meaning": "庫存數量欄位"},
-            "庫存": {"table": "img_file", "meaning": "庫存表"},
-            "存量": {"field": "img10", "meaning": "庫存數量"},
-            "料號": {"field": "img01", "meaning": "料號欄位"},
-            "品名": {"field": "ima02", "meaning": "品名欄位"},
+            "庫存量": {"field": "existing_stocks", "meaning": "庫存數量欄位"},
+            "庫存": {"table": "mart_inventory_wide", "meaning": "庫存表"},
+            "存量": {"field": "existing_stocks", "meaning": "庫存數量"},
+            "料號": {"field": "item_no", "meaning": "料號欄位"},
+            "品名": {"field": "item_no", "meaning": "品名欄位"},
             "庫房": {"meaning": "倉庫"},
             "每個": {"meaning": "分組查詢"},
         }
 
-        # 倉庫代碼映射
+        # 倉庫代碼映射 - JP 資料庫用數字代碼
         self.warehouse_patterns = [
-            (r"W0[1-5]", "W01", "W02", "W03", "W04", "W05"),
-            (r"原料倉", "W01", "原料倉庫"),
-            (r"成品倉", "W03", "成品倉庫"),
-            (r"半成品倉", "W02", "半成品倉庫"),
+            (r"原料倉", "2101", "原料倉庫"),
+            (r"成品倉", "2700", "成品倉庫"),
+            (r"半成品倉", "3000", "半成品倉庫"),
         ]
 
         self.table_keywords = {
-            "img_file": ["庫存", "存量", "倉", "w0", "w1", "w2", "w3"],
-            "ima_file": ["品名", "規格", "料件", "物料"],
-            "tlf_file": [
-                "交易",
-                "異動",
-                "採購",
-                "進貨",
-                "收料",
-                "收貨",
-                "出庫",
-                "入庫",
-                "領料",
-                "報廢",
-            ],
-            "coptc_file": ["訂單", "出貨", "客戶"],
-            "coptd_file": ["訂單明細", "訂單項目"],
-            "prc_file": ["單價", "價格", "訂價"],
-            "pmm_file": ["採購單", "採購"],
-            "pmn_file": ["採購單身", "採購明細"],
-            "rvb_file": ["收料單", "收料"],
-            "cmc_file": ["客戶主檔", "客戶"],
-            "pmc_file": ["供應商", "Vendor"],
+            "mart_inventory_wide": ["庫存", "存量", "倉", "在庫"],
+            "mart_work_order_wide": ["工單", "生產", "製造", "工序"],
+            "mart_shipping_wide": ["出貨", "出貨通知", "配送"],
         }
 
     def _init_rag_client(self):
@@ -406,13 +386,13 @@ class IntentAnalyzer:
         elif any(kw in query_lower for kw in ["採購", "進貨", "收料", "收貨"]):
             result.query_intent = QueryIntent.QUERY_TRANSACTION
             result.intent_description = "查詢採購交易"
-            result.table = "tlf_file"
+            result.table = "mart_work_order_wide"
 
         # 交易相關意圖
         elif any(kw in query_lower for kw in ["交易", "異動"]):
             result.query_intent = QueryIntent.QUERY_TRANSACTION
             result.intent_description = "查詢交易記錄"
-            result.table = "tlf_file"
+            result.table = "mart_inventory_wide"
 
         # 訂單相關意圖
         elif any(kw in query_lower for kw in ["訂單", "出貨", "客戶"]):
@@ -459,11 +439,11 @@ class IntentAnalyzer:
 
         if not result.table:
             if result.query_intent in [QueryIntent.QUERY_INVENTORY, QueryIntent.STATISTICS]:
-                result.table = "img_file"
+                result.table = "mart_inventory_wide"
             elif result.query_intent == QueryIntent.QUERY_ORDER:
-                result.table = "coptc_file"
+                result.table = "mart_shipping_wide"
             elif result.query_intent == QueryIntent.QUERY_PRICE:
-                result.table = "prc_file"
+                result.table = "mart_shipping_wide"
 
         item_codes = re.findall(r"\b\d{6}\b", query)
         if item_codes:
@@ -491,7 +471,7 @@ class IntentAnalyzer:
                 result.warnings.append(f"📖 代碼字典：{code} → {warehouse_name}")
 
                 if not result.table:
-                    result.table = code_info.get("table", "img_file")
+                    result.table = code_info.get("table", "mart_inventory_wide")
 
             warehouse_context_keywords = ["庫存", "存量", "庫房", "倉庫", "存貨", "料號", "物料"]
             has_context = any(kw in query_lower for kw in warehouse_context_keywords)

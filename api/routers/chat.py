@@ -277,11 +277,14 @@ def classify_gai_intent(text: str) -> Optional[GAIIntentType]:
 
     # 如果用戶輸入很短，且包含指代詞，需要澄清
     if len(text_clean) <= 30 and has_anaphora:
+        # 例外：如果包含"知識庫"相關關鍵詞，不視為 CLARIFICATION
+        has_kb_reference = "知識庫" in text_lower or "文件" in text_lower
+
         # 檢查是否包含具體的料號編號（如 "10-0001"、"ABC-123"）
         has_material_code = bool(re.search(r"[A-Z]{0,4}-?\d{3,8}", text))
 
-        # 如果沒有具體料號編號，視為 CLARIFICATION
-        if not has_material_code:
+        # 如果沒有具體料號編號，且不是知識庫相關查詢，視為 CLARIFICATION
+        if not has_material_code and not has_kb_reference:
             return GAIIntentType.CLARIFICATION
 
     # 默認為業務請求
@@ -957,6 +960,9 @@ def _format_agent_result_for_llm(agent_id: str, agent_result: Any) -> str:
             )
             formatted += "6. **如果檢索結果顯示有文件，請直接回答文件數量，不要拒絕**。\n"
 
+            # 添加 [ka] 標記
+            formatted += "\n\n[ka]"
+
             return formatted
 
         # 其他 Agent 的結果（通用格式）
@@ -966,34 +972,96 @@ def _format_agent_result_for_llm(agent_id: str, agent_result: Any) -> str:
     return str(agent_result)
 
 
-def _is_knowledge_base_query(query: str) -> bool:
+def _is_knowledge_base_stats_query(query: str) -> bool:
     """
-    檢測用戶查詢是否與知識庫相關
+    檢測用戶查詢是否明確詢問知識庫統計（文件數量、狀態等）
+
+    使用正則表達式模式檢測，避免硬編碼關鍵詞列表
+    只在用戶明確問"有多少文件"、"文件列表"時觸發
+    不攔截用戶查詢知識庫內容的請求（如"捷頂文件摘要"）
     """
-    kb_keywords = [
-        "知識庫",
-        "知識庫裡",
-        "知識庫中",
-        "知識庫有多少",
-        "文件數量",
-        "文件多少",
-        "有幾個文件",
-        "文件列表",
-        "上傳了",
-        "已上傳",
-        "已向量",
-        "向量化",
-        "知識庫文件",
-        "我的文件",
-        "文件統計",
-        "knowledge base",
-        "how many files",
-        "file count",
-        "uploaded files",
-        "vectorized files",
+    query_lower = query.lower().strip()
+
+    # 統計查詢模式：詢問數量、列表、狀態
+    stats_patterns = [
+        r".*?(?:有多少|有幾個|幾個).*?(?:文件|檔案)",  # "有多少文件"
+        r"文件列表",  # "文件列表"
+        r"文件統計",  # "文件統計"
+        r".*?(?:上傳|向量化).*?(?:哪些|多少)",  # "上傳了哪些"
+        r"知識庫狀態",  # "知識庫狀態"
     ]
-    query_lower = query.lower()
-    return any(keyword.lower() in query_lower for keyword in kb_keywords)
+
+    import re
+
+    for pattern in stats_patterns:
+        if re.search(pattern, query_lower):
+            # 特殊情況：這類查詢需要配合"這個知識庫"或"你的知識庫"
+            if "這個知識庫" in query_lower or "你的知識庫" in query_lower:
+                return True
+            # 也支援獨立使用
+            if "文件列表" in query_lower or "文件統計" in query_lower:
+                return True
+
+    return False
+
+
+async def _get_knowledge_base_file_ids(
+    kb_ids: list[str],
+    user_id: str,
+) -> list[str]:
+    """
+    從知識庫 ID 列表中解析出文件 ID 列表
+    直接從資料庫查詢，避免 HTTP 調用
+    """
+    from database.arangodb.client import ArangoDBClient
+
+    file_ids: list[str] = []
+
+    if not kb_ids:
+        logger.debug(f"[_get_kb_file_ids] kb_ids 為空，返回空列表")
+        return file_ids
+
+    logger.info(f"[_get_kb_file_ids] 開始查詢知識庫文件，kb_ids={kb_ids}")
+
+    try:
+        client = ArangoDBClient()
+        if client.db is None:
+            logger.warning("[_get_kb_file_ids] ArangoDB 未連接")
+            return file_ids
+
+        db = client.db
+
+        # 查詢所有關聯到這些知識庫根目錄的文件
+        query = """
+            FOR folder IN kb_folders
+            FILTER folder.rootId IN @kb_ids
+            FILTER folder.isActive == true
+            LET kb_task_id = CONCAT("kb_", folder._key)
+
+            FOR file_meta IN file_metadata
+            FILTER file_meta.task_id == kb_task_id
+            FILTER file_meta.status != "deleted"
+            RETURN {
+                file_id: file_meta._key,
+                task_id: file_meta.task_id
+            }
+        """
+
+        bind_vars: dict[str, list[str]] = {"kb_ids": kb_ids}
+        cursor = db.aql.execute(query, bind_vars=bind_vars)  # type: ignore[arg-type]
+        result: list[dict[str, Any]] = list(cursor)  # type: ignore[arg-type]
+
+        for doc in result:
+            fid = doc.get("file_id")
+            if fid and fid not in file_ids:
+                file_ids.append(fid)
+
+        logger.info(f"[_get_kb_file_ids] 找到 {len(file_ids)} 個知識庫文件: {file_ids}")
+
+    except Exception as e:
+        logger.warning(f"[_get_kb_file_ids] 獲取知識庫文件失敗: {e}", exc_info=True)
+
+    return file_ids
 
 
 async def _handle_knowledge_base_query(
@@ -1002,69 +1070,102 @@ async def _handle_knowledge_base_query(
     selected_kb_ids: list[str],
 ) -> str:
     """
-    處理知識庫查詢（統計文件數量等）
+    處理知識庫查詢（使用 KA-Agent 統一檢索）
+
+    根據設計原則：
+    1. 優先透過 KA-Agent 進行知識檢索
+    2. 使用混合檢索（向量 + 關鍵字）
+    3. 返回實際的知識庫內容
     """
-    import httpx
-
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            # 查詢選擇的知識庫的文件數量
-            total_files = 0
-            kb_details = []
+        # 導入 KA-Agent MCP 模組
+        from api.routers.ka_agent_mcp import (
+            resolve_kb_to_folders,
+            execute_hybrid_search,
+        )
 
-            for kb_id in selected_kb_ids:
-                try:
-                    kb_response = await client.get(
-                        f"http://localhost:8000/api/v1/knowledge-bases/{kb_id}/folders",
-                        params={"user_id": user_id},
-                    )
-                    if kb_response.status_code == 200:
-                        data = kb_response.json()
-                        folders = data.get("data", {}).get("items", [])
-                        for folder in folders:
-                            folder_id = folder.get("id")
-                            if folder_id:
-                                files_response = await client.get(
-                                    f"http://localhost:8000/api/v1/knowledge-bases/folders/{folder_id}/files",
-                                    params={"user_id": user_id},
-                                )
-                                if files_response.status_code == 200:
-                                    files_data = files_response.json()
-                                    files = files_data.get("data", {}).get("items", [])
-                                    vectorized_count = sum(
-                                        1 for f in files if f.get("vector_count", 0) > 0
-                                    )
-                                    total_files += len(files)
-                                    kb_name = folder.get("name", kb_id)
-                                    kb_details.append(
-                                        f"  - {kb_name}: {len(files)} 個文件 ({vectorized_count} 個已向量化)"
-                                    )
-                except Exception as e:
-                    logger.warning(f"[knowledge_base] 查詢知識庫 {kb_id} 失敗: {e}")
+        # 步驟 1：將知識庫 ID 解析為文件夾 ID
+        kb_resolution = await resolve_kb_to_folders(selected_kb_ids, user_id)
+        folder_ids = kb_resolution.get("folder_ids", [])
+        kb_info = kb_resolution.get("kb_info", [])
 
-            # 構建回覆 - 直接明確的回答，不需要 LLM 重新生成
-            if total_files > 0:
-                files_list = "\n".join(kb_details)
-                response = f"""【知識庫文件統計】
+        if not folder_ids:
+            return """【知識庫檢索結果】
 
-目前知識庫共有 **{total_files} 個** 文件已成功向量化，可以進行檢索和問答。
+⚠️ 未找到可檢索的知識庫文件夾。
 
-已向量化文件列表：
-{files_list}
+請確認：
+1. 知識庫中是否有已上傳的文件
+2. 文件是否已完成向量化處理"""
 
-已向量化完成的文件可以直接進行語意搜尋和問答。"""
-            else:
-                response = """【知識庫文件統計】
+        # 步驟 2：使用 KA-Agent 混合檢索（向量 + 關鍵字）
+        top_k = 10  # 返回前 10 個最相關的結果
+        search_results = await execute_hybrid_search(query, folder_ids, top_k)
 
-⚠️ 知識庫中尚未有任何文件。
+        # 步驟 3：格式化檢索結果
+        if not search_results:
+            return f"""【知識庫檢索結果】
 
-請使用「上傳文件」功能將文件上傳到知識庫，上傳完成並向量化後即可進行檢索和問答。"""
+🔍 查詢：「{query}」
 
-            return response
+⚠️ 在知識庫中未找到相關內容。
+
+建議：
+1. 嘗試使用不同的關鍵詞
+2. 確認知識庫中是否有相關主題的文件"""
+
+        # 構建結果摘要
+        kb_names = ", ".join(
+            [
+                info.get("name", kb_id)
+                for info in kb_info
+                for kb_id in selected_kb_ids
+                if info.get("kb_id") == kb_id
+            ]
+        )
+
+        # 格式化每個檢索結果
+        formatted_results = []
+        for i, result in enumerate(search_results[:5], 1):  # 最多顯示 5 個結果
+            metadata = result.get("metadata", {})
+            source = result.get("source", "vector")
+            document = result.get("document", "")[:500]  # 限制內容長度
+
+            file_id = metadata.get("file_id", "unknown")
+            chunk_index = metadata.get("chunk_index", 0)
+            score = result.get("score", 0)
+
+            formatted_results.append(f"""
+### 相關結果 {i}（相關度：{score:.2f}）
+**來源**：{source}
+**文件ID**：{file_id}
+**段落**：{chunk_index + 1}
+
+{document}...""")
+
+        results_text = "\n".join(formatted_results)
+
+        response = f"""【知識庫檢索結果】
+
+🔍 查詢：「{query}」
+📚 知識庫：{kb_names}
+📊 找到 {len(search_results)} 個相關內容
+
+{results_text}
+
+---
+💡 以上是從知識庫中檢索到的相關內容。如需更多詳情，請提出更具體的問題。"""
+
+        return response
 
     except Exception as e:
-        logger.error(f"[knowledge_base] 查詢失敗: {e}")
-        return "目前無法查詢知識庫統計信息，請稍後再試。"
+        logger.error(f"[knowledge_base] KA-Agent 檢索失敗: {e}")
+        # Fallback：返回錯誤訊息
+        return f"""【知識庫檢索結果】
+
+⚠️ 檢索過程發生錯誤：{str(e)}
+
+請稍後再試，或聯繫系統管理員。"""
 
 
 def get_moe_manager() -> LLMMoEManager:
@@ -1990,32 +2091,34 @@ async def _process_chat_request(
         GAIIntentType.CLARIFICATION,
     ]
 
+    has_selected_agent_for_routing = request_body.agent_id is not None
     if gai_intent is not None and gai_intent in gai_direct_intents:
-        # 生成回覆
-        response_text = get_gai_intent_response(gai_intent, last_user_text)
+        if gai_intent == GAIIntentType.CLARIFICATION and has_selected_agent_for_routing:
+            pass
+        else:
+            response_text = get_gai_intent_response(gai_intent, last_user_text)
 
-        logger.info(
-            "gai_intent_direct_response",
-            session_id=session_id,
-            intent=gai_intent.value,
-        )
+            logger.info(
+                "gai_intent_direct_response",
+                session_id=session_id,
+                intent=gai_intent.value,
+            )
 
-        # 返回直接回覆
-        return ChatResponse(
-            content=response_text or f"已收到：{last_user_text}",
-            session_id=session_id,
-            task_id=task_id,
-            routing=RoutingInfo(
-                provider="gai",
-                model="gai-intent",
-                strategy="gai-direct",
-            ),
-            observability=ObservabilityInfo(
-                request_id=request_id,
+            return ChatResponse(
+                content=response_text or f"已收到：{last_user_text}",
                 session_id=session_id,
                 task_id=task_id,
-            ),
-        )
+                routing=RoutingInfo(
+                    provider="gai",
+                    model="gai-intent",
+                    strategy="gai-direct",
+                ),
+                observability=ObservabilityInfo(
+                    request_id=request_id,
+                    session_id=session_id,
+                    task_id=task_id,
+                ),
+            )
 
     # ============================================
     # 第一層分支：轉發給 MM-Agent 或調用 Task Analyzer
@@ -2062,11 +2165,9 @@ async def _process_chat_request(
         f"\n[KB-QUERY] 知識庫查詢檢查：\n"
         f"  - user_selected_agent_id: {user_selected_agent_id}\n"
         f"  - query: {last_user_text[:50]}...\n"
-        f"  - is_kb_query: {_is_knowledge_base_query(last_user_text)}\n"
+        f"  - is_kb_query: {_is_knowledge_base_stats_query(last_user_text)}\n"
     )
-    sys.stderr.flush()
-
-    if user_selected_agent_id and _is_knowledge_base_query(last_user_text):
+    if user_selected_agent_id and _is_knowledge_base_stats_query(last_user_text):
         sys.stderr.write(f"[KB-QUERY] 觸發知識庫查詢\n")
         sys.stderr.flush()
 
@@ -2078,7 +2179,13 @@ async def _process_chat_request(
             )
 
             store = AgentDisplayConfigStoreService()
-            agent_config = store.get_agent_config(user_selected_agent_id, tenant_id=None)
+            # 2026-02-21: 前端現在傳入 arangodb_key (如 "-h0tjyh")，使用 agent_key 參數查詢
+            agent_config = store.get_agent_config(agent_key=user_selected_agent_id, tenant_id=None)
+            if not agent_config:
+                # Fallback: 嘗試用 agent_id 查詢
+                agent_config = store.get_agent_config(
+                    agent_id=user_selected_agent_id, tenant_id=None
+                )
             if agent_config and hasattr(agent_config, "knowledge_bases"):
                 selected_kb_ids = agent_config.knowledge_bases or []
         except Exception as e:
@@ -2142,14 +2249,52 @@ async def _process_chat_request(
         # 修改時間：2026-01-27 - 如果用戶明確選擇了 agent_id，優先使用用戶選擇的 Agent
         user_selected_agent_id = request_body.agent_id
 
-        # 2026-02-04 新增：支援 _key 到 agent_id 的轉換
-        # 前端可能傳遞 ArangoDB 的 _key（如 -h0tjyh），需要轉換為 agent_id
-        if user_selected_agent_id and user_selected_agent_id.startswith("-"):
+        # 前端傳遞的可能是：
+        # 1. agent_id (如 "mm-agent")
+        # 2. _key (如 "-h0tjyh")
+        # 3. 中文名稱 (如 "經寶物料管理代理")
+        # 使用 AgentDisplayConfigStoreService 解析
+        from services.api.services.agent_display_config_store_service import (
+            AgentDisplayConfigStoreService,
+        )
+
+        store = AgentDisplayConfigStoreService()
+
+        # 嘗試用 _key 查詢
+        agent_config = store.get_agent_config(
+            agent_key=user_selected_agent_id,
+            tenant_id=None,
+        )
+
+        # 如果 _key 查詢失敗，嘗試用 agent_id 查詢
+        if not agent_config:
+            agent_config = store.get_agent_config(
+                agent_id=user_selected_agent_id,
+                tenant_id=None,
+            )
+
+        sys.stderr.write(f"\n[DEBUG] user_selected_agent_id: {user_selected_agent_id}\n")
+        sys.stderr.write(f"\n[DEBUG] agent_config: {agent_config}\n")
+        sys.stderr.flush()
+
+        # 根據是否有 endpoint_url 來判斷是否為外部 Agent
+        has_external_endpoint = (
+            agent_config is not None
+            and hasattr(agent_config, "endpoint_url")
+            and agent_config.endpoint_url is not None
+        )
+        is_external_agent = has_external_endpoint
+        if is_external_agent or should_forward:
             try:
                 from database.arangodb import ArangoDBClient
 
+                sys.stderr.write(f"\n[DEBUG] 嘗試從 ArangoDB 轉換 _key...\n")
+                sys.stderr.flush()
+
                 arango_client = ArangoDBClient()
                 if arango_client.db:
+                    sys.stderr.write(f"\n[DEBUG] ArangoDB 連接成功，執行 AQL 查詢...\n")
+                    sys.stderr.flush()
                     cursor = arango_client.db.aql.execute(
                         """
                         FOR doc IN agent_display_configs
@@ -2161,7 +2306,12 @@ async def _process_chat_request(
                     docs = list(cursor)
                     if docs:
                         doc = docs[0]
-                        actual_agent_id = doc.get("agent_id")
+                        # 優先從 agent_config.id 獲取實際的 agent_id
+                        agent_config = doc.get("agent_config", {})
+                        actual_agent_id = agent_config.get("id") if agent_config else None
+                        # 如果 agent_config.id 沒有，則使用頂層的 agent_id
+                        if not actual_agent_id:
+                            actual_agent_id = doc.get("agent_id")
                         if actual_agent_id:
                             sys.stderr.write(
                                 f"\n[agent_id 轉換] 檢測到 _key: '{user_selected_agent_id}' → 轉換為 agent_id: '{actual_agent_id}'\n"
@@ -2170,6 +2320,38 @@ async def _process_chat_request(
                             user_selected_agent_id = actual_agent_id
             except Exception as e:
                 sys.stderr.write(f"\n[agent_id 轉換] 失敗: {e}\n")
+                sys.stderr.flush()
+
+        # 2026-02-17 新增：如果 agent_id 是名稱（如 "mm-agent"），需要先獲取對應的 _key
+        # 然後用 _key 獲取 endpoint
+        if user_selected_agent_id and not user_selected_agent_id.startswith("-"):
+            try:
+                from database.arangodb import ArangoDBClient
+
+                arango_client = ArangoDBClient()
+                if arango_client.db:
+                    # 先查詢 agent_id 對應的 _key
+                    cursor = arango_client.db.aql.execute(
+                        """
+                        FOR doc IN agent_display_configs
+                            FILTER doc.agent_config.id == @agent_id OR doc.agent_id == @agent_id
+                            RETURN doc
+                        """,
+                        bind_vars={"agent_id": user_selected_agent_id},
+                    )
+                    docs = list(cursor)
+                    if docs:
+                        doc = docs[0]
+                        actual_key = doc.get("_key")
+                        if actual_key:
+                            sys.stderr.write(
+                                f"\n[agent_id 轉換] 檢測到 agent_id: '{user_selected_agent_id}' → 轉換為 _key: '{actual_key}'\n"
+                            )
+                            sys.stderr.flush()
+                            # 更新 user_selected_agent_id 為 _key，讓後續邏輯使用
+                            user_selected_agent_id = actual_key
+            except Exception as e:
+                sys.stderr.write(f"\n[agent_id 到 _key 轉換] 失敗: {e}\n")
                 sys.stderr.flush()
 
         # 修改時間：2026-01-27 - 添加完整的請求參數日誌
@@ -2212,34 +2394,62 @@ async def _process_chat_request(
             }
         )
 
-        # 2026-02-04 新增：如果是 mm-agent，直接調用 MM-Agent，跳過 Task Analyzer 和 RAG
-        # 2026-02-09 更新：也支援 should_forward_to_bpa() 判斷
-        if user_selected_agent_id == "mm-agent" or should_forward:
+        # 修復：因為前面已將 agent_id 轉換為 _key
+        is_mm_agent = user_selected_agent_id and user_selected_agent_id.startswith("-")
+        if is_mm_agent or should_forward:
             sys.stderr.write(
                 f"\n[mm-agent] 🔀 轉發給 MM-Agent\n"
-                f"  - user_selected_agent_id: {user_selected_agent_id}\n"
+                f"  - user_selected_agent_id (as _key): {user_selected_agent_id}\n"
+                f"  - is_mm_agent: {is_mm_agent}\n"
                 f"  - should_forward: {should_forward}\n"
                 f"  - query: {last_user_text[:100]}...\n"
             )
             sys.stderr.flush()
 
             # 構造 MM-Agent 請求
-            from agents.services.registry.registry import get_agent_registry
+            # 從 agent_display_configs 獲取 endpoint（第三方 Agent 存儲在那裡）
+            from services.api.services.agent_display_config_store_service import (
+                AgentDisplayConfigStoreService,
+            )
 
-            registry = get_agent_registry()
-            agent_info = registry.get_agent_info("mm-agent")
+            store = AgentDisplayConfigStoreService()
+            selected_agent = str(user_selected_agent_id) if user_selected_agent_id else ""
+            sys.stderr.write(
+                f"\n[mm-agent] 🔍 查詢 agent config: selected_agent={selected_agent}\n"
+            )
+            # user_selected_agent_id 已經是 _key 格式，直接用 _key 查詢
+            agent_config = store.get_agent_config(agent_key=selected_agent, tenant_id=None)
+            if not agent_config:
+                sys.stderr.write(f"\n[mm-agent] 🔄 用 _key 查詢失敗，嘗試用 agent_id 查詢\n")
+                agent_config = store.get_agent_config(agent_id=selected_agent, tenant_id=None)
 
-            if agent_info and agent_info.endpoints and agent_info.endpoints.http:
-                mm_endpoint = agent_info.endpoints.http
-                mm_request = {
-                    "task_id": task_id or str(uuid.uuid4()),
-                    "task_type": "query_stock",
-                    "task_data": {
+            if agent_config and hasattr(agent_config, "endpoint_url") and agent_config.endpoint_url:
+                mm_endpoint = agent_config.endpoint_url
+                knowledge_bases = getattr(agent_config, "knowledge_bases", None) or []
+
+                sys.stderr.write(
+                    f"\n[mm-agent] 📤 從 agent_display_configs 獲取 endpoint: {mm_endpoint}\n"
+                    f"  - knowledge_bases: {knowledge_bases}\n"
+                )
+
+                # 根據 endpoint 選擇請求格式
+                if "/auto-execute" in mm_endpoint:
+                    # /api/v1/chat/auto-execute 格式
+                    mm_request = {
                         "instruction": last_user_text,
-                        "user_id": current_user.user_id,
                         "session_id": session_id,
-                    },
-                }
+                    }
+                else:
+                    # /execute 端點格式
+                    mm_request = {
+                        "task_id": task_id or str(uuid.uuid4()),
+                        "task_type": "query_stock",
+                        "task_data": {
+                            "instruction": last_user_text,
+                            "user_id": current_user.user_id,
+                            "session_id": session_id,
+                        },
+                    }
 
                 sys.stderr.write(
                     f"\n[mm-agent] 📤 調用 MM-Agent: endpoint={mm_endpoint}\n"
@@ -2304,6 +2514,10 @@ async def _process_chat_request(
                     return response
                 else:
                     logger.error(f"[mm-agent] MM-Agent 調用失敗: HTTP {response.status_code}")
+            else:
+                logger.warning(
+                    f"[mm-agent] 未找到 MM-Agent 配置: agent_id={user_selected_agent_id}, 將跳過直接調用"
+                )
 
         # Task Analyzer 分析
         analysis_result = await task_analyzer.analyze(
@@ -2534,57 +2748,25 @@ async def _process_chat_request(
             )
             sys.stderr.flush()
 
-            # 2026-02-13 新增：如果是知識庫查詢，先處理知識庫統計
-            if _is_knowledge_base_query(last_user_text):
-                sys.stderr.write(f"\n[mm-agent] 📚 檢測到知識庫查詢，改為查詢知識庫統計\n")
-                sys.stderr.flush()
-
-                # 獲取 Agent 配置中選擇的知識庫
-                selected_kb_ids = []
-                try:
-                    from services.api.services.agent_display_config_store_service import (
-                        AgentDisplayConfigStoreService,
-                    )
-
-                    store = AgentDisplayConfigStoreService()
-                    agent_config = store.get_agent_config("mm-agent", tenant_id=None)
-                    if agent_config and hasattr(agent_config, "knowledge_bases"):
-                        selected_kb_ids = agent_config.knowledge_bases or []
-                except Exception as e:
-                    logger.warning(f"[mm-agent] 獲取知識庫配置失敗: {e}")
-
-                # 查詢知識庫統計
-                kb_response = await _handle_knowledge_base_query(
-                    query=last_user_text,
-                    user_id=current_user.user_id,
-                    selected_kb_ids=selected_kb_ids,
-                )
-
-                response = ChatResponse(
-                    content=kb_response,
-                    session_id=session_id,
-                    task_id=task_id,
-                    routing=RoutingInfo(
-                        provider="mm-agent",
-                        model="mm-agent-http",
-                        strategy="mm-agent-knowledge-base",
-                    ),
-                    observability=ObservabilityInfo(
-                        request_id=request_id,
-                        session_id=session_id,
-                        task_id=task_id,
-                    ),
-                )
-                return response
+            # 2026-02-16 修改：移除直接知識庫處理，讓 mm-agent 通過 KA-Agent 統一調用
+            # 根據 KA-Agent 規格書，所有知識調用必須通過 KA-Agent
+            # 知識調用優先級：KA-Agent > LLM > 網絡搜索
 
             # 構造 MM-Agent 請求
-            from agents.services.registry.registry import get_agent_registry
+            # 從 agent_display_configs 獲取 endpoint
+            from services.api.services.agent_display_config_store_service import (
+                AgentDisplayConfigStoreService,
+            )
 
-            registry = get_agent_registry()
-            agent_info = registry.get_agent_info("mm-agent")
+            store = AgentDisplayConfigStoreService()
+            selected_agent = str(user_selected_agent_id) if user_selected_agent_id else ""
+            # user_selected_agent_id 已經是 _key 格式
+            agent_config = store.get_agent_config(agent_key=selected_agent, tenant_id=None)
+            if not agent_config:
+                agent_config = store.get_agent_config(agent_id=selected_agent, tenant_id=None)
 
-            if agent_info and agent_info.endpoints and agent_info.endpoints.http:
-                mm_endpoint = agent_info.endpoints.http
+            if agent_config and hasattr(agent_config, "endpoint_url") and agent_config.endpoint_url:
+                mm_endpoint = agent_config.endpoint_url
                 mm_request = {
                     "task_id": task_id or str(uuid.uuid4()),
                     "task_type": "query_stock",
@@ -2658,11 +2840,15 @@ async def _process_chat_request(
                     return response
                 else:
                     logger.error(f"[mm-agent] MM-Agent 調用失敗: HTTP {response.status_code}")
+            else:
+                logger.warning(
+                    f"[mm-agent] 未找到 MM-Agent 配置: agent_id={user_selected_agent_id}, 將跳過直接調用"
+                )
 
         # 2026-02-14 新增：一般 Chat 知識庫查詢處理
         # 如果不是 MM-Agent，但用戶選擇了其他 Agent，且查詢是知識庫相關
         elif user_selected_agent_id and user_selected_agent_id != "mm-agent":
-            if _is_knowledge_base_query(last_user_text):
+            if _is_knowledge_base_stats_query(last_user_text):
                 sys.stderr.write(
                     f"\n[chat] 📚 檢測到知識庫查詢 (Agent: {user_selected_agent_id})\n"
                     f"  - query: {last_user_text[:100]}...\n"
@@ -2677,7 +2863,13 @@ async def _process_chat_request(
                     )
 
                     store = AgentDisplayConfigStoreService()
-                    agent_config = store.get_agent_config(user_selected_agent_id, tenant_id=None)
+                    agent_config = store.get_agent_config(
+                        agent_key=user_selected_agent_id, tenant_id=None
+                    )
+                    if not agent_config:
+                        agent_config = store.get_agent_config(
+                            agent_id=user_selected_agent_id, tenant_id=None
+                        )
                     if agent_config and hasattr(agent_config, "knowledge_bases"):
                         selected_kb_ids = agent_config.knowledge_bases or []
                 except Exception as e:
@@ -2746,6 +2938,37 @@ async def _process_chat_request(
     # 暫時關閉 AI 處理同意檢查（測試用）。正式環境請刪除此行。
     has_ai_consent = True
 
+    # 2026-02-14 新增：獲取 Agent 配置的知識庫文件 ID
+    knowledge_base_file_ids: list[str] = []
+    if user_selected_agent_id:
+        try:
+            from services.api.services.agent_display_config_store_service import (
+                AgentDisplayConfigStoreService,
+            )
+
+            store = AgentDisplayConfigStoreService()
+            agent_config = store.get_agent_config(agent_key=user_selected_agent_id, tenant_id=None)
+            if not agent_config:
+                agent_config = store.get_agent_config(
+                    agent_id=user_selected_agent_id, tenant_id=None
+                )
+            if (
+                agent_config
+                and hasattr(agent_config, "knowledge_bases")
+                and agent_config.knowledge_bases
+            ):
+                knowledge_base_file_ids = await _get_knowledge_base_file_ids(
+                    kb_ids=agent_config.knowledge_bases,
+                    user_id=current_user.user_id,
+                )
+                logger.info(
+                    f"[chat] 獲取知識庫文件 ID: agent={user_selected_agent_id}, "
+                    f"kb_count={len(agent_config.knowledge_bases)}, "
+                    f"file_count={len(knowledge_base_file_ids)}"
+                )
+        except Exception as e:
+            logger.warning(f"[chat] 獲取知識庫文件 ID 失敗: {e}")
+
     if has_ai_consent:
         memory_result = await memory_service.retrieve_for_prompt(
             user_id=current_user.user_id,
@@ -2754,7 +2977,8 @@ async def _process_chat_request(
             request_id=request_id,
             query=last_user_text,
             attachments=request_body.attachments,
-            user=current_user,  # 修改時間：2026-01-02 - 傳遞 user 對象用於權限檢查
+            user=current_user,
+            knowledge_base_file_ids=knowledge_base_file_ids if knowledge_base_file_ids else None,
         )
         observability.memory_hit_count = memory_result.memory_hit_count
         observability.memory_sources = memory_result.memory_sources
@@ -3231,6 +3455,22 @@ async def _process_chat_request(
             sys.stderr.flush()
 
     base_system = system_messages[:1] if system_messages else []
+
+    # 動態截斷：計算 system + memory 的 token，預留空間
+    reserved_tokens = 0
+    if base_system:
+        reserved_tokens += context_manager._window.count_dict_messages_tokens(base_system)
+    if memory_result.injection_messages:
+        reserved_tokens += context_manager._window.count_dict_messages_tokens(
+            memory_result.injection_messages
+        )
+
+    # 根據剩餘空間動態截斷對話歷史
+    windowed_history = context_manager.get_context_with_dynamic_window(
+        session_id=session_id, reserved_tokens=reserved_tokens
+    )
+    observability.context_message_count = len(windowed_history)
+
     messages_for_llm = base_system + memory_result.injection_messages + windowed_history
 
     # 將 Agent 工具結果消息插入到 messages_for_llm 開頭（優先級最高）
@@ -3751,6 +3991,13 @@ async def chat_product_stream(
     task_id = request_body.task_id
     request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
 
+    observability = ObservabilityInfo(
+        request_id=request_id,
+        session_id=session_id,
+        task_id=task_id,
+        token_input=None,
+    )
+
     messages = [m.model_dump() for m in request_body.messages]
     model_selector = request_body.model_selector
     last_user_text = messages[-1].get("content", "") if messages else ""
@@ -3896,53 +4143,104 @@ async def chat_product_stream(
                 # 修改時間：2026-01-06 - 將 allowed_tools 傳遞給 Task Analyzer，讓 Capability Matcher 優先考慮啟用的工具
                 # 修改時間：2026-02-01 - 傳遞 model_selector，尊重用戶選擇的模型（如 Ollama）
 
-                # 2026-02-04 新增：支援 _key 到 agent_id 的轉換
+                # 2026-02-04 新增：支援 agent_id ↔ _key 轉換
+                # 目標：將 agent_id (如 "mm-agent") 轉換為 _key (如 "-h0tjyh")
                 user_selected_agent_id = request_body.agent_id
-                if user_selected_agent_id and user_selected_agent_id.startswith("-"):
+                if user_selected_agent_id:
                     try:
                         from database.arangodb import ArangoDBClient
 
                         arango_client = ArangoDBClient()
                         if arango_client.db:
-                            cursor = arango_client.db.aql.execute(
-                                """
-                                FOR doc IN agent_display_configs
-                                    FILTER doc._key == @key
-                                    RETURN doc
-                                """,
-                                bind_vars={"key": user_selected_agent_id},
-                            )
-                            docs = list(cursor)
-                            if docs:
-                                actual_agent_id = docs[0].get("agent_id")
-                                if actual_agent_id:
-                                    logger.info(
-                                        f"[agent_id 轉換] _key: '{user_selected_agent_id}' → agent_id: '{actual_agent_id}'"
-                                    )
-                                    user_selected_agent_id = actual_agent_id
+                            # 如果是 _key 格式（以 "-" 開頭），轉換為 agent_id
+                            if user_selected_agent_id.startswith("-"):
+                                cursor = arango_client.db.aql.execute(
+                                    """
+                                    FOR doc IN agent_display_configs
+                                        FILTER doc._key == @key
+                                        RETURN doc
+                                    """,
+                                    bind_vars={"key": user_selected_agent_id},
+                                )
+                                docs = list(cursor)
+                                if docs:
+                                    actual_agent_id = docs[0].get("agent_id") or docs[0].get(
+                                        "agent_config", {}
+                                    ).get("id")
+                                    if actual_agent_id:
+                                        logger.info(
+                                            f"[agent_id 轉換] _key: '{user_selected_agent_id}' → agent_id: '{actual_agent_id}'"
+                                        )
+                                        user_selected_agent_id = actual_agent_id
+                            # 如果是 agent_id 格式，轉換為 _key
+                            elif not user_selected_agent_id.startswith("-"):
+                                cursor = arango_client.db.aql.execute(
+                                    """
+                                    FOR doc IN agent_display_configs
+                                        FILTER doc.agent_config.id == @agent_id OR doc.agent_id == @agent_id
+                                        RETURN doc
+                                    """,
+                                    bind_vars={"agent_id": user_selected_agent_id},
+                                )
+                                docs = list(cursor)
+                                if docs:
+                                    actual_key = docs[0].get("_key")
+                                    if actual_key:
+                                        logger.info(
+                                            f"[agent_id 轉換] agent_id: '{user_selected_agent_id}' → _key: '{actual_key}'"
+                                        )
+                                        user_selected_agent_id = actual_key
                     except Exception as e:
                         logger.warning(f"[agent_id 轉換] 失敗: {e}")
 
                 # 2026-02-04 新增：如果是 mm-agent，直接調用 MM-Agent，跳過 Task Analyzer 和 RAG
-                if user_selected_agent_id == "mm-agent":
-                    logger.info(f"[mm-agent] 🔀 檢測到 mm-agent，直接調用 MM-Agent")
+                # 2026-02-17 修復：支援 _key 格式（如 "-h0tjyh"）
+                is_mm_agent = user_selected_agent_id == "mm-agent" or (
+                    user_selected_agent_id and user_selected_agent_id.startswith("-")
+                )
+                logger.info(
+                    f"[mm-agent] 🔍 Debug: user_selected_agent_id={user_selected_agent_id}, is_mm_agent={is_mm_agent}"
+                )
+                if is_mm_agent:
+                    logger.info(
+                        f"[mm-agent] 🔀 檢測到 mm-agent (_key={user_selected_agent_id})，直接調用 MM-Agent"
+                    )
 
                     try:
-                        from agents.services.registry.registry import get_agent_registry
+                        # 從 agent_display_configs 獲取 endpoint
+                        from services.api.services.agent_display_config_store_service import (
+                            AgentDisplayConfigStoreService,
+                        )
 
-                        registry = get_agent_registry()
-                        agent_info = registry.get_agent_info("mm-agent")
+                        store = AgentDisplayConfigStoreService()
+                        selected_agent = (
+                            str(user_selected_agent_id) if user_selected_agent_id else ""
+                        )
+                        logger.info(f"[mm-agent] 🔍 查詢 config: selected_agent={selected_agent}")
+                        # user_selected_agent_id 可能是 "mm-agent" 或 _key "-h0tjyh"
+                        # 優先用 _key 查詢
+                        agent_config = store.get_agent_config(
+                            agent_key=selected_agent, tenant_id=None
+                        )
+                        if not agent_config:
+                            logger.info(f"[mm-agent] 🔄 _key 查詢失敗，回退用 agent_id 查詢")
+                            agent_config = store.get_agent_config(
+                                agent_id=selected_agent, tenant_id=None
+                            )
+                        else:
+                            logger.info(f"[mm-agent] ✅ _key 查詢成功")
 
-                        if agent_info and agent_info.endpoints and agent_info.endpoints.http:
-                            mm_endpoint = agent_info.endpoints.http
+                        if (
+                            agent_config
+                            and hasattr(agent_config, "endpoint_url")
+                            and agent_config.endpoint_url
+                        ):
+                            mm_endpoint = agent_config.endpoint_url
+
+                            # MM-Agent 期望簡單格式：{"instruction": "...", "session_id": "..."}
                             mm_request = {
-                                "task_id": task_id or str(uuid.uuid4()),
-                                "task_type": "general_chat",
-                                "task_data": {
-                                    "instruction": last_user_text,
-                                    "user_id": current_user.user_id,
-                                    "session_id": session_id,
-                                },
+                                "instruction": last_user_text,
+                                "session_id": session_id,
                             }
 
                             logger.info(f"[mm-agent] 📤 調用 MM-Agent: endpoint={mm_endpoint}")
@@ -3956,40 +4254,100 @@ async def chat_product_stream(
                                 timeout=120.0,
                             )
 
+                            logger.info(
+                                f"[mm-agent] 📥 MM-Agent 回應: status={response.status_code}, content_length={len(response.text)}"
+                            )
+                            if response.status_code == 200:
+                                logger.info(
+                                    f"[mm-agent] 📄 MM-Agent 回應內容: {response.text[:500]}..."
+                                )
+
                             if response.status_code == 200:
                                 mm_result = response.json()
                                 result_text = ""
+                                inventory_data = None
+
                                 if isinstance(mm_result, dict):
-                                    # 優先提取 response 字段（自然語言解釋）
-                                    if "result" in mm_result:
-                                        result_data = mm_result["result"]
-                                        if isinstance(result_data, dict):
-                                            # MM-Agent 返回結構：result 嵌套在 result 中
-                                            # 優先使用 response 字段（自然語言解釋）
-                                            inner_result = result_data.get("result")
-                                            if isinstance(inner_result, dict):
-                                                if inner_result.get("response"):
-                                                    result_text = inner_result["response"]
-                                                else:
-                                                    result_text = str(
-                                                        inner_result.get(
-                                                            "result", str(inner_result)
-                                                        )
-                                                    )
-                                            elif isinstance(result_data.get("response"), str):
-                                                result_text = result_data["response"]
-                                            else:
-                                                result_text = str(
-                                                    result_data.get("result", str(result_data))
+                                    debug_info = mm_result.get("debug_info", {})
+                                    all_results = debug_info.get("all_results", [])
+
+                                    business_explanation = None
+                                    result_data = []
+
+                                    if all_results and isinstance(all_results, list):
+                                        first_result = all_results[0]
+                                        if isinstance(first_result, dict):
+                                            result_debug_info = first_result.get("debug_info", {})
+                                            business_explanation = result_debug_info.get(
+                                                "result", {}
+                                            ).get("business_explanation")
+                                            result_data = result_debug_info.get("result", {}).get(
+                                                "data", []
+                                            )
+
+                                    if business_explanation:
+                                        inventory_data = f"📊 查詢結果：\n\n{business_explanation}"
+                                        logger.info(f"[mm-agent] ✅ 使用 LLM 業務解說")
+                                    elif result_data:
+                                        # 構建表格
+                                        first_item = result_data[0] if result_data else {}
+                                        material_code = (
+                                            first_item.get("item_no")
+                                            or first_item.get("material_code")
+                                            or "N/A"
+                                        )
+                                        stock_key = (
+                                            "existing_stocks"
+                                            if "existing_stocks" in first_item
+                                            else "inventory_value"
+                                        )
+
+                                        lines = [f"📊 查詢結果：", "", f"料號: {material_code}", ""]
+
+                                        if stock_key == "inventory_value":
+                                            lines.append("| 料號 | 庫存價值 |")
+                                            lines.append("|-----|---------|")
+                                            for item in result_data:
+                                                code = (
+                                                    item.get("item_no")
+                                                    or item.get("material_code")
+                                                    or "N/A"
                                                 )
+                                                value = item.get("inventory_value", 0)
+                                                lines.append(f"| {code} | {value:,.2f} |")
                                         else:
-                                            result_text = str(result_data)
-                                    elif "response" in mm_result:
+                                            lines.append("| 倉庫 | 單位 | 庫存數量 |")
+                                            lines.append("|-----|-----|---------|")
+                                            for item in result_data:
+                                                loc = (
+                                                    item.get("location_no")
+                                                    or item.get("warehouse_no")
+                                                    or "N/A"
+                                                )
+                                                u = item.get("unit") or "PC"
+                                                qty = int(item.get("existing_stocks", 0))
+                                                lines.append(f"| {loc} | {u} | {qty:,} |")
+
+                                        sql = result_debug_info.get("result", {}).get("sql", "")
+                                        if sql:
+                                            lines.append("")
+                                            lines.append(f"SQL: {sql}")
+
+                                        inventory_data = "\n".join(lines)
+                                        logger.info(
+                                            f"[mm-agent] ✅ 成功提取庫存數據: {len(result_data)} 行"
+                                        )
+
+                                    # 提取 response 字段
+                                    if "response" in mm_result:
                                         result_text = mm_result["response"]
                                     elif "content" in mm_result:
                                         result_text = str(mm_result["content"])
                                     else:
                                         result_text = str(mm_result)
+
+                                    if inventory_data:
+                                        result_text = inventory_data
 
                                 yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': result_text}})}\n\n"
                                 yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
@@ -4000,6 +4358,10 @@ async def chat_product_stream(
                                 )
                     except Exception as mm_error:
                         logger.error(f"[mm-agent] 錯誤: {mm_error}")
+                else:
+                    logger.warning(
+                        f"[mm-agent] 未找到 MM-Agent 配置: agent_id={user_selected_agent_id}, 將跳過直接調用"
+                    )
 
                 model_selector_dict = (
                     request_body.model_selector.model_dump()
@@ -4179,6 +4541,18 @@ async def chat_product_stream(
                     if analysis_result.analysis_details
                     else False
                 )
+
+                # 調試日誌：記錄所有相關值
+                import sys
+
+                sys.stderr.write(
+                    f"\n[DEBUG-STREAM] ========== 路由調試 ==========\n"
+                    f"  - user_selected_agent_id: {user_selected_agent_id}\n"
+                    f"  - analysis_result: {analysis_result is not None}\n"
+                    f"  - analysis_details: {analysis_result.analysis_details if analysis_result else None}\n"
+                    f"  - is_fast_path: {is_fast_path}\n"
+                )
+                sys.stderr.flush()
                 has_direct_answer = (
                     analysis_result.analysis_details.get("direct_answer", False)
                     if analysis_result.analysis_details
@@ -4635,6 +5009,39 @@ async def chat_product_stream(
             # 暫時關閉 AI 處理同意檢查（測試用）。正式環境請刪除此行。
             has_ai_consent = True
 
+            # 2026-02-14 新增：獲取 Agent 配置的知識庫文件 ID（流式版本）
+            knowledge_base_file_ids: list[str] = []
+            if user_selected_agent_id:
+                try:
+                    from services.api.services.agent_display_config_store_service import (
+                        AgentDisplayConfigStoreService,
+                    )
+
+                    store = AgentDisplayConfigStoreService()
+                    agent_config = store.get_agent_config(
+                        agent_key=user_selected_agent_id, tenant_id=None
+                    )
+                    if not agent_config:
+                        agent_config = store.get_agent_config(
+                            agent_id=user_selected_agent_id, tenant_id=None
+                        )
+                    if (
+                        agent_config
+                        and hasattr(agent_config, "knowledge_bases")
+                        and agent_config.knowledge_bases
+                    ):
+                        knowledge_base_file_ids = await _get_knowledge_base_file_ids(
+                            kb_ids=agent_config.knowledge_bases,
+                            user_id=current_user.user_id,
+                        )
+                        logger.info(
+                            f"[chat-stream] 獲取知識庫文件 ID: agent={user_selected_agent_id}, "
+                            f"kb_count={len(agent_config.knowledge_bases)}, "
+                            f"file_count={len(knowledge_base_file_ids)}"
+                        )
+                except Exception as e:
+                    logger.warning(f"[chat-stream] 獲取知識庫文件 ID 失敗: {e}")
+
             if has_ai_consent:
                 memory_result = await memory_service.retrieve_for_prompt(
                     user_id=current_user.user_id,
@@ -4643,7 +5050,10 @@ async def chat_product_stream(
                     request_id=request_id,
                     query=last_user_text,
                     attachments=request_body.attachments,
-                    user=current_user,  # 修改時間：2026-01-02 - 傳遞 user 對象用於權限檢查
+                    user=current_user,
+                    knowledge_base_file_ids=knowledge_base_file_ids
+                    if knowledge_base_file_ids
+                    else None,
                 )
             else:
                 from services.api.services.chat_memory_service import (
@@ -4676,6 +5086,19 @@ async def chat_product_stream(
                     )
 
             base_system = system_messages[:1] if system_messages else []
+
+            reserved_tokens = 0
+            if base_system:
+                reserved_tokens += context_manager._window.count_dict_messages_tokens(base_system)
+            if memory_result.injection_messages:
+                reserved_tokens += context_manager._window.count_dict_messages_tokens(
+                    memory_result.injection_messages
+                )
+
+            windowed_history = context_manager.get_context_with_dynamic_window(
+                session_id=session_id, reserved_tokens=reserved_tokens
+            )
+            observability.context_message_count = len(windowed_history)
 
             # 修改時間：2026-01-27 - 如果選擇了 Agent，先調用 Agent 的工具獲取結果（流式版本）
             import sys
@@ -5922,6 +6345,39 @@ async def chat_product(
         # 暫時關閉 AI 處理同意檢查（測試用）。正式環境請刪除此行。
         has_ai_consent = True
 
+        # 2026-02-14 新增：獲取 Agent 配置的知識庫文件 ID
+        knowledge_base_file_ids: list[str] = []
+        if user_selected_agent_id:
+            try:
+                from services.api.services.agent_display_config_store_service import (
+                    AgentDisplayConfigStoreService,
+                )
+
+                store = AgentDisplayConfigStoreService()
+                agent_config = store.get_agent_config(
+                    agent_key=user_selected_agent_id, tenant_id=None
+                )
+                if not agent_config:
+                    agent_config = store.get_agent_config(
+                        agent_id=user_selected_agent_id, tenant_id=None
+                    )
+                if (
+                    agent_config
+                    and hasattr(agent_config, "knowledge_bases")
+                    and agent_config.knowledge_bases
+                ):
+                    knowledge_base_file_ids = await _get_knowledge_base_file_ids(
+                        kb_ids=agent_config.knowledge_bases,
+                        user_id=current_user.user_id,
+                    )
+                    logger.info(
+                        f"[chat] 獲取知識庫文件 ID: agent={user_selected_agent_id}, "
+                        f"kb_count={len(agent_config.knowledge_bases)}, "
+                        f"file_count={len(knowledge_base_file_ids)}"
+                    )
+            except Exception as e:
+                logger.warning(f"[chat] 獲取知識庫文件 ID 失敗: {e}")
+
         if has_ai_consent:
             memory_result = await memory_service.retrieve_for_prompt(
                 user_id=current_user.user_id,
@@ -5930,7 +6386,10 @@ async def chat_product(
                 request_id=request_id,
                 query=last_user_text,
                 attachments=request_body.attachments,
-                user=current_user,  # 修改時間：2026-01-02 - 傳遞 user 對象用於權限檢查
+                user=current_user,
+                knowledge_base_file_ids=knowledge_base_file_ids
+                if knowledge_base_file_ids
+                else None,
             )
             observability.memory_hit_count = memory_result.memory_hit_count
             observability.memory_sources = memory_result.memory_sources
@@ -5969,6 +6428,20 @@ async def chat_product(
             observability.retrieval_latency_ms = 0.0
 
         base_system = system_messages[:1] if system_messages else []
+
+        reserved_tokens = 0
+        if base_system:
+            reserved_tokens += context_manager._window.count_dict_messages_tokens(base_system)
+        if memory_result.injection_messages:
+            reserved_tokens += context_manager._window.count_dict_messages_tokens(
+                memory_result.injection_messages
+            )
+
+        windowed_history = context_manager.get_context_with_dynamic_window(
+            session_id=session_id, reserved_tokens=reserved_tokens
+        )
+        observability.context_message_count = len(windowed_history)
+
         messages_for_llm = base_system + memory_result.injection_messages + windowed_history
 
         trace_store.add_event(

@@ -383,7 +383,8 @@ class ChatMemoryService:
         request_id: Optional[str],
         query: str,
         attachments: Optional[List[ChatAttachment]] = None,
-        user: Optional[User] = None,  # 新增：用於權限檢查
+        user: Optional[User] = None,
+        knowledge_base_file_ids: Optional[List[str]] = None,
     ) -> MemoryRetrievalResult:
         start = time.perf_counter()
 
@@ -633,9 +634,17 @@ class ChatMemoryService:
 
         # 1) RAG：檔案 chunks（以 attachments.file_id 為主，如果未使用 HybridRAG）
         # 如果已使用 HybridRAG，則跳過傳統的向量檢索（避免重複）
+        # 2026-02-14 新增：支持知識庫文件搜尋
         file_ids: List[str] = []
         if attachments:
             file_ids = [a.file_id for a in attachments if a and a.file_id]
+
+        # 合併知識庫文件 ID
+        if knowledge_base_file_ids:
+            file_ids.extend(knowledge_base_file_ids)
+
+        # 去重並保持順序
+        if file_ids:
             file_ids = self._dedupe_preserve_order(file_ids)
 
         # 只有在未使用 HybridRAG 或 HybridRAG 未返回結果時，才執行傳統向量檢索
@@ -649,24 +658,28 @@ class ChatMemoryService:
                 )
 
                 async def _query_one(fid: str) -> List[Dict[str, Any]]:
+                    # 知識庫文件不使用 user_id filter（知識庫是公開的）
+                    # 普通文件使用 user_id filter
+                    effective_user_id = None if knowledge_base_file_ids else user_id
+
                     # KA-Agent 文件安全審計：暫不執行（測試用）。正式環境請改回 query_vectors_with_acl。
-                    if user is not None and task_id != "KA-Agent":
+                    if user is not None and task_id != "KA-Agent" and effective_user_id:
                         return await asyncio.to_thread(
                             self._vector_store_service.query_vectors_with_acl,
                             user=user,
                             query_embedding=embedding,
                             file_id=fid,
-                            user_id=user_id,
-                            n_results=self._rag_top_k,
+                            user_id=effective_user_id,
+                            limit=self._rag_top_k,
                         )
                     else:
-                        # 向後兼容或 KA-Agent 測試：不使用 ACL 過濾
+                        # 知識庫文件或不需 ACL 過濾：不使用 user_id filter
                         return await asyncio.to_thread(
                             self._vector_store_service.query_vectors,
                             query_embedding=embedding,
                             file_id=fid,
-                            user_id=user_id,
-                            n_results=self._rag_top_k,
+                            user_id=effective_user_id,
+                            limit=self._rag_top_k,
                         )
 
                 if file_ids:
@@ -729,7 +742,7 @@ class ChatMemoryService:
                                 user=user,
                                 query_embedding=embedding,
                                 user_id=user_id,
-                                n_results=self._rag_top_k,
+                                limit=self._rag_top_k,
                             )
                         else:
                             # 向後兼容或 KA-Agent 測試：不使用 ACL 過濾
@@ -737,7 +750,7 @@ class ChatMemoryService:
                                 self._vector_store_service.query_vectors,
                                 query_embedding=embedding,
                                 user_id=user_id,
-                                n_results=self._rag_top_k,
+                                limit=self._rag_top_k,
                             )
                         if isinstance(batch, list):
                             batch.sort(

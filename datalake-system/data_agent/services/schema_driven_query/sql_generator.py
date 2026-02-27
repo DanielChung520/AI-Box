@@ -83,6 +83,7 @@ class SQLGenerator:
 
         Returns:
             str: SQL 語句
+            None: 如果涉及 ArangoDB Master Data，不應生成 SQL
         """
         if not ast.select:
             raise ValueError("No SELECT clause")
@@ -117,6 +118,11 @@ class SQLGenerator:
             group_by_clause = ", ".join(ast.group_by)
             sql_parts.append(f"GROUP BY {group_by_clause}")
 
+        # HAVING
+        if ast.having_conditions:
+            having_clause = self._build_where(ast.having_conditions)
+            sql_parts.append(f"HAVING {having_clause}")
+
         # ORDER BY
         if ast.order_by:
             order_by_clause = ", ".join(ast.order_by)
@@ -140,25 +146,33 @@ class SQLGenerator:
         for item in select_items:
             expr = item.get("expr", "")
             alias = item.get("alias")
-            if alias:
+            # 避免 DuckDB GROUP BY 問題：當 expr 等於 alias 時，不使用 AS alias
+            if alias and expr != alias:
                 items.append(f"{expr} AS {alias}")
             else:
                 items.append(expr)
         return ", ".join(items)
 
     def _build_where(self, conditions: List[Dict[str, Any]]) -> str:
-        """建構 WHERE 子句"""
+        """建構 WHERE/HAVING 子句"""
         conditions_sql = []
 
         for cond in conditions:
             column = cond.get("column", "")
             operator = cond.get("operator", "=")
             value = cond.get("value")
+            aggregation = cond.get("aggregation")
+
+            # 處理帶有 aggregation 的條件（如 HAVING SUM(existing_stocks) = 0）
+            if aggregation and aggregation != "NONE":
+                expr = f"{aggregation}({column})"
+            else:
+                expr = column
 
             # 處理 NULL
             if value is None:
                 op_sql = "IS NULL" if operator == "=" else "IS NOT NULL"
-                conditions_sql.append(f"{column} {op_sql}")
+                conditions_sql.append(f"{expr} {op_sql}")
             # 處理 BETWEEN（日期範圍）- 使用字串比較
             elif isinstance(value, dict) and value.get("type") == "BETWEEN":
                 # 提取日期字串（去掉引號）
@@ -168,17 +182,17 @@ class SQLGenerator:
                 start_str = start_val.replace("-", "").replace("/", "")
                 end_str = end_val.replace("-", "").replace("/", "")
                 # 使用字串 BETWEEN 進行比較
-                conditions_sql.append(f"{column} BETWEEN '{start_str}' AND '{end_str}'")
+                conditions_sql.append(f"{expr} BETWEEN '{start_str}' AND '{end_str}'")
             # 處理 IN
             elif isinstance(value, list):
                 values_str = ", ".join([self._quote_value(v) for v in value])
-                conditions_sql.append(f"{column} IN ({values_str})")
+                conditions_sql.append(f"{expr} IN ({values_str})")
             # 處理 LIKE
             elif operator.upper() == "LIKE":
-                conditions_sql.append(f"{column} LIKE '{value}'")
+                conditions_sql.append(f"{expr} LIKE '{value}'")
             # 處理一般運算符
             else:
-                conditions_sql.append(f"{column} {operator} {self._quote_value(value)}")
+                conditions_sql.append(f"{expr} {operator} {self._quote_value(value)}")
 
         return " AND ".join(conditions_sql)
 
@@ -190,6 +204,8 @@ class SQLGenerator:
             return "TRUE" if value else "FALSE"
         elif value is None:
             return "NULL"
+        elif isinstance(value, (int, float)):
+            return str(value)  # 數字不加引號
         else:
             return str(value)
 
@@ -214,9 +230,15 @@ class DuckDBSQLGenerator(SQLGenerator):
         """從 bindings 動態取得表格路徑"""
         table_upper = table_name.upper()
 
+        # 檢查是否為 Mart 表格
+        if table_upper.startswith("MART_"):
+            return f"duckdb://{table_name}"
+
         if self._bindings and table_upper in self._bindings:
             binding = self._bindings[table_upper].get("DUCKDB", {})
-            s3_path = binding.get("s3_path")
+            if hasattr(binding, "model_dump"):
+                binding = binding.model_dump()
+            s3_path = binding.get("s3_path") if isinstance(binding, dict) else None
             if s3_path:
                 return s3_path
         return None
@@ -247,7 +269,15 @@ class DuckDBSQLGenerator(SQLGenerator):
         return ", ".join(mapped_tables)
 
     def generate(self, ast: QueryAST) -> str:
-        """生成 SQL (覆寫以支援 S3 Path)"""
+        """
+        生成 SQL
+
+        Args:
+            ast: Query AST
+
+        Returns:
+            str: SQL 語句
+        """
         if not ast.select:
             raise ValueError("No SELECT clause")
 
@@ -269,6 +299,10 @@ class DuckDBSQLGenerator(SQLGenerator):
         if ast.group_by:
             group_by_clause = ", ".join(ast.group_by)
             sql_parts.append(f"GROUP BY {group_by_clause}")
+
+        if ast.having_conditions:
+            having_clause = self._build_where(ast.having_conditions)
+            sql_parts.append(f"HAVING {having_clause}")
 
         if ast.order_by:
             order_by_clause = ", ".join(ast.order_by)

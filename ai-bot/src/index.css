@@ -33,6 +33,10 @@
   --success-green: #10b981;
   --warning-yellow: #f59e0b;
   --danger-red: #ef4444;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
 }
 
 /* 深色主题变量（当有 .dark 类时） */
@@ -59,28 +63,68 @@
   --danger-red: #ef4444;
 }
 
-/* 浅色主题变量 */
+/* 浅色主题变量 - 增强层次感 */
 .light {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f3f4f6;
-  --bg-tertiary: #e5e7eb;
-  --bg-hover: #d1d5db;
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-hover: #e2e8f0;
 
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-tertiary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --text-muted: #94a3b8;
 
-  --border-primary: #e5e7eb;
-  --border-secondary: #d1d5db;
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
 
   --accent-blue: #3b82f6;
   --accent-blue-light: #60a5fa;
-  --accent-blue-dark: #1d4ed8;
+  --accent-blue-dark: #2563eb;
 
   --success-green: #10b981;
   --warning-yellow: #f59e0b;
   --danger-red: #ef4444;
+
+  /* 额外的层次感变量 */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* 蓝色浅色主题变量 - 清爽蓝色系 */
+.blue-light {
+  /* 主体背景 - 科技蓝色渐变 */
+  --bg-primary: #eff6ff;
+  --bg-secondary: linear-gradient(180deg, var(--tech-blue) 0%, var(--tech-blue-light) 100%);
+  --bg-tertiary: #bfdbfe;
+  --bg-hover: #93c5fd;
+
+  /* 科技蓝 - 用于组件底色 */
+  --tech-blue: #0058a3;
+  --tech-blue-light: #0066c4;
+  --tech-blue-accent: #0073e6;
+
+  --text-primary: #ffffff;
+  --text-secondary: #e0e7ff;
+  --text-tertiary: #bfdbfe;
+  --text-muted: #93c5fd;
+
+  --border-primary: #b3d9ff;
+  --border-secondary: #90cdf4;
+
+  --accent-blue: #3182ce;
+  --accent-blue-light: #63b3ed;
+  --accent-blue-dark: #2b6cb0;
+
+  --success-green: #38a169;
+  --warning-yellow: #d69e2e;
+  --danger-red: #e53e3e;
+
+  /* 额外的层次感变量 */
+  --shadow-sm: 0 1px 2px 0 rgb(0 88 163 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 88 163 / 0.15), 0 2px 4px -2px rgb(0 88 163 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 88 163 / 0.15), 0 4px 6px -4px rgb(0 88 163 / 0.1);
 }
 
 /* 主题切换过渡动画 */
@@ -105,6 +149,13 @@ body {
 /* 深色模式下确保背景色正确 */
 .dark html,
 .dark body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 蓝色浅色模式下确保背景色正确 */
+.blue-light html,
+.blue-light body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
 }
@@ -274,6 +325,7 @@ body {
 }
 
 .bg-secondary {
+  background: var(--bg-secondary);
   background-color: var(--bg-secondary);
 }
 
@@ -380,4 +432,2031 @@ body {
 .gutter-action-reject {
   background: #ff6b6b;
   color: white;
+}
+
+/* 浅色主题增强样式 - 增加层次感 */
+.light {
+  /* Sidebar 层次感 */
+  & .bg-secondary {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  /* 卡片层次感 */
+  & .rounded-xl {
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-primary);
+  }
+  
+  /* 消息框层次感 */
+  & .rounded-lg {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  /* 输入框层次感 */
+  & input[type="text"],
+  & input[type="password"],
+  & input[type="email"],
+  & textarea {
+    background-color: var(--bg-primary);
+    border-color: var(--border-primary);
+    box-shadow: inset 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  
+  /* 按钮层次感 */
+  & button {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  & button:active {
+    box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.1);
+  }
+  
+  /* 弹窗层次感 */
+  & .fixed.bg-secondary {
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* 浅色主题 Sidebar 特殊样式 - 添加陰影效果 */
+.light .sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-right: 1px solid #e2e8f0;
+  box-shadow: 
+    2px 0 12px rgba(0, 0, 0, 0.08),
+    1px 0 6px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 10;
+}
+
+/* 浅色主题 Sidebar 悬停效果 */
+.light .sidebar button:hover {
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 11;
+}
+
+/* 浅色主题 Sidebar 收藏夹和任务项悬停 */
+.light .sidebar button.bg-tertiary:hover,
+.light .sidebar .hover\\:bg-tertiary:hover {
+  box-shadow: 
+    0 4px 12px rgba(59, 130, 246, 0.15),
+    0 2px 6px rgba(59, 130, 246, 0.08);
+  position: relative;
+  z-index: 11;
+}
+
+/* 浅色主题 Sidebar 收藏夹和任务项悬停 */
+.light .sidebar button.bg-tertiary:hover,
+.light .sidebar .hover\\:bg-tertiary:hover {
+  box-shadow: 
+    0 4px 12px rgba(59, 130, 246, 0.15),
+    0 2px 6px rgba(59, 130, 246, 0.08);
+  position: relative;
+  z-index: 11;
+}
+
+/* 浅色主题 Header 特殊样式 - 添加陰影效果 */
+.light .header {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 
+    2px 0 12px rgba(0, 0, 0, 0.08),
+    1px 0 6px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 10;
+}
+
+/* 浅色主题 Header 按钮悬停效果 */
+.light .header button:hover {
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 11;
+}
+
+/* 浅色主题 Header 下拉菜单阴影 */
+.light .header .absolute.bg-secondary,
+.light .header div[class*="bg-"] {
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 100;
+}
+
+/* 浅色主题卡片悬停效果 */
+.light .agent-card,
+.light .assistant-card {
+  transition: all 0.2s ease;
+  &:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+}
+
+/* 浅色主题分隔线 */
+.light .divide-y,
+.light .divide-x {
+  border-color: #e2e8f0;
+}
+
+/* 蓝色浅色主题 Sidebar 特殊样式 - 使用科技蓝底色 + 陰影效果 */
+.blue-light .sidebar {
+  background: linear-gradient(180deg, var(--tech-blue) 0%, var(--tech-blue-light) 100%);
+  border-right: 1px solid var(--tech-blue-accent);
+  box-shadow: 
+    2px 0 12px rgba(0, 0, 0, 0.2),
+    1px 0 6px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 10;
+}
+
+/* 蓝色浅色主题 Logo - 沿用深色主题逻辑，显示原始颜色 */
+.blue-light .sidebar img,
+.blue-light .sidebar > div img,
+.blue-light .sidebar .flex > img {
+  opacity: 1;
+  filter: none;
+  background-color: transparent !important;
+  mix-blend-mode: normal !important;
+}
+
+.blue-light .sidebar img:hover {
+  opacity: 1;
+  transform: scale(1.02);
+}
+
+/* 蓝色浅色主题 Sidebar 标题和标签颜色 */
+.blue-light .sidebar .text-tertiary,
+.blue-light .sidebar .text-orange-400 {
+  color: #fbbf24 !important;
+}
+
+/* 蓝色浅色主题 Sidebar 归档按钮透明背景 */
+.blue-light .sidebar .fa-archive {
+  background-color: transparent !important;
+}
+
+/* Sidebar 内的文字和图标使用浅色 */
+.blue-light .sidebar,
+.blue-light .sidebar * {
+  color: #ffffff;
+}
+
+.blue-light .sidebar .text-primary,
+.blue-light .sidebar .text-secondary,
+.blue-light .sidebar .text-tertiary,
+.blue-light .sidebar .text-muted {
+  color: #ffffff !important;
+}
+
+.blue-light .sidebar .text-yellow-400,
+.blue-light .sidebar .text-yellow-500 {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+/* 不同类型的图标使用不同颜色（必须放在通用规则之后） */
+.blue-light .sidebar .fa-bookmark {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.blue-light .sidebar .fa-robot {
+  color: #a78bfa !important;
+  text-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
+}
+
+.blue-light .sidebar .fa-user-tie {
+  color: #34d399 !important;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.blue-light .sidebar .fa-tasks {
+  color: #f472b6 !important;
+  text-shadow: 0 0 8px rgba(244, 114, 182, 0.5);
+}
+
+.blue-light .sidebar .fa-star {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.blue-light .sidebar .fa-folder,
+.blue-light .sidebar .fa-folder-open {
+  color: #60a5fa !important;
+  text-shadow: 0 0 6px rgba(96, 165, 250, 0.4);
+}
+
+.blue-light .sidebar .fa-file {
+  color: #a5b4fc !important;
+}
+
+.blue-light .sidebar .fa-chevron-right,
+.blue-light .sidebar .fa-chevron-left {
+  color: #e0e7ff !important;
+  opacity: 0.6;
+}
+
+.blue-light .sidebar .fa-cog {
+  color: #94a3b8 !important;
+}
+
+.blue-light .sidebar .fa-search {
+  color: #60a5fa !important;
+  text-shadow: 0 0 6px rgba(96, 165, 250, 0.4);
+}
+
+.blue-light .sidebar .fa-sun,
+.blue-light .sidebar .fa-moon {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.blue-light .sidebar .fa-globe {
+  color: #38bdf8 !important;
+  text-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+}
+
+.blue-light .sidebar .fa-heart {
+  color: #fb7185 !important;
+  text-shadow: 0 0 6px rgba(251, 113, 133, 0.5);
+}
+
+.blue-light .sidebar .fa-regular.fa-heart {
+  color: #94a3b8 !important;
+}
+
+.blue-light .sidebar i.text-yellow-400,
+.blue-light .sidebar i.text-yellow-500 {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.blue-light .sidebar i.text-purple-400 {
+  color: #a78bfa !important;
+  text-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
+}
+
+.blue-light .sidebar i.text-green-400 {
+  color: #34d399 !important;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.blue-light .sidebar i.text-blue-400 {
+  color: #60a5fa !important;
+  text-shadow: 0 0 6px rgba(96, 165, 250, 0.5);
+}
+
+.blue-light .sidebar i.text-red-400 {
+  color: #f87171 !important;
+  text-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+}
+
+/* Sidebar 内的按钮背景 + 陰影效果 */
+.blue-light .sidebar button:not(.fa-chevron-right):not(.fa-chevron-left) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.blue-light .sidebar button:hover:not(.fa-chevron-right):not(.fa-chevron-left) {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 11;
+}
+
+/* Sidebar 内的图标悬停效果 + 陰影 */
+.blue-light .sidebar button:hover i,
+.blue-light .sidebar button:hover svg {
+  opacity: 1;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  filter: brightness(1.1);
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.3),
+    0 0 16px rgba(255, 255, 255, 0.1);
+}
+
+.blue-light .sidebar button:hover .fa-robot {
+  color: #c4b5fd !important;
+  text-shadow: 0 0 12px rgba(196, 181, 253, 0.6);
+}
+
+.blue-light .sidebar button:hover .fa-user-tie {
+  color: #6ee7b7 !important;
+  text-shadow: 0 0 12px rgba(110, 231, 183, 0.6);
+}
+
+.blue-light .sidebar button:hover .fa-bookmark {
+  color: #fde047 !important;
+  text-shadow: 0 0 12px rgba(253, 224, 71, 0.6);
+}
+
+.blue-light .sidebar button:hover .fa-heart {
+  color: #fda4af !important;
+  text-shadow: 0 0 12px rgba(253, 164, 175, 0.6);
+}
+
+.blue-light .sidebar button:hover .fa-globe {
+  color: #7dd3fc !important;
+  text-shadow: 0 0 12px rgba(125, 211, 252, 0.6);
+}
+
+.blue-light .sidebar button:hover .fa-cog {
+  color: #cbd5e1 !important;
+  text-shadow: 0 0 8px rgba(203, 213, 225, 0.5);
+}
+
+.blue-light .sidebar button:hover .fa-search {
+  color: #93c5fd !important;
+  text-shadow: 0 0 12px rgba(147, 197, 253, 0.6);
+}
+
+/* 蓝色浅色主题 Header 特殊样式 - 使用科技蓝底色 */
+.blue-light .header {
+  background: linear-gradient(180deg, var(--tech-blue) 0%, var(--tech-blue-light) 100%);
+  border-bottom: 1px solid var(--tech-blue-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Header 内的文字和图标使用浅色 */
+.blue-light .header,
+.blue-light .header * {
+  color: #ffffff;
+}
+
+.blue-light .header .text-primary,
+.blue-light .header .text-secondary,
+.blue-light .header .text-tertiary,
+.blue-light .header .text-muted {
+  color: #e0e7ff !important;
+}
+
+.blue-light .header .text-blue-400 {
+  color: #93c5fd !important;
+}
+
+/* Header 内的图标颜色 - 使用线条风格 */
+.blue-light .header i,
+.blue-light .header i[class*="fa-"] {
+  color: #e0e7ff !important;
+  fill: none !important;
+  stroke: #e0e7ff !important;
+  stroke-width: 2px;
+}
+
+.blue-light .header svg {
+  color: #e0e7ff !important;
+  fill: none !important;
+  stroke: #e0e7ff !important;
+}
+
+.blue-light .header i.text-blue-400 {
+  color: #93c5fd !important;
+  stroke: #93c5fd !important;
+}
+
+/* Header 图标线条风格 - 使用透明度和阴影 */
+.blue-light .header i[class*="fa-"]::before {
+  opacity: 0.8;
+  text-shadow: 0 0 1px rgba(224, 231, 255, 0.3);
+}
+
+/* Header 内的按钮背景 */
+.blue-light .header button {
+  background-color: rgba(255,255, 255, 0.1) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.blue-light .header button:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 11;
+}
+
+.blue-light .header button:hover {
+  background-color: rgba(255,255, 255, 0.2) !important;
+}
+
+/* Sidebar 内的文字和图标使用浅色 */
+.blue-light .sidebar,
+.blue-light .sidebar * {
+  color: #ffffff;
+}
+
+.blue-light .sidebar .text-primary,
+.blue-light .sidebar .text-secondary,
+.blue-light .sidebar .text-tertiary,
+.blue-light .sidebar .text-muted {
+  color: #e0e7ff !important;
+}
+
+.blue-light .sidebar .text-yellow-400,
+.blue-light .sidebar .text-yellow-500 {
+  color: #fbbf24 !important;
+}
+
+/* Sidebar 内特定图标使用不同颜色（必须放在通用规则之后） */
+.blue-light .sidebar .fa-bookmark {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.blue-light .sidebar .fa-robot {
+  color: #a78bfa !important;
+  text-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
+}
+
+.blue-light .sidebar .fa-user-tie {
+  color: #34d399 !important;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.blue-light .sidebar .fa-tasks {
+  color: #f472b6 !important;
+  text-shadow: 0 0 8px rgba(244, 114, 182, 0.5);
+}
+
+.blue-light .sidebar .fa-star {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.blue-light .sidebar i.text-yellow-400,
+.blue-light .sidebar i.text-yellow-500 {
+  color: #fbbf24 !important;
+}
+
+/* Sidebar 内的按钮背景 */
+.blue-light .sidebar button:not(.fa-chevron-right):not(.fa-chevron-left) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.blue-light .sidebar button:hover:not(.fa-chevron-right):not(.fa-chevron-left) {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 蓝色浅色主题 Header 特殊样式 - 使用科技蓝底色 */
+.blue-light .header {
+  background: linear-gradient(180deg, var(--tech-blue) 0%, var(--tech-blue-light) 100%);
+  border-bottom: 1px solid var(--tech-blue-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Header 内的文字和图标使用浅色 */
+.blue-light .header,
+.blue-light .header * {
+  color: #ffffff;
+}
+
+.blue-light .header .text-primary,
+.blue-light .header .text-secondary,
+.blue-light .header .text-tertiary,
+.blue-light .header .text-muted {
+  color: #e0e7ff !important;
+}
+
+.blue-light .header .text-blue-400 {
+  color: #93c5fd !important;
+}
+
+/* Header 内的图标颜色 - i 為 Font Awesome，svg 為 Lucide 線條圖示 */
+.blue-light .header i,
+.blue-light .header i[class*="fa-"] {
+  color: #e0e7ff !important;
+  fill: #e0e7ff !important;
+}
+
+/* Header 內 Lucide SVG 使用線條風格（知識庫、右側欄展開/收合等） */
+.blue-light .header svg {
+  color: #e0e7ff !important;
+  fill: none !important;
+  stroke: #e0e7ff !important;
+  stroke-width: 2px;
+}
+
+.blue-light .header i.text-blue-400 {
+  color: #93c5fd !important;
+}
+
+/* Header 内的按钮背景 */
+.blue-light .header button {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.blue-light .header button:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 蓝色浅色主题卡片悬停效果 - 使用科技蓝底色 */
+.blue-light .agent-card,
+.blue-light .assistant-card {
+  background: linear-gradient(135deg, var(--tech-blue) 0%, var(--tech-blue-light) 100%);
+  border: 1px solid var(--tech-blue-accent);
+  transition: all 0.2s ease;
+  color: #ffffff;
+}
+
+/* 卡片内所有文字使用浅色 */
+.blue-light .agent-card *,
+.blue-light .assistant-card * {
+  color: #e0e7ff !important;
+}
+
+.blue-light .agent-card .text-primary,
+.blue-light .assistant-card .text-primary {
+  color: #ffffff !important;
+}
+
+.blue-light .agent-card .text-secondary,
+.blue-light .agent-card .text-tertiary,
+.blue-light .assistant-card .text-secondary,
+.blue-light .assistant-card .text-tertiary {
+  color: #e0e7ff !important;
+}
+
+.blue-light .agent-card .text-muted,
+.blue-light .assistant-card .text-muted {
+  color: #c7d2fe !important;
+}
+
+/* 卡片内图标颜色 - 丰富色彩 */
+.blue-light .agent-card i,
+.blue-light .assistant-card i,
+.blue-light .agent-card i[class*="fa-"],
+.blue-light .assistant-card i[class*="fa-"] {
+  opacity: 0.95;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+.blue-light .agent-card svg,
+.blue-light .assistant-card svg {
+  opacity: 0.95;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+}
+
+/* 助理卡片图标 - 紫色系 */
+.blue-light .assistant-card .w-10 i,
+.blue-light .assistant-card .w-10 i[class*="fa-"] {
+  color: #a78bfa !important;
+  text-shadow: 0 0 10px rgba(167, 139, 250, 0.6);
+}
+
+.blue-light .assistant-card .fa-robot {
+  color: #a78bfa !important;
+  text-shadow: 0 0 10px rgba(167, 139, 250, 0.6);
+}
+
+.blue-light .assistant-card .fa-pen-to-square {
+  color: #c4b5fd !important;
+  text-shadow: 0 0 10px rgba(196, 181, 253, 0.6);
+}
+
+.blue-light .assistant-card .fa-code {
+  color: #818cf8 !important;
+  text-shadow: 0 0 10px rgba(129, 140, 248, 0.6);
+}
+
+/* 代理卡片图标 - 绿色系 */
+.blue-light .agent-card .w-10 i,
+.blue-light .agent-card .w-10 i[class*="fa-"] {
+  color: #34d399 !important;
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
+}
+
+.blue-light .agent-card .fa-user-tie {
+  color: #34d399 !important;
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
+}
+
+.blue-light .agent-card .fa-chart-bar {
+  color: #6ee7b7 !important;
+  text-shadow: 0 0 10px rgba(110, 231, 183, 0.6);
+}
+
+.blue-light .agent-card .fa-comment {
+  color: #34d399 !important;
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
+}
+
+/* 卡片内其他图标 */
+.blue-light .agent-card .text-blue-400,
+.blue-light .assistant-card .text-blue-400 {
+  color: #60a5fa !important;
+  text-shadow: 0 0 8px rgba(96, 165, 250, 0.5);
+}
+
+.blue-light .agent-card .text-red-400,
+.blue-light .assistant-card .text-red-400 {
+  color: #f87171 !important;
+  text-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+}
+
+/* 卡片图标背景容器 - 线条风格 */
+.blue-light .agent-card .w-10,
+.blue-light .assistant-card .w-10 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(224, 231, 255, 0.2);
+}
+
+.blue-light .agent-card .w-10 i,
+.blue-light .assistant-card .w-10 i {
+  color: #e0e7ff !important;
+  opacity: 0.9;
+  text-shadow: 0 0 2px rgba(224, 231, 255, 0.3);
+}
+
+/* 助理卡片图标 - 紫色系 */
+.blue-light .assistant-card .w-10 .fa-robot {
+  color: #a78bfa !important;
+  text-shadow: 0 0 10px rgba(167, 139, 250, 0.6);
+}
+
+.blue-light .assistant-card .w-10 .fa-pen-to-square {
+  color: #c4b5fd !important;
+  text-shadow: 0 0 10px rgba(196, 181, 253, 0.6);
+}
+
+/* 代理卡片图标 - 绿色系 */
+.blue-light .agent-card .w-10 .fa-user-tie {
+  color: #34d399 !important;
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
+}
+
+.blue-light .agent-card .w-10 .fa-chart-bar {
+  color: #6ee7b7 !important;
+  text-shadow: 0 0 10px rgba(110, 231, 183, 0.6);
+}
+
+.blue-light .agent-card:hover,
+.blue-light .assistant-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--tech-blue-light) 0%, var(--tech-blue) 100%);
+}
+
+.blue-light .agent-card:hover i,
+.blue-light .assistant-card:hover i,
+.blue-light .agent-card:hover svg,
+.blue-light .assistant-card:hover svg {
+  color: #ffffff !important;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  filter: brightness(1.1);
+}
+
+.blue-light .agent-card:hover i[class*="fa-"]::before,
+.blue-light .assistant-card:hover i[class*="fa-"]::before {
+  opacity: 1;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+/* 助理卡片悬停效果 */
+.blue-light .assistant-card:hover .fa-robot {
+  color: #c4b5fd !important;
+  text-shadow: 0 0 15px rgba(196, 181, 253, 0.8);
+}
+
+.blue-light .assistant-card:hover .fa-pen-to-square {
+  color: #ddd6fe !important;
+  text-shadow: 0 0 15px rgba(221, 214, 254, 0.8);
+}
+
+.blue-light .assistant-card:hover .fa-code {
+  color: #a5b4fc !important;
+  text-shadow: 0 0 15px rgba(165, 180, 252, 0.8);
+}
+
+/* 代理卡片悬停效果 */
+.blue-light .agent-card:hover .fa-user-tie {
+  color: #6ee7b7 !important;
+  text-shadow: 0 0 15px rgba(110, 231, 183, 0.8);
+}
+
+.blue-light .agent-card:hover .fa-chart-bar {
+  color: #a7f3d0 !important;
+  text-shadow: 0 0 15px rgba(167, 243, 208, 0.8);
+}
+
+.blue-light .agent-card:hover .fa-comment,
+.blue-light .assistant-card:hover .fa-comment {
+  color: #60a5fa !important;
+  text-shadow: 0 0 15px rgba(96, 165, 250, 0.8);
+}
+
+/* 卡片内按钮 */
+.blue-light .agent-card button,
+.blue-light .assistant-card button {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.blue-light .agent-card button:hover,
+.blue-light .assistant-card button:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 蓝色浅色主题分隔线 */
+.blue-light .divide-y,
+.blue-light .divide-x {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 蓝色浅色主题输入框 - 在 Sidebar 和 Header 内 */
+.blue-light .sidebar input,
+.blue-light .sidebar textarea,
+.blue-light .header input,
+.blue-light .header textarea {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.blue-light .sidebar input::placeholder,
+.blue-light .sidebar textarea::placeholder,
+.blue-light .header input::placeholder,
+.blue-light .header textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.blue-light .sidebar input:focus,
+.blue-light .sidebar textarea:focus,
+.blue-light .header input:focus,
+.blue-light .header textarea:focus {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: #93c5fd !important;
+}
+
+/* 蓝色浅色主题下拉菜单 */
+.blue-light .sidebar .absolute.bg-secondary,
+.blue-light .sidebar div.bg-secondary,
+.blue-light .header .absolute.bg-secondary,
+.blue-light .header div.bg-secondary {
+  background-color: rgba(0, 88, 163, 0.95) !important;
+  border: 1px solid var(--tech-blue-accent) !important;
+  backdrop-filter: blur(10px);
+}
+
+/* 蓝色浅色主题下拉菜单内的文字和图标 */
+.blue-light .sidebar .absolute.bg-secondary *,
+.blue-light .header .absolute.bg-secondary * {
+  color: #e0e7ff !important;
+}
+
+/* 下拉菜单图标 - 线条风格 */
+.blue-light .sidebar .absolute.bg-secondary i,
+.blue-light .sidebar .absolute.bg-secondary i[class*="fa-"],
+.blue-light .header .absolute.bg-secondary i,
+.blue-light .header .absolute.bg-secondary i[class*="fa-"] {
+  color: #e0e7ff !important;
+  fill: none !important;
+  stroke: #e0e7ff !important;
+  stroke-width: 2px;
+}
+
+.blue-light .sidebar .absolute.bg-secondary i[class*="fa-"]::before,
+.blue-light .header .absolute.bg-secondary i[class*="fa-"]::before {
+  opacity: 0.8;
+  text-shadow: 0 0 1px rgba(224, 231, 255, 0.3);
+}
+
+/* 蓝色浅色主题下拉菜单内的按钮 */
+.blue-light .sidebar .absolute.bg-secondary button,
+.blue-light .header .absolute.bg-secondary button {
+  background-color: transparent !important;
+}
+
+.blue-light .sidebar .absolute.bg-secondary button:hover,
+.blue-light .header .absolute.bg-secondary button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 蓝色浅色主题边框颜色覆盖 */
+.blue-light .sidebar .border-primary,
+.blue-light .sidebar [class*="border-"] {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.blue-light .header .border-primary,
+.blue-light .header [class*="border-"] {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 蓝色浅色主题悬停效果 */
+.blue-light .sidebar button:hover,
+.blue-light .header button:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* 蓝色浅色主题图标悬停效果 */
+.blue-light .sidebar button:hover i,
+.blue-light .sidebar button:hover svg,
+.blue-light .header button:hover i,
+.blue-light .header button:hover svg {
+  color: #ffffff !important;
+  fill: none !important;
+  stroke: #ffffff !important;
+  stroke-width: 2px;
+}
+
+.blue-light .sidebar button:hover i[class*="fa-"]::before,
+.blue-light .header button:hover i[class*="fa-"]::before {
+  opacity: 1;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+.blue-light .sidebar button:hover .text-yellow-400,
+.blue-light .sidebar button:hover .text-yellow-500,
+.blue-light .header button:hover .text-yellow-400,
+.blue-light .header button:hover .text-yellow-500 {
+  color: #fbbf24 !important;
+}
+
+.blue-light .sidebar button:hover .text-blue-400,
+.blue-light .header button:hover .text-blue-400 {
+  color: #93c5fd !important;
+}
+
+/* 蓝色浅色主题状态标签 */
+.blue-light .agent-card .bg-green-500,
+.blue-light .assistant-card .bg-green-500 {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.blue-light .agent-card .bg-yellow-500,
+.blue-light .assistant-card .bg-yellow-500 {
+  background-color: #f59e0b !important;
+  color: #ffffff !important;
+}
+
+.blue-light .agent-card .bg-red-500,
+.blue-light .assistant-card .bg-red-500 {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.blue-light .agent-card .bg-gray-500,
+.blue-light .assistant-card .bg-gray-500 {
+  background-color: #6b7280 !important;
+  color: #ffffff !important;
+}
+
+.blue-light .agent-card .bg-orange-500,
+.blue-light .assistant-card .bg-orange-500 {
+  background-color: #f97316 !important;
+  color: #ffffff !important;
+}
+
+/* 蓝色浅色主题按钮特殊样式 */
+.blue-light .agent-card .bg-purple-600,
+.blue-light .assistant-card .bg-purple-600 {
+  background-color: #7c3aed !important;
+  color: #ffffff !important;
+}
+
+.blue-light .agent-card .bg-blue-600,
+.blue-light .assistant-card .bg-blue-600 {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* 蓝色浅色主题 Modal 样式 */
+.blue-light .fixed.bg-white {
+  background-color: #ffffff !important;
+  color: #1e293b;
+}
+
+.blue-light .fixed:not([class*="bg-black"]) > div.bg-white {
+  background-color: #ffffff !important;
+  color: #1e293b;
+}
+
+/* Modal 内的图标 - 丰富色彩 */
+.blue-light .fixed.bg-white i,
+.blue-light .fixed.bg-white i[class*="fa-"],
+.blue-light .fixed.bg-white svg {
+  opacity: 0.9;
+  text-shadow: 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.blue-light .fixed.bg-white svg {
+  filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.3));
+}
+
+/* 不同类型的 Modal 图标 */
+.blue-light .fixed.bg-white .fa-database {
+  color: #3b82f6 !important;
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-globe {
+  color: #38bdf8 !important;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-folder,
+.blue-light .fixed.bg-white .fa-folder-plus {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-upload {
+  color: #34d399 !important;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-file-text {
+  color: #a5b4fc !important;
+  text-shadow: 0 0 8px rgba(165, 180, 252, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-trash-2 {
+  color: #f87171 !important;
+  text-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-eye {
+  color: #6366f1 !important;
+  text-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-search {
+  color: #60a5fa !important;
+  text-shadow: 0 0 8px rgba(96, 165, 250, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-plus {
+  color: #10b981 !important;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-chevron-right,
+.blue-light .fixed.bg-white .fa-chevron-down {
+  color: #94a3b8 !important;
+}
+
+.blue-light .fixed.bg-white .fa-check {
+  color: #10b981 !important;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-loader-2,
+.blue-light .fixed.bg-white .animate-spin {
+  color: #3b82f6 !important;
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-lock,
+.blue-light .fixed.bg-white .fa-lock-open {
+  color: #f59e0b !important;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-calendar {
+  color: #8b5cf6 !important;
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-network,
+.blue-light .fixed.bg-white .fa-git-branch {
+  color: #ec4899 !important;
+  text-shadow: 0 0 8px rgba(236, 72, 153, 0.5);
+}
+
+.blue-light .fixed.bg-white .fa-edit,
+.blue-light .fixed.bg-white .fa-pencil {
+  color: #6366f1 !important;
+  text-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+}
+
+.blue-light .fixed.bg-white i[class*="fa-"]::before {
+  opacity: 0.8;
+  text-shadow: 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+/* Modal 图标悬停效果 */
+.blue-light .fixed.bg-white button:hover i,
+.blue-light .fixed.bg-white button:hover svg {
+  opacity: 1;
+  text-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+  filter: brightness(1.1);
+}
+
+.blue-light .fixed.bg-white button:hover .fa-database {
+  color: #60a5fa !important;
+  text-shadow: 0 0 12px rgba(96, 165, 250, 0.7);
+}
+
+.blue-light .fixed.bg-white button:hover .fa-globe {
+  color: #7dd3fc !important;
+  text-shadow: 0 0 12px rgba(125, 211, 252, 0.7);
+}
+
+.blue-light .fixed.bg-white button:hover .fa-folder,
+.blue-light .fixed.bg-white button:hover .fa-folder-plus {
+  color: #fde047 !important;
+  text-shadow: 0 0 12px rgba(253, 224, 71, 0.7);
+}
+
+.blue-light .fixed.bg-white button:hover .fa-trash-2 {
+  color: #fca5a5 !important;
+  text-shadow: 0 0 12px rgba(252, 165, 165, 0.7);
+}
+
+.blue-light .fixed.bg-white button:hover .fa-edit,
+.blue-light .fixed.bg-white button:hover .fa-pencil {
+  color: #818cf8 !important;
+  text-shadow: 0 0 12px rgba(129, 140, 248, 0.7);
+}
+
+/* Modal 按钮样式 */
+.blue-light .fixed.bg-white button.bg-blue-500,
+.blue-light .fixed.bg-white button.bg-blue-600 {
+  background-color: var(--tech-blue) !important;
+  color: #ffffff !important;
+}
+
+.blue-light .fixed.bg-white button.bg-purple-500,
+.blue-light .fixed.bg-white button.bg-purple-600 {
+  background-color: #7c3aed !important;
+  color: #ffffff !important;
+}
+
+/* Modal 悬停效果 */
+.blue-light .fixed.bg-white button:hover {
+  background-color: rgba(0, 88, 163, 0.1) !important;
+}
+
+.blue-light .fixed.bg-white button.bg-blue-500:hover,
+.blue-light .fixed.bg-white button.bg-blue-600:hover {
+  background-color: var(--tech-blue-light) !important;
+}
+
+/* Modal 输入框样式 */
+.blue-light .fixed.bg-white input,
+.blue-light .fixed.bg-white textarea {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+.blue-light .fixed.bg-white input:focus,
+.blue-light .fixed.bg-white textarea:focus {
+  border-color: var(--tech-blue) !important;
+  box-shadow: 0 0 0 3px rgba(0, 88, 163, 0.1) !important;
+}
+
+.blue-light .fixed.bg-white input::placeholder,
+.blue-light .fixed.bg-white textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Modal 内的侧边栏 */
+.blue-light .fixed.bg-white .bg-gray-50 {
+  background-color: #f8fafc !important;
+}
+
+/* Modal 列表项悬停效果 */
+.blue-light .fixed.bg-white .hover\\:bg-gray-100:hover,
+.blue-light .fixed.bg-white .hover\\:bg-gray-200:hover {
+  background-color: rgba(0, 88, 163, 0.05) !important;
+}
+
+.blue-light .fixed.bg-white .hover\\:bg-blue-100:hover {
+  background-color: rgba(0, 88, 163, 0.1) !important;
+}
+
+/* Modal 标签样式 */
+.blue-light .fixed.bg-white .bg-blue-100 {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: #2563eb !important;
+}
+
+.blue-light .fixed.bg-white .bg-blue-200 {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  color: #1d4ed8 !important;
+}
+
+/* 蓝色浅色主题 ChatInput 样式 */
+.blue-light .bg-secondary {
+  background-color: #ffffff !important;
+}
+
+/* ChatInput 输入框 - 强制深色文字 */
+.blue-light .bg-secondary textarea,
+.blue-light [class*="bg-secondary"] textarea {
+  background-color: #f0f7ff !important;
+  color: #1e3a5f !important;
+}
+.blue-light textarea {
+  background-color: #f0f7ff !important;
+  color: #1e3a5f !important;
+}
+.blue-light textarea::placeholder {
+  color: #6b8caf !important;
+}
+
+/* ChatInput 弹出菜单 - 丰富色彩 */
+.blue-light .fixed.bg-secondary {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.blue-light .fixed.bg-secondary .bg-secondary {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* ChatInput 弹出菜单图标 */
+.blue-light .fixed.bg-secondary i,
+.blue-light .fixed.bg-secondary i[class*="fa-"],
+.blue-light .fixed.bg-secondary svg {
+  opacity: 0.9;
+  text-shadow: 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.blue-light .fixed.bg-secondary svg {
+  filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.3));
+}
+
+/* 不同类型的 ChatInput 图标 */
+.blue-light .fixed.bg-secondary .fa-robot {
+  color: #a78bfa !important;
+  text-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
+}
+
+.blue-light .fixed.bg-secondary .fa-user-tie {
+  color: #34d399 !important;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.blue-light .fixed.bg-secondary .fa-brain {
+  color: #ec4899 !important;
+  text-shadow: 0 0 8px rgba(236, 72, 153, 0.5);
+}
+
+.blue-light .fixed.bg-secondary .fa-microchip {
+  color: #f59e0b !important;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.blue-light .fixed.bg-secondary .fa-chart-line {
+  color: #10b981 !important;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.blue-light .fixed.bg-secondary i[class*="fa-"]::before {
+  opacity: 0.8;
+  text-shadow: 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+.blue-light .fixed.bg-secondary button:hover {
+  background-color: rgba(0, 88, 163, 0.05) !important;
+}
+
+.blue-light .fixed.bg-secondary button:hover i,
+.blue-light .fixed.bg-secondary button:hover svg {
+  opacity: 1;
+  text-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+  filter: brightness(1.1);
+}
+
+.blue-light .fixed.bg-secondary button:hover .fa-robot {
+  color: #c4b5fd !important;
+  text-shadow: 0 0 12px rgba(196, 181, 253, 0.7);
+}
+
+.blue-light .fixed.bg-secondary button:hover .fa-user-tie {
+  color: #6ee7b7 !important;
+  text-shadow: 0 0 12px rgba(110, 231, 183, 0.7);
+}
+
+.blue-light .fixed.bg-secondary button:hover .fa-brain {
+  color: #f472b6 !important;
+  text-shadow: 0 0 12px rgba(244, 114, 182, 0.7);
+}
+
+/* 蓝色浅色主题 ResultPanel 样式 */
+.blue-light .border-l.bg-secondary {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.blue-light .border-l.bg-secondary .bg-secondary {
+  background-color: #f8fafc !important;
+}
+
+/* ResultPanel 图标 - 丰富色彩 */
+.blue-light .border-l.bg-secondary i,
+.blue-light .border-l.bg-secondary i[class*="fa-"],
+.blue-light .border-l.bg-secondary svg {
+  opacity: 0.9;
+  text-shadow: 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.blue-light .border-l.bg-secondary svg {
+  filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.3));
+}
+
+/* 不同类型的 ResultPanel 图标 */
+.blue-light .border-l.bg-secondary .fa-folder,
+.blue-light .border-l.bg-secondary .fa-folder-open {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.blue-light .border-l.bg-secondary .fa-file-pdf {
+  color: #ef4444 !important;
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.blue-light .border-l.bg-secondary .fa-file-word {
+  color: #3b82f6 !important;
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.blue-light .border-l.bg-secondary .fa-file-excel {
+  color: #10b981 !important;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.blue-light .border-l.bg-secondary .fa-file-code {
+  color: #8b5cf6 !important;
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+}
+
+.blue-light .border-l.bg-secondary .fa-file-alt,
+.blue-light .border-l.bg-secondary .fa-file-text {
+  color: #6b7280 !important;
+  text-shadow: 0 0 8px rgba(107, 114, 128, 0.5);
+}
+
+.blue-light .border-l.bg-secondary .fa-download {
+  color: #34d399 !important;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.blue-light .border-l.bg-secondary .fa-search {
+  color: #60a5fa !important;
+  text-shadow: 0 0 8px rgba(96, 165, 250, 0.5);
+}
+
+.blue-light .border-l.bg-secondary .fa-filter {
+  color: #f59e0b !important;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.blue-light .border-l.bg-secondary .fa-sync,
+.blue-light .border-l.bg-secondary .fa-rotate {
+  color: #3b82f6 !important;
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.blue-light .border-l.bg-secondary i[class*="fa-"]::before {
+  opacity: 0.8;
+  text-shadow: 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+.blue-light .border-l.bg-secondary button:hover {
+  background-color: rgba(0, 88, 163, 0.05) !important;
+}
+
+.blue-light .border-l.bg-secondary button:hover i,
+.blue-light .border-l.bg-secondary button:hover svg {
+  opacity: 1;
+  text-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+  filter: brightness(1.1);
+}
+
+/* 蓝色浅色主题 Tabs 样式 */
+.blue-light .text-blue-400 {
+  color: var(--tech-blue-light) !important;
+}
+
+.blue-light .border-b-2.border-blue-400 {
+  border-color: var(--tech-blue-light) !important;
+}
+
+.blue-light .border-b.border-primary {
+  border-color: #e2e8f0 !important;
+}
+
+.blue-light button.text-blue-400 {
+  color: var(--tech-blue-light) !important;
+}
+
+/* 蓝色浅色主题 Toast 样式 */
+.blue-light .sonner-toast {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.blue-light .sonner-toast i,
+.blue-light .sonner-toast svg {
+  color: var(--tech-blue-light) !important;
+}
+
+/* 蓝色浅色主题 Alert 样式 */
+.blue-light .bg-red-50 {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #991b1b !important;
+}
+
+.blue-light .bg-yellow-50 {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #92400e !important;
+}
+
+.blue-light .bg-green-50 {
+  background-color: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+  color: #166534 !important;
+}
+
+.blue-light .bg-blue-50 {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1e40af !important;
+}
+
+/* 蓝色浅色主题 Badge 样式 */
+.blue-light .bg-red-500 {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.blue-light .bg-yellow-500 {
+  background-color: #f59e0b !important;
+  color: #ffffff !important;
+}
+
+.blue-light .bg-green-500 {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.blue-light .bg-gray-500 {
+  background-color: #6b7280 !important;
+  color: #ffffff !important;
+}
+
+/* 蓝色浅色主题 Loading 动画 */
+.blue-light .animate-spin.text-blue-500 {
+  color: var(--tech-blue-light) !important;
+}
+
+/* 蓝色浅色主题 Progress Bar */
+.blue-light .bg-blue-600 {
+  background-color: var(--tech-blue-light) !important;
+}
+
+/* 蓝色浅色主题 Table 样式 */
+.blue-light table {
+  background-color: #ffffff !important;
+}
+
+.blue-light table thead {
+  background-color: #f8fafc !important;
+}
+
+.blue-light table th {
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.blue-light table td {
+  color: #1e293b !important;
+  border-color: #e2e8f0 !important;
+}
+
+.blue-light table tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* 蓝色浅色主题 Select 下拉框 */
+.blue-light select {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+.blue-light select:focus {
+  border-color: var(--tech-blue) !important;
+  box-shadow: 0 0 0 3px rgba(0, 88, 163, 0.1) !important;
+}
+
+/* 蓝色浅色主题 Checkbox 和 Radio */
+.blue-light input[type="checkbox"],
+.blue-light input[type="radio"] {
+  accent-color: var(--tech-blue) !important;
+}
+
+/* 蓝色浅色主题 Tooltips */
+.blue-light [title]:hover::after {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* 蓝色浅色主题 Scrollbar */
+.blue-light ::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.blue-light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.blue-light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 蓝色浅色主题 Modal 遮罩层 */
+.blue-light .fixed[class*="bg-black"] {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(2px);
+}
+
+/* 蓝色浅色主题 Card 样式 */
+.blue-light .rounded-xl.bg-white {
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.blue-light .rounded-lg.bg-white {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* 蓝色浅色主题 Dropdown Menu */
+.blue-light .absolute.bg-white {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+}
+
+.blue-light .absolute.bg-white button:hover {
+  background-color: #f8fafc !important;
+}
+
+.blue-light .absolute.bg-white .hover\\:bg-red-100:hover {
+  background-color: #fef2f2 !important;
+}
+
+.blue-light .absolute.bg-white .hover\\:bg-gray-100:hover {
+  background-color: #f8fafc !important;
+}
+
+/* 蓝色浅色主题 Tooltip 和 Popover */
+.blue-light [data-tooltip] {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* 蓝色浅色主题 通知 Badge */
+.blue-light .notification-badge {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+/* 蓝色浅色主题 代码块 */
+.blue-light code,
+.blue-light pre {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+/* 蓝色浅色主题 引用块 */
+.blue-light blockquote {
+  border-left-color: var(--tech-blue-light) !important;
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+}
+
+/* 蓝色浅色主题 链接 */
+.blue-light a {
+  color: var(--tech-blue-light) !important;
+}
+
+.blue-light a:hover {
+  color: var(--tech-blue-accent) !important;
+  text-decoration: underline !important;
+}
+
+/* 蓝色浅色主题 分隔线 */
+.blue-light hr,
+.blue-light .border-b.border-primary,
+.blue-light .border-t.border-primary,
+.blue-light .border-t.border-primary\/30,
+.blue-light .sidebar .border-t {
+  border-color: rgba(226, 232, 240, 0.3) !important;
+}
+
+/* 蓝色浅色主题 Avatar 和头像 */
+.blue-light .rounded-full.bg-gray-300 {
+  background-color: #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+/* 蓝色浅色主题 文件上传区域 */
+.blue-light .border-dashed {
+  border-color: #cbd5e1 !important;
+}
+
+.blue-light .border-dashed:hover {
+  border-color: var(--tech-blue-light) !important;
+  background-color: #f8fafc !important;
+}
+
+/* 蓝色浅色主题 状态指示器 */
+.blue-light .status-dot.online {
+  background-color: #10b981 !important;
+}
+
+.blue-light .status-dot.offline {
+  background-color: #6b7280 !important;
+}
+
+.blue-light .status-dot.busy {
+  background-color: #ef4444 !important;
+}
+
+/* 蓝色浅色主题 搜索结果高亮 */
+.blue-light .search-highlight {
+  background-color: rgba(0, 88, 163, 0.2) !important;
+  color: #1e293b !important;
+  font-weight: 600;
+}
+
+/* 蓝色浅色主题 禁用状态 */
+.blue-light button:disabled,
+.blue-light input:disabled,
+.blue-light select:disabled,
+.blue-light textarea:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* 蓝色浅色主题 Focus 状态 */
+.blue-light *:focus-visible {
+  outline: 2px solid var(--tech-blue-light) !important;
+  outline-offset: 2px !important;
+}
+
+/* 蓝色浅色主题 空状态 */
+.blue-light .empty-state {
+  color: #94a3b8 !important;
+}
+
+/* 蓝色浅色主题 Header 特殊样式 - 使用科技蓝底色 + 陰影效果 */
+.blue-light .header {
+  background: linear-gradient(180deg, var(--tech-blue) 0%, var(--tech-blue-light) 100%);
+  border-bottom: 1px solid var(--tech-blue-accent);
+  box-shadow: 
+    2px 0 12px rgba(0, 0, 0, 0.2),
+    1px 0 6px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 10;
+}
+
+/* Header 内的按钮背景 + 陰影效果 */
+.blue-light .header button {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.blue-light .header button:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Header 图标悬停效果 + 陰影 */
+.blue-light .header button:hover i,
+.blue-light .header button:hover svg {
+  opacity: 1;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  filter: brightness(1.1);
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.3),
+    0 0 16px rgba(255, 255, 255, 0.1);
+}
+
+/* Header 下拉菜单陰影 */
+.blue-light .header .absolute.bg-secondary,
+.blue-light .header div[class*="bg-"] {
+  box-shadow:
+    0 8px 24px rgba(0, 88, 163, 0.2),
+    0 2px 8px rgba(0, 88, 163, 0.1);
+}
+
+/* 蓝色浅色主题增强样式 - 使用更强选择器 */
+html.blue-light .bg-secondary,
+.blue-light.bg-secondary {
+  background-color: var(--bg-secondary) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+html.blue-light .bg-primary,
+.blue-light.bg-primary {
+  background-color: var(--bg-primary) !important;
+}
+
+html.blue-light .bg-tertiary,
+.blue-light.bg-tertiary {
+  background-color: transparent !important;
+}
+
+/* 蓝色浅色主题通用背景覆盖 */
+.blue-light [class*="bg-secondary"]:not(.fixed),
+.blue-light div:not(.fixed)[class*="bg-"] {
+  background-color: transparent;
+}
+
+/* 蓝色浅色主题 Logo 容器 - 确保透明 */
+.blue-light .sidebar .p-4 > .flex > div:first-child,
+.blue-light .sidebar .p-4 .flex.items-center {
+  background-color: transparent !important;
+}
+
+.blue-light {
+  & .rounded-xl {
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-primary);
+  }
+  
+  & .rounded-lg {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  & input[type="text"],
+  & input[type="password"],
+  & input[type="email"],
+  & textarea {
+    background-color: var(--bg-primary);
+    border-color: var(--border-primary);
+    box-shadow: inset 0 1px 2px 0 rgb(49 130 206 / 0.05);
+  }
+  
+  & button {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  & button:active {
+    box-shadow: inset 0 2px 4px 0 rgb(49 130 206 / 0.1);
+  }
+  
+  & .border-primary {
+    border-color: var(--border-primary) !important;
+  }
+  
+  & .border {
+    border-color: var(--border-primary);
+  }
+  
+  & .fixed.bg-secondary {
+    background-color: var(--bg-secondary);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* ========================================
+   淺藍主題 - 樣板 1：科技藍區域
+   適用：Sidebar（bg-secondary）、Header、卡片、Modal、文件區
+   ======================================== */
+.blue-light .bg-secondary:not(.chat-messages *),
+.blue-light [class*="bg-secondary"]:not(.chat-messages *),
+.blue-light .header,
+.blue-light .agent-card,
+.blue-light .assistant-card,
+.blue-light [class*="Modal"],
+.blue-light .file-area {
+  background: linear-gradient(180deg, #0058a3 0%, #0066c4 100%) !important;
+  color: #ffffff !important;
+}
+.blue-light .bg-secondary .text-primary:not(textarea),
+.blue-light [class*="bg-secondary"] .text-primary:not(textarea),
+.blue-light .header .text-primary,
+.blue-light .agent-card .text-primary,
+.blue-light .assistant-card .text-primary,
+.blue-light [class*="Modal"] .text-primary,
+.blue-light .file-area .text-primary {
+  color: #ffffff !important;
+}
+.blue-light .bg-secondary .text-tertiary,
+.blue-light [class*="bg-secondary"] .text-tertiary,
+.blue-light .header .text-tertiary,
+.blue-light .agent-card .text-tertiary,
+.blue-light .assistant-card .text-tertiary,
+.blue-light [class*="Modal"] .text-tertiary,
+.blue-light .file-area .text-tertiary {
+  color: #e0e7ff !important;
+}
+.blue-light .bg-secondary .text-secondary,
+.blue-light [class*="bg-secondary"] .text-secondary,
+.blue-light .header .text-secondary,
+.blue-light .agent-card .text-secondary,
+.blue-light .assistant-card .text-secondary,
+.blue-light [class*="Modal"] .text-secondary,
+.blue-light .file-area .text-secondary {
+  color: #e0e7ff !important;
+}
+.blue-light .bg-secondary .border,
+.blue-light [class*="bg-secondary"] .border,
+.blue-light .header .border,
+.blue-light .agent-card .border,
+.blue-light .assistant-card .border,
+.blue-light [class*="Modal"] .border,
+.blue-light .file-area .border {
+  border-color: rgba(147, 197, 253, 0.3) !important;
+}
+
+/* Header 內所有文字強制白色 */
+.blue-light .header h1,
+.blue-light .header h2,
+.blue-light .header h3,
+.blue-light .header h4,
+.blue-light .header h5,
+.blue-light .header h6,
+.blue-light .header span,
+.blue-light .header p,
+.blue-light .header div,
+.blue-light .header a,
+.blue-light .header li {
+  color: #ffffff !important;
+}
+
+/* ========================================
+   淺藍主題 - 樣板 2：AI 聊天訊息區（淡淡淺藍色背景）
+   獨立樣板，不影響其他區域
+   ======================================== */
+
+/* 聊天訊息區容器 - 淡淡淺藍色背景 */
+.blue-light .chat-messages {
+  background-color: #eff6ff !important;
+}
+
+/* 歡迎區域 */
+.blue-light .chat-messages .chat-welcome {
+  color: #1e3a5f !important;
+}
+.blue-light .chat-messages .chat-welcome .text-primary,
+.blue-light .chat-messages .chat-welcome .text-tertiary {
+  color: #1e3a5f !important;
+}
+.blue-light .chat-messages .chat-welcome .welcome-avatar {
+  background-color: #0058a3 !important;
+}
+.blue-light .chat-messages .chat-welcome .welcome-avatar i {
+  color: #ffffff !important;
+}
+
+/* 代理歡迎區域 */
+.blue-light .chat-messages .agent-welcome {
+  color: #ffffff !important;
+}
+.blue-light .chat-messages .agent-welcome .text-primary,
+.blue-light .chat-messages .agent-welcome .text-tertiary,
+.blue-light .chat-messages .agent-welcome .text-secondary {
+  color: #ffffff !important;
+}
+.blue-light .chat-messages .agent-welcome .agent-welcome-avatar {
+  background-color: #0058a3 !important;
+}
+.blue-light .chat-messages .agent-welcome .agent-welcome-avatar i {
+  color: #ffffff !important;
+}
+.blue-light .chat-messages .agent-welcome .bg-secondary {
+  background-color: #0058a3 !important;
+  border: 1px solid rgba(147, 197, 253, 0.3) !important;
+}
+
+/* 聊天訊息區 - 文字顏色 */
+.blue-light .chat-messages .text-primary {
+  color: #1e3a5f !important;
+}
+.blue-light .chat-messages .text-secondary {
+  color: #1e3a5f !important;
+}
+.blue-light .chat-messages .text-tertiary {
+  color: #3b5998 !important;
+}
+.blue-light .chat-messages .text-muted {
+  color: #4a6fa5 !important;
+}
+
+/* 聊天訊息區 - 所有文字元素 */
+.blue-light .chat-messages h1,
+.blue-light .chat-messages h2,
+.blue-light .chat-messages h3,
+.blue-light .chat-messages h4,
+.blue-light .chat-messages h5,
+.blue-light .chat-messages h6,
+.blue-light .chat-messages p,
+.blue-light .chat-messages span,
+.blue-light .chat-messages div,
+.blue-light .chat-messages li {
+  color: #1e3a5f !important;
+}
+
+/* 聊天訊息區 - 線條 */
+.blue-light .chat-messages .border {
+  border-color: rgba(147, 197, 253, 0.3) !important;
+}
+
+/* 聊天訊息區 - prose 內容 */
+.blue-light .chat-messages .prose,
+.blue-light .chat-messages .prose p,
+.blue-light .chat-messages .prose span,
+.blue-light .chat-messages .prose div,
+.blue-light .chat-messages .prose li,
+.blue-light .chat-messages .prose td,
+.blue-light .chat-messages .prose th {
+  color: #1e3a5f !important;
+}
+
+/* 訊息泡泡 - 使用專用 class */
+.blue-light .chat-messages .message-bubble {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(147, 197, 253, 0.3) !important;
+}
+
+/* AI 訊息泡泡 - 白色底 + 深色字 */
+.blue-light .chat-messages .message-bubble-ai {
+  background-color: #ffffff !important;
+}
+.blue-light .chat-messages .message-bubble-ai .text-primary,
+.blue-light .chat-messages .message-bubble-ai .text-secondary,
+.blue-light .chat-messages .message-bubble-ai .text-tertiary,
+.blue-light .chat-messages .message-bubble-ai p,
+.blue-light .chat-messages .message-bubble-ai span,
+.blue-light .chat-messages .message-bubble-ai div,
+.blue-light .chat-messages .message-bubble-ai li {
+  color: #1e3a5f !important;
+}
+.blue-light .chat-messages .message-bubble-ai .prose,
+.blue-light .chat-messages .message-bubble-ai .prose p,
+.blue-light .chat-messages .message-bubble-ai .prose span,
+.blue-light .chat-messages .message-bubble-ai .prose div {
+  color: #1e3a5f !important;
+}
+
+/* 用戶訊息泡泡 - 白色底 + 深色字 */
+.blue-light .chat-messages .message-bubble-user {
+  background-color: #f0f7ff !important;
+}
+.blue-light .chat-messages .message-bubble-user .text-primary,
+.blue-light .chat-messages .message-bubble-user p,
+.blue-light .chat-messages .message-bubble-user span,
+.blue-light .chat-messages .message-bubble-user div {
+  color: #1e3a5f !important;
+}
+
+/* 聊天操作按鈕 - 點讚、倒讚、複製 */
+.blue-light .chat-messages .message-actions .message-action-btn {
+  color: #3b5998 !important;
+  background-color: rgba(0, 88, 163, 0.08) !important;
+  border-color: rgba(147, 197, 253, 0.3) !important;
+}
+.blue-light .chat-messages .message-actions .message-action-btn:hover {
+  color: #1e3a5f !important;
+  background-color: rgba(0, 88, 163, 0.15) !important;
+}
+
+/* 聊天訊息區 - 代碼塊（藍色白字） */
+.blue-light .chat-messages .chat-code-block {
+  background-color: #0058a3 !important;
+  border: 1px solid rgba(147, 197, 253, 0.5) !important;
+}
+.blue-light .chat-messages .chat-code-block .text-primary,
+.blue-light .chat-messages .chat-code-block .text-tertiary,
+.blue-light .chat-messages .chat-code-block p,
+.blue-light .chat-messages .chat-code-block span,
+.blue-light .chat-messages .chat-code-block div {
+  color: #ffffff !important;
+}
+.blue-light .chat-messages .chat-code-block .bg-tertiary {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+.blue-light .chat-messages .chat-code-block .font-mono {
+  color: #ffffff !important;
+}
+.blue-light .chat-messages .message-bubble-ai .prose .chat-code-block,
+.blue-light .chat-messages .message-bubble-ai .prose > .chat-code-block {
+  background-color: #0058a3 !important;
+  color: #ffffff !important;
+}
+.blue-light .chat-messages .message-bubble-ai .prose .chat-code-block *,
+.blue-light .chat-messages .message-bubble-ai .prose > .chat-code-block * {
+  color: #ffffff !important;
+}
+
+/* 瀏覽助理與代理卡片區域 - 藍底白字 */
+.blue-light .agent-assistant-cards .agent-card,
+.blue-light .agent-assistant-cards .assistant-card {
+  background: linear-gradient(180deg, #0058a3 0%, #0066c4 100%) !important;
+  border: 1px solid rgba(147, 197, 253, 0.3) !important;
+}
+.blue-light .agent-assistant-cards .agent-card .text-primary,
+.blue-light .agent-assistant-cards .assistant-card .text-primary {
+  color: #ffffff !important;
+}
+.blue-light .agent-assistant-cards .agent-card .text-tertiary,
+.blue-light .agent-assistant-cards .assistant-card .text-tertiary {
+  color: #ffffff !important;
+}
+.blue-light .agent-assistant-cards .agent-card .text-secondary,
+.blue-light .agent-assistant-cards .assistant-card .text-secondary {
+  color: #ffffff !important;
+}
+.blue-light .agent-assistant-cards .agent-card .text-muted,
+.blue-light .agent-assistant-cards .assistant-card .text-muted {
+  color: #ffffff !important;
+}
+.blue-light .agent-assistant-cards .agent-card h3,
+.blue-light .agent-assistant-cards .assistant-card h3,
+.blue-light .agent-assistant-cards .agent-card p,
+.blue-light .agent-assistant-cards .assistant-card p {
+  color: #ffffff !important;
+}
+.blue-light .agent-assistant-cards .agent-card span,
+.blue-light .agent-assistant-cards .assistant-card span,
+.blue-light .agent-assistant-cards .agent-card div,
+.blue-light .agent-assistant-cards .assistant-card div {
+  color: #ffffff !important;
+}
+/* 聊天按鈕 */
+.blue-light .agent-assistant-cards .agent-card button,
+.blue-light .agent-assistant-cards .assistant-card button {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(147, 197, 253, 0.3) !important;
+}
+.blue-light .agent-assistant-cards .agent-card button:hover,
+.blue-light .agent-assistant-cards .assistant-card button:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+.blue-light .agent-assistant-cards .agent-card .text-primary,
+.blue-light .agent-assistant-cards .assistant-card .text-primary {
+  color: #ffffff !important;
+}
+.blue-light .agent-assistant-cards .agent-card .text-tertiary,
+.blue-light .agent-assistant-cards .assistant-card .text-tertiary {
+  color: #e0e7ff !important;
+}
+.blue-light .agent-assistant-cards .agent-card .text-muted,
+.blue-light .agent-assistant-cards .assistant-card .text-muted {
+  color: #bfdbfe !important;
+}
+.blue-light .agent-assistant-cards .agent-card h3,
+.blue-light .agent-assistant-cards .assistant-card h3,
+.blue-light .agent-assistant-cards .agent-card p,
+.blue-light .agent-assistant-cards .assistant-card p {
+  color: #ffffff !important;
+}
+/* 聊天按鈕 */
+.blue-light .agent-assistant-cards .agent-card button,
+.blue-light .agent-assistant-cards .assistant-card button {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(147, 197, 253, 0.3) !important;
+}
+.blue-light .agent-assistant-cards .agent-card button:hover,
+.blue-light .agent-assistant-cards .assistant-card button:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 代理 hover 陰影 - 淡綠色 */
+.blue-light .agent-assistant-cards .agent-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.8) !important;
+}
+
+/* 助理 hover 陰影 - 淡紫色 */
+.blue-light .agent-assistant-cards .assistant-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(147, 51, 234, 0.8) !important;
+}
+
+/* Sidebar 右側陰影 */
+.blue-light .bg-secondary:not(.chat-messages *),
+.blue-light [class*="bg-secondary"]:not(.chat-messages *) {
+  box-shadow: 4px 0 15px rgba(0, 88, 163, 0.3) !important;
 }

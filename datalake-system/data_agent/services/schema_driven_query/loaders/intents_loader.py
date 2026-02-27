@@ -22,7 +22,7 @@ def load_intents_from_file(data: Dict[str, Any]) -> Dict[str, Any]:
 
     intents = {}
     for intent_name, intent_data in data.get("intents", {}).items():
-        intents[intent_name] = {
+        intent_dict = {
             "description": intent_data.get("description", ""),
             "input": {
                 "filters": intent_data.get("input", {}).get("filters", []),
@@ -34,5 +34,10 @@ def load_intents_from_file(data: Dict[str, Any]) -> Dict[str, Any]:
             },
             "constraints": intent_data.get("constraints", {}),
         }
+        # 包含額外欄位（如 mart_table）
+        if "mart_table" in intent_data:
+            intent_dict["mart_table"] = intent_data["mart_table"]
+
+        intents[intent_name] = intent_dict
 
     return {"version": data.get("version", "1.0"), "intents": intents}

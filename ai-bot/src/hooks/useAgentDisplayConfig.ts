@@ -27,6 +27,8 @@ export interface Agent {
   icon: string;
   status: 'registering' | 'online' | 'maintenance' | 'deprecated';
   usageCount: number;
+  arangodb_key?: string;
+  endpoint_url?: string;
 }
 
 export function useAgentDisplayConfig(tenantId?: string) {
@@ -88,12 +90,15 @@ export function useAgentDisplayConfig(tenantId?: string) {
             .filter(agent => agent && agent.is_visible)
             .sort((a, b) => a.display_order - b.display_order)
             .map(agent => ({
-              id: agent.id,
+              // 使用 arangodb_key 作为 id（如果存在），否则使用原始 id
+              id: agent.arangodb_key || agent.id,
               name: getText(agent.name),
               description: getText(agent.description),
               icon: agent.icon || '',
               status: (agent.status || 'online') as 'registering' | 'online' | 'maintenance' | 'deprecated',
               usageCount: agent.usage_count || 0,
+              arangodb_key: agent.arangodb_key || null,
+              endpoint_url: agent.endpoint_url || null,
             })),
         }));
     } catch (err) {

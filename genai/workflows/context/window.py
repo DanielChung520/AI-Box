@@ -9,7 +9,14 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
+
+try:
+    import tiktoken  # type: ignore[attr-defined]
+except ImportError:
+    tiktoken = None  # type: ignore[assignment]
+
+TIKTOKEN_AVAILABLE = tiktoken is not None
 
 from genai.workflows.context.models import ContextMessage
 
@@ -32,7 +39,8 @@ class ContextWindow:
         max_tokens: int = 4096,
         max_messages: Optional[int] = None,
         truncation_strategy: TruncationStrategy = TruncationStrategy.FIFO,
-        token_counter: Optional[Any] = None,
+        token_counter: Optional[Callable[[str], int]] = None,
+        encoding_name: str = "cl100k_base",
     ) -> None:
         """
         初始化上下文窗口管理器。
@@ -41,12 +49,35 @@ class ContextWindow:
             max_tokens: 最大 Token 數
             max_messages: 最大消息數（可選）
             truncation_strategy: 截斷策略
-            token_counter: Token 計數器（如果為 None，則使用簡單計數）
+            token_counter: Token 計數器（如果為 None，則使用 tiktoken）
+            encoding_name: tiktoken 編碼名稱（默認 cl100k_base）
         """
         self._max_tokens = max_tokens
         self._max_messages = max_messages
         self._truncation_strategy = truncation_strategy
-        self._token_counter = token_counter or self._default_token_counter
+        self._encoding_name = encoding_name
+        self._token_counter = token_counter or self._create_tiktoken_counter()
+
+    @property
+    def max_tokens(self) -> int:
+        return self._max_tokens
+
+    def _create_tiktoken_counter(self) -> Callable[[str], int]:
+        if not TIKTOKEN_AVAILABLE:
+            logging.getLogger(__name__).warning(
+                "tiktoken not available, using default token counter"
+            )
+            return self._default_token_counter
+        try:
+            encoding = globals()["tiktoken"].get_encoding(self._encoding_name)
+            return lambda text: len(encoding.encode(text))
+        except Exception as e:
+            logging.getLogger(__name__).warning(
+                "Failed to load tiktoken encoding %s: %s, using default counter",
+                self._encoding_name,
+                e,
+            )
+            return self._default_token_counter
 
     def _default_token_counter(self, text: str) -> int:
         """
@@ -315,3 +346,67 @@ class ContextWindow:
             "token_usage_ratio": (total_tokens / self._max_tokens if self._max_tokens > 0 else 0.0),
             "truncation_strategy": self._truncation_strategy.value,
         }
+
+    def count_dict_messages_tokens(self, messages: List[Dict[str, str]]) -> int:
+        """計算 LLM 格式消息列表的 token 數。
+
+        Args:
+            messages: LLM 格式消息列表 [{"role": "...", "content": "..."}]
+
+        Returns:
+            總 token 數
+        """
+        total = 0
+        for msg in messages:
+            content = msg.get("content", "")
+            role = msg.get("role", "user")
+            total += self._token_counter(content)
+            total += 5  # role token
+        return total
+
+    def truncate_for_space(
+        self, messages: List[ContextMessage], available_tokens: int
+    ) -> List[ContextMessage]:
+        """根據剩餘可用 token 空間截斷消息列表。
+
+        Args:
+            messages: 消息列表
+            available_tokens: 可用 token 數
+
+        Returns:
+            截斷後的消息列表
+        """
+        if not messages:
+            return []
+
+        total_tokens = self.count_total_tokens(messages)
+        if total_tokens <= available_tokens:
+            return messages
+
+        # 超過可用空間，使用 FIFO 截斷
+        return self._truncate_fifo_with_limit(messages, available_tokens)
+
+    def _truncate_fifo_with_limit(
+        self, messages: List[ContextMessage], max_tokens: int
+    ) -> List[ContextMessage]:
+        """使用 FIFO 策略截斷到指定 token 數。
+
+        Args:
+            messages: 消息列表
+            max_tokens: 最大 token 數
+
+        Returns:
+            截斷後的消息列表
+        """
+        result: List[ContextMessage] = []
+        current_tokens = 0
+
+        for message in reversed(messages):
+            message_tokens = self.count_tokens(message)
+            if current_tokens + message_tokens <= max_tokens:
+                result.insert(0, message)
+                current_tokens += message_tokens
+            else:
+                break
+
+        return result if result else messages[:1]

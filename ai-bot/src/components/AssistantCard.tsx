@@ -78,8 +78,10 @@ export default function AssistantCard({ assistant, onEdit, onDelete, onClick, on
   return (
     <div
       className={cn(
-        'bg-secondary rounded-xl p-4 border border-primary transition-all duration-300 theme-transition cursor-pointer',
-        theme === 'light' && 'shadow-xl shadow-gray-300/80',
+        'rounded-xl p-4 border transition-all duration-300 theme-transition cursor-pointer assistant-card',
+        theme === 'light' && 'bg-secondary shadow-xl shadow-gray-300/80 border-primary',
+        theme === 'blue-light' && '',
+        theme === 'dark' && 'bg-secondary border-primary',
         isHovered ? 'border-purple-500/50 shadow-2xl shadow-purple-500/20' : ''
       )}
       onMouseEnter={() => setIsHovered(true)}
@@ -89,8 +91,8 @@ export default function AssistantCard({ assistant, onEdit, onDelete, onClick, on
       {/* 卡片頭部 */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-purple-900/30 rounded-lg flex items-center justify-center mr-3">
-            <i className={`fa-solid ${assistant.icon} text-purple-400`}></i>
+          <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mr-3">
+            <i className={`fa-solid ${assistant.icon} text-purple-600 dark:text-purple-400`}></i>
           </div>
           <h3 className="font-medium text-primary">{assistant.name}</h3>
         </div>

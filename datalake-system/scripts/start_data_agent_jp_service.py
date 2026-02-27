@@ -12,16 +12,7 @@ import os
 import sys
 from pathlib import Path
 
-VENV_PYTHON = "/home/daniel/ai-box/venv/bin/python3"
-CURRENT_PYTHON = sys.executable
-
-if not os.path.abspath(CURRENT_PYTHON).startswith("/home/daniel/ai-box/venv"):
-    if os.path.exists(VENV_PYTHON):
-        os.execv(VENV_PYTHON, [VENV_PYTHON] + sys.argv)
-    else:
-        print("❌ venv Python not found: " + VENV_PYTHON)
-        sys.exit(1)
-
+# 在任何其他導入之前設置 Oracle Client 環境變數
 ORACLE_LIB_PATH = os.getenv("ORACLE_LIB_PATH", "/home/daniel/instantclient_23_26")
 if ORACLE_LIB_PATH and os.path.exists(ORACLE_LIB_PATH):
     os.environ["LD_LIBRARY_PATH"] = f"{ORACLE_LIB_PATH}:{os.environ.get('LD_LIBRARY_PATH', '')}"

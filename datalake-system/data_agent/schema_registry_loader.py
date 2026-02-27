@@ -80,7 +80,7 @@ def get_table_mapping_for_duckdb(schema_path: Optional[str] = None) -> Dict[str,
     """獲取 DuckDB 表名映射。
 
     Returns:
-        {"ima_file": "ima_file", "tlf_file": "tlf_file_large", ...}
+        {"mart_inventory_wide": "mart_inventory_wide", "mart_work_order_wide": "mart_work_order_wide_large", ...}
     """
     # 首先檢查是否有 legacy tables
     schema = load_schema_from_registry(schema_path)
@@ -116,9 +116,9 @@ def get_table_mapping_for_duckdb(schema_path: Optional[str] = None) -> Dict[str,
                         mapping[tiptop_name] = tiptop_name
 
     fallback_mappings = {
-        "tlf_file": "tlf_file_large",  # tlf_file_large 存在於 S3
-        # img_file: 直接使用 img_file（S3 有 img_file）
-        # ima_file: 直接使用 ima_file（S3 有 ima_file）
+        "mart_work_order_wide": "mart_work_order_wide_large",  # mart_work_order_wide_large 存在於 S3
+        # mart_inventory_wide: 直接使用 mart_inventory_wide（S3 有 mart_inventory_wide）
+        # mart_inventory_wide: 直接使用 mart_inventory_wide（S3 有 mart_inventory_wide）
     }
 
     for original_table, fallback_table in fallback_mappings.items():
@@ -133,7 +133,7 @@ def get_table_path_pattern_for_duckdb(schema_path: Optional[str] = None) -> Dict
     """獲取 DuckDB 表路徑模式。
 
     Returns:
-        {"tlf_file_large": "**/*.parquet", "ima_file": "year=*/month=*/data.parquet", ...}
+        {"mart_work_order_wide_large": "**/*.parquet", "mart_inventory_wide": "year=*/month=*/data.parquet", ...}
     """
     schema = load_schema_from_registry(schema_path)
     tables = schema.get("tables", {})
@@ -147,9 +147,9 @@ def get_table_path_pattern_for_duckdb(schema_path: Optional[str] = None) -> Dict
 
     # 為 fallback 表添加路徑模式
     fallback_mappings = {
-        "tlf_file": "tlf_file_large",
-        "img_file": "img_file_large",
-        "ima_file": "ima_file_large",
+        "mart_work_order_wide": "mart_work_order_wide_large",
+        "mart_inventory_wide": "mart_inventory_wide_large",
+        "mart_inventory_wide": "mart_inventory_wide_large",
     }
 
     for original_table, fallback_table in fallback_mappings.items():
@@ -166,7 +166,7 @@ def get_tables(schema_path: Optional[str] = None) -> Dict[str, Any]:
     """獲取所有表定義。
 
     Returns:
-        {"ima_file": {...}, "img_file": {...}, ...}
+        {"mart_inventory_wide": {...}, "mart_inventory_wide": {...}, ...}
     """
     schema = load_schema_from_registry(schema_path)
     return schema.get("tables", {})
@@ -176,7 +176,7 @@ def get_table_columns_map(schema_path: Optional[str] = None) -> Dict[str, Dict[s
     """獲取表列映射。
 
     Returns:
-        {"ima_file": {"ima01": "料號", "ima02": "品名", ...}, ...}
+        {"mart_inventory_wide": {"ima01": "料號", "ima02": "品名", ...}, ...}
     """
     tables = get_tables(schema_path)
     return {

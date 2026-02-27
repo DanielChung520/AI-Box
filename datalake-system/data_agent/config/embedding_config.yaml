@@ -1,0 +1,32 @@
+# Embedding 配置檔
+# Data-Agent-JP 查詢體驗優化方案
+
+# 首選 Embedding 方案（本地 Ollama）
+primary:
+  provider: "ollama"                              # ollama | sentence_transformers
+  model: "qwen3-embedding:latest"               # Ollama 模型名稱
+  endpoint: "http://localhost:11434"           # Ollama 端點
+  similarity_threshold: 0.7                      # 相似度閾值
+  timeout: 60                                    # 請求超時（秒）
+
+# Fallback Embedding 方案（離線）
+fallback:
+  provider: "sentence_transformers"
+  model: "all-MiniLM-L6-v2"                   # HuggingFace 模型名稱
+  device: "cpu"                                # cpu | cuda
+  cache_dir: ".embedding_cache"                 # 嵌入快取目錄
+
+# 候選概念來源
+concepts:
+  source: "concepts.json"                       # 從 concepts.json 載入
+  language_default: "zh-TW"                     # 預設語言
+  supported_languages:
+    - "zh-TW"                                  # 繁體中文
+    - "zh-CN"                                  # 簡體中文
+    - "th"                                     # 泰文
+    - "en"                                     # 英文
+
+# 日誌配置
+logging:
+  level: "INFO"                                 # DEBUG | INFO | WARNING | ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

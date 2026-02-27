@@ -16,6 +16,7 @@ NAV_ITEMS = [
     {"id": "purchase", "icon": "📥", "label": "採購交易分析"},
     {"id": "order", "icon": "📤", "label": "訂單分析"},
     {"id": "query", "icon": "📋", "label": "數據查詢"},
+    {"id": "sql_explorer", "icon": "🗃️", "label": "SQL Explorer"},
     {"id": "nlp", "icon": "🤖", "label": "自然語言"},
 ]
 

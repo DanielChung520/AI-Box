@@ -26,6 +26,7 @@ from dashboard.views.transaction import render_transaction
 from dashboard.views.purchase import render_purchase
 from dashboard.views.order import render_order
 from dashboard.views.query import render_query
+from dashboard.views.sql_explorer import render_sql_explorer
 from dashboard.views.nlp import render_nlp
 
 
@@ -260,6 +261,8 @@ def main():
             inv_df=st.session_state.inv_df,
             tlf_df=st.session_state.tlf_df,
         )
+    elif current_page == "sql_explorer":
+        render_sql_explorer()
     elif current_page == "nlp":
         render_nlp(
             schema_info=schema_info,

@@ -2,18 +2,20 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/languageContext';
 
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'blue-light';
 
 // 检测系统主题偏好
 const getSystemTheme = (): Theme => {
   if (typeof window !== 'undefined' && window.matchMedia) {
+    const savedTheme = localStorage.getItem('theme') as Theme;
+    if (savedTheme) return savedTheme;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
-  return 'dark'; // 默认值
+  return 'dark';
 };
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme') as Theme;
     if (savedTheme) {
       return savedTheme;
@@ -48,7 +50,7 @@ export function useTheme() {
 
   // 初始化时设置主题类（确保与main.tsx中的初始化一致）
   useEffect(() => {
-    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.remove('light', 'dark', 'blue-light');
     document.documentElement.classList.add(theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -63,13 +65,21 @@ export function useTheme() {
 
     // 切换主题类
     // 移除所有主题类
-    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.remove('light', 'dark', 'blue-light');
 
     // 添加当前主题类
     document.documentElement.classList.add(theme);
 
+    // 直接设置 body 背景色，确保立即生效
+    const bgColors: Record<Theme, string> = {
+      'light': '#f8fafc',
+      'dark': '#111827',
+      'blue-light': '#eff6ff'
+    };
+    document.body.style.setProperty('background-color', bgColors[theme], 'important');
+
     // Tailwind darkMode: "class" 需要 'dark' 类来启用dark模式
-    // 当主题是 'dark' 时，添加 'dark' 类；当主题是 'light' 时，移除 'dark' 类
+    // 当主题是 'dark' 时，添加 'dark' 类；当主题是 'light' 或 'blue-light' 时，移除 'dark' 类
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -80,7 +90,8 @@ export function useTheme() {
     localStorage.setItem('theme', theme);
 
     // 为toast设置主题颜色
-    const toastThemeClass = theme === 'dark'
+    const isDarkTheme = theme === 'dark';
+    const toastThemeClass = isDarkTheme
       ? 'bg-gray-800 text-white border border-gray-700'
       : 'bg-white text-gray-900 border border-gray-200';
 
@@ -94,26 +105,33 @@ export function useTheme() {
 
   }, [theme]);
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-
-    // 显示主题切换提示 - 使用当前语言的翻译
-    const themeMessage = newTheme === 'dark'
+  const changeTheme = (newTheme: Theme) => {
+    setThemeState(newTheme);
+    const themeMessage = newTheme === 'dark' 
       ? t('theme.toast.dark')
-      : t('theme.toast.light');
+      : newTheme === 'blue-light'
+        ? t('theme.toast.blue-light') || '藍色淺色主題'
+        : t('theme.toast.light');
 
     toast(themeMessage, {
       position: 'top-center',
       duration: 2000,
-      className: theme === 'dark'
+      className: newTheme === 'dark'
         ? 'bg-gray-800 text-white border border-gray-700'
         : 'bg-white text-gray-900 border border-gray-200'
     });
   };
 
+  const toggleTheme = () => {
+    const themeOrder: Theme[] = ['light', 'blue-light', 'dark'];
+    const currentIndex = themeOrder.indexOf(theme);
+    const newTheme = themeOrder[(currentIndex + 1) % themeOrder.length];
+    changeTheme(newTheme);
+  };
+
   return {
     theme,
+    setTheme: changeTheme,
     toggleTheme,
     isDark: theme === 'dark'
   };

@@ -24,6 +24,7 @@ from . import (
     health,
     kg_builder,
     kg_query,
+    knowledge_base,
     knowledge_ontology,
     llm,
     mcp,
@@ -82,5 +83,6 @@ __all__ = [
     "service_monitor",
     "user_account",
     "user_sessions",
+    "knowledge_base",
     "knowledge_ontology",
 ]

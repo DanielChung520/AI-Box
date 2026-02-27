@@ -22,6 +22,9 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
+# 導入 SSE Event Emitter
+from mm_agent.services.sse_emitter import get_mm_event_emitter
+
 MODELS = [
     {"name": "gpt-oss:120b", "timeout": 120.0},
 ]
@@ -56,6 +59,7 @@ class IntentClassificationResult(BaseModel):
     clarification_prompts: dict = {}
     thought_process: str = ""
     knowledge_source_type: KnowledgeSourceType = KnowledgeSourceType.UNKNOWN
+    is_list_files_query: bool = False  # 是否為「列出知識庫文件」的查詢
 
 
 INTENT_CLASSIFICATION_PROMPT = """你是一位專業的庫存管理 AI Assistant，負責分析用戶查詢意圖。
@@ -73,15 +77,7 @@ INTENT_CLASSIFICATION_PROMPT = """你是一位專業的庫存管理 AI Assistant
    - 不需要執行任何操作
    - **關鍵詞**：你好、早安、午安、晚安、嗨、在嗎
 
-2. **KNOWLEDGE_QUERY** - 業務知識問題
-   - 例如：「如何做好ABC庫存管理」、「ERP操作步驟」、「公司規定」
-   - 特點：需要專業知識解答，可能是內部知識或外部專業知識
-   - 子類型：
-     - internal: 公司內部知識（ERP操作、公司規定、業務流程）
-     - external: 外部專業知識（產業最佳實踐，法規遵循）
-   - 需要執行的操作：KA-Agent 或 LLM + 上網搜尋
-
-3. **SIMPLE_QUERY** - 簡單數據查詢
+2. **SIMPLE_QUERY** - 簡單數據查詢（庫存查詢優先！）
    - 例如：「查詢 W01 倉庫的庫存」、「料號 10-0001 的品名」、「統計 2024 年採購筆數」
    - 特點：
      - 明確的查詢目標
@@ -89,11 +85,82 @@ INTENT_CLASSIFICATION_PROMPT = """你是一位專業的庫存管理 AI Assistant
      - 不需要多步驟執行
      - 不需要比較、排名、分析
    - 查詢類型：庫存查詢、採購查詢、銷售查詢
-   - 需要執行的操作：Text-to-SQL
+   - 需要執行的操作：Data-Agent 數據查詢
    - **以下情況應判斷為 SIMPLE_QUERY**：
-     - 「查詢 W03 倉庫庫存」
+     - 「查詢 8802 倉庫的庫存」
      - 「料號 10-0001 的品名」
      - 「各倉庫的總庫存量」
+     - 「庫存數量大於 1000 的料號」
+     - 「查詢料號在哪些倉庫有庫存」
+     - 「查詢庫存數量等於 0 的料號」
+     - 任何包含「查詢」+「庫存/料號/庫存明細/庫存數量」的語句
+     - 任何包含「庫存」+「料號/倉庫」的語句
+
+3. **KNOWLEDGE_QUERY** - 業務知識問題
+   - 例如：「如何做好ABC庫存管理」、「ERP操作步驟」、「公司規定」
+   - **重要**：只針對真正的知識問題，不包括數據查詢
+   - 子類型：
+     - internal: 公司內部知識（ERP操作、公司規定、業務流程）
+     - external: 外部專業知識（產業最佳實踐，法規遵循）
+   - 需要執行的操作：KA-Agent 或 LLM + 上網搜尋
+   - **以下情況應判斷為 KNOWLEDGE_QUERY**：
+     - 詢問知識庫/文件列表：「知識庫有哪些文件」、「列出知識庫文件」、「我的文件有哪些」→ is_list_files_query=true
+     - 詢問 Agent 職責：「你的職責是什麼」、「你是做什麼的」→ is_list_files_query=false
+     - 詢問專業術語定義：「什麼是 ABC 分類」、「什麼是 Safety Stock」
+     - 詢問操作流程：「如何建立採購單」、「入庫流程是什麼」
+     - 詢問公司規定：「存貨週轉率的計算規定是什麼」
+   - **以下情況 NOT 判斷為 KNOWLEDGE_QUERY**：
+     - 「查詢 8802 倉庫的庫存」→ SIMPLE_QUERY
+     - 「料號 10-0001 的庫存」→ SIMPLE_QUERY
+     - 「庫存數量大於 1000」→ SIMPLE_QUERY
+
+4. **COMPLEX_TASK** - 複雜任務/操作指引
+   - **核心特點**：需要多步驟執行、需要比較分析、需要生成計劃
+   - **以下情況應判斷為 COMPLEX_TASK**：
+     a. **比較分析類**：包含「比較」、「對比」、「排名」、「排行」
+        - 例如：「比較近三個月採購金額」、「各倉庫庫存金額排行」
+        - 例如：「成品倉與原料倉庫存對比」
+     b. **多維度總覽類**：包含「總覽」、「概述」、「完整」
+        - 例如：「料號 10-0001 的採購與庫存總覽」
+     c. **業務規則類**：包含「未交」、「未出」、「未交貨」、「未完成」
+        - 例如：「本月採購單未交貨明細」
+     d. **操作步驟類**：包含「如何」、「怎麼建立」、「操作步驟」
+        - 例如：「如何建立採購單」
+     e. **分類分析類**：包含「ABC」、「分類分析」
+        - 例如：「ABC 庫存分類分析」
+   - 需要執行的操作：ReAct 工作流程
+
+5. **CLARIFICATION** - 需要澄清
+   - 用戶意圖不明確，缺乏必要信息
+   - 例如：「倉庫的庫存」（未指定哪個倉庫）、「那個料號」（未指定料號）
+   - **以下情況應判斷為 CLARIFICATION**：
+     - 輸入過短（少於 5 個字）
+     - 缺少關鍵查詢對象
+     - 指代不明确（「那個」、「它」）
+   - 需要回問用戶補充信息
+
+## 重要：庫存查詢優先規則
+
+**庫存查詢必須判斷為 SIMPLE_QUERY**，不要判斷為 KNOWLEDGE_QUERY！
+
+判斷關鍵詞（按順序優先處理）：
+1. 「查詢...庫存」→ SIMPLE_QUERY
+2. 「查詢...料號」→ SIMPLE_QUERY
+3. 「庫存數量」→ SIMPLE_QUERY
+4. 「庫存明細」→ SIMPLE_QUERY
+5. 「料號...庫存」→ SIMPLE_QUERY
+6. 「倉庫...庫存」→ SIMPLE_QUERY
+7. 「現有庫存」→ SIMPLE_QUERY
+8. 「有多少庫存」→ SIMPLE_QUERY
+
+**錯誤示例**：
+- 「查詢 8802 倉庫的庫存」→ 錯誤：KNOWLEDGE_QUERY → 正確：SIMPLE_QUERY
+- 「料號 10-0001 的庫存」→ 錯誤：KNOWLEDGE_QUERY → 正確：SIMPLE_QUERY
+
+**正確示例**：
+- 「查詢 8802 倉庫的庫存」→ SIMPLE_QUERY ✅
+- 「庫存數量大於 1000 的料號」→ SIMPLE_QUERY ✅
+- 「查詢沒有儲位資訊的庫存記錄」→ SIMPLE_QUERY ✅
 
 4. **COMPLEX_TASK** - 複雜任務/操作指引
    - **核心特點**：需要多步驟執行、需要比較分析、需要生成計劃
@@ -123,9 +190,9 @@ INTENT_CLASSIFICATION_PROMPT = """你是一位專業的庫存管理 AI Assistant
 ## 判斷優先順序
 
 1. 首先檢查是否為 GREETING
-2. 然後檢查是否為 CLARIFICATION（輸入過短或缺少關鍵信息）
-3. 然後檢查是否為 KNOWLEDGE_QUERY（純知識問題）
-4. 然後檢查是否為 COMPLEX_TASK（包含比較、分析、多步驟關鍵詞）
+2. 然後檢查是否為 KNOWLEDGE_QUERY（知識庫查詢、職責詢問、專業術語解釋）
+3. 然後檢查是否為 CLARIFICATION（輸入過短或缺少關鍵信息，且不是知識庫相關）
+4. 然後檢查是否為 COMPLEX_TASK（包含比較，分析、多步驟關鍵詞）
 5. 最後判斷為 SIMPLE_QUERY
 
 ## 輸出格式
@@ -140,6 +207,7 @@ INTENT_CLASSIFICATION_PROMPT = """你是一位專業的庫存管理 AI Assistant
   "missing_fields": ["缺失的字段列表"],
   "clarification_prompts": {{"字段名": "詢問方式"}},
   "knowledge_source_type": "internal/external/unknown",
+  "is_list_files_query": true/false,
   "thought_process": "你的分析思路"
 }}
 ```
@@ -432,15 +500,47 @@ def parse_llm_response(content: str) -> IntentClassificationResult:
 
     if start != -1 and end != -1:
         json_str = text[start : end + 1]
-        
+
         # 清理 JSON 中的轉義字符和多余字符
         # 處理中文引號
         json_str = json_str.replace("「", '"').replace("」", '"')
         json_str = json_str.replace("『", '"').replace("』", '"')
-        
+
         # 處理轉義的換行
-        json_str = re.sub(r'\\n\s*', ' ', json_str)
-        
+        json_str = re.sub(r"\\n\s*", " ", json_str)
+
+        # 處理截斷的 JSON - 補全常見的截斷情況
+        # 例如: "knowledge_source_type": "in... → "knowledge_source_type": "unknown"
+        # 例如: "thought_process": "..."
+        # 修復任何以 " 結尾但被截斷的字段值
+        # 通用修復：處理所有被截斷的字符串字段
+        # 找到所有 "key": "value 格式但沒有結尾 " 的情況，補上默认值
+        json_str = re.sub(
+            r'"knowledge_source_type":\s*"in[^"]*$', '"knowledge_source_type": "unknown"', json_str
+        )
+        json_str = re.sub(r'"thought_process":\s*"[^"]*$', '"thought_process": ""', json_str)
+        json_str = re.sub(r'"missing_fields":\s*\[[^\]]*$', '"missing_fields": []', json_str)
+        json_str = re.sub(
+            r'"clarification_prompts":\s*\{[^}]*$', '"clarification_prompts": {}', json_str
+        )
+
+        # 修復 is_list_files_query 截斷 - 確保它在知識庫查詢時為 true
+        # 檢測是否是「列出文件」相關的查詢
+        # 這裡不需要在 JSON 修復時處理，因為我們會在解析後根據原始 instruction 判斷
+
+        # 如果有開頭但沒有結尾}，嘗試補全
+        # 計算 { 和 } 的數量，補全缺少的
+        open_count = json_str.count("{")
+        close_count = json_str.count("}")
+        if open_count > close_count:
+            json_str += "}" * (open_count - close_count)
+
+        # 嘗試閉合未閉合的引號
+        # 計算 " 的數量（排除轉義）
+        quote_count = json_str.count('"') - json_str.count('\\"')
+        if quote_count % 2 != 0:
+            json_str += '"'
+
         try:
             data = json.loads(json_str)
             intent_str = data.get("intent", "SIMPLE_QUERY")
@@ -465,10 +565,11 @@ def parse_llm_response(content: str) -> IntentClassificationResult:
                 clarification_prompts=data.get("clarification_prompts", {}),
                 thought_process=data.get("thought_process", ""),
                 knowledge_source_type=knowledge_source_type,
+                is_list_files_query=data.get("is_list_files_query", False),
             )
         except json.JSONDecodeError as e:
-            logger.warning(f"[Intent] JSON 解析失敗: {e}, 原始內容: {json_str[:200]}...")
-    
+            logger.warning(f"[Intent] JSON 解析失敗: {e}, 原始內容前200字: {json_str[:200]}...")
+
     # 如果無法解析 JSON，使用備用解析方法
     return fallback_parse(content)
 
@@ -487,16 +588,58 @@ def fallback_parse(content: str) -> IntentClassificationResult:
             thought_process="通過關鍵詞判斷為問候語",
         )
 
-    knowledge_keywords = ["如何", "什麼是", "說明", "定義", "步驟", "操作", "ERP", "規定", "流程"]
-    if any(kw in text_lower for kw in knowledge_keywords):
+    # 【重要】庫存查詢關鍵詞 - 必須優先於 KNOWLEDGE_QUERY
+    # 這些關鍵詞表示用戶要查詢數據，應該是 SIMPLE_QUERY
+    inventory_query_keywords = [
+        "查詢",  # 查詢庫存、查詢料號
+        "庫存數量",  # 庫存數量大於、庫存數量等於
+        "庫存明細",  # 庫存明細
+        "現有庫存",  # 現有庫存
+        "有多少庫存",  # 有多少庫存
+        "料號",  # 料號查詢（結合庫存/倉庫）
+        "倉庫",  # 倉庫查詢（結合庫存/料號）
+    ]
+
+    # 檢測是否為庫存查詢
+    is_inventory_query = False
+    if "查詢" in text_lower:
+        if any(kw in text_lower for kw in ["庫存", "料號", "倉庫", "明細"]):
+            is_inventory_query = True
+
+    if "庫存數量" in text_lower or "現有庫存" in text_lower or "有多少庫存" in text_lower:
+        is_inventory_query = True
+
+    if is_inventory_query:
         return IntentClassificationResult(
-            intent=IntentType.KNOWLEDGE_QUERY,
-            confidence=0.85,
-            is_simple_query=False,
+            intent=IntentType.SIMPLE_QUERY,
+            confidence=0.9,
+            is_simple_query=True,
             needs_clarification=False,
-            knowledge_source_type=KnowledgeSourceType.EXTERNAL,
-            thought_process="通過關鍵詞判斷為業務知識問題",
+            thought_process="通過關鍵詞判斷為庫存查詢（SIMPLE_QUERY）",
         )
+
+    # 知識查詢關鍵詞 - 只針對真正的知識問題
+    # 注意：不包含「操作」、「規定」、「流程」等可能被庫存查詢匹配的詞
+    knowledge_keywords = [
+        "如何",
+        "什麼是",
+        "說明",
+        "定義",
+        "步驟",
+        "ERP",
+        "abc",
+    ]  # 移除了過於寬鬆的關鍵詞
+    if any(kw in text_lower for kw in knowledge_keywords):
+        # 二次確認：排除庫存查詢
+        if not any(kw in text_lower for kw in ["庫存", "料號", "倉庫", "查詢"]):
+            return IntentClassificationResult(
+                intent=IntentType.KNOWLEDGE_QUERY,
+                confidence=0.85,
+                is_simple_query=False,
+                needs_clarification=False,
+                knowledge_source_type=KnowledgeSourceType.EXTERNAL,
+                thought_process="通過關鍵詞判斷為業務知識問題",
+            )
 
     complex_keywords = ["分析", "比較", "排名", "ABC", "分類", "趨勢", "預測", "統計", "報告"]
     if any(kw in text_lower for kw in complex_keywords):
@@ -528,16 +671,39 @@ def fallback_parse(content: str) -> IntentClassificationResult:
     )
 
 
-async def generate_intent_stream(
-    instruction: str, session_id: str
-) -> AsyncGenerator[str, None]:
+async def generate_intent_stream(instruction: str, session_id: str) -> AsyncGenerator[str, None]:
     """生成意圖分類的 SSE 串流"""
     from sse_starlette.sse import EventSourceResponse
     import httpx
 
+    # 獲取 SSE 發射器
+    emitter = get_mm_event_emitter()
+    task_id = session_id
+
     async def stream_generator():
         try:
-            yield {"event": "message", "data": json.dumps({"type": "intent_started", "message": "正在分析意圖...", "session_id": session_id})}
+            # 發送請求接收事件
+            await emitter.request_received(task_id, instruction)
+
+            yield {
+                "event": "message",
+                "data": json.dumps(
+                    {
+                        "type": "intent_started",
+                        "message": "正在分析意圖...",
+                        "session_id": session_id,
+                    }
+                ),
+            }
+
+            # 發送 GAI 意圖分類事件
+            await emitter.gai_classifying(task_id)
+
+            # 發送 BPA 意圖分類事件
+            await emitter.bpa_classifying(task_id)
+
+            # 發送 LLM 分析事件
+            await emitter.llm_analyzing(task_id)
 
             prompt = INTENT_CLASSIFICATION_PROMPT.format(instruction=instruction)
             used_model = None
@@ -546,7 +712,16 @@ async def generate_intent_stream(
                 model_name = model_config["name"]
                 timeout = model_config["timeout"]
 
-                yield {"event": "message", "data": json.dumps({"type": "intent_started", "message": f"正在使用 {model_name} 分析...", "session_id": session_id})}
+                yield {
+                    "event": "message",
+                    "data": json.dumps(
+                        {
+                            "type": "intent_started",
+                            "message": f"正在使用 {model_name} 分析...",
+                            "session_id": session_id,
+                        }
+                    ),
+                }
 
                 try:
                     async with httpx.AsyncClient(timeout=timeout) as client:
@@ -573,16 +748,51 @@ async def generate_intent_stream(
                                         # 優先使用 response，因為它包含結構化標籤
                                         response_text = data.get("response", "") or ""
                                         thinking_text = data.get("thinking", "") or ""
-                                        raw_char = response_text if response_text.strip() else thinking_text
+                                        raw_char = (
+                                            response_text
+                                            if response_text.strip()
+                                            else thinking_text
+                                        )
                                         if raw_char:
                                             thinking_content += raw_char
-                                            yield {"event": "message", "data": json.dumps({"type": "intent_thinking", "content": raw_char, "session_id": session_id})}
+
+                                            # 發送 LLM 思考事件
+                                            await emitter.llm_thinking(task_id, raw_char)
+
+                                            yield {
+                                                "event": "message",
+                                                "data": json.dumps(
+                                                    {
+                                                        "type": "intent_thinking",
+                                                        "content": raw_char,
+                                                        "session_id": session_id,
+                                                    }
+                                                ),
+                                            }
                                     except json.JSONDecodeError:
                                         pass
 
-                            yield {"event": "message", "data": json.dumps({"type": "intent_thinking_complete", "message": "思考完成", "session_id": session_id})}
+                            yield {
+                                "event": "message",
+                                "data": json.dumps(
+                                    {
+                                        "type": "intent_thinking_complete",
+                                        "message": "思考完成",
+                                        "session_id": session_id,
+                                    }
+                                ),
+                            }
 
                             result = parse_llm_response(thinking_content)
+
+                            # 發送意圖分類完成事件
+                            await emitter.intent_classified(
+                                task_id=task_id,
+                                gai_intent="BUSINESS",  # 進入這裡的都是 BUSINESS
+                                bpa_intent=result.intent.value,
+                                confidence=result.confidence,
+                                needs_clarification=result.needs_clarification,
+                            )
 
                             yield {
                                 "event": "message",
@@ -602,8 +812,19 @@ async def generate_intent_stream(
                                 ),
                             }
 
+                            # 發送路由事件
+                            routing_map = {
+                                "KNOWLEDGE_QUERY": "KA-Agent",
+                                "SIMPLE_QUERY": "Data-Agent",
+                                "COMPLEX_TASK": "ReAct",
+                            }
+                            target_agent = routing_map.get(result.intent.value, "MM-Agent")
+                            await emitter.routing(task_id, target_agent)
+
                             used_model = model_name
-                            logger.info(f"[Intent Stream] 分類完成: {result.intent.value}, 模型: {model_name}")
+                            logger.info(
+                                f"[Intent Stream] 分類完成: {result.intent.value}, 模型: {model_name}"
+                            )
                             break
 
                 except Exception as e:
@@ -611,12 +832,25 @@ async def generate_intent_stream(
                     continue
 
             if not used_model:
-                yield {"event": "message", "data": json.dumps({"type": "error", "message": "所有模型都失敗", "session_id": session_id})}
+                yield {
+                    "event": "message",
+                    "data": json.dumps(
+                        {"type": "error", "message": "所有模型都失敗", "session_id": session_id}
+                    ),
+                }
 
-            yield {"event": "message", "data": json.dumps({"type": "intent_complete", "message": "完成", "session_id": session_id})}
+            yield {
+                "event": "message",
+                "data": json.dumps(
+                    {"type": "intent_complete", "message": "完成", "session_id": session_id}
+                ),
+            }
 
         except Exception as e:
             logger.error(f"[Intent Stream] Error: {e}")
-            yield {"event": "message", "data": json.dumps({"type": "error", "message": str(e), "session_id": session_id})}
+            yield {
+                "event": "message",
+                "data": json.dumps({"type": "error", "message": str(e), "session_id": session_id}),
+            }
 
     return EventSourceResponse(stream_generator(), media_type="text/event-stream")

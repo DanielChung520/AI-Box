@@ -1,7 +1,9 @@
 -- mart_work_order_wide.sql
--- 代碼功能說明: 工單寬表 - 合併工單頭檔、客戶主檔、物料主檔
+-- 代碼功能說明: 工單寬表 - 合併工單頭檔、客戶主檔、物料主檔、工作站資料
 -- 創建日期: 2026-02-13
 -- 創建人: Daniel Chung
+-- 更新日期: 2026-02-17
+-- 更新人: AI Assistant (新增 workstation 欄位)
 
 
 
@@ -30,7 +32,10 @@ WITH source_work_order AS (
         -- MA_T 物料主檔欄位 (LEFT JOIN)
         ma001 AS ma_item_no,
         ma002 AS item_name,
-        ma003 AS item_spec
+        ma003 AS item_spec,
+
+        -- SFCB_T 工作站資料欄位 (LEFT JOIN)
+        sfcb011 AS workstation
     FROM read_parquet('s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet', hive_partitioning=true)
     LEFT JOIN (
         SELECT
@@ -46,6 +51,11 @@ WITH source_work_order AS (
             ma003
         FROM read_parquet('s3://tiptop-raw/raw/v1/tiptop_jp/MA_T/year=*/month=*/data.parquet', hive_partitioning=true)
     ) ON SFAA010 = ma001
+    LEFT JOIN (
+        SELECT
+            sfcb011
+        FROM read_parquet('s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet', hive_partitioning=true)
+    ) ON SFAA010 = sfcb011  -- 關聯工單與工作站
 ),
 
 work_order_with_ranking AS (
@@ -70,6 +80,7 @@ SELECT
     scrap_qty,
     so_order,
     so_line,
+    workstation,
     CURRENT_TIMESTAMP() AS _dbtloadedat
 FROM work_order_with_ranking
 WHERE rn = 1

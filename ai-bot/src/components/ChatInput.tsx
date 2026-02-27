@@ -1541,7 +1541,7 @@ export default function ChatInput({
           }
         }
       `}</style>
-      <div className="bg-secondary rounded-xl overflow-hidden theme-transition">
+      <div className="bg-secondary rounded-xl overflow-hidden theme-transition light:shadow-md light:border light:border-slate-200">
       {/* 工具欄 */}
       <div className="flex items-center p-1.5 border-b border-primary">
         {/* 上网功能按钮 */}
@@ -1719,7 +1719,7 @@ export default function ChatInput({
           }}
           className={`p-1.5 rounded transition-colors ${
             canEditFiles
-              ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+              ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-500/30'
               : 'hover:bg-tertiary text-tertiary hover:text-primary'
           }`}
           aria-label={t('chatInput.fileEdit.toggle', '切換文件編輯模式')}

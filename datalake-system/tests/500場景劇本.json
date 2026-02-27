@@ -1,0 +1,3502 @@
+[
+    {
+      "id": "SINGLE-001",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH02 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH02';"
+    },
+    {
+      "id": "SINGLE-002",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-003",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 ZPLJ010PX_4 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'ZPLJ010PX_4';"
+    },
+    {
+      "id": "SINGLE-004",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-005",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_SCRAP';"
+    },
+    {
+      "id": "SINGLE-006",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-007",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC01';"
+    },
+    {
+      "id": "SINGLE-008",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-009",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-010",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 QC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'QC01';"
+    },
+    {
+      "id": "SINGLE-011",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 ZPLJ006PX_3 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'ZPLJ006PX_3';"
+    },
+    {
+      "id": "SINGLE-012",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-013",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-014",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-015",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700010 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700010';"
+    },
+    {
+      "id": "SINGLE-016",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC01';"
+    },
+    {
+      "id": "SINGLE-017",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-018",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 ZPLJ049PX_2 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'ZPLJ049PX_2';"
+    },
+    {
+      "id": "SINGLE-019",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-020",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700041 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700041';"
+    },
+    {
+      "id": "SINGLE-021",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-022",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-023",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-024",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-025",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH02 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH02';"
+    },
+    {
+      "id": "SINGLE-026",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 AL-SHEET-2MM 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'AL-SHEET-2MM';"
+    },
+    {
+      "id": "SINGLE-027",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700042 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700042';"
+    },
+    {
+      "id": "SINGLE-028",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-029",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-030",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700040 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700040';"
+    },
+    {
+      "id": "SINGLE-031",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-032",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 ZPLJ030PX_2 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'ZPLJ030PX_2';"
+    },
+    {
+      "id": "SINGLE-033",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC02 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC02';"
+    },
+    {
+      "id": "SINGLE-034",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH01 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH01';"
+    },
+    {
+      "id": "SINGLE-035",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-036",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 ZPLJ045PX_1 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'ZPLJ045PX_1';"
+    },
+    {
+      "id": "SINGLE-037",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC01';"
+    },
+    {
+      "id": "SINGLE-038",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-039",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700020 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700020';"
+    },
+    {
+      "id": "SINGLE-040",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH01 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH01';"
+    },
+    {
+      "id": "SINGLE-041",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH02 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH02';"
+    },
+    {
+      "id": "SINGLE-042",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-043",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH02 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH02';"
+    },
+    {
+      "id": "SINGLE-044",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-045",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-046",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_SCRAP';"
+    },
+    {
+      "id": "SINGLE-047",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-048",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-049",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC03 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC03';"
+    },
+    {
+      "id": "SINGLE-050",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700015 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700015';"
+    },
+    {
+      "id": "SINGLE-051",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-052",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_SCRAP';"
+    },
+    {
+      "id": "SINGLE-053",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700024 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700024';"
+    },
+    {
+      "id": "SINGLE-054",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 QC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'QC01';"
+    },
+    {
+      "id": "SINGLE-055",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_SCRAP';"
+    },
+    {
+      "id": "SINGLE-056",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 ZPLJ024PX_4 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'ZPLJ024PX_4';"
+    },
+    {
+      "id": "SINGLE-057",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-058",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-059",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-060",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-061",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 ZPLJ038PX_3 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'ZPLJ038PX_3';"
+    },
+    {
+      "id": "SINGLE-062",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700046 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700046';"
+    },
+    {
+      "id": "SINGLE-063",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700011 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700011';"
+    },
+    {
+      "id": "SINGLE-064",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 QC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'QC01';"
+    },
+    {
+      "id": "SINGLE-065",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_SCRAP';"
+    },
+    {
+      "id": "SINGLE-066",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_BONDED 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_BONDED';"
+    },
+    {
+      "id": "SINGLE-067",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC03 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC03';"
+    },
+    {
+      "id": "SINGLE-068",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700029 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700029';"
+    },
+    {
+      "id": "SINGLE-069",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-070",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC01';"
+    },
+    {
+      "id": "SINGLE-071",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-072",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC01';"
+    },
+    {
+      "id": "SINGLE-073",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC02 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC02';"
+    },
+    {
+      "id": "SINGLE-074",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 82105A700030 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = '82105A700030';"
+    },
+    {
+      "id": "SINGLE-075",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH01 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH01';"
+    },
+    {
+      "id": "SINGLE-076",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-077",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-078",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC02 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC02';"
+    },
+    {
+      "id": "SINGLE-079",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-080",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_BONDED 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_BONDED';"
+    },
+    {
+      "id": "SINGLE-081",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC01';"
+    },
+    {
+      "id": "SINGLE-082",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 ZPLJ005PX_4 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'ZPLJ005PX_4';"
+    },
+    {
+      "id": "SINGLE-083",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-084",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_BONDED 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_BONDED';"
+    },
+    {
+      "id": "SINGLE-085",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-086",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-087",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-088",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 2024 年之後建立的銷售訂單。",
+      "expected_sql": "SELECT so_number, customer_id, total_amount FROM SalesOrders WHERE order_date >= '2024-01-01';"
+    },
+    {
+      "id": "SINGLE-089",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC01 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC01';"
+    },
+    {
+      "id": "SINGLE-090",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-091",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-092",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "SINGLE-093",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢料號 ZPLJ044PX_5 的基本資料。",
+      "expected_sql": "SELECT * FROM Materials WHERE material_id = 'ZPLJ044PX_5';"
+    },
+    {
+      "id": "SINGLE-094",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_SCRAP';"
+    },
+    {
+      "id": "SINGLE-095",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢工作站 WC02 的基本產能設定。",
+      "expected_sql": "SELECT capacity, description FROM WorkStations WHERE workstation_id = 'WC02';"
+    },
+    {
+      "id": "SINGLE-096",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH_BONDED 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH_BONDED';"
+    },
+    {
+      "id": "SINGLE-097",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH01 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH01';"
+    },
+    {
+      "id": "SINGLE-098",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢 WH02 倉庫的所有庫存明細。",
+      "expected_sql": "SELECT material_id, quantity, location FROM Inventory WHERE warehouse_id = 'WH02';"
+    },
+    {
+      "id": "SINGLE-099",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有安全庫存大於 100 的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE safety_stock > 100;"
+    },
+    {
+      "id": "SINGLE-100",
+      "category": "SINGLE",
+      "category_name": "單表查詢 (Single Table Query)",
+      "question": "查詢所有狀態為 'Open' 的採購單。",
+      "expected_sql": "SELECT po_number, supplier_id, order_date FROM PurchaseOrders WHERE status = 'Open';"
+    },
+    {
+      "id": "GROUP-001",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-002",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-003",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-004",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-005",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-006",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-007",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-008",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-009",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-010",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-011",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-012",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-013",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-014",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-015",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-016",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-017",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-018",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-019",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-020",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-021",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-022",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-023",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-024",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-025",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-026",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-027",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-028",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-029",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-030",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-031",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-032",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-033",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-034",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-035",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-036",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-037",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-038",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-039",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-040",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-041",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-042",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-043",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-044",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-045",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-046",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-047",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-048",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-049",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-050",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-051",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-052",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-053",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-054",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-055",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-056",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-057",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-058",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-059",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-060",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-061",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-062",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-063",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-064",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-065",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-066",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-067",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-068",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-069",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-070",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-071",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-072",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-073",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-074",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-075",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-076",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-077",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-078",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-079",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-080",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-081",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-082",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-083",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-084",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-085",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-086",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-087",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-088",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-089",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-090",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-091",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-092",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-093",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-094",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-095",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個倉庫的物料總庫存數量。",
+      "expected_sql": "SELECT warehouse_id, SUM(quantity) as total_qty FROM Inventory GROUP BY warehouse_id;"
+    },
+    {
+      "id": "GROUP-096",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個工作站目前進行中的工單數量。",
+      "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM ManufacturingOrders WHERE status = 'In_Process' GROUP BY workstation_id;"
+    },
+    {
+      "id": "GROUP-097",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每個供應商的採購單總數。",
+      "expected_sql": "SELECT supplier_id, COUNT(*) as po_count FROM PurchaseOrders GROUP BY supplier_id;"
+    },
+    {
+      "id": "GROUP-098",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "按月份統計今年的銷售訂單數量。",
+      "expected_sql": "SELECT MONTH(order_date) as mth, COUNT(*) as so_count FROM SalesOrders WHERE YEAR(order_date) = 2024 GROUP BY MONTH(order_date);"
+    },
+    {
+      "id": "GROUP-099",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "GROUP-100",
+      "category": "GROUP",
+      "category_name": "分組查詢 (Grouping)",
+      "question": "統計每種物料類型的品項數量。",
+      "expected_sql": "SELECT material_type, COUNT(*) as item_count FROM Materials GROUP BY material_type;"
+    },
+    {
+      "id": "AGG-001",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700036 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700036';"
+    },
+    {
+      "id": "AGG-002",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-003",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700003 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700003';"
+    },
+    {
+      "id": "AGG-004",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-005",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-006",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-007",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-008",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-009",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 ZPLJ014PX_1 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'ZPLJ014PX_1';"
+    },
+    {
+      "id": "AGG-010",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-011",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 ZPLJ001PX_5 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'ZPLJ001PX_5';"
+    },
+    {
+      "id": "AGG-012",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700009 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700009';"
+    },
+    {
+      "id": "AGG-013",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 ZPLJ038PX_3 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'ZPLJ038PX_3';"
+    },
+    {
+      "id": "AGG-014",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-015",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-016",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-017",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-018",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-019",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 ZPLJ001PX_5 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'ZPLJ001PX_5';"
+    },
+    {
+      "id": "AGG-020",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700006 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700006';"
+    },
+    {
+      "id": "AGG-021",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-022",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-023",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-024",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-025",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-026",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-027",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-028",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-029",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 ZPLJ010PX_4 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'ZPLJ010PX_4';"
+    },
+    {
+      "id": "AGG-030",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700046 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700046';"
+    },
+    {
+      "id": "AGG-031",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-032",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-033",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-034",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-035",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-036",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-037",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-038",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-039",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-040",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 ZPLJ047PX_2 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'ZPLJ047PX_2';"
+    },
+    {
+      "id": "AGG-041",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700040 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700040';"
+    },
+    {
+      "id": "AGG-042",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700023 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700023';"
+    },
+    {
+      "id": "AGG-043",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-044",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-045",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-046",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700048 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700048';"
+    },
+    {
+      "id": "AGG-047",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 ZPLJ043PX_3 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'ZPLJ043PX_3';"
+    },
+    {
+      "id": "AGG-048",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-049",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700025 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700025';"
+    },
+    {
+      "id": "AGG-050",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-051",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-052",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700003 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700003';"
+    },
+    {
+      "id": "AGG-053",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-054",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 ZPLJ004PX_3 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'ZPLJ004PX_3';"
+    },
+    {
+      "id": "AGG-055",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-056",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-057",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-058",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-059",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-060",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-061",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-062",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-063",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700037 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700037';"
+    },
+    {
+      "id": "AGG-064",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-065",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-066",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700048 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700048';"
+    },
+    {
+      "id": "AGG-067",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-068",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-069",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-070",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-071",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-072",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-073",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-074",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-075",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "AGG-076",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700010 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700010';"
+    },
+    {
+      "id": "AGG-077",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700037 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700037';"
+    },
+    {
+      "id": "AGG-078",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-079",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-080",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-081",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-082",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-083",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-084",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-085",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-086",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-087",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-088",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700004 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700004';"
+    },
+    {
+      "id": "AGG-089",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "查詢目前單價最高的物料價格。",
+      "expected_sql": "SELECT MAX(unit_price) FROM Materials;"
+    },
+    {
+      "id": "AGG-090",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700032 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700032';"
+    },
+    {
+      "id": "AGG-091",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700038 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700038';"
+    },
+    {
+      "id": "AGG-092",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-093",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 AL-SHEET-2MM 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'AL-SHEET-2MM';"
+    },
+    {
+      "id": "AGG-094",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-095",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-096",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 ZPLJ037PX_3 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = 'ZPLJ037PX_3';"
+    },
+    {
+      "id": "AGG-097",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "統計本月銷售總金額。",
+      "expected_sql": "SELECT SUM(total_amount) FROM SalesOrders WHERE order_date BETWEEN '2024-02-01' AND '2024-02-29';"
+    },
+    {
+      "id": "AGG-098",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算料號 82105A700019 的平均採購單價。",
+      "expected_sql": "SELECT AVG(unit_price) FROM PurchaseOrderItems WHERE material_id = '82105A700019';"
+    },
+    {
+      "id": "AGG-099",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠的工單總數。",
+      "expected_sql": "SELECT COUNT(*) FROM ManufacturingOrders;"
+    },
+    {
+      "id": "AGG-100",
+      "category": "AGG",
+      "category_name": "聚合查詢 (Aggregation)",
+      "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+      "expected_sql": "SELECT SUM(i.quantity * m.standard_cost) FROM Inventory i JOIN Materials m ON i.material_id = m.material_id;"
+    },
+    {
+      "id": "JOIN2-001",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 82105A700009 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = '82105A700009';"
+    },
+    {
+      "id": "JOIN2-002",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 82105A700005 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = '82105A700005';"
+    },
+    {
+      "id": "JOIN2-003",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-004",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 JPP_Metal_Corp 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'JPP_Metal_Corp';"
+    },
+    {
+      "id": "JOIN2-005",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-006",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-007",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 JPP_Metal_Corp 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'JPP_Metal_Corp';"
+    },
+    {
+      "id": "JOIN2-008",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC02 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC02';"
+    },
+    {
+      "id": "JOIN2-009",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-010",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Global_Fasteners 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Global_Fasteners';"
+    },
+    {
+      "id": "JOIN2-011",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Thai_Steel_Co 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Thai_Steel_Co';"
+    },
+    {
+      "id": "JOIN2-012",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ015PX_4 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ015PX_4';"
+    },
+    {
+      "id": "JOIN2-013",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-014",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Thai_Steel_Co 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Thai_Steel_Co';"
+    },
+    {
+      "id": "JOIN2-015",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC01 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC01';"
+    },
+    {
+      "id": "JOIN2-016",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 82105A700006 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = '82105A700006';"
+    },
+    {
+      "id": "JOIN2-017",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 82105A700013 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = '82105A700013';"
+    },
+    {
+      "id": "JOIN2-018",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 82105A700022 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = '82105A700022';"
+    },
+    {
+      "id": "JOIN2-019",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ024PX_4 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ024PX_4';"
+    },
+    {
+      "id": "JOIN2-020",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-021",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC04 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC04';"
+    },
+    {
+      "id": "JOIN2-022",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-023",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Thai_Steel_Co 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Thai_Steel_Co';"
+    },
+    {
+      "id": "JOIN2-024",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Alpha_Electronics 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Alpha_Electronics';"
+    },
+    {
+      "id": "JOIN2-025",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ041PX_4 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ041PX_4';"
+    },
+    {
+      "id": "JOIN2-026",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Thai_Steel_Co 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Thai_Steel_Co';"
+    },
+    {
+      "id": "JOIN2-027",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 SCREW-M3-10 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'SCREW-M3-10';"
+    },
+    {
+      "id": "JOIN2-028",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-029",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC03 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC03';"
+    },
+    {
+      "id": "JOIN2-030",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Global_Fasteners 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Global_Fasteners';"
+    },
+    {
+      "id": "JOIN2-031",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Thai_Steel_Co 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Thai_Steel_Co';"
+    },
+    {
+      "id": "JOIN2-032",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-033",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-034",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Alpha_Electronics 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Alpha_Electronics';"
+    },
+    {
+      "id": "JOIN2-035",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC04 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC04';"
+    },
+    {
+      "id": "JOIN2-036",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC03 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC03';"
+    },
+    {
+      "id": "JOIN2-037",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-038",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-039",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-040",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-041",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ015PX_4 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ015PX_4';"
+    },
+    {
+      "id": "JOIN2-042",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-043",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-044",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-045",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-046",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-047",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ024PX_4 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ024PX_4';"
+    },
+    {
+      "id": "JOIN2-048",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC04 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC04';"
+    },
+    {
+      "id": "JOIN2-049",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-050",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-051",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-052",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-053",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ030PX_2 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ030PX_2';"
+    },
+    {
+      "id": "JOIN2-054",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-055",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC04 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC04';"
+    },
+    {
+      "id": "JOIN2-056",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-057",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-058",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-059",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Thai_Steel_Co 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Thai_Steel_Co';"
+    },
+    {
+      "id": "JOIN2-060",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 JPP_Metal_Corp 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'JPP_Metal_Corp';"
+    },
+    {
+      "id": "JOIN2-061",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Global_Fasteners 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Global_Fasteners';"
+    },
+    {
+      "id": "JOIN2-062",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC02 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC02';"
+    },
+    {
+      "id": "JOIN2-063",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-064",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 82105A700035 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = '82105A700035';"
+    },
+    {
+      "id": "JOIN2-065",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-066",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Alpha_Electronics 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Alpha_Electronics';"
+    },
+    {
+      "id": "JOIN2-067",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ004PX_3 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ004PX_3';"
+    },
+    {
+      "id": "JOIN2-068",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-069",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-070",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 JPP_Metal_Corp 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'JPP_Metal_Corp';"
+    },
+    {
+      "id": "JOIN2-071",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 QC01 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'QC01';"
+    },
+    {
+      "id": "JOIN2-072",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Global_Fasteners 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Global_Fasteners';"
+    },
+    {
+      "id": "JOIN2-073",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 JPP_Metal_Corp 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'JPP_Metal_Corp';"
+    },
+    {
+      "id": "JOIN2-074",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-075",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Global_Fasteners 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Global_Fasteners';"
+    },
+    {
+      "id": "JOIN2-076",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Global_Fasteners 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Global_Fasteners';"
+    },
+    {
+      "id": "JOIN2-077",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Thai_Steel_Co 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Thai_Steel_Co';"
+    },
+    {
+      "id": "JOIN2-078",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC03 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC03';"
+    },
+    {
+      "id": "JOIN2-079",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 QC01 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'QC01';"
+    },
+    {
+      "id": "JOIN2-080",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-081",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE i.quantity < m.safety_stock;"
+    },
+    {
+      "id": "JOIN2-082",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 82105A700041 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = '82105A700041';"
+    },
+    {
+      "id": "JOIN2-083",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 PCB-MAIN-V2 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'PCB-MAIN-V2';"
+    },
+    {
+      "id": "JOIN2-084",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Alpha_Electronics 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Alpha_Electronics';"
+    },
+    {
+      "id": "JOIN2-085",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 82105A700014 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = '82105A700014';"
+    },
+    {
+      "id": "JOIN2-086",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 PCB-MAIN-V2 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'PCB-MAIN-V2';"
+    },
+    {
+      "id": "JOIN2-087",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ025PX_2 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ025PX_2';"
+    },
+    {
+      "id": "JOIN2-088",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 Thai_Steel_Co 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'Thai_Steel_Co';"
+    },
+    {
+      "id": "JOIN2-089",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 JPP_Metal_Corp 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'JPP_Metal_Corp';"
+    },
+    {
+      "id": "JOIN2-090",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC03 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC03';"
+    },
+    {
+      "id": "JOIN2-091",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 JPP_Metal_Corp 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'JPP_Metal_Corp';"
+    },
+    {
+      "id": "JOIN2-092",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ039PX_4 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ039PX_4';"
+    },
+    {
+      "id": "JOIN2-093",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-094",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC02 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC02';"
+    },
+    {
+      "id": "JOIN2-095",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 ZPLJ027PX_2 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = 'ZPLJ027PX_2';"
+    },
+    {
+      "id": "JOIN2-096",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢供應商 JPP_Metal_Corp 的採購單號與日期。",
+      "expected_sql": "SELECT s.supplier_name, po.po_number, po.order_date FROM Suppliers s JOIN PurchaseOrders po ON s.supplier_id = po.supplier_id WHERE s.supplier_name = 'JPP_Metal_Corp';"
+    },
+    {
+      "id": "JOIN2-097",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢料號 82105A700040 的庫存數量及品名。",
+      "expected_sql": "SELECT m.material_name, i.quantity FROM Materials m JOIN Inventory i ON m.material_id = i.material_id WHERE m.material_id = '82105A700040';"
+    },
+    {
+      "id": "JOIN2-098",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 QC01 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'QC01';"
+    },
+    {
+      "id": "JOIN2-099",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+      "expected_sql": "SELECT c.customer_name, so.total_amount FROM Customers c JOIN SalesOrders so ON c.customer_id = so.customer_id WHERE c.customer_name = 'Toyota_Thailand';"
+    },
+    {
+      "id": "JOIN2-100",
+      "category": "JOIN2",
+      "category_name": "雙表連接 (2-Table Join)",
+      "question": "查詢工作站 WC02 正在生產的工單及產品名稱。",
+      "expected_sql": "SELECT mo.mo_number, m.material_name FROM ManufacturingOrders mo JOIN Materials m ON mo.material_id = m.material_id WHERE mo.workstation_id = 'WC02';"
+    },
+    {
+      "id": "COMPLEX-001",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-002",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 'ZPLJ036PX_4' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = 'ZPLJ036PX_4';"
+    },
+    {
+      "id": "COMPLEX-003",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-004",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-005",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Alpha_Electronics 供應的料號 ZPLJ029PX_4 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Alpha_Electronics' AND m.material_id = 'ZPLJ029PX_4';"
+    },
+    {
+      "id": "COMPLEX-006",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Global_Fasteners 供應的料號 82105A700005 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Global_Fasteners' AND m.material_id = '82105A700005';"
+    },
+    {
+      "id": "COMPLEX-007",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 'ZPLJ031PX_1' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = 'ZPLJ031PX_1';"
+    },
+    {
+      "id": "COMPLEX-008",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-009",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-010",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-011",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 'ZPLJ047PX_2' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = 'ZPLJ047PX_2';"
+    },
+    {
+      "id": "COMPLEX-012",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 'ZPLJ041PX_4' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = 'ZPLJ041PX_4';"
+    },
+    {
+      "id": "COMPLEX-013",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700012' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700012';"
+    },
+    {
+      "id": "COMPLEX-014",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-015",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-016",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-017",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-018",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Global_Fasteners 供應的料號 ZPLJ021PX_5 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Global_Fasteners' AND m.material_id = 'ZPLJ021PX_5';"
+    },
+    {
+      "id": "COMPLEX-019",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-020",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 JPP_Metal_Corp 供應的料號 82105A700028 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'JPP_Metal_Corp' AND m.material_id = '82105A700028';"
+    },
+    {
+      "id": "COMPLEX-021",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Alpha_Electronics 供應的料號 82105A700002 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Alpha_Electronics' AND m.material_id = '82105A700002';"
+    },
+    {
+      "id": "COMPLEX-022",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-023",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-024",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-025",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700042' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700042';"
+    },
+    {
+      "id": "COMPLEX-026",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Global_Fasteners 供應的料號 82105A700028 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Global_Fasteners' AND m.material_id = '82105A700028';"
+    },
+    {
+      "id": "COMPLEX-027",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Alpha_Electronics 供應的料號 ZPLJ018PX_4 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Alpha_Electronics' AND m.material_id = 'ZPLJ018PX_4';"
+    },
+    {
+      "id": "COMPLEX-028",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-029",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-030",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Thai_Steel_Co 供應的料號 82105A700030 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Thai_Steel_Co' AND m.material_id = '82105A700030';"
+    },
+    {
+      "id": "COMPLEX-031",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700006' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700006';"
+    },
+    {
+      "id": "COMPLEX-032",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700037' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700037';"
+    },
+    {
+      "id": "COMPLEX-033",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 'ZPLJ006PX_3' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = 'ZPLJ006PX_3';"
+    },
+    {
+      "id": "COMPLEX-034",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-035",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-036",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Thai_Steel_Co 供應的料號 ZPLJ030PX_2 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Thai_Steel_Co' AND m.material_id = 'ZPLJ030PX_2';"
+    },
+    {
+      "id": "COMPLEX-037",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-038",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Alpha_Electronics 供應的料號 ZPLJ017PX_3 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Alpha_Electronics' AND m.material_id = 'ZPLJ017PX_3';"
+    },
+    {
+      "id": "COMPLEX-039",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-040",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700012' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700012';"
+    },
+    {
+      "id": "COMPLEX-041",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700039' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700039';"
+    },
+    {
+      "id": "COMPLEX-042",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-043",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700043' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700043';"
+    },
+    {
+      "id": "COMPLEX-044",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700039' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700039';"
+    },
+    {
+      "id": "COMPLEX-045",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Alpha_Electronics 供應的料號 82105A700025 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Alpha_Electronics' AND m.material_id = '82105A700025';"
+    },
+    {
+      "id": "COMPLEX-046",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-047",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-048",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-049",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Alpha_Electronics 供應的料號 ZPLJ020PX_2 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Alpha_Electronics' AND m.material_id = 'ZPLJ020PX_2';"
+    },
+    {
+      "id": "COMPLEX-050",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700033' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700033';"
+    },
+    {
+      "id": "COMPLEX-051",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Thai_Steel_Co 供應的料號 82105A700042 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Thai_Steel_Co' AND m.material_id = '82105A700042';"
+    },
+    {
+      "id": "COMPLEX-052",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-053",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-054",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Thai_Steel_Co 供應的料號 ZPLJ011PX_1 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Thai_Steel_Co' AND m.material_id = 'ZPLJ011PX_1';"
+    },
+    {
+      "id": "COMPLEX-055",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-056",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700026' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700026';"
+    },
+    {
+      "id": "COMPLEX-057",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 'ZPLJ031PX_1' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = 'ZPLJ031PX_1';"
+    },
+    {
+      "id": "COMPLEX-058",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-059",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Global_Fasteners 供應的料號 ZPLJ033PX_3 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Global_Fasteners' AND m.material_id = 'ZPLJ033PX_3';"
+    },
+    {
+      "id": "COMPLEX-060",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Alpha_Electronics 供應的料號 ZPLJ015PX_4 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Alpha_Electronics' AND m.material_id = 'ZPLJ015PX_4';"
+    },
+    {
+      "id": "COMPLEX-061",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-062",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Global_Fasteners 供應的料號 SCREW-M3-10 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Global_Fasteners' AND m.material_id = 'SCREW-M3-10';"
+    },
+    {
+      "id": "COMPLEX-063",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-064",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-065",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-066",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-067",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Global_Fasteners 供應的料號 82105A700008 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Global_Fasteners' AND m.material_id = '82105A700008';"
+    },
+    {
+      "id": "COMPLEX-068",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700002' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700002';"
+    },
+    {
+      "id": "COMPLEX-069",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-070",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Thai_Steel_Co 供應的料號 82105A700011 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Thai_Steel_Co' AND m.material_id = '82105A700011';"
+    },
+    {
+      "id": "COMPLEX-071",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 '82105A700020' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = '82105A700020';"
+    },
+    {
+      "id": "COMPLEX-072",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-073",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Global_Fasteners 供應的料號 ZPLJ048PX_4 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Global_Fasteners' AND m.material_id = 'ZPLJ048PX_4';"
+    },
+    {
+      "id": "COMPLEX-074",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "列出製造產品 'ZPLJ030PX_2' 所需的所有原料及其目前庫存量。",
+      "expected_sql": "SELECT b.child_material_id, m.material_name, b.quantity_required, i.quantity as stock_on_hand FROM BOM b JOIN Materials m ON b.child_material_id = m.material_id LEFT JOIN Inventory i ON b.child_material_id = i.material_id WHERE b.parent_material_id = 'ZPLJ030PX_2';"
+    },
+    {
+      "id": "COMPLEX-075",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-076",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-077",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-078",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-079",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-080",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-081",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-082",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-083",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-084",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-085",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Alpha_Electronics 供應的料號 ZPLJ008PX_5 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Alpha_Electronics' AND m.material_id = 'ZPLJ008PX_5';"
+    },
+    {
+      "id": "COMPLEX-086",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-087",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-088",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-089",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-090",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢供應商 Global_Fasteners 供應的料號 ZPLJ027PX_2 的目前庫存位置。",
+      "expected_sql": "SELECT s.supplier_name, m.material_name, i.location, i.quantity FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id WHERE s.supplier_name = 'Global_Fasteners' AND m.material_id = 'ZPLJ027PX_2';"
+    },
+    {
+      "id": "COMPLEX-091",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-092",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-093",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-094",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-095",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "找出在過去一個月內沒有任何銷售記錄的物料。",
+      "expected_sql": "SELECT material_id, material_name FROM Materials WHERE material_id NOT IN (SELECT DISTINCT product_id FROM SalesOrderItems WHERE order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH));"
+    },
+    {
+      "id": "COMPLEX-096",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-097",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-098",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "查詢單價高於平均單價的所有物料。",
+      "expected_sql": "SELECT material_id, material_name, unit_price FROM Materials WHERE unit_price > (SELECT AVG(unit_price) FROM Materials);"
+    },
+    {
+      "id": "COMPLEX-099",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    },
+    {
+      "id": "COMPLEX-100",
+      "category": "COMPLEX",
+      "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+      "question": "統計每個供應商提供的物料目前的總庫存價值，並排序。",
+      "expected_sql": "SELECT s.supplier_name, SUM(i.quantity * sp.unit_price) as total_value FROM Suppliers s JOIN Supplier_Parts sp ON s.supplier_id = sp.supplier_id JOIN Inventory i ON sp.material_id = i.material_id GROUP BY s.supplier_name ORDER BY total_value DESC;"
+    }
+  ]

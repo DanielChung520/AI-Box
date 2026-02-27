@@ -1,12 +1,12 @@
 # 代碼功能說明: SQL 執行器
 # 創建日期: 2026-02-10
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-02-10
+# 最後修改日期: 2026-02-17
 
 """SQL 執行器
 
 職責：
-- 執行 Oracle SQL
+- 執行 SQL（支援 DuckDB 和 Oracle）
 - 管理連線池
 - 處理超時和錯誤
 """
@@ -16,60 +16,89 @@ import logging
 import time
 from typing import Dict, Any, List, Optional
 
-from .config import get_config, SchemaDrivenQueryConfig, OracleConfig
+from .config import get_config, SchemaDrivenQueryConfig, OracleConfig, DuckDBConfig
 
 logger = logging.getLogger(__name__)
+
+# Oracle Client 初始化（僅用於 Oracle 數據源）
+_ORACLE_CONFIG = get_config().oracle
+_ORACLE_LIB_PATH = _ORACLE_CONFIG.lib_path
+_ORACLE_LIBAIO_PATH = _ORACLE_CONFIG.libaio_path
+
+# 設置 Oracle 環境變數
+if "LD_LIBRARY_PATH" in os.environ:
+    if _ORACLE_LIB_PATH not in os.environ["LD_LIBRARY_PATH"]:
+        os.environ["LD_LIBRARY_PATH"] = (
+            f"{_ORACLE_LIB_PATH}:{_ORACLE_LIBAIO_PATH}:{os.environ['LD_LIBRARY_PATH']}"
+        )
+else:
+    os.environ["LD_LIBRARY_PATH"] = f"{_ORACLE_LIB_PATH}:{_ORACLE_LIBAIO_PATH}"
+
+# 延遲初始化 Oracle Client（僅在需要時加載）
+_oracle_client_initialized = False
+
+
+def _init_oracle_client():
+    """初始化 Oracle Client"""
+    global _oracle_client_initialized
+    if not _oracle_client_initialized:
+        try:
+            import oracledb
+
+            oracledb.init_oracle_client(lib_dir=_ORACLE_LIB_PATH)
+            _oracle_client_initialized = True
+            logger.info("Oracle Client initialized successfully")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Oracle Client: {e}")
 
 
 class SQLExecutor:
     """
     SQL 執行器
 
-    支援 Oracle 資料庫
+    支援 DuckDB 和 Oracle 資料庫
     """
 
     def __init__(
         self,
         config: Optional[SchemaDrivenQueryConfig] = None,
         oracle_config: Optional[OracleConfig] = None,
+        duckdb_config: Optional[DuckDBConfig] = None,
     ):
         self.config = config or get_config()
         self.oracle_config = oracle_config or self.config.oracle
-
-        # 設定環境變數
-        self._setup_env()
+        self.duckdb_config = duckdb_config or self.config.duckdb
+        self.datasource = self.config.datasource.upper()
 
         # 連線池
         self._connection = None
 
-    def _setup_env(self):
-        """設定環境變數"""
-        lib_path = self.oracle_config.lib_path
-        libaio_path = self.oracle_config.libaio_path
-
-        if "LD_LIBRARY_PATH" in os.environ:
-            if lib_path not in os.environ["LD_LIBRARY_PATH"]:
-                os.environ["LD_LIBRARY_PATH"] = (
-                    f"{lib_path}:{libaio_path}:{os.environ['LD_LIBRARY_PATH']}"
-                )
-        else:
-            os.environ["LD_LIBRARY_PATH"] = f"{lib_path}:{libaio_path}"
-
     def _get_connection(self):
-        """獲取連線"""
-        import oracledb
-
+        """獲取連線（根據數據源類型）"""
         if self._connection is None:
-            oracledb.init_oracle_client(lib_dir=self.oracle_config.lib_path)
+            if self.datasource == "DUCKDB":
+                self._connection = self._get_duckdb_connection()
+            else:
+                # Oracle 或其他數據源
+                _init_oracle_client()
+                import oracledb
 
-            self._connection = oracledb.connect(
-                user=self.oracle_config.user,
-                password=self.oracle_config.password,
-                dsn=self.oracle_config.dsn,
-            )
+                self._connection = oracledb.connect(
+                    user=self.oracle_config.user,
+                    password=self.oracle_config.password,
+                    dsn=self.oracle_config.dsn,
+                )
+                logger.info(f"Connected to Oracle: {self.oracle_config.dsn}")
 
-            logger.info(f"Connected to Oracle: {self.oracle_config.dsn}")
+        return self._connection
 
+    def _get_duckdb_connection(self):
+        """獲取 DuckDB 連線"""
+        import duckdb
+
+        # 連接到本地 DuckDB 數據庫
+        self._connection = duckdb.connect(database=self.duckdb_config.database, read_only=False)
+        logger.info(f"Connected to DuckDB: {self.duckdb_config.database}")
         return self._connection
 
     def execute(self, sql: str, timeout: Optional[int] = None) -> Dict[str, Any]:

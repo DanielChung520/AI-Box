@@ -65,6 +65,7 @@ class QueryOptions(BaseModel):
     timeout: int = 30
     limit: Optional[int] = None
     offset: Optional[int] = None
+    locale: str = Field(default="zh-TW", description="語言設定 (zh-TW, en-US, ja-JP)")
 
 
 class TaskData(BaseModel):
@@ -74,6 +75,7 @@ class TaskData(BaseModel):
     intent: Optional[str] = Field(None, description="意圖類型")
     params: Dict[str, Any] = Field(default_factory=dict, description="查詢參數")
     options: QueryOptions = Field(default_factory=QueryOptions)
+    locale: Optional[str] = Field(None, description="語言設定 (覆蓋 options.locale)")
 
 
 class ExecuteRequest(BaseModel):
@@ -82,6 +84,7 @@ class ExecuteRequest(BaseModel):
     task_id: str = Field(..., description="任務 ID")
     task_type: str = Field(default="schema_driven_query", description="任務類型")
     task_data: TaskData
+    locale: Optional[str] = Field(None, description="語言設定 (覆蓋 task_data.locale)")
 
 
 class QueryResultRow(BaseModel):
@@ -96,7 +99,11 @@ class QueryResult(BaseModel):
     sql: str = Field(..., description="生成的 SQL")
     data: List[Dict[str, Any]] = Field(default_factory=list, description="結果數據")
     row_count: int = Field(0, description="結果數量")
-    execution_time_ms: int = Field(0, description="執行時間（毫秒）")
+    columns: List[str] = Field(default_factory=list, description="欄位名稱列表")
+    execution_time_ms: float = Field(0, description="執行時間（毫秒）")
+    schema_used: Optional[str] = Field(None, description="使用的 Schema")
+    pagination: Optional[Dict[str, Any]] = Field(None, description="分頁資訊")
+    token_usage: Optional[Dict[str, int]] = Field(None, description="Token 使用量")
 
 
 class ExecuteResponse(BaseModel):
@@ -167,7 +174,7 @@ class IntentOutput(BaseModel):
 class IntentConstraint(BaseModel):
     """Intent 約束"""
 
-    require_at_least_one_filter: bool = Field(False, description="是否需要至少一個過濾器")
+    require_at_least_one_filter: bool = False
 
 
 class IntentDefinition(BaseModel):
@@ -177,6 +184,7 @@ class IntentDefinition(BaseModel):
     input: IntentInput = Field(default_factory=IntentInput)
     output: IntentOutput = Field(default_factory=IntentOutput)
     constraints: IntentConstraint = Field(default_factory=IntentConstraint)
+    mart_table: Optional[str] = Field(None, description="偏好的 Mart 表格")
 
 
 class IntentsContainer(BaseModel):
@@ -258,6 +266,7 @@ class QueryAST(BaseModel):
     select: List[Dict[str, str]] = Field(default_factory=list)
     from_tables: List[str] = Field(default_factory=list)
     where_conditions: List[Dict[str, Any]] = Field(default_factory=list)
+    having_conditions: List[Dict[str, Any]] = Field(default_factory=list)
     group_by: List[str] = Field(default_factory=list)
     order_by: List[str] = Field(default_factory=list)
     limit: Optional[int] = None
@@ -279,5 +288,13 @@ class ErrorCode(str, Enum):
     BINDING_NOT_FOUND = "BINDING_NOT_FOUND"
     SQL_GENERATION_ERROR = "SQL_GENERATION_ERROR"
     CONNECTION_FAILED = "CONNECTION_FAILED"
+    CONNECTION_ERROR = "CONNECTION_ERROR"
     QUERY_TIMEOUT = "QUERY_TIMEOUT"
+    QUERY_ERROR = "QUERY_ERROR"
+    OUT_OF_MEMORY = "OUT_OF_MEMORY"
+    SCHEMA_NOT_FOUND = "SCHEMA_NOT_FOUND"
+    AMBIGUOUS_REFERENCE = "AMBIGUOUS_REFERENCE"
+    COLUMN_NOT_FOUND = "COLUMN_NOT_FOUND"
+    BINDER_ERROR = "BINDER_ERROR"
+    NULL_VALUE = "NULL_VALUE"
     INTERNAL_ERROR = "INTERNAL_ERROR"

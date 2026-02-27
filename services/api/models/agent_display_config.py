@@ -74,6 +74,10 @@ class AgentConfig(BaseModel):
         default=None,
         description="Agent 端點 URL（HTTP 或 MCP endpoint）",
     )
+    arangodb_key: Optional[str] = Field(
+        default=None,
+        description="ArangoDB 文檔的 _key（用於端點解析）",
+    )
     secret_id: Optional[str] = Field(
         default=None,
         description="Secret ID（由 AI-Box 簽發，用於外部 Agent 身份驗證）",

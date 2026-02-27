@@ -471,3 +471,298 @@ def validate_entity(
         return loader.validate_workstation(entity_value)
     else:
         raise ValueError(f"Unknown entity type: {entity_type}")
+
+
+# =============================================================================
+# masterRAG 整合：語意搜尋驗證
+# =============================================================================
+
+
+class MasterRAGValidator:
+    """
+    masterRAG 驗證器
+
+    功能：
+    - 先嘗試精確比對（master_loader）
+    - 失敗時使用 masterRAG 語意搜尋
+    - 返回語意相似的候選項目
+    """
+
+    def __init__(self, base_path: str = None):
+        self._master_loader = MasterDataLoader(base_path=base_path)
+        self._master_loader.load_all()
+        self._embedding_model = None
+
+    def _get_embedding_model(self):
+        """取得 embedding model（Lazy loading）"""
+        if self._embedding_model is None:
+            try:
+                from sentence_transformers import SentenceTransformer
+
+                self._embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+                logger.info("Loaded embedding model: all-MiniLM-L6-v2")
+            except ImportError:
+                logger.warning(
+                    "sentence-transformers not installed, falling back to exact match only"
+                )
+                return None
+            except Exception as e:
+                logger.warning(f"Failed to load embedding model: {e}")
+                return None
+        return self._embedding_model
+
+    def _get_master_rag_client(self):
+        """取得 masterRAG client"""
+        try:
+            from database.qdrant.mm_master_rag_client import get_mm_master_rag_client
+
+            return get_mm_master_rag_client()
+        except Exception as e:
+            logger.warning(f"Failed to get masterRAG client: {e}")
+            return None
+
+    def validate_item(
+        self, item_no: str, use_semantic: bool = True
+    ) -> tuple[bool, Optional[ItemMaster], List[str]]:
+        """
+        驗證料號（先精確，失敗時語意搜尋）
+
+        Args:
+            item_no: 料號
+            use_semantic: 是否使用語意搜尋 fallback
+
+        Returns:
+            tuple: (是否有效, 料號資料, 建議清單)
+        """
+        # Step 1: 精確比對
+        is_valid, data, suggestions = self._master_loader.validate_item(item_no)
+        if is_valid:
+            return is_valid, data, suggestions
+
+        # Step 2: 失敗時使用語意搜尋
+        if use_semantic:
+            return self._semantic_search_item(item_no)
+
+        return False, None, suggestions
+
+    def validate_warehouse(
+        self, warehouse_no: str, use_semantic: bool = True
+    ) -> tuple[bool, Optional[WarehouseMaster], List[str]]:
+        """
+        驗證倉庫（先精確，失敗時語意搜尋）
+
+        Args:
+            warehouse_no: 倉庫代碼
+            use_semantic: 是否使用語意搜尋 fallback
+
+        Returns:
+            tuple: (是否有效, 倉庫資料, 建議清單)
+        """
+        # Step 1: 精確比對
+        is_valid, data, suggestions = self._master_loader.validate_warehouse(warehouse_no)
+        if is_valid:
+            return is_valid, data, suggestions
+
+        # Step 2: 失敗時使用語意搜尋
+        if use_semantic:
+            return self._semantic_search_warehouse(warehouse_no)
+
+        return False, None, suggestions
+
+    def validate_workstation(
+        self, workstation_id: str, use_semantic: bool = True
+    ) -> tuple[bool, Optional[WorkstationMaster], List[str]]:
+        """
+        驗證工作站（先精確，失敗時語意搜尋）
+
+        Args:
+            workstation_id: 工作站 ID
+            use_semantic: 是否使用語意搜尋 fallback
+
+        Returns:
+            tuple: (是否有效, 工作站資料, 建議清單)
+        """
+        # Step 1: 精確比對
+        is_valid, data, suggestions = self._master_loader.validate_workstation(workstation_id)
+        if is_valid:
+            return is_valid, data, suggestions
+
+        # Step 2: 失敗時使用語意搜尋
+        if use_semantic:
+            return self._semantic_search_workstation(workstation_id)
+
+        return False, None, suggestions
+
+    def _semantic_search_item(
+        self, item_no: str, limit: int = 5
+    ) -> tuple[bool, Optional[ItemMaster], List[str]]:
+        """使用 masterRAG 語意搜尋料號"""
+        model = self._get_embedding_model()
+        client = self._get_master_rag_client()
+
+        if model is None or client is None:
+            # 無法使用語意搜尋，返回現有建議
+            return False, None, self._master_loader.validate_item(item_no)[2]
+
+        try:
+            # 生成向量
+            query_vector = model.encode(item_no).tolist()
+
+            # 語意搜尋
+            results = client.search_items(
+                query_vector=query_vector,
+                limit=limit,
+                score_threshold=0.3,  # 降低閾值以獲得更多建議
+            )
+
+            if not results:
+                return False, None, []
+
+            # 提取建議清單
+            suggestions = [
+                r["payload"].get("item_no", "") for r in results if r["payload"].get("item_no")
+            ]
+
+            # 返回第一個高分結果作為建議
+            top_result = results[0]
+            payload = top_result.get("payload", {})
+
+            logger.info(
+                f"Semantic search for item '{item_no}': {len(suggestions)} results, top score: {top_result.get('score', 0):.2f}"
+            )
+
+            return False, None, suggestions
+
+        except Exception as e:
+            logger.warning(f"Semantic search failed for item '{item_no}': {e}")
+            return False, None, []
+
+    def _semantic_search_warehouse(
+        self, warehouse_no: str, limit: int = 5
+    ) -> tuple[bool, Optional[WarehouseMaster], List[str]]:
+        """使用 masterRAG 語意搜尋倉庫"""
+        model = self._get_embedding_model()
+        client = self._get_master_rag_client()
+
+        if model is None or client is None:
+            return False, None, self._master_loader.validate_warehouse(warehouse_no)[2]
+
+        try:
+            query_vector = model.encode(warehouse_no).tolist()
+
+            results = client.search_warehouses(
+                query_vector=query_vector,
+                limit=limit,
+                score_threshold=0.3,
+            )
+
+            if not results:
+                return False, None, []
+
+            suggestions = [
+                r["payload"].get("warehouse_no", "")
+                for r in results
+                if r["payload"].get("warehouse_no")
+            ]
+
+            logger.info(
+                f"Semantic search for warehouse '{warehouse_no}': {len(suggestions)} results, top score: {results[0].get('score', 0):.2f}"
+            )
+
+            return False, None, suggestions
+
+        except Exception as e:
+            logger.warning(f"Semantic search failed for warehouse '{warehouse_no}': {e}")
+            return False, None, []
+
+    def _semantic_search_workstation(
+        self, workstation_id: str, limit: int = 5
+    ) -> tuple[bool, Optional[WorkstationMaster], List[str]]:
+        """使用 masterRAG 語意搜尋工作站"""
+        model = self._get_embedding_model()
+        client = self._get_master_rag_client()
+
+        if model is None or client is None:
+            return False, None, self._master_loader.validate_workstation(workstation_id)[2]
+
+        try:
+            query_vector = model.encode(workstation_id).tolist()
+
+            results = client.search_workstations(
+                query_vector=query_vector,
+                limit=limit,
+                score_threshold=0.3,
+            )
+
+            if not results:
+                return False, None, []
+
+            suggestions = [
+                r["payload"].get("workstation_id", "")
+                for r in results
+                if r["payload"].get("workstation_id")
+            ]
+
+            logger.info(
+                f"Semantic search for workstation '{workstation_id}': {len(suggestions)} results, top score: {results[0].get('score', 0):.2f}"
+            )
+
+            return False, None, suggestions
+
+        except Exception as e:
+            logger.warning(f"Semantic search failed for workstation '{workstation_id}': {e}")
+            return False, None, []
+
+
+# Singleton instance
+_master_rag_validator: Optional[MasterRAGValidator] = None
+
+
+def get_master_rag_validator(base_path: str = None) -> MasterRAGValidator:
+    """
+    取得 MasterRAG Validator Singleton
+
+    Args:
+        base_path: Master Data 基礎路徑
+
+    Returns:
+        MasterRAGValidator: 驗證器實例
+    """
+    global _master_rag_validator
+
+    if _master_rag_validator is None:
+        _master_rag_validator = MasterRAGValidator(base_path=base_path)
+
+    return _master_rag_validator
+
+
+def validate_entity_with_rag(
+    entity_type: str,
+    entity_value: str,
+    base_path: str = None,
+    use_semantic: bool = True,
+) -> tuple[bool, Any, List[str]]:
+    """
+    驗證 Entity（使用 masterRAG 增強）
+
+    先嘗試精確比對，失敗時使用語意搜尋
+
+    Args:
+        entity_type: 實體類型 ("item", "warehouse", "workstation")
+        entity_value: 實體值
+        base_path: Master Data 基礎路徑
+        use_semantic: 是否使用語意搜尋 fallback
+
+    Returns:
+        tuple: (是否有效, 實體資料, 建議清單)
+    """
+    validator = get_master_rag_validator(base_path=base_path)
+
+    if entity_type == "item":
+        return validator.validate_item(entity_value, use_semantic=use_semantic)
+    elif entity_type == "warehouse":
+        return validator.validate_warehouse(entity_value, use_semantic=use_semantic)
+    elif entity_type == "workstation":
+        return validator.validate_workstation(entity_value, use_semantic=use_semantic)
+    else:
+        raise ValueError(f"Unknown entity type: {entity_type}")

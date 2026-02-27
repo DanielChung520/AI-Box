@@ -626,6 +626,18 @@ export default function Home() {
         full_request: draftEditRequest,
       });
 
+      // [send chat message] 攔截日誌
+      console.log('[send chat message] 📤 發送請求:', {
+        agent_id: draftEditRequest.agent_id,
+        assistant_id: draftEditRequest.assistant_id,
+        model_selector: draftEditRequest.model_selector,
+        model_id: draftEditRequest.modelId,
+        session_id: draftEditRequest.session_id,
+        task_id: draftEditRequest.task_id,
+        message_count: draftEditRequest.messages?.length || 0,
+        last_message: draftEditRequest.messages?.[draftEditRequest.messages?.length - 1]?.content?.substring(0, 50),
+      });
+
       try {
         const resp = await chatProduct(draftEditRequest as any); // 临时使用 any，因为接口定义可能还没有更新
 
@@ -757,6 +769,7 @@ export default function Home() {
         messageAllowedTools,
         isWebSearchActive: tools?.web_search,
         assistantId,
+        agentId,
         toolsFromMessage: messageAllowedTools,
       });
 
@@ -773,6 +786,18 @@ export default function Home() {
         attachments: attachments.length ? attachments : undefined,
         allowed_tools: allowedTools.length > 0 ? allowedTools : undefined,
       };
+
+      // [send chat message] 攔截日誌
+      console.log('[send chat message] 📤 發送請求:', {
+        agent_id: agentId,
+        assistant_id: assistantId,
+        model_selector,
+        model_id: modelId,
+        session_id: sessionId,
+        task_id: String(taskWithUserMessage.id),
+        message_count: chatMessages?.length || 0,
+        last_message: chatMessages?.[chatMessages?.length - 1]?.content?.substring(0, 50),
+      });
 
       // ========================================
       // 指代消解邏輯（2026-02-04）
@@ -980,6 +1005,18 @@ export default function Home() {
         });
       };
 
+      // [send chat message] 攔截日誌
+      console.log('[send chat message] 📤 發送請求:', {
+        agent_id: requestData.agent_id,
+        assistant_id: requestData.assistant_id,
+        model_selector: requestData.model_selector,
+        model_id: requestData.modelId,
+        session_id: requestData.session_id,
+        task_id: requestData.task_id,
+        message_count: requestData.messages?.length || 0,
+        last_message: requestData.messages?.[requestData.messages?.length - 1]?.content?.substring(0, 50),
+      });
+
       try {
         console.log('[Home] 開始接收流式響應...');
         let eventCount = 0;
@@ -996,6 +1033,7 @@ export default function Home() {
           if (event.type === 'content' && event.data?.chunk) {
             // 累積內容並更新消息（使用防抖）
             fullContent += event.data.chunk;
+            console.log('[updateTaskContent] 📝 內容更新:', fullContent.substring(0, 100));
             updateTaskContent(fullContent);
           } else if (event.type === 'file_created' && event.data) {
             // 修改時間：2026-01-06 - 處理文件創建事件
@@ -1038,6 +1076,7 @@ export default function Home() {
             return;
           } else if (event.type === 'done') {
             console.log('[Home] 收到 done 事件');
+            console.log('[receive chat message] 📥 API 回覆內容:', fullContent.substring(0, 200));
             // 流結束，清除待處理的定時器並強制更新最後一次
             if (pendingUpdateTimer) {
               clearTimeout(pendingUpdateTimer);

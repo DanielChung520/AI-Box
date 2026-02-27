@@ -64,7 +64,13 @@ start_mm_agent() {
     fi
     echo -e "${GREEN}🚀 啟動 MM-Agent (端口 $MM_AGENT_PORT)...${NC}"
     cd "$DATALAKE_ROOT"
-    /home/daniel/ai-box/venv/bin/python -c "
+    # 使用 datalake-system 的 venv
+    if [ -f "$DATALAKE_ROOT/venv/bin/python" ]; then
+        PYTHON="$DATALAKE_ROOT/venv/bin/python"
+    else
+        PYTHON="python3"
+    fi
+    $PYTHON -c "
 import sys
 from pathlib import Path
 datalake_system_dir = Path('$MM_AGENT_DIR').resolve().parent

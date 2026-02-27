@@ -69,7 +69,7 @@ export default function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
   }, [theme]);
 
   return (
-    <div className="relative my-4 rounded-lg overflow-hidden bg-secondary shadow-md" style={{ border: '0.5px solid rgb(148 163 184 / 0.2)' }}>
+    <div className="chat-code-block relative my-4 rounded-lg overflow-hidden bg-secondary shadow-md" style={{ border: '0.5px solid rgb(148 163 184 / 0.2)' }}>
       {/* 語言標籤和複製按鈕 */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-tertiary/60" style={{ borderBottom: '0.5px solid rgb(148 163 184 / 0.2)' }}>
         <span className="text-xs font-mono text-primary/70 font-semibold uppercase tracking-wide">

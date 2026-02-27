@@ -14,15 +14,6 @@ DATALAKE_SYSTEM_DIR = Path(__file__).resolve().parent.parent
 # 獲取 AI-Box 根目錄
 AI_BOX_ROOT = DATALAKE_SYSTEM_DIR.parent
 
-# 激活 venv（如果存在）
-venv_path = DATALAKE_SYSTEM_DIR / "venv" / "bin" / "python"
-if venv_path.exists():
-    # 使用 venv 的 Python 解釋器
-    import subprocess
-    import os
-
-    os.execv(str(venv_path), [sys.executable, __file__] + sys.argv[1:])
-
 # 添加 AI-Box 根目錄到 Python 路徑
 sys.path.insert(0, str(AI_BOX_ROOT))
 

@@ -52,6 +52,42 @@
     "dialect": "duckdb"
   },
   "tables": {
+    "mart_inventory_wide": {
+      "tiptop_name": "庫存寬表",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "item_no", "name": "料號"},
+        {"id": "warehouse_no", "name": "倉庫"},
+        {"id": "location_no", "name": "儲位"},
+        {"id": "unit", "name": "單位"},
+        {"id": "existing_stocks", "name": "現有庫存"}
+      ]
+    },
+    "mart_work_order_wide": {
+      "tiptop_name": "工單寬表",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "item_no", "name": "料號"},
+        {"id": "customer_no", "name": "客戶編號"},
+        {"id": "status", "name": "狀態"},
+        {"id": "scrap_qty", "name": "報廢數量"},
+        {"id": "workstation", "name": "工作站"}
+      ]
+    },
+    "mart_shipping_wide": {
+      "tiptop_name": "出貨寬表",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "doc_no", "name": "單據編號"},
+        {"id": "doc_date", "name": "單據日期"},
+        {"id": "status", "name": "狀態"},
+        {"id": "customer_no", "name": "客戶編號"},
+        {"id": "seq", "name": "項次"},
+        {"id": "item_no", "name": "料號"},
+        {"id": "actual_qty", "name": "實際數量"},
+        {"id": "unit_price", "name": "單價"}
+      ]
+    },
     "ima_file": {
       "tiptop_name": "料件主檔",
       "columns": [

@@ -1,0 +1,617 @@
+[
+  {
+    "success": true,
+    "response": "**查詢結果**（耗時 100 ms）\n\n**SQL**:\n```sql\nSELECT item_no, warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, warehouse_no, location_no, unit\nLIMIT 100\n```\n\n**資料筆數**: 100\n\n**前 5 筆資料**:\n| item_no | warehouse_no | location_no | unit | existing_stocks |\n| --- | --- | --- | --- | --- |\n| 81199GG01090 | 8802 | HOXIN | PC | 0.0 |\n| 81430GG00001 | 2901 | D | PC | 0.0 |\n| 81199GG01080 | 8802 | HOXIN | PC | 0.0 |\n| SP-DC003 | 4100 | AA1-1 | PC | 0.0 |\n| 81449GG00006 | 2700 | OTHER | PC | 84.0 |\n",
+    "needs_clarification": false,
+    "clarification_message": null,
+    "session_id": "test_JP_SINGLE_001",
+    "resolved_query": "8802 查詢8802倉庫的所有庫存明細",
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": "8802",
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "analyzed",
+      "intent": "QUERY_STOCK",
+      "has_context_entities": true,
+      "context_entities": {
+        "part_number": "8802"
+      },
+      "translation": {
+        "tlf19": null,
+        "tlf19_description": "",
+        "time_expr": null,
+        "time_description": null,
+        "part_number": "8802",
+        "quantity": null,
+        "table_name": "img_file",
+        "warehouse": null,
+        "material_category": null
+      },
+      "used_knowledge_retrieval": false,
+      "used_data_query": true,
+      "semantic_result": {
+        "intent": "QUERY_STOCK",
+        "concepts": [],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": "8802",
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": false,
+          "missing_fields": [],
+          "notes": ""
+        },
+        "raw_text": "8802 查詢8802倉庫的所有庫存明細"
+      },
+      "generated_sql": "SELECT img01, ima02, img02, img03, SUM(img10) as qty\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/*/data.parquet', hive_partitioning=true) AS img_file LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/*/data.parquet', hive_partitioning=true) AS ima_file ON img01 = ima01\nWHERE img01 = '8802'\nGROUP BY img01, ima02, img02, img03\nORDER BY qty DESC\nLIMIT 100"
+    }
+  },
+  {
+    "success": true,
+    "response": "**查詢結果**（耗時 44 ms）\n\n**SQL**:\n```sql\nSELECT item_no, warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, warehouse_no, location_no, unit\nLIMIT 100\n```\n\n**資料筆數**: 100\n\n**前 5 筆資料**:\n| item_no | warehouse_no | location_no | unit | existing_stocks |\n| --- | --- | --- | --- | --- |\n| 8021302400900001 | 2700 | None | PC | 0.0 |\n| 8021107402400000 | 2101 | None | PC | 0.0 |\n| 8021305200200001 | 2700 | None | PC | 0.0 |\n| 8021206200700006 | 2700 | None | SET | 0.0 |\n| 8021305301500000 | 2700 | None | PC | 0.0 |\n",
+    "needs_clarification": false,
+    "clarification_message": null,
+    "session_id": "test_JP_SINGLE_002",
+    "resolved_query": null,
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": "10-0001",
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "analyzed",
+      "intent": "QUERY_STOCK",
+      "has_context_entities": false,
+      "context_entities": {},
+      "translation": {
+        "tlf19": null,
+        "tlf19_description": "",
+        "time_expr": null,
+        "time_description": null,
+        "part_number": "10-0001",
+        "quantity": null,
+        "table_name": "img_file",
+        "warehouse": null,
+        "material_category": null
+      },
+      "used_knowledge_retrieval": false,
+      "used_data_query": true,
+      "semantic_result": {
+        "intent": "QUERY_STOCK",
+        "concepts": [],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": "10-0001",
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": false,
+          "missing_fields": [],
+          "notes": ""
+        },
+        "raw_text": "查詢料號10-0001的基本資料"
+      },
+      "generated_sql": "SELECT img01, ima02, img02, img03, SUM(img10) as qty\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/*/data.parquet', hive_partitioning=true) AS img_file LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/*/data.parquet', hive_partitioning=true) AS ima_file ON img01 = ima01\nWHERE img01 = '10-0001'\nGROUP BY img01, ima02, img02, img03\nORDER BY qty DESC\nLIMIT 100"
+    }
+  },
+  {
+    "success": true,
+    "response": "**查詢結果**（耗時 101 ms）\n\n**SQL**:\n```sql\nSELECT item_no, warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, warehouse_no, location_no, unit\nLIMIT 100\n```\n\n**資料筆數**: 100\n\n**前 5 筆資料**:\n| item_no | warehouse_no | location_no | unit | existing_stocks |\n| --- | --- | --- | --- | --- |\n| 82499T500005 | 3400 | OTHER | PC | 0.0 |\n| 81451GG00033 | 3200 | OTHER | PC | 0.0 |\n| G21940015300 | 2101 | FF4-1 | PC | 0.0 |\n| 8031303501300100 | 3400 | THA-AES | PC | 0.0 |\n| 8021205500300000 | 2101 | AMP-08 | PC | 0.0 |\n",
+    "needs_clarification": false,
+    "clarification_message": null,
+    "session_id": "test_JP_SINGLE_003",
+    "resolved_query": "2101 查詢2101倉庫的所有庫存明細",
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": "2101",
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "analyzed",
+      "intent": "QUERY_STOCK",
+      "has_context_entities": true,
+      "context_entities": {
+        "part_number": "2101"
+      },
+      "translation": {
+        "tlf19": null,
+        "tlf19_description": "",
+        "time_expr": null,
+        "time_description": null,
+        "part_number": "2101",
+        "quantity": null,
+        "table_name": "img_file",
+        "warehouse": null,
+        "material_category": null
+      },
+      "used_knowledge_retrieval": false,
+      "used_data_query": true,
+      "semantic_result": {
+        "intent": "QUERY_STOCK",
+        "concepts": [],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": "2101",
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": false,
+          "missing_fields": [],
+          "notes": ""
+        },
+        "raw_text": "2101 查詢2101倉庫的所有庫存明細"
+      },
+      "generated_sql": "SELECT img01, ima02, img02, img03, SUM(img10) as qty\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/*/data.parquet', hive_partitioning=true) AS img_file LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/*/data.parquet', hive_partitioning=true) AS ima_file ON img01 = ima01\nWHERE img01 = '2101'\nGROUP BY img01, ima02, img02, img03\nORDER BY qty DESC\nLIMIT 100"
+    }
+  },
+  {
+    "success": true,
+    "response": "**查詢結果**（耗時 49 ms）\n\n**SQL**:\n```sql\nSELECT item_no, warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, warehouse_no, location_no, unit\nLIMIT 100\n```\n\n**資料筆數**: 100\n\n**前 5 筆資料**:\n| item_no | warehouse_no | location_no | unit | existing_stocks |\n| --- | --- | --- | --- | --- |\n| 8021302400900001 | 2700 | None | PC | 0.0 |\n| 8021107402400000 | 2101 | None | PC | 0.0 |\n| 8021305200200001 | 2700 | None | PC | 0.0 |\n| 8021206200700006 | 2700 | None | SET | 0.0 |\n| 8021305301500000 | 2700 | None | PC | 0.0 |\n",
+    "needs_clarification": false,
+    "clarification_message": null,
+    "session_id": "test_JP_SINGLE_004",
+    "resolved_query": null,
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": "802110",
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "analyzed",
+      "intent": "QUERY_STOCK",
+      "has_context_entities": false,
+      "context_entities": {},
+      "translation": {
+        "tlf19": null,
+        "tlf19_description": "",
+        "time_expr": null,
+        "time_description": null,
+        "part_number": "802110",
+        "quantity": null,
+        "table_name": "img_file",
+        "warehouse": null,
+        "material_category": null
+      },
+      "used_knowledge_retrieval": false,
+      "used_data_query": true,
+      "semantic_result": {
+        "intent": "QUERY_STOCK",
+        "concepts": [],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": "802110",
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": false,
+          "missing_fields": [],
+          "notes": ""
+        },
+        "raw_text": "查詢料號8021107403900001的庫存"
+      },
+      "generated_sql": "SELECT img01, ima02, img02, img03, SUM(img10) as qty\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/*/data.parquet', hive_partitioning=true) AS img_file LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/*/data.parquet', hive_partitioning=true) AS ima_file ON img01 = ima01\nWHERE img01 = '802110'\nGROUP BY img01, ima02, img02, img03\nORDER BY qty DESC\nLIMIT 100"
+    }
+  },
+  {
+    "success": false,
+    "response": "",
+    "needs_clarification": true,
+    "clarification_message": "為了更準確地回答您的問題，請提供以下信息：\n\n• 請提供倉庫或物料類別，以便進行缺料分析\n\n• 請提供倉庫或物料類別，以便進行缺料分析\n\n謝謝您的配合！",
+    "session_id": "test_JP_SINGLE_005",
+    "resolved_query": null,
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": null,
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "semantic_translation",
+      "intent": "ANALYZE_SHORTAGE",
+      "semantic_result": {
+        "intent": "ANALYZE_SHORTAGE",
+        "concepts": [],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": null,
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": true,
+          "missing_fields": [
+            "warehouse",
+            "material_category"
+          ],
+          "notes": "請提供倉庫或物料類別，以便進行缺料分析"
+        },
+        "raw_text": "查詢所有庫存數量為0的料號"
+      },
+      "requires_confirmation": true
+    }
+  },
+  {
+    "success": false,
+    "response": "",
+    "needs_clarification": true,
+    "clarification_message": "為了更準確地回答您的問題，請提供以下信息：\n\n• 請提供倉庫代號、物料類別或料號，以便進行庫存查詢\n\n• 請提供倉庫代號、物料類別或料號，以便進行庫存查詢\n\n• 請提供倉庫代號、物料類別或料號，以便進行庫存查詢\n\n謝謝您的配合！",
+    "session_id": "test_JP_SINGLE_006",
+    "resolved_query": null,
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": "1000",
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "semantic_translation",
+      "intent": "QUERY_STOCK",
+      "semantic_result": {
+        "intent": "QUERY_STOCK",
+        "concepts": [],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": "1000",
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": true,
+          "missing_fields": [
+            "warehouse",
+            "material_category",
+            "part_number"
+          ],
+          "notes": "請提供倉庫代號、物料類別或料號，以便進行庫存查詢"
+        },
+        "raw_text": "查詢庫存數量大於1000的料號"
+      },
+      "requires_confirmation": true
+    }
+  },
+  {
+    "success": true,
+    "response": "**查詢結果**（耗時 39 ms）\n\n**SQL**:\n```sql\nSELECT item_no, warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, warehouse_no, location_no, unit\nLIMIT 100\n```\n\n**資料筆數**: 100\n\n**前 5 筆資料**:\n| item_no | warehouse_no | location_no | unit | existing_stocks |\n| --- | --- | --- | --- | --- |\n| 81199GG01090 | 8802 | HOXIN | PC | 0.0 |\n| 81430GG00001 | 2901 | D | PC | 0.0 |\n| 81199GG01080 | 8802 | HOXIN | PC | 0.0 |\n| SP-DC003 | 4100 | AA1-1 | PC | 0.0 |\n| 81449GG00006 | 2700 | OTHER | PC | 84.0 |\n",
+    "needs_clarification": false,
+    "clarification_message": null,
+    "session_id": "test_JP_SINGLE_007",
+    "resolved_query": null,
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": "2101",
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "analyzed",
+      "intent": "QUERY_STOCK",
+      "has_context_entities": false,
+      "context_entities": {},
+      "translation": {
+        "tlf19": null,
+        "tlf19_description": "",
+        "time_expr": null,
+        "time_description": null,
+        "part_number": "2101",
+        "quantity": null,
+        "table_name": "img_file",
+        "warehouse": null,
+        "material_category": null
+      },
+      "used_knowledge_retrieval": false,
+      "used_data_query": true,
+      "semantic_result": {
+        "intent": "QUERY_STOCK",
+        "concepts": [],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": "2101",
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": false,
+          "missing_fields": [],
+          "notes": ""
+        },
+        "raw_text": "查詢2101和8802倉庫都有庫存的料號"
+      },
+      "generated_sql": "SELECT img01, ima02, img02, img03, SUM(img10) as qty\nFROM read_parquet('s3://tiptop-raw/raw/v1/img_file/year=*/*/data.parquet', hive_partitioning=true) AS img_file LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/*/data.parquet', hive_partitioning=true) AS ima_file ON img01 = ima01\nWHERE img01 = '2101'\nGROUP BY img01, ima02, img02, img03\nORDER BY qty DESC\nLIMIT 100"
+    }
+  },
+  {
+    "success": false,
+    "response": "",
+    "needs_clarification": true,
+    "clarification_message": "為了更準確地回答您的問題，請提供以下信息：\n\n• 請提供倉庫或物料類別，以便進行缺料分析\n\n• 請提供倉庫或物料類別，以便進行缺料分析\n\n謝謝您的配合！",
+    "session_id": "test_JP_SINGLE_008",
+    "resolved_query": null,
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": "10",
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "semantic_translation",
+      "intent": "ANALYZE_SHORTAGE",
+      "semantic_result": {
+        "intent": "ANALYZE_SHORTAGE",
+        "concepts": [],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": "10",
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": true,
+          "missing_fields": [
+            "warehouse",
+            "material_category"
+          ],
+          "notes": "請提供倉庫或物料類別，以便進行缺料分析"
+        },
+        "raw_text": "查詢庫存數量小於10的料號"
+      },
+      "requires_confirmation": true
+    }
+  },
+  {
+    "success": false,
+    "response": "",
+    "needs_clarification": true,
+    "clarification_message": "為了更準確地回答您的問題，請提供以下信息：\n\n• 請提供倉庫代號、物料類別或料號，以便進行庫存查詢\n\n• 請提供倉庫代號、物料類別或料號，以便進行庫存查詢\n\n• 請提供倉庫代號、物料類別或料號，以便進行庫存查詢\n\n謝謝您的配合！",
+    "session_id": "test_JP_SINGLE_009",
+    "resolved_query": null,
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": null,
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "semantic_translation",
+      "intent": "QUERY_STOCK",
+      "semantic_result": {
+        "intent": "QUERY_STOCK",
+        "concepts": [
+          {
+            "canonical_id": "LOCATION_CODE",
+            "source_terms": [
+              "儲位"
+            ],
+            "confidence": 0.9
+          }
+        ],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": null,
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": true,
+          "missing_fields": [
+            "warehouse",
+            "material_category",
+            "part_number"
+          ],
+          "notes": "請提供倉庫代號、物料類別或料號，以便進行庫存查詢"
+        },
+        "raw_text": "查詢沒有儲位資訊的庫存記錄"
+      },
+      "requires_confirmation": true
+    }
+  },
+  {
+    "success": false,
+    "response": "",
+    "needs_clarification": true,
+    "clarification_message": "為了更準確地回答您的問題，請提供以下信息：\n\n• 請提供倉庫代號、物料類別或料號，以便進行庫存查詢\n\n• 請提供倉庫代號、物料類別或料號，以便進行庫存查詢\n\n• 請提供倉庫代號、物料類別或料號，以便進行庫存查詢\n\n謝謝您的配合！",
+    "session_id": "test_JP_SINGLE_010",
+    "resolved_query": null,
+    "translation": {
+      "tlf19": null,
+      "tlf19_description": "",
+      "time_expr": null,
+      "time_description": null,
+      "part_number": null,
+      "quantity": null,
+      "table_name": "img_file",
+      "warehouse": null,
+      "material_category": null
+    },
+    "debug_info": {
+      "step": "semantic_translation",
+      "intent": "QUERY_STOCK",
+      "semantic_result": {
+        "intent": "QUERY_STOCK",
+        "concepts": [],
+        "schema_binding": {
+          "primary_table": "img_file",
+          "tables": [
+            "img_file"
+          ],
+          "columns": []
+        },
+        "constraints": {
+          "material_id": null,
+          "inventory_location": null,
+          "material_category": null,
+          "time_range": null,
+          "transaction_type": null,
+          "quantity": null,
+          "supplier": null,
+          "customer": null
+        },
+        "validation": {
+          "requires_confirmation": true,
+          "missing_fields": [
+            "warehouse",
+            "material_category",
+            "part_number"
+          ],
+          "notes": "請提供倉庫代號、物料類別或料號，以便進行庫存查詢"
+        },
+        "raw_text": "查詢單位為PC的所有料號庫存"
+      },
+      "requires_confirmation": true
+    }
+  }
+]

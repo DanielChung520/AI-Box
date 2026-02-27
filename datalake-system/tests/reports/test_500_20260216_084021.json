@@ -1,0 +1,1035 @@
+{
+  "timestamp": "2026-02-16T00:50:12.335143+00:00",
+  "total": 100,
+  "passed": 100,
+  "failed": 0,
+  "pass_rate": "100.0%",
+  "by_category": {
+    "SINGLE": {
+      "pass": 20,
+      "fail": 0
+    },
+    "GROUP": {
+      "pass": 20,
+      "fail": 0
+    },
+    "AGG": {
+      "pass": 20,
+      "fail": 0
+    },
+    "JOIN": {
+      "pass": 15,
+      "fail": 0
+    },
+    "COMPLEX": {
+      "pass": 15,
+      "fail": 0
+    },
+    "TIME": {
+      "pass": 10,
+      "fail": 0
+    }
+  },
+  "results": [
+    {
+      "test_id": "JP_SINGLE_001",
+      "category": "SINGLE",
+      "question": "查詢8802倉庫的所有庫存明細",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 8206,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_002",
+      "category": "SINGLE",
+      "question": "查詢料號10-0001的基本資料",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5366,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks, item_no\nFROM mart_inventory_wide\nWHERE item_no = '10-0001'\nGROUP BY item_no, item_no, location_no, unit, item_no\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_003",
+      "category": "SINGLE",
+      "question": "查詢2101倉庫的所有庫存明細",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5682,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_004",
+      "category": "SINGLE",
+      "question": "查詢料號8021107403900001的庫存",
+      "status": "pass",
+      "row_count": 4,
+      "execution_time_ms": 5907,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks, item_no\nFROM mart_inventory_wide\nWHERE item_no = '8021107403900001'\nGROUP BY item_no, item_no, location_no, unit, item_no\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_005",
+      "category": "SINGLE",
+      "question": "查詢所有庫存數量為0的料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5644,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_006",
+      "category": "SINGLE",
+      "question": "查詢庫存數量大於1000的料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6119,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_007",
+      "category": "SINGLE",
+      "question": "查詢2101和8802倉庫都有庫存的料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5738,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_008",
+      "category": "SINGLE",
+      "question": "查詢庫存數量小於10的料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5905,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_009",
+      "category": "SINGLE",
+      "question": "查詢沒有儲位資訊的庫存記錄",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5857,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_010",
+      "category": "SINGLE",
+      "question": "查詢單位為PC的所有料號庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6182,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_011",
+      "category": "SINGLE",
+      "question": "查詢料號在哪些倉庫有庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5765,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_012",
+      "category": "SINGLE",
+      "question": "查詢2101倉庫的庫存明細",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5828,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_013",
+      "category": "SINGLE",
+      "question": "查詢8802倉庫料號10-0001的庫存",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5576,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks, item_no\nFROM mart_inventory_wide\nWHERE item_no = '10-0001'\nGROUP BY item_no, item_no, location_no, unit, item_no\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_014",
+      "category": "SINGLE",
+      "question": "查詢所有料號的現有庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5851,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_015",
+      "category": "SINGLE",
+      "question": "查詢8802倉庫料號的庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5994,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_016",
+      "category": "SINGLE",
+      "question": "查詢2101倉庫料號的庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5924,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_017",
+      "category": "SINGLE",
+      "question": "查詢料號10-0002的庫存",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5870,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks, item_no\nFROM mart_inventory_wide\nWHERE item_no = '10-0002'\nGROUP BY item_no, item_no, location_no, unit, item_no\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_018",
+      "category": "SINGLE",
+      "question": "查詢8802倉庫的所有料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5696,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_019",
+      "category": "SINGLE",
+      "question": "查詢2101倉庫的所有料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5995,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_SINGLE_020",
+      "category": "SINGLE",
+      "question": "查詢庫存數量等於0的料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6009,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_021",
+      "category": "GROUP",
+      "question": "按倉庫統計庫存總數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 7031,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_022",
+      "category": "GROUP",
+      "question": "按料號統計庫存數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6027,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_023",
+      "category": "GROUP",
+      "question": "按單位統計庫存數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5613,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_024",
+      "category": "GROUP",
+      "question": "按倉庫統計有多少個不同的儲位",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5841,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_025",
+      "category": "GROUP",
+      "question": "按營運據點統計庫存總數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5869,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_026",
+      "category": "GROUP",
+      "question": "統計每個倉庫有多少種料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5854,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_027",
+      "category": "GROUP",
+      "question": "按時間統計庫存數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5887,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_028",
+      "category": "GROUP",
+      "question": "統計有多少種不同的料號有庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5959,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_029",
+      "category": "GROUP",
+      "question": "按儲位統計庫存數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6023,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_030",
+      "category": "GROUP",
+      "question": "統計每個單位的料號種類數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5841,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_031",
+      "category": "GROUP",
+      "question": "按倉庫統計庫存數量分布",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5576,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_032",
+      "category": "GROUP",
+      "question": "按時間統計料號數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6715,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_033",
+      "category": "GROUP",
+      "question": "按單位統計倉庫數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5968,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_034",
+      "category": "GROUP",
+      "question": "統計不同單位的庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5989,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_035",
+      "category": "GROUP",
+      "question": "按料號統計不同倉庫",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5501,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_036",
+      "category": "GROUP",
+      "question": "統計每個料號的倉庫數",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5922,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_037",
+      "category": "GROUP",
+      "question": "按庫存數量分組統計",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5792,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_038",
+      "category": "GROUP",
+      "question": "按儲位數量分組統計",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5714,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_039",
+      "category": "GROUP",
+      "question": "統計有庫存的倉庫",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6132,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_GROUP_040",
+      "category": "GROUP",
+      "question": "按位置統計料號數",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5859,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_041",
+      "category": "AGG",
+      "question": "計算全廠庫存總數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5629,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_042",
+      "category": "AGG",
+      "question": "統計2025年1月銷售總金額",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5390,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_043",
+      "category": "AGG",
+      "question": "計算8802倉庫的平均庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6941,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_044",
+      "category": "AGG",
+      "question": "統計庫存數量的總和",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5820,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_045",
+      "category": "AGG",
+      "question": "計算最大庫存數量",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5978,
+      "error_message": "請問要查詢哪段時間/哪個範圍的排名？（例如：2025年1月、8802倉庫）",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_AGG_046",
+      "category": "AGG",
+      "question": "計算最小庫存數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5702,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_047",
+      "category": "AGG",
+      "question": "統計有庫存的料號總數",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5478,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_048",
+      "category": "AGG",
+      "question": "計算2101倉庫的平均庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5764,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_049",
+      "category": "AGG",
+      "question": "統計最高庫存的料號",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5698,
+      "error_message": "請問要查詢哪段時間/哪個範圍的排名？（例如：2025年1月、8802倉庫）",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_AGG_050",
+      "category": "AGG",
+      "question": "計算所有倉庫的庫存總和",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6133,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_051",
+      "category": "AGG",
+      "question": "計算平均庫存數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5867,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_052",
+      "category": "AGG",
+      "question": "統計庫存的平均值",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5710,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_053",
+      "category": "AGG",
+      "question": "計算庫存數量的最大值",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5532,
+      "error_message": "請問要查詢哪段時間/哪個範圍的排名？（例如：2025年1月、8802倉庫）",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_AGG_054",
+      "category": "AGG",
+      "question": "計算庫存數量的最小值",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 7298,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_055",
+      "category": "AGG",
+      "question": "統計總庫存金額",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6113,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_056",
+      "category": "AGG",
+      "question": "計算平均庫存金額",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5538,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_057",
+      "category": "AGG",
+      "question": "統計最高與最低庫存",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5728,
+      "error_message": "請問要查詢哪段時間/哪個範圍的排名？（例如：2025年1月、8802倉庫）",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_AGG_058",
+      "category": "AGG",
+      "question": "計算庫存總額",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5620,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_059",
+      "category": "AGG",
+      "question": "統計庫存平均單價",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5772,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_AGG_060",
+      "category": "AGG",
+      "question": "計算庫存價值總額",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5978,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_JOIN_061",
+      "category": "JOIN",
+      "question": "查詢料號10-0001的庫存及品名",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5574,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks, item_no\nFROM mart_inventory_wide\nWHERE item_no = '10-0001'\nGROUP BY item_no, item_no, location_no, unit, item_no\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_JOIN_062",
+      "category": "JOIN",
+      "question": "查詢8802倉庫料號的庫存及位置",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5323,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_JOIN_063",
+      "category": "JOIN",
+      "question": "查詢低於安全庫存的物料與現有庫存量",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5543,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_JOIN_064",
+      "category": "JOIN",
+      "question": "查詢料號8021107403900001的詳細庫存資訊",
+      "status": "pass",
+      "row_count": 4,
+      "execution_time_ms": 5826,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks, item_no\nFROM mart_inventory_wide\nWHERE item_no = '8021107403900001'\nGROUP BY item_no, item_no, location_no, unit, item_no\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_JOIN_065",
+      "category": "JOIN",
+      "question": "查詢所有料號的庫存與儲位對應",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5878,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_JOIN_066",
+      "category": "JOIN",
+      "question": "查詢2101倉庫的庫存與料號對應",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 6430,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_JOIN_067",
+      "category": "JOIN",
+      "question": "查詢料號在不同倉庫的庫存分布",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5642,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_JOIN_068",
+      "category": "JOIN",
+      "question": "查詢8802和2101倉庫的庫存比較",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5690,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_JOIN_069",
+      "category": "JOIN",
+      "question": "查詢料號與庫存的對應關係",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5430,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_JOIN_070",
+      "category": "JOIN",
+      "question": "查詢倉庫與儲位的庫存對應",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 6008,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_JOIN_071",
+      "category": "JOIN",
+      "question": "查詢料號、品名與庫存的對應",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5814,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_JOIN_072",
+      "category": "JOIN",
+      "question": "查詢庫存與單位的對應",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5766,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_JOIN_073",
+      "category": "JOIN",
+      "question": "查詢料號與位置的對應",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5706,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_JOIN_074",
+      "category": "JOIN",
+      "question": "查詢倉庫與料號的庫存關係",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5472,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_JOIN_075",
+      "category": "JOIN",
+      "question": "查詢庫存與時間的對應",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5759,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_COMPLEX_076",
+      "category": "COMPLEX",
+      "question": "查詢庫存數量高於平均的料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6024,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_COMPLEX_077",
+      "category": "COMPLEX",
+      "question": "查詢同時在多個倉庫有庫存的料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6911,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_COMPLEX_078",
+      "category": "COMPLEX",
+      "question": "查詢庫存數量排名",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5790,
+      "error_message": "請問要查詢哪段時間/哪個範圍的排名？（例如：2025年1月、8802倉庫）",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_COMPLEX_079",
+      "category": "COMPLEX",
+      "question": "查詢庫存最高的前10個料號",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 6138,
+      "error_message": "請問要查詢哪段時間/哪個範圍的排名？（例如：2025年1月、8802倉庫）",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_COMPLEX_080",
+      "category": "COMPLEX",
+      "question": "查詢庫存最低的料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5920,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_COMPLEX_081",
+      "category": "COMPLEX",
+      "question": "按倉庫對庫存進行排名",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5790,
+      "error_message": "請問要查詢哪段時間/哪個範圍的排名？（例如：2025年1月、8802倉庫）",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_COMPLEX_082",
+      "category": "COMPLEX",
+      "question": "查詢料號長度與庫存的關係",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5810,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_COMPLEX_083",
+      "category": "COMPLEX",
+      "question": "查詢同時符合多個條件的庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5922,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_COMPLEX_084",
+      "category": "COMPLEX",
+      "question": "查詢庫存異常的料號",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5793,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_COMPLEX_085",
+      "category": "COMPLEX",
+      "question": "查詢庫存與時間的趨勢",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 5829,
+      "error_message": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_COMPLEX_086",
+      "category": "COMPLEX",
+      "question": "查詢庫存分佈異常的倉庫",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5888,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_COMPLEX_087",
+      "category": "COMPLEX",
+      "question": "查詢多維度的庫存統計",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6121,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_COMPLEX_088",
+      "category": "COMPLEX",
+      "question": "查詢庫存的複雜分類",
+      "status": "pass",
+      "row_count": 0,
+      "execution_time_ms": 6531,
+      "error_message": "請問要對哪個維度進行分類？（例如：哪個倉庫？哪段時間？）",
+      "sql": ""
+    },
+    {
+      "test_id": "JP_COMPLEX_089",
+      "category": "COMPLEX",
+      "question": "查詢跨維度的庫存分析",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5464,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_COMPLEX_090",
+      "category": "COMPLEX",
+      "question": "查詢多條件的庫存篩選",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5799,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_091",
+      "category": "TIME",
+      "question": "查詢2025年1月的庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5582,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_092",
+      "category": "TIME",
+      "question": "查詢2024年的庫存變化",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5888,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_093",
+      "category": "TIME",
+      "question": "統計每個月的庫存數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5945,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_094",
+      "category": "TIME",
+      "question": "查詢最近三個月的庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5882,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_095",
+      "category": "TIME",
+      "question": "查詢2025年1月8802倉庫的庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5832,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_096",
+      "category": "TIME",
+      "question": "按時間統計庫存總數量",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5793,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_097",
+      "category": "TIME",
+      "question": "查詢2025年2月的庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5615,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_098",
+      "category": "TIME",
+      "question": "查詢2024年12月的庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 5894,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_099",
+      "category": "TIME",
+      "question": "統計每月平均庫存",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 7013,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    },
+    {
+      "test_id": "JP_TIME_100",
+      "category": "TIME",
+      "question": "查詢庫存的時間趨勢",
+      "status": "pass",
+      "row_count": 100,
+      "execution_time_ms": 6018,
+      "error_message": "",
+      "sql": "SELECT item_no, item_no AS warehouse_no, location_no, unit, SUM(existing_stocks) AS existing_stocks\nFROM mart_inventory_wide\nGROUP BY item_no, item_no, location_no, unit\nLIMIT 100"
+    }
+  ]
+}

@@ -8,7 +8,7 @@
       "type": "warehouse",
       "name": "原料倉",
       "description": "原料倉庫",
-      "table": "img_file",
+      "table": "mart_inventory_wide",
       "field": "img02",
       "valid_values": ["W01", "W02", "W03", "W04", "W05"]
     },
@@ -16,28 +16,28 @@
       "type": "warehouse",
       "name": "半成品倉",
       "description": "半成品倉庫",
-      "table": "img_file",
+      "table": "mart_inventory_wide",
       "field": "img02"
     },
     "W03": {
       "type": "warehouse",
       "name": "成品倉",
       "description": "成品倉庫",
-      "table": "img_file",
+      "table": "mart_inventory_wide",
       "field": "img02"
     },
     "W04": {
       "type": "warehouse",
       "name": "不良品倉",
       "description": "不良品倉庫",
-      "table": "img_file",
+      "table": "mart_inventory_wide",
       "field": "img02"
     },
     "W05": {
       "type": "warehouse",
       "name": "樣品倉",
       "description": "樣品倉庫",
-      "table": "img_file",
+      "table": "mart_inventory_wide",
       "field": "img02"
     }
   },
@@ -46,14 +46,14 @@
       "pattern": "^W0[1-5]$",
       "type": "warehouse",
       "description": "倉庫代碼（W01-W05）",
-      "default_table": "img_file",
+      "default_table": "mart_inventory_wide",
       "default_field": "img02"
     },
     {
       "pattern": "^\\d{2}-\\d{4}$",
       "type": "item_code",
       "description": "料號格式（XX-XXXX）",
-      "default_table": "ima_file",
+      "default_table": "mart_inventory_wide",
       "default_field": "ima01",
       "examples": ["10-0001", "20-0001"]
     },
@@ -85,13 +85,13 @@
   ],
   "code_aliases": {
     "inag_t": "tlf_file",
-    "img_t": "img_file",
-    "ima_t": "ima_file",
+    "img_t": "mart_inventory_wide",
+    "ima_t": "mart_inventory_wide",
     "cop_t": "coptc_file"
   },
   "notes": {
-    "warehouse_codes": "倉庫代碼 W01-W05 對應 img_file.img02 欄位",
-    "item_codes": "料號格式為 XX-XXXX（如 10-0001），對應 ima_file.ima01 或 img_file.img01",
+    "warehouse_codes": "倉庫代碼 W01-W05 對應 mart_inventory_wide.img02 欄位",
+    "item_codes": "料號格式為 XX-XXXX（如 10-0001），對應 mart_inventory_wide.ima01 或 mart_inventory_wide.img01",
     "program_codes": "程式代碼如 AXMT520 為 Tiptop ERP 程式識別碼"
   }
 }

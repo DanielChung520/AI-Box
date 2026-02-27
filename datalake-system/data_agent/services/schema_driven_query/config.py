@@ -108,6 +108,7 @@ class DuckDBConfig(BaseSettings):
     """DuckDB 配置"""
 
     s3: S3Config = Field(default_factory=S3Config)
+    database: str = "/home/daniel/ai-box/datalake-system/data/warehouse/tiptop_jp.duckdb"
     memory_limit: str = "4GB"
     threads: int = 4
     temp_directory: str = "/tmp/duckdb"
@@ -132,6 +133,29 @@ class LLMConfig(BaseSettings):
         env_prefix = "DATA_AGENT_JP_LLM_"
 
 
+class EmbeddingConfig(BaseSettings):
+    """Embedding 配置"""
+
+    # Primary (Ollama) 配置
+    embedding_provider: str = "ollama"
+    embedding_model: str = "qwen3-embedding:latest"
+    embedding_endpoint: str = "http://localhost:11434"
+    similarity_threshold: float = 0.7
+    embedding_timeout: int = 60
+
+    # Fallback (Sentence-Transformers) 配置
+    fallback_provider: str = "sentence_transformers"
+    fallback_model: str = "all-MiniLM-L6-v2"
+    fallback_device: str = "cpu"
+
+    # 概念配置
+    concepts_source: str = "concepts.json"
+    language_default: str = "zh-TW"
+
+    class Config:
+        env_prefix = "DATA_AGENT_EMBEDDING_"
+
+
 class SchemaDrivenQueryConfig(BaseSettings):
     """Data-Agent-JP 主配置"""
 
@@ -151,6 +175,7 @@ class SchemaDrivenQueryConfig(BaseSettings):
     qdrant: QdrantConfig = Field(default_factory=QdrantConfig)
     arangodb: ArangoDBConfig = Field(default_factory=ArangoDBConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
+    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
 
     # 查詢配置
     default_timeout: int = 30

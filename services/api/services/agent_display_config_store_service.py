@@ -345,6 +345,8 @@ class AgentDisplayConfigStoreService:
             for doc in cursor:
                 if doc.get("agent_config"):
                     agent = AgentConfig(**doc["agent_config"])
+                    # 添加 arangodb_key 到 agent 對象
+                    agent.arangodb_key = doc.get("_key")
                     all_agents.append(agent)
 
             # 按 category_id 分組 agents
@@ -717,13 +719,14 @@ class AgentDisplayConfigStoreService:
             raise
 
     def get_agent_config(
-        self, agent_id: str, tenant_id: Optional[str] = None
+        self, agent_id: str = None, tenant_id: Optional[str] = None, agent_key: str = None
     ) -> Optional[AgentConfig]:
         """
         獲取單個代理配置
 
         Args:
-            agent_id: 代理 ID (使用 agent_config.id，而非 _key)
+            agent_id: 代理 ID (使用 agent_config.id)
+            agent_key: ArangoDB _key (唯一標識)
             tenant_id: 租戶 ID（可選，None 表示系統級）
 
         Returns:
@@ -732,21 +735,109 @@ class AgentDisplayConfigStoreService:
         if self._client.db is None or self._client.db.aql is None:
             raise RuntimeError("AQL is not available")
 
-        # 使用 AQL 查詢，按 agent_id 字段搜索（而非 _key）
+        # 優先使用 _key 查詢（更安全），其次用 agent_id
+        if agent_key:
+            aql = """
+            FOR doc IN agent_display_configs
+            FILTER doc.config_type == @config_type
+            AND doc.tenant_id == @tenant_id
+            AND doc._key == @agent_key
+            AND (@include_inactive OR doc.is_active == true)
+            LIMIT 1
+            RETURN doc
+            """
+            bind_vars = {
+                "config_type": "agent",
+                "tenant_id": tenant_id,
+                "agent_key": agent_key,
+                "include_inactive": True,
+            }
+        else:
+            aql = """
+            FOR doc IN agent_display_configs
+            FILTER doc.config_type == @config_type
+            AND doc.tenant_id == @tenant_id
+            AND doc.agent_config.id == @agent_id
+            AND (@include_inactive OR doc.is_active == true)
+            LIMIT 1
+            RETURN doc
+            """
+            bind_vars = {
+                "config_type": "agent",
+                "tenant_id": tenant_id,
+                "agent_id": agent_id,
+                "include_inactive": True,
+            }
+
+        try:
+            cursor = self._client.db.aql.execute(aql, bind_vars=bind_vars)
+            docs = list(cursor)
+
+            if not docs:
+                return None
+
+            doc = docs[0]
+            if doc.get("agent_config"):
+                agent_config = AgentConfig(**doc["agent_config"])
+                # 添加 arangodb_key (從父文檔的 _key)
+                agent_config.arangodb_key = doc.get("_key")
+                return agent_config
+
+            return None
+        except Exception as exc:
+            self._logger.error(
+                "get_agent_config_failed",
+                agent_id=agent_id,
+                agent_key=agent_key,
+                tenant_id=tenant_id,
+                error=str(exc),
+                exc_info=True,
+            )
+            raise
+
+    def get_agent_config_by_name(
+        self,
+        display_name: str,
+        tenant_id: Optional[str] = None,
+    ) -> Optional[AgentConfig]:
+        """
+        通過顯示名稱獲取代理配置（支持多語言名稱）
+
+        Args:
+            display_name: 代理顯示名稱（如 "經寶物料管理代理"、"mm-agent"）
+            tenant_id: 租戶 ID（可選，None 表示系統級）
+
+        Returns:
+            代理配置，如果不存在返回 None
+        """
+        if self._client.db is None or self._client.db.aql is None:
+            raise RuntimeError("AQL is not available")
+
+        # 先嘗試作為 agent_id 查詢
+        agent_config = self.get_agent_config(agent_id=display_name, tenant_id=tenant_id)
+        if agent_config:
+            return agent_config
+
+        # 嘗試通過顯示名稱查詢（支持多語言）
         aql = """
         FOR doc IN agent_display_configs
         FILTER doc.config_type == @config_type
         AND doc.tenant_id == @tenant_id
-        AND doc.agent_config.id == @agent_id
-        AND (@include_inactive OR doc.is_active == true)
+        AND doc.is_active == true
+        AND (
+            doc.agent_config.id == @search_name
+            OR doc._key == @search_name
+            OR doc.agent_config.name.zh_TW == @search_name
+            OR doc.agent_config.name.zh_CN == @search_name
+            OR doc.agent_config.name.en == @search_name
+        )
         LIMIT 1
         RETURN doc
         """
         bind_vars = {
             "config_type": "agent",
             "tenant_id": tenant_id,
-            "agent_id": agent_id,
-            "include_inactive": True,
+            "search_name": display_name,
         }
 
         try:
@@ -763,8 +854,8 @@ class AgentDisplayConfigStoreService:
             return None
         except Exception as exc:
             self._logger.error(
-                "get_agent_config_failed",
-                agent_id=agent_id,
+                "get_agent_config_by_name_failed",
+                display_name=display_name,
                 tenant_id=tenant_id,
                 error=str(exc),
                 exc_info=True,

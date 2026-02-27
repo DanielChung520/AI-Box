@@ -206,6 +206,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   const [showColorMenu, setShowColorMenu] = useState(false);
   const [colorMenuPosition, setColorMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const colorMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const colorButtonRef = useRef<HTMLButtonElement>(null);
 
   // 修改時間：2026-01-06 - 添加響應式顯示限制相關狀態
   const contentAreaRef = useRef<HTMLDivElement>(null);
@@ -619,7 +620,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({
-      x: e.clientX,
+      x: e.clientX + 120,
       y: e.clientY,
       task,
     });
@@ -1608,7 +1609,6 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
           <button
             className="w-full flex items-center justify-between mb-2 p-2 rounded-lg hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"
             onClick={() => {
-              toggleSection('trash');
               setShowTrash(!showTrash);
               setActiveSection('tasks');
             }}
@@ -1790,44 +1790,30 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
               <span>{contextMenu.task.is_agent_task ? '取消 Agent 任務標記' : '標記為 Agent 任務'}</span>
             </button>
           )}
-          {/* 修改時間：2025-12-09 - 添加標識顏色選項，支持懸停顯示顏色選擇子菜單 */}
-          <div
-            className="relative"
-            onMouseEnter={() => {
-              // 清除任何待處理的關閉計時器
-              if (colorMenuTimeoutRef.current) {
-                clearTimeout(colorMenuTimeoutRef.current);
-                colorMenuTimeoutRef.current = null;
-              }
-              if (contextMenu) {
-                // 計算子菜單位置，使其緊貼右鍵菜單右側
-                setColorMenuPosition({ x: contextMenu.x + 200, y: contextMenu.y });
-                setShowColorMenu(true);
-              }
-            }}
-            onMouseLeave={(e) => {
-              // 檢查滑鼠是否移動到子菜單
-              const relatedTarget = e.relatedTarget as HTMLElement;
-              const isMovingToSubMenu = relatedTarget && relatedTarget.closest('.fixed.bg-secondary');
-
-              if (!isMovingToSubMenu) {
-                // 延遲關閉，給用戶時間移動滑鼠到子菜單
-                colorMenuTimeoutRef.current = setTimeout(() => {
-                  setShowColorMenu(false);
-                  colorMenuTimeoutRef.current = null;
-                }, 300); // 300ms 延遲，給用戶更多時間
-              }
-            }}
-          >
+          {/* 修改時間：2025-12-09 - 添加標識顏色選項，點擊顯示顏色選擇子菜單 */}
+          <div className="relative">
             <button
-              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-500/20 hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              ref={colorButtonRef}
+              className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-blue-100 dark:hover:bg-blue-500/20 hover:text-blue-600 dark:hover:text-blue-400 theme-transition flex items-center gap-2 transition-colors duration-200"
+              onClick={(e) => {
+                // 點擊標識顏色按鈕，顯示顏色選擇菜單
+                e.stopPropagation();
+                if (!contextMenu) return;
+
+                // 獲取「標識顏色」按鈕的位置，讓顏色菜單顯示在按鈕右邊
+                if (colorButtonRef.current) {
+                  const rect = colorButtonRef.current.getBoundingClientRect();
+                  setColorMenuPosition({ x: rect.left + rect.width, y: rect.top });
+                }
+                setShowColorMenu(true);
+              }}
             >
               <i className="fa-solid fa-tag w-4"></i>
               <span>標識顏色</span>
               <i className="fa-solid fa-chevron-right ml-auto text-xs"></i>
             </button>
             {/* 顏色選擇子菜單 */}
-            {showColorMenu && colorMenuPosition && contextMenu && (
+            {showColorMenu && colorMenuPosition && (
               <div
                 className="fixed bg-secondary border border-primary rounded-lg shadow-lg p-2 z-[100] min-w-[180px]"
                 style={{

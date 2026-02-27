@@ -428,3 +428,173 @@ class PromptManager:
         if count > 30:
             explanation += f"\n*... 還有 {count - 30} 筆，請縮小查詢範圍*\n"
         return explanation
+
+    async def generate_no_data_response(
+        self,
+        query: str,
+        user_instruction: str = "",
+    ) -> str:
+        """使用 LLM 生成「查無資料」回覆
+
+        Args:
+            query: 查詢條件
+            user_instruction: 用戶原始指令
+
+        Returns:
+            LLM 生成的格式化回覆
+        """
+        system_prompt = """你是一個專業的庫存管理助手。當查詢結果為空時，需要以友善、專業的方式告知用戶，並提供建議。
+
+## 回覆規則
+1. 先確認用戶的查詢條件
+2. 明確告知「查無資料」
+3. 提供可能的原因和建議
+4. 語氣要誠懇、專業
+
+## 範例回覆
+「根據您的查詢條件，系統中沒有找到符合的資料。可能的原因：
+- 該料號尚未建立
+- 查詢條件設定過於嚴格
+- 該倉庫/儲位沒有存貨
+
+建議：請確認料號是否正確，或嘗試擴大查詢範圍。」"""
+
+        user_prompt = f"""用戶查詢：{user_instruction}
+解析後的查詢條件：{query}
+
+請生成查無資料的回覆。"""
+
+        try:
+            response = await self.call_llm(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.3,
+                max_tokens=500,
+            )
+            if response and response.strip():
+                return response.strip()
+        except Exception as e:
+            self._logger.warning(f"LLM 生成查無資料回覆失敗: {e}")
+
+        # 回退
+        return f"抱歉，根據您的查詢條件「{user_instruction}」，系統中沒有找到符合的資料。\n\n請確認：\n- 料號是否正確\n- 倉庫編號是否存在\n- 是否需要擴大查詢範圍"
+
+    async def generate_clarification_response(
+        self,
+        clarification_type: str,
+        message: str,
+        suggestions: list,
+        user_instruction: str = "",
+    ) -> str:
+        """使用 LLM 生成「需要確認」的回覆
+
+        Args:
+            clarification_type: 確認類型（QUERY_SCOPE_TOO_LARGE, INTENT_UNCLEAR 等）
+            message: 系統訊息
+            suggestions: 建議列表
+            user_instruction: 用戶原始指令
+
+        Returns:
+            LLM 生成的格式化回覆
+        """
+        system_prompt = """你是一個專業的庫存管理助手。當需要用戶提供更多資訊時，需要以友善的方式詢問。
+
+## 回覆規則
+1. 清楚說明需要什麼資訊
+2. 提供具體的建議
+3. 語氣要禮貌、明確
+
+## 確認類型說明
+- QUERY_SCOPE_TOO_LARGE: 查詢範圍過大，需要更多篩選條件
+- INTENT_UNCLEAR: 無法理解查詢意圖，需要用戶重新描述"""
+
+        type_hints = {
+            "QUERY_SCOPE_TOO_LARGE": "此查詢範圍過大，請提供更多篩選條件（如：料號、倉庫、特定時間範圍）以縮小查詢範圍。",
+            "INTENT_UNCLEAR": "無法理解您的查詢意圖，請重新描述您的需求。",
+        }
+
+        user_prompt = f"""用戶查詢：{user_instruction}
+系統訊息：{message}
+確認類型：{clarification_type}
+
+類型說明：{type_hints.get(clarification_type, "")}
+
+建議：{", ".join(suggestions) if suggestions else "無"}
+
+請生成需要確認的回覆。"""
+
+        try:
+            response = await self.call_llm(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.3,
+                max_tokens=500,
+            )
+            if response and response.strip():
+                return response.strip()
+        except Exception as e:
+            self._logger.warning(f"LLM 生成確認回覆失敗: {e}")
+
+        # 回退
+        fallback_msgs = {
+            "QUERY_SCOPE_TOO_LARGE": f"⚠️ {message}\n\n請提供更多篩選條件（如料號、倉庫）以縮小查詢範圍。",
+            "INTENT_UNCLEAR": f"⚠️ {message}\n\n請重新描述您的查詢需求。",
+        }
+        return fallback_msgs.get(clarification_type, f"⚠️ {message}")
+
+    async def generate_error_response(
+        self,
+        error_type: str,
+        message: str,
+        original_query: str = "",
+    ) -> str:
+        """使用 LLM 生成「執行錯誤」回覆
+
+        Args:
+            error_type: 錯誤類型
+            message: 錯誤訊息
+            original_query: 原始查詢
+
+        Returns:
+            LLM 生成的格式化回覆
+        """
+        system_prompt = """你是一個專業的庫存管理助手。當發生錯誤時，需要以友善的方式告知用戶，並提供解決建議。
+
+## 回覆規則
+1. 先表達歉意
+2. 說明錯誤原因
+3. 提供解決建議
+4. 語氣要誠懇、積極
+
+## 錯誤類型說明
+- SCHEMA_ERROR: 資料庫結構錯誤
+- CONNECTION_ERROR: 連線錯誤（資料庫服務無法連接）
+- TIMEOUT: 查詢超時
+- INTERNAL_ERROR: 系統內部錯誤"""
+
+        user_prompt = f"""原始查詢：{original_query}
+錯誤類型：{error_type}
+錯誤訊息：{message}
+
+請生成錯誤回覆。"""
+
+        try:
+            response = await self.call_llm(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.3,
+                max_tokens=500,
+            )
+            if response and response.strip():
+                return response.strip()
+        except Exception as e:
+            self._logger.warning(f"LLM 生成錯誤回覆失敗: {e}")
+
+        # 回退
+        fallback_msgs = {
+            "SCHEMA_ERROR": f"❌ 資料庫結構錯誤：{message}",
+            "CONNECTION_ERROR": "❌ 連線錯誤：無法連接到資料庫服務，請稍後再試。",
+            "TIMEOUT": f"❌ 查詢超時：{message}，請嘗試更明確的查詢條件。",
+            "INTERNAL_ERROR": f"❌ 系統錯誤：{message}，請聯繫系統管理員。",
+        }
+        return fallback_msgs.get(error_type, f"❌ 錯誤：{message}")

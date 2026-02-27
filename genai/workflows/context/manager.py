@@ -43,7 +43,10 @@ class ContextManager:
         self._config = config or ContextConfig()
         self._recorder = recorder or ContextRecorder(config=self._config)
         self._history = history or ConversationHistory(namespace=self._config.namespace)
-        self._window = window or ContextWindow(max_tokens=4096)
+        self._window = window or ContextWindow(
+            max_tokens=self._config.max_tokens,
+            encoding_name=self._config.encoding_name,
+        )
         self._persistence = persistence
         if self._persistence is None and self._config.enable_persistence:
             # 注意：需要外部提供 ArangoDB 客戶端
@@ -240,6 +243,41 @@ class ContextManager:
 
         # 轉換為 LLM 格式
         return [{"role": msg.role, "content": msg.content} for msg in truncated_messages]
+
+    def get_context_with_dynamic_window(
+        self,
+        session_id: str,
+        reserved_tokens: int = 0,
+    ) -> List[Dict[str, str]]:
+        """
+        獲取對話上下文（動態截斷，預留空間給 system 和 memory）。
+
+        Args:
+            session_id: 會話 ID
+            reserved_tokens: 預留給 system 和 memory injection 的 token 數
+
+        Returns:
+            消息列表，格式為 [{"role": "...", "content": "..."}]
+        """
+        messages = self.get_messages(session_id)
+        if not messages:
+            return []
+
+        # 計算可用空間
+        available_tokens = self._window.max_tokens - reserved_tokens
+        if available_tokens <= 0:
+            return []
+
+        # 根據剩餘空間截斷
+        truncated_messages = self._window.truncate_for_space(messages, available_tokens)
+
+        # 轉換為 LLM 格式
+        return [{"role": msg.role, "content": msg.content} for msg in truncated_messages]
+
+    @property
+    def max_tokens(self) -> int:
+        """返回窗口的最大 token 數。"""
+        return self._window.max_tokens
 
     def save_to_history(self, session_id: str, message: ContextMessage) -> bool:
         """

@@ -11,7 +11,8 @@
           "WAREHOUSE_NO",
           "LOCATION_NO",
           "UNIT",
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "EXISTING_STOCKS"
         ]
       },
       "output": {
@@ -27,7 +28,8 @@
       },
       "constraints": {
         "require_at_least_one_filter": false
-      }
+      },
+      "mart_table": "mart_inventory_wide"
     },
     "QUERY_WORK_ORDER_COUNT": {
       "description": "工單數量統計",
@@ -44,7 +46,8 @@
       },
       "constraints": {
         "require_at_least_one_filter": false
-      }
+      },
+      "mart_table": "mart_work_order_wide"
     },
     "QUERY_INVENTORY_BY_WAREHOUSE": {
       "description": "倉庫別在庫集計",
@@ -63,7 +66,8 @@
       },
       "constraints": {
         "aggregation": "GROUP BY"
-      }
+      },
+      "mart_table": "mart_inventory_wide"
     },
     "QUERY_WORK_ORDER": {
       "description": "工單照会（使用 SFCA_T 單表，客戶/物料資訊參考寬表 mart_work_order_wide）",
@@ -89,7 +93,8 @@
       "constraints": {
         "require_at_least_one_filter": false,
         "note": "SCRAP_QTY 在 SFAA_T，如需請使用 mart_work_order_wide"
-      }
+      },
+      "mart_table": "mart_work_order_wide"
     },
     "QUERY_MANUFACTURING_PROGRESS": {
       "description": "製造進捗照会",
@@ -118,7 +123,8 @@
       },
       "constraints": {
         "require_at_least_one_filter": false
-      }
+      },
+      "mart_table": "mart_work_order_wide"
     },
     "QUERY_WORKSTATION_OUTPUT": {
       "description": "工作站產出照会",
@@ -140,7 +146,8 @@
       },
       "constraints": {
         "aggregation": "GROUP BY"
-      }
+      },
+      "mart_table": "mart_work_order_wide"
     },
     "QUERY_QUALITY": {
       "description": "品質関連照会",
@@ -202,14 +209,13 @@
           "DOC_NO",
           "DOC_DATE",
           "CUSTOMER_NO",
-          "SALES_PERSON",
-          "SALES_DEPT",
           "STATUS"
         ]
       },
       "constraints": {
         "require_at_least_one_filter": false
-      }
+      },
+      "mart_table": "mart_shipping_wide"
     },
     "QUERY_SHIPPING_BY_CUSTOMER": {
       "description": "客戶別出荷集計",
@@ -227,12 +233,13 @@
         ],
         "dimensions": [
           "CUSTOMER_NO",
-          "SALES_PERSON"
+          "STATUS"
         ]
       },
       "constraints": {
         "aggregation": "GROUP BY"
-      }
+      },
+      "mart_table": "mart_shipping_wide"
     },
     "QUERY_SHIPPING_DETAILS": {
       "description": "出荷明细照会",
@@ -251,12 +258,12 @@
         ],
         "dimensions": [
           "DOC_NO",
-          "SEQ",
-          "ITEM_NO",
-          "SO_ORDER",
-          "SO_LINE"
+          "DOC_DATE",
+          "CUSTOMER_NO",
+          "STATUS"
         ]
-      }
+      },
+      "mart_table": "mart_shipping_wide"
     },
     "QUERY_PRICE_APPROVAL": {
       "description": "售價審核照会",
@@ -324,7 +331,28 @@
           "DOC_NO",
           "VALID_DATE"
         ]
-      }
+      },
+      "mart_table": "mart_shipping_wide"
+    },
+    "QUERY_PRICE": {
+      "description": "售價查詢",
+      "input": {
+        "filters": [
+          "ITEM_NO",
+          "STATUS"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "UNIT_PRICE"
+        ],
+        "dimensions": [
+          "ITEM_NO",
+          "DOC_NO",
+          "STATUS"
+        ]
+      },
+      "mart_table": "mart_shipping_wide"
     }
   }
 }

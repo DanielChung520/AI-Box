@@ -1,9 +1,13 @@
 # 代碼功能說明: 語義分類場景庫
 # 創建日期: 2026-01-30
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-30
+# 最後修改日期: 2026-02-19
 
-"""語義分類場景庫 - 用於快速判斷查詢類型和處置方式"""
+"""語義分類場景庫 - 用於快速判斷查詢類型和處置方式
+
+⚠️  DEPRECATED - 已棄用  ⚠️
+此模組不再用於 JP 查詢，請使用 schema_driven_query 模組
+"""
 
 SEMANTIC_SCENARIOS = [
     {
@@ -11,8 +15,8 @@ SEMANTIC_SCENARIOS = [
         "natural_language": "查詢料號為 10-0001 的庫存記錄。",
         "query_type": "簡單查詢",
         "handling": "執行",
-        "sql_structure": "SELECT * FROM img_file WHERE img01 = '...'",
-        "table": "img_file",
+        "sql_structure": "SELECT * FROM mart_inventory_wide WHERE img01 = '...'",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-002",
@@ -20,7 +24,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "簡單查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... AND ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-003",
@@ -28,7 +32,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "簡單查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... OR ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-004",
@@ -36,7 +40,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "簡單查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... IN (...)",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-005",
@@ -44,7 +48,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "聚合查詢",
         "handling": "執行",
         "sql_structure": "SELECT SUM(img10) ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-006",
@@ -52,7 +56,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "聚合查詢",
         "handling": "執行",
         "sql_structure": "SELECT AVG(img10) ... GROUP BY ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-007",
@@ -60,7 +64,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "聚合查詢",
         "handling": "執行",
         "sql_structure": "SELECT MAX(img10) ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-008",
@@ -68,7 +72,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "聚合查詢",
         "handling": "執行",
         "sql_structure": "SELECT MIN(img10) ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-009",
@@ -76,7 +80,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "聚合查詢",
         "handling": "執行",
         "sql_structure": "SELECT COUNT(*) ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-010",
@@ -84,7 +88,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "分組查詢",
         "handling": "執行",
         "sql_structure": "GROUP BY ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-011",
@@ -92,7 +96,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "排序查詢",
         "handling": "執行",
         "sql_structure": "ORDER BY ... ASC",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-012",
@@ -100,7 +104,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "排序查詢",
         "handling": "執行",
         "sql_structure": "ORDER BY ... DESC",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-013",
@@ -108,7 +112,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "限制查詢",
         "handling": "執行",
         "sql_structure": "LIMIT 10",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-014",
@@ -116,7 +120,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "範圍查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... >= ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-015",
@@ -124,7 +128,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "範圍查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... <= ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-016",
@@ -132,7 +136,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "範圍查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... BETWEEN ... AND ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-017",
@@ -140,7 +144,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "日期查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... EXTRACT(MONTH ...)",
-        "table": "tlf_file",
+        "table": "mart_work_order_wide",
     },
     {
         "id": "T2S-018",
@@ -148,7 +152,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "限制查詢",
         "handling": "執行",
         "sql_structure": "LIMIT 1000",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-019",
@@ -156,7 +160,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "複雜查詢",
         "handling": "執行",
         "sql_structure": "WHERE + GROUP BY + ORDER BY + LIMIT",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-020",
@@ -164,7 +168,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "複雜查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... AND ... AND ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-021",
@@ -172,7 +176,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "Top N 查詢",
         "handling": "執行",
         "sql_structure": "GROUP BY + ORDER BY DESC + LIMIT",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-022",
@@ -180,7 +184,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "Bottom N 查詢",
         "handling": "執行",
         "sql_structure": "GROUP BY + ORDER BY ASC + LIMIT",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-023",
@@ -188,7 +192,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "模糊查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... LIKE '10-%'",
-        "table": "ima_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-024",
@@ -196,15 +200,15 @@ SEMANTIC_SCENARIOS = [
         "query_type": "簡單查詢",
         "handling": "執行",
         "sql_structure": "WHERE img01 = '...'",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-025",
         "natural_language": "查詢有庫存記錄的不重複料號列表。",
         "query_type": "DISTINCT 查詢",
         "handling": "執行",
-        "sql_structure": "SELECT DISTINCT img01 FROM img_file",
-        "table": "img_file",
+        "sql_structure": "SELECT DISTINCT img01 FROM mart_inventory_wide",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-026",
@@ -212,7 +216,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "聚合+分組查詢",
         "handling": "執行",
         "sql_structure": "GROUP BY ... HAVING SUM(...) > ...",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-027",
@@ -220,7 +224,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "多表查詢",
         "handling": "執行",
         "sql_structure": "JOIN + GROUP BY + SUM",
-        "table": "ima_file + img_file",
+        "table": "mart_inventory_wide + mart_inventory_wide",
     },
     {
         "id": "T2S-028",
@@ -228,7 +232,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "日期查詢",
         "handling": "執行",
         "sql_structure": "WHERE tlf06 >= '2026-01-01' AND tlf06 < '2026-02-01'",
-        "table": "tlf_file",
+        "table": "mart_work_order_wide",
     },
     {
         "id": "T2S-029",
@@ -236,7 +240,7 @@ SEMANTIC_SCENARIOS = [
         "query_type": "NULL 查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... IS NULL",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-030",
@@ -244,11 +248,11 @@ SEMANTIC_SCENARIOS = [
         "query_type": "複雜查詢",
         "handling": "執行",
         "sql_structure": "WHERE ... BETWEEN ... AND ... IN (...)",
-        "table": "img_file",
+        "table": "mart_inventory_wide",
     },
     {
         "id": "T2S-038",
-        "natural_language": "'; DROP TABLE img_file;--",
+        "natural_language": "'; DROP TABLE mart_inventory_wide;--",
         "query_type": "惡意輸入",
         "handling": "回絕",
         "reason": "未被授權做資料查詢以外的變更操作",
@@ -260,40 +264,40 @@ SEMANTIC_SCENARIOS = [
         "natural_language": "10-0003 上個月的採購交易",
         "query_type": "採購交易查詢",
         "handling": "執行",
-        "sql_structure": "SELECT * FROM tlf_file WHERE tlf01 = '...' AND tlf19 = '101' AND tlf06 LIKE '上個月'",
-        "table": "tlf_file",
+        "sql_structure": "SELECT * FROM mart_work_order_wide WHERE tlf01 = '...' AND tlf19 = '101' AND tlf06 LIKE '上個月'",
+        "table": "mart_work_order_wide",
     },
     {
         "id": "PUR-002",
         "natural_language": "查詢所有採購進貨交易",
         "query_type": "採購交易查詢",
         "handling": "執行",
-        "sql_structure": "SELECT * FROM tlf_file WHERE tlf19 = '101'",
-        "table": "tlf_file",
+        "sql_structure": "SELECT * FROM mart_work_order_wide WHERE tlf19 = '101'",
+        "table": "mart_work_order_wide",
     },
     {
         "id": "PUR-003",
         "natural_language": "2024 年有多少筆採購進貨",
         "query_type": "採購交易查詢",
         "handling": "執行",
-        "sql_structure": "SELECT COUNT(*) FROM tlf_file WHERE tlf19 = '101' AND tlf06 LIKE '2024%'",
-        "table": "tlf_file",
+        "sql_structure": "SELECT COUNT(*) FROM mart_work_order_wide WHERE tlf19 = '101' AND tlf06 LIKE '2024%'",
+        "table": "mart_work_order_wide",
     },
     {
         "id": "PUR-004",
         "natural_language": "查詢料號 10-0001 的採購記錄",
         "query_type": "採購交易查詢",
         "handling": "執行",
-        "sql_structure": "SELECT * FROM tlf_file WHERE tlf01 = '...' AND tlf19 = '101'",
-        "table": "tlf_file",
+        "sql_structure": "SELECT * FROM mart_work_order_wide WHERE tlf01 = '...' AND tlf19 = '101'",
+        "table": "mart_work_order_wide",
     },
     {
         "id": "PUR-005",
         "natural_language": "查詢某供應商的採購交易",
         "query_type": "採購交易查詢",
         "handling": "執行",
-        "sql_structure": "SELECT * FROM tlf_file WHERE tlf19 = '101' AND tlf14 = '...'",
-        "table": "tlf_file",
+        "sql_structure": "SELECT * FROM mart_work_order_wide WHERE tlf19 = '101' AND tlf14 = '...'",
+        "table": "mart_work_order_wide",
     },
     # === 訂單相關場景 ===
     {

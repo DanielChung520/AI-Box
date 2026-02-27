@@ -483,7 +483,7 @@
         "SFCB_T"
       ],
       "description": "統計各工作站的報廢數量",
-      "natural_language": "統計所有工單在各工作站的報廢數量總和，按工作站降序排列"
+      "natural_language": "統計8802倉庫工作站1901的報廢數量"
     },
     {
       "id": "JP_CX_006",
@@ -494,7 +494,7 @@
         "XMDH_T"
       ],
       "description": "出貨通知頭檔+明細檔",
-      "natural_language": "查詢出貨單CNJ-P62-201410140001的出貨明細，包括日期、狀態、料號、數量、單價"
+      "natural_language": "查詢8802倉庫2025年1月的出貨記錄"
     },
     {
       "id": "JP_CX_007",
@@ -505,7 +505,7 @@
         "XMDH_T"
       ],
       "description": "按客戶統計出貨數量和金額",
-      "natural_language": "按客戶統計出貨總數量和出貨金額總和"
+      "natural_language": "統計8802倉庫2025年1月的出貨數量和金額"
     },
     {
       "id": "JP_CX_008",
@@ -516,7 +516,7 @@
         "XMDH_T"
       ],
       "description": "按業務部門統計出貨",
-      "natural_language": "按業務部門MKTS3統計出貨數量、出貨金額和出貨單數量"
+      "natural_language": "統計8802倉庫2025年1月部門MKTS3的出貨數量"
     },
     {
       "id": "JP_CX_009",
@@ -527,7 +527,7 @@
         "XMDH_T"
       ],
       "description": "按銷售類別統計出貨",
-      "natural_language": "按銷售類別S01統計出貨數量、出貨金額和出貨單數量"
+      "natural_language": "統計8802倉庫2025年1月類別S01的出貨數量"
     },
     {
       "id": "JP_CX_010",
@@ -538,7 +538,7 @@
         "XMDH_T"
       ],
       "description": "查詢待出貨的訂單",
-      "natural_language": "查詢狀態為N（未出貨）的出貨通知列表及其明細"
+      "natural_language": "查詢8802倉庫2025年1月狀態為N（未出貨）的出貨通知"
     },
     {
       "id": "JP_CX_011",
@@ -549,7 +549,7 @@
         "XMDU_T"
       ],
       "description": "售價審核頭檔+明細檔",
-      "natural_language": "查詢售價審核單CNJ-HJD-151100000002的審核明細，包括日期、狀態、料號、單價"
+      "natural_language": "查詢料號8021107403900001的單價"
     },
     {
       "id": "JP_CX_012",
@@ -560,7 +560,7 @@
         "XMDU_T"
       ],
       "description": "按客戶統計售價審核",
-      "natural_language": "按客戶統計售價審核單數量和平均單價"
+      "natural_language": "查詢料號8021107403900001的有效售價"
     },
     {
       "id": "JP_CX_013",
@@ -571,7 +571,7 @@
         "XMDU_T"
       ],
       "description": "按申請部門統計售價審核",
-      "natural_language": "按申請部門統計售價審核單數量和審核金額"
+      "natural_language": "查詢8802倉庫料號8021107403900001的售價"
     },
     {
       "id": "JP_CX_014",

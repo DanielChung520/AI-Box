@@ -279,15 +279,21 @@ class MasterDataSync:
 
     def _sync_item_vectors(self, client) -> Dict[str, int]:
         """同步料號向量到 Qdrant"""
+        from database.qdrant.mm_master_rag_client import ItemEmbedding
+
         data = self.load_json("item_master.json")
 
         embeddings = []
         for item_data in data.get("items", []):
+            item_no = item_data.get("item_no", "")
+            item_name = item_data.get("item_name", "")
+            spec = item_data.get("spec", "")
+
             item = ItemEmbedding(
-                item_no=item_data.get("item_no", ""),
-                item_name=item_data.get("item_name"),
-                spec=item_data.get("spec"),
-                searchable_text=f"{item_data.get('item_name', '')} {item_data.get('spec', '')} {item_data.get('item_no', '')}",
+                item_no=item_no,
+                item_name=item_name if item_name else None,
+                spec=spec if spec else None,
+                searchable_text=f"{item_name} {spec} {item_no}",
             )
             embeddings.append(item)
 
@@ -306,6 +312,8 @@ class MasterDataSync:
 
     def _sync_warehouse_vectors(self, client) -> Dict[str, int]:
         """同步倉庫向量到 Qdrant"""
+        from database.qdrant.mm_master_rag_client import WarehouseEmbedding
+
         data = self.load_json("warehouse_master.json")
 
         embeddings = []
@@ -333,6 +341,8 @@ class MasterDataSync:
 
     def _sync_workstation_vectors(self, client) -> Dict[str, int]:
         """同步工作站向量到 Qdrant"""
+        from database.qdrant.mm_master_rag_client import WorkstationEmbedding
+
         data = self.load_json("workstation_master.json")
 
         embeddings = []

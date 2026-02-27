@@ -1,0 +1,2391 @@
+[
+  {
+    "id": "SINGLE-001",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH02 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH02';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-003",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 ZPLJ010PX_4 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'ZPLJ010PX_4';"
+  },
+  {
+    "id": "SINGLE-004",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-005",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_SCRAP';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-007",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-008",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-009",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-010",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 QC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'QC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-011",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 ZPLJ006PX_3 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'ZPLJ006PX_3';"
+  },
+  {
+    "id": "SINGLE-012",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-013",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-015",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700010 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700010';"
+  },
+  {
+    "id": "SINGLE-016",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-017",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-018",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 ZPLJ049PX_2 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'ZPLJ049PX_2';"
+  },
+  {
+    "id": "SINGLE-019",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-020",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700041 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700041';"
+  },
+  {
+    "id": "SINGLE-021",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-023",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-024",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-025",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH02 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH02';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-026",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 AL-SHEET-2MM 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'AL-SHEET-2MM';"
+  },
+  {
+    "id": "SINGLE-027",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700042 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700042';"
+  },
+  {
+    "id": "SINGLE-028",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-030",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700040 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700040';"
+  },
+  {
+    "id": "SINGLE-031",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-032",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 ZPLJ030PX_2 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'ZPLJ030PX_2';"
+  },
+  {
+    "id": "SINGLE-033",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC02 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC02';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-034",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH01 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH01';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-036",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 ZPLJ045PX_1 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'ZPLJ045PX_1';"
+  },
+  {
+    "id": "SINGLE-037",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-038",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-039",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700020 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700020';"
+  },
+  {
+    "id": "SINGLE-040",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH01 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH01';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-041",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH02 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH02';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-042",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-043",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH02 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH02';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-044",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-045",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-046",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_SCRAP';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-047",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-049",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC03 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC03';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-050",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700015 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700015';"
+  },
+  {
+    "id": "SINGLE-051",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-052",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_SCRAP';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-053",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700024 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700024';"
+  },
+  {
+    "id": "SINGLE-054",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 QC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'QC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-055",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_SCRAP';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-056",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 ZPLJ024PX_4 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'ZPLJ024PX_4';"
+  },
+  {
+    "id": "SINGLE-057",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-058",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-059",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-060",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-061",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 ZPLJ038PX_3 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'ZPLJ038PX_3';"
+  },
+  {
+    "id": "SINGLE-062",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700046 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700046';"
+  },
+  {
+    "id": "SINGLE-063",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700011 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700011';"
+  },
+  {
+    "id": "SINGLE-064",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 QC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'QC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-065",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_SCRAP';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-066",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_BONDED 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_BONDED';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-067",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC03 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC03';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-068",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700029 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700029';"
+  },
+  {
+    "id": "SINGLE-069",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-070",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-071",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-072",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-073",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC02 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC02';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-074",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 82105A700030 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = '82105A700030';"
+  },
+  {
+    "id": "SINGLE-075",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH01 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH01';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-078",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC02 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC02';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-079",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-080",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_BONDED 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_BONDED';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-081",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-082",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 ZPLJ005PX_4 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'ZPLJ005PX_4';"
+  },
+  {
+    "id": "SINGLE-084",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_BONDED 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_BONDED';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-085",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-088",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 2024 年之後建立的銷售訂單。",
+    "expected_sql": "SELECT doc_no, customer_no, SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= '2024-01-01' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "SINGLE-089",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC01 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-090",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-091",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "SINGLE-093",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢料號 ZPLJ044PX_5 的基本資料。",
+    "expected_sql": "SELECT * FROM item_master WHERE item_no = 'ZPLJ044PX_5';"
+  },
+  {
+    "id": "SINGLE-094",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_SCRAP 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_SCRAP';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-095",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢工作站 WC02 的基本產能設定。",
+    "expected_sql": "SELECT workstation_name, line FROM workstation_master WHERE workstation_id = 'WC02';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "SINGLE-096",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH_BONDED 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH_BONDED';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-097",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH01 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH01';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-098",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢 WH02 倉庫的所有庫存明細。",
+    "expected_sql": "SELECT item_no, existing_stocks, location_no FROM mart_inventory_wide WHERE warehouse_no = 'WH02';",
+    "warning": "倉庫代號需確認"
+  },
+  {
+    "id": "SINGLE-099",
+    "category": "SINGLE",
+    "category_name": "單表查詢 (Single Table Query)",
+    "question": "查詢所有安全庫存大於 100 的物料。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "GROUP-001",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-002",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-004",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-005",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-006",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-008",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-009",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-010",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-011",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-012",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-014",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-015",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-018",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-019",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-020",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-021",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-022",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-023",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-024",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-025",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-026",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-027",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-030",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-031",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-032",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-033",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-034",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-035",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-037",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-038",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-040",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-041",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-042",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-043",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-044",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-046",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-047",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-049",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-050",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-051",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-052",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-054",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-055",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-056",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-057",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-058",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-059",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-060",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-061",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-064",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-065",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-066",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-067",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-068",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-070",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-071",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-072",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-073",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-074",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-075",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-079",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-080",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-083",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-084",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-085",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-087",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-088",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-089",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-090",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-091",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-092",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-093",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-094",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-095",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個倉庫的物料總庫存數量。",
+    "expected_sql": "SELECT warehouse_no, SUM(existing_stocks) as total_qty FROM mart_inventory_wide GROUP BY warehouse_no;"
+  },
+  {
+    "id": "GROUP-096",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每個工作站目前進行中的工單數量。",
+    "expected_sql": "SELECT workstation_id, COUNT(*) as mo_count FROM mart_work_order_wide WHERE status = 'In_Process' GROUP BY workstation_id;"
+  },
+  {
+    "id": "GROUP-098",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "按月份統計今年的銷售訂單數量。",
+    "expected_sql": "SELECT MONTH(doc_date) as mth, COUNT(*) as so_count FROM mart_shipping_wide WHERE YEAR(doc_date) = 2024 GROUP BY MONTH(doc_date);"
+  },
+  {
+    "id": "GROUP-099",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "GROUP-100",
+    "category": "GROUP",
+    "category_name": "分組查詢 (Grouping)",
+    "question": "統計每種物料類型的品項數量。",
+    "expected_sql": "SELECT item_no, COUNT(*) as item_count FROM item_master GROUP BY item_no;"
+  },
+  {
+    "id": "AGG-002",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-004",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-005",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-006",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-007",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-008",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-010",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-014",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-015",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-016",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-017",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-018",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-021",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-022",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-023",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-024",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-025",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-026",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-027",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-028",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-031",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-032",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-033",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-034",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-035",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-036",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-037",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-038",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-039",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-043",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-044",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-045",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-048",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-050",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-051",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-053",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-055",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-056",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-057",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-058",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-059",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-060",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-061",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-062",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-064",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-065",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-067",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-068",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-069",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-070",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-071",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-072",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-073",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-074",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-075",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "AGG-078",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-079",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-080",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-081",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-082",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-083",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-084",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-085",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-086",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-087",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-089",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "查詢目前單價最高的物料價格。",
+    "expected_sql": "SELECT item_no, item_name FROM item_master ORDER BY unit_price DESC LIMIT 1"
+  },
+  {
+    "id": "AGG-092",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-094",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-095",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-097",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "統計本月銷售總金額。",
+    "expected_sql": "SELECT SUM(unit_price * actual_qty) as total_amount FROM mart_shipping_wide WHERE doc_date >= DATE_TRUNC('month', CURRENT_DATE)"
+  },
+  {
+    "id": "AGG-099",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠的工單總數。",
+    "expected_sql": "SELECT COUNT(*) FROM mart_work_order_wide;"
+  },
+  {
+    "id": "AGG-100",
+    "category": "AGG",
+    "category_name": "聚合查詢 (Aggregation)",
+    "question": "計算全廠庫存總金額（庫存數量 * 標準成本）。",
+    "expected_sql": "SELECT SUM(i.existing_stocks ) FROM mart_inventory_wide i JOIN item_master m ON i.item_no = m.item_no;"
+  },
+  {
+    "id": "JOIN2-001",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 82105A700009 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = '82105A700009';"
+  },
+  {
+    "id": "JOIN2-002",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 82105A700005 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = '82105A700005';"
+  },
+  {
+    "id": "JOIN2-003",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-005",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-006",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-008",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC02 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC02';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-009",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-012",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ015PX_4 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ015PX_4';"
+  },
+  {
+    "id": "JOIN2-013",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-015",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC01 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-016",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 82105A700006 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = '82105A700006';"
+  },
+  {
+    "id": "JOIN2-017",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 82105A700013 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = '82105A700013';"
+  },
+  {
+    "id": "JOIN2-018",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 82105A700022 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = '82105A700022';"
+  },
+  {
+    "id": "JOIN2-019",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ024PX_4 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ024PX_4';"
+  },
+  {
+    "id": "JOIN2-020",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-021",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC04 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC04';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-022",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-025",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ041PX_4 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ041PX_4';"
+  },
+  {
+    "id": "JOIN2-027",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 SCREW-M3-10 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'SCREW-M3-10';"
+  },
+  {
+    "id": "JOIN2-028",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-029",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC03 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC03';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-032",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-033",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-035",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC04 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC04';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-036",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC03 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC03';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-037",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-038",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-039",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-040",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-041",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ015PX_4 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ015PX_4';"
+  },
+  {
+    "id": "JOIN2-042",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-043",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-044",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-045",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-046",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-047",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ024PX_4 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ024PX_4';"
+  },
+  {
+    "id": "JOIN2-048",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC04 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC04';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-049",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-050",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-051",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-052",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-053",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ030PX_2 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ030PX_2';"
+  },
+  {
+    "id": "JOIN2-054",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-055",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC04 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC04';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-056",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-057",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-058",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-062",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC02 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC02';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-063",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-064",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 82105A700035 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = '82105A700035';"
+  },
+  {
+    "id": "JOIN2-065",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-067",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ004PX_3 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ004PX_3';"
+  },
+  {
+    "id": "JOIN2-068",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-069",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-071",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 QC01 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'QC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-074",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-078",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC03 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC03';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-079",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 QC01 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'QC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-080",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-081",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "列出庫存低於安全庫存的物料與現有庫存量。",
+    "expected_sql": "SELECT m.item_no, m.item_name, i.existing_stocks \nFROM item_master m \nJOIN mart_inventory_wide i ON m.item_no = i.item_no \nWHERE i.existing_stocks < 100"
+  },
+  {
+    "id": "JOIN2-082",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 82105A700041 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = '82105A700041';"
+  },
+  {
+    "id": "JOIN2-083",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 PCB-MAIN-V2 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'PCB-MAIN-V2';"
+  },
+  {
+    "id": "JOIN2-085",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 82105A700014 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = '82105A700014';"
+  },
+  {
+    "id": "JOIN2-086",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 PCB-MAIN-V2 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'PCB-MAIN-V2';"
+  },
+  {
+    "id": "JOIN2-087",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ025PX_2 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ025PX_2';"
+  },
+  {
+    "id": "JOIN2-090",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC03 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC03';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-092",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ039PX_4 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ039PX_4';"
+  },
+  {
+    "id": "JOIN2-093",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-094",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC02 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC02';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-095",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 ZPLJ027PX_2 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = 'ZPLJ027PX_2';"
+  },
+  {
+    "id": "JOIN2-097",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢料號 82105A700040 的庫存數量及品名。",
+    "expected_sql": "SELECT m.item_name, i.existing_stocks FROM item_master m JOIN mart_inventory_wide i ON m.item_no = i.item_no WHERE m.item_no = '82105A700040';"
+  },
+  {
+    "id": "JOIN2-098",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 QC01 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'QC01';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "JOIN2-099",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢客戶 'Toyota' 的所有訂單金額。",
+    "expected_sql": "SELECT c.customer_name, so.SUM(unit_price * actual_qty) as total_amount FROM customer_master c JOIN mart_shipping_wide so ON c.customer_no = so.customer_no WHERE c.customer_name = 'Toyota_Thailand' GROUP BY doc_no, customer_no"
+  },
+  {
+    "id": "JOIN2-100",
+    "category": "JOIN2",
+    "category_name": "雙表連接 (2-Table Join)",
+    "question": "查詢工作站 WC02 正在生產的工單及產品名稱。",
+    "expected_sql": "SELECT mo.mo_doc_no, m.item_name FROM mart_work_order_wide mo JOIN item_master m ON mo.item_no = m.item_no WHERE mo.workstation_id = 'WC02';",
+    "warning": "工作站代號需確認"
+  },
+  {
+    "id": "COMPLEX-001",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-009",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-010",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-019",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-028",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-034",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-042",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-047",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-048",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-064",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-065",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-066",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-069",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-075",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-079",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-082",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-084",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-087",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-088",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-089",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-092",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-094",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-097",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  },
+  {
+    "id": "COMPLEX-098",
+    "category": "COMPLEX",
+    "category_name": "複雜查詢 (Complex: Multi-Join/Subquery)",
+    "question": "查詢單價高於平均單價的所有物料。",
+    "expected_sql": "SELECT item_no, item_name, unit_price FROM item_master WHERE unit_price > (SELECT AVG(unit_price) FROM item_master) GROUP BY item_no, item_name, unit_price"
+  }
+]

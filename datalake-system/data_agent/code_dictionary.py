@@ -1,30 +1,42 @@
 # 代碼功能說明: 代碼字典服務
 # 創建日期: 2026-01-31
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-31
+# 最後修改日期: 2026-02-19
 # 用途: 提供程式代碼、倉庫代碼、料號的精確對應
 
 """
 代碼字典服務
 
+⚠️  DEPRECATED - 已棄用  ⚠️
+此模組不再用於 JP 查詢，請使用 schema_driven_query 模組
+
 功能：
 1. 倉庫代碼對照（W01 → 原料倉）
 2. 料號格式驗證（XX-XXXX）
 3. 程式代碼對照（AXMT520 → 出貨訂單查詢）
-4. Table Alias 對照（inag_t → tlf_file）
+4. Table Alias 對照（使用 mart_inventory_wide）
 
 使用方式：
     from data_agent.code_dictionary import CodeDictionary
 
     cd = CodeDictionary()
     result = cd.lookup("W01")
-    # {"code": "W01", "type": "warehouse", "name": "原料倉", "table": "img_file", ...}
+    # {"code": "W01", "type": "warehouse", "name": "原料倉", "table": "mart_inventory_wide", ...}
 """
 
 import json
+import os
 import re
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+if not os.getenv("FORCE_USE_OLD_CODE_DICT"):
+    warnings.warn(
+        "⚠️ DEPRECATED: code_dictionary.py 已棄用，請使用 schema_driven_query 模組",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
 
 class CodeDictionary:
@@ -76,7 +88,7 @@ class CodeDictionary:
                 "type": "warehouse",
                 "name": "原料倉",
                 "description": "原料倉庫",
-                "table": "img_file",
+                "table": "mart_inventory_wide",
                 "field": "img02",
             },
             "W02": {
@@ -84,7 +96,7 @@ class CodeDictionary:
                 "type": "warehouse",
                 "name": "半成品倉",
                 "description": "半成品倉庫",
-                "table": "img_file",
+                "table": "mart_inventory_wide",
                 "field": "img02",
             },
             "W03": {
@@ -92,7 +104,7 @@ class CodeDictionary:
                 "type": "warehouse",
                 "name": "成品倉",
                 "description": "成品倉庫",
-                "table": "img_file",
+                "table": "mart_inventory_wide",
                 "field": "img02",
             },
             "W04": {
@@ -100,7 +112,7 @@ class CodeDictionary:
                 "type": "warehouse",
                 "name": "不良品倉",
                 "description": "不良品倉庫",
-                "table": "img_file",
+                "table": "mart_inventory_wide",
                 "field": "img02",
             },
             "W05": {
@@ -108,7 +120,7 @@ class CodeDictionary:
                 "type": "warehouse",
                 "name": "樣品倉",
                 "description": "樣品倉庫",
-                "table": "img_file",
+                "table": "mart_inventory_wide",
                 "field": "img02",
             },
         }
@@ -118,14 +130,14 @@ class CodeDictionary:
                 "pattern": r"^W0[1-5]$",
                 "type": "warehouse",
                 "description": "倉庫代碼（W01-W05）",
-                "default_table": "img_file",
+                "default_table": "mart_inventory_wide",
                 "default_field": "img02",
             },
             {
                 "pattern": r"^\d{2}-\d{4}$",
                 "type": "item_code",
                 "description": "料號格式（XX-XXXX）",
-                "default_table": "ima_file",
+                "default_table": "mart_inventory_wide",
                 "default_field": "ima01",
             },
             {

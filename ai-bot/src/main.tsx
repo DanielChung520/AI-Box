@@ -87,12 +87,12 @@ performanceMonitor.markReactAppStart();
 
 // 初始化主题（在React应用启动前设置，避免闪烁）
 (function initTheme() {
-  const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+  const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'blue-light' | null;
   // 修改時間：2025-12-12 - 將登錄後的默認主題設置為深色
   const theme = savedTheme || 'dark';
 
   // 设置主题类
-  document.documentElement.classList.remove('light', 'dark');
+  document.documentElement.classList.remove('light', 'dark', 'blue-light');
   document.documentElement.classList.add(theme);
 
   // Tailwind darkMode: "class" 需要 'dark' 类

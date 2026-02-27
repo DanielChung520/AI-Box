@@ -17,6 +17,7 @@ class QueryIntent(str, Enum):
     QUERY_STOCK_HISTORY = "QUERY_STOCK_HISTORY"  # 庫存歷史查詢
     QUERY_PURCHASE = "QUERY_PURCHASE"  # 採購交易查詢
     QUERY_SALES = "QUERY_SALES"  # 銷售交易查詢
+    QUERY_WORKSTATION = "QUERY_WORKSTATION"  # 工作站查詢（新增）
     ANALYZE_SHORTAGE = "ANALYZE_SHORTAGE"  # 缺料分析
     GENERATE_ORDER = "GENERATE_ORDER"  # 生成訂單
     CLARIFICATION = "CLARIFICATION"  # 需要澄清
@@ -57,6 +58,23 @@ class IntentClassifier:
 
     # 訂單關鍵詞
     ORDER_KEYWORDS = ["訂單", "採購單", "請購", "下單"]
+
+    # 工作站關鍵詞（新增）
+    WORKSTATION_KEYWORDS = [
+        "工作站",
+        "工站",
+        "工單",
+        "WC",
+        "WC77",
+        "WC01",
+        "生產",
+        "產出",
+        "工站",
+        "工位",
+    ]
+
+    # 生產數量關鍵詞
+    PRODUCTION_KEYWORDS = ["生產", "產出", "產量", "生產了多少", "產出了多少", "產出多少"]
 
     # 複雜任務關鍵詞
     COMPLEX_KEYWORDS = ["分析", "比較", "排名", "ABC", "分類", "趨勢", "預測", "統計", "報告"]
@@ -116,6 +134,11 @@ class IntentClassifier:
     def _判断意图(self, text: str) -> QueryIntent:
         """判斷查詢意圖"""
         # 按優先級判斷
+
+        # 工作站查詢優先（新增）
+        if any(kw in text for kw in self.WORKSTATION_KEYWORDS):
+            return QueryIntent.QUERY_WORKSTATION
+
         if any(kw in text for kw in self.ORDER_KEYWORDS):
             return QueryIntent.GENERATE_ORDER
 
@@ -137,6 +160,19 @@ class IntentClassifier:
     def _检查需要澄清(self, intent: QueryIntent, text: str, context: Optional[dict]) -> tuple:
         """檢查是否需要澄清"""
         missing = []
+
+        # 工作站查詢可以只提供工作站，不一定要料號（新增）
+        if intent == QueryIntent.QUERY_WORKSTATION:
+            has_workstation = bool(re.search(r"WC[W0-9-]+", text)) or any(
+                kw in text for kw in self.WORKSTATION_KEYWORDS
+            )
+            if not has_workstation:
+                missing.append("工作站編號")
+            else:
+                # 有工作站，不需要澄清
+                if context:
+                    return False, []
+                return False, missing
 
         # 檢查關鍵欄位
         if intent in [QueryIntent.QUERY_PURCHASE, QueryIntent.QUERY_SALES]:

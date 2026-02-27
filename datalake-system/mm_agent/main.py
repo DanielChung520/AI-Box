@@ -44,16 +44,15 @@ from agents.services.protocol.base import AgentServiceRequest
 
 # 配置日誌
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # 全局字典：存儲待執行的工作流（從 WebSocket 生成計劃後，用戶確認時使用）
 PENDING_WORKFLOWS: dict = {}
 
-# 檢查是否啟用語義轉譯
-USE_SEMANTIC_TRANSLATOR = os.getenv("MM_AGENT_USE_SEMANTIC_TRANSLATOR", "false").lower() == "true"
+# 檢查是否啟用語義轉譯（預設啟用）
+USE_SEMANTIC_TRANSLATOR = os.getenv("MM_AGENT_USE_SEMANTIC_TRANSLATOR", "true").lower() == "true"
 logger.info(f"語義轉譯 Agent: {'啟用' if USE_SEMANTIC_TRANSLATOR else '禁用'}")
 
 # 初始化Agent
@@ -452,7 +451,6 @@ async def auto_execute_workflow(request: ChatRequest) -> dict:
         return {"success": False, "error": str(e)}
 
 
-
 @app.get("/api/v1/chat/stream")
 async def chat_stream_get(sid: str, instruction: str):
     """串流對話端點 - 思考過程即時顯示 (GET)
@@ -492,7 +490,7 @@ async def chat_stream_post(request: ChatRequest):
 async def websocket_chat(websocket: WebSocket):
     """WebSocket 串流端點 - 更可靠的實時通信"""
     from mm_agent.websocket_endpoint import websocket_generate_stream
-    
+
     # 允許所有 WebSocket 連接（解決 CORS 問題）
     await websocket.accept()
     await websocket_generate_stream(websocket)
@@ -543,15 +541,20 @@ async def classify_intent(request: ChatRequest) -> dict:
         instruction = request.instruction
         session_id = request.session_id or f"intent-{id(request)}"
 
-        logger.info(f"[Intent] 收到請求: instruction='{instruction[:50]}...', session_id='{session_id}'")
+        logger.info(
+            f"[Intent] 收到請求: instruction='{instruction[:50]}...', session_id='{session_id}'"
+        )
 
         # 檢查工作流狀態
-        all_workflows = list(_react_engine._workflows.keys()) if hasattr(_react_engine, '_workflows') else []
+        all_workflows = (
+            list(_react_engine._workflows.keys()) if hasattr(_react_engine, "_workflows") else []
+        )
         logger.info(f"[Intent] 所有工作流: {all_workflows}")
-        
+
         # 檢查 PENDING_WORKFLOWS（從 SSE/WebSocket 生成的計劃）
         try:
             from mm_agent.main import PENDING_WORKFLOWS
+
             pending_keys = list(PENDING_WORKFLOWS.keys())
             logger.info(f"[Intent] 待執行工作流 (PENDING_WORKFLOWS): {pending_keys}")
         except Exception as e:
@@ -563,13 +566,15 @@ async def classify_intent(request: ChatRequest) -> dict:
             # 首先檢查 PENDING_WORKFLOWS（從 SSE/WebSocket 生成的計劃）
             if session_id in PENDING_WORKFLOWS:
                 pending = PENDING_WORKFLOWS.pop(session_id)
-                logger.info(f"[Intent] 找到待執行工作流，開始執行: {pending.get('instruction', '')[:50]}...")
+                logger.info(
+                    f"[Intent] 找到待執行工作流，開始執行: {pending.get('instruction', '')[:50]}..."
+                )
 
                 # 啟動工作流
                 wf_result = await _react_engine.start_workflow(
                     instruction=pending["instruction"],
                     session_id=session_id,
-                    context={"original_plan": pending.get("plan")}
+                    context={"original_plan": pending.get("plan")},
                 )
 
                 if wf_result.get("success"):
@@ -598,7 +603,9 @@ async def classify_intent(request: ChatRequest) -> dict:
                 completed_steps = state.get("completed_steps", [])
                 total_steps = state.get("total_steps", 0)
 
-                logger.info(f"[Intent] 工作流狀態: current_step={current_step}, total_steps={total_steps}")
+                logger.info(
+                    f"[Intent] 工作流狀態: current_step={current_step}, total_steps={total_steps}"
+                )
 
                 # 如果還有步驟未完成，視為用戶回覆，繼續執行
                 if current_step < total_steps:
@@ -741,11 +748,13 @@ async def classify_intent_stream(request: ChatRequest):
                     # 發送事件通知前端繼續工作流
                     yield {
                         "event": "message",
-                        "data": json.dumps({
-                            "type": "workflow_continue",
-                            "message": "檢測到進行中的工作流，正在執行下一步...",
-                            "session_id": session_id,
-                        }),
+                        "data": json.dumps(
+                            {
+                                "type": "workflow_continue",
+                                "message": "檢測到進行中的工作流，正在執行下一步...",
+                                "session_id": session_id,
+                            }
+                        ),
                     }
 
                     # 執行下一步
@@ -757,26 +766,32 @@ async def classify_intent_stream(request: ChatRequest):
                     if step_result.get("success"):
                         yield {
                             "event": "message",
-                            "data": json.dumps({
-                                "type": "workflow_step_completed",
-                                "response": step_result.get("response", ""),
-                                "waiting_for_user": step_result.get("waiting_for_user", False),
-                                "completed_steps": step_result.get("completed_steps", []),
-                                "total_steps": step_result.get("total_steps", 0),
-                                "session_id": session_id,
-                            }),
+                            "data": json.dumps(
+                                {
+                                    "type": "workflow_step_completed",
+                                    "response": step_result.get("response", ""),
+                                    "waiting_for_user": step_result.get("waiting_for_user", False),
+                                    "completed_steps": step_result.get("completed_steps", []),
+                                    "total_steps": step_result.get("total_steps", 0),
+                                    "session_id": session_id,
+                                }
+                            ),
                         }
 
                     yield {
                         "event": "message",
-                        "data": json.dumps({
-                            "type": "complete",
-                            "message": "完成",
-                            "session_id": session_id,
-                        }),
+                        "data": json.dumps(
+                            {
+                                "type": "complete",
+                                "message": "完成",
+                                "session_id": session_id,
+                            }
+                        ),
                     }
 
-                return EventSourceResponse(workflow_continue_generator(), media_type="text/event-stream")
+                return EventSourceResponse(
+                    workflow_continue_generator(), media_type="text/event-stream"
+                )
 
     # 沒有進行中的工作流，進行意圖分類 SSE 串流
     return await generate_intent_stream(instruction, session_id)
@@ -802,7 +817,11 @@ async def knowledge_query(request: ChatRequest) -> dict:
 
         # 從意圖分類結果中獲取來源類型
         # 如果沒有來源類型，預設為 external
-        source_type_str = request.metadata.get("knowledge_source_type", "external") if request.metadata else "external"
+        source_type_str = (
+            request.metadata.get("knowledge_source_type", "external")
+            if request.metadata
+            else "external"
+        )
         try:
             source_type = KnowledgeSourceType(source_type_str)
         except ValueError:

@@ -1,0 +1,16 @@
+{
+  "knowledge_base_stats_detection": {
+    "description": "知識庫統計查詢檢測配置",
+    "patterns": {
+      "count_keywords": ["多少", "幾個", "how many", "count", "number of"],
+      "file_keywords": ["文件", "file", "files", "文檔", "文挡"],
+      "list_keywords": ["列表", "list", "列出", "列出所有"],
+      "status_keywords": ["狀態", "status", "狀况", "状态"],
+      "upload_keywords": ["上傳", "上载", "upload", "已上傳", "已上传"],
+      "vectorized_keywords": ["向量", "vector", "已向量化", "已索引"]
+    },
+    "exclusion_patterns": {
+      "content_query_indicators": ["重點", "重點是", "重點", "摘要", "重點", "内容", "内容", "重點"]
+    }
+  }
+}

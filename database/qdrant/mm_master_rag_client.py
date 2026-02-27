@@ -22,8 +22,6 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
-    SearchRequest,
-    SearchResponse,
 )
 
 from database.qdrant.client import get_qdrant_client
@@ -31,7 +29,7 @@ from database.qdrant.client import get_qdrant_client
 logger = logging.getLogger(__name__)
 
 COLLECTION_NAME = "mmMasterRAG"
-VECTOR_SIZE = 1024
+VECTOR_SIZE = 384
 DISTANCE = Distance.COSINE
 
 
@@ -264,9 +262,9 @@ class MMMasterRAGClient:
             )
 
         try:
-            results = self.client.search(
+            results = self.client.query_points(
                 collection_name=COLLECTION_NAME,
-                query_vector=query_vector,
+                query=query_vector,
                 query_filter=filter_condition,
                 limit=limit,
                 score_threshold=score_threshold,
@@ -278,7 +276,7 @@ class MMMasterRAGClient:
                     "score": r.score,
                     "payload": r.payload,
                 }
-                for r in results
+                for r in results.points
             ]
         except Exception as e:
             logger.error(f"Search failed: {e}")
@@ -372,15 +370,15 @@ class MMMasterRAGClient:
     def delete_all(self) -> int:
         """刪除所有文件（危險操作）"""
         try:
-            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            from qdrant_client.models import Filter, FieldCondition, MatchValue, FilterSelector
 
-            result = self.client.delete(
+            self.client.delete(
                 collection_name=COLLECTION_NAME,
-                points_filter=Filter(
-                    must=[FieldCondition(key="type", match=MatchValue(value="*"))]
+                points_selector=FilterSelector(
+                    filter=Filter(must=[FieldCondition(key="type", match=MatchValue(value="*"))])
                 ),
             )
-            return result
+            return 1
         except Exception as e:
             logger.error(f"Delete all failed: {e}")
             return 0

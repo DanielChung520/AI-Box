@@ -1,0 +1,368 @@
+{
+  "version": "1.0",
+  "system": "jp_tiptop_erp",
+  "language": "zh-TW",
+  "description": "過濾後的查詢場景 (基於現有 Mart 表格) - 共 51 個",
+  "summary": {
+    "total_scenarios": 51
+  },
+  "scenarios": [
+    {
+      "id": "JP_001",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "查詢所有在庫總數量",
+      "natural_language": "請查詢所有料號的現有庫存總數量"
+    },
+    {
+      "id": "JP_002",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "查詢特定倉庫在庫",
+      "natural_language": "查詢8802倉庫中所有料號的庫存數量"
+    },
+    {
+      "id": "JP_003",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "查詢特定料號在庫",
+      "natural_language": "查詢料號8021107403900001在所有倉庫的庫存數量"
+    },
+    {
+      "id": "JP_004",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "倉庫別在庫匯總",
+      "natural_language": "按倉庫統計庫存總數量，列出每個倉庫的庫存匯總"
+    },
+    {
+      "id": "JP_005",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "查詢特定儲位庫存",
+      "natural_language": "查詢2101倉庫中所有儲位的庫存明細"
+    },
+    {
+      "id": "JP_006",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "零庫存料號查詢",
+      "natural_language": "查詢所有庫存數量為0的料號列表"
+    },
+    {
+      "id": "JP_007",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "按單位統計庫存",
+      "natural_language": "按單位（PC、KG、SET等）統計庫存數量"
+    },
+    {
+      "id": "JP_008",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "庫存料號統計",
+      "natural_language": "統計有多少種不同的料號有庫存"
+    },
+    {
+      "id": "JP_009",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "多倉庫料號查詢",
+      "natural_language": "查詢同時在2101和8802倉庫都有庫存的料號"
+    },
+    {
+      "id": "JP_010",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "高庫存料號查詢",
+      "natural_language": "查詢庫存數量大於1000的料號列表"
+    },
+    {
+      "id": "JP_011",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "倉庫儲位統計",
+      "natural_language": "統計每個倉庫有多少個不同的儲位"
+    },
+    {
+      "id": "JP_012",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "按料號長度分類庫存",
+      "natural_language": "按料號長度統計庫存數量分布"
+    },
+    {
+      "id": "JP_013",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "庫存單位分布",
+      "natural_language": "統計每個單位（PC、KG等）的料號種類數量"
+    },
+    {
+      "id": "JP_014",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "營運據點庫存統計",
+      "natural_language": "按營運據點（SITE）統計庫存總數量"
+    },
+    {
+      "id": "JP_015",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "料號儲位分布",
+      "natural_language": "查詢特定料號在哪些倉庫和儲位有庫存"
+    },
+    {
+      "id": "JP_016",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "低庫存料號查詢",
+      "natural_language": "查詢庫存數量小於10的料號列表"
+    },
+    {
+      "id": "JP_017",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "倉庫庫存排名",
+      "natural_language": "按庫存總數量對倉庫進行排名"
+    },
+    {
+      "id": "JP_018",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "單一儲位多料號查詢",
+      "natural_language": "查詢儲位中料號數量大於5的儲位列表"
+    },
+    {
+      "id": "JP_019",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "無儲位庫存查詢",
+      "natural_language": "查詢沒有儲位資訊的庫存記錄"
+    },
+    {
+      "id": "JP_020",
+      "category": "庫存管理",
+      "complexity": "basic",
+      "description": "特定單位庫存查詢",
+      "natural_language": "查詢單位為PC的所有料號庫存"
+    },
+    {
+      "id": "JP_021",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "查詢所有工單數量",
+      "natural_language": "查詢2025年1月工單總數"
+    },
+    {
+      "id": "JP_022",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "查詢工單狀態分布",
+      "natural_language": "統計2025年1月各狀態工單的數量分布（M、F、C、N、Y、X）"
+    },
+    {
+      "id": "JP_023",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "查詢進行中工單",
+      "natural_language": "查詢2025年1月狀態為M（製造中）的工單"
+    },
+    {
+      "id": "JP_024",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "查詢特定工單詳情",
+      "natural_language": "查詢工單CNJ-P12-201405080002的詳細資訊"
+    },
+    {
+      "id": "JP_025",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "查詢工單報廢數量",
+      "natural_language": "查詢2025年1月工單的報廢數量總和"
+    },
+    {
+      "id": "JP_026",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "已完成工單查詢",
+      "natural_language": "查詢2025年1月狀態為F（已完成）的工單"
+    },
+    {
+      "id": "JP_027",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "按客戶統計工單",
+      "natural_language": "按客戶統計2025年1月工單數量"
+    },
+    {
+      "id": "JP_028",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "按倉庫統計工單",
+      "natural_language": "按倉庫統計2025年1月工單數量"
+    },
+    {
+      "id": "JP_029",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "取消工單查詢",
+      "natural_language": "查詢2025年1月狀態為X（取消）的工單"
+    },
+    {
+      "id": "JP_030",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "大生產量工單查詢",
+      "natural_language": "查詢2025年1月生產數量大於1000的工單"
+    },
+    {
+      "id": "JP_031",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "工單營運據點統計",
+      "natural_language": "按營運據點（SITE）統計2025年1月工單數量"
+    },
+    {
+      "id": "JP_034",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "新工單查詢",
+      "natural_language": "查詢2025年1月狀態為N（新建立）的工單"
+    },
+    {
+      "id": "JP_035",
+      "category": "工單管理",
+      "complexity": "basic",
+      "description": "工單倉庫儲位查詢",
+      "natural_language": "查詢2025年1月工單的倉庫和儲位"
+    },
+    {
+      "id": "JP_036",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "查詢工單製造進度",
+      "natural_language": "查詢工單CNJ-P12-201405080002的生產數量和完工數量"
+    },
+    {
+      "id": "JP_037",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "查詢工單當前工序",
+      "natural_language": "查詢工單CNJ-P12-201405080002目前的工序和製造明細"
+    },
+    {
+      "id": "JP_038",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "查詢工序產出",
+      "natural_language": "查詢2025年1月工序1901的工作站產出統計"
+    },
+    {
+      "id": "JP_039",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "查詢工作站良品率",
+      "natural_language": "統計2025年1月各工作站的良品流入和流出數量"
+    },
+    {
+      "id": "JP_040",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "查詢WIP在製品數量",
+      "natural_language": "統計2025年1月所有工序的在製品數量"
+    },
+    {
+      "id": "JP_041",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "查詢標準產出",
+      "natural_language": "統計2025年1月各工作站標準產出數量"
+    },
+    {
+      "id": "JP_042",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "待PQC數量查詢",
+      "natural_language": "統計2025年1月待PQC檢驗數量"
+    },
+    {
+      "id": "JP_043",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "外包加工數量查詢",
+      "natural_language": "統計2025年1月工單外包加工數量"
+    },
+    {
+      "id": "JP_044",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "外包完工數量查詢",
+      "natural_language": "統計2025年1月工單外包完工數量"
+    },
+    {
+      "id": "JP_045",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "重工統計查詢",
+      "natural_language": "統計2025年1月各工作站重工流入流出數量"
+    },
+    {
+      "id": "JP_046",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "站點報廢統計",
+      "natural_language": "查詢2025年1月各產品線的工單數量統計"
+    },
+    {
+      "id": "JP_047",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "工序數量統計",
+      "natural_language": "查詢2025年1月有延遲的工單數量"
+    },
+    {
+      "id": "JP_048",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "工單項次查詢",
+      "natural_language": "查詢2025年1月每個客戶的平均工單數量"
+    },
+    {
+      "id": "JP_049",
+      "category": "製造進度",
+      "complexity": "basic",
+      "description": "高WIP工單查詢",
+      "natural_language": "查詢2025年1月跨工單的合計生產數量"
+    },
+    {
+      "id": "JP_052",
+      "category": "出貨管理",
+      "complexity": "basic",
+      "description": "查詢已完成出貨",
+      "natural_language": "查詢2025年1月狀態為Y（已出貨）的出貨通知"
+    },
+    {
+      "id": "JP_056",
+      "category": "出貨管理",
+      "complexity": "basic",
+      "description": "待出貨訂單查詢",
+      "natural_language": "查詢2025年1月狀態為N（未出貨）的出貨通知"
+    },
+    {
+      "id": "JP_059",
+      "category": "出貨管理",
+      "complexity": "basic",
+      "description": "出貨日期查詢",
+      "natural_language": "查詢2025年1月的出貨記錄"
+    },
+    {
+      "id": "JP_060",
+      "category": "出貨管理",
+      "complexity": "basic",
+      "description": "預計出貨日期查詢",
+      "natural_language": "查詢2025年1月預計出貨的出貨單"
+    }
+  ]
+}

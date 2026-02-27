@@ -86,7 +86,9 @@ class KnowledgeService:
         start_time = time.time()
         query_time_ms = 0
 
-        logger.info(f"[KnowledgeService] 執行知識查詢: {query[:50]}..., source_type={source_type.value}")
+        logger.info(
+            f"[KnowledgeService] 執行知識查詢: {query[:50]}..., source_type={source_type.value}"
+        )
 
         try:
             # 1. 嘗試調用 KA-Agent
@@ -103,7 +105,9 @@ class KnowledgeService:
                     query_time_ms=query_time_ms,
                 )
 
-            logger.warning(f"[KnowledgeService] KA-Agent 查詢失敗，回退到 LLM: {ka_result.get('error')}")
+            logger.warning(
+                f"[KnowledgeService] KA-Agent 查詢失敗，回退到 LLM: {ka_result.get('error')}"
+            )
 
         except Exception as e:
             logger.warning(f"[KnowledgeService] KA-Agent 調用異常，回退到 LLM: {e}")
@@ -116,7 +120,9 @@ class KnowledgeService:
             logger.info(f"[KnowledgeService] LLM 回退查詢成功: {query_time_ms}ms")
 
             # 標註來源
-            source_label = "公司內部知識庫" if source_type == KnowledgeSourceType.INTERNAL else "網路搜尋"
+            source_label = (
+                "公司內部知識庫" if source_type == KnowledgeSourceType.INTERNAL else "網路搜尋"
+            )
             sources = [{"type": source_type.value, "source": source_label}]
 
             return KnowledgeQueryResult(
@@ -155,63 +161,52 @@ class KnowledgeService:
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 response = await client.post(
-                    f"{self._ai_box_api_url}/api/v1/agents/execute",
+                    f"{self._ai_box_api_url}/api/v1/knowledge/query",
                     json={
+                        "request_id": f"mm_knowledge_{session_id or 'unknown'}",
+                        "query": query,
                         "agent_id": "ka-agent",
-                        "task": {
-                            "task_id": f"mm_knowledge_{session_id or 'unknown'}",
-                            "task_data": {
-                                "action": "knowledge.query",
-                                "query": query,
-                                "query_type": "hybrid",
-                                "domain": "domain-enterprise" if source_type == KnowledgeSourceType.INTERNAL else None,
-                                "major": None,
-                            },
-                            "metadata": {
-                                "user_id": session_id,
-                                "source_type": source_type.value,
-                            },
+                        "user_id": session_id,
+                        "metadata": {
+                            "caller_agent_id": "mm-agent",
+                            "caller_agent_key": "-h0tjyh",
+                        },
+                        "options": {
+                            "query_type": "hybrid",
+                            "top_k": 10,
+                            "include_graph": True,
                         },
                     },
                     headers={"Authorization": f"Bearer {self._api_key}"} if self._api_key else {},
                 )
 
                 if response.status_code != 200:
-                    return {"success": False, "error": f"HTTP {response.status_code}: {response.text}"}
+                    return {
+                        "success": False,
+                        "error": f"HTTP {response.status_code}: {response.text}",
+                    }
 
                 result = response.json()
 
                 # 解析 KA-Agent 響應
-                task_result = result.get("result", {})
-
-                if not task_result.get("success", False):
-                    return {"success": False, "error": task_result.get("error", "Unknown error")}
+                if not result.get("success", False):
+                    return {"success": False, "error": result.get("message", "Unknown error")}
 
                 # 提取答案和來源
                 answer = ""
                 sources = []
 
-                # 優先使用 structured_response
-                if "structured_response" in task_result:
-                    structured = task_result["structured_response"]
-                    answer = structured.get("answer", "")
-                    sources = structured.get("sources", [])
-
-                # 如果沒有 structured_response，嘗試其他格式
-                if not answer:
-                    answer = task_result.get("response", "") or task_result.get("result", "")
-
-                # 提取來源
-                if not sources and "results" in task_result:
-                    for r in task_result["results"][:3]:
-                        sources.append(
-                            {
-                                "type": source_type.value,
-                                "title": r.get("title", ""),
-                                "score": r.get("score", 0),
-                            }
-                        )
-
+                results = result.get("results", [])
+                for r in results[:5]:
+                    sources.append(
+                        {
+                            "filename": r.get("filename", ""),
+                            "content": r.get("content", "")[:200],
+                            "confidence": r.get("confidence", 0),
+                        }
+                    )
+                    if not answer:
+                        answer = r.get("content", "")
                 return {"success": True, "answer": answer, "sources": sources}
 
         except httpx.TimeoutException:
@@ -275,7 +270,9 @@ class KnowledgeService:
                 # 標註這是 LLM 生成的回答
                 source_note = "\n\n---\n*以上回答由 AI 根據專業知識生成，如需準確的公司內部規定，請查閱相關文件。*"
                 if source_type == KnowledgeSourceType.INTERNAL:
-                    source_note = "\n\n---\n*回答來源：一般企業管理實踐，具體規定請參考公司內部文件。*"
+                    source_note = (
+                        "\n\n---\n*回答來源：一般企業管理實踐，具體規定請參考公司內部文件。*"
+                    )
 
                 return answer + source_note
 
@@ -314,7 +311,10 @@ class KnowledgeService:
                                 "major": major,
                                 "lifecycle_state": lifecycle_state,
                             },
-                            "metadata": {},
+                            "metadata": {
+                                "caller_agent_id": "mm-agent",
+                                "caller_agent_key": "-h0tjyh",
+                            },
                         },
                     },
                     headers={"Authorization": f"Bearer {self._api_key}"} if self._api_key else {},

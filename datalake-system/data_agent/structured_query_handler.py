@@ -46,51 +46,44 @@ class IntentParameterMapper:
     """意圖參數映射器 - 將語義參數映射到實際欄位名稱
 
     MM-Agent 傳遞: part_number, start_date, end_date, warehouse, limit
-    Data-Agent 映射: img01, tlf06, img02, ...
+    Data-Agent 映射: 使用 JP 資料庫的 mart 寬表
     """
 
     INTENT_MAPPINGS = {
         "query_stock_info": {
-            "table": "img_file",
+            "table": "mart_inventory_wide",
             "param_columns": {
-                "part_number": "img01",
-                "warehouse": "img02",
+                "part_number": "item_no",
+                "warehouse": "warehouse_no",
             },
         },
         "query_stock_history": {
-            "table": "tlf_file",
+            "table": "mart_inventory_wide",
             "param_columns": {
-                "part_number": "tlf01",
-                "start_date": "tlf06",
-                "end_date": "tlf06",
-                "transaction_type": "tlf19",
+                "part_number": "item_no",
+                "start_date": "doc_date",
+                "end_date": "doc_date",
             },
         },
         "query_purchase": {
-            "table": "tlf_file",
+            "table": "mart_work_order_wide",
             "param_columns": {
-                "part_number": "tlf01",
-                "month": "tlf06",
-            },
-            "filters": {
-                "tlf19": "101",
+                "part_number": "item_no",
             },
         },
         "query_sales": {
-            "table": "tlf_file",
+            "table": "mart_shipping_wide",
             "param_columns": {
-                "part_number": "tlf01",
-                "month": "tlf06",
-            },
-            "filters": {
-                "tlf19": "202",
+                "part_number": "item_no",
+                "start_date": "doc_date",
+                "end_date": "doc_date",
             },
         },
         "analyze_shortage": {
-            "table": "img_file",
+            "table": "mart_inventory_wide",
             "param_columns": {
-                "part_number": "img01",
-                "warehouse": "img02",
+                "part_number": "item_no",
+                "warehouse": "warehouse_no",
             },
         },
     }
@@ -344,11 +337,11 @@ class StructuredQueryHandler:
             column_list = list(columns.keys())[:10]  # 使用欄位 ID（如 img01, img02），最多 10 個
 
             # 根據意圖決定排序方式
-            # tlf_file 有 tlf06（交易日期），img_file 沒有
-            if table_name == "tlf_file":
+            # mart_work_order_wide 有 tlf06（交易日期），mart_inventory_wide 沒有
+            if table_name == "mart_work_order_wide":
                 order_by_clause = "ORDER BY tlf06 DESC"
-            elif table_name == "img_file":
-                # img_file 使用庫存時間或不需要排序
+            elif table_name == "mart_inventory_wide":
+                # mart_inventory_wide 使用庫存時間或不需要排序
                 order_by_clause = ""  # 庫存查詢不需要排序
             else:
                 order_by_clause = ""
@@ -367,7 +360,7 @@ class StructuredQueryHandler:
             # 注意：傳遞邏輯表名給 Data-Agent，讓 Data-Agent 內部做映射
             service = self._get_datalake_service()
             result = await service.query_sql(
-                sql_query=sql_query,  # 使用邏輯表名（tlf_file, img_file）
+                sql_query=sql_query,  # 使用邏輯表名（mart_work_order_wide, mart_inventory_wide）
                 max_rows=limit,
             )
 

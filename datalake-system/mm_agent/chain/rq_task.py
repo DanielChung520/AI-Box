@@ -412,6 +412,10 @@ def _execute_knowledge_retrieval(
                         "top_k": 5,
                         "query_type": "hybrid",
                     },
+                    "metadata": {
+                        "caller_agent_id": "mm-agent",
+                        "caller_agent_key": "-h0tjyh",
+                    },
                 },
             )
 

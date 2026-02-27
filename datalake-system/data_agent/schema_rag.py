@@ -65,10 +65,10 @@ class SchemaRAGService:
         (r"PO|採購單", ["purchase_header", "purchase_line"]),
         (r"採購數量|採購金額|採購總", ["purchase_header", "purchase_line", "supplier"]),
         # 交易相關
-        (r"交易|異動|銷貨|出貨|入庫", ["tlf_file"]),
-        (r"歷史交易|交易記錄", ["tlf_file"]),
-        (r"消耗|消耗量|用量|出庫", ["tlf_file", "item_master"]),
-        (r"最大|最多|最高", ["item_master", "tlf_file"]),
+        (r"交易|異動|銷貨|出貨|入庫", ["mart_work_order_wide"]),
+        (r"歷史交易|交易記錄", ["mart_work_order_wide"]),
+        (r"消耗|消耗量|用量|出庫", ["mart_work_order_wide", "item_master"]),
+        (r"最大|最多|最高", ["item_master", "mart_work_order_wide"]),
         # 客戶相關
         (r"客戶", ["customer"]),
         (r"訂單", ["coptc_file", "coptd_file"]),
@@ -76,12 +76,12 @@ class SchemaRAGService:
         (r"單價|價格|報價", ["prc_file", "item_master", "purchase_line"]),
         (r"歷史價格", ["prc_file"]),
         # 數量統計
-        (r"有多少筆|有多少筆交易|筆數|數量統計", ["tlf_file"]),
-        (r"總數量|總計|總和", ["tlf_file", "inventory"]),
+        (r"有多少筆|有多少筆交易|筆數|數量統計", ["mart_work_order_wide"]),
+        (r"總數量|總計|總和", ["mart_work_order_wide", "inventory"]),
         # 日期相關
-        (r"2024年|2025年|2026年", ["tlf_file", "purchase_header", "coptd_file"]),
-        (r"上月|上月|去年|今年", ["tlf_file"]),
-        (r"最近.*天|最近.*月", ["tlf_file"]),
+        (r"2024年|2025年|2026年", ["mart_work_order_wide", "purchase_header", "coptd_file"]),
+        (r"上月|上月|去年|今年", ["mart_work_order_wide"]),
+        (r"最近.*天|最近.*月", ["mart_work_order_wide"]),
     ]
 
     def __init__(self, metadata_root: Optional[Path] = None):

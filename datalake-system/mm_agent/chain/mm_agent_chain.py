@@ -6,6 +6,7 @@
 """MM-Agent 對話鏈 - 意圖語義分析 + 多輪對話支持"""
 
 import logging
+import time
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
 
@@ -15,7 +16,6 @@ from mm_agent.coreference_resolver import CoreferenceResolver
 from mm_agent.chain.context_manager import get_context_manager
 from mm_agent.semantic_translator import SemanticTranslatorAgent
 from mm_agent.translation_models import SemanticTranslationResult
-from mm_agent.services.schema_registry import get_schema_registry
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +90,7 @@ class MMAgentChain:
         self._coreference_resolver = CoreferenceResolver(model="qwen3:32b")
         self._ka_client = None  # KA-Agent 客戶端
         self._use_semantic_translator = use_semantic_translator
+        self._last_intent_result = None  # 最後一次 LLM 意圖分類結果
 
         # 初始化 LLM client（用於複雜 SQL 生成）
         try:
@@ -103,9 +104,6 @@ class MMAgentChain:
         except Exception as e:
             logger.warning(f"MM-Agent: 無法初始化 LLM client: {e}")
             self._llm_client = None
-
-        # 初始化 Schema Registry（用於 SQL 生成）
-        self._schema_registry = get_schema_registry()
 
         # 初始化語義轉譯器（當使用新架構時）
         self._semantic_translator = None
@@ -127,171 +125,89 @@ class MMAgentChain:
         messages.append("\n謝謝您的配合！")
         return "\n".join(messages)
 
-    async def _generate_sql_from_semantic(
-        self, semantic_result: SemanticTranslationResult
-    ) -> Optional[str]:
-        """根據語義分析結果生成 SQL"""
-        if not semantic_result:
-            return None
+    async def _execute_data_agent_query(self, semantic_result) -> dict:
+        """執行 Data-Agent 查詢
 
-        intent = semantic_result.intent
-        if intent == "CLARIFICATION":
-            return None
+        MM-Agent 只負責發送完整的自然語言查詢，
+        SQL 生成由 Data-Agent 負責（使用 SchemaRAG）。
 
-        user_input = semantic_result.raw_text.lower()
+        Args:
+            semantic_result: 語義分析結果
 
-        # 複雜查詢關鍵詞
-        complex_keywords = [
-            "每月",
-            "每個月",
-            "每月份",
-            "每日",
-            "每天",
-            "每季",
-            "每季度",
-            "每供應商",
-            "每客戶",
-            "每筆",
-            "按月",
-            "按日",
-            "按季",
-            "各月份",
-            "各供應商",
-            "各客戶",
-            "統計",
-            "分析",
-            "趨勢",
-        ]
-        is_complex = any(kw in user_input for kw in complex_keywords)
+        Returns:
+            查詢結果字典
+        """
+        try:
+            import httpx
 
-        # 轉換約束條件為字典
-        constraints = {}
-        if semantic_result.constraints.material_id:
-            constraints["material_id"] = semantic_result.constraints.material_id
-        if semantic_result.constraints.inventory_location:
-            constraints["inventory_location"] = semantic_result.constraints.inventory_location
-        if semantic_result.constraints.material_category:
-            constraints["material_category"] = semantic_result.constraints.material_category
-        if semantic_result.constraints.transaction_type:
-            constraints["transaction_type"] = semantic_result.constraints.transaction_type
-        if semantic_result.constraints.time_range:
-            time_range = semantic_result.constraints.time_range
-            if isinstance(time_range, dict):
-                constraints["time_range"] = time_range
+            # 構建 params（語義概念，而非 Schema）
+            params = {}
+            if semantic_result.constraints:
+                if semantic_result.constraints.material_id:
+                    params["material_id"] = semantic_result.constraints.material_id
+                if semantic_result.constraints.inventory_location:
+                    params["inventory_location"] = semantic_result.constraints.inventory_location
+                if semantic_result.constraints.time_range:
+                    params["time_range"] = semantic_result.constraints.time_range
+                if semantic_result.constraints.material_category:
+                    params["material_category"] = semantic_result.constraints.material_category
+                if semantic_result.constraints.quantity:
+                    params["quantity"] = semantic_result.constraints.quantity
+
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(
+                    "http://localhost:8004/api/v1/data-agent/v4/execute",
+                    json={
+                        "task_id": f"mm_query_{int(time.time())}",
+                        "task_type": "schema_driven_query",
+                        "task_data": {
+                            "nlq": semantic_result.raw_text,
+                            "intent": semantic_result.intent,
+                            "params": params,
+                        },
+                    },
+                )
+
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("status") == "success":
+                    data_result = result.get("result", {})
+                    return {
+                        "status": "success",
+                        "sql": data_result.get("sql", "N/A"),  # SQL 由 Data-Agent 生成
+                        "data": data_result.get("data", [])[:10],  # 只取前 10 筆
+                        "row_count": data_result.get("row_count", 0),
+                        "columns": data_result.get("columns", []),
+                        "execution_time_ms": data_result.get("execution_time_ms", 0),
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "sql": "N/A",
+                        "error": result.get("message", "Unknown error"),
+                    }
             else:
-                constraints["time_type"] = time_range
-        if semantic_result.constraints.quantity:
-            constraints["quantity"] = semantic_result.constraints.quantity
-
-        # 複雜查詢：使用 LLM 生成 SQL
-        if is_complex:
-            logger.info(f"[SQL] 複雜查詢，使用 LLM 生成: {user_input[:50]}...")
-            return await self._generate_sql_by_llm(semantic_result)
-
-        # 簡單查詢：使用模板
-        try:
-            sql = self._schema_registry.generate_sql(intent, constraints)
-            logger.info(f"SQL 生成成功（模板）: {sql[:100] if sql else 'None'}...")
-            return sql
-        except Exception as e:
-            logger.warning(f"SQL 生成失敗: {e}")
-            return None
-
-    async def _generate_sql_by_llm(
-        self, semantic_result: SemanticTranslationResult
-    ) -> Optional[str]:
-        """使用 LLM 生成複雜 SQL"""
-        if not self._llm_client:
-            logger.warning("LLM client 未初始化，回退到模板")
-            return self._generate_sql_by_template_fallback(semantic_result)
-
-        try:
-            user_input = semantic_result.raw_text
-
-            # 構建 Schema 提示
-            schema_hint = """你可使用的表格結構：
-- img_file: 庫存表 (img01=料號, img02=倉庫, img03=庫位, img10=庫存數量)
-- pmn_file: 採購單身 (pmn01=採購單號, pmn02=項次, pmn04=料號, pmn20=數量)
-- pmm_file: 採購單頭 (pmm01=單號, pmm02=日期, pmm04=供應商)
-- ima_file: 物料主檔 (ima01=料號, ima02=品名)
-- coptd_file: 訂單身 (coptd04=料號, coptd02=日期)
-
-SQL 要求：
-1. **日期欄位類型是 VARCHAR，必須使用 CAST 轉換**
-   - 錯誤写法：DATE_TRUNC('month', pmm02) (❌)
-   - 正確写法：DATE_TRUNC('month', CAST(pmm02 AS DATE)) (✅)
-   - 錯誤写法：pmm02 >= DATE '2024-01-01' (❌)
-   - 正確写法：CAST(pmm02 AS DATE) >= DATE '2024-01-01' (✅)
-2. 使用 DuckDB Parquet 語法：read_parquet('s3://bucket/path/year=*/month=*/data.parquet', hive_partitioning=true)
-3. 表格路徑前綴：s3://tiptop-raw/raw/v1/
-4. 保持格式整齊，適合展示
-5. 如果用戶說"每月"，使用 DATE_TRUNC('month', CAST(日期 AS DATE)) AS month
-6. 如果用戶說"每日"，使用 DATE_TRUNC('day', CAST(日期 AS DATE)) AS day
-7. 只返回 SQL，不要其他說明
-8. 禁止使用：*/*/data.parquet 或 */*/*/data.parquet
-"""
-
-            prompt = f"""{schema_hint}
-
-用戶輸入：{user_input}
-
-約束條件：
-- 料號: {semantic_result.constraints.material_id or "未指定"}
-- 倉庫: {semantic_result.constraints.inventory_location or "未指定"}
-- 時間: {semantic_result.constraints.time_range or "未指定"}
-- 物料類別: {semantic_result.constraints.material_category or "未指定"}
-
-SQL：
-"""
-
-            # 調用 LLM
-            response = await self._llm_client.generate(
-                prompt=prompt,
-                temperature=0.1,
-                max_tokens=1000,
-            )
-
-            # 提取 SQL
-            text = response.get("text", "") or response.get("content", "")
-            sql = text.strip()
-
-            # 清理 SQL（移除可能的 markdown 格式）
-            sql = sql.replace("```sql", "").replace("```", "").strip()
-
-            logger.info(f"LLM SQL 生成成功: {sql[:100]}...")
-            return sql
+                return {
+                    "status": "error",
+                    "sql": "N/A",
+                    "error": f"HTTP {response.status_code}",
+                }
 
         except Exception as e:
-            logger.error(f"LLM SQL 生成失敗: {e}")
-            # 回退到模板
-            logger.warning("回退到模板生成")
-            return self._generate_sql_by_template_fallback(semantic_result)
-
-    def _generate_sql_by_template_fallback(
-        self, semantic_result: SemanticTranslationResult
-    ) -> Optional[str]:
-        """模板回退"""
-        intent = semantic_result.intent
-        constraints = {}
-        if semantic_result.constraints.material_id:
-            constraints["material_id"] = semantic_result.constraints.material_id
-        if semantic_result.constraints.inventory_location:
-            constraints["inventory_location"] = semantic_result.constraints.inventory_location
-        if semantic_result.constraints.time_range:
-            constraints["time_range"] = semantic_result.constraints.time_range
-
-        try:
-            return self._schema_registry.generate_sql(intent, constraints)
-        except Exception:
-            return None
+            logger.error(f"MM-Agent: Data-Agent 查詢失敗: {e}", exc_info=True)
+            return {
+                "status": "error",
+                "sql": "N/A",
+                "error": str(e),
+            }
 
     def _get_ka_client(self):
         """獲取 KA-Agent 客戶端（懶加載）"""
         if self._ka_client is None:
             try:
-                from agents.services.protocol.http_client import HTTPAgentClient
+                from agents.services.protocol.http_client import HTTPAgentServiceClient
 
-                self._ka_client = HTTPAgentClient(
+                self._ka_client = HTTPAgentServiceClient(
                     base_url="http://localhost:8000",  # AI-Box 主服務地址
                     timeout=30,
                 )
@@ -300,8 +216,10 @@ SQL：
                 logger.warning(f"MM-Agent: 無法初始化 KA-Agent 客戶端: {e}")
         return self._ka_client
 
-    def _needs_knowledge_retrieval(self, instruction: str) -> bool:
+    async def _needs_knowledge_retrieval(self, instruction: str) -> bool:
         """判斷是否需要知識庫檢索
+
+        使用 LLM 語義判斷，而非關鍵詞匹配。
 
         Args:
             instruction: 用戶查詢
@@ -309,44 +227,65 @@ SQL：
         Returns:
             是否需要知識庫檢索
         """
-        knowledge_keywords = [
-            # 職責相關
-            "職責",
-            "職能",
-            "功能",
-            "介紹",
-            "說明",
-            "你是誰",
-            "你是什麼",
-            "你做什麼",
-            # 技能相關
-            "技能",
-            "能力",
-            "可以做",
-            "擅長",
-            "會做",
-            "能做",
-            # 流程相關
-            "流程",
-            "步驟",
-            "怎麼",
-            "如何",
-            "方法",
-            "操作",
-            "指引",
-            "教學",
-            # 其他知識相關
-            "規則",
-            "規定",
-            "標準",
-            "注意事項",
-            "注意",
-            "提醒",
-            "注意點",
-        ]
+        try:
+            from mm_agent.intent_endpoint import classify_intent, IntentType
 
-        instruction_lower = instruction.lower()
-        return any(keyword in instruction_lower for keyword in knowledge_keywords)
+            # 調用 LLM 語義分類
+            result = await classify_intent(instruction)
+
+            # 保存意圖分類結果供後續使用
+            self._last_intent_result = result
+
+            # 如果是知識查詢意圖，觸發知識庫檢索
+            needs_retrieval = result.intent == IntentType.KNOWLEDGE_QUERY
+
+            # 備用檢測：如果 LLM 沒有正確識別 is_list_files_query，根據關鍵詞判斷
+            is_list_files = result.is_list_files_query
+            if not is_list_files:
+                # 檢查指令是否包含「列出文件」相關關鍵詞
+                list_keywords = ["列出", "列表", "有哪些文件", "文件有哪些", "知識庫有", "查看文件"]
+                instruction_lower = instruction.lower()
+                is_list_files = any(kw in instruction_lower for kw in list_keywords)
+
+            # 保存供後續使用
+            result.is_list_files_query = is_list_files
+
+            logger.info(
+                f"MM-Agent: 知識庫檢索判斷 (LLM) - "
+                f"intent={result.intent.value}, confidence={result.confidence}, "
+                f"needs_retrieval={needs_retrieval}, is_list_files={is_list_files}"
+            )
+
+            return needs_retrieval
+
+        except Exception as e:
+            # 如果 LLM 分類失敗，回退到關鍵詞匹配（兜底策略）
+            logger.warning(f"MM-Agent: LLM 語義判斷失敗，回退到關鍵詞匹配: {e}")
+            knowledge_keywords = [
+                "職責",
+                "職能",
+                "功能",
+                "介紹",
+                "說明",
+                "技能",
+                "能力",
+                "可以做",
+                "擅長",
+                "流程",
+                "步驟",
+                "怎麼",
+                "如何",
+                "方法",
+                "操作",
+                "指引",
+                "教學",
+                "規則",
+                "規定",
+                "標準",
+                "注意事項",
+            ]
+            instruction_lower = instruction.lower()
+            return any(keyword in instruction_lower for keyword in knowledge_keywords)
 
     async def _retrieve_knowledge(
         self, instruction: str, domain: str = "mm_agent", major: str = "responsibilities"
@@ -361,54 +300,132 @@ SQL：
         Returns:
             檢索結果，失敗返回 None
         """
-        ka_client = self._get_ka_client()
-        if ka_client is None:
-            logger.warning("MM-Agent: KA-Agent 客戶端未初始化，無法檢索知識庫")
-            return None
-
         try:
-            from agents.services.protocol.base import AgentServiceRequest
+            import httpx
 
-            # 構建 KA-Agent 請求
-            ka_request = AgentServiceRequest(
-                task_id=f"mm_knowledge_{id(instruction)}",
-                task_type="knowledge_query",
-                task_data={
-                    "instruction": instruction,
-                    "domain": domain,
-                    "major": major,
-                },
-                metadata={
-                    "caller_agent_id": "mm-agent",  # 標記調用方為 mm-agent
-                    "knowledge_via_authorized_agent": True,
-                },
-            )
-
-            # 調用 KA-Agent
-            response = await ka_client.execute_agent(
-                agent_id="ka-agent",
-                request=ka_request,
-            )
-
-            if response.success and response.result:
-                knowledge = response.result.get("knowledge") or response.result.get("response")
-                logger.info(
-                    f"MM-Agent: 知識庫檢索成功, instruction='{instruction[:50]}...', "
-                    f"knowledge_length={len(knowledge) if knowledge else 0}"
+            # 直接調用 KA-Agent API
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    "http://localhost:8000/api/v1/knowledge/query",
+                    json={
+                        "request_id": f"mm_knowledge_{id(instruction)}",
+                        "query": instruction,
+                        "agent_id": "ka-agent",
+                        "user_id": "mm-agent",
+                        "metadata": {
+                            "caller_agent_id": "mm-agent",
+                            "caller_agent_key": "-h0tjyh",
+                        },
+                        "options": {
+                            "query_type": "hybrid",
+                            "top_k": 5,
+                            "include_graph": True,
+                        },
+                    },
                 )
-                return knowledge
-            else:
-                logger.warning(
-                    f"MM-Agent: 知識庫檢索失敗, instruction='{instruction[:50]}...', "
-                    f"error={response.error if hasattr(response, 'error') else 'Unknown'}"
-                )
-                return None
+
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("success") and result.get("results"):
+                    # 提取知識內容
+                    knowledge = ""
+                    for r in result.get("results", [])[:3]:
+                        content = r.get("content", "")
+                        if content:
+                            knowledge += content + "\n\n"
+
+                    if knowledge:
+                        logger.info(
+                            f"MM-Agent: 知識庫檢索成功, instruction='{instruction[:50]}...', "
+                            f"knowledge_length={len(knowledge)}"
+                        )
+                        return knowledge
+
+            logger.warning(
+                f"MM-Agent: 知識庫檢索失敗, instruction='{instruction[:50]}...', "
+                f"status={response.status_code}"
+            )
+            return None
 
         except Exception as e:
             logger.error(
                 f"MM-Agent: 調用 KA-Agent 檢索知識庫失敗: {e}",
                 exc_info=True,
             )
+            return None
+
+    async def _list_knowledge_files(self) -> str:
+        """列出知識庫中的所有文件
+
+        Returns:
+            文件列表字符串
+        """
+        try:
+            import httpx
+
+            # 調用 API 獲取知識庫文件列表
+            # MM-Agent 的知識庫 ID: root_Material_Management_1770989092
+            kb_id = "root_Material_Management_1770989092"
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # 獲取知識庫的資料夾
+                kb_response = await client.get(
+                    f"http://localhost:8000/api/v1/knowledge-bases/{kb_id}/folders"
+                )
+
+                if kb_response.status_code != 200:
+                    logger.warning(f"MM-Agent: 獲取知識庫資料夾失敗: {kb_response.status_code}")
+                    return None
+
+                kb_data = kb_response.json()
+                folders = kb_data.get("data", {}).get("items", [])
+
+                # 收集所有有向量的文件
+                all_files = []
+                for folder in folders:
+                    folder_id = folder.get("id")
+                    folder_name = folder.get("name", "未知資料夾")
+
+                    files_response = await client.get(
+                        f"http://localhost:8000/api/v1/knowledge-bases/folders/{folder_id}/files"
+                    )
+
+                    if files_response.status_code == 200:
+                        files_data = files_response.json()
+                        files = files_data.get("data", {}).get("items", [])
+
+                        for f in files:
+                            if f.get("vector_count", 0) > 0:  # 只包含有向量的文件
+                                all_files.append(
+                                    {
+                                        "name": f.get("filename", "未知文件名"),
+                                        "folder": folder_name,
+                                        "vector_count": f.get("vector_count", 0),
+                                    }
+                                )
+
+                # 生成文件列表
+                if all_files:
+                    file_list_text = "根據目前的向量檢索結果，系統的知識庫（即您上傳並已向量化的文件）包含以下文件：\n\n"
+                    file_list_text += "| 編號 | 文件名稱 | 所在資料夾 | 向量數 |\n"
+                    file_list_text += "|-------|----------|------------|--------|\n"
+
+                    for i, f in enumerate(all_files, 1):
+                        file_list_text += (
+                            f"| {i} | **{f['name']}** | {f['folder']} | {f['vector_count']} |\n"
+                        )
+
+                    file_list_text += f"\n**文件總數：{len(all_files)} 個**\n"
+                    file_list_text += (
+                        "\n> 注意：這裡所說的「知識庫」指的是您上傳的文件，而非本模型的訓練資料。"
+                    )
+
+                    return file_list_text
+                else:
+                    return "目前知識庫中沒有已向量化的文件。"
+
+        except Exception as e:
+            logger.error(f"MM-Agent: 列出知識庫文件失敗: {e}", exc_info=True)
             return None
 
     def _check_negative_list(self, instruction: str) -> tuple[bool, str]:
@@ -493,6 +510,9 @@ SQL：
         user_id = input_data.user_id
         session_id = input_data.session_id
 
+        # 【重要】重置 _last_intent_result，確保每次請求都進行新的意圖分類
+        self._last_intent_result = None
+
         # 如果沒有提供 session_id，創建新會話
         if not session_id:
             session_id = self._context_manager.create_session(user_id=user_id)
@@ -529,63 +549,162 @@ SQL：
                 },
             )
 
-        # Step 3: 檢查是否需要知識庫檢索
+        # Step 3: 知識庫檢索（僅當明確是知識查詢時）
         knowledge_result = None
-        if self._needs_knowledge_retrieval(working_query):
-            logger.info(f"MM-Agent: 檢測到知識庫查詢需求, instruction='{working_query[:50]}...'")
+        is_list_files_query = False
 
-            # 嘗試從多個知識庫類型檢索
-            for major in ["responsibilities", "skills", "workflows"]:
-                result = await self._retrieve_knowledge(
-                    working_query, domain="mm_agent", major=major
-                )
-                if result:
-                    knowledge_result = result
-                    logger.info(f"MM-Agent: 從 {major} 知識庫檢索到結果")
-                    break
+        # 【關鍵】先檢查 _last_intent_result 意圖
+        has_data_query_intent = False
+        has_knowledge_intent = False
 
-            if not knowledge_result:
-                logger.warning("MM-Agent: 知識庫檢索未返回結果")
+        # 初始意圖判斷
+        if self._last_intent_result:
+            intent = self._last_intent_result.intent
+            # 數據查詢意圖
+            if intent in [
+                "SIMPLE_QUERY",
+                "QUERY_STOCK",
+                "QUERY_INVENTORY",
+                "QUERY_WORK_ORDER",
+                "QUERY_SHIPPING",
+            ]:
+                has_data_query_intent = True
+            elif intent == "COMPLEX_TASK":
+                has_data_query_intent = True
+            # 知識查詢意圖（只有當不是數據查詢時才設置）
+            elif intent == "KNOWLEDGE_QUERY":
+                has_knowledge_intent = True
 
-        # Step 4: 專業轉譯 + 語義分析（使用新架構）
-        semantic_result = None
+        # 執行翻譯（用於數據查詢）
         translation = await self._translate(working_query)
 
-        # 如果啟用語義轉譯器，使用新架構進行語義分析
-        if self._semantic_translator and not knowledge_result:
+        # 執行語義分析（獲取意圖和約束）
+        semantic_result = None
+        if self._semantic_translator:
             try:
-                logger.info(f"MM-Agent: 使用語義轉譯器, instruction='{working_query[:50]}...'")
                 semantic_result = await self._semantic_translator.translate(working_query)
+                if semantic_result:
+                    # 從 semantic_result 更新意圖判斷（覆蓋 _last_intent_result）
+                    intent = semantic_result.intent
+                    if intent in [
+                        "QUERY_STOCK",
+                        "QUERY_INVENTORY",
+                        "QUERY_WORK_ORDER",
+                        "QUERY_SHIPPING",
+                        "SIMPLE_QUERY",
+                    ]:
+                        has_data_query_intent = True
+                        has_knowledge_intent = False  # 覆蓋知識查詢意圖
+                        logger.info(f"MM-Agent: semantic_result 意圖={intent}，設置為數據查詢")
+                    elif intent == "COMPLEX_TASK":
+                        has_data_query_intent = True
+                        has_knowledge_intent = False  # 覆蓋知識查詢意圖
+                        logger.info(f"MM-Agent: semantic_result 意圖={intent}，設置為數據查詢")
+                    elif intent == "KNOWLEDGE_QUERY":
+                        # semantic_result 也認為是知識查詢
+                        logger.info(f"MM-Agent: semantic_result 意圖={intent}，保持知識查詢")
 
-                # 如果需要澄清，優先返回澄清請求
-                if semantic_result.validation.requires_confirmation:
-                    clarification_msg = self._build_clarification_message(
-                        semantic_result.intent,
-                        semantic_result.validation,
-                        semantic_result.constraints,
-                    )
-                    return MMChainOutput(
-                        success=False,
-                        response="",
-                        needs_clarification=True,
-                        clarification_message=clarification_msg,
-                        session_id=session_id,
-                        resolved_query=resolved_query if resolved_query != instruction else None,
-                        translation=translation,
-                        debug_info={
-                            "step": "semantic_translation",
-                            "intent": semantic_result.intent,
-                            "semantic_result": semantic_result.model_dump(),
-                            "requires_confirmation": True,
-                        },
-                    )
+                    # 如果需要澄清
+                    if semantic_result.validation.requires_confirmation:
+                        clarification_msg = self._build_clarification_message(
+                            intent,
+                            semantic_result.validation,
+                            semantic_result.constraints,
+                        )
+                        return MMChainOutput(
+                            success=False,
+                            response="",
+                            needs_clarification=True,
+                            clarification_message=clarification_msg,
+                            session_id=session_id,
+                            resolved_query=resolved_query
+                            if resolved_query != instruction
+                            else None,
+                            translation=translation,
+                            debug_info={
+                                "step": "semantic_translation",
+                                "intent": intent,
+                                # 只保留意圖，不包含 schema 相關信息
+                                "semantic_result": {
+                                    "intent": semantic_result.intent,
+                                    "raw_text": semantic_result.raw_text,
+                                },
+                                "requires_confirmation": True,
+                            },
+                        )
+
             except Exception as e:
-                logger.warning(f"MM-Agent: 語義轉譯失敗，回退到原有邏輯: {e}")
+                logger.warning(f"MM-Agent: 語義翻譯失敗: {e}")
 
-        # Step 5: 使用上下文豐富轉譯結果（對於省略的實體）
+        # 執行 Data-Agent 查詢（數據查詢意圖）
+        # MM-Agent 只負責意圖識別，SQL 生成交給 Data-Agent（使用 SchemaRAG）
+        data_result = None
+        if has_data_query_intent and semantic_result:
+            try:
+                logger.info(f"MM-Agent: 執行 Data-Agent 查詢（意圖：{semantic_result.intent}）")
+                # 直接發送完整自然語言給 Data-Agent，讓 Data-Agent 負責 SQL 生成
+                data_result = await self._execute_data_agent_query(semantic_result)
+                logger.info(
+                    f"MM-Agent: Data-Agent 查詢完成, status={data_result.get('status') if data_result else 'None'}"
+                )
+            except Exception as e:
+                logger.warning(f"MM-Agent: Data-Agent 查詢失敗: {e}")
+
+        # 知識庫檢索（僅當明確是知識查詢且沒有數據查詢時）
+        if has_knowledge_intent and not data_result:
+            if self._last_intent_result and hasattr(
+                self._last_intent_result, "is_list_files_query"
+            ):
+                is_list_files_query = self._last_intent_result.is_list_files_query
+
+            if is_list_files_query:
+                knowledge_result = await self._list_knowledge_files()
+            else:
+                # 嘗試從多個知識庫類型檢索
+                for major in ["responsibilities", "skills", "workflows"]:
+                    result = await self._retrieve_knowledge(
+                        working_query, domain="mm_agent", major=major
+                    )
+                    if result:
+                        knowledge_result = result
+                        logger.info(f"MM-Agent: 從 {major} 知識庫檢索到結果")
+                        break
+                semantic_result = None
+
+        # 【重要】數據查詢意圖優先，不執行知識庫檢索
+        # 如果已經有 semantic_result 識別為數據查詢意圖，直接跳過知識庫檢索判斷
+        if has_data_query_intent:
+            logger.info(f"MM-Agent: 檢測到數據查詢意圖（semantic_result），跳過知識庫檢索")
+        elif await self._needs_knowledge_retrieval(working_query):
+            has_knowledge_intent = True  # LLM 判斷為知識查詢
+            logger.info(
+                f"MM-Agent: 檢測到知識庫查詢需求, instruction='{working_query[:50]}...', is_list_files_query={is_list_files_query}"
+            )
+
+            # 如果是「列出知識庫文件」查詢，直接返回文件列表
+            if is_list_files_query:
+                knowledge_result = await self._list_knowledge_files()
+                logger.info(
+                    f"MM-Agent: 返回知識庫文件列表, count={len(knowledge_result) if knowledge_result else 0}"
+                )
+            else:
+                # 嘗試從多個知識庫類型檢索
+                for major in ["responsibilities", "skills", "workflows"]:
+                    result = await self._retrieve_knowledge(
+                        working_query, domain="mm_agent", major=major
+                    )
+                    if result:
+                        knowledge_result = result
+                        logger.info(f"MM-Agent: 從 {major} 知識庫檢索到結果")
+                        break
+
+                if not knowledge_result:
+                    logger.warning("MM-Agent: 知識庫檢索未返回結果")
+
+        # Step 4: 使用上下文豐富轉譯結果（對於省略的實體）
         translation = self._enrich_with_context(translation, context_entities)
 
-        # Step 6: 意圖分析
+        # Step 5: 意圖分析
         intent = self._analyze_intent(working_query, translation)
 
         # Step 6.5: 檢查是否需要澄清（針對模糊的時間表達）
@@ -633,12 +752,33 @@ SQL：
         self._context_manager.add_message(session_id, "user", instruction, metadata)
 
         # 生成回復
-        if knowledge_result:
-            # 使用知識庫結果生成回復
+        response = ""
+        used_knowledge = False
+        used_data_query = False
+
+        # 情況 1: 只有知識意圖 → 返回知識庫內容
+        if knowledge_result and not data_result:
             response = knowledge_result
+            used_knowledge = True
             logger.info(f"MM-Agent: 使用知識庫結果回復, response_length={len(response)}")
+
+        # 情況 2: 只有數據意圖 → 返回 Data-Agent 查詢結果
+        elif data_result and data_result.get("status") == "success" and not knowledge_result:
+            response = self._format_data_response(data_result)
+            used_data_query = True
+            logger.info(f"MM-Agent: 使用 Data-Agent 結果回復")
+
+        # 情況 3: 兩者都有 → 由 LLM 整合回覆
+        elif knowledge_result and data_result and data_result.get("status") == "success":
+            response = await self._generate_integrated_response(
+                working_query, knowledge_result, data_result
+            )
+            used_knowledge = True
+            used_data_query = True
+            logger.info(f"MM-Agent: 使用整合回覆（知識+數據）")
+
+        # 情況 4: 沒有結果 → 默認回覆
         else:
-            # 默認回復
             response = f"已收到指令：{instruction}"
             if resolved_query != instruction:
                 response += f"\n（指代消解：{resolved_query}）"
@@ -655,19 +795,37 @@ SQL：
             "translation": translation.model_dump()
             if hasattr(translation, "model_dump")
             else dict(translation),
-            "used_knowledge_retrieval": knowledge_result is not None,
-            "knowledge_used": knowledge_result is not None,
+            "used_knowledge_retrieval": used_knowledge,
+            "used_data_query": used_data_query,
         }
 
-        # 如果有語義分析結果，添加到 debug_info
+        # 如果有語義分析結果，添加到 debug_info（只保留意圖，不包含 schema 相關信息）
         if semantic_result:
-            debug_info["semantic_result"] = semantic_result.model_dump()
-            debug_info["intent"] = semantic_result.intent
+            # 只保留意圖和約束條件，不包含 schema_binding
+            debug_info["semantic_result"] = {
+                "intent": semantic_result.intent,
+                "raw_text": semantic_result.raw_text,
+                "constraints": {
+                    "material_id": semantic_result.constraints.material_id,
+                    "inventory_location": semantic_result.constraints.inventory_location,
+                    "time_range": semantic_result.constraints.time_range,
+                }
+                if semantic_result.constraints
+                else {},
+            }
+            # 設置意圖
+            if has_knowledge_intent and has_data_query_intent:
+                debug_info["intent"] = "INTEGRATED"
+            elif has_knowledge_intent:
+                debug_info["intent"] = "KNOWLEDGE_QUERY"
+            elif has_data_query_intent:
+                debug_info["intent"] = semantic_result.intent
+            else:
+                debug_info["intent"] = semantic_result.intent
 
-            # 生成 SQL
-            generated_sql = await self._generate_sql_from_semantic(semantic_result)
-            if generated_sql:
-                debug_info["generated_sql"] = generated_sql
+        # 如果有知識庫查詢意圖但沒有 semantic_result，也設置 intent
+        if has_knowledge_intent and not semantic_result:
+            debug_info["intent"] = "KNOWLEDGE_QUERY"
 
         return MMChainOutput(
             success=True,
@@ -677,6 +835,82 @@ SQL：
             resolved_query=resolved_query if resolved_query != instruction else None,
             debug_info=debug_info,
         )
+
+    def _format_data_response(self, data_result: dict) -> str:
+        """格式化 Data-Agent 查詢結果"""
+        sql = data_result.get("sql", "")
+        data = data_result.get("data", [])
+        row_count = data_result.get("row_count", 0)
+        execution_time = data_result.get("execution_time_ms", 0)
+
+        response = f"**查詢結果**（耗時 {execution_time:.0f} ms）\n\n"
+
+        if sql:
+            response += f"**SQL**:\n```sql\n{sql}\n```\n\n"
+
+        if row_count == 0:
+            response += "**結果**: 查無資料"
+        else:
+            response += f"**資料筆數**: {row_count}\n\n"
+
+            if data:
+                response += "**前 5 筆資料**:\n"
+                response += "| " + " | ".join(data[0].keys()) + " |\n"
+                response += "| " + " | ".join(["---"] * len(data[0])) + " |\n"
+                for row in data[:5]:
+                    response += "| " + " | ".join(str(v) for v in row.values()) + " |\n"
+
+        return response
+
+    async def _generate_integrated_response(
+        self, query: str, knowledge_result: str, data_result: dict
+    ) -> str:
+        """由 LLM 生成整合回覆（知識+數據）"""
+        try:
+            # 構建整合提示
+            data_summary = ""
+            if data_result.get("data"):
+                data = data_result["data"][:5]
+                data_summary = f"**查詢結果**（{data_result.get('row_count', 0)} 筆資料）\n"
+                if data:
+                    data_summary += "| " + " | ".join(data[0].keys()) + " |\n"
+                    data_summary += "| " + " | ".join(["---"] * len(data[0])) + " |\n"
+                    for row in data[:5]:
+                        data_summary += "| " + " | ".join(str(v) for v in row.values()) + " |\n"
+
+            prompt = f"""用戶問題: {query}
+
+知識庫內容:
+{knowledge_result}
+
+數據查詢結果:
+{data_summary}
+
+請根據用戶問題，整合知識庫內容和數據查詢結果，生成一個完整、有意義的回答。
+
+要求：
+1. 先回答用戶的核心問題
+2. 結合知識庫的專業說明
+3. 解釋數據查詢結果的業務意義
+4. 提供建議或後續行動
+
+回答:"""
+
+            if self._llm_client:
+                response = await self._llm_client.generate(
+                    prompt=prompt,
+                    temperature=0.5,
+                    max_tokens=2000,
+                )
+                text = response.get("text", "") or response.get("content", "")
+                return text.strip()
+
+            # 如果沒有 LLM，回退到簡單整合
+            return f"**知識庫內容**:\n{knowledge_result}\n\n**數據查詢結果**:\n{data_summary if data_summary else '無數據'}"
+
+        except Exception as e:
+            logger.error(f"MM-Agent: 整合回覆生成失敗: {e}")
+            return f"**知識庫內容**:\n{knowledge_result}\n\n**數據查詢結果**:\n{data_summary if data_summary else '查詢失敗'}"
 
 
 if __name__ == "__main__":

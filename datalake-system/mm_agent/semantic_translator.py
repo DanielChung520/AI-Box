@@ -1,12 +1,18 @@
-# 代碼功能說明: 語義轉譯 Agent
+# 代碼功能說明: 語義轉譯 Agent - 意圖識別
 # 創建日期: 2026-02-05
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-02-05
+# 最後修改日期: 2026-02-20
+#
+# 職責：
+# - 只負責意圖識別（QUERY_STOCK, ANALYZE_SHORTAGE 等）
+# - 不負責 SQL 生成
+# - 不碰 Schema 資訊（交給 Data-Agent）
 
-"""語義轉譯 Agent - 使用 LLM 將自然語言轉換為語義結構"""
+"""語義轉譯 Agent - 意圖識別（不涉及 SQL Schema）"""
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
@@ -26,13 +32,11 @@ from .translation_models import (
     Validation,
 )
 
-from .services.schema_registry import get_schema_registry, SchemaRegistry
-
 logger = logging.getLogger(__name__)
 
 
 class SemanticTranslatorAgent:
-    """語義轉譯 Agent - 從 Schema Registry 動態載入 Concepts 與 Intent Templates"""
+    """語義轉譯 Agent - 只負責意圖識別，不涉及 SQL Schema"""
 
     INTENT_ENUM = [
         "QUERY_STOCK",  # 庫存查詢
@@ -42,39 +46,29 @@ class SemanticTranslatorAgent:
         "GENERATE_ORDER",  # 生成訂單
         "QUERY_SUPPLIER",  # 供應商查詢
         "QUERY_CUSTOMER",  # 客戶查詢
+        "QUERY_WORK_ORDER",  # 工單查詢
+        "QUERY_SHIPPING",  # 出貨查詢
+        "SIMPLE_QUERY",  # 簡單查詢
+        "COMPLEX_TASK",  # 複雜任務
+        "KNOWLEDGE_QUERY",  # 知識庫查詢
         "CLARIFICATION",  # 需要澄清
     ]
 
     def __init__(
         self,
         llm_provider: Optional[LLMProvider] = None,
-        schema_registry_path: Optional[str] = None,
         use_rules_engine: bool = True,
     ) -> None:
         """初始化語義轉譯 Agent
 
         Args:
             llm_provider: LLM 提供商（可選，默認 OLLAMA）
-            schema_registry_path: Schema Registry 路徑（可選）
             use_rules_engine: 是否同時使用規則引擎（快速匹配）
         """
         self._llm_provider = llm_provider or LLMProvider.OLLAMA
         self._llm_client = None
-        self._schema_registry_path = schema_registry_path
         self._use_rules_engine = use_rules_engine
         self._logger = logger
-
-        # 初始化 Schema Registry
-        self._schema_registry = get_schema_registry(schema_registry_path)
-
-        # 快取 Prompt 結構（避免每次重新序列化）
-        self._prompt_cache = {
-            "metadata": None,
-            "concepts": None,
-            "templates": None,
-            "intent_list": ", ".join(self.INTENT_ENUM),
-        }
-        self._cache_initialized = False
 
         # 快速路徑：簡單查詢模式（無需 LLM）
         self._simple_patterns = [
@@ -86,6 +80,18 @@ class SemanticTranslatorAgent:
             (r"^上月.*買進.*$", "QUERY_PURCHASE"),
             (r"^本月.*買進.*$", "QUERY_PURCHASE"),
             (r"^上月.*賣出.*$", "QUERY_SALES"),
+            # 新增：支持數字開頭的料號模式（查詢料號 XXXX 的庫存）
+            (r"^查詢料號.*[0-9].*的庫存.*$", "QUERY_STOCK"),
+            (r"^料號.*[0-9].*庫存.*$", "QUERY_STOCK"),
+            (r"^.*[0-9]{2,6}.*庫存.*$", "QUERY_STOCK"),
+            # 新增：歷史庫存變動查詢模式
+            (r"^查詢料號.*歷史庫存變動.*$", "QUERY_STOCK"),
+            (r".*歷史.*庫存.*變動.*$", "QUERY_STOCK"),
+            (r".*庫存.*變動.*$", "QUERY_STOCK"),
+            (r".*歷史庫存.*$", "QUERY_STOCK"),
+            (r".*庫存變動.*$", "QUERY_STOCK"),
+            # 新增：支持查詢料號結尾的模式
+            (r"^查詢料號.*[0-9].*的.*$", "QUERY_STOCK"),
         ]
 
     def _get_llm_client(self):
@@ -102,20 +108,54 @@ class SemanticTranslatorAgent:
         return self._llm_client
 
     def _find_concepts_with_rules(self, text: str) -> List[ConceptMappingModel]:
-        """使用規則引擎查找概念（快速匹配）"""
+        """使用規則引擎查找概念（快速匹配）- 不涉及 Schema"""
         concepts = []
         text_lower = text.lower()
 
-        for concept_name, concept in self._schema_registry.get_all_concepts().items():
-            for mapping_key, mapping in concept.mappings.items():
-                for keyword in mapping.keywords:
-                    if keyword.lower() in text_lower:
-                        concepts.append(
-                            ConceptMappingModel(
-                                canonical_id=concept_name, source_terms=[keyword], confidence=0.9
-                            )
-                        )
-                        break
+        # 仓库关键词
+        warehouse_keywords = [
+            "8802",
+            "2101",
+            "2205",
+            "3000",
+            "3200",
+            "3400",
+            "6001",
+            "R01",
+            "R02",
+            "W01",
+            "RAW",
+            "成品倉",
+            "原料倉",
+            "半成品倉",
+        ]
+        for kw in warehouse_keywords:
+            if kw in text_lower:
+                concepts.append(
+                    ConceptMappingModel(canonical_id="WAREHOUSE", source_terms=[kw], confidence=0.9)
+                )
+
+        # 料号关键词
+        if "料號" in text_lower or "料號" in text:
+            concepts.append(
+                ConceptMappingModel(
+                    canonical_id="MATERIAL_ID", source_terms=["料號"], confidence=0.9
+                )
+            )
+
+        # 储位关键词
+        if "儲位" in text_lower:
+            concepts.append(
+                ConceptMappingModel(
+                    canonical_id="LOCATION_CODE", source_terms=["儲位"], confidence=0.9
+                )
+            )
+
+        # 数量关键词
+        if any(kw in text_lower for kw in ["數量", "庫存", "庫存數量"]):
+            concepts.append(
+                ConceptMappingModel(canonical_id="QUANTITY", source_terms=["數量"], confidence=0.8)
+            )
 
         return concepts
 
@@ -126,6 +166,9 @@ class SemanticTranslatorAgent:
         patterns = [
             r"([A-Z]{2,4}-?\d{2,6}(?:-\d{2,6})?)",
             r"([A-Z]{2,4}\d{2,6}(?:-\d{2,6})?)",
+            # 新增：支持純數字或數字開頭的料號（如 10-0001, 10-0008）
+            r"(\d{2,6}(?:-\d{2,6})?)",
+            r"(10-\d{4})",  # 常見的 10-XXXX 格式
         ]
         for pattern in patterns:
             match = re.search(pattern, text, re.IGNORECASE)
@@ -174,46 +217,6 @@ class SemanticTranslatorAgent:
             return {"start": match.group(1), "end": match.group(2)}
         return None
 
-    def _init_prompt_cache(self):
-        """初始化 Prompt 快取（只執行一次）"""
-        if self._cache_initialized:
-            return
-
-        self._prompt_cache["metadata"] = json.dumps(
-            self._schema_registry.get_metadata(), ensure_ascii=False, indent=2
-        )
-
-        concepts = self._schema_registry.get_all_concepts()
-        concepts_json = {}
-        for name, concept in concepts.items():
-            concepts_json[name] = {
-                "description": concept.description,
-                "mappings": {
-                    k: {
-                        "keywords": v.keywords,
-                        "target_field": v.target_field,
-                        "operator": v.operator,
-                    }
-                    for k, v in concept.mappings.items()
-                },
-            }
-        self._prompt_cache["concepts"] = json.dumps(concepts_json, ensure_ascii=False, indent=2)
-
-        templates = self._schema_registry.get_all_intent_templates()
-        templates_json = {}
-        for name, template in templates.items():
-            templates_json[name] = {
-                "description": template.description,
-                "intent_type": template.intent_type,
-                "primary_table": template.primary_table,
-                "required_fields": template.required_fields,
-                "optional_fields": template.optional_fields,
-                "examples": template.examples,
-            }
-        self._prompt_cache["templates"] = json.dumps(templates_json, ensure_ascii=False, indent=2)
-
-        self._cache_initialized = True
-
     def _try_fast_path(self, user_input: str) -> Optional[SemanticTranslationResult]:
         """快速路徑：簡單查詢直接返回（無需 LLM）"""
         import re
@@ -240,10 +243,10 @@ class SemanticTranslatorAgent:
                     time_range=time_range,
                 )
 
-                intent_template = self._schema_registry.get_intent_template(intent)
+                # 不再使用 schema_registry，schema_binding 设为空
                 schema_binding = SchemaBinding(
-                    primary_table=intent_template.primary_table if intent_template else "",
-                    tables=[intent_template.primary_table] if intent_template else [],
+                    primary_table="",  # 不再硬编码 schema
+                    tables=[],
                 )
 
                 return SemanticTranslationResult(
@@ -258,12 +261,41 @@ class SemanticTranslatorAgent:
         return None
 
     def _build_prompt(self, user_input: str) -> str:
-        """構建 LLM Prompt（使用快取）"""
-        self._init_prompt_cache()
+        """構建 LLM Prompt - 只包含意圖識別，不涉及 Schema"""
+        intent_list = ", ".join(self.INTENT_ENUM)
 
-        schema_content = self._prompt_cache["metadata"]
-        concepts_json = self._prompt_cache["concepts"]
-        templates_json = self._prompt_cache["templates"]
+        prompt = f"""你是一個「意圖識別 Agent」，負責從用戶輸入中識別查詢意圖。
+
+【可用的意圖類型】
+{intent_list}
+
+【任務】
+1. 識別用戶的查詢意圖
+2. 提取關鍵約束條件（料號、倉庫、數量、時間等）
+3. 如果信息不足，設置 requires_confirmation = true
+
+【輸出格式】（JSON）
+{{
+    "intent": "意圖類型",
+    "constraints": {{
+        "material_id": "料號（如有）",
+        "inventory_location": "倉庫代號（，如有）",
+        "time_range": "時間範圍（如有）",
+        "quantity": 數量（如有）,
+        "material_category": "物料類別（如有）"
+    }},
+    "validation": {{
+        "requires_confirmation": true/false,
+        "missing_fields": ["缺少的欄位"],
+        "notes": "備註"
+    }}
+}}
+
+用戶輸入：{user_input}
+
+JSON：
+"""
+        return prompt
         intent_list = self._prompt_cache["intent_list"]
 
         prompt = f"""你是一個「企業 ERP 語義轉譯 Agent」，負責將使用者的自然語言，
@@ -458,29 +490,38 @@ class SemanticTranslatorAgent:
                 if extracted_qty:
                     llm_constraints["quantity"] = extracted_qty
 
-            # 從 LLM 結果提取 Schema 綁定
+            # 從 LLM 結果提取 Schema 綁定（不再使用 schema_registry）
             schema_binding_data = json_data.get("schema_binding", {})
 
-            # 獲取意圖模板
+            # 意圖名稱
             intent_name = json_data.get("intent", "CLARIFICATION")
-            intent_template = self._schema_registry.get_intent_template(intent_name)
 
-            # 驗證約束
-            validation_result = self._schema_registry.validate_constraints(
-                intent_name, llm_constraints
-            )
+            # 簡化的驗證（不依賴 schema_registry）
+            missing_fields = []
+            requires_confirmation = False
+
+            # 檢查必要字段
+            if intent_name in ["QUERY_STOCK", "QUERY_INVENTORY"]:
+                if not any(
+                    [
+                        llm_constraints.get("material_id"),
+                        llm_constraints.get("inventory_location"),
+                        llm_constraints.get("material_category"),
+                    ]
+                ):
+                    missing_fields = ["warehouse", "material_category", "part_number"]
+                    requires_confirmation = True
 
             # 構建 Validation 物件
             validation = Validation(
-                requires_confirmation=validation_result.get("valid") is False,
-                missing_fields=validation_result.get("missing_fields", []),
-                notes=validation_result.get("error_message", ""),
+                requires_confirmation=requires_confirmation,
+                missing_fields=missing_fields,
+                notes="",
             )
 
-            # 構建 SchemaBinding 物件
+            # 構建 SchemaBinding 物件（不再使用 schema_registry）
             schema_binding = SchemaBinding(
-                primary_table=schema_binding_data.get("primary_table")
-                or (intent_template.primary_table if intent_template else ""),
+                primary_table="",  # 不再硬编码
                 tables=schema_binding_data.get("tables", []),
                 columns=schema_binding_data.get("columns", []),
             )

@@ -12,12 +12,13 @@ import os
 import sys
 from pathlib import Path
 
-ORACLE_LIB_PATH = os.getenv("ORACLE_LIB_PATH", "/home/daniel/instantclient_23_26")
-if ORACLE_LIB_PATH and os.path.exists(ORACLE_LIB_PATH):
-    os.environ["LD_LIBRARY_PATH"] = f"{ORACLE_LIB_PATH}:{os.environ.get('LD_LIBRARY_PATH', '')}"
-    print(f"✅ Oracle Client library path 設定完成: {ORACLE_LIB_PATH}")
-else:
-    print(f"⚠️ Oracle Client library not found at: {ORACLE_LIB_PATH}")
+# Oracle - 不再使用 (2026-02-15 已切换到 DuckDB + S3)
+# ORACLE_LIB_PATH = os.getenv("ORACLE_LIB_PATH", "/home/daniel/instantclient_23_26")
+# if ORACLE_LIB_PATH and os.path.exists(ORACLE_LIB_PATH):
+#     os.environ["LD_LIBRARY_PATH"] = f"{ORACLE_LIB_PATH}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+#     print(f"✅ Oracle Client library path 設定完成: {ORACLE_LIB_PATH}")
+# else:
+#     print(f"⚠️ Oracle Client library not found at: {ORACLE_LIB_PATH}")
 
 # 獲取 datalake-system 目錄
 DATALAKE_SYSTEM_DIR = Path(__file__).resolve().parent.parent
@@ -228,6 +229,29 @@ try:
                 )
 
             sql = result["sql"]
+            intent = result.get("intent", "UNKNOWN")
+
+            from data_agent.services.schema_driven_query.pre_validator import PreValidator
+
+            validator = PreValidator()
+            entities = result.get("params", {})
+            validation_result = await validator.validate(
+                request.task_data.nlq,
+                intent,
+                entities,
+                intent_confidence=result.get("confidence", 1.0),
+            )
+
+            if not validation_result.valid:
+                errors = validation_result.errors
+                first_error = errors[0] if errors else None
+                if first_error:
+                    return ExecuteResponse(
+                        status="error",
+                        task_id=request.task_id,
+                        error_code=first_error.code,
+                        message=first_error.message,
+                    )
 
             from data_agent.services.schema_driven_query.executor import ExecutorFactory
             from data_agent.services.schema_driven_query.config import get_config
@@ -249,15 +273,31 @@ try:
             try:
                 exec_result = executor.execute(sql, timeout=timeout)
             except Exception as exec_error:
-                # 捕獲執行錯誤，返回錯誤訊息而不是崩潰
+                # 捕獲執行錯誤，翻譯為用戶可理解的訊息
                 error_msg = str(exec_error)
-                if "memory" in error_msg.lower() or "out of memory" in error_msg.lower():
-                    error_msg = f"Query requires too much memory. Please simplify the query or add more specific filters. Original error: {error_msg}"
+
+                # 翻譯 DuckDB 錯誤訊息
+                user_message = error_msg
+                error_lower = error_msg.lower()
+
+                if "table with name" in error_lower and "does not exist" in error_lower:
+                    user_message = "數據來源不足：表格不存在或尚未載入"
+                elif "ambiguous reference to column name" in error_lower:
+                    user_message = "維度模糊：請更具體指定查詢維度，避免跨表格同名欄位"
+                elif "referenced column" in error_lower and "not found" in error_lower:
+                    user_message = "缺乏關鍵欄位：請確認查詢維度是否正確"
+                elif "binder error" in error_lower and "not found" in error_lower:
+                    user_message = "缺乏關鍵欄位：請確認查詢維度是否正確"
+                elif "memory" in error_lower or "out of memory" in error_lower:
+                    user_message = f"查詢複雜度過高，建議增加篩選條件以縮小範圍"
+                else:
+                    user_message = f"查詢執行失敗：{error_msg[:100]}"
+
                 return ExecuteResponse(
                     status="error",
                     task_id=request.task_id,
                     error_code="QUERY_TOO_COMPLEX",
-                    message=error_msg,
+                    message=user_message,
                 )
             finally:
                 # 確保連線被關閉
@@ -309,6 +349,16 @@ try:
                 error_code="INTERNAL_ERROR",
                 message=f"{str(e)} (Memory may be exhausted)",
             )
+
+    @app.post("/api/v1/data-agent/jp/execute")
+    async def jp_execute_api(request: ExecuteRequest) -> ExecuteResponse:
+        """API v1 Data-Agent-JP Schema Driven Query 執行"""
+        return await jp_execute(request)
+
+    @app.post("/api/v1/data-agent/v4/execute")
+    async def jp_execute_v4_api(request: ExecuteRequest) -> ExecuteResponse:
+        """API v4 Data-Agent-JP Schema Driven Query 執行"""
+        return await jp_execute(request)
 
     @app.get("/jp/health", response_model=HealthResponse)
     async def jp_health() -> HealthResponse:

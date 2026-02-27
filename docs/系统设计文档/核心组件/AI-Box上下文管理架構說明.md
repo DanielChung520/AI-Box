@@ -58,11 +58,11 @@ graph TD
 
 ### 組件職責分工
 
-| 組件                        | 主要職責       | 存儲層           | 特點       |
-| --------------------------- | -------------- | ---------------- | ---------- |
-| **ContextManager**    | 對話上下文管理 | Redis + ArangoDB | 會話級管理 |
-| **MemoryManager**     | 記憶存儲與檢索 | Redis + ChromaDB | 跨會話記憶 |
-| **ChatMemoryService** | 聊天記憶注入   | 多源檢索         | 即時檢索   |
+| 組件                        | 主要職責       | 存儲層                    | 特點       |
+| --------------------------- | -------------- | ------------------------- | ---------- |
+| **ContextManager**    | 對話上下文管理 | Redis + ArangoDB          | 會話級管理 |
+| **MemoryManager**     | 記憶存儲與檢索 | Redis + ChromaDB + ArangoDB | 跨會話記憶 |
+| **ChatMemoryService** | 聊天記憶注入   | 多源檢索                  | 即時檢索   |
 
 ---
 
@@ -82,7 +82,11 @@ class ContextManager:
         self._config = config or ContextConfig()
         self._recorder = ContextRecorder(config=self._config)
         self._history = ConversationHistory(namespace=self._config.namespace)
-        self._window = ContextWindow(max_tokens=4096)
+        # 預設 128k 窗口（匹配 gpt-oss:120b），使用 tiktoken 計算
+        self._window = ContextWindow(
+            max_tokens=131072,
+            encoding_name="cl100k_base"
+        )
         self._persistence = ContextPersistence() if self._config.enable_persistence else None
 ```
 
@@ -112,19 +116,37 @@ class ContextRecorder:
 class ContextWindow:
     """上下文窗口管理器，負責上下文長度控制。"""
   
-    def __init__(self, max_tokens: int = 4096):
+    def __init__(
+        self,
+        max_tokens: int = 131072,  # 預設 128k，匹配 gpt-oss:120b
+        max_messages: Optional[int] = None,
+        truncation_strategy: TruncationStrategy = TruncationStrategy.FIFO,
+        encoding_name: str = "cl100k_base"
+    ):
         self.max_tokens = max_tokens
+        self._encoding_name = encoding_name
+        # 使用 tiktoken 計算真實 token 數
       
     def truncate(self, messages: List[Dict]) -> List[Dict]:
         """根據 token 限制截斷消息"""
+
+    def get_context_with_dynamic_window(
+        self, session_id: str, reserved_tokens: int = 0
+    ) -> List[Dict[str, str]]:
+        """根據預留空間動態截斷（system + memory injection）"""
+        available = self.max_tokens - reserved_tokens
+        # 根據剩餘空間截斷對話歷史
 ```
 
 ### 實現狀態
 
 - ✅ **會話管理**: 已實現基本的會話創建和管理
 - ✅ **消息記錄**: 已實現消息的持久化存儲
-- ⚠️ **上下文壓縮**: 基礎實現，需要優化算法
-- 📅 **多會話支持**: 計劃中，需要完善會話切換邏輯
+- ✅ **窗口大小**: 128k tokens（匹配 gpt-oss:120b）
+- ✅ **Token 計算**: 使用 tiktoken cl100k_base 真實計算
+- ✅ **動態截斷**: 根據 system + memory injection 預留空間
+- ⚠️ **上下文壓縮**: 基礎實現（SUMMARY 策略保留頭尾）
+- ⚠️ **長期記憶**: 同步存儲（非 RQ 異步任務）
 
 ---
 
@@ -329,10 +351,10 @@ async def cleanup_expired_memory(self, user_id: str):
 
 ### 實現狀態
 
-- ✅ **短期記憶**: 已實現 Redis 存儲
-- ⚠️ **長期記憶**: 從 ChromaDB 遷移到 Qdrant，需更新代碼實現
-- 📅 **記憶清理**: 計劃中，需要實現清理策略
-- 📅 **記憶壓縮**: 計劃中，需要優化存儲效率
+- ✅ **短期記憶**: Redis 存儲 + in-memory 備援
+- ✅ **長期記憶**: ChromaDB 存儲（代碼遷移中）+ ArangoDB 關係圖
+- ⚠️ **異步處理**: 同步存儲（失敗不阻擋 chat）
+- ⚠️ **記憶清理**: 計劃中
 
 #### 與 AAM 白皮書的整合
 

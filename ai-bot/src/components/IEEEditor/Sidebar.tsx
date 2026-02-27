@@ -37,7 +37,7 @@ export default function Sidebar({ content, editor, currentLine }: SidebarProps) 
     return (
       <div
         key={heading.id || index}
-        className={`cursor-pointer py-1 px-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors ${
+        className={`cursor-pointer py-1 px-2 text-sm hover:bg-[var(--bg-hover)] dark:hover:bg-gray-700 rounded transition-colors ${
           isActive
             ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium'
             : 'text-gray-700 dark:text-gray-300'
@@ -55,7 +55,7 @@ export default function Sidebar({ content, editor, currentLine }: SidebarProps) 
   };
 
   return (
-    <div className="w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 h-full overflow-y-auto">
+    <div className="w-64 border-r border-gray-200 dark:border-gray-700 bg-[var(--bg-tertiary)] dark:bg-gray-900 h-full overflow-y-auto">
       <div className="p-4">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
           大綱

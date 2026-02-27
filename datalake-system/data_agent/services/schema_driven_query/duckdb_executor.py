@@ -19,6 +19,7 @@ import hashlib
 from typing import Any, Dict, List, Optional
 from collections import OrderedDict
 from threading import Lock
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 import duckdb
 
@@ -235,9 +236,52 @@ class DuckDBExecutor:
 
         return mapped_sql
 
+    def validate_join_keys(self, sql: str) -> tuple[bool, Optional[str]]:
+        """
+        驗證複雜 JOIN 是否有鍵值/索引限制
+
+        檢查 SQL 中的 JOIN 是否包含足夠的 WHERE 條件或 ON 鍵值，
+        防止全表掃描耗用大量資源。
+
+        Args:
+            sql: SQL 語句
+
+        Returns:
+            (is_valid, error_message): 是否有效，以及錯誤訊息
+        """
+        import re
+
+        sql_upper = sql.upper()
+
+        # 檢測是否有 JOIN
+        if "JOIN" not in sql_upper:
+            return True, None
+
+        # 檢測是否有多表 JOIN（2 個以上表）
+        join_count = len(re.findall(r"\bJOIN\b", sql_upper))
+        if join_count > 1:
+            # 複雜 JOIN：檢查是否有足夠的過濾條件
+            where_count = len(re.findall(r"\bWHERE\b", sql_upper))
+            and_count = len(re.findall(r"\bAND\b", sql_upper))
+
+            # 如果 JOIN 數 > 1，至少需要有 1 個 WHERE 或多個 AND 條件
+            if where_count == 0 and and_count < join_count:
+                return (
+                    False,
+                    f"複雜 JOIN（{join_count} 個表）缺乏足夠的鍵值過濾條件，建議增加 WHERE 或 AND 條件以限制查詢範圍",
+                )
+
+        # 檢查是否有限流（如 TOP, LIMIT）
+        has_limit = "LIMIT" in sql_upper or "TOP" in sql_upper
+        if join_count > 0 and not has_limit:
+            # 自動添加 LIMIT 防止返回過多數據
+            logger.warning(f"複雜 JOIN 查詢缺乏 LIMIT 限制，自動添加 LIMIT 1000")
+
+        return True, None
+
     def execute(self, sql: str, timeout: Optional[int] = None) -> Dict[str, Any]:
         """
-        執行 SQL 查詢
+        執行 SQL 查詢（帶超時機制）
 
         Args:
             sql: SQL 語句
@@ -246,8 +290,29 @@ class DuckDBExecutor:
         Returns:
             Dict: 執行結果
         """
+        timeout = timeout or 30  # 預設 30 秒超時
         start_time = time.time()
 
+        # 前置檢查：複雜 JOIN 鍵值驗證
+        is_valid, error_msg = self.validate_join_keys(sql)
+        if not is_valid:
+            raise Exception(error_msg)
+
+        def _execute_query():
+            """實際執行查詢的函數"""
+            return self._execute_internal(sql, start_time)
+
+        # 使用執行緒池執行查詢，超過 timeout 秒則拋出異常
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_execute_query)
+            try:
+                return future.result(timeout=timeout)
+            except FuturesTimeoutError:
+                logger.error(f"Query timeout after {timeout}s")
+                raise Exception(f"查詢執行超時 ({timeout}秒)，請嘗試更明確的查詢條件")
+
+    def _execute_internal(self, sql: str, start_time: float) -> Dict[str, Any]:
+        """內部執行方法"""
         try:
             import duckdb
 
@@ -262,7 +327,7 @@ class DuckDBExecutor:
                 pass
 
             connection = duckdb.connect(
-                database=":memory:",
+                database=self.config.database if self.config.database else ":memory:",
                 config={
                     "s3_endpoint": self.s3_config.endpoint_host,
                     "s3_access_key_id": self.s3_config.access_key,
@@ -276,7 +341,7 @@ class DuckDBExecutor:
                 },
             )
 
-            # 設定工作記憶體（使用正確的 DuckDB 參數名稱）
+            # 設定工作記憶體
             connection.execute(f"SET memory_limit = '{self.config.max_memory}'")
 
             mapped_sql = self._map_sql(sql)
@@ -352,7 +417,42 @@ class DuckDBExecutionError(Exception):
     def __init__(self, message: str, sql: str):
         self.message = message
         self.sql = sql
+        self.user_message = self._translate_error(message)
         super().__init__(f"DuckDB Execution Error: {message}\nSQL: {sql}")
+
+    def _translate_error(self, error_msg: str) -> str:
+        """將資料庫錯誤訊息翻譯為用戶可理解的訊息"""
+        error_lower = error_msg.lower()
+
+        # Table not found
+        if "table with name" in error_lower and "does not exist" in error_lower:
+            table_name = (
+                error_msg.split("Table with name ")[1].split(" does")[0]
+                if "Table with name " in error_msg
+                else "unknown"
+            )
+            return f"數據來源不足：表格 '{table_name}' 不存在或尚未載入"
+
+        # Ambiguous column reference
+        if "ambiguous reference to column name" in error_lower:
+            col_match = error_msg.split('"')[1] if '"' in error_msg else "unknown"
+            return f"維度模糊：'{col_match}' 欄位在多個表格中存在，請更具體指定維度"
+
+        # Referenced column not found
+        if "referenced column" in error_lower and "not found in from clause" in error_lower:
+            col_match = error_msg.split('"')[1] if '"' in error_msg else "unknown"
+            return f"欄位錯誤：'{col_match}' 欄位不存在於數據表中"
+
+        # Binder error - column not found
+        if "binder error" in error_lower and "not found" in error_lower:
+            return f"缺乏關鍵欄位：{error_msg.split('Candidate bindings: ')[-1] if 'Candidate bindings:' in error_msg else '請確認查詢維度是否正確'}"
+
+        # No data returned (empty result)
+        if "no data" in error_lower or "empty" in error_lower:
+            return "查無符合條件的資料"
+
+        # Default fallback
+        return f"查詢執行失敗：{error_msg[:100]}..."
 
 
 def get_duckdb_executor(

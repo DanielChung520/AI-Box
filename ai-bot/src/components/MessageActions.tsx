@@ -77,10 +77,10 @@ export default function MessageActions({
   };
 
   return (
-    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/30">
+    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/20 message-actions">
       <button
         onClick={handleLike}
-        className={`flex items-center gap-1 px-2 py-1 text-[9.6px] rounded transition-colors ${
+        className={`message-action-btn flex items-center gap-1 px-2 py-1 text-[9.6px] rounded transition-colors ${
           liked
             ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30'
             : 'text-tertiary hover:text-primary hover:bg-tertiary'
@@ -94,7 +94,7 @@ export default function MessageActions({
 
       <button
         onClick={handleDislike}
-        className={`flex items-center gap-1 px-2 py-1 text-[9.6px] rounded transition-colors ${
+        className={`message-action-btn flex items-center gap-1 px-2 py-1 text-[9.6px] rounded transition-colors ${
           disliked
             ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
             : 'text-tertiary hover:text-primary hover:bg-tertiary'
@@ -108,7 +108,7 @@ export default function MessageActions({
 
       <button
         onClick={handleCopy}
-        className={`flex items-center gap-1 px-2 py-1 text-[9.6px] rounded transition-colors ${
+        className={`message-action-btn flex items-center gap-1 px-2 py-1 text-[9.6px] rounded transition-colors ${
           copied
             ? 'bg-green-600/20 text-green-400'
             : 'text-tertiary hover:text-primary hover:bg-tertiary'

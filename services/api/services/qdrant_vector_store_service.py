@@ -386,11 +386,20 @@ class QdrantVectorStoreService:
                 ).points
 
                 for hit in search_result:
+                    payload = hit.payload or {}
                     results.append(
                         {
                             "id": str(hit.id),
                             "score": hit.score,
-                            "payload": hit.payload,
+                            "distance": hit.score,
+                            "document": payload.get("chunk_text", ""),
+                            "metadata": {
+                                "file_id": payload.get("file_id"),
+                                "chunk_index": payload.get("chunk_index"),
+                                "chunk_size": payload.get("chunk_size"),
+                                "task_id": payload.get("task_id"),
+                                "user_id": payload.get("user_id"),
+                            },
                         }
                     )
 

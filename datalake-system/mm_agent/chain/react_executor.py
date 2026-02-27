@@ -356,7 +356,9 @@ class ReActEngine:
                 completed_comps = [c for c in state.compensations if c.get("status") == "pending"]
                 if completed_comps:
                     logger.info(f"[ReActEngine] 執行補償，共 {len(completed_comps)} 個補償動作")
-                    comp_result = await comp_mgr.compensate_all(completed_comps, state.results)
+                    comp_result = await comp_mgr.execute_compensation(
+                        completed_comps, state.results
+                    )
                     state.compensation_history.append(
                         {
                             "triggered_at": datetime.now().isoformat(),
@@ -399,8 +401,12 @@ class ReActEngine:
             for k, v in result.result.items():
                 if k not in ["response", "abc_result"]:
                     state.results[k] = v
-            if result.result.get("response"):
-                state.results["final_response"] = result.result["response"]
+            # 優先使用 response，若無則使用 business_explanation
+            response_text = (
+                result.result.get("response") or result.result.get("business_explanation") or ""
+            )
+            if response_text:
+                state.results["final_response"] = response_text
 
         logger.info(
             f"[ReActEngine] 步驟完成: {action_type}, observation: {result.observation if result else 'N/A'}"
@@ -467,7 +473,29 @@ class ReActEngine:
 
         while True:
             result = await self.execute_next_step(session_id, user_response)
-            responses.append(result.get("response", ""))
+
+            # 提取最終回應
+            # 優先順序：
+            # 1. result.debug_info.result.response (當前步驟的實際回應)
+            # 2. result.debug_info.result.business_explanation (當前步驟的業務解釋)
+            # 3. 頂層的 response
+
+            response_text = ""
+
+            # 從當前步驟的 debug_info.result 獲取
+            debug_info = result.get("debug_info", {})
+            nested_result = debug_info.get("result", {})
+
+            if nested_result:
+                response_text = (
+                    nested_result.get("response") or nested_result.get("business_explanation") or ""
+                )
+
+            # 如果沒有找到，使用頂層 response
+            if not response_text:
+                response_text = result.get("response", "") or "處理完成"
+
+            responses.append(response_text)
 
             if result.get("completed_steps"):
                 all_results.append(result)
@@ -925,6 +953,10 @@ class ReActExecutor:
                             "top_k": 5,
                             "query_type": "hybrid",
                         },
+                        "metadata": {
+                            "caller_agent_id": "mm-agent",
+                            "caller_agent_key": "-h0tjyh",
+                        },
                     },
                 )
 
@@ -978,15 +1010,21 @@ class ReActExecutor:
     async def _execute_data_query(
         self, action: Action, previous_results: Dict[str, Any], session_id: str = "unknown"
     ) -> ExecutionResult:
-        """執行數據查詢 - 使用 Data-Agent-JP"""
+        """執行數據查詢 - 使用 Data-Agent-JP，並通過 LLM 生成業務解說"""
         instruction = action.parameters.get("instruction", action.description)
+        logger.info(f"[Data] 開始執行數據查詢: {instruction}")
 
         try:
             import httpx
+            from llm.clients.factory import get_client
+
+            logger.info(
+                f"[Data] 準備調用 Data-Agent-JP: http://localhost:8004/api/v1/data-agent/v4/execute"
+            )
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
-                    "http://localhost:8004/jp/execute",
+                    "http://localhost:8004/api/v1/data-agent/v4/execute",
                     json={
                         "task_id": f"react_data_{id(instruction)}",
                         "task_type": "schema_driven_query",
@@ -998,11 +1036,83 @@ class ReActExecutor:
 
                 result = response.json()
 
+                # 初始化 sql 變量
+                sql = ""
+
                 if result.get("status") == "success":
                     rows = result.get("result", {}).get("data", [])
                     sql = result.get("result", {}).get("sql", "")
 
                     logger.info(f"[Data] Data-Agent 返回: rows={len(rows)}")
+
+                    # 調用 LLM 生成業務解說（無論是否有資料）
+                    logger.info(f"[Data] 調用 LLM 生成業務解說...")
+                    try:
+                        # 構建數據摘要
+                        data_summary = self._build_data_summary(rows, instruction)
+
+                        # 根據是否有資料選擇不同的 prompt
+                        if rows:
+                            explanation_prompt = f"""你是一個物料管理專家，請根據以下查詢結果，用自然語言向用戶解說業務情況：
+
+用戶查詢：{instruction}
+
+查詢結果摘要：
+{data_summary}
+
+原始數據：
+{self._format_data_for_llm(rows)}
+
+請用專業但易懂的語言，提供以下內容：
+1. 簡短說明查詢結果的業務意義
+2. 關鍵數據的解讀（如：最大庫存位置、庫存分布等）
+3. 建議或提醒（如：庫存過高、過低等）
+
+回答請簡潔明瞭，使用 Markdown 格式。"""
+                        else:
+                            # 空結果時，LLM 根據用戶意圖生成適當的回覆
+                            explanation_prompt = f"""你是一個物料管理專家，用戶查詢：
+
+{instruction}
+
+查詢結果：沒有找到符合條件的資料。
+
+請用自然語言向用戶說明情況，並提供適當的建議（如：檢查查詢條件、輸入不同的關鍵字等）。
+
+回答請簡潔明瞭，使用 Markdown 格式。"""
+
+                        # 調用 LLM
+                        from llm.clients.factory import get_client
+                        from services.api.models.llm_model import LLMProvider
+
+                        llm_client = get_client(LLMProvider.OLLAMA)
+
+                        logger.info(f"[Data] 發送請求到 LLM...")
+                        llm_response = await llm_client.generate(
+                            prompt=explanation_prompt,
+                            temperature=0.3,
+                            max_tokens=1500,
+                        )
+                        logger.info(f"[Data] LLM 回應類型: {type(llm_response)}")
+
+                        # 處理 LLM 回應（可能是字串或字典）
+                        if isinstance(llm_response, str):
+                            business_explanation = llm_response
+                        elif isinstance(llm_response, dict):
+                            business_explanation = llm_response.get("text", "") or llm_response.get(
+                                "content", ""
+                            )
+                        else:
+                            business_explanation = str(llm_response)
+
+                        logger.info(f"[Data] LLM 業務解說生成成功: {len(business_explanation)} 字")
+
+                    except Exception as llm_error:
+                        logger.warning(f"[Data] LLM 業務解說生成失敗: {llm_error}，使用默認解說")
+                        import traceback
+
+                        traceback.print_exc()
+                        business_explanation = self._generate_default_explanation(rows, sql=sql)
 
                     # 發布數據查詢結果
                     self._sse_publisher.publish_data_result(
@@ -1022,31 +1132,188 @@ class ReActExecutor:
                             "sql": sql,
                             "row_count": len(rows),
                             "instruction": instruction,
+                            "business_explanation": business_explanation,
                         },
                         observation=f"數據查詢完成，返回 {len(rows)} 行",
                     )
                 else:
-                    raise Exception(result.get("error", "未知錯誤"))
+                    # Data-Agent 返回錯誤狀態
+                    error_code = result.get("error_code", "")
+                    error_msg = result.get("message", "未知錯誤")
+                    logger.warning(
+                        f"[Data] Data-Agent 返回錯誤: error_code={error_code}, message={error_msg}"
+                    )
+
+                    return ExecutionResult(
+                        step_id=action.step_id,
+                        action_type="data_query",
+                        success=False,
+                        result={
+                            "data": [],
+                            "sql": sql if "sql" in dir() else "",
+                            "row_count": 0,
+                            "instruction": instruction,
+                            "error_code": error_code,
+                            "business_explanation": error_msg,
+                        },
+                        observation=f"數據查詢失敗: {error_msg}",
+                    )
 
         except Exception as e:
-            logger.warning(f"[Data] Data-Agent 調用失敗: {e}，使用模擬數據")
+            logger.warning(f"[Data] Data-Agent 調用失敗: {e}，返回錯誤")
+            error_explanation = ""
+
+            # 嘗試讓 LLM 生成錯誤解說
+            try:
+                from llm.clients.factory import get_client
+                from services.api.models.llm_model import LLMProvider
+
+                llm_client = get_client(LLMProvider.OLLAMA)
+                error_prompt = f"""用戶查詢：{instruction}
+
+發生錯誤：{str(e)}
+
+請用自然語言向用戶說明發生了什麼問題，並建議用戶可以嘗試什麼。
+
+回答請簡潔明瞭，使用 Markdown 格式。"""
+                llm_response = await llm_client.generate(
+                    prompt=error_prompt,
+                    temperature=0.3,
+                    max_tokens=500,
+                )
+                # 處理 LLM 回應（可能是字串或字典）
+                if isinstance(llm_response, str):
+                    error_explanation = llm_response
+                elif isinstance(llm_response, dict):
+                    error_explanation = llm_response.get("text", "") or llm_response.get(
+                        "content", ""
+                    )
+                else:
+                    error_explanation = str(llm_response)
+            except Exception:
+                error_explanation = "查詢失敗，請稍後重試或聯繫管理員。"
 
             return ExecutionResult(
                 step_id=action.step_id,
                 action_type="data_query",
-                success=True,
+                success=False,
                 result={
-                    "data": [
-                        {"material_code": "10-0010", "inventory_value": 2176632830.95},
-                        {"material_code": "10-0006", "inventory_value": 1573611688.20},
-                        {"material_code": "10-0003", "inventory_value": 1050841733.16},
-                    ],
-                    "sql": "/* 模擬 SQL */",
-                    "row_count": 3,
+                    "data": [],
+                    "sql": "",
+                    "row_count": 0,
                     "instruction": instruction,
+                    "business_explanation": error_explanation,
                 },
-                observation="使用模擬數據",
+                observation=f"數據查詢失敗: {str(e)}",
             )
+
+    def _build_data_summary(self, rows: List[Dict], instruction: str) -> str:
+        """構建數據摘要"""
+        if not rows:
+            return "無符合條件的數據"
+
+        summary_parts = []
+
+        # 統計庫存數據
+        if "existing_stocks" in rows[0] or "inventory_value" in rows[0]:
+            stocks = [r.get("existing_stocks", 0) or r.get("inventory_value", 0) for r in rows]
+            total = sum(stocks)
+            max_stock = max(stocks)
+            max_location = None
+            for r in rows:
+                stock = r.get("existing_stocks", 0) or r.get("inventory_value", 0)
+                if stock == max_stock:
+                    max_location = r.get("warehouse_no", r.get("location_no", "N/A"))
+                    break
+
+            summary_parts.append(f"總筆數: {len(rows)}")
+            summary_parts.append(f"總庫存/價值: {total:,.2f}")
+            summary_parts.append(f"最大庫存位置: {max_location}")
+
+        return " | ".join(summary_parts)
+
+    def _format_data_for_llm(self, rows: List[Dict]) -> str:
+        """格式化數據給 LLM"""
+        if not rows:
+            return "無數據"
+
+        # 只取前 10 行，避免過長
+        display_rows = rows[:10]
+        lines = []
+        for row in display_rows:
+            lines.append(str(row))
+
+        if len(rows) > 10:
+            lines.append(f"... (共 {len(rows)} 筆數據)")
+
+        return "\n".join(lines)
+
+    def _generate_default_explanation(
+        self, rows: List[Dict], sql: str = "", show_sql: bool = False
+    ) -> str:
+        """生成自然語言回應（表格格式，隱藏 SQL）
+
+        Args:
+            rows: 查詢結果數據
+            sql: SQL 查詢語句
+            show_sql: 是否顯示 SQL（預設 False）
+        """
+        if not rows:
+            return "查詢結果為空，請確認查詢條件是否正確。"
+
+        # 建構表格格式的回應
+        lines = []
+
+        # 標題
+        lines.append(f"**查詢結果**：共 {len(rows)} 筆資料")
+
+        # 如果是庫存相關查詢，添加統計摘要
+        if "existing_stocks" in rows[0]:
+            stocks = [r.get("existing_stocks", 0) for r in rows]
+            total = sum(stocks)
+            positive_stocks = [s for s in stocks if s > 0]
+
+            if positive_stocks:
+                lines.append(f"\n**📊 庫存統計**")
+                lines.append(f"- 總庫存：{total:,.0f}")
+                lines.append(f"- 有庫存的筆數：{len(positive_stocks)} 筆")
+
+                # 最大庫存位置
+                max_stock = max(positive_stocks)
+                for r in rows:
+                    if r.get("existing_stocks", 0) == max_stock:
+                        location = r.get("warehouse_no", r.get("location_no", ""))
+                        lines.append(f"- 最大庫存位置：{location}，數量：{max_stock:,.0f}")
+                        break
+
+        # 數據表格（Markdown 格式）
+        lines.append("\n**📋 詳細資料**")
+
+        # 取得欄位名稱
+        if rows:
+            columns = list(rows[0].keys())
+
+            # 表格標題行
+            header = "| " + " | ".join(columns) + " |"
+            separator = "| " + " | ".join(["---"] * len(columns)) + " |"
+            lines.append(header)
+            lines.append(separator)
+
+            # 表格數據行（最多顯示 10 筆）
+            display_rows = rows[:10]
+            for row in display_rows:
+                values = [str(row.get(col, "-")) for col in columns]
+                lines.append("| " + " | ".join(values) + " |")
+
+            # 如果超過 10 筆，顯示提示
+            if len(rows) > 10:
+                lines.append(f"\n> 僅顯示前 10 筆資料，共 {len(rows)} 筆")
+
+        # 可選：顯示 SQL（如果前端要求）
+        if show_sql and sql:
+            lines.append(f"\n> **SQL 查詢**：`{sql[:200]}`{'...' if len(sql) > 200 else ''}")
+
+        return "\n".join(lines)
 
     async def _execute_data_cleaning(
         self, action: Action, previous_results: Dict[str, Any]
@@ -1326,7 +1593,46 @@ class ReActExecutor:
             response = knowledge
 
         else:
-            response = "處理完成！"
+            # 嘗試從 previous_results 中獲取 business_explanation
+            business_explanation = None
+
+            # 首先直接檢查是否有 business_explanation（被 _simple_query_plan 保存）
+            if "business_explanation" in previous_results:
+                business_explanation = previous_results.get("business_explanation")
+                logger.info(
+                    f"[Debug] Found business_explanation directly: {business_explanation[:100] if business_explanation else 'None'}"
+                )
+
+            # 如果沒有，檢查步驟結果
+            if not business_explanation:
+                for step_id, step_result in previous_results.items():
+                    if isinstance(step_result, dict):
+                        logger.info(f"[Debug] step_id={step_id}, keys={list(step_result.keys())}")
+
+                        # 檢查 action_type
+                        action_type = step_result.get("action_type")
+                        if not action_type:
+                            # 嘗試從 nested result 獲取
+                            action_type = step_result.get("result", {}).get("action_type")
+
+                        logger.info(f"[Debug] action_type={action_type}")
+
+                        if action_type == "data_query":
+                            # 獲取 business_explanation
+                            business_explanation = step_result.get(
+                                "business_explanation"
+                            ) or step_result.get("result", {}).get("business_explanation")
+                            logger.info(
+                                f"[Debug] Found data_query, business_explanation: {business_explanation[:100] if business_explanation else 'None'}"
+                            )
+                            if business_explanation:
+                                break
+
+            if business_explanation:
+                response = business_explanation
+            else:
+                logger.info(f"[Debug] business_explanation is None, using default response")
+                response = "處理完成！"
 
         return ExecutionResult(
             step_id=action.step_id,

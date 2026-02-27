@@ -48,3 +48,6 @@ class ContextConfig(BaseModel):
     max_messages_per_session: int = Field(default=1000, ge=1, description="每個會話最大消息數")
     enable_persistence: bool = Field(default=False, description="是否啟用持久化存儲")
     arangodb_collection: Optional[str] = Field(default=None, description="ArangoDB 集合名稱")
+    # Token 窗口配置（匹配 gpt-oss:120b 的 128k 上下文窗口）
+    max_tokens: int = Field(default=131072, ge=1, description="最大 token 數")
+    encoding_name: str = Field(default="cl100k_base", description="tiktoken 編碼名稱")

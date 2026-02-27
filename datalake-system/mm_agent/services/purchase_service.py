@@ -33,11 +33,8 @@ class PurchaseService:
             part_service: 料號查詢服務（可選）
             shortage_analyzer: 缺料分析服務（可選）
         """
-        from ..orchestrator_client import OrchestratorClient
-
-        orchestrator_client = OrchestratorClient()
-        self._part_service = part_service or PartService(orchestrator_client)
-        self._shortage_analyzer = shortage_analyzer or ShortageAnalyzer(part_service, None, None)
+        self._part_service = part_service or PartService()
+        self._shortage_analyzer = shortage_analyzer or ShortageAnalyzer(None, None)
         self._logger = logger
 
     async def generate_purchase_order(
@@ -65,7 +62,7 @@ class PurchaseService:
                 raise ValueError("Purchase quantity must be greater than 0")
 
             # 2. 查詢物料信息（獲取供應商信息）
-            part_info = await self._part_service.query_part_info(part_number, request)
+            part_info = await self._part_service.query_part_info(part_number)
 
             # 3. 可選：檢查缺料狀態
             try:
@@ -80,7 +77,7 @@ class PurchaseService:
 
             # 4. 生成採購單記錄
             purchase_order_id = (
-                f"PO-{datetime.now().strftime('%Y%m%d')}-" f"{uuid.uuid4().hex[:6].upper()}"
+                f"PO-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
             )
 
             unit_price = part_info.get("unit_price", 0)
@@ -108,6 +105,6 @@ class PurchaseService:
 
         except Exception as e:
             self._logger.error(
-                f"生成採購單失敗: part_number={part_number}, " f"quantity={quantity}, error={e}"
+                f"生成採購單失敗: part_number={part_number}, quantity={quantity}, error={e}"
             )
             raise

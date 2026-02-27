@@ -33,6 +33,14 @@
       "type": "METRIC",
       "aggregation": "SUM"
     },
+    "ZERO_STOCKS": {
+      "description": "庫存為零",
+      "type": "METRIC"
+    },
+    "STATUS_CODE": {
+      "description": "工單狀態碼（M/F/C/N/Y/X）",
+      "type": "DIMENSION"
+    },
     "SCRAP_QTY": {
       "description": "報廢數量",
       "type": "METRIC",
@@ -86,7 +94,8 @@
     },
     "WORKSTATION": {
       "description": "工作站",
-      "type": "DIMENSION"
+      "type": "DIMENSION",
+      "pattern": "^(WC|WCS|WC\\d+-[1-9]|WS|ST|WCA|STD|T\\d+|W\\d{3})[A-Za-z0-9-]*$"
     },
     "STANDARD_OUTPUT": {
       "description": "標準產出",

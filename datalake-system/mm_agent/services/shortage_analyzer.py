@@ -43,8 +43,7 @@ class ShortageAnalyzer:
             part_service: 料號查詢服務（可選）
             data_validator: 數據驗證器（可選）
         """
-        orchestrator_client = OrchestratorClient()
-        self._part_service = part_service or PartService(orchestrator_client)
+        self._part_service = part_service or PartService()
         self._data_validator = data_validator or DataValidator()
         self._query_handler = StructuredQueryHandler()
         self._logger = logger
@@ -69,7 +68,7 @@ class ShortageAnalyzer:
         try:
             # 1. 使用 Data-Agent 查詢庫存信息
             # MM-Agent 只傳遞語義參數，Data-Agent 根據 schema 映射欄位
-            result = self._query_handler.execute(
+            result = await self._query_handler.execute(
                 intent="query_stock_info",
                 parameters={
                     "part_number": part_number,
@@ -83,7 +82,7 @@ class ShortageAnalyzer:
             stock_info = result.rows[0]
 
             # 2. 查詢物料信息（獲取安全庫存）
-            part_info = await self._part_service.query_part_info(part_number, request)
+            part_info = await self._part_service.query_part_info(part_number)
 
             # 3. 驗證數據
             validation = self._data_validator.validate_data(part_info, stock_info)

@@ -156,7 +156,20 @@ class ReActPlanner:
         # 【新增】簡單查詢檢測：只包含「查詢/庫存/料號」關鍵字，無「如何/怎麼/步驟/計算/統計/分類」
         is_simple_query = any(
             kw in instruction
-            for kw in ["查詢", "庫存", "料號", "品名", "規格", "單價"]
+            for kw in [
+                "查詢",
+                "庫存",
+                "料號",
+                "品名",
+                "規格",
+                "單價",
+                "工作站",
+                "工站",
+                "工單",
+                "WC",
+                "生產",
+                "產出",
+            ]
         ) and not any(
             kw in instruction_lower
             for kw in ["如何", "怎麼", "步驟", "計算", "統計", "分類", "abc", "推薦", "建議"]
@@ -633,7 +646,9 @@ AI 生成（2 步）：
 
     def _workflow_based_plan(self, workflow, instruction: str) -> TodoPlan:
         """從 workflow YAML 配置生成工作計劃"""
-        logger.info(f"[ReActPlanner] 從 workflow 生成計劃: {workflow.name}, {len(workflow.steps)} 步驟")
+        logger.info(
+            f"[ReActPlanner] 從 workflow 生成計劃: {workflow.name}, {len(workflow.steps)} 步驟"
+        )
 
         # 生成思考過程
         thought_process = f"""我理解用戶想要：{instruction}
@@ -660,7 +675,9 @@ AI 生成（2 步）：
                 result_key=None,
             )
             steps.append(action)
-            logger.info(f"[ReActPlanner]   Step {step.step_id}: {step.action_type} - {step.description}")
+            logger.info(
+                f"[ReActPlanner]   Step {step.step_id}: {step.action_type} - {step.description}"
+            )
 
         return TodoPlan(
             task_type=workflow.name,

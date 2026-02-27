@@ -1,0 +1,2502 @@
+[
+  {
+    "id": "JP_SINGLE_001",
+    "category": "SINGLE",
+    "question": "查詢8802倉庫的所有庫存明細"
+  },
+  {
+    "id": "JP_SINGLE_002",
+    "category": "SINGLE",
+    "question": "查詢料號10-0001的基本資料"
+  },
+  {
+    "id": "JP_SINGLE_003",
+    "category": "SINGLE",
+    "question": "查詢2101倉庫的所有庫存明細"
+  },
+  {
+    "id": "JP_SINGLE_004",
+    "category": "SINGLE",
+    "question": "查詢料號8021107403900001的庫存"
+  },
+  {
+    "id": "JP_SINGLE_005",
+    "category": "SINGLE",
+    "question": "查詢所有庫存數量為0的料號"
+  },
+  {
+    "id": "JP_SINGLE_006",
+    "category": "SINGLE",
+    "question": "查詢庫存數量大於1000的料號"
+  },
+  {
+    "id": "JP_SINGLE_007",
+    "category": "SINGLE",
+    "question": "查詢2101和8802倉庫都有庫存的料號"
+  },
+  {
+    "id": "JP_SINGLE_008",
+    "category": "SINGLE",
+    "question": "查詢庫存數量小於10的料號"
+  },
+  {
+    "id": "JP_SINGLE_009",
+    "category": "SINGLE",
+    "question": "查詢沒有儲位資訊的庫存記錄"
+  },
+  {
+    "id": "JP_SINGLE_010",
+    "category": "SINGLE",
+    "question": "查詢單位為PC的所有料號庫存"
+  },
+  {
+    "id": "JP_SINGLE_011",
+    "category": "SINGLE",
+    "question": "查詢料號在哪些倉庫有庫存"
+  },
+  {
+    "id": "JP_SINGLE_012",
+    "category": "SINGLE",
+    "question": "查詢2101倉庫的庫存明細"
+  },
+  {
+    "id": "JP_SINGLE_013",
+    "category": "SINGLE",
+    "question": "查詢8802倉庫料號10-0001的庫存"
+  },
+  {
+    "id": "JP_SINGLE_014",
+    "category": "SINGLE",
+    "question": "查詢所有料號的現有庫存"
+  },
+  {
+    "id": "JP_SINGLE_015",
+    "category": "SINGLE",
+    "question": "查詢8802倉庫料號的庫存"
+  },
+  {
+    "id": "JP_SINGLE_016",
+    "category": "SINGLE",
+    "question": "查詢2101倉庫料號的庫存"
+  },
+  {
+    "id": "JP_SINGLE_017",
+    "category": "SINGLE",
+    "question": "查詢料號10-0002的庫存"
+  },
+  {
+    "id": "JP_SINGLE_018",
+    "category": "SINGLE",
+    "question": "查詢8802倉庫的所有料號"
+  },
+  {
+    "id": "JP_SINGLE_019",
+    "category": "SINGLE",
+    "question": "查詢2101倉庫的所有料號"
+  },
+  {
+    "id": "JP_SINGLE_020",
+    "category": "SINGLE",
+    "question": "查詢庫存數量等於0的料號"
+  },
+  {
+    "id": "JP_SINGLE_021",
+    "category": "SINGLE",
+    "question": "查詢料號10-0003的庫存"
+  },
+  {
+    "id": "JP_SINGLE_022",
+    "category": "SINGLE",
+    "question": "查詢料號10-0004的庫存"
+  },
+  {
+    "id": "JP_SINGLE_023",
+    "category": "SINGLE",
+    "question": "查詢料號10-0005的庫存"
+  },
+  {
+    "id": "JP_SINGLE_024",
+    "category": "SINGLE",
+    "question": "查詢料號10-0006的庫存"
+  },
+  {
+    "id": "JP_SINGLE_025",
+    "category": "SINGLE",
+    "question": "查詢料號10-0007的庫存"
+  },
+  {
+    "id": "JP_SINGLE_026",
+    "category": "SINGLE",
+    "question": "查詢料號10-0008的庫存"
+  },
+  {
+    "id": "JP_SINGLE_027",
+    "category": "SINGLE",
+    "question": "查詢料號10-0009的庫存"
+  },
+  {
+    "id": "JP_SINGLE_028",
+    "category": "SINGLE",
+    "question": "查詢料號10-0010的庫存"
+  },
+  {
+    "id": "JP_SINGLE_029",
+    "category": "SINGLE",
+    "question": "查詢8802倉庫料號10-0002的庫存"
+  },
+  {
+    "id": "JP_SINGLE_030",
+    "category": "SINGLE",
+    "question": "查詢2101倉庫料號10-0003的庫存"
+  },
+  {
+    "id": "JP_SINGLE_031",
+    "category": "SINGLE",
+    "question": "查詢8802倉儲位A1的庫存"
+  },
+  {
+    "id": "JP_SINGLE_032",
+    "category": "SINGLE",
+    "question": "查詢2101倉儲位A2的庫存"
+  },
+  {
+    "id": "JP_SINGLE_033",
+    "category": "SINGLE",
+    "question": "查詢料號在儲位A1的庫存"
+  },
+  {
+    "id": "JP_SINGLE_034",
+    "category": "SINGLE",
+    "question": "查詢料號在A2儲位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_035",
+    "category": "SINGLE",
+    "question": "查詢料號在8802倉A1儲位"
+  },
+  {
+    "id": "JP_SINGLE_036",
+    "category": "SINGLE",
+    "question": "查詢料號在2101倉A2儲位"
+  },
+  {
+    "id": "JP_SINGLE_037",
+    "category": "SINGLE",
+    "question": "查詢8802倉PC單位的料號"
+  },
+  {
+    "id": "JP_SINGLE_038",
+    "category": "SINGLE",
+    "question": "查詢2101倉KG單位的料號"
+  },
+  {
+    "id": "JP_SINGLE_039",
+    "category": "SINGLE",
+    "question": "查詢PC單位的所有料號"
+  },
+  {
+    "id": "JP_SINGLE_040",
+    "category": "SINGLE",
+    "question": "查詢KG單位的所有料號"
+  },
+  {
+    "id": "JP_SINGLE_041",
+    "category": "SINGLE",
+    "question": "查詢SET單位的所有料號"
+  },
+  {
+    "id": "JP_SINGLE_042",
+    "category": "SINGLE",
+    "question": "查詢8802倉有哪些料號"
+  },
+  {
+    "id": "JP_SINGLE_043",
+    "category": "SINGLE",
+    "question": "查詢2101倉有哪些料號"
+  },
+  {
+    "id": "JP_SINGLE_044",
+    "category": "SINGLE",
+    "question": "查詢料號10-0001在哪些位置"
+  },
+  {
+    "id": "JP_SINGLE_045",
+    "category": "SINGLE",
+    "question": "查詢料號10-0002在哪些位置"
+  },
+  {
+    "id": "JP_SINGLE_046",
+    "category": "SINGLE",
+    "question": "查詢8802倉有多少種料號"
+  },
+  {
+    "id": "JP_SINGLE_047",
+    "category": "SINGLE",
+    "question": "查詢2101倉有多少種料號"
+  },
+  {
+    "id": "JP_SINGLE_048",
+    "category": "SINGLE",
+    "question": "查詢總共有多少料號"
+  },
+  {
+    "id": "JP_SINGLE_049",
+    "category": "SINGLE",
+    "question": "查詢庫存數量最多的料號"
+  },
+  {
+    "id": "JP_SINGLE_050",
+    "category": "SINGLE",
+    "question": "查詢庫存數量最少的料號"
+  },
+  {
+    "id": "JP_SINGLE_051",
+    "category": "SINGLE",
+    "question": "查詢料號的平均庫存"
+  },
+  {
+    "id": "JP_SINGLE_052",
+    "category": "SINGLE",
+    "question": "查詢8802倉的庫存總數"
+  },
+  {
+    "id": "JP_SINGLE_053",
+    "category": "SINGLE",
+    "question": "查詢2101倉的庫存總數"
+  },
+  {
+    "id": "JP_SINGLE_054",
+    "category": "SINGLE",
+    "question": "查詢各倉庫的庫存總數"
+  },
+  {
+    "id": "JP_SINGLE_055",
+    "category": "SINGLE",
+    "question": "查詢料號在不同倉庫的庫存差異"
+  },
+  {
+    "id": "JP_SINGLE_056",
+    "category": "SINGLE",
+    "question": "查詢料號的庫存分布"
+  },
+  {
+    "id": "JP_SINGLE_057",
+    "category": "SINGLE",
+    "question": "查詢倉庫的庫存分布"
+  },
+  {
+    "id": "JP_SINGLE_058",
+    "category": "SINGLE",
+    "question": "查詢8802倉與2101倉的庫存比較"
+  },
+  {
+    "id": "JP_SINGLE_059",
+    "category": "SINGLE",
+    "question": "查詢料號10-0001的庫存變化"
+  },
+  {
+    "id": "JP_SINGLE_060",
+    "category": "SINGLE",
+    "question": "查詢料號10-0002的庫存變化"
+  },
+  {
+    "id": "JP_SINGLE_061",
+    "category": "SINGLE",
+    "question": "查詢最近的庫存記錄"
+  },
+  {
+    "id": "JP_SINGLE_062",
+    "category": "SINGLE",
+    "question": "查詢最早的庫存記錄"
+  },
+  {
+    "id": "JP_SINGLE_063",
+    "category": "SINGLE",
+    "question": "查詢庫存記錄的時間範圍"
+  },
+  {
+    "id": "JP_SINGLE_064",
+    "category": "SINGLE",
+    "question": "查詢8802倉PC單位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_065",
+    "category": "SINGLE",
+    "question": "查詢2101倉KG單位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_066",
+    "category": "SINGLE",
+    "question": "查詢料號PC單位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_067",
+    "category": "SINGLE",
+    "question": "查詢有庫存的料號"
+  },
+  {
+    "id": "JP_SINGLE_068",
+    "category": "SINGLE",
+    "question": "查詢無庫存的料號"
+  },
+  {
+    "id": "JP_SINGLE_069",
+    "category": "SINGLE",
+    "question": "查詢庫存大於100的料號"
+  },
+  {
+    "id": "JP_SINGLE_070",
+    "category": "SINGLE",
+    "question": "查詢庫存小於50的料號"
+  },
+  {
+    "id": "JP_SINGLE_071",
+    "category": "SINGLE",
+    "question": "查詢庫存100到500的料號"
+  },
+  {
+    "id": "JP_SINGLE_072",
+    "category": "SINGLE",
+    "question": "查詢8802倉庫存大於1000的料號"
+  },
+  {
+    "id": "JP_SINGLE_073",
+    "category": "SINGLE",
+    "question": "查詢2101倉庫存小於100的料號"
+  },
+  {
+    "id": "JP_SINGLE_074",
+    "category": "SINGLE",
+    "question": "查詢所有料號的庫存數"
+  },
+  {
+    "id": "JP_SINGLE_075",
+    "category": "SINGLE",
+    "question": "查詢料號庫存數量"
+  },
+  {
+    "id": "JP_SINGLE_076",
+    "category": "SINGLE",
+    "question": "查詢料號的庫存與儲位"
+  },
+  {
+    "id": "JP_SINGLE_077",
+    "category": "SINGLE",
+    "question": "查詢8802倉的全部庫存"
+  },
+  {
+    "id": "JP_SINGLE_078",
+    "category": "SINGLE",
+    "question": "查詢2101倉的全部庫存"
+  },
+  {
+    "id": "JP_SINGLE_079",
+    "category": "SINGLE",
+    "question": "查詢料號在不同倉庫的庫存"
+  },
+  {
+    "id": "JP_SINGLE_080",
+    "category": "SINGLE",
+    "question": "查詢哪些倉庫有庫存"
+  },
+  {
+    "id": "JP_SINGLE_081",
+    "category": "SINGLE",
+    "question": "查詢哪些儲位有庫存"
+  },
+  {
+    "id": "JP_SINGLE_082",
+    "category": "SINGLE",
+    "question": "查詢8802倉A1儲位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_083",
+    "category": "SINGLE",
+    "question": "查詢2101倉A2儲位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_084",
+    "category": "SINGLE",
+    "question": "查詢料號在A1儲位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_085",
+    "category": "SINGLE",
+    "question": "查詢料號在A2儲位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_086",
+    "category": "SINGLE",
+    "question": "查詢料號在8802倉A1儲位"
+  },
+  {
+    "id": "JP_SINGLE_087",
+    "category": "SINGLE",
+    "question": "查詢料號在2101倉A2儲位"
+  },
+  {
+    "id": "JP_SINGLE_088",
+    "category": "SINGLE",
+    "question": "查詢PC單位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_089",
+    "category": "SINGLE",
+    "question": "查詢KG單位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_090",
+    "category": "SINGLE",
+    "question": "查詢SET單位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_091",
+    "category": "SINGLE",
+    "question": "查詢M單位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_092",
+    "category": "SINGLE",
+    "question": "查詢盒單位的庫存"
+  },
+  {
+    "id": "JP_SINGLE_093",
+    "category": "SINGLE",
+    "question": "查詢料號在不同位置"
+  },
+  {
+    "id": "JP_SINGLE_094",
+    "category": "SINGLE",
+    "question": "查詢各位置的料號"
+  },
+  {
+    "id": "JP_SINGLE_095",
+    "category": "SINGLE",
+    "question": "查詢各料號的位置"
+  },
+  {
+    "id": "JP_GROUP_001",
+    "category": "GROUP",
+    "question": "按倉庫統計庫存總數量"
+  },
+  {
+    "id": "JP_GROUP_002",
+    "category": "GROUP",
+    "question": "按料號統計庫存數量"
+  },
+  {
+    "id": "JP_GROUP_003",
+    "category": "GROUP",
+    "question": "按單位統計庫存數量"
+  },
+  {
+    "id": "JP_GROUP_004",
+    "category": "GROUP",
+    "question": "按倉庫統計有多少個不同的儲位"
+  },
+  {
+    "id": "JP_GROUP_005",
+    "category": "GROUP",
+    "question": "按營運據點統計庫存總數量"
+  },
+  {
+    "id": "JP_GROUP_006",
+    "category": "GROUP",
+    "question": "統計每個倉庫有多少種料號"
+  },
+  {
+    "id": "JP_GROUP_007",
+    "category": "GROUP",
+    "question": "按時間統計庫存數量"
+  },
+  {
+    "id": "JP_GROUP_008",
+    "category": "GROUP",
+    "question": "統計有多少種不同的料號有庫存"
+  },
+  {
+    "id": "JP_GROUP_009",
+    "category": "GROUP",
+    "question": "按儲位統計庫存數量"
+  },
+  {
+    "id": "JP_GROUP_010",
+    "category": "GROUP",
+    "question": "統計每個單位的料號種類數量"
+  },
+  {
+    "id": "JP_GROUP_011",
+    "category": "GROUP",
+    "question": "按倉庫統計庫存數量分布"
+  },
+  {
+    "id": "JP_GROUP_012",
+    "category": "GROUP",
+    "question": "按時間統計料號數量"
+  },
+  {
+    "id": "JP_GROUP_013",
+    "category": "GROUP",
+    "question": "按單位統計倉庫數量"
+  },
+  {
+    "id": "JP_GROUP_014",
+    "category": "GROUP",
+    "question": "統計不同單位的庫存"
+  },
+  {
+    "id": "JP_GROUP_015",
+    "category": "GROUP",
+    "question": "按料號統計不同倉庫"
+  },
+  {
+    "id": "JP_GROUP_016",
+    "category": "GROUP",
+    "question": "統計每個料號的倉庫數"
+  },
+  {
+    "id": "JP_GROUP_017",
+    "category": "GROUP",
+    "question": "按庫存數量分組統計"
+  },
+  {
+    "id": "JP_GROUP_018",
+    "category": "GROUP",
+    "question": "按儲位數量分組統計"
+  },
+  {
+    "id": "JP_GROUP_019",
+    "category": "GROUP",
+    "question": "統計有庫存的倉庫"
+  },
+  {
+    "id": "JP_GROUP_020",
+    "category": "GROUP",
+    "question": "按位置統計料號數"
+  },
+  {
+    "id": "JP_GROUP_021",
+    "category": "GROUP",
+    "question": "按倉庫統計平均庫存"
+  },
+  {
+    "id": "JP_GROUP_022",
+    "category": "GROUP",
+    "question": "按料號統計平均庫存"
+  },
+  {
+    "id": "JP_GROUP_023",
+    "category": "GROUP",
+    "question": "按單位統計總庫存"
+  },
+  {
+    "id": "JP_GROUP_024",
+    "category": "GROUP",
+    "question": "按時間段統計庫存"
+  },
+  {
+    "id": "JP_GROUP_025",
+    "category": "GROUP",
+    "question": "統計每月庫存變化"
+  },
+  {
+    "id": "JP_GROUP_026",
+    "category": "GROUP",
+    "question": "統計每季庫存變化"
+  },
+  {
+    "id": "JP_GROUP_027",
+    "category": "GROUP",
+    "question": "按倉庫統計最大庫存"
+  },
+  {
+    "id": "JP_GROUP_028",
+    "category": "GROUP",
+    "question": "按料號統計最大庫存"
+  },
+  {
+    "id": "JP_GROUP_029",
+    "category": "GROUP",
+    "question": "按倉庫統計最小庫存"
+  },
+  {
+    "id": "JP_GROUP_030",
+    "category": "GROUP",
+    "question": "按料號統計最小庫存"
+  },
+  {
+    "id": "JP_GROUP_031",
+    "category": "GROUP",
+    "question": "按單位統計庫存筆數"
+  },
+  {
+    "id": "JP_GROUP_032",
+    "category": "GROUP",
+    "question": "按時間統計庫存筆數"
+  },
+  {
+    "id": "JP_GROUP_033",
+    "category": "GROUP",
+    "question": "統計不同時間的庫存"
+  },
+  {
+    "id": "JP_GROUP_034",
+    "category": "GROUP",
+    "question": "按儲位統計料號數"
+  },
+  {
+    "id": "JP_GROUP_035",
+    "category": "GROUP",
+    "question": "按倉庫統計有多少儲位"
+  },
+  {
+    "id": "JP_GROUP_036",
+    "category": "GROUP",
+    "question": "統計料號的庫存分布"
+  },
+  {
+    "id": "JP_GROUP_037",
+    "category": "GROUP",
+    "question": "統計倉庫的庫存分布"
+  },
+  {
+    "id": "JP_GROUP_038",
+    "category": "GROUP",
+    "question": "按料號分組統計庫存"
+  },
+  {
+    "id": "JP_GROUP_039",
+    "category": "GROUP",
+    "question": "按時間分組統計庫存"
+  },
+  {
+    "id": "JP_GROUP_040",
+    "category": "GROUP",
+    "question": "按單位分組統計庫存"
+  },
+  {
+    "id": "JP_GROUP_041",
+    "category": "GROUP",
+    "question": "統計各時間段的庫存"
+  },
+  {
+    "id": "JP_GROUP_042",
+    "category": "GROUP",
+    "question": "統計各單位的庫存"
+  },
+  {
+    "id": "JP_GROUP_043",
+    "category": "GROUP",
+    "question": "按料號統計總庫存"
+  },
+  {
+    "id": "JP_GROUP_044",
+    "category": "GROUP",
+    "question": "按倉庫統計總庫存"
+  },
+  {
+    "id": "JP_GROUP_045",
+    "category": "GROUP",
+    "question": "統計每種料號的庫存"
+  },
+  {
+    "id": "JP_GROUP_046",
+    "category": "GROUP",
+    "question": "統計每個倉庫的庫存"
+  },
+  {
+    "id": "JP_GROUP_047",
+    "category": "GROUP",
+    "question": "按時間統計庫存總額"
+  },
+  {
+    "id": "JP_GROUP_048",
+    "category": "GROUP",
+    "question": "按料號統計庫存總額"
+  },
+  {
+    "id": "JP_GROUP_049",
+    "category": "GROUP",
+    "question": "統計庫存的各維度"
+  },
+  {
+    "id": "JP_GROUP_050",
+    "category": "GROUP",
+    "question": "按維度統計庫存"
+  },
+  {
+    "id": "JP_GROUP_051",
+    "category": "GROUP",
+    "question": "統計庫存的各分類"
+  },
+  {
+    "id": "JP_GROUP_052",
+    "category": "GROUP",
+    "question": "按分類統計庫存"
+  },
+  {
+    "id": "JP_GROUP_053",
+    "category": "GROUP",
+    "question": "統計料號的各分類"
+  },
+  {
+    "id": "JP_GROUP_054",
+    "category": "GROUP",
+    "question": "按料號分類統計"
+  },
+  {
+    "id": "JP_GROUP_055",
+    "category": "GROUP",
+    "question": "按時間分類統計"
+  },
+  {
+    "id": "JP_GROUP_056",
+    "category": "GROUP",
+    "question": "按單位分類統計"
+  },
+  {
+    "id": "JP_GROUP_057",
+    "category": "GROUP",
+    "question": "按位置分類統計"
+  },
+  {
+    "id": "JP_GROUP_058",
+    "category": "GROUP",
+    "question": "統計位置的分類"
+  },
+  {
+    "id": "JP_GROUP_059",
+    "category": "GROUP",
+    "question": "統計單位的分類"
+  },
+  {
+    "id": "JP_GROUP_060",
+    "category": "GROUP",
+    "question": "統計倉庫的分類"
+  },
+  {
+    "id": "JP_GROUP_061",
+    "category": "GROUP",
+    "question": "按複雜維度統計"
+  },
+  {
+    "id": "JP_GROUP_062",
+    "category": "GROUP",
+    "question": "統計多維度庫存"
+  },
+  {
+    "id": "JP_GROUP_063",
+    "category": "GROUP",
+    "question": "按多維度分組統計"
+  },
+  {
+    "id": "JP_GROUP_064",
+    "category": "GROUP",
+    "question": "統計複雜分類"
+  },
+  {
+    "id": "JP_GROUP_065",
+    "category": "GROUP",
+    "question": "按複合維度統計"
+  },
+  {
+    "id": "JP_GROUP_066",
+    "category": "GROUP",
+    "question": "統計交叉維度"
+  },
+  {
+    "id": "JP_GROUP_067",
+    "category": "GROUP",
+    "question": "按多條件分組"
+  },
+  {
+    "id": "JP_GROUP_068",
+    "category": "GROUP",
+    "question": "統計交叉分類"
+  },
+  {
+    "id": "JP_GROUP_069",
+    "category": "GROUP",
+    "question": "按多維度聚合"
+  },
+  {
+    "id": "JP_GROUP_070",
+    "category": "GROUP",
+    "question": "統計多層次庫存"
+  },
+  {
+    "id": "JP_GROUP_071",
+    "category": "GROUP",
+    "question": "按層次統計庫存"
+  },
+  {
+    "id": "JP_GROUP_072",
+    "category": "GROUP",
+    "question": "統計層次化庫存"
+  },
+  {
+    "id": "JP_GROUP_073",
+    "category": "GROUP",
+    "question": "按階層分組"
+  },
+  {
+    "id": "JP_GROUP_074",
+    "category": "GROUP",
+    "question": "統計階層式庫存"
+  },
+  {
+    "id": "JP_GROUP_075",
+    "category": "GROUP",
+    "question": "按維度層次統計"
+  },
+  {
+    "id": "JP_GROUP_076",
+    "category": "GROUP",
+    "question": "統計維度層次"
+  },
+  {
+    "id": "JP_GROUP_077",
+    "category": "GROUP",
+    "question": "按分類層次統計"
+  },
+  {
+    "id": "JP_GROUP_078",
+    "category": "GROUP",
+    "question": "統計分類層次"
+  },
+  {
+    "id": "JP_GROUP_079",
+    "category": "GROUP",
+    "question": "按位置層次統計"
+  },
+  {
+    "id": "JP_GROUP_080",
+    "category": "GROUP",
+    "question": "統計位置層次"
+  },
+  {
+    "id": "JP_GROUP_081",
+    "category": "GROUP",
+    "question": "按時間層次統計"
+  },
+  {
+    "id": "JP_GROUP_082",
+    "category": "GROUP",
+    "question": "統計時間層次"
+  },
+  {
+    "id": "JP_GROUP_083",
+    "category": "GROUP",
+    "question": "按單位層次統計"
+  },
+  {
+    "id": "JP_GROUP_084",
+    "category": "GROUP",
+    "question": "統計單位層次"
+  },
+  {
+    "id": "JP_GROUP_085",
+    "category": "GROUP",
+    "question": "按料號層次統計"
+  },
+  {
+    "id": "JP_GROUP_086",
+    "category": "GROUP",
+    "question": "統計料號層次"
+  },
+  {
+    "id": "JP_GROUP_087",
+    "category": "GROUP",
+    "question": "按倉庫層次統計"
+  },
+  {
+    "id": "JP_GROUP_088",
+    "category": "GROUP",
+    "question": "統計倉庫層次"
+  },
+  {
+    "id": "JP_GROUP_089",
+    "category": "GROUP",
+    "question": "按儲位層次統計"
+  },
+  {
+    "id": "JP_GROUP_090",
+    "category": "GROUP",
+    "question": "統計儲位層次"
+  },
+  {
+    "id": "JP_GROUP_091",
+    "category": "GROUP",
+    "question": "統計各層次庫存"
+  },
+  {
+    "id": "JP_GROUP_092",
+    "category": "GROUP",
+    "question": "按綜合維度統計"
+  },
+  {
+    "id": "JP_GROUP_093",
+    "category": "GROUP",
+    "question": "統計綜合分類"
+  },
+  {
+    "id": "JP_GROUP_094",
+    "category": "GROUP",
+    "question": "按聚合維度統計"
+  },
+  {
+    "id": "JP_GROUP_095",
+    "category": "GROUP",
+    "question": "統計聚合分類"
+  },
+  {
+    "id": "JP_GROUP_096",
+    "category": "GROUP",
+    "question": "按交叉維度統計"
+  },
+  {
+    "id": "JP_GROUP_097",
+    "category": "GROUP",
+    "question": "統計交叉分類"
+  },
+  {
+    "id": "JP_GROUP_098",
+    "category": "GROUP",
+    "question": "按多維聚合"
+  },
+  {
+    "id": "JP_AGG_001",
+    "category": "AGG",
+    "question": "計算全廠庫存總數量"
+  },
+  {
+    "id": "JP_AGG_002",
+    "category": "AGG",
+    "question": "統計2025年1月銷售總金額"
+  },
+  {
+    "id": "JP_AGG_003",
+    "category": "AGG",
+    "question": "計算8802倉庫的平均庫存"
+  },
+  {
+    "id": "JP_AGG_004",
+    "category": "AGG",
+    "question": "統計庫存數量的總和"
+  },
+  {
+    "id": "JP_AGG_005",
+    "category": "AGG",
+    "question": "計算最大庫存數量"
+  },
+  {
+    "id": "JP_AGG_006",
+    "category": "AGG",
+    "question": "計算最小庫存數量"
+  },
+  {
+    "id": "JP_AGG_007",
+    "category": "AGG",
+    "question": "統計有庫存的料號總數"
+  },
+  {
+    "id": "JP_AGG_008",
+    "category": "AGG",
+    "question": "計算2101倉庫的平均庫存"
+  },
+  {
+    "id": "JP_AGG_009",
+    "category": "AGG",
+    "question": "統計最高庫存的料號"
+  },
+  {
+    "id": "JP_AGG_010",
+    "category": "AGG",
+    "question": "計算所有倉庫的庫存總和"
+  },
+  {
+    "id": "JP_AGG_011",
+    "category": "AGG",
+    "question": "計算平均庫存數量"
+  },
+  {
+    "id": "JP_AGG_012",
+    "category": "AGG",
+    "question": "統計庫存的平均值"
+  },
+  {
+    "id": "JP_AGG_013",
+    "category": "AGG",
+    "question": "計算庫存數量的最大值"
+  },
+  {
+    "id": "JP_AGG_014",
+    "category": "AGG",
+    "question": "計算庫存數量的最小值"
+  },
+  {
+    "id": "JP_AGG_015",
+    "category": "AGG",
+    "question": "統計總庫存金額"
+  },
+  {
+    "id": "JP_AGG_016",
+    "category": "AGG",
+    "question": "計算平均庫存金額"
+  },
+  {
+    "id": "JP_AGG_017",
+    "category": "AGG",
+    "question": "統計最高與最低庫存"
+  },
+  {
+    "id": "JP_AGG_018",
+    "category": "AGG",
+    "question": "計算庫存總額"
+  },
+  {
+    "id": "JP_AGG_019",
+    "category": "AGG",
+    "question": "統計庫存平均單價"
+  },
+  {
+    "id": "JP_AGG_020",
+    "category": "AGG",
+    "question": "計算庫存價值總額"
+  },
+  {
+    "id": "JP_AGG_021",
+    "category": "AGG",
+    "question": "統計料號總數"
+  },
+  {
+    "id": "JP_AGG_022",
+    "category": "AGG",
+    "question": "計算料號庫存總額"
+  },
+  {
+    "id": "JP_AGG_023",
+    "category": "AGG",
+    "question": "統計倉庫總庫存"
+  },
+  {
+    "id": "JP_AGG_024",
+    "category": "AGG",
+    "question": "計算各倉庫庫存總額"
+  },
+  {
+    "id": "JP_AGG_025",
+    "category": "AGG",
+    "question": "統計所有單位的庫存"
+  },
+  {
+    "id": "JP_AGG_026",
+    "category": "AGG",
+    "question": "計算各單位庫存總額"
+  },
+  {
+    "id": "JP_AGG_027",
+    "category": "AGG",
+    "question": "統計所有時間的庫存"
+  },
+  {
+    "id": "JP_AGG_028",
+    "category": "AGG",
+    "question": "計算各時間段庫存"
+  },
+  {
+    "id": "JP_AGG_029",
+    "category": "AGG",
+    "question": "統計所有儲位的庫存"
+  },
+  {
+    "id": "JP_AGG_030",
+    "category": "AGG",
+    "question": "計算各儲位庫存總額"
+  },
+  {
+    "id": "JP_AGG_031",
+    "category": "AGG",
+    "question": "統計庫存的總筆數"
+  },
+  {
+    "id": "JP_AGG_032",
+    "category": "AGG",
+    "question": "計算庫存的總價值"
+  },
+  {
+    "id": "JP_AGG_033",
+    "category": "AGG",
+    "question": "統計庫存的平均價值"
+  },
+  {
+    "id": "JP_AGG_034",
+    "category": "AGG",
+    "question": "計算最大庫存價值"
+  },
+  {
+    "id": "JP_AGG_035",
+    "category": "AGG",
+    "question": "計算最小庫存價值"
+  },
+  {
+    "id": "JP_AGG_036",
+    "category": "AGG",
+    "question": "統計庫存的總額平均"
+  },
+  {
+    "id": "JP_AGG_037",
+    "category": "AGG",
+    "question": "計算庫存數量的平均值"
+  },
+  {
+    "id": "JP_AGG_038",
+    "category": "AGG",
+    "question": "統計庫存的極值"
+  },
+  {
+    "id": "JP_AGG_039",
+    "category": "AGG",
+    "question": "計算最大與最小庫存"
+  },
+  {
+    "id": "JP_AGG_040",
+    "category": "AGG",
+    "question": "統計庫存的範圍"
+  },
+  {
+    "id": "JP_AGG_041",
+    "category": "AGG",
+    "question": "計算庫存的標準差"
+  },
+  {
+    "id": "JP_AGG_042",
+    "category": "AGG",
+    "question": "統計庫存的變異"
+  },
+  {
+    "id": "JP_AGG_043",
+    "category": "AGG",
+    "question": "計算庫存的總體"
+  },
+  {
+    "id": "JP_AGG_044",
+    "category": "AGG",
+    "question": "統計庫存的樣本數"
+  },
+  {
+    "id": "JP_AGG_045",
+    "category": "AGG",
+    "question": "計算庫存的估計"
+  },
+  {
+    "id": "JP_AGG_046",
+    "category": "AGG",
+    "question": "統計庫存的推論"
+  },
+  {
+    "id": "JP_AGG_047",
+    "category": "AGG",
+    "question": "計算庫存的預測"
+  },
+  {
+    "id": "JP_AGG_048",
+    "category": "AGG",
+    "question": "統計庫存的趨勢"
+  },
+  {
+    "id": "JP_AGG_049",
+    "category": "AGG",
+    "question": "計算庫存的成長率"
+  },
+  {
+    "id": "JP_AGG_050",
+    "category": "AGG",
+    "question": "統計庫存的變化"
+  },
+  {
+    "id": "JP_AGG_051",
+    "category": "AGG",
+    "question": "計算庫存的波動"
+  },
+  {
+    "id": "JP_AGG_052",
+    "category": "AGG",
+    "question": "統計庫存的穩定性"
+  },
+  {
+    "id": "JP_AGG_053",
+    "category": "AGG",
+    "question": "計算庫存的週期"
+  },
+  {
+    "id": "JP_AGG_054",
+    "category": "AGG",
+    "question": "統計庫存的規律"
+  },
+  {
+    "id": "JP_AGG_055",
+    "category": "AGG",
+    "question": "計算庫存的模式"
+  },
+  {
+    "id": "JP_AGG_056",
+    "category": "AGG",
+    "question": "統計庫存的形態"
+  },
+  {
+    "id": "JP_AGG_057",
+    "category": "AGG",
+    "question": "計算庫存的分布"
+  },
+  {
+    "id": "JP_AGG_058",
+    "category": "AGG",
+    "question": "統計庫存的形狀"
+  },
+  {
+    "id": "JP_AGG_059",
+    "category": "AGG",
+    "question": "計算庫存的偏態"
+  },
+  {
+    "id": "JP_AGG_060",
+    "category": "AGG",
+    "question": "統計庫存的峰度"
+  },
+  {
+    "id": "JP_AGG_061",
+    "category": "AGG",
+    "question": "計算庫存的相關"
+  },
+  {
+    "id": "JP_AGG_062",
+    "category": "AGG",
+    "question": "統計庫存的關聯"
+  },
+  {
+    "id": "JP_AGG_063",
+    "category": "AGG",
+    "question": "計算庫存的迴歸"
+  },
+  {
+    "id": "JP_AGG_064",
+    "category": "AGG",
+    "question": "統計庫存的預測"
+  },
+  {
+    "id": "JP_AGG_065",
+    "category": "AGG",
+    "question": "計算庫存的平滑"
+  },
+  {
+    "id": "JP_AGG_066",
+    "category": "AGG",
+    "question": "統計庫存的濾波"
+  },
+  {
+    "id": "JP_AGG_067",
+    "category": "AGG",
+    "question": "計算庫存的季節"
+  },
+  {
+    "id": "JP_AGG_068",
+    "category": "AGG",
+    "question": "統計庫存的週期性"
+  },
+  {
+    "id": "JP_AGG_069",
+    "category": "AGG",
+    "question": "計算庫存的趨勢線"
+  },
+  {
+    "id": "JP_AGG_070",
+    "category": "AGG",
+    "question": "統計庫存的平滑值"
+  },
+  {
+    "id": "JP_AGG_071",
+    "category": "AGG",
+    "question": "計算庫存的移動平均"
+  },
+  {
+    "id": "JP_AGG_072",
+    "category": "AGG",
+    "question": "統計庫存的加權平均"
+  },
+  {
+    "id": "JP_AGG_073",
+    "category": "AGG",
+    "question": "計算庫存的指數平滑"
+  },
+  {
+    "id": "JP_AGG_074",
+    "category": "AGG",
+    "question": "統計庫存的 Holt-Winters"
+  },
+  {
+    "id": "JP_AGG_075",
+    "category": "AGG",
+    "question": "計算庫存的 ARIMA"
+  },
+  {
+    "id": "JP_AGG_076",
+    "category": "AGG",
+    "question": "統計庫存的預測模型"
+  },
+  {
+    "id": "JP_AGG_077",
+    "category": "AGG",
+    "question": "計算庫存的季節分解"
+  },
+  {
+    "id": "JP_AGG_078",
+    "category": "AGG",
+    "question": "統計庫存的趨勢分解"
+  },
+  {
+    "id": "JP_AGG_079",
+    "category": "AGG",
+    "question": "計算庫存的週期分解"
+  },
+  {
+    "id": "JP_AGG_080",
+    "category": "AGG",
+    "question": "統計庫存的殘差"
+  },
+  {
+    "id": "JP_AGG_081",
+    "category": "AGG",
+    "question": "計算庫存的預測區間"
+  },
+  {
+    "id": "JP_AGG_082",
+    "category": "AGG",
+    "question": "統計庫存的置信區間"
+  },
+  {
+    "id": "JP_AGG_083",
+    "category": "AGG",
+    "question": "計算庫存的預測誤差"
+  },
+  {
+    "id": "JP_AGG_084",
+    "category": "AGG",
+    "question": "統計庫存的準確度"
+  },
+  {
+    "id": "JP_AGG_085",
+    "category": "AGG",
+    "question": "計算庫存的 MAPE"
+  },
+  {
+    "id": "JP_AGG_086",
+    "category": "AGG",
+    "question": "統計庫存的 RMSE"
+  },
+  {
+    "id": "JP_AGG_087",
+    "category": "AGG",
+    "question": "計算庫存的 MAE"
+  },
+  {
+    "id": "JP_AGG_088",
+    "category": "AGG",
+    "question": "統計庫存的 MSE"
+  },
+  {
+    "id": "JP_AGG_089",
+    "category": "AGG",
+    "question": "計算庫存的殘差平方和"
+  },
+  {
+    "id": "JP_AGG_090",
+    "category": "AGG",
+    "question": "統計庫存的決定係數"
+  },
+  {
+    "id": "JP_AGG_091",
+    "category": "AGG",
+    "question": "計算庫存的相關係數"
+  },
+  {
+    "id": "JP_AGG_092",
+    "category": "AGG",
+    "question": "統計庫存的共變異數"
+  },
+  {
+    "id": "JP_AGG_093",
+    "category": "AGG",
+    "question": "計算庫存的共變異數矩陣"
+  },
+  {
+    "id": "JP_AGG_094",
+    "category": "AGG",
+    "question": "統計庫存的相關矩陣"
+  },
+  {
+    "id": "JP_AGG_095",
+    "category": "AGG",
+    "question": "計算庫存的特徵值"
+  },
+  {
+    "id": "JP_AGG_096",
+    "category": "AGG",
+    "question": "統計庫存的特徵向量"
+  },
+  {
+    "id": "JP_JOIN_001",
+    "category": "JOIN",
+    "question": "查詢料號10-0001的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_002",
+    "category": "JOIN",
+    "question": "查詢8802倉庫料號的庫存及位置"
+  },
+  {
+    "id": "JP_JOIN_003",
+    "category": "JOIN",
+    "question": "查詢低於安全庫存的物料與現有庫存量"
+  },
+  {
+    "id": "JP_JOIN_004",
+    "category": "JOIN",
+    "question": "查詢料號8021107403900001的詳細庫存資訊"
+  },
+  {
+    "id": "JP_JOIN_005",
+    "category": "JOIN",
+    "question": "查詢所有料號的庫存與儲位對應"
+  },
+  {
+    "id": "JP_JOIN_006",
+    "category": "JOIN",
+    "question": "查詢2101倉庫的庫存與料號對應"
+  },
+  {
+    "id": "JP_JOIN_007",
+    "category": "JOIN",
+    "question": "查詢料號在不同倉庫的庫存分布"
+  },
+  {
+    "id": "JP_JOIN_008",
+    "category": "JOIN",
+    "question": "查詢8802和2101倉庫的庫存比較"
+  },
+  {
+    "id": "JP_JOIN_009",
+    "category": "JOIN",
+    "question": "查詢料號與庫存的對應關係"
+  },
+  {
+    "id": "JP_JOIN_010",
+    "category": "JOIN",
+    "question": "查詢倉庫與儲位的庫存對應"
+  },
+  {
+    "id": "JP_JOIN_011",
+    "category": "JOIN",
+    "question": "查詢料號、品名與庫存的對應"
+  },
+  {
+    "id": "JP_JOIN_012",
+    "category": "JOIN",
+    "question": "查詢庫存與單位的對應"
+  },
+  {
+    "id": "JP_JOIN_013",
+    "category": "JOIN",
+    "question": "查詢料號與位置的對應"
+  },
+  {
+    "id": "JP_JOIN_014",
+    "category": "JOIN",
+    "question": "查詢倉庫與料號的庫存關係"
+  },
+  {
+    "id": "JP_JOIN_015",
+    "category": "JOIN",
+    "question": "查詢庫存與時間的對應"
+  },
+  {
+    "id": "JP_JOIN_016",
+    "category": "JOIN",
+    "question": "查詢料號10-0002的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_017",
+    "category": "JOIN",
+    "question": "查詢料號10-0003的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_018",
+    "category": "JOIN",
+    "question": "查詢料號10-0004的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_019",
+    "category": "JOIN",
+    "question": "查詢料號10-0005的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_020",
+    "category": "JOIN",
+    "question": "查詢料號10-0006的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_021",
+    "category": "JOIN",
+    "question": "查詢料號10-0007的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_022",
+    "category": "JOIN",
+    "question": "查詢料號10-0008的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_023",
+    "category": "JOIN",
+    "question": "查詢料號10-0009的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_024",
+    "category": "JOIN",
+    "question": "查詢料號10-0010的庫存及品名"
+  },
+  {
+    "id": "JP_JOIN_025",
+    "category": "JOIN",
+    "question": "查詢8802倉的庫存及位置"
+  },
+  {
+    "id": "JP_JOIN_026",
+    "category": "JOIN",
+    "question": "查詢2101倉的庫存及位置"
+  },
+  {
+    "id": "JP_JOIN_027",
+    "category": "JOIN",
+    "question": "查詢各倉庫的庫存及位置"
+  },
+  {
+    "id": "JP_JOIN_028",
+    "category": "JOIN",
+    "question": "查詢料號與倉庫的庫存關係"
+  },
+  {
+    "id": "JP_JOIN_029",
+    "category": "JOIN",
+    "question": "查詢料號與儲位的庫存關係"
+  },
+  {
+    "id": "JP_JOIN_030",
+    "category": "JOIN",
+    "question": "查詢倉庫與時間的庫存關係"
+  },
+  {
+    "id": "JP_JOIN_031",
+    "category": "JOIN",
+    "question": "查詢料號與單位的庫存關係"
+  },
+  {
+    "id": "JP_JOIN_032",
+    "category": "JOIN",
+    "question": "查詢時間與單位的庫存關係"
+  },
+  {
+    "id": "JP_JOIN_033",
+    "category": "JOIN",
+    "question": "查詢倉庫與單位的庫存關係"
+  },
+  {
+    "id": "JP_JOIN_034",
+    "category": "JOIN",
+    "question": "查詢料號時間與單位的庫存"
+  },
+  {
+    "id": "JP_JOIN_035",
+    "category": "JOIN",
+    "question": "查詢時間倉庫與位置的庫存"
+  },
+  {
+    "id": "JP_JOIN_036",
+    "category": "JOIN",
+    "question": "查詢料號倉庫與位置的庫存"
+  },
+  {
+    "id": "JP_JOIN_037",
+    "category": "JOIN",
+    "question": "查詢料號時間與位置的庫存"
+  },
+  {
+    "id": "JP_JOIN_038",
+    "category": "JOIN",
+    "question": "查詢時間單位與位置的庫存"
+  },
+  {
+    "id": "JP_JOIN_039",
+    "category": "JOIN",
+    "question": "查詢料號單位與位置的庫存"
+  },
+  {
+    "id": "JP_JOIN_040",
+    "category": "JOIN",
+    "question": "查詢多維度的庫存對應"
+  },
+  {
+    "id": "JP_JOIN_041",
+    "category": "JOIN",
+    "question": "查詢複雜關係的庫存"
+  },
+  {
+    "id": "JP_JOIN_042",
+    "category": "JOIN",
+    "question": "查詢交叉維度的庫存"
+  },
+  {
+    "id": "JP_JOIN_043",
+    "category": "JOIN",
+    "question": "查詢多層次的庫存"
+  },
+  {
+    "id": "JP_JOIN_044",
+    "category": "JOIN",
+    "question": "查詢各維度的庫存對應"
+  },
+  {
+    "id": "JP_JOIN_045",
+    "category": "JOIN",
+    "question": "查詢多條件的庫存"
+  },
+  {
+    "id": "JP_JOIN_046",
+    "category": "JOIN",
+    "question": "查詢複合條件的庫存"
+  },
+  {
+    "id": "JP_JOIN_047",
+    "category": "JOIN",
+    "question": "查詢所有維度的庫存"
+  },
+  {
+    "id": "JP_JOIN_048",
+    "category": "JOIN",
+    "question": "查詢維度組合的庫存"
+  },
+  {
+    "id": "JP_JOIN_049",
+    "category": "JOIN",
+    "question": "查詢維度交叉的庫存"
+  },
+  {
+    "id": "JP_JOIN_050",
+    "category": "JOIN",
+    "question": "查詢多維度交叉"
+  },
+  {
+    "id": "JP_JOIN_051",
+    "category": "JOIN",
+    "question": "查詢維度聚合"
+  },
+  {
+    "id": "JP_JOIN_052",
+    "category": "JOIN",
+    "question": "查詢料號與品名的對應"
+  },
+  {
+    "id": "JP_JOIN_053",
+    "category": "JOIN",
+    "question": "查詢品名與單位的對應"
+  },
+  {
+    "id": "JP_JOIN_054",
+    "category": "JOIN",
+    "question": "查詢單價與數量的對應"
+  },
+  {
+    "id": "JP_JOIN_055",
+    "category": "JOIN",
+    "question": "查詢金額與數量的關係"
+  },
+  {
+    "id": "JP_JOIN_056",
+    "category": "JOIN",
+    "question": "查詢單價與金額的關係"
+  },
+  {
+    "id": "JP_JOIN_057",
+    "category": "JOIN",
+    "question": "查詢料號與單價的關係"
+  },
+  {
+    "id": "JP_JOIN_058",
+    "category": "JOIN",
+    "question": "查詢品名與單價的關係"
+  },
+  {
+    "id": "JP_JOIN_059",
+    "category": "JOIN",
+    "question": "查詢單位與單價的關係"
+  },
+  {
+    "id": "JP_JOIN_060",
+    "category": "JOIN",
+    "question": "查詢數量與單位的關係"
+  },
+  {
+    "id": "JP_JOIN_061",
+    "category": "JOIN",
+    "question": "查詢所有欄位的關係"
+  },
+  {
+    "id": "JP_JOIN_062",
+    "category": "JOIN",
+    "question": "查詢多表的所有關係"
+  },
+  {
+    "id": "JP_JOIN_063",
+    "category": "JOIN",
+    "question": "查詢各表的對應關係"
+  },
+  {
+    "id": "JP_JOIN_064",
+    "category": "JOIN",
+    "question": "查詢表的交叉關係"
+  },
+  {
+    "id": "JP_JOIN_065",
+    "category": "JOIN",
+    "question": "查詢表的多維關係"
+  },
+  {
+    "id": "JP_JOIN_066",
+    "category": "JOIN",
+    "question": "查詢表的複雜關係"
+  },
+  {
+    "id": "JP_JOIN_067",
+    "category": "JOIN",
+    "question": "查詢料的詳細資訊"
+  },
+  {
+    "id": "JP_JOIN_068",
+    "category": "JOIN",
+    "question": "查詢料的完整資訊"
+  },
+  {
+    "id": "JP_JOIN_069",
+    "category": "JOIN",
+    "question": "查詢料的綜合資訊"
+  },
+  {
+    "id": "JP_JOIN_070",
+    "category": "JOIN",
+    "question": "查詢料的各項資訊"
+  },
+  {
+    "id": "JP_JOIN_071",
+    "category": "JOIN",
+    "question": "查詢料的多元資訊"
+  },
+  {
+    "id": "JP_JOIN_072",
+    "category": "JOIN",
+    "question": "查詢料的完整對應"
+  },
+  {
+    "id": "JP_JOIN_073",
+    "category": "JOIN",
+    "question": "查詢料的交叉對應"
+  },
+  {
+    "id": "JP_JOIN_074",
+    "category": "JOIN",
+    "question": "查詢料的多維對應"
+  },
+  {
+    "id": "JP_JOIN_075",
+    "category": "JOIN",
+    "question": "查詢料的複合對應"
+  },
+  {
+    "id": "JP_JOIN_076",
+    "category": "JOIN",
+    "question": "查詢料的全面對應"
+  },
+  {
+    "id": "JP_JOIN_077",
+    "category": "JOIN",
+    "question": "查詢料的綜合對應"
+  },
+  {
+    "id": "JP_JOIN_078",
+    "category": "JOIN",
+    "question": "查詢料的整體對應"
+  },
+  {
+    "id": "JP_JOIN_079",
+    "category": "JOIN",
+    "question": "查詢料的系統對應"
+  },
+  {
+    "id": "JP_JOIN_080",
+    "category": "JOIN",
+    "question": "查詢料的全局對應"
+  },
+  {
+    "id": "JP_JOIN_081",
+    "category": "JOIN",
+    "question": "查詢料的完整關聯"
+  },
+  {
+    "id": "JP_JOIN_082",
+    "category": "JOIN",
+    "question": "查詢料的交叉關聯"
+  },
+  {
+    "id": "JP_JOIN_083",
+    "category": "JOIN",
+    "question": "查詢料的多維關聯"
+  },
+  {
+    "id": "JP_JOIN_084",
+    "category": "JOIN",
+    "question": "查詢料的複合關聯"
+  },
+  {
+    "id": "JP_JOIN_085",
+    "category": "JOIN",
+    "question": "查詢料的全面關聯"
+  },
+  {
+    "id": "JP_JOIN_086",
+    "category": "JOIN",
+    "question": "查詢料的綜合關聯"
+  },
+  {
+    "id": "JP_JOIN_087",
+    "category": "JOIN",
+    "question": "查詢料的整體關聯"
+  },
+  {
+    "id": "JP_JOIN_088",
+    "category": "JOIN",
+    "question": "查詢料的系統關聯"
+  },
+  {
+    "id": "JP_JOIN_089",
+    "category": "JOIN",
+    "question": "查詢料的全局關聯"
+  },
+  {
+    "id": "JP_JOIN_090",
+    "category": "JOIN",
+    "question": "查詢料的完整映射"
+  },
+  {
+    "id": "JP_JOIN_091",
+    "category": "JOIN",
+    "question": "查詢料的交叉映射"
+  },
+  {
+    "id": "JP_JOIN_092",
+    "category": "JOIN",
+    "question": "查詢料的多維映射"
+  },
+  {
+    "id": "JP_JOIN_093",
+    "category": "JOIN",
+    "question": "查詢料的複合映射"
+  },
+  {
+    "id": "JP_COMPLEX_001",
+    "category": "COMPLEX",
+    "question": "查詢庫存數量高於平均的料號"
+  },
+  {
+    "id": "JP_COMPLEX_002",
+    "category": "COMPLEX",
+    "question": "查詢同時在多個倉庫有庫存的料號"
+  },
+  {
+    "id": "JP_COMPLEX_003",
+    "category": "COMPLEX",
+    "question": "查詢庫存數量排名"
+  },
+  {
+    "id": "JP_COMPLEX_004",
+    "category": "COMPLEX",
+    "question": "查詢庫存最高的前10個料號"
+  },
+  {
+    "id": "JP_COMPLEX_005",
+    "category": "COMPLEX",
+    "question": "查詢庫存最低的料號"
+  },
+  {
+    "id": "JP_COMPLEX_006",
+    "category": "COMPLEX",
+    "question": "按倉庫對庫存進行排名"
+  },
+  {
+    "id": "JP_COMPLEX_007",
+    "category": "COMPLEX",
+    "question": "查詢料號長度與庫存的關係"
+  },
+  {
+    "id": "JP_COMPLEX_008",
+    "category": "COMPLEX",
+    "question": "查詢同時符合多個條件的庫存"
+  },
+  {
+    "id": "JP_COMPLEX_009",
+    "category": "COMPLEX",
+    "question": "查詢庫存異常的料號"
+  },
+  {
+    "id": "JP_COMPLEX_010",
+    "category": "COMPLEX",
+    "question": "查詢庫存與時間的趨勢"
+  },
+  {
+    "id": "JP_COMPLEX_011",
+    "category": "COMPLEX",
+    "question": "查詢庫存分佈異常的倉庫"
+  },
+  {
+    "id": "JP_COMPLEX_012",
+    "category": "COMPLEX",
+    "question": "查詢多維度的庫存統計"
+  },
+  {
+    "id": "JP_COMPLEX_013",
+    "category": "COMPLEX",
+    "question": "查詢庫存的複雜分類"
+  },
+  {
+    "id": "JP_COMPLEX_014",
+    "category": "COMPLEX",
+    "question": "查詢跨維度的庫存分析"
+  },
+  {
+    "id": "JP_COMPLEX_015",
+    "category": "COMPLEX",
+    "question": "查詢多條件的庫存篩選"
+  },
+  {
+    "id": "JP_COMPLEX_016",
+    "category": "COMPLEX",
+    "question": "查詢庫存高於平均且在多倉庫"
+  },
+  {
+    "id": "JP_COMPLEX_017",
+    "category": "COMPLEX",
+    "question": "查詢庫存最高的前5個倉庫"
+  },
+  {
+    "id": "JP_COMPLEX_018",
+    "category": "COMPLEX",
+    "question": "查詢庫存最低的前5個料號"
+  },
+  {
+    "id": "JP_COMPLEX_019",
+    "category": "COMPLEX",
+    "question": "查詢庫存變化最大的料號"
+  },
+  {
+    "id": "JP_COMPLEX_020",
+    "category": "COMPLEX",
+    "question": "查詢庫存趨勢向上的料號"
+  },
+  {
+    "id": "JP_COMPLEX_021",
+    "category": "COMPLEX",
+    "question": "查詢庫存趨勢向下的料號"
+  },
+  {
+    "id": "JP_COMPLEX_022",
+    "category": "COMPLEX",
+    "question": "查詢庫存波動大的倉庫"
+  },
+  {
+    "id": "JP_COMPLEX_023",
+    "category": "COMPLEX",
+    "question": "查詢庫存穩定的料號"
+  },
+  {
+    "id": "JP_COMPLEX_024",
+    "category": "COMPLEX",
+    "question": "查詢庫存異常偏高的料號"
+  },
+  {
+    "id": "JP_COMPLEX_025",
+    "category": "COMPLEX",
+    "question": "查詢庫存異常偏低的料號"
+  },
+  {
+    "id": "JP_COMPLEX_026",
+    "category": "COMPLEX",
+    "question": "查詢庫存偏離平均值最大的料號"
+  },
+  {
+    "id": "JP_COMPLEX_027",
+    "category": "COMPLEX",
+    "question": "查詢庫存分布不均的倉庫"
+  },
+  {
+    "id": "JP_COMPLEX_028",
+    "category": "COMPLEX",
+    "question": "查詢庫存集中的料號"
+  },
+  {
+    "id": "JP_COMPLEX_029",
+    "category": "COMPLEX",
+    "question": "查詢庫存分散的料號"
+  },
+  {
+    "id": "JP_COMPLEX_030",
+    "category": "COMPLEX",
+    "question": "查詢庫存集中的倉庫"
+  },
+  {
+    "id": "JP_COMPLEX_031",
+    "category": "COMPLEX",
+    "question": "查詢庫存分散的倉庫"
+  },
+  {
+    "id": "JP_COMPLEX_032",
+    "category": "COMPLEX",
+    "question": "查詢庫存時間趨勢異常"
+  },
+  {
+    "id": "JP_COMPLEX_033",
+    "category": "COMPLEX",
+    "question": "查詢庫存空間分布異常"
+  },
+  {
+    "id": "JP_COMPLEX_034",
+    "category": "COMPLEX",
+    "question": "查詢庫存的相關性分析"
+  },
+  {
+    "id": "JP_COMPLEX_035",
+    "category": "COMPLEX",
+    "question": "查詢庫存的迴歸分析"
+  },
+  {
+    "id": "JP_COMPLEX_036",
+    "category": "COMPLEX",
+    "question": "查詢庫存的預測分析"
+  },
+  {
+    "id": "JP_COMPLEX_037",
+    "category": "COMPLEX",
+    "question": "查詢庫存的季節性分析"
+  },
+  {
+    "id": "JP_COMPLEX_038",
+    "category": "COMPLEX",
+    "question": "查詢庫存的週期性分析"
+  },
+  {
+    "id": "JP_COMPLEX_039",
+    "category": "COMPLEX",
+    "question": "查詢庫存的趨勢分析"
+  },
+  {
+    "id": "JP_COMPLEX_040",
+    "category": "COMPLEX",
+    "question": "查詢庫存的波動性分析"
+  },
+  {
+    "id": "JP_COMPLEX_041",
+    "category": "COMPLEX",
+    "question": "查詢庫存的穩定性分析"
+  },
+  {
+    "id": "JP_COMPLEX_042",
+    "category": "COMPLEX",
+    "question": "查詢庫存的週期分析"
+  },
+  {
+    "id": "JP_COMPLEX_043",
+    "category": "COMPLEX",
+    "question": "查詢庫存的形態分析"
+  },
+  {
+    "id": "JP_COMPLEX_044",
+    "category": "COMPLEX",
+    "question": "查詢庫存的分布分析"
+  },
+  {
+    "id": "JP_COMPLEX_045",
+    "category": "COMPLEX",
+    "question": "查詢庫存的形狀分析"
+  },
+  {
+    "id": "JP_COMPLEX_046",
+    "category": "COMPLEX",
+    "question": "查詢庫存的偏態分析"
+  },
+  {
+    "id": "JP_COMPLEX_047",
+    "category": "COMPLEX",
+    "question": "查詢庫存的峰度分析"
+  },
+  {
+    "id": "JP_COMPLEX_048",
+    "category": "COMPLEX",
+    "question": "查詢庫存的相關分析"
+  },
+  {
+    "id": "JP_COMPLEX_049",
+    "category": "COMPLEX",
+    "question": "查詢庫存的關聯分析"
+  },
+  {
+    "id": "JP_COMPLEX_050",
+    "category": "COMPLEX",
+    "question": "查詢庫存的迴歸分析"
+  },
+  {
+    "id": "JP_COMPLEX_051",
+    "category": "COMPLEX",
+    "question": "查詢庫存的預測分析"
+  },
+  {
+    "id": "JP_COMPLEX_052",
+    "category": "COMPLEX",
+    "question": "查詢庫存的平滑分析"
+  },
+  {
+    "id": "JP_COMPLEX_053",
+    "category": "COMPLEX",
+    "question": "查詢庫存的濾波分析"
+  },
+  {
+    "id": "JP_COMPLEX_054",
+    "category": "COMPLEX",
+    "question": "查詢庫存的季節分析"
+  },
+  {
+    "id": "JP_COMPLEX_055",
+    "category": "COMPLEX",
+    "question": "查詢庫存的週期分析"
+  },
+  {
+    "id": "JP_COMPLEX_056",
+    "category": "COMPLEX",
+    "question": "查詢庫存的趨勢線分析"
+  },
+  {
+    "id": "JP_COMPLEX_057",
+    "category": "COMPLEX",
+    "question": "查詢庫存的平滑值分析"
+  },
+  {
+    "id": "JP_COMPLEX_058",
+    "category": "COMPLEX",
+    "question": "查詢庫存的移動平均分析"
+  },
+  {
+    "id": "JP_COMPLEX_059",
+    "category": "COMPLEX",
+    "question": "查詢庫存的加權平均分析"
+  },
+  {
+    "id": "JP_COMPLEX_060",
+    "category": "COMPLEX",
+    "question": "查詢庫存的指數平滑分析"
+  },
+  {
+    "id": "JP_COMPLEX_061",
+    "category": "COMPLEX",
+    "question": "查詢庫存的 Holt-Winters 分析"
+  },
+  {
+    "id": "JP_COMPLEX_062",
+    "category": "COMPLEX",
+    "question": "查詢庫存的 ARIMA 分析"
+  },
+  {
+    "id": "JP_COMPLEX_063",
+    "category": "COMPLEX",
+    "question": "查詢庫存的預測模型分析"
+  },
+  {
+    "id": "JP_COMPLEX_064",
+    "category": "COMPLEX",
+    "question": "查詢庫存的季節分解分析"
+  },
+  {
+    "id": "JP_COMPLEX_065",
+    "category": "COMPLEX",
+    "question": "查詢庫存的趨勢分解分析"
+  },
+  {
+    "id": "JP_COMPLEX_066",
+    "category": "COMPLEX",
+    "question": "查詢庫存的週期分解分析"
+  },
+  {
+    "id": "JP_COMPLEX_067",
+    "category": "COMPLEX",
+    "question": "查詢庫存的殘差分析"
+  },
+  {
+    "id": "JP_COMPLEX_068",
+    "category": "COMPLEX",
+    "question": "查詢庫存的預測區間分析"
+  },
+  {
+    "id": "JP_COMPLEX_069",
+    "category": "COMPLEX",
+    "question": "查詢庫存的置信區間分析"
+  },
+  {
+    "id": "JP_COMPLEX_070",
+    "category": "COMPLEX",
+    "question": "查詢庫存的預測誤差分析"
+  },
+  {
+    "id": "JP_COMPLEX_071",
+    "category": "COMPLEX",
+    "question": "查詢庫存的準確度分析"
+  },
+  {
+    "id": "JP_COMPLEX_072",
+    "category": "COMPLEX",
+    "question": "查詢庫存的 MAPE 分析"
+  },
+  {
+    "id": "JP_COMPLEX_073",
+    "category": "COMPLEX",
+    "question": "查詢庫存的 RMSE 分析"
+  },
+  {
+    "id": "JP_COMPLEX_074",
+    "category": "COMPLEX",
+    "question": "查詢庫存的 MAE 分析"
+  },
+  {
+    "id": "JP_COMPLEX_075",
+    "category": "COMPLEX",
+    "question": "查詢庫存的 MSE 分析"
+  },
+  {
+    "id": "JP_COMPLEX_076",
+    "category": "COMPLEX",
+    "question": "查詢庫存的殘差平方和分析"
+  },
+  {
+    "id": "JP_COMPLEX_077",
+    "category": "COMPLEX",
+    "question": "查詢庫存的決定係數分析"
+  },
+  {
+    "id": "JP_COMPLEX_078",
+    "category": "COMPLEX",
+    "question": "查詢庫存的相關係數分析"
+  },
+  {
+    "id": "JP_COMPLEX_079",
+    "category": "COMPLEX",
+    "question": "查詢庫存的共變異數分析"
+  },
+  {
+    "id": "JP_COMPLEX_080",
+    "category": "COMPLEX",
+    "question": "查詢庫存的共變異數矩陣分析"
+  },
+  {
+    "id": "JP_COMPLEX_081",
+    "category": "COMPLEX",
+    "question": "查詢庫存的相關矩陣分析"
+  },
+  {
+    "id": "JP_COMPLEX_082",
+    "category": "COMPLEX",
+    "question": "查詢庫存的特徵值分析"
+  },
+  {
+    "id": "JP_COMPLEX_083",
+    "category": "COMPLEX",
+    "question": "查詢庫存的特徵向量分析"
+  },
+  {
+    "id": "JP_COMPLEX_084",
+    "category": "COMPLEX",
+    "question": "查詢庫存的主成分分析"
+  },
+  {
+    "id": "JP_COMPLEX_085",
+    "category": "COMPLEX",
+    "question": "查詢庫存的因子分析"
+  },
+  {
+    "id": "JP_COMPLEX_086",
+    "category": "COMPLEX",
+    "question": "查詢庫存的集群分析"
+  },
+  {
+    "id": "JP_COMPLEX_087",
+    "category": "COMPLEX",
+    "question": "查詢庫存的分類分析"
+  },
+  {
+    "id": "JP_TIME_470",
+    "category": "TIME",
+    "question": "查詢2025年1月的庫存"
+  },
+  {
+    "id": "JP_TIME_471",
+    "category": "TIME",
+    "question": "查詢2024年的庫存變化"
+  },
+  {
+    "id": "JP_TIME_472",
+    "category": "TIME",
+    "question": "統計每個月的庫存數量"
+  },
+  {
+    "id": "JP_TIME_473",
+    "category": "TIME",
+    "question": "查詢最近三個月的庫存"
+  },
+  {
+    "id": "JP_TIME_474",
+    "category": "TIME",
+    "question": "查詢2025年1月8802倉庫的庫存"
+  },
+  {
+    "id": "JP_TIME_475",
+    "category": "TIME",
+    "question": "按時間統計庫存總數量"
+  },
+  {
+    "id": "JP_TIME_476",
+    "category": "TIME",
+    "question": "查詢2025年2月的庫存"
+  },
+  {
+    "id": "JP_TIME_477",
+    "category": "TIME",
+    "question": "查詢2024年12月的庫存"
+  },
+  {
+    "id": "JP_TIME_478",
+    "category": "TIME",
+    "question": "統計每月平均庫存"
+  },
+  {
+    "id": "JP_TIME_479",
+    "category": "TIME",
+    "question": "查詢庫存的時間趨勢"
+  },
+  {
+    "id": "JP_TIME_480",
+    "category": "TIME",
+    "question": "查詢2025年第一季的庫存"
+  },
+  {
+    "id": "JP_TIME_481",
+    "category": "TIME",
+    "question": "查詢2024年最後一季的庫存"
+  },
+  {
+    "id": "JP_TIME_482",
+    "category": "TIME",
+    "question": "統計每季的庫存變化"
+  },
+  {
+    "id": "JP_TIME_483",
+    "category": "TIME",
+    "question": "查詢上半年的庫存"
+  },
+  {
+    "id": "JP_TIME_484",
+    "category": "TIME",
+    "question": "查詢下半年的庫存"
+  },
+  {
+    "id": "JP_TIME_485",
+    "category": "TIME",
+    "question": "統計上半年的庫存變化"
+  },
+  {
+    "id": "JP_TIME_486",
+    "category": "TIME",
+    "question": "統計下半年的庫存變化"
+  },
+  {
+    "id": "JP_TIME_487",
+    "category": "TIME",
+    "question": "查詢今年的庫存總額"
+  },
+  {
+    "id": "JP_TIME_488",
+    "category": "TIME",
+    "question": "查詢去年的庫存總額"
+  },
+  {
+    "id": "JP_TIME_489",
+    "category": "TIME",
+    "question": "統計今年的庫存變化"
+  },
+  {
+    "id": "JP_TIME_490",
+    "category": "TIME",
+    "question": "統計去年的庫存變化"
+  },
+  {
+    "id": "JP_TIME_491",
+    "category": "TIME",
+    "question": "查詢本月的庫存"
+  },
+  {
+    "id": "JP_TIME_492",
+    "category": "TIME",
+    "question": "查詢上月的庫存"
+  },
+  {
+    "id": "JP_TIME_493",
+    "category": "TIME",
+    "question": "統計本月與上月比較"
+  },
+  {
+    "id": "JP_TIME_494",
+    "category": "TIME",
+    "question": "查詢本週的庫存"
+  },
+  {
+    "id": "JP_TIME_495",
+    "category": "TIME",
+    "question": "查詢上週的庫存"
+  },
+  {
+    "id": "JP_TIME_496",
+    "category": "TIME",
+    "question": "統計本週與上週比較"
+  },
+  {
+    "id": "JP_TIME_497",
+    "category": "TIME",
+    "question": "查詢今日的庫存"
+  },
+  {
+    "id": "JP_TIME_498",
+    "category": "TIME",
+    "question": "查詢昨日的庫存"
+  },
+  {
+    "id": "JP_TIME_499",
+    "category": "TIME",
+    "question": "統計今日與昨日比較"
+  },
+  {
+    "id": "JP_TIME_500",
+    "category": "TIME",
+    "question": "查詢近7天的庫存"
+  }
+]

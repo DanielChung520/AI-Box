@@ -83,8 +83,8 @@ class DataValidator:
         elif safety_stock <= 0:
             issues.append("safety_stock must be greater than 0")
 
-        # 檢查當前庫存
-        current_stock = stock_info.get("current_stock")
+        # 檢查當前庫存 - 支援多個欄位名稱
+        current_stock = stock_info.get("current_stock") or stock_info.get("img10")
         if current_stock is None:
             issues.append("current_stock is missing in stock info")
         elif current_stock < 0:

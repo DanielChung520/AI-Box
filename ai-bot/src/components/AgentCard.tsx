@@ -79,9 +79,11 @@ export default function AgentCard({ agent, onEdit, onDelete, onClick, onFavorite
   return (
     <div
     className={cn(
-      'bg-secondary rounded-xl p-4 border border-primary transition-all duration-300 theme-transition',
+      'rounded-xl p-4 border transition-all duration-300 theme-transition agent-card',
       isRegistering ? 'cursor-not-allowed opacity-75' : 'cursor-pointer',
-      theme === 'light' && 'shadow-xl shadow-gray-300/80', // 增强浅色模式下的阴影效果
+      theme === 'light' && 'bg-secondary shadow-xl shadow-gray-300/80 border-primary',
+      theme === 'blue-light' && '',
+      theme === 'dark' && 'bg-secondary border-primary',
       isHovered && !isRegistering ? 'border-blue-500/50 shadow-2xl shadow-blue-500/20' : ''
     )}
       onMouseEnter={() => setIsHovered(true)}
@@ -95,8 +97,8 @@ export default function AgentCard({ agent, onEdit, onDelete, onClick, onFavorite
       {/* 卡片头部 */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-blue-900/30 rounded-lg flex items-center justify-center mr-3">
-            <i className={`fa-solid ${agent.icon} text-blue-400`}></i>
+          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mr-3">
+            <i className={`fa-solid ${agent.icon} text-blue-600 dark:text-blue-400`}></i>
           </div>
           <h3 className="font-medium text-primary">{agent.name}</h3>
         </div>
