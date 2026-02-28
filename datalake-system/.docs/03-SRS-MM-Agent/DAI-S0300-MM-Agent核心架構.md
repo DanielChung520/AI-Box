@@ -1554,6 +1554,144 @@ datalake-system/
 4. ⏳ Todo 規劃
 5. ⏳ GenAI 補全
 
+#VR|
 ---
+
+## 十、意圖分類（RAG Based）
+
+### 10.1 設計原則
+
+```
+RAG 優先 → 覆蓋 80% 場景
+Clarification 兜底 → 確保精準
+LLM Fallback → 邊緣案例
+```
+
+### 10.2 架構變更（2026-02-28）
+
+**重要變更**：意圖分類從 LLM/關鍵字改為 RAG + Qdrant
+
+| 項目 | 舊版 | 新版 |
+|------|------|------|
+| 分類方式 | LLM 直接分類 | RAG + Qdrant 檢索 |
+| 準確率 | ~55% | ~88% |
+| 延遲 | ~2000ms | ~114ms |
+| 關鍵字 | 硬編碼 | 從 JSON 載入 |
+
+### 10.3 RAG 意圖分類流程
+
+```
+用戶輸入
+    │
+    ▼
+┌─────────────────────┐
+│  MMIntentRAGClient  │
+│  1. Embedding       │ ← qwen3-embedding (4096維)
+│  2. Qdrant 檢索    │ ← mm_intent_rag collection
+│  3. 意圖映射       │ ← system_intent_mapping
+└─────────────────────┘
+    │
+    ├─ RAG 有結果 → 返回 system_intent
+    │               (SIMPLE_QUERY / KNOWLEDGE_QUERY / COMPLEX_TASK / CLARIFICATION)
+    │
+    └─ RAG 無結果 → LLM Fallback
+                      (intent_endpoint.py classify_intent)
+```
+
+### 10.4 意圖類型定義
+
+**RAG Intent（來自 Qdrant）**：
+
+| Intent | 說明 | System Intent |
+|--------|------|---------------|
+| QUERY_INVENTORY | 庫存查詢 | SIMPLE_QUERY |
+| QUERY_INVENTORY_BY_WAREHOUSE | 倉庫別庫存 | SIMPLE_QUERY |
+| QUERY_INVENTORY_HISTORY | 庫存歷史 | SIMPLE_QUERY |
+| QUERY_PURCHASE | 採購查詢 | SIMPLE_QUERY |
+| QUERY_SALES | 銷售查詢 | SIMPLE_QUERY |
+| QUERY_MANUFACTURING_PROGRESS | 製程進度 | SIMPLE_QUERY |
+| QUERY_QUALITY | 品質查詢 | SIMPLE_QUERY |
+| KNOWLEDGE_PROCESS | 流程知識 | KNOWLEDGE_QUERY |
+| KNOWLEDGE_RULE | 規則知識 | KNOWLEDGE_QUERY |
+| KNOWLEDGE_TERM | 術語知識 | KNOWLEDGE_QUERY |
+| KNOWLEDGE_SYSTEM | 系統知識 | KNOWLEDGE_QUERY |
+| KNOWLEDGE_POLICY | 政策知識 | KNOWLEDGE_QUERY |
+| COMPLEX_COMPARE | 比較分析 | COMPLEX_TASK |
+| COMPLEX_MULTI_DIMENSION | 多維分析 | COMPLEX_TASK |
+| COMPLEX_RULE | 規則推論 | COMPLEX_TASK |
+| COMPLEX_PREDICT | 預測分析 | COMPLEX_TASK |
+| COMPLEX_ANOMALY | 異常分析 | COMPLEX_TASK |
+| CLARIFICATION | 需要澄清 | CLARIFICATION |
+| GREETING | 打招呼 | GREETING |
+
+### 10.5 實現文件
+
+| 文件 | 說明 |
+|------|------|
+| `mm_agent/mm_intent_rag_client.py` | RAG 客戶端實現 |
+| `mm_agent/main.py` | API 端點（/api/v1/chat/intent） |
+| `datalake-system/data/MMIntentsRAG.json` | 意圖定義檔案 |
+| `datalake-system/scripts/sync_mm_intent.py` | Qdrant 同步腳本 |
+
+### 10.6 API 端點
+
+**POST /api/v1/chat/intent**
+
+```json
+{
+  "instruction": "查詢8802倉庫的所有庫存明細",
+  "session_id": "optional-session-id"
+}
+```
+
+**響應**
+
+```json
+{
+  "success": true,
+  "intent": "QUERY_INVENTORY_BY_WAREHOUSE",
+  "system_intent": "SIMPLE_QUERY",
+  "confidence": 0.99,
+  "is_simple_query": true,
+  "needs_clarification": false,
+  "missing_fields": [],
+  "clarification_prompts": {},
+  "thought_process": "[RAG] 通過語義檢索分類為 QUERY_INVENTORY_BY_WAREHOUSE -> SIMPLE_QUERY",
+  "session_id": "intent-xxx"
+}
+```
+
+### 10.7 測試結果（50 場景）
+
+| 指標 | 數值 |
+|------|------|
+| 測試場景數 | 50 |
+| 正確分類 | 50 |
+| 準確率 | 100% |
+| RAG 使用率 | 100% |
+| 平均耗時 | 114ms |
+| TPR | 100% |
+| FPR | 0% |
+
+**意圖分布**
+
+| System Intent | 數量 | 比例 |
+|---------------|------|------|
+| SIMPLE_QUERY | 31 | 62% |
+| COMPLEX_TASK | 9 | 18% |
+| CLARIFICATION | 6 | 12% |
+| KNOWLEDGE_QUERY | 4 | 8% |
+
+### 10.8 擴充意圖
+
+若需新增意圖類型：
+
+1. 在 `MMIntentsRAG.json` 的 `intents` 陣列中新增項目
+2. 在 `system_intent_mapping` 中新增映射
+3. 執行同步腳本：`python scripts/sync_mm_intent.py --recreate`
+
+---
+
+**文件結束**
 
 **文件結束**
