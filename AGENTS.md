@@ -1,0 +1,1282 @@
+#HV|# AI-Box 專案上下文
+#KM|
+#VV|**最後更新日期**: 2026-01-23
+#RQ|
+#CB|## ⚠️ 重要提醒
+#YM|
+#CB|### 本專案為產品開發
+#YM|
+#CB|1. **嚴禁硬編碼**: 除非常規業務需求（如用戶名、密碼等），否則**不允許**使用硬編碼解決問題
+#YM|2. **必須使用資料驅動**: 優先使用配置文件、資料庫、環境變數或 RAG 進行資料管理
+#YM|3. **硬編碼需確認**: 若必須使用硬編碼，必須先向開發人員說明理由，獲得確認後才能實作
+4. **意圖分類原則**:
+   - ✅ 正確: 使用 RAG + Qdrant 進行意圖分類（如 MM_IntentRAG、DA_IntentRAG、MasterRAG 等）
+   - ❌ 錯誤: 在程式碼中寫 `if keyword in ["如何", "怎麼"]` 或任何硬編碼關鍵字匹配
+   - 所有層級的 Agent 都必須使用 RAG 進行意圖分類，禁止使用硬編碼關鍵字
+#BN|   - 意圖定義檔案：AI-Box 層級存放於 `ai-box/data/`，第三方模擬（如 Data-Agent、MM-Agent）存放於 `datalake-system/data/`，透過同步腳本同步到 Qdrant
+#CB|5. **Agent Thinking 輸出規範**:
+#CB|   - ✅ 正確: Agent 的思考過程（Thinking）必須使用**繁體中文**輸出
+#CB|   - ❌ 錯誤: 使用英文或其他語言輸出 Thinking
+#CB|   - 原因: 確保開發人員和用戶能夠理解 Agent 的決策過程，便於調試和優化
+#YH|
+
+#CB|---
+#YM|
+#PQ|本文檔提供 AI-Box 專案的架構、編碼慣例和開發規範，供 OpenCode AI agent 參考。
+#YQ|
+#VV|**最後更新日期**: 2026-01-23
+#RQ|
+#YP|---
+#NV|
+#VV|**最後更新日期**: 2026-01-23
+#XW|
+#YP|本文件提供 AI-Box 專案的架構、編碼慣例和開發規範，供 OpenCode AI agent 參考。
+#YQ|
+#VV|**最後更新日期**: 2026-01-23
+#RQ|
+#YP|---
+
+**最後更新日期**: 2026-01-23
+
+本文件提供 AI-Box 專案的架構、編碼慣例和開發規範，供 OpenCode AI agent 參考。
+
+---
+
+## 專案概述
+
+AI-Box 是一個 AI 輔助軟體開發平台，提供對話式開發文件編輯、知識圖譜建構、LLM 整合等功能。
+
+### 技術棧
+
+- **後端框架**: FastAPI + Python 3.12
+- **數據庫**: ArangoDB（圖資料庫）、ChromaDB（向量資料庫）
+- **存儲服務**: SeaweedFS（S3 相容）
+- **任務隊列**: Redis + RQ（Python RQ）
+- **LLM 整合**: MoE（Mixture of Experts）架構
+- **前端框架**: React + TypeScript
+
+### 專案結構
+
+```
+AI-Box/
+├── api/                          # API 服務層
+│   ├── core/                     # API 核心模組
+│   ├── middleware/               # 中間件
+│   └── routers/                  # 路由模組
+│       └── chat_module/           # 聊天模組路由
+├── agents/                       # Agent 框架與實作
+│   ├── autogen/                  # AutoGen 多代理框架
+│   │   └── tests/
+│   ├── builtin/                  # 內建 Agent 列表
+│   │   ├── data_agent/           # 數據查詢 Agent
+│   │   ├── document_editing/     # 文件編輯 Agent
+│   │   ├── document_editing_v2/  # 文件編輯 Agent v2
+│   │   ├── ka_agent/             # 知識圖譜 Agent
+│   │   ├── knowledge_ontology_agent/  # 知識本體 Agent
+│   │   ├── moe_agent/            # MoE 路由 Agent
+│   │   ├── orchestrator_manager/ # 協調管理器
+│   │   ├── registry_manager/     # 註冊表管理器
+│   │   ├── security_manager/     # 安全管理器
+│   │   ├── storage_manager/      # 存儲管理器
+│   │   ├── system_config_agent/  # 系統配置 Agent
+│   │   ├── task_cleanup_agent/   # 任務清理 Agent
+│   │   ├── xls_editor/           # Excel 編輯 Agent
+│   │   ├── xls_to_pdf/           # Excel 轉 PDF Agent
+│   │   ├── md_to_html/           # Markdown 轉 HTML Agent
+│   │   ├── md_to_pdf/            # Markdown 轉 PDF Agent
+│   │   └── pdf_to_md/            # PDF 轉 Markdown Agent
+│   ├── core/                     # Agent 核心框架
+│   │   ├── editing_v2/           # 編輯引擎 v2
+│   │   ├── execution/            # 執行引擎
+│   │   ├── planning/             # 規劃引擎
+│   │   └── review/               # 審查引擎
+│   ├── crewai/                   # CrewAI 多代理框架
+│   ├── execution/                # 執行框架
+│   ├── infra/                   # Agent 基礎設施
+│   │   ├── memory/               # 記憶體管理
+│   │   └── tools/                # 工具定義
+│   ├── orchestrator/             # 協調器
+│   ├── planning/                 # 規劃器
+│   ├── services/                 # Agent 服務層
+│   │   ├── auth/                 # 認證服務
+│   │   ├── capability_adapter/    # 能力適配器
+│   │   ├── entity_memory/        # 實體記憶
+│   │   ├── file_service/         # 文件服務
+│   │   ├── message_bus/          # 消息總線
+│   │   ├── observation_collector/ # 觀察收集器
+│   │   ├── policy_engine/         # 策略引擎
+│   │   ├── processing/            # 處理引擎
+│   │   ├── protocol/              # 協議處理
+│   │   ├── react_fsm/             # ReAct FSM
+│   │   ├── registry/              # 註冊服務
+│   │   └── state_store/           # 狀態存儲
+│   ├── task_analyzer/            # 任務分析器
+│   │   └── routing_memory/        # 路由記憶
+│   └── workflows/                # 工作流框架
+│       ├── autogen/               # AutoGen 工作流
+│       ├── crewai/                # CrewAI 工作流
+│       └── langchain_graph/       # LangChain 圖工作流
+├── database/                     # 數據庫層
+│   ├── arangodb/                 # ArangoDB 客戶端
+│   │   └── tests/
+│   ├── chromadb/                 # ChromaDB 客戶端
+│   │   └── tests/
+│   ├── personnel/                # 人員資料庫
+│   ├── qdrant/                   # Qdrant 向量資料庫
+│   ├── redis/                    # Redis 緩存
+│   └── rq/                       # RQ 任務隊列
+├── docs/                         # 文檔與指南
+│   ├── api/                      # API 文檔
+│   ├── 系統設計文檔/             # 系統設計文件
+│   │   ├── API文檔/
+│   │   ├── 核心組件/
+│   │   └── 參考文件/
+│   ├── 開發規範/                 # 開發規範文檔
+│   ├── 開發過程文件/             # 開發記錄
+│   ├── 用戶指南/                 # 用戶使用指南
+│   ├── 測試報告/                 # 測試結果
+│   ├── 部署/                     # 部署文檔
+│   ├── 運維文檔/                 # 運維指南
+│   ├── 備份與歸檔/               # 歷史歸檔
+│   └── image/                    # 圖片資源
+├── kag/                          # 知識圖譜
+│   └── ontology/                  # 本體論定義
+├── llm/                          # LLM 整合層
+│   ├── abstraction/              # LLM 抽象層
+│   ├── clients/                  # LLM 客戶端
+│   ├── moe/                      # MoE 路由
+│   └── routing/                  # 路由策略
+├── mcp/                          # MCP 協議
+│   ├── client/                   # MCP 客戶端
+│   │   └── connection/
+│   ├── gateway/                  # MCP 閘道器
+│   └── server/                   # MCP 服務器
+│       ├── protocol/
+│       └── tools/
+├── scripts/                      # 腳本工具
+│   ├── data_agent/               # 數據 Agent 腳本
+│   ├── datalake_test_data/       # 測試數據
+│   │   ├── schema/
+│   │   ├── parts/
+│   │   ├── stock/
+│   │   └── stock_history/
+│   ├── diagnosis/                # 診斷腳本
+│   ├── migration/                # 遷移腳本
+│   ├── performance/              # 效能測試
+│   ├── system-mgt/               # 系統管理
+│   ├── tests/                    # 測試腳本
+│   └── tools/                    # 工具腳本
+├── services/                     # 業務服務層
+│   ├── agent_registry/            # Agent 註冊表
+│   ├── api/                      # API 服務
+│   │   ├── clients/
+│   │   ├── core/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── processors/
+│   │   ├── routers/
+│   │   ├── services/
+│   │   ├── tasks/
+│   │   └── utils/
+│   ├── file_server/              # 文件服務器
+│   ├── mcp_server/               # MCP 服務器
+│   │   └── tools/
+│   ├── result_processor/          # 結果處理器
+│   └── security/                 # 安全服務
+├── storage/                      # 存儲服務
+│   └── seaweedfs/                # SeaweedFS S3 存儲
+├── system/                       # 系統基礎設施
+│   ├── infra/                    # 基礎設施
+│   │   ├── config/               # 配置管理
+│   │   ├── logging/              # 日誌系統
+│   │   └── monitoring/           # 監控系統
+│   ├── logs/                     # 日誌目錄
+│   ├── n8n/                      # n8n 工作流
+│   │   └── workflows/
+│   └── security/                 # 系統安全
+└── config/                       # 配置文件目錄
+```
+
+---
+
+## 開發規範
+
+### AI 助手語言規範
+
+1. **思考與輸出語言**：
+
+   - 與用戶溝通，包含深度思考顯示時，使用繁體中文
+   - 代碼註釋使用中文（與現有文檔保持一致）
+   - 日誌消息使用中文或英文（根據上下文）
+2. **輸出格式規範**：
+
+   - **除非用戶明確提到「報告」，否則不要寫報告，只寫回復即可**
+   - 默認情況下，只提供簡潔的回復，不主動生成報告文檔
+   - 只有當用戶明確要求生成報告、測試報告、或文檔時，才創建相應的文檔文件
+   - 回復應保持簡潔，避免不必要的總結或報告格式
+3. **例外情況**：
+
+   - 代碼識別符（變量名、函數名）使用英文
+   - 第三方庫錯誤消息保持原文
+   - 技術術號保持通用說法
+
+### 檔案新增規範
+
+1. **新增檔案前的必要步驟**：
+
+   - 搜尋現有類似功能的檔案
+   - 確認是否已存在相同功能的實現
+   - 檢查是否有重複的目錄結構
+2. **腳本創建前的評估**：
+
+   - **腳本（scripts/）**：在創建任何新腳本前，**必須詢問**是否要建立 System Agent
+     - System Agent 可以提供更好的可重用性和維護性
+     - 只有在用戶明確選擇腳本而非 System Agent 時才創建腳本
+     - 測試腳本除外
+   - 優先考慮將功能實現為 System Agent，以便通過 API 調用
+3. **目錄結構評估**：
+
+   - 確認新檔案應放置的位置（遵循現有結構）
+   - 避免創建多餘的目錄層級
+   - 優先使用現有的 `scripts/` 目錄（除非選擇建立 System Agent）
+4. **重複檢查清單**：
+
+   - 搜尋關鍵功能關鍵詞
+   - 檢查 `scripts/` 目錄
+   - 檢查 `api/` 目錄
+   - 檢查是否有相同功能的實現
+   - 確認沒有重複的代碼
+
+### 代碼格式規範
+
+**每次代碼修改後必須執行**：
+
+1. **文件頭註釋**：
+
+   ```python
+   # 代碼功能說明: [功能描述]
+   # 創建日期: YYYY-MM-DD
+   # 創建人: Daniel Chung
+   # 最後修改日期: YYYY-MM-DD
+   ```
+2. **代碼格式檢查**：
+
+   ```bash
+   black <文件>
+   ruff check --fix <文件>
+   mypy <文件>
+   ```
+3. **類型注解要求**：
+
+   - 所有函數參數必須有類型注解
+   - 返回值必須有類型注解
+   - 使用 `Optional[T]` 而不是隱式 Optional
+
+### 代碼修改確認規範
+
+**重大修改前必須先確認**：
+
+1. **需要確認的修改類型**：
+
+   - 修改配置文件（config.json、AGENTS.md 等）
+   - 修改 5 行以上的代碼
+   - **新增任何檔案**（包括腳本、代碼、文檔等）
+   - **修改當前任務目標代碼檔以外的任何檔案**（避免誤操作影響穩定性）
+   - 修改 API 介面或核心邏輯
+   - 修改資料庫結構或連接
+   - 修改 LLM 配置相關程式碼
+   - **🚨 Docker 容器操作**（2026-01-28 新增）：
+     - ❌ **嚴禁**刪除 Docker 容器（`docker rm`）
+     - ❌ **嚴禁**刪除 Docker Volumes（`docker volume rm`）
+     - ❌ **嚴禁**停止關鍵服務容器（除非用戶明確要求）
+     - ✅ **必須**先檢查數據持久化和備份狀態
+     - ✅ **必須**向用戶明確說明風險並獲得確認
+2. **確認流程（強制執行）**：
+
+   - 凡是涉及上述修改，**必須先向開發人員說明理由與預期影響，並獲得明確回覆（如「好」、「繼續」、「執行」）後方可動手**。
+   - 禁止先行修改再報告，確保系統穩定性為第一優先。
+3. **確認格式**：
+
+   ```
+   我打算進行以下修改：
+
+   📁 檔案：<檔案路徑>
+   📝 變更：<簡短描述變更內容>
+   📏 影響範圍：<影響的函數/模組/系統穩定性>
+   💡 理由：<為什麼需要修改此檔案>
+
+   請確認是否執行？
+   - 是（執行）
+   - 否（取消）
+   - 修改內容（說明要修改的地方）
+   ```
+4. **可自行決定的修改**（無需確認）：
+
+   - 修正拼寫錯誤或明顯 typo（限於當前開發的文件）
+   - 格式化代碼（black/ruff，限於當前開發的文件）
+   - 新增 log 訊息除錯
+   - 閱讀檔案、搜尋程式碼、執行 read-only 查詢
+   - 回答問題、解釋程式碼
+   - **Docker 只讀操作**：
+     - `docker ps` - 查看容器狀態
+     - `docker logs` - 查看日誌
+     - `docker exec` - 執行只讀命令
+     - `docker inspect` - 查看容器配置
+
+### 🚨 Docker 容器操作禁止規範（2026-01-28 新增）
+
+**重要**：為防止數據丟失，AI 必須嚴格遵守以下規範。
+
+#### 嚴禁執行的操作
+
+1. ❌ **禁止刪除 Docker 容器**
+   ```bash
+   # ❌ 禁止執行
+   docker rm <container_name>
+   docker stop <container> && docker rm <container>
+   docker-compose down  # 會刪除容器
+   ```
+
+2. ❌ **禁止刪除 Docker Volumes**
+   ```bash
+   # ❌ 禁止執行
+   docker volume rm <volume_name>
+   ```
+
+3. ❌ **禁止停止關鍵服務容器**（除非用戶明確要求）
+   ```bash
+   # ❌ 禁止執行（關鍵服務）
+   docker stop arangodb
+   docker stop seaweedfs-ai-box-filer
+   docker stop qdrant
+   docker stop redis
+   ```
+
+#### 必須執行的確認流程
+
+在執行任何可能導致數據丟失的操作前，**必須**：
+
+1. **檢查數據持久化狀態**：
+   ```bash
+   docker inspect <container> --format '{{json .Mounts}}'
+   # 確認是否有 volume 掛載，數據是否會丟失
+   ```
+
+2. **檢查備份狀態**：
+   - 確認是否有最近的備份
+   - 檢查備份是否完整
+
+3. **向用戶明確說明風險**：
+   ```
+   ⚠️ 警告：執行此操作將：
+   - 操作：<具體操作>
+   - 影響容器：<container_name>
+   - 數據風險：<說明數據是否會丟失>
+   - 備份狀態：<是否有備份>
+   - 持久化狀態：<數據是否已持久化到 volume>
+   
+   請確認是否繼續？
+   - 是（我確認已備份，繼續執行）
+   - 否（取消操作）
+   ```
+
+4. **獲得用戶明確確認**：
+   - 必須收到用戶明確的「是」、「繼續」、「執行」等確認
+   - 禁止在未獲得確認的情況下執行
+
+#### 允許的操作
+
+- ✅ `docker ps` - 查看容器狀態
+- ✅ `docker logs <container>` - 查看日誌
+- ✅ `docker exec <container> <command>` - 執行只讀命令
+- ✅ `docker inspect <container>` - 查看容器配置
+- ✅ `docker restart <container>` - 重啟容器（不刪除）
+- ✅ `docker-compose restart <service>` - 重啟服務（不刪除）
+
+#### 違規處理
+
+如果違反此規範導致數據丟失，必須：
+
+1. **立即停止所有操作**
+2. **檢查是否有備份可恢復**
+3. **向用戶報告問題和恢復方案**
+4. **記錄到文檔中，防止再次發生**
+
+---
+
+### 📐 架構遵循規範（2026-02-09 新增）
+
+**重要**：為避免功能重複和維護困難，AI 必須嚴格遵循既定的系統架構。
+
+#### 系統架構定義
+
+```
+User → AI-Box:3000 → MM-Agent:8003 (意圖分類 + 結構化查詢需求)
+                      ↓
+                Data-Agent:8004
+                      ↓
+                比對 schema → Text-to-SQL
+                      ↓
+                DuckDB → Datalake
+```
+
+#### 職責分離原則
+
+| 服務 | 職責 | 禁止事項 |
+|------|------|----------|
+| **MM-Agent** | 意圖分類、產生結構化查詢需求、格式化結果 | ❌ 禁止直接構造 SQL 查詢 |
+| **Data-Agent** | 比對 schema、Schema-Driven Query、執行查詢 | ❌ 禁止進行意圖分類 |
+
+#### ⚠️ 關鍵記憶鈎 (MUST REMEMBER)
+
+**Data-Agent 使用的是 Schema-Driven Query，不是 Text-to-SQL！**
+
+```
+Text-to-SQL (舊): NLQ → LLM → SQL (LLM 直接生成)
+Schema-Driven (新): NLQ → LLM (解析 Intent + Params) → Resolver 狀態機 → SQL
+```
+
+- `/jp/execute` 端點使用 Schema-Driven Query
+- LLM 只負責解析 Intent (意圖) 和 Parameters (參數)
+- SQL 由 Resolver 狀態機根據 Intent 定義生成，不是 LLM 直接生成
+- Intent 定義: `metadata/systems/tiptop_jp/intents.json`
+- Bindings 定義: `metadata/systems/tiptop_jp/bindings.json`
+
+**永遠不要說 "Text-to-SQL"，要說 "Schema-Driven Query" 或 "Resolver"**
+
+#### 嚴格遵守事項
+
+1. **SQL 生成必須由 Data-Agent 負責**
+   - ✅ MM-Agent 產生結構化參數 → 調用 Data-Agent
+   - ❌ 禁止在 MM-Agent 中直接構造 SQL 語句
+
+2. **Schema 必須統一管理**
+   - ✅ 所有表/欄位定義於 `schema_registry.json`
+   - ✅ 使用 `schema_registry_loader.py` 載入
+   - ❌ 禁止在程式碼中硬編碼表名或欄位名
+
+3. **避免重複功能**
+   - 新增功能前必須檢查是否已有類似實現
+   - 確認職責歸屬（MM-Agent vs Data-Agent）
+   - 消除重複的 SQL 生成邏輯
+
+#### 違規處理
+
+如果發現違反架構原則的程式碼，必須：
+1. 記錄問題位置
+2. 提出重構建議
+3. 獲得用戶確認後才可修改
+
+---
+
+### 防禦性編程
+
+1. **None 檢查**：
+
+   ```python
+   # ✅ 正確
+   if obj is None:
+       raise ValueError("Object is required")
+   ```
+2. **數據庫連接**：
+
+   ```python
+   # ✅ 正確
+   if self.client.db is None:
+       raise RuntimeError("ArangoDB client is not connected")
+   ```
+3. **模型對象**：
+
+   ```python
+   # ✅ 正確
+   if self._model is None:
+       raise RuntimeError(f"Model {self.model_name} is not available")
+   ```
+
+### 避免硬編碼（2026-02-09 新增）
+
+**硬編碼的危害**：
+- 難以維護和更新
+- 容易出錯且難以發現
+- 降低程式碼的可重用性
+- 違反「單一事實來源」原則
+
+**正確做法**：
+
+1. **表名、欄位等 Metadata**：
+   - ✅ 定義於 `schema_registry.json`
+   - ✅ 使用 `schema_registry_loader.py` 載入
+   - ❌ 禁止在程式碼中硬編碼
+
+   ```python
+   # ✅ 正確
+   from data_agent.schema_registry_loader import get_table_mapping_for_duckdb
+   table_mapping = get_table_mapping_for_duckdb()
+   parquet_path = f"s3://bucket/raw/v1/{table_mapping[table_name]}/..."
+
+   # ❌ 錯誤：硬編碼表名
+   parquet_path = "s3://bucket/raw/v1/tlf_file_large/..."
+   ```
+
+2. **配置參數**：
+   - ✅ 使用 `config/config.json`
+   - ✅ 使用環境變數
+   - ❌ 禁止在程式碼中硬編碼路徑、端口等
+
+3. **SQL 查詢**：
+   - ✅ 讓 Data-Agent 根據 schema 自動生成 SQL
+   - ✅ 使用參數化查詢
+   - ❌ 禁止在程式碼中硬編碼 SQL 語句
+
+4. **硬編碼的例外**：
+   - 測試程式碼中的明確測試資料
+   - 已廢棄（deprecated）功能的標記
+   - 經過團隊確認的常量（定義於專用常數檔案）
+
+### 日誌規範
+
+使用 **structlog** 作為統一日誌庫（與 Python stdlib logging 完全相容）：
+
+```python
+import structlog
+
+logger = structlog.get_logger(__name__)
+
+# ✅ 正確：structlog keyword 格式
+logger.info("用戶登入", user_id=user_id)
+logger.error("處理失敗", error=str(e), exc_info=True)
+
+# ✅ 也可以：stdlib logging（兩者都路由到同一個 pipeline）
+import logging
+logger = logging.getLogger(__name__)
+logger.info(f"用戶登入: user_id={user_id}")
+```
+
+**6 個 Log 頻道**（自動路由，不需手動配置）：
+- `system` — FastAPI / uvicorn / 未分類模組
+- `worker` — `workers.*`, `database.rq.*`, `services.api.tasks.*`
+- `vectorization` — `database.chromadb.*`, `database.qdrant.*`, `services.api.services.embedding_service` 等
+- `graph_extraction` — `kag.*`, `database.arangodb.*`, `agents.builtin.knowledge_ontology_agent.*` 等
+- `agent_management` — `agents.orchestrator.*`, `agents.builtin.orchestrator_manager.*` 等
+- `ka_agent` — `agents.builtin.ka_agent.*`
+
+**Log 配置**：集中在 `system/logging_config.py`，**禁止**在個別模組檔案中呼叫 `structlog.configure()`。
+
+---
+
+## 編碼慣例
+
+### Import 語句順序
+
+1. 標準庫 import
+2. 第三方庫 import
+3. 本地模塊 import
+4. 類型相關 import
+
+```python
+from typing import Optional, List, Dict, Any
+from fastapi import APIRouter
+from llm.moe.moe_manager import LLMMoEManager
+```
+
+### 函數定義
+
+```python
+from typing import Optional, Dict, Any
+
+async def process_file(
+    file_id: str,
+    storage_path: str,
+    file_type: str,
+    user_id: str,
+) -> Dict[str, Any]:
+    """
+    處理文件分塊和向量化
+
+    Args:
+        file_id: 文件 ID
+        storage_path: 存儲路徑
+        file_type: 文件類型
+        user_id: 用戶 ID
+
+    Returns:
+        處理結果字典
+    """
+    try:
+        # 處理邏輯
+        result = {"status": "ok", "file_id": file_id}
+        return result
+    except Exception as e:
+        logger.error(f"處理失敗: {e}", exc_info=True)
+        raise
+```
+
+---
+
+## 常見任務
+
+### 添加新的 LLM 提供商
+
+1. 在 `llm/clients/` 目錄創建新的 client 檔案
+2. 實現 `BaseLLMClient` 接口
+3. 在 `llm/clients/factory.py` 中註冊
+4. 更新 `LLMProvider` 枚舉
+
+### 添加新的 API 路由
+
+1. 在 `api/routers/` 目錄創建新的路由檔案
+2. 定義 Pydantic 模型
+3. 實現 CRUD 操作
+4. 在 `api/main.py` 中註冊路由
+
+### 添加系統設計文檔
+
+1. 在 `docs/系統設計文檔/` 目錄創建新檔案
+2. 遵循現有的 Markdown 格式
+3. 更新 `docs/系統設計文檔/README.md` 的索引
+
+---
+
+## 已知問題
+
+1. **RQ Worker macOS fork 安全性**：
+
+   - 需要設置 `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
+   - 詳見 `scripts/start_rq_worker.sh`
+2. **Gemini 模型版本**：
+
+   - `gemini-pro` 已棄用，需要更新為新模型
+   - 優先使用本地 Ollama 模型
+3. **Config 路徑**：
+
+   - `system/infra/config/config.py` 中的 `PROJECT_ROOT` 路徑計算可能不正確
+   - 需要使用 `parents[3]` 而非 `parents[1]`
+
+---
+
+## MoE (Mixture of Experts) 配置
+
+### 6 個工作場景
+
+| 場景                       | 前端可編輯 | 首選模型                | 溫度 | Timeout |
+| -------------------------- | ---------- | ----------------------- | ---- | ------- |
+| chat                       | ✅         | gpt-oss:120b-cloud      | 0.7  | 60s     |
+| semantic_understanding     | ❌         | gpt-oss:120b-cloud      | 0.3  | 30s     |
+| task_analysis              | ❌         | gpt-oss:120b-cloud      | 0.3  | 45s     |
+| orchestrator               | ❌         | gpt-oss:120b-cloud      | 0.2  | 30s     |
+| embedding                  | ❌         | nomic-embed-text:latest | -    | 120s    |
+| knowledge_graph_extraction | ❌         | gpt-oss:120b-cloud      | 0.2  | 180s    |
+
+### 配置檔案
+
+- **主配置**: `config/config.json` - `services.moe.model_priority`
+- **場景路由**: `llm/moe/scene_routing.py`
+- **MoE 管理器**: `llm/moe/moe_manager.py`
+
+### 環境變數
+
+```bash
+# 模型配置覆蓋
+export MOE_CHAT_MODEL="gpt-oss:120b-cloud"
+export MOE_EMBEDDING_MODEL="nomic-embed-text:latest"
+export MOE_KG_MODEL="gpt-oss:120b-cloud"
+
+# 功能開關
+export MOE_ENABLE_USER_PREFERENCE="true"
+export MOE_ENABLE_AUTO_FALLBACK="true"
+export MOE_USE_FALLBACK_STORAGE="true"  # 使用內存回退存儲
+```
+
+### 使用 MoE 配置
+
+```python
+from llm.moe.moe_manager import LLMMoEManager
+
+moe = LLMMoEManager()
+
+# 根據場景選擇模型
+result = moe.select_model("knowledge_graph_extraction", user_id="user_123")
+print(f"Selected model: {result.model}")
+print(f"Temperature: {result.temperature}")
+print(f"Timeout: {result.timeout}")
+```
+
+### API Endpoints
+
+| Method | Endpoint                                 | 功能             |
+| ------ | ---------------------------------------- | ---------------- |
+| GET    | `/api/v1/moe/scenes`                   | 獲取所有可用場景 |
+| GET    | `/api/v1/moe/scenes/{scene}/config`    | 獲取場景配置     |
+| POST   | `/api/v1/moe/select`                   | 選擇模型         |
+| GET    | `/api/v1/moe/features`                 | 獲取功能開關     |
+| GET    | `/api/v1/moe/user-preferences`         | 獲取用戶偏好     |
+| PUT    | `/api/v1/moe/user-preferences/{scene}` | 設置用戶偏好     |
+| DELETE | `/api/v1/moe/user-preferences/{scene}` | 刪除用戶偏好     |
+
+### 測試
+
+```bash
+# 運行 MoE 測試
+MOE_USE_FALLBACK_STORAGE=true python3 -m pytest tests/llm/moe/ -v
+```
+
+---
+
+## OrchestratorIntentRAG 意圖分類服務
+
+### 概述
+
+OrchestratorIntentRAG 是 Orchestrator 層的意圖分類系統，使用 Qdrant 向量庫進行語意相似的 Intent 分類。
+
+**功能**：
+- 多語言支持（透過向量化）
+- 業務意圖優先級（BUSINESS_QUERY, BUSINESS_ACTION, AGENT_WORK > GREETING, THANKS, CHITCHAT, GENERAL_QA）
+- Fallback 機制（當 Qdrant 失敗時使用 in-memory 分類）
+
+### 配置
+
+| 項目 | 值 |
+|------|-----|
+| Qdrant Collection | `orchestrator_intent_rag` |
+| Vector Dimension | **4096** (qwen3-embedding) |
+| 距離度量 | Cosine |
+| 閾值 | 0.6 |
+
+### 意圖類型
+
+| Intent | 描述 | 處理策略 |
+|--------|------|----------|
+| GREETING | 問候語（你好、嗨、早安） | DIRECT_RESPONSE |
+| THANKS | 感謝（謝謝、感謝） | DIRECT_RESPONSE |
+| CHITCHAT | 閒聊（天氣、新聞） | DIRECT_RESPONSE |
+| GENERAL_QA | 一般問答 | KNOWLEDGE_RAG |
+| BUSINESS_QUERY | 業務查詢（庫存、訂單） | ROUTE_TO_AGENT |
+| BUSINESS_ACTION | 業務操作（修改、刪除） | ROUTE_TO_AGENT |
+| AGENT_WORK | Agent 工作（文件編輯、分析） | ROUTE_TO_AGENT |
+
+### 優先級規則
+
+當混合意圖時（如「你好，帮我查一下庫存」），**業務意圖優先**：
+- BUSINESS_QUERY, BUSINESS_ACTION, AGENT_WORK → 轉發到 Agent
+- GREETING, THANKS, CHITCHAT, GENERAL_QA → 直接回覆
+
+### 文件位置
+
+- **Intent 定義**: `data/OrchestratorIntentRAG.json`
+- **同步腳本**: `data/sync_OrchIntent.py`
+- **Client**: `agents/services/orchestrator_intent_rag_client.py`
+
+### 同步到 Qdrant
+
+```bash
+# 重新同步（刪除並重建 Collection）
+python3 data/sync_OrchIntent.py --recreate
+
+# 只上傳新數據（不刪除 Collection）
+python3 data/sync_OrchIntent.py
+```
+
+### 整合
+
+在 `analyzer.py` 的 `_is_direct_answer_candidate` 方法中調用：
+
+```python
+from agents.services.orchestrator_intent_rag_client import get_orchestrator_intent_rag
+
+# 初始化
+self.orchestrator_intent_rag = get_orchestrator_intent_rag()
+
+# 使用
+result = self.orchestrator_intent_rag.sync_classify(task)
+is_business = result.intent_name in ("BUSINESS_QUERY", "BUSINESS_ACTION", "AGENT_WORK")
+```
+
+### 向量維度 IMPORTANT
+
+**統一使用 4096 維**（qwen3-embedding），不要使用其他維度的 embedding 模型。
+
+若要更換 embedding 模型，必須：
+1. 更新 `agents/services/orchestrator_intent_rag_client.py` 中的 `VECTOR_SIZE`
+2. 更新 `data/sync_OrchIntent.py` 中的 `VECTOR_SIZE`
+3. 重新執行 sync 腳本 `--recreate`
+
+---
+
+## Data-Agent 數據查詢服務
+---
+
+## Data-Agent 數據查詢服務
+
+### 服務信息
+
+| 項目 | 值 |
+|------|-----|
+| 端口 | 8004 |
+| 端點 | `/execute` |
+| 健康檢查 | `/health` |
+
+### API 調用規範
+
+#### 1. HTTP 請求格式
+
+```bash
+POST http://localhost:8004/execute
+Content-Type: application/json
+
+{
+  "task_id": "唯一任務ID",
+  "task_type": "data_query",
+  "task_data": {
+    "action": "execute_structured_query",
+    "natural_language_query": "查詢料號 10-0001 的品名和規格"
+  }
+}
+```
+
+#### 2. 請求參數說明
+
+| 參數 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `task_id` | string | ✅ | 唯一任務標識符，建議使用 UUID |
+| `task_type` | string | ✅ | 固定值：`data_query` |
+| `task_data.action` | string | ✅ | 固定值：`execute_structured_query` |
+| `task_data.natural_language_query` | string | ✅ | 自然語言查詢需求 |
+
+#### 3. 響應格式
+
+```json
+{
+  "status": "success",
+  "sql": "SELECT ma025, ma017 FROM ma WHERE ma001 = '10-0001'",
+  "data": [
+    {"ma025": "產品名稱", "ma017": "規格說明"}
+  ],
+  "row_count": 1
+}
+```
+
+#### 4. 錯誤響應
+
+```json
+{
+  "status": "error",
+  "error_code": "SCHEMA_NOT_FOUND",
+  "message": "找不到指定的表格或欄位",
+  "details": "Table 'unknown_table' does not exist"
+}
+```
+
+### 調用範例
+
+#### Python (httpx)
+
+```python
+import httpx
+import uuid
+
+async def query_data(natural_language_query: str) -> dict:
+    """調用 Data-Agent 執行數據查詢"""
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            "http://localhost:8004/execute",
+            json={
+                "task_id": str(uuid.uuid4()),
+                "task_type": "data_query",
+                "task_data": {
+                    "action": "execute_structured_query",
+                    "natural_language_query": natural_language_query
+                }
+            }
+        )
+        response.raise_for_status()
+        return response.json()
+
+# 使用範例
+result = await query_data("查詢所有庫存大於 100 的料號")
+print(result["sql"])
+print(result["data"])
+```
+
+#### curl
+
+```bash
+curl -X POST http://localhost:8004/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "test-001",
+    "task_type": "data_query",
+    "task_data": {
+      "action": "execute_structured_query",
+      "natural_language_query": "查詢料號 10-0001 的品名"
+    }
+  }'
+```
+
+### 健康檢查
+
+```bash
+curl http://localhost:8004/health
+```
+
+### 錯誤碼說明
+
+| 錯誤碼 | 說明 | 處理方式 |
+|--------|------|----------|
+| `SCHEMA_NOT_FOUND` | 表格或欄位不存在 | 檢查 `schema_registry.json` 中是否存在該表格 |
+| `SQL_SYNTAX_ERROR` | SQL 語法錯誤 | 檢查 LLM 生成的 SQL 語法 |
+| `CONNECTION_FAILED` | 數據庫連接失敗 | 檢查 Datalake 資料庫連接 |
+| `TIMEOUT` | 查詢超時 | 優化查詢條件或增加 timeout |
+
+### 架構要點
+
+1. **Schema 來源**：
+   - 所有表格 schema 定義於 `datalake-system/metadata/schema_registry.json`
+   - **禁止**在 `text_to_sql.py` 中硬編碼 schema
+   - 每次執行時動態載入 schema
+
+2. **支持的表格**：
+   - MA（料號主檔）
+   - MB（庫存資料）
+   - ...（詳見 `schema_registry.json`）
+
+3. **查詢原則**：
+   - 自然語言 → LLM 生成 SQL → 執行並返回結果
+   - 只讀查詢（SELECT），不支援 INSERT/UPDATE/DELETE
+
+---
+
+## Data-Agent-JP Schema-Driven Query 服務
+
+### ⚠️ 重要：這不是 Text-to-SQL
+
+**這是 Schema-Driven Query 架構！**
+
+```
+NLQ → LLM (解析 Intent + Params) → Resolver 狀態機 → SQL → 執行
+```
+
+- LLM **只負責**解析 Intent (意圖) 和 Parameters (參數)
+- SQL 由 **Resolver 狀態機**根據 Intent 定義生成，**不是 LLM 直接生成**
+- 永遠不要說 "Text-to-SQL"，要說 "Schema-Driven Query" 或 "Resolver"
+
+### 服務信息
+
+| 項目 | 值 |
+|------|-----|
+| 端口 | 8004 |
+| 端點 | `/api/v1/data-agent/v4/execute` |
+| 健康檢查 | `/api/v1/data-agent/v4/health` |
+
+> **⚠️ [V4_EXCLUSIVE] 重要提醒**：2026-02-24 起，MM-Agent 統一調用 `/api/v1/data-agent/v4/execute` 端點。這是新版 Schema Driven Query 端點，支持 TimePeriodRAG 時間解析。
+
+| 項目 | 值 |
+|------|-----|
+| 端口 | 8004 |
+| 端點 | `/api/v1/data-agent/jp/execute` |
+| 健康檢查 | `/api/v1/data-agent/jp/health` |
+
+### API 調用規範
+
+#### HTTP 請求格式
+
+```bash
+POST http://localhost:8004/api/v1/data-agent/jp/execute
+Content-Type: application/json
+
+{
+  "task_id": "唯一任務ID",
+  "task_type": "schema_driven_query",
+  "task_data": {
+    "nlq": "查詢料號 NI001 的庫存"
+  }
+}
+```
+
+#### 響應格式
+
+```json
+{
+  "status": "success",
+  "result": {
+    "sql": "SELECT item_no, warehouse_no, ... FROM mart_inventory_wide WHERE ...",
+    "data": [...],
+    "row_count": 100,
+    "columns": ["item_no", "warehouse_no", ...],
+    "execution_time_ms": 45.2
+  },
+  "errors": [],
+  "warnings": []
+}
+```
+
+### 核心文件
+
+- **Intent 定義**: `datalake-system/metadata/systems/tiptop_jp/intents.json`
+- **Bindings 定義**: `datalake-system/metadata/systems/tiptop_jp/bindings.json`
+- **Concepts 定義**: `datalake-system/metadata/systems/tiptop_jp/concepts.json`
+- **Resolver 實作**: `datalake-system/data_agent/services/schema_driven_query/resolver.py`
+
+### 支援的 Mart 表
+
+| 表名 | 用途 |
+|------|------|
+| `mart_inventory_wide` | 庫存查詢 |
+| `mart_work_order_wide` | 工單查詢 |
+| `mart_shipping_wide` | 出貨查詢 |
+
+### 支援的 Intent 類型
+
+- `QUERY_INVENTORY` - 庫存查詢
+- `QUERY_WORK_ORDER` - 工單查詢
+- `QUERY_MANUFACTURING_PROGRESS` - 製程進度
+- `QUERY_WORKSTATION_OUTPUT` - 工作站產出
+- `QUERY_SHIPPING` - 出貨查詢
+- `QUERY_QUALITY` - 品質查詢
+
+---
+
+## 環境配置
+
+### 必要環境變數
+
+```bash
+AI_BOX_CONFIG_PATH=/Users/daniel/GitHub/AI-Box/config/config.json
+OLLAMA_HOST=http://localhost:11434
+ARANGODB_HOST=localhost:8529
+REDIS_HOST=localhost:6379
+SEAWEEDFS_HOST=localhost:8333
+```
+
+### 服務端口
+
+| 服務         | 端口  |
+| ------------ | ----- |
+| API Server   | 8000  |
+| ArangoDB     | 8529  |
+| Redis        | 6379  |
+| SeaweedFS S3 | 8333  |
+| ChromaDB     | 8001  |
+| Ollama       | 11434 |
+
+---
+
+## 參考文檔
+
+- [AI_開發規範檢查清單.md](AI_開發規範檢查清單.md)
+- [.cursorrules](.cursorrules)
+- [docs/開發規範/](docs/開發規範/)
+
+---
+
+## 前端 React 組件開發規範（2026-02-12 新增）
+
+### 項目結構
+
+```
+ai-bot/src/
+├── components/           # React 組件
+│   ├── ChatArea.tsx
+│   ├── ChatInput.tsx
+│   ├── KnowledgeBaseModal.tsx
+│   ├── OntologyManagerModal.tsx
+│   └── ...
+├── pages/              # 頁面組件
+├── hooks/              # 自定義 Hooks
+├── lib/                # API 和工具函數
+│   └── api.ts
+├── contexts/           # React Context
+└── types/              # 類型定義
+```
+
+### 組件開發流程
+
+1. **創建前檢查**：
+   - 搜尋現有類似組件
+   - 確認放置位置（components/ 或 pages/）
+   - 遵循現有命名規範
+
+2. **組件結構**：
+   ```
+   ├── Props 介面（導出）
+   ├── State 類型（導出）
+   ├── Mock Data（如需要，標注）
+   ├── 輔助函數
+   ├── 組件函數（預設導出）
+   └── 內聯樣式或 CSS classes
+   ```
+
+3. **代碼格式檢查**：
+   ```bash
+   # 必須執行 Vite 編譯檢查
+   cd /home/daniel/ai-box/ai-bot
+   npx vite build
+
+   # 可選：ESLint 檢查
+   npm run lint  # 或檢查 package.json 中的 lint 腳本
+   ```
+
+### 組件命名規範
+
+| 類型 | 命名範例 | 說明 |
+|------|----------|------|
+| Modal | `KnowledgeBaseModal.tsx` | 可彈出對話框 |
+| Viewer | `FileViewer.tsx` | 文件預覽組件 |
+| Panel | `ResultPanel.tsx` | 側邊面板 |
+| List | `FileTree.tsx` | 列表/樹狀組件 |
+| Input | `ChatInput.tsx` | 輸入組件 |
+
+### 組件文件頭註釋
+
+```tsx
+/**
+ * 代碼功能說明: [功能描述]
+ * 創建日期: YYYY-MM-DD
+ * 創建人: Daniel Chung
+ * 最後修改日期: YYYY-MM-DD
+ */
+```
+
+### Import 語句順序（React）
+
+```tsx
+// 1. React 核心
+import React, { useState, useEffect, useRef } from 'react';
+
+// 2. 第三方庫 icons
+import { X, Plus, Folder, Upload } from 'lucide-react';
+
+// 3. 本地組件
+import FileViewer from './FileViewer';
+import OntologyManagerModal from './OntologyManagerModal';
+
+// 4. API 和工具
+import { uploadFiles, downloadFile } from '../lib/api';
+
+// 5. 類型定義
+import { KnowledgeFile, Ontology } from '../types';
+```
+
+### 類型導出規範
+
+需要被其他組件使用的類型必須導出：
+
+```tsx
+// ✅ 正確：導出介面
+export interface KnowledgeRoot {
+  id: string;
+  name: string;
+  domain: string;
+}
+
+// ✅ 正確：導出類型別名
+export type KnowledgeTypeId = typeof KNOWLEDGE_TYPES[number]['id'];
+
+// ❌ 錯誤：未導出的類型
+interface InternalType { ... }
+```
+
+### Mock Data 規範
+
+```tsx
+// 開發階段使用的 Mock Data 必須標注
+const mockRoots: KnowledgeRoot[] = [
+  { id: 'root_1', name: '測試知識庫', domain: 'mm_agent' }
+];
+
+// 正式版本改為：
+// const [roots, setRoots] = useState<KnowledgeRoot[]>([]);
+```
+
+### Modal 組件規範
+
+```tsx
+interface KnowledgeBaseModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  // 其他 props...
+}
+
+export default function KnowledgeBaseModal({
+  isOpen,
+  onClose,
+}: KnowledgeBaseModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 ...">
+      {/* Modal 內容 */}
+    </div>
+  );
+}
+```
+
+### 狀態管理
+
+```tsx
+// 使用 useState 管理本地狀態
+const [isLoading, setIsLoading] = useState(false);
+const [data, setData] = useState<MyType[]>([]);
+
+// 複雜狀態使用 useReducer 或自定義 Hook
+```
+
+### API 調用
+
+```tsx
+import { apiFunction } from '../lib/api';
+
+async function handleSubmit() {
+  try {
+    setIsLoading(true);
+    const result = await apiFunction(params);
+    // 處理結果
+  } catch (error) {
+    console.error('操作失敗:', error);
+  } finally {
+    setIsLoading(false);
+  }
+}
+```
+
+### 樣式規範
+
+- 使用 Tailwind CSS 類名
+- 避免行內樣式（除非動態計算）
+- 遵循現有組件的樣式模式
+
+### 常見組件位置
+
+| 功能 | 文件位置 |
+|------|----------|
+| 知識庫管理 | `components/KnowledgeBaseModal.tsx` |
+| 知識本體管理 | `components/OntologyManagerModal.tsx` |
+| 文件預覽 | `components/FileViewer.tsx` |
+| 文件列表 | `components/FileTree.tsx` |
+| 聊天區域 | `components/ChatArea.tsx` |
+| 聊天輸入 | `components/ChatInput.tsx` |
+| 結果面板 | `components/ResultPanel.tsx` |
+
+### 編譯檢查清單
+
+**每次組件修改後必須執行**：
+
+1. ✅ Vite 編譯通過
+   ```bash
+   cd /home/daniel/ai-box/ai-bot
+   npx vite build
+   ```
+
+2. ✅ 沒有新的警告
+
+3. ✅ 類型檢查通過（tsc --noEmit）
+
+4. ✅ 無導入錯誤
+
+### 常見錯誤處理
+
+| 錯誤 | 解決方式 |
+|------|----------|
+| JSX 結構錯誤 | 檢查標籤閉合 |
+| 類型未定義 | 導出或導入類型 |
+| 循環依賴 | 重構組件結構 |
+| 狀態未初始化 | 添加默認值 |
