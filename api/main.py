@@ -118,15 +118,12 @@ except ImportError as e:
 
 # 修改時間：2025-12-08 12:30:00 UTC+8 - 使用統一的日誌配置模組
 # 修改時間：2026-01-28 10:30:00 UTC+8 - 添加 Agent 日誌配置
-from system.logging_config import setup_agent_logging, setup_fastapi_logging
+from system.logging_config import setup_logging
 from system.security.config import get_security_settings
 from system.security.middleware import SecurityMiddleware
 
-# 配置 FastAPI 日誌（使用 RotatingFileHandler，最大 500KB，保留 4 個備份）
-setup_fastapi_logging()
-
-# 配置 Agent 日誌（獨立於 FastAPI 日誌，便於追蹤和調試）
-setup_agent_logging()
+# 配置統一日誌系統（6 頻道 structlog + dictConfig）
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
