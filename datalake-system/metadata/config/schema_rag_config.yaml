@@ -7,7 +7,7 @@ qdrant:
   port: 6333
   grpc_port: 6334
   collection_name: "schema_registry"
-  vector_size: 1024
+  vector_size: 4096
   timeout: 30
 
 # ArangoDB 配置
@@ -21,8 +21,8 @@ arangodb:
 
 # Embedding 配置
 embedding:
-  model: "nomic-embed-text:latest"
-  dimension: 1024
+  model: "qwen3-embedding:latest"
+  dimension: 4096
 
 # 檢索配置
 retrieval:

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "TEST_ITEM_001",
+    "category": "SINGLE",
+    "question": "查詢料號 G3234000461000 的庫存"
+  },
+  {
+    "id": "TEST_WH_001",
+    "category": "SINGLE",
+    "question": "查詢倉庫 2205 的所有庫存明細"
+  },
+  {
+    "id": "TEST_ALL_001",
+    "category": "SINGLE",
+    "question": "查詢所有庫存"
+  },
+  {
+    "id": "TEST_ITEM_WH_001",
+    "category": "SINGLE",
+    "question": "查詢料號 81452GG00644 在倉庫 2601 的庫存"
+  },
+  {
+    "id": "TEST_ITEM_002",
+    "category": "SINGLE",
+    "question": "查詢料號 81199GG01081 的庫存"
+  }
+]

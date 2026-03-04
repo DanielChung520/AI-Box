@@ -129,6 +129,43 @@ class Resolver:
             return self._intents.intents.get(name)
         return None
 
+    def _extract_params_with_llm(self, nlq: str) -> Dict[str, Any]:
+        """使用 LLm API 從 NLQ 提取參數，若失敗回傳空字典"""
+        try:
+            import requests
+
+            url = "http://localhost:11434/api/generate"
+            payload = {"model": "llama3.2:3b-instruct-q4_0", "prompt": nlq, "format": "json"}
+            resp = requests.post(url, json=payload, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            text = None
+            if isinstance(data, dict):
+                text = data.get("text")
+                if not text and isinstance(data.get("choices"), list) and data["choices"]:
+                    first = data["choices"][0]
+                    if isinstance(first, dict):
+                        text = first.get("text")
+                if not text:
+                    text = data.get("generated_text")
+
+            if not text:
+                return {}
+            import re
+
+            text_up = text
+            item_match = re.search(r"\bNI\d+\b", text_up, re.IGNORECASE)
+            item_no = item_match.group(0) if item_match else ""
+            ware_match = re.search(
+                r"WAREHOUSE\s*(?:NO|NO\.?|NO:)\s*(\d{3,6})", text_up, re.IGNORECASE
+            )
+            warehouse_no = ware_match.group(1) if ware_match else ""
+            return {"item_no": item_no, "warehouse_no": warehouse_no}
+        except Exception as e:
+            logger = __import__("logging").getLogger(__name__)
+            logger.error(f"LLM param extraction failed: {e}", exc_info=True)
+            return {}
+
     def _get_concept(self, name: str) -> Optional[ConceptDefinition]:
         """獲取概念定義"""
         if self._concepts:
@@ -141,7 +178,9 @@ class Resolver:
             return self._bindings.bindings.get(concept, {}).get(datasource)
         return None
 
-    def resolve(self, nlq: str) -> Dict[str, Any]:
+    def resolve(
+        self, nlq: str, intent: Optional[str] = None, params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
         執行狀態機
 
@@ -157,6 +196,39 @@ class Resolver:
             # State 0: INIT
             context.transition_to(ResolverState.INIT)
             logger.info(f"Start resolving NLQ: {nlq[:50]}...")
+
+            # Fast-path start: allow direct intent/params input to skip NLQ parsing
+            if intent is not None:
+                intent_def = self._get_intent(intent)
+                if intent_def:
+                    context.intent = intent_def
+                    # Resolve params: use provided ones, else extract via LLm
+                    extracted_params = params if isinstance(params, dict) else {}
+                    if not extracted_params:
+                        if hasattr(self, "_extract_params_with_llm"):
+                            extracted_params = self._extract_params_with_llm(nlq)
+                        else:
+                            extracted_params = {}
+                    # Build a ParsedIntent placeholder for downstream steps
+                    context.parsed = ParsedIntent(
+                        intent=intent, params=extracted_params or {}, confidence=1.0
+                    )
+                    # Move straight to concept matching
+                    context.transition_to(ResolverState.MATCH_CONCEPTS)
+                    context = self._match_concepts(context)
+                    context = self._resolve_bindings(context)
+                    context = self._validate(context)
+                    context = self._build_ast(context)
+                    context = self._emit_sql(context)
+                    context.transition_to(ResolverState.COMPLETED)
+                    logger.info(f"Fast-path resolved successfully: {context.sql[:50]}...")
+                    return {
+                        "status": "success",
+                        "sql": context.sql,
+                        "state_history": [s.value for s in context.state_history],
+                    }
+                else:
+                    logger.info("Provided intent not found, falling back to full parsing")
 
             # State 1: PARSE_NLQ
             context = self._parse_nlq(context)

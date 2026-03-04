@@ -14,8 +14,26 @@ from arango.database import StandardDatabase
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from database.arangodb.client import ArangoDBClient
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+
+try:
+    from database.arangodb.client import ArangoDBClient as _ArangoDBClient
+except ImportError:
+    # Fallback: 直接創建 ArangoDB 客戶端
+    from arango import ArangoClient
+    
+    class _ArangoDBClient:
+        """Fallback ArangoDB Client"""
+        def __init__(self):
+            self._client = ArangoClient()
+            self._db = self._client.db("ai_box_kg", username="root", password="ai_box_arangodb_password")
+        
+        @property
+        def db(self):
+            return self._db
+    
+    def ArangoDBClient():
+        return _ArangoDBClient()
 
 from ..models import BindingsContainer, ConceptsContainer, IntentsContainer
 
@@ -51,7 +69,7 @@ class ArangoDBSchemaLoader:
         """獲取 ArangoDB 資料庫"""
         return self.client.db
 
-    def load_bindings(self, system_id: str = "jp_tiptop_erp") -> Optional[BindingsContainer]:
+    def load_bindings(self, system_id: str = "tiptop_jp") -> Optional[BindingsContainer]:
         """
         從 ArangoDB 載入 Bindings
 
@@ -74,9 +92,27 @@ class ArangoDBSchemaLoader:
             cursor = self.db.aql.execute(
                 query, bind_vars={"@collection": self._bindings_collection, "system_id": system_id}
             )
-
+            
+            # 初始化 bindings_data
             bindings_data = {}
+
+            for doc in cursor:
+                concept_name = doc.get("concept_name")
+                datasource = doc.get("datasource", "ORACLE")
+                
+                if concept_name not in bindings_data:
+                    bindings_data[concept_name] = {}
+                
+                bindings_data[concept_name][datasource] = {
+                    "table": doc.get("table", ""),
+                    "column": doc.get("column", ""),
+                    "aggregation": doc.get("aggregation"),
+                }
             datasource = {"type": "ORACLE", "dialect": "ORACLE"}
+
+            logger.info(f"Loaded {len(bindings_data)} bindings from ArangoDB")
+
+            logger.info(f"Loaded {len(bindings_data)} bindings from ArangoDB")
 
             for doc in cursor:
                 concept_name = doc.get("concept_name")
@@ -97,7 +133,7 @@ class ArangoDBSchemaLoader:
             logger.error(f"Failed to load bindings from ArangoDB: {e}")
             return None
 
-    def load_entities(self, system_id: str = "jp_tiptop_erp") -> Optional[Dict]:
+    def load_entities(self, system_id: str = "tiptop_jp") -> Optional[Dict]:
         """
         從 ArangoDB 載入 Entities
 
@@ -134,7 +170,7 @@ class ArangoDBSchemaLoader:
             logger.error(f"Failed to load entities from ArangoDB: {e}")
             return None
 
-    def load_relationships(self, system_id: str = "jp_tiptop_erp") -> Optional[list]:
+    def load_relationships(self, system_id: str = "tiptop_jp") -> Optional[list]:
         """
         從 ArangoDB 載入 Relationships
 
@@ -189,7 +225,7 @@ class ArangoDBSchemaLoader:
 def load_bindings_from_arangodb(
     client: Optional[ArangoDBClient] = None,
     collection_prefix: str = "jp_",
-    system_id: str = "jp_tiptop_erp",
+    system_id: str = "tiptop_jp",
 ) -> Optional[BindingsContainer]:
     """便捷函數：從 ArangoDB 載入 Bindings"""
     loader = ArangoDBSchemaLoader(client, collection_prefix)
@@ -199,7 +235,7 @@ def load_bindings_from_arangodb(
 def load_entities_from_arangodb(
     client: Optional[ArangoDBClient] = None,
     collection_prefix: str = "jp_",
-    system_id: str = "jp_tiptop_erp",
+    system_id: str = "tiptop_jp",
 ) -> Optional[Dict]:
     """便捷函數：從 ArangoDB 載入 Entities"""
     loader = ArangoDBSchemaLoader(client, collection_prefix)

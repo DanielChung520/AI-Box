@@ -1,0 +1,1 @@
+structlog version: 25.5.0

@@ -173,11 +173,16 @@ class ContextManager:
         resolved_instruction = instruction
 
         # 如果指令中沒有料號，但上下文中有，則添加料號
+        # 修復：只有當用戶明確指向上一次查詢時才使用緩存的料號
         if "last_part_number" in context.entities:
             part_number = context.entities["last_part_number"]
 
-            # 檢查指令中是否已經包含料號
-            if not re.search(r"[A-Z]{2,4}-\d{2,6}", instruction, re.IGNORECASE):
+            # 檢查指令中是否已經包含料號（支援多種格式：NI002, 10-0001, ABC123 等）
+            has_part_number = re.search(r"[A-Z0-9]{2,10}", instruction, re.IGNORECASE)
+            has_keyword = any(keyword in instruction for keyword in ["料號", "part", "查詢", "query", "庫存"])
+
+            # 只有當指令中沒有明確的料號相關關鍵字時，才考慮使用緩存的料號
+            if not has_keyword:
                 # 解析「剛才查的那個料號」
                 if "剛才" in instruction or "那個" in instruction or "這個" in instruction:
                     # 替換「剛才查的那個料號」等模式
@@ -194,12 +199,8 @@ class ContextManager:
                         f"{part_number}",
                         resolved_instruction,
                     )
-                # 如果指令中沒有明確的指代，但缺少料號，則在開頭添加
-                elif not any(
-                    keyword in instruction
-                    for keyword in ["料號", "part", "ABC", "XYZ", "查詢", "query"]
-                ):
-                    # 對於缺少料號的指令，在開頭添加料號
+                # 如果指令中沒有任何指代關鍵字，但缺少料號格式，則在開頭添加
+                elif not has_part_number:
                     resolved_instruction = f"料號 {part_number} {resolved_instruction}"
 
         return resolved_instruction

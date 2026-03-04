@@ -128,6 +128,10 @@ class ChatMemoryService:
                 vector_weight=0.6,
                 graph_weight=0.4,
             )
+            # 2026-03-02: 禁用 HybridRAG 內部 RealtimeRetrievalService 的緩存
+            if self._hybrid_rag_service and hasattr(self._hybrid_rag_service, 'retrieval_service'):
+                self._hybrid_rag_service.retrieval_service.cache_enabled = False
+                logger.info("HybridRAG cache disabled for testing")
             logger.debug("HybridRAGService initialized")
             return self._hybrid_rag_service
         except Exception as exc:  # noqa: BLE001

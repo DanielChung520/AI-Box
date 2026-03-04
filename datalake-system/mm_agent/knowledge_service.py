@@ -299,24 +299,8 @@ class KnowledgeService:
         """
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.post(
-                    f"{self._ai_box_api_url}/api/v1/agents/execute",
-                    json={
-                        "agent_id": "ka-agent",
-                        "task": {
-                            "task_id": f"mm_list_{id(self)}",
-                            "task_data": {
-                                "action": "ka.list",
-                                "domain": domain,
-                                "major": major,
-                                "lifecycle_state": lifecycle_state,
-                            },
-                            "metadata": {
-                                "caller_agent_id": "mm-agent",
-                                "caller_agent_key": "-h0tjyh",
-                            },
-                        },
-                    },
+                response = await client.get(
+                    f"{self._ai_box_api_url}/api/v1/ka/list",
                     headers={"Authorization": f"Bearer {self._api_key}"} if self._api_key else {},
                 )
 

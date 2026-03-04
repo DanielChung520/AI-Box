@@ -1,0 +1,608 @@
+{
+  "endpoint": "MM-Agent: /auto-execute, Data-Agent: /api/v1/data-agent/v4/execute",
+  "total": 100,
+  "success": 100,
+  "success_rate": "100.0%",
+  "results": [
+    {
+      "id": "ITEM_001",
+      "question": "查詢料號 81101GG03508 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_002",
+      "question": "查詢料號 G3193002070900 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_003",
+      "question": "查詢料號 G21650010201 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_004",
+      "question": "查詢料號 G21620014000 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_005",
+      "question": "查詢料號 81431GG00135 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_006",
+      "question": "查詢料號 824312I00014 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_007",
+      "question": "查詢料號 8021103141300002 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_008",
+      "question": "查詢料號 SP-IN110 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_009",
+      "question": "查詢料號 SP-GD003 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_010",
+      "question": "查詢料號 M21950000400 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_011",
+      "question": "查詢料號 8021205500300000 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_012",
+      "question": "查詢料號 A3162000060100 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_013",
+      "question": "查詢料號 G21830005502 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_014",
+      "question": "查詢料號 8031103001700708 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_015",
+      "question": "查詢料號 A21950011901 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_016",
+      "question": "查詢料號 A21620001600 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_017",
+      "question": "查詢料號 M21950001200 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_018",
+      "question": "查詢料號 G319300176I800 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_019",
+      "question": "查詢料號 AMPS052 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_020",
+      "question": "查詢料號 81104GG00048 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_021",
+      "question": "查詢料號 8031201502500601 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_022",
+      "question": "查詢料號 81499GG01278 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_023",
+      "question": "查詢料號 824312I00113 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_024",
+      "question": "查詢料號 81101GG02711 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_025",
+      "question": "查詢料號 81101GG02883 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_026",
+      "question": "查詢料號 M319100031AC00 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_027",
+      "question": "查詢料號 M319100031AD00 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_028",
+      "question": "查詢料號 M320500011AJ00 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_029",
+      "question": "查詢料號 8021510201400001 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_030",
+      "question": "查詢料號 G21840006000 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_031",
+      "question": "查詢料號 8021103279800000 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_032",
+      "question": "查詢料號 SO-MCOT113 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_033",
+      "question": "查詢料號 A21850009003 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_034",
+      "question": "查詢料號 G3192001800100 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_035",
+      "question": "查詢料號 G21910018500 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_036",
+      "question": "查詢料號 9P1018 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_037",
+      "question": "查詢料號 9P0144 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_038",
+      "question": "查詢料號 G3193002070800 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_039",
+      "question": "查詢料號 G21620029504 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_040",
+      "question": "查詢料號 G21920022300 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_041",
+      "question": "查詢料號 8031110500500601 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_042",
+      "question": "查詢料號 8031301204203401 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_043",
+      "question": "查詢料號 82105A700009 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_044",
+      "question": "查詢料號 824312I00151 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_045",
+      "question": "查詢料號 81469GG00174 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_046",
+      "question": "查詢料號 824312I00017 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_047",
+      "question": "查詢料號 81452GG00159 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_048",
+      "question": "查詢料號 81459GG05399 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_049",
+      "question": "查詢料號 G3192002370100 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_050",
+      "question": "查詢料號 G3194001590200 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_051",
+      "question": "查詢料號 G3190E00081900 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_052",
+      "question": "查詢料號 A3185000150200 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_053",
+      "question": "查詢料號 8021509200500001 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_054",
+      "question": "查詢料號 G21720006601 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_055",
+      "question": "查詢料號 81431GG00155 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_056",
+      "question": "查詢料號 8031212500500302 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_057",
+      "question": "查詢料號 81101GG02585 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_058",
+      "question": "查詢料號 9I0095 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_059",
+      "question": "查詢料號 81199GG01203 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_060",
+      "question": "查詢料號 81452GG00642 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_001",
+      "question": "查詢倉庫 2205 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_002",
+      "question": "查詢倉庫 2601 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_003",
+      "question": "查詢倉庫 2904-3 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_004",
+      "question": "查詢倉庫 2904-1 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_005",
+      "question": "查詢倉庫 8811 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_006",
+      "question": "查詢倉庫 A001 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_007",
+      "question": "查詢倉庫 LIU001 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_008",
+      "question": "查詢倉庫 A01 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_009",
+      "question": "查詢倉庫 P002 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_010",
+      "question": "查詢倉庫 TH001 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_011",
+      "question": "查詢倉庫 A002 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_012",
+      "question": "查詢倉庫 012301 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_013",
+      "question": "查詢倉庫 HTK003 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_014",
+      "question": "查詢倉庫 Z150213-2 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_015",
+      "question": "查詢倉庫 SCUD10 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_016",
+      "question": "查詢倉庫 V001 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_017",
+      "question": "查詢倉庫 S002 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_018",
+      "question": "查詢倉庫 00939-F 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_019",
+      "question": "查詢倉庫 2209 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "WH_020",
+      "question": "查詢倉庫 06-01 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_001",
+      "question": "查詢所有庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_002",
+      "question": "顯示全部庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_003",
+      "question": "給我全部庫存資料",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_004",
+      "question": "查詢庫存總量",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_005",
+      "question": "列出所有庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_006",
+      "question": "庫存有多少",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_007",
+      "question": "查詢全部庫存數量",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_008",
+      "question": "顯示庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_009",
+      "question": "查詢庫存資訊",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ALL_010",
+      "question": "查詢現有庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_001",
+      "question": "查詢料號 81101GG03508 在倉庫 2205 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_002",
+      "question": "查詢料號 G3193002070900 在倉庫 2601 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_003",
+      "question": "查詢料號 G21650010201 在倉庫 2904-3 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_004",
+      "question": "查詢料號 G21620014000 在倉庫 2904-1 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_005",
+      "question": "查詢料號 81431GG00135 在倉庫 8811 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_006",
+      "question": "查詢料號 824312I00014 在倉庫 A001 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_007",
+      "question": "查詢料號 8021103141300002 在倉庫 LIU001 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_008",
+      "question": "查詢料號 SP-IN110 在倉庫 A01 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_009",
+      "question": "查詢料號 SP-GD003 在倉庫 P002 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    },
+    {
+      "id": "ITEM_WH_010",
+      "question": "查詢料號 M21950000400 在倉庫 TH001 的庫存",
+      "success": true,
+      "has_error_in_response": true
+    }
+  ]
+}

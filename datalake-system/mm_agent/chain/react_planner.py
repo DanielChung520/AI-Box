@@ -614,6 +614,104 @@ AI 生成（2 步）：
             )
 
     def _simple_query_plan(self, instruction: str) -> TodoPlan:
+        """簡單查詢計劃：2 步（data_query + response_generation）
+        
+        2026-03-02: 並行調用 MM_IntentRAG 和 MasterRAG 提取意圖和參數"""
+        import asyncio
+        logger.info(f"[ReActPlanner] 生成簡單查詢工作流: 2 步驟")
+        
+        # 2026-03-02: 並行調用 MM_IntentRAG 和 MasterRAG
+        intent = None
+        params = {}
+        
+        async def get_intent_and_params():
+            nonlocal intent, params
+            try:
+                # 同時調用 MM_IntentRAG 和 MasterRAG
+                tasks = []
+                
+                # 1. MM_IntentRAG - 意圖分類
+                async def classify_intent():
+                    try:
+                        from mm_agent.mm_intent_rag_client import get_mm_intent_rag_client
+                        client = get_mm_intent_rag_client()
+                        return client.classify_intent(instruction)
+                    except Exception as e:
+                        logger.warning(f"[ReActPlanner] MM_IntentRAG 失敗: {e}")
+                        return None
+                
+                # 2. MasterRAG - 參數提取
+                async def extract_params():
+                    try:
+                        from mm_agent.master_rag_utils import extract_params_with_master_rag
+                        return await extract_params_with_master_rag(instruction)
+                    except Exception as e:
+                        logger.warning(f"[ReActPlanner] MasterRAG 失敗: {e}")
+                        return {}
+                
+                # 並行執行
+                intent_result, params_result = await asyncio.gather(
+                    classify_intent(),
+                    extract_params(),
+                    return_exceptions=True
+                )
+                
+                # 處理意圖結果
+                if intent_result and not isinstance(intent_result, Exception):
+                    intent = intent_result
+                    logger.info(f"[ReActPlanner] MM_IntentRAG: intent={intent}")
+                
+                # 處理參數結果
+                if params_result and not isinstance(params_result, Exception):
+                    params = params_result
+                    logger.info(f"[ReActPlanner] MasterRAG: params={params}")
+                    
+            except Exception as e:
+                logger.warning(f"[ReActPlanner] 意圖/參數提取失敗: {e}")
+        
+        # 執行並行調用
+        try:
+            asyncio.run(get_intent_and_params())
+        except Exception as e:
+            logger.warning(f"[ReActPlanner] 並行調用失敗: {e}")
+        
+        # 構建 action 參數
+        action_params = {
+            "instruction": instruction,
+        }
+        if intent:
+            action_params["intent"] = intent
+        if params:
+            action_params["params"] = params
+        
+        logger.info(f"[ReActPlanner] data_query 參數: {action_params}")
+        
+        steps = [
+            Action(
+                step_id=1,
+                action_type="data_query",
+                description="執行數據查詢",
+                parameters=action_params,
+                dependencies=[],
+                result_key="query_result",
+            ),
+            Action(
+                step_id=2,
+                action_type="response_generation",
+                description="生成查詢回覆",
+                parameters={},
+                dependencies=[1],
+                result_key=None,
+            ),
+        ]
+
+        return TodoPlan(
+            task_type="simple_query",
+            original_instruction=instruction,
+            steps=steps,
+            current_step=1,
+            completed_steps=[],
+        )
         """簡單查詢計劃：2 步（data_query + response_generation）"""
         logger.info(f"[ReActPlanner] 生成簡單查詢工作流: 2 步驟")
 

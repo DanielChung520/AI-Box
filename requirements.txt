@@ -59,3 +59,6 @@ boto3>=1.28.0
 
 # RQ Dashboard（用於 API 代理靜態檔與啟動腳本）
 rq-dashboard>=0.6.0
+
+# LINE Bot 依賴
+line-bot-sdk>=3.0.0

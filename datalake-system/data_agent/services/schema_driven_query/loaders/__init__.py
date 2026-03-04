@@ -153,6 +153,13 @@ class SchemaLoader:
 
         logger.info("Loading bindings from file (fallback)...")
         data = self.file_loader.load_bindings()
+        # 文件加載器返回的是完整 JSON 結構，需要提取 bindings
+        if 'bindings' in data:
+            return BindingsContainer(
+                version=data.get('version', '1.0'),
+                datasource=data.get('datasource', {}),
+                bindings=data['bindings']
+            )
         return BindingsContainer(**data)
 
 

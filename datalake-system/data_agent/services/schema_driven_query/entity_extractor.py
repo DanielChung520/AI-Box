@@ -203,7 +203,11 @@ class EntityExtractor:
 
     async def extract(self, query: str, language: str = "zh-TW") -> List[ExtractedEntity]:
         """
-        提取實體
+        提取實體 - 僅使用語義匹配
+
+        完全移除 L1 關鍵詞字典，只使用：
+        - L2: Regex patterns (提取實際值)
+        - L3: Semantic (語義識別實體類型)
 
         Args:
             query: 用戶查詢
@@ -214,21 +218,18 @@ class EntityExtractor:
         """
         entities = []
 
-        # L2: 正則模式匹配（最高優先級，提取實際值）
+        # L2: Regex 模式匹配（提取實際值）
         pattern_entities = self._pattern_match(query)
         entities.extend(pattern_entities)
 
-        # L1: 關鍵詞匹配（次優先級，識別意圖類型）
-        keyword_entities = self._keyword_match(query, language)
-        entities.extend(keyword_entities)
-
-        # L3: 語義匹配（備用，當 L1 和 L2 都沒有結果時）
-        if self.enable_semantic and not keyword_entities and not pattern_entities:
+        # L3: 語義匹配（主要實體類型識別）
+        if self.enable_semantic:
             semantic_entities = await self._semantic_match(query, language)
             entities.extend(semantic_entities)
 
         # 去重和排序
         return self._deduplicate(entities)
+
 
     def _keyword_match(self, query: str, language: str) -> List[ExtractedEntity]:
         """關鍵詞匹配（識別實體類型，不提取值）」"""
@@ -356,18 +357,18 @@ class EntityExtractor:
         return entities
 
     async def _semantic_match(self, query: str, language: str) -> List[ExtractedEntity]:
-        """語義匹配（使用 Embedding）」"""
-        # 構建候選概念
+        """語義匹配（使用 Embedding）- 完全移除關鍵字依賴"""
+        # 從 concepts.json 構建候選概念（不再使用 KEYWORD_DICT）
         candidates = {}
-        for entity_type in self.KEYWORD_DICT.keys():
-            # 從概念定義中獲取描述
-            if entity_type in self.concepts.get("concepts", {}):
-                desc = self.concepts["concepts"][entity_type].get("description", "")
+        concepts_data = self.concepts.get("concepts", {})
+        
+        for entity_type, concept_def in concepts_data.items():
+            desc = concept_def.get("description", "")
+            if desc:
                 candidates[entity_type] = desc
-            else:
-                # 使用關鍵詞作為描述
-                keywords = self.KEYWORD_DICT.get(entity_type, {}).get(language, [])
-                candidates[entity_type] = ", ".join(keywords[:5])
+        
+        if not candidates:
+            return []
 
         # 使用 Embedding 進行相似度搜索
         try:

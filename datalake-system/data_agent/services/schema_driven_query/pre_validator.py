@@ -53,41 +53,59 @@ class ValidationResult:
 
 
 class PreValidator:
-    """查詢前驗證器」"""
-
-    # 支援的意圖
-    SUPPORTED_INTENTS = [
-        "QUERY_INVENTORY",
-        "QUERY_WORK_ORDER",
-        "QUERY_MANUFACTURING_PROGRESS",
-        "QUERY_WORKSTATION_OUTPUT",
-        "QUERY_SHIPPING",
-        "QUERY_STATS",
-    ]
-
-    # 必需的參數（按意圖）- 至少需要一個關鍵篩選條件
-    REQUIRED_PARAMS = {
-        "QUERY_INVENTORY": ["ITEM_NO", "WAREHOUSE_NO"],  # 需要至少一個：料號 或 倉庫
-        "QUERY_WORK_ORDER": ["MO_DOC_NO"],
-        "QUERY_MANUFACTURING_PROGRESS": ["MO_DOC_NO"],
-        "QUERY_WORKSTATION_OUTPUT": ["WORKSTATION"],
-        "QUERY_SHIPPING": [],
-        "QUERY_STATS": [],
-    }
-
-    # 意圖對應的表格
-    INTENT_TABLES = {
-        "QUERY_INVENTORY": "mart_inventory_wide",
-        "QUERY_WORK_ORDER": "mart_work_order_wide",
-        "QUERY_MANUFACTURING_PROGRESS": "mart_work_order_wide",
-        "QUERY_WORKSTATION_OUTPUT": "mart_work_order_wide",
-        "QUERY_SHIPPING": "mart_shipping_wide",
-        "QUERY_STATS": "mart_inventory_wide",
-    }
+    """查詢前驗證器"""
 
     def __init__(self):
-        """初始化驗證器」"""
-        pass
+        """初始化驗證器"""
+        self._intents: Dict[str, Any] = {}
+        self._load_intents()
+
+    def _load_intents(self) -> None:
+        """從 intents.json 載入意圖定義"""
+        try:
+            from pathlib import Path
+            import json
+
+            base_path = Path(__file__).parent.parent.parent.parent
+            intents_file = base_path / "metadata" / "systems" / "tiptop_jp" / "intents.json"
+
+            if not intents_file.exists():
+                import logging
+
+                logging.warning(f"Intent file not found: {intents_file}")
+                return
+
+            with open(intents_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            intents = data.get("intents", {})
+            for intent_id, intent_def in intents.items():
+                self._intents[intent_id] = {
+                    "mart_table": intent_def.get("mart_table"),
+                    "required_filters": intent_def.get("input", {}).get("required_filters", []),
+                }
+
+            import logging
+
+            logging.info(f"PreValidator loaded {len(self._intents)} intents")
+
+        except Exception as e:
+            import logging
+
+            logging.warning(f"Failed to load intents: {e}")
+
+    @property
+    def SUPPORTED_INTENTS(self) -> List[str]:
+        """支援的意圖列表（從 intents.json 載入）"""
+        return list(self._intents.keys())
+
+    def get_required_params(self, intent: str) -> List[str]:
+        """獲取意圖的必需參數（從 intents.json 載入）"""
+        return self._intents.get(intent, {}).get("required_filters", [])
+
+    def get_intent_table(self, intent: str) -> Optional[str]:
+        """獲取意圖對應的表格（從 intents.json 載入）"""
+        return self._intents.get(intent, {}).get("mart_table")
 
     async def validate(
         self, query: str, intent: str, entities: Dict[str, str], intent_confidence: float = 1.0
@@ -104,58 +122,8 @@ class PreValidator:
         Returns:
             ValidationResult: 驗證結果
         """
+        # 跳過所有硬編碼檢查 - 由 Resolver/RAG 處理
         result = ValidationResult(valid=True)
-
-        # 1. 意圖是否支援
-        if intent not in self.SUPPORTED_INTENTS:
-            result.valid = False
-            result.errors.append(
-                ValidationError(
-                    code=ErrorCode.INTENT_UNCLEAR.value,
-                    message=f"不支援的查詢類型: {intent}",
-                    suggestions=[f"可用的查詢類型: {', '.join(self.SUPPORTED_INTENTS)}"],
-                )
-            )
-            return result
-
-        # 2. 意圖信心度檢查
-        if intent_confidence < 0.6:
-            result.valid = False
-            result.errors.append(
-                ValidationError(
-                    code=ErrorCode.INTENT_UNCLEAR.value,
-                    message="無法確定查詢意圖",
-                    suggestions=self._suggest_intents(query),
-                )
-            )
-            return result
-
-        # 3. 必需的參數檢查 - 改為警告而非阻擋
-        required = self.REQUIRED_PARAMS.get(intent, [])
-        has_any_param = False
-
-        # 先檢查 entities
-        for param in required:
-            if param in entities:
-                has_any_param = True
-                break
-
-        # 如果 entities 為空但查詢文字中包含倉庫或料號，也視為有篩選條件
-        if not has_any_param:
-            import re
-
-            warehouse_pattern = r"([0-9]{3,4})[倉庫仓庫]"
-            part_pattern = r"料號[：:]\s*([A-Za-z0-9\-]+)|([A-Z]{2,4}\d{2,6}-\d{2,6})"
-
-            if re.search(warehouse_pattern, query):
-                has_any_param = True
-            elif re.search(part_pattern, query):
-                has_any_param = True
-
-        if required and not has_any_param:
-            result.warnings.append(
-                f"注意：查詢缺少明確的篩選條件（{', '.join(required)}），可能返回大量數據"
-            )
 
         # 4. 參數格式檢查
         for param_type, value in entities.items():
@@ -396,10 +364,6 @@ class PreValidator:
             suggestions = ["工單格式：XXX-XX-XXXXXXXX", "工單範例：WO-ABC-12345678"]
 
         return suggestions
-
-    def get_intent_table(self, intent: str) -> Optional[str]:
-        """獲取意圖對應的表格名稱」"""
-        return self.INTENT_TABLES.get(intent)
 
 
 async def demo():

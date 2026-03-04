@@ -364,6 +364,59 @@ try:
     async def jp_health() -> HealthResponse:
         """Data-Agent-JP 健康檢查"""
         return HealthResponse(status="healthy", service="data-agent-jp", version="1.0.0")
+    # ============================================================================
+    # v5 端點（2026-03-02）
+    # ============================================================================
+    try:
+        from data_agent.models import V5ExecuteRequest, V5ExecuteResponse, V5ErrorDetails
+        import logging
+
+        @app.get("/api/v1/data-agent/v5/health")
+        async def v5_health():
+            """v5 健康檢查"""
+            return {"status": "healthy", "service": "data-agent-v5", "version": "1.0.0"}
+
+        @app.post("/api/v1/data-agent/v5/execute")
+        async def v5_execute(request: V5ExecuteRequest):
+            from data_agent.services.simple_llm_sql import get_llm_sql_generator
+            from data_agent.services.simple_executor import get_simple_executor
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"v5 received query: task_id={request.task_id}, nlq={request.task_data.nlq}")
+            nlq = request.task_data.nlq
+            return_mode = request.task_data.return_mode or "summary"
+            generator = get_llm_sql_generator()
+            sql_result = generator.generate_sql(nlq, return_mode)
+            if sql_result.get("status") == "pre_error":
+                error = sql_result["error"]
+                return V5ExecuteResponse(
+                    success=False,
+                    error_type=error.get("error_type"),
+                    error_code=error.get("error_code"),
+                    message=error.get("message"),
+                )
+            sql = sql_result.get("sql", "")
+            if not sql:
+                return V5ExecuteResponse(success=False, error_type="pre_execution", error_code="SQL_GENERATION_FAILED", message="無法生成 SQL")
+            executor = get_simple_executor()
+            try:
+                exec_result = executor.execute(sql, return_mode=return_mode)
+                return V5ExecuteResponse(
+                    success=True,
+                    sql=sql,
+                    data=exec_result.get("data"),
+                    row_count=exec_result.get("row_count"),
+                    columns=exec_result.get("columns"),
+                    pagination=exec_result.get("pagination"),
+                    execution_time_ms=exec_result.get("execution_time_ms"),
+                )
+            except Exception as e:
+                logger.error(f"v5 execution failed: {e}")
+                return V5ExecuteResponse(success=False, error_type="post_execution", error_code="SQL_EXECUTION_ERROR", message="SQL 執行失敗")
+        print("✅ Data-Agent v5 端點已載入")
+    except ImportError as e:
+        print(f"⚠️ Data-Agent v5 端點載入失敗: {e}")
+
 
     print("✅ Data-Agent-JP (Schema Driven Query) 路由已載入")
 

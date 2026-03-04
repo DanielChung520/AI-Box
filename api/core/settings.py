@@ -71,7 +71,7 @@ def get_ollama_settings() -> OllamaSettings:
     port = int(os.getenv("OLLAMA_REMOTE_PORT", section.get("port", 11434)))
     timeout = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", section.get("request_timeout", 60)))
     default_model = os.getenv(
-        "OLLAMA_DEFAULT_MODEL", section.get("default_model", "qwen3-coder:30b")
+        "OLLAMA_DEFAULT_MODEL", section.get("default_model", "gpt-oss:120b")
     )
     embedding_model = os.getenv(
         "OLLAMA_EMBEDDING_MODEL", section.get("embedding_model", "nomic-embed-text")

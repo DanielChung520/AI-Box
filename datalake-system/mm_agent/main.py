@@ -61,10 +61,88 @@ mm_chain = MMAgentChain(use_semantic_translator=USE_SEMANTIC_TRANSLATOR)
 translator = Translator(use_semantic_translator=USE_SEMANTIC_TRANSLATOR)
 negative_list = NegativeListChecker()
 
-# 初始化 ReAct 引擎
-from mm_agent.chain.react_executor import get_react_engine
+# 初始化 MM_IntentsRAG Client
+from mm_agent.mm_intent_rag_client import MMIntentRAGClient
+_m_m_intent_rag_client: Optional[MMIntentRAGClient] = None
 
-_react_engine = get_react_engine()
+
+def get_mm_intent_rag_client() -> MMIntentRAGClient:
+    """獲取 MMIntentRAG Client 單例"""
+    global _m_m_intent_rag_client
+    if _m_m_intent_rag_client is None:
+        _m_m_intent_rag_client = MMIntentRAGClient()
+    return _m_m_intent_rag_client
+
+
+# 初始化 LLM Client
+from llm.clients.factory import get_client, LLMProvider
+
+
+def _get_llm_client():
+    """獲取 LLM Client"""
+    return get_client(LLMProvider.OLLAMA)
+
+
+async def _enhance_instruction_with_context(messages: list, last_user_msg: str) -> tuple[str, bool]:
+    """
+    使用 LLM 根據對話上下文補全最後一個問題
+    
+    Args:
+        messages: 對話歷史
+        last_user_msg: 最後一條用戶消息
+    
+    Returns:
+        (enhanced_instruction, was_enhanced): 補全後的指令，是否進行了補全
+    """
+    # 如果只有一條消息，直接返回
+    if len(messages) <= 1:
+        return last_user_msg, False
+    
+    # 構建上下文
+    context_parts = []
+    for msg in messages[:-1]:  # 排除最後一條
+        role = msg.get("role", "unknown")
+        content = msg.get("content", "")
+        if content:
+            context_parts.append(f"{role}: {content}")
+    
+    context = "\n".join(context_parts[-6:])  # 最近 6 條對話
+    
+    # LLM 補全提示
+    prompt = f"""你是一個智能助手，擅長理解對話上下文並補全用戶的問題。
+
+對話歷史：
+{context}
+
+用戶最後的問題：
+{last_user_msg}
+
+請分析對話歷史，如果用戶的最後問題是指代前面對話中提到的內容（如「它」、「那個」、「這個」等），請補全成一個完整的問題。
+
+只返回補全後的問題，不要有其他解釋。如果問題已經是完整的，直接返回原問題。
+
+補全後的問題："""
+    
+    try:
+        llm_client = _get_llm_client()
+        response = await llm_client.generate(
+            prompt=prompt,
+            model=os.getenv("MM_AGENT_MODEL", "qwen3:8b"),
+            temperature=0.3,
+        )
+        
+        enhanced = response.strip() if response else last_user_msg
+        was_enhanced = enhanced != last_user_msg
+        
+        logger.info(f"[上下文補全] 原問題: {last_user_msg[:50]}... -> 補全後: {enhanced[:50]}... (was_enhanced={was_enhanced})")
+        
+        return enhanced, was_enhanced
+        
+    except Exception as e:
+        logger.warning(f"[上下文補全] 失敗: {e}")
+        return last_user_msg, False
+
+
 
 # 創建FastAPI應用
 app = FastAPI(
@@ -174,21 +252,51 @@ async def execute(request: dict) -> dict:
                     break
 
             if last_user_msg:
-                instruction = last_user_msg
-                logger.info(f"[execute] 從對話中提取指令: {instruction}")
+                # 步驟 1: LLM 上下文補全
+                instruction, was_enhanced = await _enhance_instruction_with_context(
+                    messages, last_user_msg
+                )
+                logger.info(f"[execute] {'(上下文補全)' if was_enhanced else ''} 指令: {instruction}")
+                
+                # 步驟 2: MM_IntentsRAG 意圖分類
+                intent_rag = get_mm_intent_rag_client()
+                intent_name = intent_rag.classify_intent(instruction, min_score=0.5)
+                
+                if intent_name is None:
+                    # 步驟 3: 意圖不明，返回澄清
+                    logger.info(f"[execute] 意圖不明，需要澄清")
+                    return {
+                        "task_id": request.get("task_id", "http-task"),
+                        "status": "completed",
+                        "result": {
+                            "success": True,
+                            "needs_clarification": True,
+                            "clarification_message": "抱歉，我不太確定您的具體需求。請明確告訴我您想查詢什麼？例如：「查詢料號 NI001 的庫存」或「查看最近入庫記錄」",
+                            "original_query": last_user_msg,
+                            "enhanced_query": instruction if was_enhanced else None,
+                        },
+                    }
+                
+                logger.info(f"[execute] 識別意圖: {intent_name}")
 
-                # 構建 AgentServiceRequest
+                # 步驟 4: 構建 AgentServiceRequest，攜帶完整信息
                 agent_request = AgentServiceRequest(
                     task_id=request.get("task_id", "http-task"),
-                    task_type="general_chat",  # 使用 general_chat 任務類型
+                    task_type=intent_name,  # 使用識別的意圖作為任務類型
                     task_data={
                         "instruction": instruction,
                         "user_id": request.get("user_id"),
                         "session_id": request.get("session_id"),
+                        "original_query": last_user_msg,  # 原始問題
+                        "was_enhanced": was_enhanced,  # 是否經過補全
                     },
                     context=request.get("context"),
-                    metadata=request.get("metadata"),
+                    metadata={
+                        **request.get("metadata", {}),
+                        "intent_name": intent_name,  # 攜帶識別的意圖
+                    },
                 )
+
             else:
                 # 沒有找到用戶消息
                 return {

@@ -132,3 +132,67 @@ class QueryGatewayResponse(BaseModel):
     execution_time: float = Field(0.0, description="執行時間（秒）")
     warnings: List[str] = Field(default_factory=list, description="警告列表")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
+
+metadata: Dict[str, Any] = Field(default_factory=dict, description="元數據")
+
+
+# ============================================================================
+# v5 模型（2026-03-02）
+# ============================================================================
+
+
+class V5TaskData(BaseModel):
+    """v5 任務數據"""
+
+    nlq: str = Field(..., description="自然語言查詢")
+    module: str = Field("tiptop_jp", description="模塊名稱")
+    return_mode: str = Field("summary", description="返回模式: summary 或 list")
+
+
+class V5ExecuteRequest(BaseModel):
+    """v5 執行請求"""
+
+    task_id: str = Field(..., description="任務 ID")
+    task_type: str = Field(default="simple_query", description="任務類型")
+    task_data: V5TaskData
+
+
+class V5QueryResult(BaseModel):
+    """v5 查詢結果"""
+
+    sql: str = Field(..., description="生成的 SQL")
+    data: List[Dict[str, Any]] = Field(default_factory=list, description="結果數據")
+    row_count: int = Field(0, description="返回筆數")
+    columns: List[str] = Field(default_factory=list, description="欄位名稱")
+    pagination: Optional[Dict[str, Any]] = Field(None, description="分頁資訊")
+    execution_time_ms: int = Field(0, description="執行時間（毫秒）")
+
+
+class V5ErrorDetails(BaseModel):
+    """v5 錯誤詳情"""
+
+    original_query: Optional[str] = Field(None, description="原始查詢")
+    ambiguity: Optional[str] = Field(None, description="模糊之處")
+    sql: Optional[str] = Field(None, description="執行的 SQL")
+    error_detail: Optional[str] = Field(None, description="錯誤詳情")
+
+
+class V5ExecuteResponse(BaseModel):
+    """v5 執行響應"""
+
+    success: bool = Field(..., description="是否成功")
+    sql: Optional[str] = Field(None, description="生成的 SQL")
+    data: Optional[List[Dict[str, Any]]] = Field(None, description="結果數據")
+    row_count: Optional[int] = Field(None, description="返回筆數")
+    columns: Optional[List[str]] = Field(None, description="欄位名稱")
+    pagination: Optional[Dict[str, Any]] = Field(None, description="分頁資訊")
+    execution_time_ms: Optional[int] = Field(None, description="執行時間（毫秒）")
+    # 錯誤相關欄位
+    error_type: Optional[str] = Field(None, description="錯誤類型: pre_execution / post_execution")
+    error_code: Optional[str] = Field(None, description="錯誤碼")
+    message: Optional[str] = Field(None, description="訊息")
+    details: Optional[V5ErrorDetails] = Field(None, description="錯誤詳情")
+    clarification_needed: Optional[List[str]] = Field(None, description="需要確認的事項")
+    suggestion: Optional[str] = Field(None, description="建議")
+    errors: List[str] = Field(default_factory=list, description="錯誤列表")
+    warnings: List[str] = Field(default_factory=list, description="警告列表")

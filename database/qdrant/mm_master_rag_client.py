@@ -29,7 +29,7 @@ from database.qdrant.client import get_qdrant_client
 logger = logging.getLogger(__name__)
 
 COLLECTION_NAME = "mmMasterRAG"
-VECTOR_SIZE = 384
+VECTOR_SIZE = 4096  # qwen3-embedding dimension
 DISTANCE = Distance.COSINE
 
 
@@ -324,6 +324,28 @@ class MMMasterRAGClient:
             query_vector, query_type="workstation", limit=limit, score_threshold=score_threshold
         )
 
+    def search_customers(
+        self,
+        query_vector: List[float],
+        limit: int = 10,
+        score_threshold: float = 0.5,
+    ) -> List[Dict[str, Any]]:
+        """搜尋客戶"""
+        return self.search(
+            query_vector, query_type="customer", limit=limit, score_threshold=score_threshold
+        )
+
+    def search_suppliers(
+        self,
+        query_vector: List[float],
+        limit: int = 10,
+        score_threshold: float = 0.5,
+    ) -> List[Dict[str, Any]]:
+        """搜尋供應商"""
+        return self.search(
+            query_vector, query_type="supplier", limit=limit, score_threshold=score_threshold
+        )
+
     def hybrid_search(
         self,
         text: str,
@@ -354,7 +376,7 @@ class MMMasterRAGClient:
             from qdrant_client.models import Filter, FieldCondition, MatchValue
 
             counts = {}
-            for doc_type in ["item", "warehouse", "workstation"]:
+            for doc_type in ["item", "warehouse", "workstation", "customer", "supplier"]:
                 result = self.client.count(
                     collection_name=COLLECTION_NAME,
                     count_filter=Filter(

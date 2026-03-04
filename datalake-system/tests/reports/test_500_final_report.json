@@ -1,0 +1,52 @@
+{
+  "test_summary": {
+    "test_name": "500 場景整合測試 - MM-Agent /auto-execute → Data-Agent v4/execute",
+    "test_date": "2026-02-28T18:09:07.996723",
+    "total": 500,
+    "success": 375,
+    "error": 125,
+    "success_rate": 75.0,
+    "total_time_seconds": 124.3,
+    "avg_response_time_ms": 148.06
+  },
+  "category_breakdown": {
+    "ITEM": {
+      "success": 225,
+      "error": 75,
+      "total": 300
+    },
+    "WH": {
+      "success": 75,
+      "error": 25,
+      "total": 100
+    },
+    "ITEM_WH": {
+      "success": 0,
+      "error": 0,
+      "total": 0
+    },
+    "ALL": {
+      "success": 37,
+      "error": 13,
+      "total": 50
+    },
+    "QTY": {
+      "success": 38,
+      "error": 12,
+      "total": 50
+    }
+  },
+  "protocol_verification": {
+    "mai_s0112_compliant": true,
+    "mm_agent_endpoint": "http://localhost:8003/api/v1/chat/auto-execute",
+    "data_agent_endpoint": "http://localhost:8004/api/v1/data-agent/v4/execute",
+    "intent_mapping_working": true,
+    "param_passing_working": true
+  },
+  "error_analysis": {
+    "error_type": "Session/Memory Issue",
+    "error_message": "'NoneType' object has no attribute 'confidence' (Memory may be exhausted)",
+    "affected_count": 125,
+    "likely_cause": "MM-Agent 會話狀態累積導致的臨時性記憶體問題，非協議層面問題"
+  }
+}

@@ -1,0 +1,943 @@
+{
+  "summary": {
+    "total": 100,
+    "success": 71,
+    "error": 29,
+    "has_data": 68,
+    "total_time_sec": 30.279527187347412,
+    "by_category": {
+      "SINGLE": {
+        "total": 17,
+        "success": 15,
+        "has_data": 13
+      },
+      "GROUP": {
+        "total": 17,
+        "success": 13,
+        "has_data": 13
+      },
+      "AGG": {
+        "total": 18,
+        "success": 15,
+        "has_data": 15
+      },
+      "JOIN": {
+        "total": 16,
+        "success": 3,
+        "has_data": 2
+      },
+      "COMPLEX": {
+        "total": 16,
+        "success": 14,
+        "has_data": 14
+      },
+      "TIME": {
+        "total": 16,
+        "success": 11,
+        "has_data": 11
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "JP_SINGLE_082",
+      "category": "SINGLE",
+      "question": "查詢8802倉A1儲位的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_015",
+      "category": "SINGLE",
+      "question": "查詢8802倉庫料號的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_004",
+      "category": "SINGLE",
+      "question": "查詢料號8021107403900001的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_095",
+      "category": "SINGLE",
+      "question": "查詢各料號的位置",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_036",
+      "category": "SINGLE",
+      "question": "查詢料號在2101倉A2儲位",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_032",
+      "category": "SINGLE",
+      "question": "查詢2101倉儲位A2的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_029",
+      "category": "SINGLE",
+      "question": "查詢8802倉庫料號10-0002的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_018",
+      "category": "SINGLE",
+      "question": "查詢8802倉庫的所有料號",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_014",
+      "category": "SINGLE",
+      "question": "查詢所有料號的現有庫存",
+      "status": "error",
+      "error_code": "QUERY_SCOPE_TOO_LARGE",
+      "has_data": false,
+      "error": "查詢範圍過大：請增加篩選條件"
+    },
+    {
+      "id": "JP_SINGLE_087",
+      "category": "SINGLE",
+      "question": "查詢料號在2101倉A2儲位",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_070",
+      "category": "SINGLE",
+      "question": "查詢庫存小於50的料號",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_012",
+      "category": "SINGLE",
+      "question": "查詢2101倉庫的庫存明細",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_076",
+      "category": "SINGLE",
+      "question": "查詢料號的庫存與儲位",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源"
+    },
+    {
+      "id": "JP_SINGLE_055",
+      "category": "SINGLE",
+      "question": "查詢料號在不同倉庫的庫存差異",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_005",
+      "category": "SINGLE",
+      "question": "查詢所有庫存數量為0的料號",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_028",
+      "category": "SINGLE",
+      "question": "查詢料號10-0010的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": false,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_030",
+      "category": "GROUP",
+      "question": "按料號統計最小庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_065",
+      "category": "GROUP",
+      "question": "按複合維度統計",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_078",
+      "category": "GROUP",
+      "question": "統計分類層次",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "請問要對哪個維度進行分類？（例如：哪個倉庫？哪段時間？）"
+    },
+    {
+      "id": "JP_GROUP_004",
+      "category": "GROUP",
+      "question": "按倉庫統計有多少個不同的儲位",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_072",
+      "category": "GROUP",
+      "question": "統計層次化庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_026",
+      "category": "GROUP",
+      "question": "統計每季庫存變化",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_092",
+      "category": "GROUP",
+      "question": "按綜合維度統計",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_084",
+      "category": "GROUP",
+      "question": "統計單位層次",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_090",
+      "category": "GROUP",
+      "question": "統計儲位層次",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_070",
+      "category": "GROUP",
+      "question": "統計多層次庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_054",
+      "category": "GROUP",
+      "question": "按料號分類統計",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "請問要對哪個維度進行分類？（例如：哪個倉庫？哪段時間？）"
+    },
+    {
+      "id": "JP_GROUP_029",
+      "category": "GROUP",
+      "question": "按倉庫統計最小庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_058",
+      "category": "GROUP",
+      "question": "統計位置的分類",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "請問要對哪個維度進行分類？（例如：哪個倉庫？哪段時間？）"
+    },
+    {
+      "id": "JP_GROUP_076",
+      "category": "GROUP",
+      "question": "統計維度層次",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_036",
+      "category": "GROUP",
+      "question": "統計料號的庫存分布",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_001",
+      "category": "GROUP",
+      "question": "按倉庫統計庫存總數量",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_021",
+      "category": "AGG",
+      "question": "統計料號總數",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_090",
+      "category": "AGG",
+      "question": "統計庫存的決定係數",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_055",
+      "category": "AGG",
+      "question": "計算庫存的模式",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_044",
+      "category": "AGG",
+      "question": "統計庫存的樣本數",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_036",
+      "category": "AGG",
+      "question": "統計庫存的總額平均",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_020",
+      "category": "AGG",
+      "question": "計算庫存價值總額",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_028",
+      "category": "AGG",
+      "question": "計算各時間段庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_014",
+      "category": "AGG",
+      "question": "計算庫存數量的最小值",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_012",
+      "category": "AGG",
+      "question": "統計庫存的平均值",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_049",
+      "category": "AGG",
+      "question": "計算庫存的成長率",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_013",
+      "category": "AGG",
+      "question": "計算庫存數量的最大值",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "請問要查詢哪段時間/哪個範圍的排名？（例如：2025年1月、8802倉庫）"
+    },
+    {
+      "id": "JP_AGG_046",
+      "category": "AGG",
+      "question": "統計庫存的推論",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_045",
+      "category": "AGG",
+      "question": "計算庫存的估計",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_078",
+      "category": "AGG",
+      "question": "統計庫存的趨勢分解",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_034",
+      "category": "AGG",
+      "question": "計算最大庫存價值",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "請問要查詢哪段時間/哪個範圍的排名？（例如：2025年1月、8802倉庫）"
+    },
+    {
+      "id": "JP_AGG_006",
+      "category": "AGG",
+      "question": "計算最小庫存數量",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_JOIN_059",
+      "category": "JOIN",
+      "question": "查詢單位與單價的關係",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源"
+    },
+    {
+      "id": "JP_JOIN_069",
+      "category": "JOIN",
+      "question": "查詢料的綜合資訊",
+      "status": "error",
+      "error_code": "PARSE_NLQ",
+      "has_data": false,
+      "error": "無法識別查詢意圖 (confidence: 0.0)"
+    },
+    {
+      "id": "JP_JOIN_016",
+      "category": "JOIN",
+      "question": "查詢料號10-0002的庫存及品名",
+      "status": "success",
+      "error_code": null,
+      "has_data": false,
+      "error": null
+    },
+    {
+      "id": "JP_JOIN_049",
+      "category": "JOIN",
+      "question": "查詢維度交叉的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_JOIN_011",
+      "category": "JOIN",
+      "question": "查詢料號、品名與庫存的對應",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源"
+    },
+    {
+      "id": "JP_JOIN_071",
+      "category": "JOIN",
+      "question": "查詢料的多元資訊",
+      "status": "error",
+      "error_code": "PARSE_NLQ",
+      "has_data": false,
+      "error": "無法識別查詢意圖 (confidence: 0.0)"
+    },
+    {
+      "id": "JP_JOIN_038",
+      "category": "JOIN",
+      "question": "查詢時間單位與位置的庫存",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源"
+    },
+    {
+      "id": "JP_JOIN_081",
+      "category": "JOIN",
+      "question": "查詢料的完整關聯",
+      "status": "error",
+      "error_code": "PARSE_NLQ",
+      "has_data": false,
+      "error": "無法識別查詢意圖 (confidence: 0.0)"
+    },
+    {
+      "id": "JP_JOIN_080",
+      "category": "JOIN",
+      "question": "查詢料的全局對應",
+      "status": "error",
+      "error_code": "PARSE_NLQ",
+      "has_data": false,
+      "error": "無法識別查詢意圖 (confidence: 0.0)"
+    },
+    {
+      "id": "JP_JOIN_047",
+      "category": "JOIN",
+      "question": "查詢所有維度的庫存",
+      "status": "error",
+      "error_code": "QUERY_SCOPE_TOO_LARGE",
+      "has_data": false,
+      "error": "查詢範圍過大：請增加篩選條件"
+    },
+    {
+      "id": "JP_JOIN_074",
+      "category": "JOIN",
+      "question": "查詢料的多維對應",
+      "status": "error",
+      "error_code": "PARSE_NLQ",
+      "has_data": false,
+      "error": "無法識別查詢意圖 (confidence: 0.0)"
+    },
+    {
+      "id": "JP_JOIN_025",
+      "category": "JOIN",
+      "question": "查詢8802倉的庫存及位置",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_JOIN_091",
+      "category": "JOIN",
+      "question": "查詢料的交叉映射",
+      "status": "error",
+      "error_code": "PARSE_NLQ",
+      "has_data": false,
+      "error": "無法識別查詢意圖 (confidence: 0.0)"
+    },
+    {
+      "id": "JP_JOIN_009",
+      "category": "JOIN",
+      "question": "查詢料號與庫存的對應關係",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源"
+    },
+    {
+      "id": "JP_JOIN_006",
+      "category": "JOIN",
+      "question": "查詢2101倉庫的庫存與料號對應",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源"
+    },
+    {
+      "id": "JP_JOIN_085",
+      "category": "JOIN",
+      "question": "查詢料的全面關聯",
+      "status": "error",
+      "error_code": "PARSE_NLQ",
+      "has_data": false,
+      "error": "無法識別查詢意圖 (confidence: 0.0)"
+    },
+    {
+      "id": "JP_COMPLEX_030",
+      "category": "COMPLEX",
+      "question": "查詢庫存集中的倉庫",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_038",
+      "category": "COMPLEX",
+      "question": "查詢庫存的週期性分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_011",
+      "category": "COMPLEX",
+      "question": "查詢庫存分佈異常的倉庫",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_013",
+      "category": "COMPLEX",
+      "question": "查詢庫存的複雜分類",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "請問要對哪個維度進行分類？（例如：哪個倉庫？哪段時間？）"
+    },
+    {
+      "id": "JP_COMPLEX_049",
+      "category": "COMPLEX",
+      "question": "查詢庫存的關聯分析",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源"
+    },
+    {
+      "id": "JP_COMPLEX_036",
+      "category": "COMPLEX",
+      "question": "查詢庫存的預測分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_059",
+      "category": "COMPLEX",
+      "question": "查詢庫存的加權平均分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_082",
+      "category": "COMPLEX",
+      "question": "查詢庫存的特徵值分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_047",
+      "category": "COMPLEX",
+      "question": "查詢庫存的峰度分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_021",
+      "category": "COMPLEX",
+      "question": "查詢庫存趨勢向下的料號",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_048",
+      "category": "COMPLEX",
+      "question": "查詢庫存的相關分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_046",
+      "category": "COMPLEX",
+      "question": "查詢庫存的偏態分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_027",
+      "category": "COMPLEX",
+      "question": "查詢庫存分布不均的倉庫",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_086",
+      "category": "COMPLEX",
+      "question": "查詢庫存的集群分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_035",
+      "category": "COMPLEX",
+      "question": "查詢庫存的迴歸分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_COMPLEX_083",
+      "category": "COMPLEX",
+      "question": "查詢庫存的特徵向量分析",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_472",
+      "category": "TIME",
+      "question": "統計每個月的庫存數量",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_489",
+      "category": "TIME",
+      "question": "統計今年的庫存變化",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_490",
+      "category": "TIME",
+      "question": "統計去年的庫存變化",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_475",
+      "category": "TIME",
+      "question": "按時間統計庫存總數量",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_487",
+      "category": "TIME",
+      "question": "查詢今年的庫存總額",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_493",
+      "category": "TIME",
+      "question": "統計本月與上月比較",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源"
+    },
+    {
+      "id": "JP_TIME_477",
+      "category": "TIME",
+      "question": "查詢2024年12月的庫存",
+      "status": "error",
+      "error_code": "QUERY_TOO_COMPLEX",
+      "has_data": false,
+      "error": "缺乏關鍵欄位：請確認查詢維度是否正確"
+    },
+    {
+      "id": "JP_TIME_497",
+      "category": "TIME",
+      "question": "查詢今日的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_484",
+      "category": "TIME",
+      "question": "查詢下半年的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_482",
+      "category": "TIME",
+      "question": "統計每季的庫存變化",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_478",
+      "category": "TIME",
+      "question": "統計每月平均庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_496",
+      "category": "TIME",
+      "question": "統計本週與上週比較",
+      "status": "error",
+      "error_code": "VALIDATE",
+      "has_data": false,
+      "error": "此查詢涉及多表格，請提供至少2個過濾條件以縮小查詢範圍，避免耗用過多資源"
+    },
+    {
+      "id": "JP_TIME_494",
+      "category": "TIME",
+      "question": "查詢本週的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_TIME_480",
+      "category": "TIME",
+      "question": "查詢2025年第一季的庫存",
+      "status": "error",
+      "error_code": "QUERY_TOO_COMPLEX",
+      "has_data": false,
+      "error": "缺乏關鍵欄位：請確認查詢維度是否正確"
+    },
+    {
+      "id": "JP_TIME_471",
+      "category": "TIME",
+      "question": "查詢2024年的庫存變化",
+      "status": "error",
+      "error_code": "QUERY_TOO_COMPLEX",
+      "has_data": false,
+      "error": "缺乏關鍵欄位：請確認查詢維度是否正確"
+    },
+    {
+      "id": "JP_TIME_488",
+      "category": "TIME",
+      "question": "查詢去年的庫存總額",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_SINGLE_023",
+      "category": "SINGLE",
+      "question": "查詢料號10-0005的庫存",
+      "status": "success",
+      "error_code": null,
+      "has_data": false,
+      "error": null
+    },
+    {
+      "id": "JP_AGG_002",
+      "category": "AGG",
+      "question": "統計2025年1月銷售總金額",
+      "status": "error",
+      "error_code": "QUERY_TOO_COMPLEX",
+      "has_data": false,
+      "error": "缺乏關鍵欄位：請確認查詢維度是否正確"
+    },
+    {
+      "id": "JP_AGG_061",
+      "category": "AGG",
+      "question": "計算庫存的相關",
+      "status": "success",
+      "error_code": null,
+      "has_data": true,
+      "error": null
+    },
+    {
+      "id": "JP_GROUP_069",
+      "category": "GROUP",
+      "question": "按多維度聚合",
+      "status": "error",
+      "error_code": "PARSE_NLQ",
+      "has_data": false,
+      "error": "無法識別查詢意圖 (confidence: 0.0)"
+    }
+  ]
+}

@@ -1,12 +1,44 @@
 # 知識庫與 KA-Agent 整合規範
-
-> **文件狀態**: 工程開發規範  
-> **文檔版本**: v3.0.0  
-> **最後更新**: 2026-02-21  
+> **文檔版本**: v3.1.0  
+> **最後更新**: 2026-02-22  
 > **維護人**: Daniel Chung  
 > **對齊系統**: AI-Box v3.0
+---
+
+## ⚠️ 重要：正確的 API 端點
+
+| 用途 | 端點 | 方法 |
+|------|------|------|
+| **知識檢索** | `/api/v1/knowledge/query` | POST |
+| **知識庫統計** | `/api/v1/ka/stats` | GET |
+| **知識庫列表** | `/api/v1/ka/list` | GET |
+
+**錯誤的端點（請勿使用）**：
+- ~~`/api/v1/agents/execute`~~ ❌ - 這是通用 Agent 執行端點，不是知識檢索
+
+**請求格式示例**：
+```bash
+curl -X POST http://localhost:8000/api/v1/knowledge/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request_id": "test-001",
+    "query": "料號查詢方式",
+    "agent_id": "ka-agent",
+    "user_id": "systemAdmin",
+    "metadata": {
+      "caller_agent_key": "-h0tjyh",
+      "caller_agent_id": "mm-agent"
+    },
+    "options": {
+      "top_k": 5,
+      "include_graph": true
+    }
+  }'
+```
 
 ---
+
+## 1. 概述
 
 ## 1. 概述
 

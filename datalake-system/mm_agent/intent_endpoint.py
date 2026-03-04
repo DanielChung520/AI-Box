@@ -1,7 +1,12 @@
 """
 LLM Intent Classification Endpoint - 意圖分類端點
 
-使用 LLM 快速判斷用戶意圖，替代硬編碼關鍵字匹配
+⚠️  [已棄用] 此模塊使用直接 LLM 調用，無 Intent RAG 增強。
+   準確率較低，請使用 SemanticTranslatorAgent (Intent RAG) 替代。
+
+正確路徑：
+   - SemanticTranslatorAgent (use_intent_rag=True) → 推薦使用
+   - intent_endpoint.classify_intent() → 直接 LLM（已棄用）
 
 意圖類型：
 - GREETING: 問候/打招呼
@@ -12,6 +17,10 @@ LLM Intent Classification Endpoint - 意圖分類端點
 
 使用方式：
 - POST /api/v1/chat/intent
+
+測試結果（2026-02-23）：
+   - 直接 LLM: ~55% 準確率
+   - SemanticTranslatorAgent (RAG): ~74% 準確率
 """
 
 import json

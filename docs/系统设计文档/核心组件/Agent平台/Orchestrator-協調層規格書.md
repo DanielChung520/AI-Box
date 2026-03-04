@@ -198,6 +198,23 @@ Task Analyzer 是 Orchestrator 的核心組件，負責：
 - 任務分類（`agents/task_analyzer/classifier.py`）
 - 工作流選擇（`agents/task_analyzer/workflow_selector.py`）
 - LLM 路由選擇（`agents/task_analyzer/llm_router.py`）
+- **⭐ L0 語義意圖分類器（2026-02-27 新增）**
+  - 位置：`agents/task_analyzer/semantic_intent_classifier.py`
+  - 用途：頂層意圖預分類，識別非業務意圖（問候、感謝、閒聊等）
+  - 技術：基於 Embedding 語義相似度，不依賴 LLM
+
+**❌ 需要新增**：
+
+- 指令澄清機制（槽位提取、澄清問題生成）
+- 意圖識別增強（支持配置操作、系統設置等）
+- 前端指定 Agent 的驗證邏輯
+- 配置操作專用解析（生成 `ConfigIntent`）
+
+**✅ 已實現**：
+
+- 任務分類（`agents/task_analyzer/classifier.py`）
+- 工作流選擇（`agents/task_analyzer/workflow_selector.py`）
+- LLM 路由選擇（`agents/task_analyzer/llm_router.py`）
 
 **❌ 需要新增**：
 
@@ -531,6 +548,111 @@ Objective: 分析管理員指令，提取系統設置所需的參數。
         return ConfigIntent.parse_raw(response)
 
 ```
+
+### 3.1.6 L0 語義意圖分類器 ⭐ **新增（2026-02-27）**
+
+#### 3.1.6.1 設計目的
+
+在頂層 Orchestrator 層級加入輕量級的意圖預分類，用於：
+
+1. **快速識別非業務意圖**：問候、感謝、閒聊等，直接返回，無需調用 Agent
+2. **多語言支持**：基於 Embedding 語義理解，不依賴 keyword
+3. **降低延遲**：一次 Embedding 調用（<100ms），無需調用 LLM
+
+#### 3.1.6.2 架構設計
+
+```
+用戶輸入
+    ↓
+┌─────────────────────────────────────────┐
+│  L0: Semantic Intent Classifier        │
+│  (Embedding 語義相似度匹配)           │
+└─────────────────────────────────────────┘
+    ↓
+    ├─ 非業務意圖 → 直接返回
+    └─ 業務意圖 → 繼續 L1-L5
+```
+
+#### 3.1.6.3 意圖類別
+
+| 類別 | 說明 | 示例 |
+|------|------|------|
+| **GREETING** | 問候語 | 你好、嗨、早安、hi、hello |
+| **THANKS** | 感謝語 | 謝謝、感謝、thanks |
+| **GENERAL_QA** | 通用問答 | 什麼是、如何解釋 |
+| **CHITCHAT** | 閒聊 | 今天天氣、你怎麼樣 |
+| **BUSINESS_QUERY** | 業務查詢 | 庫存查詢、訂單狀態（默認）|
+
+#### 3.1.6.4 實現原理
+
+```python
+class SemanticIntentClassifier:
+    """基於 Embedding 的輕量級語義意圖分類器"""
+    
+    # 意圖類別示例庫（可持續擴展）
+    INTENT_EXAMPLES = {
+        IntentCategory.GREETING: [
+            "你好", "嗨", "早安", "hi", "hello", "hey",
+            "good morning", "xin chào", "konnichiwa"
+        ],
+        IntentCategory.THANKS: [
+            "謝謝", "感謝", "thanks", "thank you"
+        ],
+        # ...
+    }
+    
+    async def classify(self, user_input: str) -> IntentCategory:
+        # 1. 獲取用戶輸入的 Embedding
+        user_embedding = await embedding_service.generate(user_input)
+        
+        # 2. 計算與各類別示例的平均 Embedding 的相似度
+        best_category = max(
+            cosine_similarity(user_embedding, category_emb)
+            for category, category_emb in category_embeddings.items()
+        )
+        
+        # 3. 閾值判斷（默認 0.75）
+        if best_score >= threshold:
+            return best_category
+        else:
+            return IntentCategory.BUSINESS_QUERY  # 默認業務
+```
+
+#### 3.1.6.5 產品優勢
+
+| 對比 | 硬編碼 Keyword | Embedding 語義分類 |
+|------|---------------|------------------|
+| 多語言支持 | ❌ 需為每種語言寫 | ✅ 語義理解 |
+| 表達變化 | ❌ 漏掉就判斷不了 | ✅ 相近表達都能匹配 |
+| 維護成本 | ❌ 列表越來越長 | ✅ 添加示例即可 |
+| 延遲 | 快 | < 100ms |
+| 成本 | 0 | 低（一次 embedding） |
+
+#### 3.1.6.6 集成位置
+
+在 `TaskAnalyzer.analyze()` 方法中：
+
+1. **驗證 Agent 後**：先進行 L0 語義意圖分類
+2. **如果是非業務意圖**：直接返回對應的回覆（不走 L1-L5）
+3. **如果是業務意圖**：繼續現有快速路徑（調用指定 Agent）
+
+```python
+# 在 TaskAnalyzer.analyze() 中
+if request.specified_agent_id:
+    # L0: 語義意圖預分類
+    intent_category = await self.semantic_classifier.classify(request.task)
+    
+    # 非業務意圖 → 直接返回
+    if self.semantic_classifier.is_non_business_intent(intent_category):
+        return self._create_direct_response(intent_category, request.task)
+    
+    # 業務意圖 → 繼續快速路徑
+    return await self._create_fast_path_result(...)
+```
+
+---
+
+### 3.2 Agent Registry（Agent 註冊表）
 
 ### 3.2 Agent Registry（Agent 註冊表）
 

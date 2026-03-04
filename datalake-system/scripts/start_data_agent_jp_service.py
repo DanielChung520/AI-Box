@@ -97,7 +97,8 @@ async def jp_execute(request: ExecuteRequest) -> ExecuteResponse:
     """Data-Agent-JP Schema Driven Query 執行"""
     try:
         resolver = get_resolver()
-        result = resolver.resolve(request.task_data.nlq)
+        # 傳遞外部參數（如 inventory_location）
+        result = resolver.resolve(request.task_data.nlq, params=request.task_data.params)
 
         if result["status"] == "error":
             return ExecuteResponse(

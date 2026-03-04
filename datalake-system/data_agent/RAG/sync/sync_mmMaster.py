@@ -430,15 +430,36 @@ def main():
 
     logger.info(f"Arguments: {args}")
 
-    embedding_model = None
-    if args.embedding_model:
-        try:
-            import sentence_transformers
-
-            embedding_model = sentence_transformers.SentenceTransformer(args.embedding_model)
-            logger.info(f"Loaded embedding model: {args.embedding_model}")
-        except ImportError:
-            logger.warning("sentence-transformers not installed, skipping vector sync")
+    # 使用 qwen3-embedding API
+    import requests
+    
+    class Qwen3EmbeddingModel:
+        """qwen3-embedding 包裝類"""
+        def __init__(self, model_name: str = "qwen3-embedding:latest"):
+            self.model_name = model_name
+            self.url = "http://localhost:11434/api/embeddings"
+        
+        def encode(self, texts, **kwargs):
+            """生成嵌入向量"""
+            if isinstance(texts, str):
+                texts = [texts]
+            
+            vectors = []
+            for text in texts:
+                response = requests.post(
+                    self.url,
+                    json={"model": self.model_name, "prompt": text},
+                    timeout=60
+                )
+                response.raise_for_status()
+                vectors.append(response.json()["embedding"])
+            
+            # 返回模擬的 numpy array
+            import numpy as np
+            return np.array(vectors)
+    
+    embedding_model = Qwen3EmbeddingModel()
+    logger.info(f"Using qwen3-embedding API")
 
     sync = MasterDataSync(embedding_model=embedding_model)
 

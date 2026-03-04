@@ -54,20 +54,21 @@ class OllamaEmbedder(Embedder):
         self.model = model
         self.endpoint = endpoint
         self.timeout = timeout
-        self.client = httpx.AsyncClient(timeout=timeout)
 
     async def embed(self, text: str) -> List[float]:
         """生成嵌入向量"""
         try:
-            response = await self.client.post(
-                f"{self.endpoint}/api/embeddings",
-                json={
-                    "model": self.model,
-                    "prompt": text,
-                },
-            )
-            response.raise_for_status()
-            return response.json()["embedding"]
+            # [FIX] 每次創建新的 client，避免 event loop 關閉問題
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.endpoint}/api/embeddings",
+                    json={
+                        "model": self.model,
+                        "prompt": text,
+                    },
+                )
+                response.raise_for_status()
+                return response.json()["embedding"]
         except Exception as e:
             logger.error(f"Ollama embedding failed: {e}")
             raise
@@ -153,25 +154,27 @@ class EmbeddingManager:
         self.fallback: Optional[Embedder] = None
         self.cache = EmbeddingCache(cache_dir)
         self._initialized = False
+        self._embedding_dim: Optional[int] = None  # 追蹤 embedding 維度
 
     async def initialize(self):
         """初始化（智能選擇最優 embedder）"""
         if self._initialized:
             return
 
-        # 嘗試 Ollama
-        ollama_config = self.config.get("primary", {})
-        try:
-            self.primary = OllamaEmbedder(
-                model=ollama_config.get("model", "qwen3-embedding:latest"),
-                endpoint=ollama_config.get("endpoint", "http://localhost:11434"),
-                timeout=ollama_config.get("timeout", 60),
-            )
-            await self.primary.embed("test")
-            logger.info("Embedding: 使用 Ollama qwen3-embedding:latest")
-        except Exception as e:
-            logger.warning(f"Ollama 不可用: {e}")
-            self.primary = None
+        # 嘗試 Ollama（如果已配置）
+        ollama_config = self.config.get("primary")
+        if ollama_config is not None:  # 檢查是否啟用 Ollama
+            try:
+                self.primary = OllamaEmbedder(
+                    model=ollama_config.get("model", "qwen3-embedding:latest"),
+                    endpoint=ollama_config.get("endpoint", "http://localhost:11434"),
+                    timeout=ollama_config.get("timeout", 60),
+                )
+                await self.primary.embed("test")
+                logger.info("Embedding: 使用 Ollama qwen3-embedding:latest")
+            except Exception as e:
+                logger.warning(f"Ollama 不可用: {e}")
+                self.primary = None
 
         # Fallback 準備
         fallback_config = self.config.get("fallback", {})
@@ -192,16 +195,30 @@ class EmbeddingManager:
         """生成嵌入（智能選擇）"""
         await self.initialize()
 
-        # 檢查快取
-        cached = self.cache.get(text)
-        if cached is not None:
-            return cached.tolist()
+        # [FIX] 禁用快取以避免維度不一致問題
+        # cached = self.cache.get(text)
+        # if cached is not None:
+        #     pass  # 禁用快取
 
         # 優先使用 Ollama
         if self.primary:
             try:
                 embedding = await self.primary.embed(text)
-                self.cache.set(text, np.array(embedding))
+                # [FIX] 禁用快取
+                # self.cache.set(text, np.array(embedding))
+
+                # 驗證維度一致性
+                if self._embedding_dim is None:
+                    self._embedding_dim = len(embedding)
+                    logger.info(f"Embedding 維度已設定: {self._embedding_dim}")
+                elif len(embedding) != self._embedding_dim:
+                    logger.error(
+                        f"Embedding 維度不一致! 預期: {self._embedding_dim}, 實際: {len(embedding)}"
+                    )
+                    raise ValueError(
+                        f"Embedding dimension mismatch: expected {self._embedding_dim}, got {len(embedding)}"
+                    )
+
                 return embedding
             except Exception as e:
                 logger.warning(f"Ollama embedding failed: {e}")

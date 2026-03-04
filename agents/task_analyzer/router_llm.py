@@ -236,9 +236,10 @@ You must ONLY extract:
 3. coreference_resolutions (List[Dict]): Resolve pronouns and references using session context
     - Examples:
       * "物料管理員需要哪些技能？告訴我他們的職責" → coreference_resolutions: [
-          {"original": "他們", "resolved": "物料管理員", "source": "inference", "confidence": 0.95}
+          {{"original": "他們", "resolved": "物料管理員", "source": "inference", "confidence": 0.95}}
         ]
-      * "編輯README.md文件。查詢這個文件的內容" (with context: {"mentioned_files": ["README.md"]}) → coreference_resolutions: [
+      * "編輯README.md文件。查詢這個文件的內容" (with context: {{"mentioned_files": ["README.md"]}}) → coreference_resolutions: [
+          {{"original": "這個文件", "resolved": "README.md", "source": "session_context", "confidence": 0.98}}
           {"original": "這個文件", "resolved": "README.md", "source": "session_context", "confidence": 0.98}
         ]
       * "Data Agent 有哪些能力？幫我優化它" → coreference_resolutions: [

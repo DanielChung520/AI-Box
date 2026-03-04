@@ -28,7 +28,7 @@ SERVICE_CONFIGS: Dict[str, Dict[str, Any]] = {
     "fastapi": {
         "type": "api",
         "port": 8000,
-        "health_endpoint": "http://localhost:8000/api/health",
+        "health_endpoint": "http://localhost:8000/health",
     },
     "arangodb": {
         "type": "database",
@@ -155,7 +155,7 @@ class ServiceMonitorService:
     async def check_fastapi(self) -> ServiceHealthCheck:
         """檢查 FastAPI 服務"""
         try:
-            response = await self._http_client.get("http://localhost:8000/api/health")
+            response = await self._http_client.get("http://localhost:8000/health")
             if response.status_code == 200:
                 return ServiceHealthCheck(
                     service_name="fastapi",
@@ -319,8 +319,8 @@ class ServiceMonitorService:
     async def check_seaweedfs(self) -> ServiceHealthCheck:
         """檢查 SeaweedFS 服務"""
         try:
-            # 檢查 Master
-            master_response = await self._http_client.get("http://localhost:9333/status")
+            # 檢查 Master - 使用 /cluster/status 而非 /status
+            master_response = await self._http_client.get("http://localhost:9333/cluster/status")
             master_healthy = master_response.status_code == 200
 
             # 檢查 Filer

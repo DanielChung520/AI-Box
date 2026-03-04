@@ -109,7 +109,7 @@ class MMAgent(AgentServiceProtocol):
         # JP endpoint 直接調用
         self._jp_endpoint = (
             os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8004")
-            + "/api/v1/data-agent/jp/execute"
+            + "/api/v1/data-agent/v5/execute"
         )
 
     async def execute(
@@ -178,7 +178,7 @@ class MMAgent(AgentServiceProtocol):
             responsibility = await self._responsibility_analyzer.understand(semantic_result)
 
             # 7. 執行任務
-            result = await self._execute_responsibility(responsibility, semantic_result, request)
+            result = await self._execute_responsibility(responsibility, semantic_result, request, user_instruction)
 
             # 7.5. 生成 LLM 業務回覆（如需要）
             result = await self._generate_llm_business_response(
@@ -230,6 +230,7 @@ class MMAgent(AgentServiceProtocol):
         responsibility: Any,
         semantic_result: Any,
         request: AgentServiceRequest,
+        user_instruction: str = "",
     ) -> Dict[str, Any]:
         """執行職責
 
@@ -254,7 +255,7 @@ class MMAgent(AgentServiceProtocol):
             return await self._query_part_info(part_number, request)
 
         elif responsibility_type == "query_stock":
-            return await self._query_stock_info(parameters, request)
+            return await self._query_stock_info(parameters, request, user_instruction)
 
         elif responsibility_type == "query_stock_history":
             part_number = parameters.get("part_number")
@@ -362,6 +363,7 @@ class MMAgent(AgentServiceProtocol):
         self,
         parameters: Dict[str, Any],
         request: AgentServiceRequest,
+        user_instruction: str = "",
     ) -> Dict[str, Any]:
         """查詢庫存信息
 
@@ -381,20 +383,30 @@ class MMAgent(AgentServiceProtocol):
         nlq = ""
 
         try:
-            self._logger.info(f"[Agent] 查詢庫存，參數: {parameters}")
+            self._logger.info(f"[Agent] 查詢庫存，參數: {parameters}, user_instruction: {user_instruction}")
 
             # 構建自然語言查詢
             nlq = parameters.get("nlq", "")
             if not nlq:
-                # 從參數構建查詢
                 part_no = parameters.get("part_number", "")
                 warehouse = parameters.get("warehouse", "")
                 if part_no:
                     nlq = f"查詢料號 {part_no} 的庫存"
                 elif warehouse:
                     nlq = f"查詢 {warehouse} 倉庫的庫存"
-                else:
-                    nlq = "查詢所有庫存"
+
+            # 如果 parameters 都沒有，才用 user_instruction
+            if not nlq and user_instruction:
+                nlq = user_instruction
+
+            # 如果都沒有，返回需要澄清
+            if not nlq:
+                return {
+                    "success": False,
+                    "needs_clarification": True,
+                    "clarification_questions": ["請問您想查詢哪個料號或倉庫的庫存？"],
+                    "message": "查詢條件不足，需要澄清",
+                }
 
             # 使用新的 /jp/execute 端點 (schema_driven_query)
             payload = {
@@ -432,9 +444,10 @@ class MMAgent(AgentServiceProtocol):
             error_codes = [e.get("code", "") for e in errors]
             error_messages = [e.get("message", "") for e in errors]
 
-            # 1. 查無資料 (NO_DATA_FOUND) - 交由 LLM 業務回覆
-            if result.get("status") == "success":
-                data_result = result.get("result", {})
+            # 1. 查询成功 - Data-Agent v5 返回 success: true 或 status: "success"
+            if result.get("success") == True or result.get("status") == "success":
+                # Data-Agent v5: result directly contains data
+                data_result = result if result.get("data") else result.get("result", {})
                 rows = data_result.get("data", [])
 
                 if not rows:
@@ -709,31 +722,57 @@ class MMAgent(AgentServiceProtocol):
                 result["response"] = error_msgs.get(error_type, f"❌ 錯誤：{message}")
                 result["response_type"] = "error_fallback"
             return result
-
         # 4. 有資料 - 始終使用 LLM 生成業務回覆（無論是否有手動 response）
-        if result.get("success") and result.get("stock_list"):
+        # 檢查是否有嵌套的 result 結構
+        inner_result = result.get("result", result)
+        if inner_result.get("success") and inner_result.get("stock_list"):
             self._logger.info("[LLM] 生成庫存查詢回覆")
             if self._prompt_manager:
                 try:
-                    stock_list = result.get("stock_list", [])
-                    count = result.get("count", 0)
-                    warehouse = result.get("query_context", {}).get("warehouse", "")
+                    stock_list = inner_result.get("stock_list", [])
+                    count = inner_result.get("count", 0)
+                    warehouse = inner_result.get("query_context", {}).get("warehouse", "")
+
+                    # 轉換數據格式：Data-Agent 返回 {warehouse_no, total} → prompt_manager 期望 {part_number, batch_no, quantity}
+                    # 嘗試從多個來源獲取料號
+                    query_context = inner_result.get("query_context", {})
+                    part_number = query_context.get("part_number", "")
+
+
+                    converted_stock_list = []
+                    for item in stock_list:
+                        # 檢查是否為新格式 (warehouse_no, total)
+                        if "warehouse_no" in item and "total" in item:
+                            qty = item.get("total", 0)
+                            self._logger.info(f"[DEBUG] 轉換: warehouse_no={item.get('warehouse_no')}, total={qty}")
+                            converted_stock_list.append({
+                                "part_number": part_number or "-",
+                                "batch_no": "-",
+                                "quantity": qty
+                            })
+                        else:
+                            # 舊格式，直接使用
+                            converted_stock_list.append(item)
+
+                    self._logger.info(f"[DEBUG] converted_stock_list: {converted_stock_list}")
 
                     llm_response = await self._prompt_manager.generate_stock_response(
-                        warehouse=warehouse or "未知倉庫",
-                        stock_list=stock_list,
+                        warehouse=warehouse or stock_list[0].get("warehouse_no", "未知倉庫") if stock_list else "未知倉庫",
+                        stock_list=converted_stock_list,
                         count=count,
                         user_instruction=user_instruction,
                     )
-                    result["response"] = llm_response
-                    result["response_type"] = "llm_business"
+                    inner_result["response"] = llm_response
+                    inner_result["response_type"] = "llm_business"
                 except Exception as e:
-                    self._logger.warning(f"LLM 生成庫存回覆失敗: {e}")
+                    self._logger.warning(f"LLM 生成庫存查詢回覆失敗: {e}")
                     # 保留現有的手動格式
-                    result["response_type"] = "manual_fallback"
+                    inner_result["response_type"] = "manual_fallback"
             else:
-                result["response_type"] = "manual_fallback"
+                inner_result["response_type"] = "manual_fallback"
             return result
+
+        # 5. 已有 response（手動生成的），直接返回
 
         # 5. 已有 response（手動生成的），直接返回
         return result

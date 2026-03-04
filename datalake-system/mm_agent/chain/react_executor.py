@@ -1012,7 +1012,10 @@ class ReActExecutor:
     ) -> ExecutionResult:
         """執行數據查詢 - 使用 Data-Agent-JP，並通過 LLM 生成業務解說"""
         instruction = action.parameters.get("instruction", action.description)
-        logger.info(f"[Data] 開始執行數據查詢: {instruction}")
+        # 提取 intent 和 params（如果存在）
+        intent = action.parameters.get("intent")
+        params = action.parameters.get("params", {})
+        logger.info(f"[Data] 開始執行數據查詢: {instruction}, intent={intent}, params={params}")
 
         try:
             import httpx
@@ -1023,14 +1026,20 @@ class ReActExecutor:
             )
 
             async with httpx.AsyncClient(timeout=120.0) as client:
+                # 構建請求 payload，傳遞 intent 和 params 給 Data-Agent
+                task_data_payload = {"nlq": instruction}
+                if intent:
+                    task_data_payload["intent"] = intent
+                if params:
+                    task_data_payload["params"] = params
+                logger.info(f"[Data] 發送請求到 Data-Agent: task_data={task_data_payload}")
+                
                 response = await client.post(
                     "http://localhost:8004/api/v1/data-agent/v4/execute",
                     json={
                         "task_id": f"react_data_{id(instruction)}",
                         "task_type": "schema_driven_query",
-                        "task_data": {
-                            "nlq": instruction,
-                        },
+                        "task_data": task_data_payload,
                     },
                 )
 

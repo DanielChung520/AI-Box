@@ -43,11 +43,11 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "mart_shipping_wide",
+        "table": "mart_inventory_wide",
         "column": "item_no",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "duckdb://mart_shipping_wide"
+        "s3_path": "duckdb://mart_inventory_wide"
       }
     },
     "WAREHOUSE_NO": {

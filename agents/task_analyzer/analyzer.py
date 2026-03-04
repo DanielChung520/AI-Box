@@ -44,6 +44,7 @@ from agents.task_analyzer.routing_memory import RoutingMemoryService
 from agents.task_analyzer.rule_override import RuleOverride
 from agents.task_analyzer.task_planner import get_task_planner
 from agents.task_analyzer.workflow_selector import WorkflowSelector
+from agents.services.orchestrator_intent_rag_client import get_orchestrator_intent_rag
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,9 @@ class TaskAnalyzer:
         self.execution_record_store = get_execution_record_store_service()
         # 澄清服務
         self.clarification_service = ClarificationService()
+
+        # L0: OrchestratorIntentRAG（2026-02-27 新增）
+        self.orchestrator_intent_rag = get_orchestrator_intent_rag()
 
     async def analyze(self, request: TaskAnalysisRequest) -> TaskAnalysisResult:
         """
@@ -177,6 +181,66 @@ class TaskAnalyzer:
                     )
                     return direct_answer_result
             else:
+                logger.info(
+                    f"Layer 0/1: Skipping _try_direct_answer - user selected model "
+                    f"(mode={selector_mode}), respecting user choice"
+                )
+
+            # 2026-02-28: 如果是業務意圖（BUSINESS_QUERY），直接路由到對應 Agent
+            # 這樣可以繞過 L1 的 bug，直接轉發到 MM-Agent
+            _orchestrator_intent = None
+            if not request.specified_agent_id:
+                try:
+                    intent_result = self.orchestrator_intent_rag.sync_classify(request.task)
+                    is_business = intent_result.intent_name in ("BUSINESS_QUERY", "BUSINESS_ACTION", "AGENT_WORK")
+                    if is_business:
+                        logger.info(f"[L0] Business intent detected: {intent_result.intent_name}, will route to agent")
+                        _orchestrator_intent = intent_result.intent_name
+                except Exception as e:
+                    logger.warning(f"[L0] Business intent check failed: {e}")
+            # 這樣可以繞過 L1 的 bug，直接轉發到 MM-Agent
+            # 先檢查是否已有指定的 Agent
+            if not request.specified_agent_id:
+                try:
+                    intent_result = self.orchestrator_intent_rag.sync_classify(request.task)
+                    is_business = intent_result.intent_name in ("BUSINESS_QUERY", "BUSINESS_ACTION", "AGENT_WORK")
+                    if is_business:
+                        logger.info(f"[L0] Business intent detected: {intent_result.intent_name}, will route to agent")
+                        # 設置上下文字段，後續流程會讀取這個資訊
+                        if request.context is None:
+                            request.context = {}
+                        request.context["_orchestrator_intent"] = intent_result.intent_name
+                except Exception as e:
+                    logger.warning(f"[L0] Business intent check failed: {e}")
+            # 這樣可以繞過 L1 的 bug，直接轉發到 MM-Agent
+            # 先檢查是否已有指定的 Agent
+            if not request.specified_agent_id:
+                try:
+                    intent_result = self.orchestrator_intent_rag.sync_classify(request.task)
+                    is_business = intent_result.intent_name in ("BUSINESS_QUERY", "BUSINESS_ACTION", "AGENT_WORK")
+                    if is_business:
+                        logger.info(f"[L0] Business intent detected: {intent_result.intent_name}, will route to agent")
+                        # 設置上下文字段，後續流程會讀取這個資訊
+                        if request.context is None:
+                            request.context = {}
+                        request.context["_orchestrator_intent"] = intent_result.intent_name
+                        logger.info(f"[L0] Set context _orchestrator_intent={intent_result.intent_name}")
+                except Exception as e:
+                    logger.warning(f"[L0] Business intent check failed: {e}")
+            # 這樣可以繞過 L1 的 bug，直接轉發到 MM-Agent
+            try:
+                intent_result = self.orchestrator_intent_rag.sync_classify(request.task)
+                is_business = intent_result.intent_name in ("BUSINESS_QUERY", "BUSINESS_ACTION", "AGENT_WORK")
+                if is_business:
+                    logger.info(f"[L0] Business intent detected: {intent_result.intent_name}, routing to agent")
+                    # 根據意圖設置 specified_agent_id，讓後續流程直接轉發
+                    # BUSINESS_QUERY 通常對應 MM-Agent (庫管員)
+                    if intent_result.intent_name == "BUSINESS_QUERY" and not request.specified_agent_id:
+                        # 這裡可以根據意圖類型設置對應的 Agent
+                        # 實際轉發邏輯在 chat.py 中處理
+                        logger.info(f"[L0] Will route to MM-Agent for: {intent_result.intent_name}")
+            except Exception as e:
+                logger.warning(f"[L0] Business intent check failed: {e}")
                 logger.info(
                     f"Layer 0/1: Skipping _try_direct_answer - user selected model "
                     f"(mode={selector_mode}), respecting user choice"
@@ -1101,6 +1165,20 @@ class TaskAnalyzer:
             是否為 Direct Answer Candidate
         """
         task_lower = task.lower().strip()
+
+        # 2026-02-27: 使用 OrchestratorIntentRAG 檢查是否為業務意圖
+        try:
+            result = self.orchestrator_intent_rag.sync_classify(task)
+            is_business = result.intent_name in ("BUSINESS_QUERY", "BUSINESS_ACTION", "AGENT_WORK")
+            if is_business:
+                logger.info(f"[L0] Business intent: {result.intent_name}, return False")
+                return False  # 業務意圖需要轉發到 Agent
+            else:
+                # 非業務意圖（GREETING, THANKS, CHITCHAT, GENERAL_QA）可以直接回覆
+                logger.info(f"[L0] Non-business intent: {result.intent_name}, return True")
+                return True
+        except Exception as e:
+            logger.warning(f"[L0] OrchestratorIntentRAG failed: {e}")
 
         # 定義工具指示詞（需要在多個地方使用）
         tool_indicators = [

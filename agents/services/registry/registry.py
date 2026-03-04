@@ -286,7 +286,7 @@ class AgentRegistry:
                         """
                         FOR doc IN agent_display_configs
                             FILTER doc.config_type == "agent"
-                            FILTER doc.agent_id == @agent_id
+                            FILTER doc._key == @agent_id
                             RETURN doc
                         """,
                         bind_vars={"agent_id": agent_id},
@@ -312,7 +312,7 @@ class AgentRegistry:
                                 agent_id=agent_config.get("id", agent_id),
                                 agent_type=agent_config.get("agent_type", "execution"),
                                 name=agent_config.get("name", {}),
-                                status=AgentStatus.ONLINE,
+                                status=AgentStatus(agent_config.get("status", "online")),
                                 capabilities=agent_config.get("capabilities", []) or [],
                                 endpoints=AgentEndpoints(
                                     http=endpoint_url,
@@ -355,7 +355,7 @@ class AgentRegistry:
                         """
                         FOR doc IN agent_display_configs
                             FILTER doc.config_type == "agent"
-                            FILTER doc.agent_id == @agent_id
+                            FILTER doc._key == @agent_id
                             RETURN doc
                         """,
                         bind_vars={"agent_id": agent_id},
@@ -378,7 +378,7 @@ class AgentRegistry:
                                 agent_id=agent_config.get("id", agent_id),
                                 agent_type=agent_config.get("agent_type", "execution"),
                                 name=agent_config.get("name", {}),
-                                status=AgentStatus.ONLINE,
+                                status=AgentStatus(agent_config.get("status", "online")),
                                 endpoints=AgentEndpoints(
                                     http=agent_config.get("endpoint_url"),
                                     mcp=None,
@@ -709,7 +709,7 @@ class AgentRegistry:
                         capabilities=sys_agent.capabilities,
                         status=agent_status,
                         endpoints=AgentEndpoints(
-                            http=None,
+                            http=agent_config.endpoint_url if hasattr(agent_config, "endpoint_url") else None,
                             mcp=None,
                             protocol=AgentServiceProtocolType.HTTP,
                             is_internal=is_internal,
@@ -962,9 +962,9 @@ class AgentRegistry:
                         name=name,
                         description=description,
                         capabilities=[],  # 空能力列表，因為沒有實際註冊信息
-                        status=AgentStatus.ONLINE,
+                        status=AgentStatus(getattr(agent_config, "status", "online")),
                         endpoints=AgentEndpoints(
-                            http=None,
+                            http=agent_config.endpoint_url if hasattr(agent_config, "endpoint_url") else None,
                             mcp=None,
                             protocol=AgentServiceProtocolType.HTTP,
                             is_internal=False,

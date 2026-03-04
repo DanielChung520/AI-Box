@@ -20,6 +20,7 @@ class SemanticAnalysisResult(BaseModel):
     original_instruction: str = Field(..., description="原始指令")
     clarification_needed: bool = Field(False, description="是否需要澄清")
     clarification_questions: List[str] = Field(default_factory=list, description="澄清問題列表")
+    responsibility_type: Optional[str] = Field(None, description="職責類型，直接從 MMIntentRAG 獲取")
 
 
 class Responsibility(BaseModel):

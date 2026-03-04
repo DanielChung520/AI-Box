@@ -384,6 +384,124 @@ class DuckDBExecutor:
             logger.error(f"DuckDB execution failed: {e}")
             raise DuckDBExecutionError(str(e), sql)
 
+    def explain(self, sql: str) -> Dict[str, Any]:
+        """
+        執行 EXPLAIN 分析 SQL 查詢計劃
+
+        Args:
+            sql: SQL 語句
+
+        Returns:
+            Dict: 查詢計劃和優化建議
+        """
+        try:
+            import duckdb
+
+            # 建立連線
+            connection = duckdb.connect(
+                database=self.config.database if self.config.database else ":memory:",
+                config={
+                    "s3_endpoint": self.s3_config.endpoint_host,
+                    "s3_access_key_id": self.s3_config.access_key,
+                    "s3_secret_access_key": self.s3_config.secret_key,
+                    "s3_region": self.s3_config.region,
+                    "s3_use_ssl": str(self.s3_config.use_ssl).lower(),
+                    "s3_url_style": self.s3_config.url_style,
+                },
+            )
+
+            # 映射 SQL
+            mapped_sql = self._map_sql(sql)
+
+            # 獲取查詢計劃
+            explain_sql = f"EXPLAIN {mapped_sql}"
+            cursor = connection.cursor()
+            cursor.execute(explain_sql)
+
+            plan_rows = cursor.fetchall()
+            plan = []
+            for row in plan_rows:
+                plan.append({
+                    "id": row[0],
+                    "name": row[1],
+                    "detail": row[2] if len(row) > 2 else None
+                })
+
+            # 獲取 ANALYZE 信息
+            analyze_sql = f"EXPLAIN ANALYZE {mapped_sql}"
+            try:
+                cursor.execute(analyze_sql)
+                analyze_rows = cursor.fetchall()
+                analyze_info = []
+                for row in analyze_rows:
+                    analyze_info.append({
+                        "timing": row[0],
+                        "name": row[1],
+                        "info": row[2] if len(row) > 2 else str(row)
+                    })
+            except Exception:
+                analyze_info = None
+
+            connection.close()
+
+            # 生成優化建議
+            optimization_suggestions = self._generate_optimization_suggestions(plan, mapped_sql)
+
+            return {
+                "plan": plan,
+                "analyze": analyze_info,
+                "optimization_suggestions": optimization_suggestions,
+                "original_sql": sql,
+                "mapped_sql": mapped_sql,
+            }
+
+        except Exception as e:
+            logger.error(f"DuckDB explain failed: {e}")
+            return {
+                "error": str(e),
+                "plan": None,
+                "analyze": None,
+                "optimization_suggestions": [],
+            }
+
+    def _generate_optimization_suggestions(self, plan: List[Dict], sql: str) -> List[str]:
+        """根據查詢計劃生成優化建議"""
+        suggestions = []
+        sql_upper = sql.upper()
+
+        # 檢查是否有 LIMIT
+        if "LIMIT" not in sql_upper:
+            suggestions.append("⚠️ 查詢缺少 LIMIT，可能導致全表掃描，建議添加 LIMIT")
+
+        # 檢查是否有 WHERE
+        if "WHERE" not in sql_upper:
+            suggestions.append("⚠️ 查詢缺少 WHERE 條件，可能導致全表掃描")
+
+        # 檢查是否有 GROUP BY
+        if "GROUP BY" in sql_upper:
+            suggestions.append("💡 使用 GROUP BY，建議確保分組列有索引")
+
+        # 檢查是否有多表 JOIN
+        if " JOIN " in sql_upper:
+            suggestions.append("💡 多表 JOIN，建議確保 JOIN 條件列有索引")
+
+        # 檢查是否使用函數
+        if any(func in sql_upper for func in ["COUNT(", "SUM(", "AVG(", "MAX(", "MIN("]):
+            suggestions.append("💡 使用聚合函數，建議在聚合列上建立索引")
+
+        # 分析計劃中的掃描類型
+        plan_text = " ".join([str(p) for p in plan]).upper()
+        if "SEQ_SCAN" in plan_text or "TABLE_SCAN" in plan_text:
+            suggestions.append("🔴 檢測到順序掃描 (SEQ_SCAN)，建議添加條件索引")
+        if "INDEX_SCAN" in plan_text or "INDEX_LOOKUP" in plan_text:
+            suggestions.append("✅ 使用索引掃描，性能較好")
+
+        # DuckDB 特定建議
+        if "READ_PARQUET" in sql_upper:
+            suggestions.append("💡 讀取 Parquet 文件，可考慮使用分區裁剪 (partition pruning)")
+
+        return suggestions
+
     def validate_connection(self) -> Dict[str, Any]:
         """驗證 S3 連線"""
         try:

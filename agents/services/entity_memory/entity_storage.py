@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 # 配置常數
 QDRANT_COLLECTION_NAME = "ai_box_entity_memory"
-QDRANT_VECTOR_SIZE = 384  # nomic-embed-text 維度
+QDRANT_VECTOR_SIZE = 4096  # qwen3-embedding dimension (統一配置)
 
 REDIS_SESSION_PREFIX = "entity_session:"
 REDIS_SESSION_TTL = 24 * 60 * 60  # 24 小時

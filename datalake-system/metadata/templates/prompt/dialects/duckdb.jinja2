@@ -54,8 +54,67 @@ read_parquet('s3://tiptop-raw/raw/v1/{table}/year=*/month=*/data.parquet', hive_
 【常見錯誤 - 請避開】
 ❌ WHERE tlf06 >= curdate() - curdate() 不存在！用 CURRENT_DATE
 ❌ WHERE img01 = '10-0001' - 沒指定 alias！用 t1.img01
-❌ JOIN pmc_file ON t2.pmm04 = pmc01 - 沒用 read_parquet 包裝！
-❌ FROM img_file t1 - 不能混用 table name 和 alias！
+JP|TM|❌ JOIN pmc_file ON t2.pmm04 = pmc01 - 沒用 read_parquet 包裝！
+MW|TM|❌ 「A001 倉庫」→ WHERE item_no = 'A001' - 錯！
+XP|   → 正確：WHERE warehouse_no = 'A001'
+JP|TM|   → 倉庫編號 ≠ 料號！
+   → 「查詢A001倉庫」→ WHERE warehouse_no = 'A001'
+   → 「查詢料號A001」→ WHERE item_no = 'A001'
+TM|XR|【查詢類型參考】
+【查詢類型參考】
+根據用戶意圖選擇正確的 SQL 模式：
+
+1. Top-N 查詢（最大/最小/最多/最少/最高/最低）：
+   - 模式：GROUP BY + ORDER BY + LIMIT
+   - 語法：ORDER BY {聚合字段} DESC/ASC LIMIT N
+   - 範例：
+     • 「最大庫存的料號」→ GROUP BY item_no ORDER BY SUM(stock) DESC LIMIT 1
+     • 「庫存最高的前10項」→ ORDER BY SUM(stock) DESC LIMIT 10
+     • 「數量最少的料號」→ GROUP BY item_no ORDER BY SUM(qty) ASC LIMIT 1
+
+2. 聚合統計查詢：
+   - 模式：GROUP BY + 聚合函數(SUM/COUNT/AVG/MIN/MAX)
+   - 範例：
+     • 「按倉庫統計庫存」→ GROUP BY warehouse_no
+     • 「總數量」→ SUM(quantity)
+
+3. 明細查詢：
+   - 模式：WHERE + ORDER BY + LIMIT
+   - 範例：
+     • 「查詢某料號庫存」→ WHERE item_no = 'xxx'
+
+4. 範圍查詢：
+   - 模式：WHERE + BETWEEN/>/</>=
+   - 範例：
+     • 「庫存大於100」→ WHERE qty > 100
+     • 「50到100之間」→ WHERE qty BETWEEN 50 AND 100
+
+5. 模式匹配：
+   - 模式：WHERE + LIKE/IN
+   - 範例：
+     • 「料號開頭NI」→ WHERE item_no LIKE 'NI%'
+
+💡 關鍵原則：
+NT|- 需要先 GROUP BY 再排序時，用子查詢或 CTAS
+
+🔴 常見錯誤（請避免）：
+❌ 「最大庫存」→ SELECT MAX(stock) GROUP BY warehouse
+   → 這只會給你每個倉庫的庫存最大值，不是「哪個料號」庫存最大
+❌ 「最大數量」→ MAX(qty) GROUP BY category
+   → 這是錯的！
+
+✅ 正確寫法：
+   「A倉庫最大庫存的料號」→ 
+   SELECT item_no, SUM(stock) as total
+   FROM table 
+   WHERE warehouse_no = 'A001' 
+   GROUP BY item_no 
+   ORDER BY total DESC 
+   VZ|   LIMIT 1
+
+📌 語法速查：
+   • 最大/最多/最高：ORDER BY SUM(欄位) DESC LIMIT N
+   • 最小/最少/最低：ORDER BY SUM(欄位) ASC LIMIT N
 
 【正確 SQL 範例】
 
@@ -66,7 +125,12 @@ SQL: SELECT t1.img01, t1.img10 FROM read_parquet('s3://tiptop-raw/raw/v1/img_fil
 範例 2 - 單表查詢：
 Q: 查詢料號 10-0001 的品名
 SQL: SELECT t1.ima02 FROM read_parquet('s3://tiptop-raw/raw/v1/ima_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE t1.ima01 = '10-0001' LIMIT 10
+YX|
+範例 2-1 - 倉庫查詢：
+BQ|Q: 查詢 A001 倉庫的所有庫存
+ZH|SQL: SELECT item_no, existing_stocks FROM mart_inventory_wide WHERE warehouse_no = 'A001' LIMIT 10
 
+VN|範例 3 - 查詢 2024 年交易數量：
 範例 3 - 查詢 2024 年交易數量：
 Q: 查詢 2024 年有多少筆交易
 SQL: SELECT COUNT(*) FROM read_parquet('s3://tiptop-raw/raw/v1/tlf_file/year=*/month=*/data.parquet', hive_partitioning=true) t1 WHERE strftime(t1.tlf06, '%Y') = '2024' LIMIT 10

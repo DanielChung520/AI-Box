@@ -1,0 +1,234 @@
+{
+  "version": "2.1",
+  "description": "MM-Agent Intent RAG - 物料管理查詢意圖分類（包含 return_mode + responsibility_type）",
+  "language": "zh_TW",
+  "domain": "mm_agent",
+  "system_intent_mapping": {
+    "QUERY_INVENTORY": "SIMPLE_QUERY",
+    "QUERY_INVENTORY_BY_WAREHOUSE": "SIMPLE_QUERY",
+    "QUERY_INVENTORY_HISTORY": "SIMPLE_QUERY",
+    "QUERY_PURCHASE": "SIMPLE_QUERY",
+    "QUERY_SALES": "SIMPLE_QUERY",
+    "QUERY_MANUFACTURING_PROGRESS": "SIMPLE_QUERY",
+    "QUERY_QUALITY": "SIMPLE_QUERY",
+    "QUERY_FINANCE": "SIMPLE_QUERY",
+    "QUERY_SHIPPING": "SIMPLE_QUERY",
+    "RETURN_SUMMARY": "RETURN_SUMMARY",
+    "RETURN_LIST": "RETURN_LIST",
+    "KNOWLEDGE_PROCESS": "KNOWLEDGE_QUERY",
+    "KNOWLEDGE_RULE": "KNOWLEDGE_QUERY",
+    "KNOWLEDGE_TERM": "KNOWLEDGE_QUERY",
+    "KNOWLEDGE_SYSTEM": "KNOWLEDGE_QUERY",
+    "KNOWLEDGE_POLICY": "KNOWLEDGE_QUERY",
+    "COMPLEX_COMPARE": "COMPLEX_TASK",
+    "COMPLEX_MULTI_DIMENSION": "COMPLEX_TASK",
+    "COMPLEX_RULE": "COMPLEX_TASK",
+    "COMPLEX_PREDICT": "COMPLEX_TASK",
+    "COMPLEX_ANOMALY": "COMPLEX_TASK",
+    "GREETING": "GREETING",
+    "THANKS": "GREETING",
+    "CONFIRM": "SIMPLE_QUERY",
+    "CLARIFICATION": "CLARIFICATION",
+    "CHITCHAT": "GREETING"
+  },
+  "intents": [
+    {
+      "intent_name": "QUERY_INVENTORY",
+      "responsibility_type": "query_stock",
+      "description": "庫存查詢 - 查詢料號、倉庫、儲位的庫存數量",
+      "category": "data_query",
+      "examples": [
+        "查詢料號的庫存",
+        "還有多少庫存",
+        "庫存有多少",
+        "料號庫存有多少",
+        "這個料號有庫存嗎",
+        "庫存數量",
+        "查庫存",
+        "庫存情況",
+        "庫存查詢",
+        "請幫我查庫存",
+        "料號庫存",
+        "查料號庫存",
+        "多少庫存",
+        "庫存剩多少",
+        "庫存還有嗎"
+      ]
+    },
+    {
+      "intent_name": "QUERY_INVENTORY_BY_WAREHOUSE",
+      "responsibility_type": "query_stock",
+      "description": "倉庫別庫存查詢 - 查詢某個倉庫的庫存情況",
+      "category": "data_query",
+      "examples": [
+        "請幫我看看某倉庫的物料",
+        "查詢某倉庫的庫存",
+        "某倉庫有哪些物料",
+        "某倉庫庫存",
+        "某倉庫有什麼料",
+        "查某個倉庫的庫存",
+        "倉庫庫存查詢",
+        "某倉庫有多少庫存",
+        "這個倉庫的庫存",
+        "查倉庫庫存",
+        "倉庫物料清單"
+      ]
+    },
+    {
+      "intent_name": "RETURN_SUMMARY",
+      "responsibility_type": "return_mode_summary",
+      "description": "摘要模式 - 聚合統計 + 前10筆 + 總數",
+      "category": "return_mode",
+      "examples": [
+        "摘要",
+        "給我摘要",
+        "簡短說明",
+        "彙整",
+        "總結",
+        "濃縮",
+        "重點",
+        "精簡",
+        "濃縮版",
+        "整理成摘要",
+        "概述",
+        "大綱"
+      ]
+    },
+    {
+      "intent_name": "RETURN_LIST",
+      "responsibility_type": "return_mode_list",
+      "description": "列表模式 - 顯示所有符合條件的資料",
+      "category": "return_mode",
+      "examples": [
+        "列出來",
+        "全部顯示",
+        "給我清單",
+        "列表",
+        "一覽表",
+        "完整列表",
+        "所有資料",
+        "清單模式",
+        "顯示全部",
+        "列出",
+        "列出来",
+        "全部显示"
+      ]
+    },
+    {
+      "intent_name": "QUERY_SHIPPING",
+      "responsibility_type": "query_shipping",
+      "description": "出貨單查詢 - 查詢出貨單號、客戶、日期、金額、狀態等",
+      "category": "data_query",
+      "examples": [
+        "查詢出貨單",
+        "出貨記錄",
+        "出貨進度",
+        "出貨明細",
+        "訂單出貨狀態",
+        "出貨查詢",
+        "最近出貨",
+        "出貨單號查詢",
+        "客戶出貨記錄",
+        "出貨日期",
+        "出貨數量",
+        "出貨金額",
+        "出貨狀態",
+        "已出貨嗎",
+        "什麼時候出貨",
+        "出貨了嗎",
+        "出貨單在哪",
+        "查出貨"
+      ]
+    },
+    {
+      "intent_name": "KNOWLEDGE_PROCESS",
+      "responsibility_type": "knowledge_query",
+      "description": "流程說明 - 詢問業務流程，操作步驟",
+      "category": "knowledge_query",
+      "examples": [
+        "告訴我公司的採購流程",
+        "採購流程是什麼",
+        "如何建立採購單",
+        "入庫流程怎麼做",
+        "出庫作業步驟",
+        "如何進行盤點",
+        "庫存調整流程",
+        "退貨處理流程",
+        "報價作業流程",
+        "訂單變更流程",
+        "如何開立發票",
+        "請款流程說明",
+        "收款作業步驟",
+        "如何建立客戶資料",
+        "供應商管理流程"
+      ]
+    },
+    {
+      "intent_name": "KNOWLEDGE_RULE",
+      "responsibility_type": "knowledge_query",
+      "description": "規則定義 - 詢問業務規則、公司規定",
+      "category": "knowledge_query",
+      "examples": [
+        "什麼是ABC庫存分類",
+        "安全存量如何計算",
+        "採購核決權限規定",
+        "信用額度判斷標準",
+        "產品定價原則",
+        "折扣政策說明",
+        "付款條件規定",
+        "開發票的規則",
+        "退換貨政策",
+        "品質檢驗標準",
+        "产品规格有哪些",
+        "材料損耗率標準"
+      ]
+    },
+    {
+      "intent_name": "GREETING",
+      "responsibility_type": "greeting",
+      "description": "問候語 - 打招呼、感謝、再見",
+      "category": "greeting",
+      "examples": [
+        "你好",
+        "您好",
+        "嗨",
+        "早安",
+        "午安",
+        "晚安",
+        "感謝",
+        "謝謝",
+        "再見",
+        "Bye",
+        "辛苦了",
+        "麻煩了",
+        "請問"
+      ]
+    },
+    {
+      "intent_name": "CLARIFICATION",
+      "responsibility_type": "clarification_needed",
+      "description": "需要澄清 - 資訊不足，需要使用者提供更多細節",
+      "category": "clarification",
+      "examples": [
+        "我不確定",
+        "你可以再說一次嗎",
+        "什麼意思",
+        "不太懂",
+        "需要更多資訊"
+      ]
+    },
+    {
+      "intent_name": "COMPLEX_COMPARE",
+      "responsibility_type": "complex_task",
+      "description": "複雜比較 - 多維度比較分析",
+      "category": "complex_task",
+      "examples": [
+        "比較這兩個料號",
+        "哪個更好",
+        "差異分析",
+        "對比分析",
+        "優缺點比較"
+      ]
+    }
+  ]
+}

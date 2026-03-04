@@ -1554,6 +1554,27 @@ async def permanent_delete_task(
         )
 
         if not result.get("success"):
+            # 提供更具體的錯誤訊息
+            error_msg = result.get("error", "Permanent delete failed")
+            current_status = result.get("current_status")
+            
+            if current_status:
+                detail_msg = f"{error_msg} (目前狀態: {current_status})"
+            else:
+                detail_msg = error_msg
+            
+            return APIResponse.error(
+                message=detail_msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        service = get_user_task_service()
+
+        result = service.permanent_delete(
+            user_id=current_user.user_id,
+            task_id=task_id,
+        )
+
+        if not result.get("success"):
             return APIResponse.error(
                 message=result.get("error", "Permanent delete failed"),
                 status_code=status.HTTP_400_BAD_REQUEST,

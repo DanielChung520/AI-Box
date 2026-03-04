@@ -1,0 +1,242 @@
+[
+  {
+    "id": "JP_JOIN_013",
+    "category": "JOIN",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 21.4
+  },
+  {
+    "id": "JP_COMPLEX_049",
+    "category": "COMPLEX",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 21.8
+  },
+  {
+    "id": "JP_GROUP_036",
+    "category": "GROUP",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 19.0
+  },
+  {
+    "id": "JP_AGG_059",
+    "category": "AGG",
+    "success": false,
+    "action": null,
+    "error_type": null,
+    "elapsed": 22.2
+  },
+  {
+    "id": "JP_SINGLE_055",
+    "category": "SINGLE",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 19.8
+  },
+  {
+    "id": "JP_AGG_013",
+    "category": "AGG",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 11.5
+  },
+  {
+    "id": "JP_JOIN_059",
+    "category": "JOIN",
+    "success": false,
+    "action": null,
+    "error_type": null,
+    "elapsed": 20.4
+  },
+  {
+    "id": "JP_SINGLE_004",
+    "category": "SINGLE",
+    "success": true,
+    "action": "EXECUTE",
+    "error_type": null,
+    "elapsed": 19.7
+  },
+  {
+    "id": "JP_AGG_078",
+    "category": "AGG",
+    "success": false,
+    "action": null,
+    "error_type": null,
+    "elapsed": 24.1
+  },
+  {
+    "id": "JP_COMPLEX_082",
+    "category": "COMPLEX",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 21.6
+  },
+  {
+    "id": "JP_GROUP_054",
+    "category": "GROUP",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 18.7
+  },
+  {
+    "id": "JP_SINGLE_015",
+    "category": "SINGLE",
+    "success": true,
+    "action": "EXECUTE",
+    "error_type": null,
+    "elapsed": 17.7
+  },
+  {
+    "id": "JP_GROUP_070",
+    "category": "GROUP",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 18.4
+  },
+  {
+    "id": "JP_COMPLEX_072",
+    "category": "COMPLEX",
+    "success": false,
+    "action": null,
+    "error_type": null,
+    "elapsed": 23.3
+  },
+  {
+    "id": "JP_GROUP_092",
+    "category": "GROUP",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 23.5
+  },
+  {
+    "id": "JP_AGG_045",
+    "category": "AGG",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 24.3
+  },
+  {
+    "id": "JP_SINGLE_087",
+    "category": "SINGLE",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 21.4
+  },
+  {
+    "id": "JP_TIME_477",
+    "category": "TIME",
+    "success": false,
+    "action": null,
+    "error_type": null,
+    "elapsed": 21.2
+  },
+  {
+    "id": "JP_SINGLE_095",
+    "category": "SINGLE",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 19.4
+  },
+  {
+    "id": "JP_GROUP_084",
+    "category": "GROUP",
+    "success": false,
+    "action": null,
+    "error_type": null,
+    "elapsed": 25.0
+  },
+  {
+    "id": "JP_SINGLE_028",
+    "category": "SINGLE",
+    "success": true,
+    "action": "EXECUTE",
+    "error_type": null,
+    "elapsed": 14.1
+  },
+  {
+    "id": "JP_AGG_011",
+    "category": "AGG",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 12.6
+  },
+  {
+    "id": "JP_COMPLEX_060",
+    "category": "COMPLEX",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 23.2
+  },
+  {
+    "id": "JP_AGG_014",
+    "category": "AGG",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 12.4
+  },
+  {
+    "id": "JP_JOIN_091",
+    "category": "JOIN",
+    "success": false,
+    "action": null,
+    "error_type": null,
+    "elapsed": 19.9
+  },
+  {
+    "id": "JP_JOIN_048",
+    "category": "JOIN",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 18.6
+  },
+  {
+    "id": "JP_AGG_006",
+    "category": "AGG",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 12.3
+  },
+  {
+    "id": "JP_SINGLE_032",
+    "category": "SINGLE",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 19.1
+  },
+  {
+    "id": "JP_JOIN_009",
+    "category": "JOIN",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 18.9
+  },
+  {
+    "id": "JP_GROUP_020",
+    "category": "GROUP",
+    "success": false,
+    "action": null,
+    "error_type": "UNKNOWN_ERROR",
+    "elapsed": 21.1
+  }
+]

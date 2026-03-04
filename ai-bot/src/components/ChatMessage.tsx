@@ -152,11 +152,11 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
 
       // 如果包含代碼塊或塊級組件，使用 div 而不是 p
       if (hasCodeBlock || hasNestedBlock || hasBlockComponent) {
-        return <div className="mb-2 text-primary leading-[0.81] whitespace-pre-wrap" {...props}>{children}</div>;
+        return <div className="mb-2 text-primary leading-[1.2] whitespace-pre-wrap" {...props}>{children}</div>;
       }
 
       // 否則使用正常的 p 標籤
-      return <p className="mb-2 text-primary leading-[0.81] whitespace-pre-wrap" {...props}>{children}</p>;
+      return <p className="mb-2 text-primary leading-[1.2] whitespace-pre-wrap" {...props}>{children}</p>;
     },
     // 列表 - 支持嵌套縮排
     ul: ({ node, children, ...props }: any) => {

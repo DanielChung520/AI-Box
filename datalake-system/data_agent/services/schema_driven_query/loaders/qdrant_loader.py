@@ -15,8 +15,14 @@ from qdrant_client.models import Filter, FieldCondition, MatchValue
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from database.qdrant.client import get_qdrant_client
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+
+try:
+    from database.qdrant.client import get_qdrant_client
+except ImportError:
+    # Fallback: 直接創建 Qdrant 客戶端
+    def get_qdrant_client():
+        return QdrantClient(host="localhost", port=6333)
 
 from ..models import ConceptsContainer, IntentsContainer
 
@@ -49,7 +55,7 @@ class QdrantSchemaLoader:
             self._client = get_qdrant_client()
         return self._client
 
-    def load_concepts(self, system_id: str = "jp_tiptop_erp") -> Optional[ConceptsContainer]:
+    def load_concepts(self, system_id: str = "tiptop_jp") -> Optional[ConceptsContainer]:
         """
         從 Qdrant 載入 Concepts
 
@@ -95,7 +101,7 @@ class QdrantSchemaLoader:
             logger.error(f"Failed to load concepts from Qdrant: {e}")
             return None
 
-    def load_intents(self, system_id: str = "jp_tiptop_erp") -> Optional[IntentsContainer]:
+    def load_intents(self, system_id: str = "tiptop_jp") -> Optional[IntentsContainer]:
         """
         從 Qdrant 載入 Intents
 
@@ -128,6 +134,14 @@ class QdrantSchemaLoader:
                 name = payload.get("name")
                 if name:
                     intents[name] = {
+                        "description": payload.get("description", ""),
+                        "input": payload.get("input", {}),
+                        "output": payload.get("output", {}),
+                        "constraints": payload.get("constraints", {}),
+                        "mart_table": payload.get("mart_table"),
+                    }
+
+            logger.info
                         "description": payload.get("description", ""),
                         "input": payload.get("input", {}),
                         "output": payload.get("output", {}),

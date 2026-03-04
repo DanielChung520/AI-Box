@@ -27,6 +27,7 @@
 """
 
 from typing import Dict, List, Any, Optional
+from pydantic import BaseModel, Field
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 import time
@@ -43,24 +44,33 @@ class ResponseStatus(Enum):
 class ErrorCode(Enum):
     """Data-Agent 錯誤碼」"""
 
-    # 預驗證錯誤（由 PreValidator 產生）
-    SCHEMA_NOT_FOUND = "SCHEMA_NOT_FOUND"
+    # 前置錯誤 (PRE_REJECT) - SQL 生成前驗證失敗
     INTENT_UNCLEAR = "INTENT_UNCLEAR"
-    UNAUTHORIZED_ACCESS = "UNAUTHORIZED_ACCESS"
-    QUERY_SCOPE_TOO_LARGE = "QUERY_SCOPE_TOO_LARGE"
     MISSING_REQUIRED_PARAM = "MISSING_REQUIRED_PARAM"
     INVALID_PARAM_FORMAT = "INVALID_PARAM_FORMAT"
+    QUERY_SCOPE_TOO_LARGE = "QUERY_SCOPE_TOO_LARGE"
+    UNAUTHORIZED_ACCESS = "UNAUTHORIZED_ACCESS"
 
-    # 執行時錯誤
+    # 後置錯誤 (POST_REJECT) - SQL 執行失敗
+    SCHEMA_NOT_FOUND = "SCHEMA_NOT_FOUND"
+    COLUMN_NOT_FOUND = "COLUMN_NOT_FOUND"
+    AMBIGUOUS_REFERENCE = "AMBIGUOUS_REFERENCE"
+    BINDER_ERROR = "BINDER_ERROR"
     NO_DATA_FOUND = "NO_DATA_FOUND"
+    QUERY_ERROR = "QUERY_ERROR"
     SCHEMA_ERROR = "SCHEMA_ERROR"
     CONNECTION_TIMEOUT = "CONNECTION_TIMEOUT"
     NETWORK_ERROR = "NETWORK_ERROR"
+    OUT_OF_MEMORY = "OUT_OF_MEMORY"
+    NULL_VALUE = "NULL_VALUE"
     INTERNAL_ERROR = "INTERNAL_ERROR"
 
     # SQL 生成錯誤
     SQL_GENERATION_FAILED = "SQL_GENERATION_FAILED"
     SQL_VALIDATION_FAILED = "SQL_VALIDATION_FAILED"
+
+    # 成功
+    SUCCESS = "SUCCESS"
 
 
 @dataclass
@@ -89,23 +99,40 @@ class QueryResult:
     token_usage: Optional[Dict[str, int]] = None
 
 
-@dataclass
-class StructuredResponse:
+class StructuredResponse(BaseModel):
     """結構化回應」"""
+
+    model_config = {"arbitrary_types_allowed": True}
 
     status: str  # "success" | "error" | "partial"
     task_id: str
     result: Optional[QueryResult] = None
-    errors: List[ErrorDetail] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    errors: List[ErrorDetail] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     # 向後兼容欄位
     error_code: Optional[str] = None
     message: Optional[str] = None
+    decision_action: str = Field(default="")
 
-    def to_dict(self) -> Dict[str, Any]:
-        """轉換為字典（移除 None 值）」"""
-        return {k: v for k, v in asdict(self).items() if v is not None}
+    def model_dump(self, **kwargs):
+        result = super().model_dump(**kwargs)
+        if not result.get("decision_action"):
+            if self.status == "error":
+                error_codes = [e.code for e in self.errors]
+                pre_reject = {
+                    "INTENT_UNCLEAR",
+                    "MISSING_REQUIRED_PARAM",
+                    "INVALID_PARAM_FORMAT",
+                    "QUERY_SCOPE_TOO_LARGE",
+                }
+                if any(c in pre_reject for c in error_codes):
+                    result["decision_action"] = "PRE_REJECT"
+                else:
+                    result["decision_action"] = "POST_REJECT"
+            else:
+                result["decision_action"] = "EXECUTE"
+        return result
 
 
 class ResponseBuilder:
@@ -489,7 +516,7 @@ async def demo():
 
     import json
 
-    print(json.dumps(response.to_dict(), ensure_ascii=False, indent=2))
+    print(json.dumps(response.model_dump(), ensure_ascii=False, indent=2))
 
     # Demo 2: 錯誤回應
     print("\n=== Demo 2: 錯誤回應 ===")
@@ -504,7 +531,7 @@ async def demo():
         suggestions=["請檢查表格名稱是否正確", "可用的表格：mart_item, mart_inventory"],
     )
 
-    print(json.dumps(response.to_dict(), ensure_ascii=False, indent=2))
+    print(json.dumps(response.model_dump(), ensure_ascii=False, indent=2))
 
     # Demo 3: 部分成功回應
     print("\n=== Demo 3: 部分成功回應 ===")
@@ -520,7 +547,7 @@ async def demo():
         schema_used="mart_inventory",
     )
 
-    print(json.dumps(response.to_dict(), ensure_ascii=False, indent=2))
+    print(json.dumps(response.model_dump(), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

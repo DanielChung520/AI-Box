@@ -136,17 +136,16 @@ async def require_system_admin(user: User = Depends(get_current_user)) -> User:
 
 @router.get("", status_code=status.HTTP_200_OK)
 async def list_services(
+    refresh: bool = Query(default=False, description="強制重新檢查所有服務"),
     current_user: User = Depends(require_system_admin),  # 僅 system_admin 可訪問
 ) -> JSONResponse:
     """
     獲取所有服務狀態列表
-
     根據 USE_NEW_MONITORING 環境變量決定使用舊系統（ArangoDB）還是新系統（Prometheus）。
 
     Args:
+        refresh: 是否強制重新檢查所有服務（忽略緩存）
         current_user: 當前認證用戶
-
-    Returns:
         所有服務的當前狀態
     """
     try:
@@ -233,6 +232,39 @@ async def list_services(
         # 使用舊系統（ArangoDB）
         store_service = get_service_status_store_service()
         services = store_service.list_all_services()
+        # 總是執行動態檢查以獲取最新狀態（除非未來需要優化為可選）
+        if not services or refresh or True:
+            logger.info("No services found in storage, checking all services dynamically")
+            monitor_service = get_service_monitor_service()
+            health_checks = await monitor_service.check_all_services()
+            
+            # 將健康檢查結果轉換為服務狀態格式
+            service_dicts = []
+            for check in health_checks:
+                service_dict = {
+                    "id": check.service_name,
+                    "service_name": check.service_name,
+                    "service_type": check.service_name,  # 簡單映射
+                    "status": check.status,
+                    "health_status": check.health_status,
+                    "host": "localhost",
+                    "port": None,
+                    "pid": None,
+                    "last_check_at": datetime.now(timezone.utc).isoformat(),
+                    "last_success_at": datetime.now(timezone.utc).isoformat() if check.health_status == "healthy" else None,
+                    "check_interval": 30,
+                    "metadata": {
+                        "response_time_ms": check.response_time_ms,
+                        "error_message": check.error_message,
+                        "source": "dynamic_check",
+                    },
+                }
+                service_dicts.append(service_dict)
+            
+            return APIResponse.success(
+                data={"services": service_dicts, "total": len(service_dicts)},
+                message="Services checked dynamically",
+            )
 
         service_dicts = [service.model_dump(mode="json") for service in services]
 

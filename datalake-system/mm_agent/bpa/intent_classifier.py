@@ -2,9 +2,23 @@
 # 創建日期: 2026-02-05
 # 創建人: AI-Box 開發團隊
 
-"""BPA 意圖分類器 - 業務意圖分類"""
+"""BPA 意圖分類器 - 使用 RAG 進行語義意圖分類"""
 
-import re
+# ============================================================
+# LLM 配置
+# --------------------------------------------------------
+# 用於參數提取的 LLM 模型
+# 要求：
+#   - 支持 Ollama API (/api/generate)
+#   - 支持中文理解
+#   - 建議使用小型模型以提高響應速度
+#   - 預設使用 llama3.2:3b-instruct-q4_0 (約 2GB)
+# --------------------------------------------------------
+PARAM_EXTRACTION_LLM = "llama3.2:3b-instruct-q4_0"
+PARAM_EXTRACTION_LLM_TEMPERATURE = 0.1
+PARAM_EXTRACTION_LLM_TIMEOUT = 30.0
+# ============================================================
+
 from enum import Enum
 from typing import Optional
 from pydantic import BaseModel
@@ -13,21 +27,21 @@ from pydantic import BaseModel
 class QueryIntent(str, Enum):
     """查詢意圖枚舉"""
 
-    QUERY_STOCK = "QUERY_STOCK"  # 庫存查詢（當前庫存）
-    QUERY_STOCK_HISTORY = "QUERY_STOCK_HISTORY"  # 庫存歷史查詢
-    QUERY_PURCHASE = "QUERY_PURCHASE"  # 採購交易查詢
-    QUERY_SALES = "QUERY_SALES"  # 銷售交易查詢
-    QUERY_WORKSTATION = "QUERY_WORKSTATION"  # 工作站查詢（新增）
-    ANALYZE_SHORTAGE = "ANALYZE_SHORTAGE"  # 缺料分析
-    GENERATE_ORDER = "GENERATE_ORDER"  # 生成訂單
-    CLARIFICATION = "CLARIFICATION"  # 需要澄清
+    QUERY_STOCK = "QUERY_STOCK"
+    QUERY_STOCK_HISTORY = "QUERY_STOCK_HISTORY"
+    QUERY_PURCHASE = "QUERY_PURCHASE"
+    QUERY_SALES = "QUERY_SALES"
+    QUERY_WORKSTATION = "QUERY_WORKSTATION"
+    ANALYZE_SHORTAGE = "ANALYZE_SHORTAGE"
+    GENERATE_ORDER = "GENERATE_ORDER"
+    CLARIFICATION = "CLARIFICATION"
 
 
 class TaskComplexity(str, Enum):
     """任務複雜度枚舉"""
 
-    SIMPLE = "simple"  # 簡單查詢
-    COMPLEX = "complex"  # 複雜任務
+    SIMPLE = "simple"
+    COMPLEX = "complex"
 
 
 class IntentClassification(BaseModel):
@@ -42,45 +56,7 @@ class IntentClassification(BaseModel):
 
 
 class IntentClassifier:
-    """意圖分類器"""
-
-    # 庫存關鍵詞
-    STOCK_KEYWORDS = ["庫存", "存量", "還有多少", "有多少", "庫存多少"]
-
-    # 採購關鍵詞
-    PURCHASE_KEYWORDS = ["採購", "買進", "進貨", "收料", "採購了多少"]
-
-    # 銷售關鍵詞
-    SALES_KEYWORDS = ["銷售", "賣出", "出貨", "賣了多少"]
-
-    # 缺料關鍵詞
-    SHORTAGE_KEYWORDS = ["缺料", "不足", "不夠", "缺什麼"]
-
-    # 訂單關鍵詞
-    ORDER_KEYWORDS = ["訂單", "採購單", "請購", "下單"]
-
-    # 工作站關鍵詞（新增）
-    WORKSTATION_KEYWORDS = [
-        "工作站",
-        "工站",
-        "工單",
-        "WC",
-        "WC77",
-        "WC01",
-        "生產",
-        "產出",
-        "工站",
-        "工位",
-    ]
-
-    # 生產數量關鍵詞
-    PRODUCTION_KEYWORDS = ["生產", "產出", "產量", "生產了多少", "產出了多少", "產出多少"]
-
-    # 複雜任務關鍵詞
-    COMPLEX_KEYWORDS = ["分析", "比較", "排名", "ABC", "分類", "趨勢", "預測", "統計", "報告"]
-
-    # 多實體關鍵詞
-    MULTI_ENTITY_PATTERNS = [r"\d+個", r"\w+系列", r"\w+和\w+", r"\w+或\w+"]
+    """意圖分類器 - 完全使用 RAG，無硬編碼"""
 
     def classify(self, user_input: str, context: Optional[dict] = None) -> IntentClassification:
         """分類用戶意圖
@@ -92,106 +68,161 @@ class IntentClassifier:
         Returns:
             IntentClassification: 分類結果
         """
-        input_lower = user_input.lower()
-        input_clean = user_input.strip()
+        # 1. 使用 MM_IntentRAG 進行語義意圖分類
+        rag_intent = self._rag_classify(user_input)
 
-        # 判斷複雜度
-        is_complex, reasons = self._判断复杂度(input_clean)
+        if rag_intent:
+            intent = self._map_rag_intent_to_query_intent(rag_intent)
+        else:
+            # RAG 失敗，返回需要澄清
+            intent = QueryIntent.CLARIFICATION
 
-        # 判斷意圖
-        intent = self._判断意图(input_clean)
+        # 2. 使用 LLM 提取參數 + MasterRAG 驗證
+        extracted_params = self._search_params_with_masterrag(user_input)
 
-        # 檢查是否需要澄清
-        needs_clarification, missing = self._检查需要澄清(intent, input_clean, context)
+        # 3. 檢查是否需要澄清
+        needs_clarification, missing = self._检查需要澄清(
+            intent, user_input, context, extracted_params
+        )
 
         return IntentClassification(
             intent=intent,
-            complexity=TaskComplexity.COMPLEX if is_complex else TaskComplexity.SIMPLE,
+            complexity=TaskComplexity.SIMPLE,
             confidence=0.95,
-            is_complex=is_complex,
+            is_complex=False,
             needs_clarification=needs_clarification,
             missing_fields=missing,
         )
 
-    def _判断复杂度(self, text: str) -> tuple:
-        """判斷任務複雜度"""
-        reasons = []
+    def _rag_classify(self, text: str) -> Optional[str]:
+        """使用 MM_IntentRAG 進行語義意圖分類"""
+        try:
+            from ..mm_intent_rag_client import get_mm_intent_rag_client
 
-        # 檢查複雜關鍵詞
-        for keyword in self.COMPLEX_KEYWORDS:
-            if keyword in text:
-                reasons.append(f"包含關鍵詞: {keyword}")
-                return True, reasons
+            client = get_mm_intent_rag_client()
+            return client.classify_intent(text)
+        except Exception:
+            return None
 
-        # 檢查多實體模式
-        for pattern in self.MULTI_ENTITY_PATTERNS:
-            if re.search(pattern, text):
-                reasons.append(f"包含多實體模式")
-                return True, reasons
+    def _map_rag_intent_to_query_intent(self, rag_intent: str) -> QueryIntent:
+        """將 RAG 返回的意圖名稱映射到 QueryIntent"""
+        intent_mapping = {
+            "QUERY_INVENTORY": QueryIntent.QUERY_STOCK,
+            "QUERY_INVENTORY_BY_WAREHOUSE": QueryIntent.QUERY_STOCK,
+            "QUERY_STOCK": QueryIntent.QUERY_STOCK,
+            "QUERY_STOCK_HISTORY": QueryIntent.QUERY_STOCK_HISTORY,
+            "QUERY_PURCHASE": QueryIntent.QUERY_PURCHASE,
+            "QUERY_SALES": QueryIntent.QUERY_SALES,
+            "QUERY_WORK_ORDER": QueryIntent.QUERY_WORKSTATION,
+            "QUERY_MANUFACTURING_PROGRESS": QueryIntent.QUERY_WORKSTATION,
+            "ANALYZE_SHORTAGE": QueryIntent.ANALYZE_SHORTAGE,
+            "GENERATE_ORDER": QueryIntent.GENERATE_ORDER,
+        }
+        return intent_mapping.get(rag_intent, QueryIntent.CLARIFICATION)
 
-        return False, []
+    def _search_params_with_masterrag(self, text: str) -> dict:
+        """使用 LLM 提取參數 + MasterRAG 驗證"""
+        params = {}
 
-    def _判断意图(self, text: str) -> QueryIntent:
-        """判斷查詢意圖"""
-        # 按優先級判斷
+        try:
+            # 步驟1: 使用 LLM 提取參數
+            extracted = self._extract_params_with_llm(text)
 
-        # 工作站查詢優先（新增）
-        if any(kw in text for kw in self.WORKSTATION_KEYWORDS):
-            return QueryIntent.QUERY_WORKSTATION
+            # 步驟2: 使用 MasterRAG 驗證參數
+            from data_agent.services.schema_driven_query.master_loader import (
+                validate_entity_with_rag,
+            )
 
-        if any(kw in text for kw in self.ORDER_KEYWORDS):
-            return QueryIntent.GENERATE_ORDER
+            if extracted.get("item_no"):
+                is_valid, _, _ = validate_entity_with_rag("item", extracted["item_no"])
+                if is_valid:
+                    params["item_no"] = extracted["item_no"]
 
-        if any(kw in text for kw in self.SHORTAGE_KEYWORDS):
-            return QueryIntent.ANALYZE_SHORTAGE
+            if extracted.get("warehouse"):
+                is_valid, _, _ = validate_entity_with_rag("warehouse", extracted["warehouse"])
+                if is_valid:
+                    params["warehouse"] = extracted["warehouse"]
 
-        if any(kw in text for kw in self.SALES_KEYWORDS):
-            return QueryIntent.QUERY_SALES
+            if extracted.get("workstation"):
+                is_valid, _, _ = validate_entity_with_rag("workstation", extracted["workstation"])
+                if is_valid:
+                    params["workstation"] = extracted["workstation"]
 
-        if any(kw in text for kw in self.PURCHASE_KEYWORDS):
-            return QueryIntent.QUERY_PURCHASE
+        except Exception as e:
+            pass
 
-        if any(kw in text for kw in self.STOCK_KEYWORDS):
-            return QueryIntent.QUERY_STOCK
+        return params
 
-        # 默認返回庫存查詢
-        return QueryIntent.QUERY_STOCK
+    def _extract_params_with_llm(self, text: str) -> dict:
+        """使用小型 LLM (Ollama) 提取參數"""
+        import json
+        import httpx
 
-    def _检查需要澄清(self, intent: QueryIntent, text: str, context: Optional[dict]) -> tuple:
+        prompt = f"""從以下文本中提取參數。
+文本：{text}
+
+只返回以下 JSON 格式，不要其他文字：
+{{"item_no": "料號或null", "warehouse": "倉庫編號或null", "workstation": "工作站或null"}}
+
+例如：
+- "查詢3000倉庫庫存" → {{"item_no": null, "warehouse": "3000", "workstation": null}}
+- "查詢料號10-0001的庫存" → {{"item_no": "10-0001", "warehouse": null, "workstation": null}}
+"""
+
+        try:
+            # 直接調用 Ollama API
+            with httpx.Client(timeout=PARAM_EXTRACTION_LLM_TIMEOUT) as client:
+                response = client.post(
+                    "http://localhost:11434/api/generate",
+                    json={
+                        "model": PARAM_EXTRACTION_LLM,
+                        "prompt": prompt,
+                        "stream": False,
+                        "temperature": PARAM_EXTRACTION_LLM_TEMPERATURE,
+                    },
+                )
+
+                if response.status_code == 200:
+                    result = response.json()
+                    response_text = result.get("response", "")
+
+                    # 找到 JSON 開始和結束
+                    start = response_text.find("{")
+                    end = response_text.rfind("}") + 1
+
+                    if start >= 0 and end > start:
+                        json_str = response_text[start:end]
+                        params = json.loads(json_str)
+                        return {
+                            "item_no": params.get("item_no"),
+                            "warehouse": params.get("warehouse"),
+                            "workstation": params.get("workstation"),
+                        }
+
+        except Exception as e:
+            pass
+
+        return {}
+
+    def _检查需要澄清(
+        self, intent: QueryIntent, text: str, context: Optional[dict], extracted_params: dict
+    ) -> tuple:
         """檢查是否需要澄清"""
         missing = []
 
-        # 工作站查詢可以只提供工作站，不一定要料號（新增）
         if intent == QueryIntent.QUERY_WORKSTATION:
-            has_workstation = bool(re.search(r"WC[W0-9-]+", text)) or any(
-                kw in text for kw in self.WORKSTATION_KEYWORDS
-            )
-            if not has_workstation:
+            if not extracted_params.get("workstation"):
                 missing.append("工作站編號")
-            else:
-                # 有工作站，不需要澄清
-                if context:
-                    return False, []
-                return False, missing
 
-        # 檢查關鍵欄位
-        if intent in [QueryIntent.QUERY_PURCHASE, QueryIntent.QUERY_SALES]:
-            # 需要交易類型或料號
-            has_material = bool(re.search(r"[A-Z]{2,4}-?\d{2,6}", text))
-            has_transaction = any(kw in text for kw in ["採購", "買進", "進貨", "銷售", "賣出"])
-            if not has_material and not has_transaction:
-                missing.append("料號或交易類型")
+        elif intent in [QueryIntent.QUERY_PURCHASE, QueryIntent.QUERY_SALES]:
+            if not extracted_params.get("item_no"):
+                missing.append("料號")
 
-        if intent == QueryIntent.QUERY_STOCK:
-            # 庫存查詢可以只提供倉庫，不一定要料號
-            has_material = bool(re.search(r"[A-Z]{2,4}-?\d{2,6}", text))
-            has_warehouse = bool(re.search(r"\b(W\d{2})\b", text))
-            if not has_material and not has_warehouse:
+        elif intent == QueryIntent.QUERY_STOCK:
+            if not extracted_params.get("item_no") and not extracted_params.get("warehouse"):
                 missing.append("料號或倉庫")
 
-        # 檢查上下文
         if context and not missing:
-            # 有上下文時，不需要澄清
             return False, []
 
         return len(missing) > 0, missing

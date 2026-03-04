@@ -1018,9 +1018,15 @@ export default function Home() {
       });
 
       try {
-        console.log('[Home] 開始接收流式響應...');
+        console.log('[Home] ========== 開始接收流式響應 ==========');
+        console.log('[Home] Request Data:', JSON.stringify({
+          agent_id: requestData.agent_id,
+          messages_count: requestData.messages?.length,
+          last_message: requestData.messages?.[requestData.messages?.length - 1]?.content?.substring(0, 50)
+        }));
         let eventCount = 0;
-        // 修改時間：2026-02-03 - 調用 chatProductStream 並獲取 requestId
+        // 修改時間: 2026-01-06 - 從消息中獲取 Assistant 的 allowedTools，而不僅僅是 web_search
+        // 構建允許的工具列表（必須在使用之前聲明）
         const { requestId, stream } = await chatProductStream(requestData as any);
         if (requestId) {
           console.log('[Home] Request ID:', requestId);
@@ -1175,6 +1181,10 @@ export default function Home() {
         ],
       };
 
+      console.log('[Home] ========== AI 回覆完成 ==========');
+      console.log('[Home] finalTask messages count:', finalTask.messages.length);
+      console.log('[Home] last message (AI):', finalTask.messages[finalTask.messages.length - 1]?.content?.substring(0, 100));
+      
       setSelectedTask(finalTask);
       saveTask(finalTask, true).catch((error) => {
         console.error('[Home] Failed to save task after ai message:', error);
@@ -1502,6 +1512,10 @@ export default function Home() {
     saveTask(newTask, true, { isNewTask: true }).catch((error) => {
       console.error('[Home] Failed to save task after assistant select:', error);
     });
+    // 修改時間：2026-02-22 - 觸發 taskCreated 事件通知 Sidebar 更新任務列表
+    window.dispatchEvent(new CustomEvent('taskCreated', {
+      detail: { taskId: newTask.id }
+    }));
     // 清除浏览模式（从浏览模式创建任务时）
     setBrowseMode(null);
 
@@ -1555,6 +1569,10 @@ export default function Home() {
     saveTask(newTask, true, { isNewTask: true }).catch((error) => {
       console.error('[Home] Failed to save task after agent select:', error);
     });
+    // 修改時間：2026-02-22 - 觸發 taskCreated 事件通知 Sidebar 更新任務列表
+    window.dispatchEvent(new CustomEvent('taskCreated', {
+      detail: { taskId: newTask.id }
+    }));
     // 清除浏览模式（从浏览模式创建任务时）
     setBrowseMode(null);
 
@@ -1587,6 +1605,10 @@ export default function Home() {
     saveTask(newTask, true, { isNewTask: true }).catch((error) => {
       console.error('[Home] Failed to save task after executor select:', error);
     });
+    // 修改時間：2026-02-22 - 觸發 taskCreated 事件通知 Sidebar 更新任務列表
+    window.dispatchEvent(new CustomEvent('taskCreated', {
+      detail: { taskId: newTask.id }
+    }));
     setShowExecutorModal(false);
     if (isMarkdownView) {
       setIsMarkdownView(false);

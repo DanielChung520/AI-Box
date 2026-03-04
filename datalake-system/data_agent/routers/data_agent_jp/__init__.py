@@ -38,9 +38,15 @@ from data_agent.services.schema_driven_query.executor import (
 from data_agent.services.schema_driven_query.config import get_config
 from data_agent.services.schema_driven_query.sse_emitter import get_event_emitter, SSEEventEmitter
 
+# v5 路由
+from data_agent.routers.data_agent_jp.v5_routes import V5_router as v5_router
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# 包含 v5 路由
+router.include_router(v5_router)
 
 
 def get_resolver() -> Resolver:

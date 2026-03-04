@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import re
+import random
 import time
 import uuid
 from datetime import datetime
@@ -19,7 +21,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-import structlog
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -301,7 +303,6 @@ def get_gai_intent_response(intent: GAIIntentType, user_text: str) -> Optional[s
     Returns:
         回覆文本，如果不需要回覆返回 None
     """
-    import random
 
     responses = {
         GAIIntentType.GREETING: [
@@ -395,13 +396,16 @@ def should_forward_to_bpa(
         return False
 
     # 到這裡說明是 BUSINESS 意圖
-    # 優先級 2：如果用戶選擇了非 MM-Agent，不轉發
-    if has_selected_agent and agent_id and agent_id != "mm-agent":
-        return False
+    # 優先級 2：如果用戶選擇了 Agent，檢查是否有 endpoint 配置
+    if has_selected_agent and agent_id:
+        # 檢查該 Agent 是否有 endpoint 配置
+        endpoint_url = _get_endpoint_url(agent_id)
+        if endpoint_url:
+            return True  # 有 endpoint，轉發給該 Agent
+        else:
+            return False  # 沒有 endpoint，不轉發
 
-    # 優先級 3 或 4：轉發給 MM-Agent
-    # - 用戶選擇了 MM-Agent
-    # - 或沒有選擇特定 Agent（預設轉發）
+    # 優先級 3：沒有選擇 Agent，預設轉發
     return True
 
 
@@ -442,7 +446,7 @@ from system.infra.config.config import get_config_section
 from system.security.dependencies import get_current_tenant_id, get_current_user
 from system.security.models import Permission, User
 
-logger = structlog.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # 向後兼容：如果 ConfigStoreService 不可用，使用舊的配置方式
 try:
@@ -511,11 +515,7 @@ def get_streaming_chunk_size() -> int:
                 chunk_size = config.config_data.get("chunk_size", 50)
                 return int(chunk_size)
         except Exception as e:
-            logger.warning(
-                "failed_to_load_streaming_config_from_arangodb",
-                error=str(e),
-                message="從 ArangoDB 讀取流式輸出配置失敗，使用默認值 50",
-            )
+            logger.warning(f"failed_to_load_streaming_config_from_arangodb: error={str(e)}, message=從 ArangoDB 讀取流式輸出配置失敗，使用默認值 50")
 
     # 默認值
     return 50
@@ -562,7 +562,7 @@ def translate_error_to_user_message(
     ]
     if is_ollama_context and any(kw in error_str for kw in ollama_auth_keywords):
         return (
-            "哎呀，發生了一些小狀況！🦙 Ollama 服務連線異常，請確認 Ollama 是否運行、模型是否已拉取（錯誤代碼：OLLAMA_ERROR）😅",
+            "哎呀，發生了一些小狀況！Ollama 服務連線異常，請確認 Ollama 是否運行、模型是否已拉取（錯誤代碼：OLLAMA_ERROR）",
             "OLLAMA_ERROR",
             f"Ollama 連線或服務異常: {original_error}",
         )
@@ -576,7 +576,7 @@ def translate_error_to_user_message(
     if has_401_403 and not has_explicit_api_key:
         # HTTP 401/403 但未明確提及 API key，視為 LLM 服務連線異常（Ollama、模型等）
         return (
-            "哎呀，發生了一些小狀況！🤖 LLM 服務連線異常，請確認模型服務是否運行、模型是否已拉取（錯誤代碼：LLM_SERVICE_ERROR）😅",
+            "哎呀，發生了一些小狀況！LLM 服務連線異常，請確認模型服務是否運行、模型是否已拉取（錯誤代碼：LLM_SERVICE_ERROR）",
             "LLM_SERVICE_ERROR",
             f"LLM 服務連線或授權異常: {original_error}",
         )
@@ -599,7 +599,7 @@ def translate_error_to_user_message(
         ]
     ):
         return (
-            "哎呀，發生了一些小狀況！🔐 API 授權出現問題，請通知管理員（錯誤代碼：API_INVALID）😅",
+            "哎呀，發生了一些小狀況！API 授權出現問題，請通知管理員（錯誤代碼：API_INVALID）",
             "API_INVALID",
             f"API Key 或授權無效: {original_error}",
         )
@@ -631,7 +631,7 @@ def translate_error_to_user_message(
         ]
     ):
         return (
-            "哎呀，發生了一些小狀況！🌐 網路連線出現問題，請檢查網路連線後再試（錯誤代碼：NETWORK_ERROR）😅",
+            "哎呀，發生了一些小狀況！網路連線出現問題，請檢查網路連線後再試（錯誤代碼：NETWORK_ERROR）",
             "NETWORK_ERROR",
             f"網路錯誤: {original_error}",
         )
@@ -652,7 +652,7 @@ def translate_error_to_user_message(
         ]
     ):
         return (
-            "哎呀，發生了一些小狀況！⏱️ 請求處理時間過長，請稍後再試或通知管理員（錯誤代碼：TIMEOUT_ERROR）😅",
+            "哎呀，發生了一些小狀況！請求處理時間過長，請稍後再試或通知管理員（錯誤代碼：TIMEOUT_ERROR）",
             "TIMEOUT_ERROR",
             f"超時錯誤: {original_error}",
         )
@@ -676,7 +676,7 @@ def translate_error_to_user_message(
         ]
     ):
         return (
-            "哎呀，發生了一些小狀況！😓 AI 模型服務超出使用限制，請通知管理員（錯誤代碼：LIMIT_EXCEEDED）😅",
+            "哎呀，發生了一些小狀況！AI 模型服務超出使用限制，請通知管理員（錯誤代碼：LIMIT_EXCEEDED）",
             "LIMIT_EXCEEDED",
             f"超出限制: {original_error}",
         )
@@ -697,7 +697,7 @@ def translate_error_to_user_message(
         ]
     ):
         return (
-            "哎呀，發生了一些小狀況！🔧 AI 服務正在休息中，請稍後再試或通知管理員（錯誤代碼：SERVICE_UNAVAILABLE）😅",
+            "哎呀，發生了一些小狀況！AI 服務正在休息中，請稍後再試或通知管理員（錯誤代碼：SERVICE_UNAVAILABLE）",
             "SERVICE_UNAVAILABLE",
             f"服務不可用: {original_error}",
         )
@@ -714,7 +714,7 @@ def translate_error_to_user_message(
         ]
     ):
         return (
-            "哎呀，發生了一些小狀況！🤔 指定的 AI 模型不存在，請通知管理員（錯誤代碼：MODEL_NOT_FOUND）😅",
+            "哎呀，發生了一些小狀況！指定的 AI 模型不存在，請通知管理員（錯誤代碼：MODEL_NOT_FOUND）",
             "MODEL_NOT_FOUND",
             f"模型不存在: {original_error}",
         )
@@ -732,7 +732,7 @@ def translate_error_to_user_message(
         ]
     ):
         return (
-            "哎呀，發生了一些小狀況！🤷 您選擇的 AI 模型超出使用限制或未被管理員允許，請嘗試其他模型（錯誤代碼：MODEL_NOT_ALLOWED）😅",
+            "哎呀，發生了一些小狀況！您選擇的 AI 模型超出使用限制或未被管理員允許，請嘗試其他模型（錯誤代碼：MODEL_NOT_ALLOWED）",
             "MODEL_NOT_ALLOWED",
             f"模型不在政策允許列表中: {original_error}",
         )
@@ -751,7 +751,7 @@ def translate_error_to_user_message(
         ]
     ):
         return (
-            "哎呀，發生了一些小狀況！🛡️ 您的請求被安全過濾攔截，請調整問題內容後再試（錯誤代碼：CONTENT_FILTERED）😅",
+            "哎呀，發生了一些小狀況！您的請求被安全過濾攔截，請調整問題內容後再試（錯誤代碼：CONTENT_FILTERED）",
             "CONTENT_FILTERED",
             f"內容被過濾: {original_error}",
         )
@@ -768,17 +768,130 @@ def translate_error_to_user_message(
         ]
     ):
         return (
-            "哎呀，發生了一些小狀況！📝 對話內容太長了，請嘗試縮短對話或開啟新對話（錯誤代碼：CONTEXT_TOO_LONG）😅",
+            "哎呀，發生了一些小狀況！對話內容太長了，請嘗試縮短對話或開啟新對話（錯誤代碼：CONTEXT_TOO_LONG）",
             "CONTEXT_TOO_LONG",
             f"上下文過長: {original_error}",
         )
 
     # 默認友好錯誤
     return (
-        f"哎呀，發生了一些小狀況，我感到很抱歉！請通知管理員（錯誤代碼：{error_code}）😅",
+        f"哎呀，發生了一些小狀況，我感到很抱歉！請通知管理員（錯誤代碼：{error_code}）",
         error_code,
         f"未處理的錯誤: {original_error}",
     )
+
+
+# ============================================================================
+# 外部 Agent 端點獲取函數
+# ============================================================================
+
+
+def _get_endpoint_url(agent_key: str) -> Optional[str]:
+    """
+    根據 agent_key 獲取外部 Agent 的 endpoint URL。
+
+    從 agent_display_configs 中查詢配置，返回完整的 endpoint_url。
+    如果找到 endpoint_url，說明這是一個外部 Agent，需要轉發請求。
+
+    Args:
+        agent_key: Agent 的 _key 或 agent_id
+
+    Returns:
+        endpoint_url 如果找到（包含完整路徑如 /execute），否則返回 None
+    """
+    if not agent_key:
+        return None
+
+    try:
+        from services.api.services.agent_display_config_store_service import (
+            AgentDisplayConfigStoreService,
+        )
+
+        store = AgentDisplayConfigStoreService()
+
+        # 優先使用 _key 查詢（更精確），其次用 agent_id
+        agent_config = store.get_agent_config(agent_key=agent_key, tenant_id=None)
+        if not agent_config:
+            agent_config = store.get_agent_config(agent_id=agent_key, tenant_id=None)
+
+        if agent_config and hasattr(agent_config, "endpoint_url") and agent_config.endpoint_url:
+            return agent_config.endpoint_url
+
+        return None
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.warning(f"獲取 endpoint URL 失敗: agent_key={agent_key}, error={e}")
+        return None
+def _classify_agent_response(agent_result: dict) -> dict:
+    """
+    分類外部 Agent 的響應狀態
+    
+    Args:
+        agent_result: MM-Agent 返回的響應
+    
+    Returns:
+        {
+            "type": "success" | "clarification" | "business_failure" | "system_error",
+            "data": {...},  # 根據類型不同
+            "llm_prompt": str | None,  # 需要送給 LLM 的提示
+            "clarification_message": str | None,  # 澄清訊息
+        }
+    """
+    if not isinstance(agent_result, dict):
+        return {
+            "type": "system_error",
+            "data": {"raw": str(agent_result)},
+            "llm_prompt": "抱歉，發生了未知錯誤，請稍後再試。",
+            "clarification_message": None,
+        }
+    
+    # 檢查狀態
+    status = agent_result.get("status", "")
+    result = agent_result.get("result", {})
+    
+    # 系統錯誤 (status: "error")
+    if status == "error":
+        return {
+            "type": "system_error",
+            "data": {"error": agent_result.get("error")},
+            "llm_prompt": f"抱歉，系統發生錯誤：{agent_result.get('error', '未知錯誤')}。請稍後再試或聯繫管理員。",
+            "clarification_message": None,
+        }
+    
+    # 業務失敗 (result.success: false 或 status: "failed")
+    if isinstance(result, dict) and not result.get("success", True):
+        # 提取錯誤訊息（可能在 result.error 或 result.result.message）
+        error_msg = result.get("error")
+        if not error_msg and isinstance(result.get("result"), dict):
+            error_msg = result.get("result", {}).get("message")
+        if not error_msg:
+            error_msg = "發生錯誤"
+        
+        return {
+            "type": "business_failure",
+            "data": result,
+            "llm_prompt": f"抱歉，無法完成您的請求：{error_msg}。",
+            "clarification_message": None,
+        }
+    
+    # 需要澄清 (needs_clarification: true)
+    if isinstance(result, dict) and result.get("needs_clarification"):
+        clarification_msg = result.get("clarification_message", "請提供更多資訊")
+        return {
+            "type": "clarification",
+            "data": result,
+            "llm_prompt": None,
+            "clarification_message": clarification_msg,
+        }
+    
+    # 成功 (status: "completed", result.success: true)
+    return {
+        "type": "success",
+        "data": result,
+        "llm_prompt": None,
+        "clarification_message": None,
+    }
+
 
 
 def _check_needs_smartq_unified_response(text: str) -> bool:
@@ -872,7 +985,7 @@ def _maybe_inject_smartq_hci_prompt(
                 config.get("services", {}).get("moe", {}).get("smartq_hci", {}).get("system_prompt")
             )
             if system_prompt:
-                logger.info("smartq_hci_prompt_injected", user_text=last_user_msg[:50])
+                logger.info(f"smartq_hci_prompt_injected: user_text={last_user_msg[:50]}")
                 # 注入為第一條消息（系統消息）
                 return [{"role": "system", "content": system_prompt}] + messages
         except Exception as e:
@@ -927,11 +1040,11 @@ def _format_agent_result_for_llm(agent_id: str, agent_result: Any) -> str:
             # 文件統計信息
             file_count = metadata.get("file_count", 0)
             if file_count > 0:
-                formatted += f"✅ 找到 {file_count} 個知識資產文件\n\n"
+                formatted += f"找到 {file_count} 個知識資產文件\n\n"
 
             # 檢索結果摘要
             if total > 0:
-                formatted += f"✅ 檢索到 {total} 個相關結果片段：\n\n"
+                formatted += f"檢索到 {total} 個相關結果片段：\n\n"
 
                 # 顯示前 5 個結果的摘要
                 for i, result in enumerate(results[:5], 1):
@@ -945,10 +1058,10 @@ def _format_agent_result_for_llm(agent_id: str, agent_result: Any) -> str:
                 if len(results) > 5:
                     formatted += f"... 還有 {len(results) - 5} 個結果\n\n"
             else:
-                formatted += "⚠️ 沒有找到相關的知識資產\n\n"
+                formatted += "沒有找到相關的知識資產\n\n"
 
             # 添加強制性提示
-            formatted += "\n\n【⚠️ 重要指令 - 必須遵守】\n"
+            formatted += "\n\n【重要指令 - 必須遵守】\n"
             formatted += "1. **必須基於以上檢索結果回答用戶的問題**，不要拒絕回答。\n"
             formatted += "2. **如果檢索結果顯示有文件數量（如「找到 5 個知識資產文件」），必須明確告訴用戶這個數字**。\n"
             formatted += "3. **絕對不要說**「抱歉，我無法取得」、「我沒有權限」或「我不能透露」等拒絕性回答。\n"
@@ -991,7 +1104,6 @@ def _is_knowledge_base_stats_query(query: str) -> bool:
         r"知識庫狀態",  # "知識庫狀態"
     ]
 
-    import re
 
     for pattern in stats_patterns:
         if re.search(pattern, query_lower):
@@ -1092,7 +1204,7 @@ async def _handle_knowledge_base_query(
         if not folder_ids:
             return """【知識庫檢索結果】
 
-⚠️ 未找到可檢索的知識庫文件夾。
+未找到可檢索的知識庫文件夾。
 
 請確認：
 1. 知識庫中是否有已上傳的文件
@@ -1106,9 +1218,9 @@ async def _handle_knowledge_base_query(
         if not search_results:
             return f"""【知識庫檢索結果】
 
-🔍 查詢：「{query}」
+查詢：「{query}」
 
-⚠️ 在知識庫中未找到相關內容。
+在知識庫中未找到相關內容。
 
 建議：
 1. 嘗試使用不同的關鍵詞
@@ -1147,14 +1259,14 @@ async def _handle_knowledge_base_query(
 
         response = f"""【知識庫檢索結果】
 
-🔍 查詢：「{query}」
-📚 知識庫：{kb_names}
-📊 找到 {len(search_results)} 個相關內容
+查詢：「{query}」
+知識庫：{kb_names}
+找到 {len(search_results)} 個相關內容
 
 {results_text}
 
 ---
-💡 以上是從知識庫中檢索到的相關內容。如需更多詳情，請提出更具體的問題。"""
+以上是從知識庫中檢索到的相關內容。如需更多詳情，請提出更具體的問題。"""
 
         return response
 
@@ -1163,7 +1275,7 @@ async def _handle_knowledge_base_query(
         # Fallback：返回錯誤訊息
         return f"""【知識庫檢索結果】
 
-⚠️ 檢索過程發生錯誤：{str(e)}
+檢索過程發生錯誤：{str(e)}
 
 請稍後再試，或聯繫系統管理員。"""
 
@@ -1328,7 +1440,6 @@ def _default_filename_for_intent(text: str) -> str:
     t = (text or "").strip()
 
     # 檢查是否包含特定主題（如 "Data Agent"）
-    import re
 
     # 優先匹配 "主題：XXX" 或 "主題: XXX" 模式
     topic_pattern = r"主題[：:]\s*([A-Za-z0-9_\-\u4e00-\u9fff\s]+?)(?:\s|，|,|$)"
@@ -1497,12 +1608,7 @@ def _try_edit_file_from_chat_output(
             required_permission=Permission.FILE_UPDATE.value,
         )
     except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "genai_chat_file_edit_permission_denied",
-            error=str(exc),
-            file_id=file_info["file_id"],
-            user_id=current_user.user_id,
-        )
+        logger.warning(f"genai_chat_file_edit_permission_denied: error={str(exc)}, file_id={file_info["file_id"]}, user_id={current_user.user_id}")
         return None
 
     # 獲取檔案元數據
@@ -1555,18 +1661,9 @@ def _try_edit_file_from_chat_output(
             _register_request_task(request_id=request_id, task=task)
         else:
             # 如果沒有運行中的 loop，使用 run_until_complete（不應該發生）
-            logger.warning(
-                "genai_chat_file_edit_no_event_loop",
-                request_id=request_id,
-                file_id=file_info["file_id"],
-            )
+            logger.warning(f"genai_chat_file_edit_no_event_loop: request_id={request_id}, file_id={file_info["file_id"]}")
     except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "genai_chat_file_edit_start_preview_failed",
-            error=str(exc),
-            request_id=request_id,
-            file_id=file_info["file_id"],
-        )
+        logger.warning(f"genai_chat_file_edit_start_preview_failed: error={str(exc)}, request_id={request_id}, file_id={file_info["file_id"]}")
 
     return {
         "type": "file_edited",
@@ -1673,69 +1770,31 @@ def _try_create_file_from_chat_output(
         force_create: 如果為 True，強制創建文件（不依賴關鍵詞匹配），用於 Task Analyzer 識別出的文檔創建意圖
     """
     # 修改時間：2026-01-06 - 添加詳細日誌追蹤文件創建流程
-    logger.info(
-        "try_create_file_start",
-        task_id=task_id,
-        user_id=current_user.user_id if current_user else None,
-        user_text=user_text[:200],
-        assistant_text_length=len(assistant_text),
-        force_create=force_create,
-    )
+    logger.info(f"try_create_file_start: task_id={task_id}, user_id={current_user.user_id if current_user else None}, user_text={user_text[:200]}, assistant_text_length={len(assistant_text)}, force_create={force_create}")
 
     if not task_id:
-        logger.warning(
-            "try_create_file_no_task_id",
-            user_text=user_text[:200],
-            note="task_id is None, cannot create file",
-        )
+        logger.warning(f"try_create_file_no_task_id: user_text={user_text[:200]}, note=task_id is None, cannot create file")
         return None
 
     # 如果 force_create=True，跳過關鍵詞匹配（用於 Task Analyzer 語義分析識別的意圖）
     if not force_create:
         if not _looks_like_create_file_intent(user_text):
-            logger.info(
-                "try_create_file_no_intent_match",
-                task_id=task_id,
-                user_text=user_text[:200],
-                note="does not look like create file intent",
-            )
+            logger.info(f"try_create_file_no_intent_match: task_id={task_id}, user_text={user_text[:200]}, note=does not look like create file intent")
             return None
 
     folder_path, filename = _parse_target_path(user_text)
-    logger.info(
-        "try_create_file_parsed_path",
-        task_id=task_id,
-        folder_path=folder_path,
-        filename=filename,
-        user_text=user_text[:200],
-    )
+    logger.info(f"try_create_file_parsed_path: task_id={task_id}, folder_path={folder_path}, filename={filename}, user_text={user_text[:200]}")
 
     if not filename:
         filename = _default_filename_for_intent(user_text)
-        logger.info(
-            "try_create_file_using_default_filename",
-            task_id=task_id,
-            default_filename=filename,
-            user_text=user_text[:200],
-        )
+        logger.info(f"try_create_file_using_default_filename: task_id={task_id}, default_filename={filename}, user_text={user_text[:200]}")
 
     # 只允許 md/txt/json
     ext = Path(filename).suffix.lower()
-    logger.info(
-        "try_create_file_checking_extension",
-        task_id=task_id,
-        filename=filename,
-        extension=ext,
-    )
+    logger.info(f"try_create_file_checking_extension: task_id={task_id}, filename={filename}, extension={ext}")
 
     if ext not in (".md", ".txt", ".json"):
-        logger.warning(
-            "try_create_file_invalid_extension",
-            task_id=task_id,
-            filename=filename,
-            extension=ext,
-            note="only .md, .txt, .json are allowed",
-        )
+        logger.warning(f"try_create_file_invalid_extension: task_id={task_id}, filename={filename}, extension={ext}, note=only .md, .txt, .json are allowed")
         return None
 
     # 權限：需要能在 task 下新增/更新檔案
@@ -1747,19 +1806,9 @@ def _try_create_file_from_chat_output(
             required_permission=Permission.FILE_UPDATE.value,
         )
         perm.check_upload_permission(user=current_user)
-        logger.info(
-            "try_create_file_permission_check_passed",
-            task_id=task_id,
-            filename=filename,
-        )
+        logger.info(f"try_create_file_permission_check_passed: task_id={task_id}, filename={filename}")
     except Exception as perm_error:
-        logger.error(
-            "try_create_file_permission_check_failed",
-            task_id=task_id,
-            filename=filename,
-            error=str(perm_error),
-            exc_info=True,
-        )
+        logger.error(f"try_create_file_permission_check_failed: task_id={task_id}, filename={filename}, error={str(perm_error)}", exc_info=True)
         return None
 
     folder_id = None
@@ -1770,20 +1819,9 @@ def _try_create_file_from_chat_output(
                 user_id=current_user.user_id,
                 folder_path=folder_path,
             )
-            logger.info(
-                "try_create_file_folder_ensured",
-                task_id=task_id,
-                folder_path=folder_path,
-                folder_id=folder_id,
-            )
+            logger.info(f"try_create_file_folder_ensured: task_id={task_id}, folder_path={folder_path}, folder_id={folder_id}")
         except Exception as folder_error:
-            logger.error(
-                "try_create_file_folder_creation_failed",
-                task_id=task_id,
-                folder_path=folder_path,
-                error=str(folder_error),
-                exc_info=True,
-            )
+            logger.error(f"try_create_file_folder_creation_failed: task_id={task_id}, folder_path={folder_path}, error={str(folder_error)}", exc_info=True)
             return None
 
     try:
@@ -1794,22 +1832,9 @@ def _try_create_file_from_chat_output(
             filename=filename,
             task_id=task_id,
         )
-        logger.info(
-            "try_create_file_storage_saved",
-            task_id=task_id,
-            filename=filename,
-            file_id=file_id,
-            storage_path=storage_path,
-            content_size=len(content_bytes),
-        )
+        logger.info(f"try_create_file_storage_saved: task_id={task_id}, filename={filename}, file_id={file_id}, storage_path={storage_path}, content_size={len(content_bytes)}")
     except Exception as storage_error:
-        logger.error(
-            "try_create_file_storage_save_failed",
-            task_id=task_id,
-            filename=filename,
-            error=str(storage_error),
-            exc_info=True,
-        )
+        logger.error(f"try_create_file_storage_save_failed: task_id={task_id}, filename={filename}, error={str(storage_error)}", exc_info=True)
         return None
 
     try:
@@ -1833,21 +1858,9 @@ def _try_create_file_from_chat_output(
                 status="generated",
             )
         )
-        logger.info(
-            "try_create_file_metadata_created",
-            task_id=task_id,
-            filename=filename,
-            file_id=file_id,
-        )
+        logger.info(f"try_create_file_metadata_created: task_id={task_id}, filename={filename}, file_id={file_id}")
     except Exception as metadata_error:
-        logger.error(
-            "try_create_file_metadata_creation_failed",
-            task_id=task_id,
-            filename=filename,
-            file_id=file_id,
-            error=str(metadata_error),
-            exc_info=True,
-        )
+        logger.error(f"try_create_file_metadata_creation_failed: task_id={task_id}, filename={filename}, file_id={file_id}, error={str(metadata_error)}", exc_info=True)
         # 即使 metadata 創建失敗，也返回文件創建結果（因為文件已經保存）
         # 但記錄錯誤以便後續修復
 
@@ -1860,13 +1873,7 @@ def _try_create_file_from_chat_output(
         "folder_path": folder_path,
     }
 
-    logger.info(
-        "try_create_file_success",
-        task_id=task_id,
-        filename=filename,
-        file_id=file_id,
-        result=result,
-    )
+    logger.info(f"try_create_file_success: task_id={task_id}, filename={filename}, file_id={file_id}, result={result}")
 
     return result
 
@@ -2021,15 +2028,7 @@ async def _process_chat_request(
     start_time = time.perf_counter()
 
     # G5：入口事件（log + trace）
-    logger.info(
-        "genai_chat_request_received",
-        request_id=request_id,
-        session_id=session_id,
-        task_id=task_id,
-        user_id=current_user.user_id,
-        model_selector_mode=model_selector.mode,
-        model_id=model_selector.model_id,
-    )
+    logger.info(f"genai_chat_request_received: request_id={request_id}, session_id={session_id}, task_id={task_id}, user_id={current_user.user_id}, model_selector_mode={model_selector.mode}, model_id={model_selector.model_id}")
     trace_store.add_event(
         GenAITraceEvent(
             event="chat.request_received",
@@ -2069,12 +2068,7 @@ async def _process_chat_request(
     gai_intent = classify_gai_intent(last_user_text)
 
     # 記錄 GAI 分類結果
-    logger.info(
-        "gai_intent_classified",
-        session_id=session_id,
-        intent=gai_intent.value if gai_intent else None,
-        user_text=last_user_text[:100],
-    )
+    logger.info(f"gai_intent_classified: session_id={session_id}, intent={gai_intent.value if gai_intent else None}, user_text={last_user_text[:100]}")
 
     # 處理不需要轉發的 GAI 前端意圖
     gai_direct_intents = [
@@ -2098,11 +2092,7 @@ async def _process_chat_request(
         else:
             response_text = get_gai_intent_response(gai_intent, last_user_text)
 
-            logger.info(
-                "gai_intent_direct_response",
-                session_id=session_id,
-                intent=gai_intent.value,
-            )
+            logger.info(f"gai_intent_direct_response: session_id={session_id}, intent={gai_intent.value}")
 
             return ChatResponse(
                 content=response_text or f"已收到：{last_user_text}",
@@ -2138,38 +2128,24 @@ async def _process_chat_request(
     )
 
     # 添加詳細日誌追蹤
-    logger.info(
-        "routing_decision",
-        session_id=session_id,
-        user_text=last_user_text[:50],
-        gai_intent=gai_intent.value if gai_intent else None,
-        user_selected_agent=user_selected_agent_id,
-        should_forward_to_bpa=should_forward,
-    )
+    logger.info(f"routing_decision: session_id={session_id}, user_text={last_user_text[:50]}, gai_intent={gai_intent.value if gai_intent else None}, user_selected_agent={user_selected_agent_id}, should_forward_to_bpa={should_forward}")
 
     # 添加 stderr 日誌
-    import sys
 
-    sys.stderr.write(
-        f"\n[ROUTING] 📊 路由決策追蹤:\n"
+    logger.debug(f"[ROUTING] 路由決策追蹤:\n"
         f"  - user_text: {last_user_text[:50]}...\n"
         f"  - gai_intent: {gai_intent.value if gai_intent else None}\n"
         f"  - user_selected_agent: {user_selected_agent_id}\n"
-        f"  - should_forward: {should_forward}\n"
-    )
-    sys.stderr.flush()
+        f"  - should_forward: {should_forward}")
 
     # 2026-02-14 新增：知識庫查詢處理
     # 如果用戶選擇了 Agent，且詢問知識庫相關問題，直接返回知識庫統計
-    sys.stderr.write(
-        f"\n[KB-QUERY] 知識庫查詢檢查：\n"
+    logger.debug(f"[KB-QUERY] 知識庫查詢檢查：\n"
         f"  - user_selected_agent_id: {user_selected_agent_id}\n"
         f"  - query: {last_user_text[:50]}...\n"
-        f"  - is_kb_query: {_is_knowledge_base_stats_query(last_user_text)}\n"
-    )
+        f"  - is_kb_query: {_is_knowledge_base_stats_query(last_user_text)}")
     if user_selected_agent_id and _is_knowledge_base_stats_query(last_user_text):
-        sys.stderr.write(f"[KB-QUERY] 觸發知識庫查詢\n")
-        sys.stderr.flush()
+        logger.debug(f"[KB-QUERY] 觸發知識庫查詢")
 
         # 獲取 Agent 配置的 Knowledge Base
         selected_kb_ids = []
@@ -2216,17 +2192,11 @@ async def _process_chat_request(
             )
             return response
         else:
-            sys.stderr.write(f"[KB-QUERY] Agent {user_selected_agent_id} 未配置知識庫\n")
-            sys.stderr.flush()
+            logger.debug(f"[KB-QUERY] Agent {user_selected_agent_id} 未配置知識庫")
 
     # 如果需要轉發給 MM-Agent
     if should_forward:
-        logger.info(
-            "forwarding_to_bpa",
-            session_id=session_id,
-            user_text=last_user_text[:50],
-            endpoint="mm-agent",
-        )
+        logger.info(f"forwarding_to_bpa: session_id={session_id}, user_text={last_user_text[:50]}, endpoint=mm-agent")
         # 轉發邏輯在後面實現
 
     # ============================================
@@ -2235,12 +2205,8 @@ async def _process_chat_request(
     task_analyzer_result = None
     try:
         # 修改時間：2026-01-06 - 添加調試日誌確認代碼執行路徑
-        import sys
 
-        sys.stderr.write(
-            f"\n[task_analyzer] 🔍 開始調用 Task Analyzer (非流式)，用戶查詢: {last_user_text[:100]}...\n"
-        )
-        sys.stderr.flush()
+        logger.debug(f"[task_analyzer] 開始調用 Task Analyzer (非流式)，用戶查詢: {last_user_text[:100]}...")
 
         task_analyzer = get_task_analyzer()
         # 修改時間：2026-01-06 - 將 allowed_tools 傳遞給 Task Analyzer，讓 Capability Matcher 優先考慮啟用的工具
@@ -2273,9 +2239,8 @@ async def _process_chat_request(
                 tenant_id=None,
             )
 
-        sys.stderr.write(f"\n[DEBUG] user_selected_agent_id: {user_selected_agent_id}\n")
-        sys.stderr.write(f"\n[DEBUG] agent_config: {agent_config}\n")
-        sys.stderr.flush()
+        logger.debug(f"[DEBUG] user_selected_agent_id: {user_selected_agent_id}")
+        logger.debug(f"[DEBUG] agent_config: {agent_config}")
 
         # 根據是否有 endpoint_url 來判斷是否為外部 Agent
         has_external_endpoint = (
@@ -2288,13 +2253,11 @@ async def _process_chat_request(
             try:
                 from database.arangodb import ArangoDBClient
 
-                sys.stderr.write(f"\n[DEBUG] 嘗試從 ArangoDB 轉換 _key...\n")
-                sys.stderr.flush()
+                logger.debug(f"[DEBUG] 嘗試從 ArangoDB 轉換 _key...")
 
                 arango_client = ArangoDBClient()
                 if arango_client.db:
-                    sys.stderr.write(f"\n[DEBUG] ArangoDB 連接成功，執行 AQL 查詢...\n")
-                    sys.stderr.flush()
+                    logger.debug(f"[DEBUG] ArangoDB 連接成功，執行 AQL 查詢...")
                     cursor = arango_client.db.aql.execute(
                         """
                         FOR doc IN agent_display_configs
@@ -2313,14 +2276,10 @@ async def _process_chat_request(
                         if not actual_agent_id:
                             actual_agent_id = doc.get("agent_id")
                         if actual_agent_id:
-                            sys.stderr.write(
-                                f"\n[agent_id 轉換] 檢測到 _key: '{user_selected_agent_id}' → 轉換為 agent_id: '{actual_agent_id}'\n"
-                            )
-                            sys.stderr.flush()
+                            logger.debug(f"[agent_id 轉換] 檢測到 _key: '{user_selected_agent_id}' → 轉換為 agent_id: '{actual_agent_id}'")
                             user_selected_agent_id = actual_agent_id
             except Exception as e:
-                sys.stderr.write(f"\n[agent_id 轉換] 失敗: {e}\n")
-                sys.stderr.flush()
+                logger.debug(f"[agent_id 轉換] 失敗: {e}")
 
         # 2026-02-17 新增：如果 agent_id 是名稱（如 "mm-agent"），需要先獲取對應的 _key
         # 然後用 _key 獲取 endpoint
@@ -2344,21 +2303,15 @@ async def _process_chat_request(
                         doc = docs[0]
                         actual_key = doc.get("_key")
                         if actual_key:
-                            sys.stderr.write(
-                                f"\n[agent_id 轉換] 檢測到 agent_id: '{user_selected_agent_id}' → 轉換為 _key: '{actual_key}'\n"
-                            )
-                            sys.stderr.flush()
+                            logger.debug(f"[agent_id 轉換] 檢測到 agent_id: '{user_selected_agent_id}' → 轉換為 _key: '{actual_key}'")
                             # 更新 user_selected_agent_id 為 _key，讓後續邏輯使用
                             user_selected_agent_id = actual_key
             except Exception as e:
-                sys.stderr.write(f"\n[agent_id 到 _key 轉換] 失敗: {e}\n")
-                sys.stderr.flush()
+                logger.debug(f"[agent_id 到 _key 轉換] 失敗: {e}")
 
         # 修改時間：2026-01-27 - 添加完整的請求參數日誌
-        import sys
 
-        sys.stderr.write(
-            f"\n[chatMessage] 📥 後端接收聊天請求（非流式）：\n"
+        logger.debug(f"[chatMessage] 後端接收聊天請求（非流式）：\n"
             f"  - request_id: {request_id}\n"
             f"  - task_id: {task_id}\n"
             f"  - session_id: {session_id}\n"
@@ -2370,9 +2323,7 @@ async def _process_chat_request(
             f"  - message_count: {len(messages)}\n"
             f"  - last_user_text: {last_user_text[:100]}...\n"
             f"  - attachments_count: {len(request_body.attachments) if request_body.attachments else 0}\n"
-            f"  - timestamp: {datetime.now().isoformat()}\n"
-        )
-        sys.stderr.flush()
+            f"  - timestamp: {datetime.now().isoformat()}")
 
         logger.info(
             f"chatMessage request received: request_id={request_id}, task_id={task_id}, "
@@ -2394,116 +2345,62 @@ async def _process_chat_request(
             }
         )
 
-        # 修復：因為前面已將 agent_id 轉換為 _key
-        is_mm_agent = user_selected_agent_id and user_selected_agent_id.startswith("-")
-        if is_mm_agent or should_forward:
-            sys.stderr.write(
-                f"\n[mm-agent] 🔀 轉發給 MM-Agent\n"
-                f"  - user_selected_agent_id (as _key): {user_selected_agent_id}\n"
-                f"  - is_mm_agent: {is_mm_agent}\n"
+        # 使用統一函數獲取 endpoint，判斷是否為外部 Agent
+        agent_endpoint_url = _get_endpoint_url(user_selected_agent_id) if user_selected_agent_id else None
+
+        if agent_endpoint_url or should_forward:
+            logger.debug(f"[外部Agent] 轉發給外部 Agent\n"
+                f"  - user_selected_agent_id: {user_selected_agent_id}\n"
+                f"  - agent_endpoint_url: {agent_endpoint_url}\n"
                 f"  - should_forward: {should_forward}\n"
-                f"  - query: {last_user_text[:100]}...\n"
+                f"  - query: {last_user_text[:100]}...")
+
+            # 構造外部 Agent 請求（統一使用 /execute 格式，攜帶對話上下文）
+            # MM-Agent 為無狀態服務，需傳遞最近對話上下文
+            recent_messages = messages[-10:] if messages else []  # 最近 10 條對話
+            
+            agent_request = {
+                "task_id": task_id or str(uuid.uuid4()),
+                "task_type": "data_query",
+                "task_data": {
+                    "instruction": last_user_text,
+                    "user_id": current_user.user_id,
+                    "session_id": session_id,
+                },
+                "messages": recent_messages,  # 攜帶對話上下文
+            }
+
+            logger.debug(f"[外部Agent] 調用外部 Agent: endpoint={agent_endpoint_url}\n"
+                f"  - request: {agent_request}")
+
+
+            response = httpx.post(
+                agent_endpoint_url,
+                json=agent_request,
+                headers={"Content-Type": "application/json"},
+                timeout=120.0,
             )
-            sys.stderr.flush()
 
-            # 構造 MM-Agent 請求
-            # 從 agent_display_configs 獲取 endpoint（第三方 Agent 存儲在那裡）
-            from services.api.services.agent_display_config_store_service import (
-                AgentDisplayConfigStoreService,
-            )
-
-            store = AgentDisplayConfigStoreService()
-            selected_agent = str(user_selected_agent_id) if user_selected_agent_id else ""
-            sys.stderr.write(
-                f"\n[mm-agent] 🔍 查詢 agent config: selected_agent={selected_agent}\n"
-            )
-            # user_selected_agent_id 已經是 _key 格式，直接用 _key 查詢
-            agent_config = store.get_agent_config(agent_key=selected_agent, tenant_id=None)
-            if not agent_config:
-                sys.stderr.write(f"\n[mm-agent] 🔄 用 _key 查詢失敗，嘗試用 agent_id 查詢\n")
-                agent_config = store.get_agent_config(agent_id=selected_agent, tenant_id=None)
-
-            if agent_config and hasattr(agent_config, "endpoint_url") and agent_config.endpoint_url:
-                mm_endpoint = agent_config.endpoint_url
-                knowledge_bases = getattr(agent_config, "knowledge_bases", None) or []
-
-                sys.stderr.write(
-                    f"\n[mm-agent] 📤 從 agent_display_configs 獲取 endpoint: {mm_endpoint}\n"
-                    f"  - knowledge_bases: {knowledge_bases}\n"
-                )
-
-                # 根據 endpoint 選擇請求格式
-                if "/auto-execute" in mm_endpoint:
-                    # /api/v1/chat/auto-execute 格式
-                    mm_request = {
-                        "instruction": last_user_text,
-                        "session_id": session_id,
-                    }
-                else:
-                    # /execute 端點格式
-                    mm_request = {
-                        "task_id": task_id or str(uuid.uuid4()),
-                        "task_type": "query_stock",
-                        "task_data": {
-                            "instruction": last_user_text,
-                            "user_id": current_user.user_id,
-                            "session_id": session_id,
-                        },
-                    }
-
-                sys.stderr.write(
-                    f"\n[mm-agent] 📤 調用 MM-Agent: endpoint={mm_endpoint}\n"
-                    f"  - request: {mm_request}\n"
-                )
-                sys.stderr.flush()
-
-                import httpx
-
-                response = httpx.post(
-                    mm_endpoint,
-                    json=mm_request,
-                    headers={"Content-Type": "application/json"},
-                    timeout=120.0,
-                )
-
-                if response.status_code == 200:
-                    mm_result = response.json()
-                    result_text = ""
-                    if isinstance(mm_result, dict):
-                        if "result" in mm_result:
-                            result_data = mm_result["result"]
-                            if isinstance(result_data, dict):
-                                # 檢查是否有嵌套的 result 欄位（MM-Agent 返回格式）
-                                if "result" in result_data and isinstance(
-                                    result_data["result"], dict
-                                ):
-                                    inner_result = result_data["result"]
-                                    # 優先使用 response 欄位
-                                    if "response" in inner_result and inner_result["response"]:
-                                        result_text = inner_result["response"]
-                                    elif "response" in result_data and result_data["response"]:
-                                        result_text = result_data["response"]
-                                    else:
-                                        result_text = str(result_data)
-                                elif "response" in result_data and result_data["response"]:
-                                    result_text = result_data["response"]
-                                else:
-                                    result_text = str(result_data)
-                            else:
-                                result_text = str(result_data)
-                        elif "content" in mm_result:
-                            result_text = str(mm_result["content"])
-                        else:
-                            result_text = str(mm_result)
-
+            if response.status_code == 200:
+                agent_result = response.json()
+                
+                # 使用分類函數處理響應
+                response_type = _classify_agent_response(agent_result)
+                
+                logger.info(f"[外部Agent] 響應類型: {response_type['type']}")
+                
+                # 需要澄清
+                if response_type["type"] == "clarification":
+                    clarification_msg = response_type.get("clarification_message", "請提供更多資訊")
+                    logger.info(f"[外部Agent] 需要澄清: {clarification_msg}")
                     response = ChatResponse(
-                        content=f"【MM-Agent 查詢結果】\n{result_text}",
+                        content=f"【{user_selected_agent_id} 回覆】\n{clarification_msg}",
                         session_id=session_id,
                         task_id=task_id,
                         routing=RoutingInfo(
-                            provider="mm-agent",
-                            model="mm-agent-http",
-                            strategy="mm-agent",
+                            provider="external-agent",
+                            model="external-agent-http",
+                            strategy="external-agent",
                         ),
                         observability=ObservabilityInfo(
                             request_id=request_id,
@@ -2512,12 +2409,74 @@ async def _process_chat_request(
                         ),
                     )
                     return response
+                
+                # 業務失敗或系統錯誤
+                elif response_type["type"] in ("business_failure", "system_error"):
+                    llm_prompt = response_type["llm_prompt"]
+                    logger.info(f"[外部Agent] 失敗: {llm_prompt}")
+                    response = ChatResponse(
+                        content=f"【{user_selected_agent_id} 回覆】\n{llm_prompt}",
+                        session_id=session_id,
+                        task_id=task_id,
+                        routing=RoutingInfo(
+                            provider="external-agent",
+                            model="external-agent-http",
+                            strategy="external-agent",
+                        ),
+                        observability=ObservabilityInfo(
+                            request_id=request_id,
+                            session_id=session_id,
+                            task_id=task_id,
+                        ),
+                    )
+                    return response
+                
+                # 成功
                 else:
-                    logger.error(f"[mm-agent] MM-Agent 調用失敗: HTTP {response.status_code}")
+                    result_data = response_type["data"]
+                    result_text = ""
+                    
+                    # 優先檢查 response 是否為有效字串（不為 None）
+                    if result_data.get("response"):
+                        result_text = result_data["response"]
+                    elif "result" in result_data and isinstance(result_data["result"], dict):
+                        inner = result_data["result"]
+                        if inner.get("response"):
+                            result_text = inner["response"]
+                        elif "data" in inner:
+                            result_text = str(inner["data"])
+                        elif "stock_list" in inner:
+                            # 處理庫存列表
+                            stock_list = inner["stock_list"]
+                            result_text = "查詢結果：\\n"
+                            for item in stock_list[:10]:
+                                result_text += f"- 倉庫 {item.get('warehouse_no', 'N/A')}: {item.get('total', 0)}\n"
+                    
+                    logger.info(f"[外部Agent] 成功提取數據")
+                    
+                    response = ChatResponse(
+                        content=f"【{user_selected_agent_id} 查詢結果】\n{result_text}",
+                        session_id=session_id,
+                        task_id=task_id,
+                        routing=RoutingInfo(
+                            provider="external-agent",
+                            model="external-agent-http",
+                            strategy="external-agent",
+                        ),
+                        observability=ObservabilityInfo(
+                            request_id=request_id,
+                            session_id=session_id,
+                            task_id=task_id,
+                        ),
+                    )
+                    return response
             else:
-                logger.warning(
-                    f"[mm-agent] 未找到 MM-Agent 配置: agent_id={user_selected_agent_id}, 將跳過直接調用"
-                )
+                logger.error(f"[外部Agent] 外部 Agent 調用失敗: HTTP {response.status_code}")
+        else:
+            logger.warning(
+                f"[外部Agent] 未找到外部 Agent 配置: agent_id={user_selected_agent_id}, 將跳過直接調用"
+            )
+
 
         # Task Analyzer 分析
         analysis_result = await task_analyzer.analyze(
@@ -2528,31 +2487,26 @@ async def _process_chat_request(
                     "session_id": session_id,
                     "task_id": task_id,
                     "request_id": request_id,
-                    "allowed_tools": allowed_tools_for_analyzer,  # ✅ 傳遞 allowed_tools
-                    "agent_id": user_selected_agent_id,  # ✅ 傳遞用戶選擇的 agent_id
-                    "model_selector": model_selector_dict,  # ✅ 傳遞 model_selector，尊重用戶選擇的模型
+                    "allowed_tools": allowed_tools_for_analyzer,  # 傳遞 allowed_tools
+                    "agent_id": user_selected_agent_id,  # 傳遞用戶選擇的 agent_id
+                    "model_selector": model_selector_dict,  # 傳遞 model_selector，尊重用戶選擇的模型
                 },
                 user_id=current_user.user_id,
                 session_id=session_id,
-                specified_agent_id=user_selected_agent_id,  # ✅ 設置 specified_agent_id，讓 Task Analyzer 優先使用用戶選擇的 Agent
+                specified_agent_id=user_selected_agent_id,  # 設置 specified_agent_id，讓 Task Analyzer 優先使用用戶選擇的 Agent
             )
         )
         task_analyzer_result = analysis_result
 
         # 添加詳細日誌追蹤分析結果
-        sys.stderr.write(
-            f"\n[chat] 📊 Task Analyzer 結果檢查：\n"
+        logger.debug(f"[chat] Task Analyzer 結果檢查：\n"
             f"  - has_result: {task_analyzer_result is not None}\n"
             f"  - has_decision_result: {task_analyzer_result.decision_result is not None if task_analyzer_result else False}\n"
             f"  - chosen_agent: {task_analyzer_result.decision_result.chosen_agent if task_analyzer_result and task_analyzer_result.decision_result else None}\n"
             f"  - fast_path: {task_analyzer_result.analysis_details.get('fast_path', False) if task_analyzer_result and task_analyzer_result.analysis_details else False}\n"
-            f"  - direct_answer: {task_analyzer_result.analysis_details.get('direct_answer', False) if task_analyzer_result and task_analyzer_result.analysis_details else False}\n"
-        )
-        sys.stderr.flush()
+            f"  - direct_answer: {task_analyzer_result.analysis_details.get('direct_answer', False) if task_analyzer_result and task_analyzer_result.analysis_details else False}")
 
         # 修改時間：2026-01-06 - 添加詳細的 Console Log 輸出 Task Analyzer 分析結果
-        # 使用 sys.stderr 確保輸出到控制台（不被重定向）
-        import sys
 
         log_lines = []
         log_lines.append("\n" + "=" * 80)
@@ -2566,7 +2520,7 @@ async def _process_chat_request(
         # 修改時間：2026-01-27 - 記錄用戶選擇的 agent_id
         if user_selected_agent_id:
             log_lines.append(f"[task_analyzer] 用戶選擇的 Agent ID: {user_selected_agent_id}")
-            log_lines.append("[task_analyzer] ⚠️  用戶明確選擇了 Agent，將優先使用用戶選擇的 Agent")
+            log_lines.append("[task_analyzer]  用戶明確選擇了 Agent，將優先使用用戶選擇的 Agent")
 
         if task_analyzer_result:
             # Router Decision 信息
@@ -2630,23 +2584,22 @@ async def _process_chat_request(
                     "document_editing" in decision_result.chosen_tools
                     or "file_editing" in decision_result.chosen_tools
                 )
-                log_lines.append("\n[task_analyzer] 📁 文件創建判斷:")
+                log_lines.append("\n[task_analyzer] 文件創建判斷:")
                 log_lines.append(f"  - Document Editing Tool Selected: {has_doc_editing}")
                 if has_doc_editing:
-                    log_lines.append("  - ✅ 系統將嘗試創建文件")
+                    log_lines.append("  - 系統將嘗試創建文件")
                 else:
                     log_lines.append(
-                        "  - ⚠️  未選擇 document_editing 工具，將使用關鍵詞匹配作為 fallback"
+                        "  -  未選擇 document_editing 工具，將使用關鍵詞匹配作為 fallback"
                     )
         else:
-            log_lines.append("\n[task_analyzer] ⚠️  Task Analyzer 結果為 None")
+            log_lines.append("\n[task_analyzer]  Task Analyzer 結果為 None")
 
         log_lines.append("=" * 80 + "\n")
 
         # 輸出到 stderr（確保顯示在控制台）
         for line in log_lines:
-            sys.stderr.write(line + "\n")
-            sys.stderr.flush()
+            logger.debug(line + "")
 
         # 修改時間：2026-01-27 - Agent 調用優先級檢查
         # 優先級順序：
@@ -2672,16 +2625,12 @@ async def _process_chat_request(
             else False
         )
 
-        import sys
 
-        sys.stderr.write(
-            f"\n[chat] 🔍 Agent 調用優先級檢查：\n"
+        logger.debug(f"[chat] Agent 調用優先級檢查：\n"
             f"  - is_fast_path: {is_fast_path} (用戶明確選擇 Agent)\n"
             f"  - has_chosen_agent: {has_chosen_agent} (Task Analyzer 選擇了 Agent)\n"
             f"  - has_direct_answer: {has_direct_answer} (直接答案)\n"
-            f"  - 優先級：{'快速路徑 -> Agent' if is_fast_path else ('Agent' if has_chosen_agent else ('Direct Answer' if has_direct_answer else 'None'))}\n"
-        )
-        sys.stderr.flush()
+            f"  - 優先級：{'快速路徑 -> Agent' if is_fast_path else ('Agent' if has_chosen_agent else ('Direct Answer' if has_direct_answer else 'None'))}")
 
         # 如果用戶明確選擇了 Agent（快速路徑），直接跳過 direct_answer 檢查，進入 Agent 調用流程
         if is_fast_path:
@@ -2727,109 +2676,68 @@ async def _process_chat_request(
                 return response
     except Exception as analyzer_error:
         # Task Analyzer 失败不影响主流程，记录日志后继续
-        import sys
 
-        sys.stderr.write(
-            f"\n[task_analyzer] ❌ Task Analyzer 執行失敗 (非流式): {str(analyzer_error)}\n"
-        )
-        sys.stderr.flush()
+        logger.debug(f"[task_analyzer] Task Analyzer 執行失敗 (非流式): {str(analyzer_error)}")
         logger.warning(
             f"Task Analyzer failed: request_id={request_id}, error={str(analyzer_error)}",
             exc_info=True,
         )
 
-        # 2026-02-04 新增：如果是 mm-agent，跳過 RAG 直接調用 MM-Agent
-        is_mm_agent_chat = user_selected_agent_id == "mm-agent"
-        if is_mm_agent_chat:
-            sys.stderr.write(
-                f"\n[mm-agent] 🔀 檢測到 mm-agent，跳過 RAG 直接調用 MM-Agent\n"
+        # 使用統一函數獲取 endpoint，判斷是否為外部 Agent
+        agent_endpoint_url = _get_endpoint_url(user_selected_agent_id) if user_selected_agent_id else None
+
+        if agent_endpoint_url:
+            logger.debug(f"[外部Agent] 檢測到外部 Agent，跳過 RAG 直接調用\n"
                 f"  - user_selected_agent_id: {user_selected_agent_id}\n"
-                f"  - query: {last_user_text[:100]}...\n"
+                f"  - agent_endpoint_url: {agent_endpoint_url}\n"
+                f"  - query: {last_user_text[:100]}...")
+
+            # 構造外部 Agent 請求（統一使用 /execute 格式，攜帶對話上下文）
+            # MM-Agent 為無狀態服務，需傳遞最近對話上下文
+            recent_messages = messages[-10:] if messages else []  # 最近 10 條對話
+            
+            agent_request = {
+                "task_id": task_id or str(uuid.uuid4()),
+                "task_type": "data_query",
+                "task_data": {
+                    "instruction": last_user_text,
+                    "user_id": current_user.user_id,
+                    "session_id": session_id,
+                },
+                "messages": recent_messages,  # 攜帶對話上下文
+            }
+
+            logger.debug(f"[外部Agent] 調用外部 Agent: endpoint={agent_endpoint_url}\n"
+                f"  - request: {agent_request}")
+
+
+            response = httpx.post(
+                agent_endpoint_url,
+                json=agent_request,
+                headers={"Content-Type": "application/json"},
+                timeout=120.0,
             )
-            sys.stderr.flush()
 
-            # 2026-02-16 修改：移除直接知識庫處理，讓 mm-agent 通過 KA-Agent 統一調用
-            # 根據 KA-Agent 規格書，所有知識調用必須通過 KA-Agent
-            # 知識調用優先級：KA-Agent > LLM > 網絡搜索
-
-            # 構造 MM-Agent 請求
-            # 從 agent_display_configs 獲取 endpoint
-            from services.api.services.agent_display_config_store_service import (
-                AgentDisplayConfigStoreService,
-            )
-
-            store = AgentDisplayConfigStoreService()
-            selected_agent = str(user_selected_agent_id) if user_selected_agent_id else ""
-            # user_selected_agent_id 已經是 _key 格式
-            agent_config = store.get_agent_config(agent_key=selected_agent, tenant_id=None)
-            if not agent_config:
-                agent_config = store.get_agent_config(agent_id=selected_agent, tenant_id=None)
-
-            if agent_config and hasattr(agent_config, "endpoint_url") and agent_config.endpoint_url:
-                mm_endpoint = agent_config.endpoint_url
-                mm_request = {
-                    "task_id": task_id or str(uuid.uuid4()),
-                    "task_type": "query_stock",
-                    "task_data": {
-                        "instruction": last_user_text,
-                        "user_id": current_user.user_id,
-                        "session_id": session_id,
-                    },
-                }
-
-                sys.stderr.write(
-                    f"\n[mm-agent] 📤 調用 MM-Agent: endpoint={mm_endpoint}\n"
-                    f"  - request: {mm_request}\n"
-                )
-                sys.stderr.flush()
-
-                import httpx
-
-                response = httpx.post(
-                    mm_endpoint,
-                    json=mm_request,
-                    headers={"Content-Type": "application/json"},
-                    timeout=120.0,
-                )
-
-                if response.status_code == 200:
-                    mm_result = response.json()
-                    result_text = ""
-                    if isinstance(mm_result, dict):
-                        if "result" in mm_result:
-                            result_data = mm_result["result"]
-                            if isinstance(result_data, dict):
-                                # 檢查是否有嵌套的 result 欄位（MM-Agent 返回格式）
-                                if "result" in result_data and isinstance(
-                                    result_data["result"], dict
-                                ):
-                                    inner_result = result_data["result"]
-                                    # 優先使用 response 欄位
-                                    if "response" in inner_result and inner_result["response"]:
-                                        result_text = inner_result["response"]
-                                    elif "response" in result_data and result_data["response"]:
-                                        result_text = result_data["response"]
-                                    else:
-                                        result_text = str(result_data)
-                                elif "response" in result_data and result_data["response"]:
-                                    result_text = result_data["response"]
-                                else:
-                                    result_text = str(result_data)
-                            else:
-                                result_text = str(result_data)
-                        elif "content" in mm_result:
-                            result_text = str(mm_result["content"])
-                        else:
-                            result_text = str(mm_result)
-
+            if response.status_code == 200:
+                agent_result = response.json()
+                
+                # 使用分類函數處理響應
+                response_type = _classify_agent_response(agent_result)
+                
+                logger.info(f"[外部Agent] 響應類型: {response_type['type']}")
+                
+                # 需要澄清
+                if response_type["type"] == "clarification":
+                    clarification_msg = response_type.get("clarification_message", "請提供更多資訊")
+                    logger.info(f"[外部Agent] 需要澄清: {clarification_msg}")
                     response = ChatResponse(
-                        content=f"【MM-Agent 查詢結果】\n{result_text}",
+                        content=f"【{user_selected_agent_id} 回覆】\n{clarification_msg}",
                         session_id=session_id,
                         task_id=task_id,
                         routing=RoutingInfo(
-                            provider="mm-agent",
-                            model="mm-agent-http",
-                            strategy="mm-agent",
+                            provider="external-agent",
+                            model="external-agent-http",
+                            strategy="external-agent",
                         ),
                         observability=ObservabilityInfo(
                             request_id=request_id,
@@ -2838,22 +2746,80 @@ async def _process_chat_request(
                         ),
                     )
                     return response
+                
+                # 業務失敗或系統錯誤
+                elif response_type["type"] in ("business_failure", "system_error"):
+                    llm_prompt = response_type["llm_prompt"]
+                    logger.info(f"[外部Agent] 失敗: {llm_prompt}")
+                    response = ChatResponse(
+                        content=f"【{user_selected_agent_id} 回覆】\n{llm_prompt}",
+                        session_id=session_id,
+                        task_id=task_id,
+                        routing=RoutingInfo(
+                            provider="external-agent",
+                            model="external-agent-http",
+                            strategy="external-agent",
+                        ),
+                        observability=ObservabilityInfo(
+                            request_id=request_id,
+                            session_id=session_id,
+                            task_id=task_id,
+                        ),
+                    )
+                    return response
+                
+                # 成功
                 else:
-                    logger.error(f"[mm-agent] MM-Agent 調用失敗: HTTP {response.status_code}")
+                    result_data = response_type["data"]
+                    result_text = ""
+                    
+                    # 優先檢查 response 是否為有效字串（不為 None）
+                    if result_data.get("response"):
+                        result_text = result_data["response"]
+                    elif "result" in result_data and isinstance(result_data["result"], dict):
+                        inner = result_data["result"]
+                        if inner.get("response"):
+                            result_text = inner["response"]
+                        elif "data" in inner:
+                            result_text = str(inner["data"])
+                        elif "stock_list" in inner:
+                            # 處理庫存列表
+                            stock_list = inner["stock_list"]
+                            result_text = "查詢結果：\n"
+                            for item in stock_list[:10]:  # 只顯示前10筆
+                                result_text += f"- 倉庫 {item.get('warehouse_no', 'N/A')}: {item.get('total', 0)}\n"
+                    
+                    logger.info(f"[外部Agent] 成功提取數據")
+                    
+                    response = ChatResponse(
+                        content=f"【{user_selected_agent_id} 查詢結果】\n{result_text}",
+                        session_id=session_id,
+                        task_id=task_id,
+                        routing=RoutingInfo(
+                            provider="external-agent",
+                            model="external-agent-http",
+                            strategy="external-agent",
+                        ),
+                        observability=ObservabilityInfo(
+                            request_id=request_id,
+                            session_id=session_id,
+                            task_id=task_id,
+                        ),
+                    )
+                    return response
             else:
-                logger.warning(
-                    f"[mm-agent] 未找到 MM-Agent 配置: agent_id={user_selected_agent_id}, 將跳過直接調用"
-                )
+                logger.error(f"[外部Agent] 外部 Agent 調用失敗: HTTP {response.status_code}")
+        else:
+            logger.warning(
+                f"[外部Agent] 未找到外部 Agent 配置: agent_id={user_selected_agent_id}, 將跳過直接調用"
+            )
 
-        # 2026-02-14 新增：一般 Chat 知識庫查詢處理
-        # 如果不是 MM-Agent，但用戶選擇了其他 Agent，且查詢是知識庫相關
-        elif user_selected_agent_id and user_selected_agent_id != "mm-agent":
+
+        # 如果不是外部 Agent，但用戶選擇了其他 Agent，且查詢是知識庫相關
+        if user_selected_agent_id and not agent_endpoint_url:
             if _is_knowledge_base_stats_query(last_user_text):
-                sys.stderr.write(
-                    f"\n[chat] 📚 檢測到知識庫查詢 (Agent: {user_selected_agent_id})\n"
-                    f"  - query: {last_user_text[:100]}...\n"
-                )
-                sys.stderr.flush()
+                logger.debug(f"[chat] 檢測到知識庫查詢 (Agent: {user_selected_agent_id})\n"
+                    f"  - query: {last_user_text[:100]}...")
 
                 # 獲取 Agent 配置中選擇的知識庫
                 selected_kb_ids = []
@@ -2900,8 +2866,7 @@ async def _process_chat_request(
                     )
                     return response
                 else:
-                    sys.stderr.write(f"\n[chat] Agent {user_selected_agent_id} 未配置知識庫\n")
-                    sys.stderr.flush()
+                    logger.debug(f"[chat] Agent {user_selected_agent_id} 未配置知識庫")
 
     # G3：用 windowed history 作為 MoE 的 messages（並保留前端提供的 system message）
     system_messages = [m for m in messages if m.get("role") == "system"]
@@ -2927,16 +2892,9 @@ async def _process_chat_request(
             current_user.user_id, ConsentType.AI_PROCESSING
         )
     except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "genai_consent_check_failed",
-            error=str(exc),
-            request_id=request_id,
-            user_id=current_user.user_id,
-        )
+        logger.warning(f"genai_consent_check_failed: error={str(exc)}, request_id={request_id}, user_id={current_user.user_id}")
         has_ai_consent = False
 
-    # 暫時關閉 AI 處理同意檢查（測試用）。正式環境請刪除此行。
-    has_ai_consent = True
 
     # 2026-02-14 新增：獲取 Agent 配置的知識庫文件 ID
     knowledge_base_file_ids: list[str] = []
@@ -3047,15 +3005,11 @@ async def _process_chat_request(
         )
 
         if chosen_agent_id:
-            import sys
 
-            sys.stderr.write(
-                f"\n[chat] 🤖 Agent 執行檢查：\n"
+            logger.debug(f"[chat] Agent 執行檢查：\n"
                 f"  - chosen_agent_id: {chosen_agent_id}\n"
                 f"  - is_fast_path: {is_fast_path}\n"
-                f"  - 準備調用 Agent...\n"
-            )
-            sys.stderr.flush()
+                f"  - 準備調用 Agent...")
 
             try:
                 from agents.services.registry.registry import get_agent_registry
@@ -3064,14 +3018,11 @@ async def _process_chat_request(
                 registry = get_agent_registry()
                 agent_info = registry.get_agent_info(chosen_agent_id)
 
-                sys.stderr.write(
-                    f"\n[chat] 📦 Agent Registry 查詢結果：\n"
+                logger.debug(f"[chat] Agent Registry 查詢結果：\n"
                     f"  - agent_info exists: {agent_info is not None}\n"
                     f"  - agent_status: {agent_info.status.value if agent_info else 'N/A'}\n"
                     f"  - agent_name: {agent_info.name if agent_info else 'N/A'}\n"
-                    f"  - agent_capabilities: {agent_info.capabilities if agent_info else []}\n"
-                )
-                sys.stderr.flush()
+                    f"  - agent_capabilities: {agent_info.capabilities if agent_info else []}")
 
                 if agent_info and agent_info.status.value == "online":
                     logger.info(
@@ -3079,8 +3030,7 @@ async def _process_chat_request(
                         f"agent_name={agent_info.name}, capabilities={agent_info.capabilities}"
                     )
 
-                    sys.stderr.write("\n[chat] ✅ Agent 狀態正常，準備調用\n")
-                    sys.stderr.flush()
+                    logger.debug("[chat] Agent 狀態正常，準備調用")
 
                     # 修改時間：2026-01-28 - 區分內部 Agent 和外部 Agent
                     # 內部 Agent：直接調用 agent.execute()
@@ -3096,13 +3046,10 @@ async def _process_chat_request(
                             f"agent_name={agent_info.name}, calling agent.execute() directly"
                         )
 
-                        sys.stderr.write(
-                            f"\n[chat] 🔧 內部 Agent 直接執行：\n"
+                        logger.debug(f"[chat] 內部 Agent 直接執行：\n"
                             f"  - agent_id: {chosen_agent_id}\n"
                             f"  - agent_name: {agent_info.name}\n"
-                            f"  - user_query: {last_user_text[:100]}...\n"
-                        )
-                        sys.stderr.flush()
+                            f"  - user_query: {last_user_text[:100]}...")
 
                         try:
                             from agents.services.protocol.base import AgentServiceRequest
@@ -3116,11 +3063,8 @@ async def _process_chat_request(
                                     f"Available instances: {list(registry._agent_instances.keys())}"
                                 )
                                 logger.error(error_msg)
-                                sys.stderr.write(
-                                    f"\n[chat] ❌ 無法獲取 Agent 實例: {chosen_agent_id}\n"
-                                    f"  可用實例: {list(registry._agent_instances.keys())}\n"
-                                )
-                                sys.stderr.flush()
+                                logger.debug(f"[chat] 無法獲取 Agent 實例: {chosen_agent_id}\n"
+                                    f"  可用實例: {list(registry._agent_instances.keys())}")
                                 # 修改時間：2026-01-28 - Agent 實例不存在時拋出異常，而不是靜默失敗
                                 raise RuntimeError(
                                     f"Agent instance not found: {chosen_agent_id}. "
@@ -3219,15 +3163,11 @@ async def _process_chat_request(
                                     )
 
                         except Exception as internal_agent_error:
-                            import sys
 
-                            sys.stderr.write(
-                                f"\n[chat] ❌ 內部 Agent 執行失敗：\n"
+                            logger.debug(f"[chat] 內部 Agent 執行失敗：\n"
                                 f"  - agent_id: {chosen_agent_id}\n"
                                 f"  - error: {str(internal_agent_error)}\n"
-                                f"  - error_type: {type(internal_agent_error).__name__}\n"
-                            )
-                            sys.stderr.flush()
+                                f"  - error_type: {type(internal_agent_error).__name__}")
 
                             logger.error(
                                 f"Internal agent execution failed: agent_id={chosen_agent_id}, "
@@ -3250,81 +3190,25 @@ async def _process_chat_request(
                             f"mcp_endpoint={mcp_endpoint}, calling MCP tools"
                         )
 
-                        sys.stderr.write("\n[chat] ✅ Agent 狀態正常，準備調用工具\n")
-                        sys.stderr.flush()
+                        logger.debug("[chat] Agent 狀態正常，準備調用工具")
 
-                    # 根據用戶查詢選擇合適的工具
-                    # 例如：如果查詢包含「料號」，使用 warehouse_query_part
-                    # 如果查詢包含「列出」，使用 mm_execute_task
+                    # 使用 agent capabilities 動態選擇工具
                     tool_name: Optional[str] = None
-
-                    # 優先匹配：根據查詢內容選擇最合適的工具
-                    query_lower = last_user_text.lower()
-                    if "料號" in last_user_text or "料" in last_user_text or "part" in query_lower:
-                        # 查找 warehouse_query_part 或類似的查詢工具
-                        for cap in agent_info.capabilities:
-                            cap_lower = cap.lower()
-                            if "query_part" in cap_lower or (
-                                "query" in cap_lower and "part" in cap_lower
-                            ):
-                                tool_name = cap
-                                break
-                        # 如果沒找到，嘗試其他查詢工具
-                        if not tool_name:
-                            for cap in agent_info.capabilities:
-                                if "query" in cap.lower():
-                                    tool_name = cap
-                                    break
-                    elif (
-                        "列出" in last_user_text or "前" in last_user_text or "list" in query_lower
-                    ):
-                        # 查找 mm_execute_task 或類似的執行工具
-                        for cap in agent_info.capabilities:
-                            cap_lower = cap.lower()
-                            if "execute" in cap_lower or "task" in cap_lower:
-                                tool_name = cap
-                                break
-
-                    # 如果沒有找到特定工具，使用第一個可用的工具
-                    if not tool_name and agent_info.capabilities:
-                        tool_name = agent_info.capabilities[0]
+                    if agent_info.capabilities:
+                        # 優先使用第一個可用 capability
+                        selected_cap = agent_info.capabilities[0]
+                        tool_name = selected_cap.get("name") if isinstance(selected_cap, dict) else str(selected_cap)
                         logger.info(
-                            f"Using first available agent tool: agent_id={chosen_agent_id}, "
+                            f"Using agent capability: agent_id={chosen_agent_id}, "
                             f"tool_name={tool_name}, all_capabilities={agent_info.capabilities}"
                         )
 
-                    # 修改時間：2026-01-27 - 若外部 Agent 沒有 capabilities，依名稱/領域做合理預設
-                    if not tool_name and not agent_info.capabilities:
-                        agent_name = agent_info.name or ""
-                        agent_name_lower = agent_name.lower()
-                        if (
-                            "庫存" in agent_name
-                            or "物料" in agent_name
-                            or "inventory" in agent_name_lower
-                            or "warehouse" in agent_name_lower
-                        ):
-                            tool_name = "mm_execute_task"
-                        elif "財務" in agent_name or "finance" in agent_name_lower:
-                            tool_name = "finance_execute_task"
-                        elif "office" in agent_name_lower:
-                            tool_name = "office_execute_task"
-
-                        if tool_name:
-                            logger.info(
-                                f"Agent tool default selected: agent_id={chosen_agent_id}, "
-                                f"agent_name={agent_name}, tool_name={tool_name} (no capabilities in registry)"
-                            )
-
                     if tool_name:
-                        import sys
 
-                        sys.stderr.write(
-                            f"\n[chat] 🔧 準備調用 Agent 工具：\n"
+                        logger.debug(f"[chat] 準備調用 Agent 工具：\n"
                             f"  - tool_name: {tool_name}\n"
                             f"  - mcp_endpoint: {mcp_endpoint}\n"
-                            f"  - user_query: {last_user_text[:100]}...\n"
-                        )
-                        sys.stderr.flush()
+                            f"  - user_query: {last_user_text[:100]}...")
 
                         try:
                             # 通過 MCP Gateway 調用工具
@@ -3332,17 +3216,13 @@ async def _process_chat_request(
                                 "MCP_GATEWAY_ENDPOINT", "https://mcp.k84.org"
                             )
 
-                            sys.stderr.write(
-                                f"\n[chat] 🔗 連接 MCP Gateway：\n"
-                                f"  - gateway_endpoint: {gateway_endpoint}\n"
-                            )
-                            sys.stderr.flush()
+                            logger.debug(f"[chat] 連接 MCP Gateway：\n"
+                                f"  - gateway_endpoint: {gateway_endpoint}")
 
                             mcp_client = MCPClient(endpoint=gateway_endpoint, timeout=30.0)
                             await mcp_client.initialize()
 
-                            sys.stderr.write("\n[chat] ✅ MCP Client 初始化成功\n")
-                            sys.stderr.flush()
+                            logger.debug("[chat] MCP Client 初始化成功")
 
                             # 構建工具參數（根據用戶查詢）
                             tool_arguments = {
@@ -3350,12 +3230,9 @@ async def _process_chat_request(
                                 "task": last_user_text,
                             }
 
-                            sys.stderr.write(
-                                f"\n[chat] 📤 調用工具：\n"
+                            logger.debug(f"[chat] 調用工具：\n"
                                 f"  - tool_name: {tool_name}\n"
-                                f"  - tool_arguments: {tool_arguments}\n"
-                            )
-                            sys.stderr.flush()
+                                f"  - tool_arguments: {tool_arguments}")
 
                             # 調用工具
                             tool_result = await mcp_client.call_tool(
@@ -3363,12 +3240,9 @@ async def _process_chat_request(
                                 arguments=tool_arguments,
                             )
 
-                            sys.stderr.write(
-                                f"\n[chat] ✅ 工具調用成功：\n"
+                            logger.debug(f"[chat] 工具調用成功：\n"
                                 f"  - tool_result type: {type(tool_result)}\n"
-                                f"  - tool_result length: {len(str(tool_result)) if tool_result else 0}\n"
-                            )
-                            sys.stderr.flush()
+                                f"  - tool_result length: {len(str(tool_result)) if tool_result else 0}")
 
                             await mcp_client.close()
 
@@ -3396,63 +3270,33 @@ async def _process_chat_request(
                                     }
                                 )
 
-                                logger.info(
-                                    "agent_tool_executed",
-                                    request_id=request_id,
-                                    agent_id=chosen_agent_id,
-                                    tool_name=tool_name,
-                                    result_length=len(tool_result_text),
-                                )
+                                logger.info(f"agent_tool_executed: request_id={request_id}, agent_id={chosen_agent_id}, tool_name={tool_name}, result_length={len(tool_result_text)}")
                         except Exception as agent_error:
-                            import sys
 
-                            sys.stderr.write(
-                                f"\n[chat] ❌ Agent 工具執行失敗：\n"
+                            logger.debug(f"[chat] Agent 工具執行失敗：\n"
                                 f"  - agent_id: {chosen_agent_id}\n"
                                 f"  - tool_name: {tool_name}\n"
                                 f"  - error: {str(agent_error)}\n"
-                                f"  - error_type: {type(agent_error).__name__}\n"
-                            )
-                            sys.stderr.flush()
+                                f"  - error_type: {type(agent_error).__name__}")
 
-                            logger.error(
-                                "agent_tool_execution_failed",
-                                request_id=request_id,
-                                agent_id=chosen_agent_id,
-                                tool_name=tool_name,
-                                error=str(agent_error),
-                                exc_info=True,
-                            )
+                            logger.error(f"agent_tool_execution_failed: request_id={request_id}, agent_id={chosen_agent_id}, tool_name={tool_name}, error={str(agent_error)}", exc_info=True)
                             # Agent 工具執行失敗不影響主流程，繼續執行
             except Exception as agent_registry_error:
-                import sys
 
-                sys.stderr.write(
-                    f"\n[chat] ❌ Agent Registry 查找失敗：\n"
+                logger.debug(f"[chat] Agent Registry 查找失敗：\n"
                     f"  - chosen_agent_id: {chosen_agent_id}\n"
                     f"  - error: {str(agent_registry_error)}\n"
-                    f"  - error_type: {type(agent_registry_error).__name__}\n"
-                )
-                sys.stderr.flush()
+                    f"  - error_type: {type(agent_registry_error).__name__}")
 
-                logger.warning(
-                    "agent_registry_lookup_failed",
-                    request_id=request_id,
-                    error=str(agent_registry_error),
-                    exc_info=True,
-                )
+                logger.warning(f"agent_registry_lookup_failed: request_id={request_id}, error={str(agent_registry_error)}", exc_info=True)
                 # Agent 查找失敗不影響主流程，繼續執行
         else:
-            import sys
 
-            sys.stderr.write(
-                f"\n[chat] ⚠️  Agent 執行檢查失敗：\n"
+            logger.debug(f"[chat]  Agent 執行檢查失敗：\n"
                 f"  - chosen_agent_id is None or empty\n"
                 f"  - has_task_analyzer_result: {task_analyzer_result is not None}\n"
                 f"  - has_decision_result: {task_analyzer_result.decision_result is not None if task_analyzer_result else False}\n"
-                f"  - user_selected_agent_id: {user_selected_agent_id}\n"
-            )
-            sys.stderr.flush()
+                f"  - user_selected_agent_id: {user_selected_agent_id}")
 
     base_system = system_messages[:1] if system_messages else []
 
@@ -3503,13 +3347,14 @@ async def _process_chat_request(
         simplified_service = get_simplified_model_service()
         if simplified_service.is_enabled():
             backend_model = simplified_service.map_frontend_to_backend(model_selector.model_id)
+            original_model_id = model_selector.model_id
             if backend_model == "auto":
                 model_selector.mode = "auto"
                 model_selector.model_id = None
             elif backend_model != model_selector.model_id:
                 model_selector.model_id = backend_model
                 logger.info(
-                    f"model_mapped_to_backend: frontend={model_selector.model_id}, backend={backend_model}"
+                    f"model_mapped_to_backend: frontend={original_model_id}, backend={backend_model}"
                 )
 
     # 修改時間：2026-01-25 - 支持 SmartQ-HCI 統一回覆 Prompt 注入
@@ -3824,12 +3669,7 @@ async def _process_chat_request(
                     )
                 ):
                     force_create = True
-                    logger.info(
-                        "force_create_file_based_on_task_analyzer",
-                        request_id=request_id,
-                        chosen_tools=decision_result.chosen_tools,
-                        note="Task Analyzer identified document creation intent via semantic analysis",
-                    )
+                    logger.info(f"force_create_file_based_on_task_analyzer: request_id={request_id}, chosen_tools={decision_result.chosen_tools}, note=Task Analyzer identified document creation intent via semantic analysis")
 
             create_action = _try_create_file_from_chat_output(
                 user_text=last_user_text,
@@ -3841,14 +3681,7 @@ async def _process_chat_request(
             if create_action:
                 actions = [create_action]
     except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "genai_chat_file_action_failed",
-            error=str(exc),
-            request_id=request_id,
-            session_id=session_id,
-            task_id=task_id,
-            user_id=current_user.user_id,
-        )
+        logger.warning(f"genai_chat_file_action_failed: error={str(exc)}, request_id={request_id}, session_id={session_id}, task_id={task_id}, user_id={current_user.user_id}")
 
     # 修改時間：2026-01-28 - 驗證 ChatResponse 創建前的必需字段
     logger.info(
@@ -3941,24 +3774,7 @@ async def _process_chat_request(
     trace_store.add_event(final_event)
     metrics.record_final_event(final_event)
 
-    logger.info(
-        "genai_chat_response_sent",
-        request_id=request_id,
-        session_id=session_id,
-        task_id=task_id,
-        user_id=current_user.user_id,
-        provider=routing_info.provider,
-        model=routing_info.model,
-        strategy=routing_info.strategy,
-        failover_used=routing_info.failover_used,
-        fallback_provider=routing_info.fallback_provider,
-        memory_hit_count=observability.memory_hit_count,
-        memory_sources=observability.memory_sources,
-        retrieval_latency_ms=observability.retrieval_latency_ms,
-        context_message_count=observability.context_message_count,
-        total_latency_ms=total_latency_ms,
-        llm_latency_ms=llm_latency_ms,
-    )
+    logger.info(f"genai_chat_response_sent: request_id={request_id}, session_id={session_id}, task_id={task_id}, user_id={current_user.user_id}, provider={routing_info.provider}, model={routing_info.model}, strategy={routing_info.strategy}, failover_used={routing_info.failover_used}, fallback_provider={routing_info.fallback_provider}, memory_hit_count={observability.memory_hit_count}, memory_sources={observability.memory_sources}, retrieval_latency_ms={observability.retrieval_latency_ms}, context_message_count={observability.context_message_count}, total_latency_ms={total_latency_ms}, llm_latency_ms={llm_latency_ms}")
 
     return response
 
@@ -3976,7 +3792,6 @@ async def chat_product_stream(
     - Auto：TaskClassifier → task_classification → 選擇 provider → 調用客戶端 stream
     - Manual/Favorite：以 model_id 推導 provider，並做 provider/model override
     """
-    import time
 
     stream_start_time = time.time()
 
@@ -4003,7 +3818,6 @@ async def chat_product_stream(
     last_user_text = messages[-1].get("content", "") if messages else ""
 
     # 修改時間：2026-01-06 - 在入口處添加詳細日誌，使用標準 logging 確保日誌被記錄
-    import logging
 
     std_logger = logging.getLogger("api.routers.chat")
     std_logger.info(
@@ -4099,23 +3913,17 @@ async def chat_product_stream(
             task_analyzer_result = None
             try:
                 # 修改時間：2026-01-06 - 添加調試日誌確認代碼執行路徑
-                import sys
 
-                sys.stderr.write(
-                    f"\n[task_analyzer] 🔍 開始調用 Task Analyzer，用戶查詢: {last_user_text[:100]}...\n"
-                )
-                sys.stderr.flush()
+                logger.debug(f"[task_analyzer] 開始調用 Task Analyzer，用戶查詢: {last_user_text[:100]}...")
 
                 task_analyzer = get_task_analyzer()
                 # 修改時間：2026-01-27 - 如果用戶明確選擇了 agent_id，優先使用用戶選擇的 Agent（流式版本）
                 user_selected_agent_id = request_body.agent_id
 
                 # 修改時間：2026-01-27 - 添加完整的請求參數日誌（流式版本）
-                import sys
                 from datetime import datetime
 
-                sys.stderr.write(
-                    f"\n[chatMessage] 📥 後端接收聊天請求（流式）：\n"
+                logger.debug(f"[chatMessage] 後端接收聊天請求（流式）：\n"
                     f"  - request_id: {request_id}\n"
                     f"  - task_id: {task_id}\n"
                     f"  - session_id: {session_id}\n"
@@ -4127,9 +3935,7 @@ async def chat_product_stream(
                     f"  - message_count: {len(messages)}\n"
                     f"  - last_user_text: {last_user_text[:100]}...\n"
                     f"  - attachments_count: {len(request_body.attachments) if request_body.attachments else 0}\n"
-                    f"  - timestamp: {datetime.now().isoformat()}\n"
-                )
-                sys.stderr.flush()
+                    f"  - timestamp: {datetime.now().isoformat()}")
 
                 logger.info(
                     f"chatMessage stream request: request_id={request_id}, task_id={task_id}, "
@@ -4143,9 +3949,6 @@ async def chat_product_stream(
                 # 修改時間：2026-01-06 - 將 allowed_tools 傳遞給 Task Analyzer，讓 Capability Matcher 優先考慮啟用的工具
                 # 修改時間：2026-02-01 - 傳遞 model_selector，尊重用戶選擇的模型（如 Ollama）
 
-                # 2026-02-04 新增：支援 agent_id ↔ _key 轉換
-                # 目標：將 agent_id (如 "mm-agent") 轉換為 _key (如 "-h0tjyh")
-                user_selected_agent_id = request_body.agent_id
                 if user_selected_agent_id:
                     try:
                         from database.arangodb import ArangoDBClient
@@ -4193,175 +3996,150 @@ async def chat_product_stream(
                     except Exception as e:
                         logger.warning(f"[agent_id 轉換] 失敗: {e}")
 
-                # 2026-02-04 新增：如果是 mm-agent，直接調用 MM-Agent，跳過 Task Analyzer 和 RAG
-                # 2026-02-17 修復：支援 _key 格式（如 "-h0tjyh"）
-                is_mm_agent = user_selected_agent_id == "mm-agent" or (
-                    user_selected_agent_id and user_selected_agent_id.startswith("-")
-                )
+                # 使用統一函數獲取 endpoint，判斷是否為外部 Agent
+                agent_endpoint_url = _get_endpoint_url(user_selected_agent_id) if user_selected_agent_id else None
+
                 logger.info(
-                    f"[mm-agent] 🔍 Debug: user_selected_agent_id={user_selected_agent_id}, is_mm_agent={is_mm_agent}"
+                    f"[外部Agent] Debug: user_selected_agent_id={user_selected_agent_id}, agent_endpoint_url={agent_endpoint_url}"
                 )
-                if is_mm_agent:
+
+                if agent_endpoint_url:
                     logger.info(
-                        f"[mm-agent] 🔀 檢測到 mm-agent (_key={user_selected_agent_id})，直接調用 MM-Agent"
+                        f"[外部Agent] 檢測到外部 Agent (agent_id={user_selected_agent_id})"
                     )
 
+                    # 2026-03-04: 先用 OrchestratorIntentRAG 分類意圖
+                    # 若為非業務意圖（GREETING, THANKS, CHITCHAT），直接 LLM 回覆，不送外部 Agent
+                    _skip_external_agent = False
                     try:
-                        # 從 agent_display_configs 獲取 endpoint
-                        from services.api.services.agent_display_config_store_service import (
-                            AgentDisplayConfigStoreService,
+                        from agents.services.orchestrator_intent_rag_client import (
+                            get_orchestrator_intent_rag,
+                            BUSINESS_INTENTS,
                         )
-
-                        store = AgentDisplayConfigStoreService()
-                        selected_agent = (
-                            str(user_selected_agent_id) if user_selected_agent_id else ""
+                        _orch_rag = get_orchestrator_intent_rag()
+                        _intent_result = _orch_rag.sync_classify(last_user_text)
+                        logger.info(
+                            f"[外部Agent] OrchestratorIntentRAG 分類: intent={_intent_result.intent_name}, "
+                            f"score={_intent_result.score:.3f}, strategy={_intent_result.action_strategy}"
                         )
-                        logger.info(f"[mm-agent] 🔍 查詢 config: selected_agent={selected_agent}")
-                        # user_selected_agent_id 可能是 "mm-agent" 或 _key "-h0tjyh"
-                        # 優先用 _key 查詢
-                        agent_config = store.get_agent_config(
-                            agent_key=selected_agent, tenant_id=None
-                        )
-                        if not agent_config:
-                            logger.info(f"[mm-agent] 🔄 _key 查詢失敗，回退用 agent_id 查詢")
-                            agent_config = store.get_agent_config(
-                                agent_id=selected_agent, tenant_id=None
+                        if _intent_result.intent_name not in BUSINESS_INTENTS:
+                            _skip_external_agent = True
+                            logger.info(
+                                f"[外部Agent] 非業務意圖 ({_intent_result.intent_name})，跳過外部 Agent，走 LLM 直接回覆"
                             )
-                        else:
-                            logger.info(f"[mm-agent] ✅ _key 查詢成功")
+                    except Exception as _rag_err:
+                        logger.warning(f"[外部Agent] OrchestratorIntentRAG 分類失敗: {_rag_err}，繼續調用外部 Agent")
 
-                        if (
-                            agent_config
-                            and hasattr(agent_config, "endpoint_url")
-                            and agent_config.endpoint_url
-                        ):
-                            mm_endpoint = agent_config.endpoint_url
-
-                            # MM-Agent 期望簡單格式：{"instruction": "...", "session_id": "..."}
-                            mm_request = {
-                                "instruction": last_user_text,
-                                "session_id": session_id,
+                    if not _skip_external_agent:
+                        try:
+                            # 構造外部 Agent 請求（統一使用 /execute 格式，攜帶對話上下文）
+                            # MM-Agent 為無狀態服務，需傳遞最近對話上下文
+                            recent_messages = messages[-10:] if messages else []  # 最近 10 條對話
+                            
+                            agent_request = {
+                                "task_id": task_id or str(uuid.uuid4()),
+                                "task_type": "data_query",
+                                "task_data": {
+                                    "instruction": last_user_text,
+                                    "user_id": current_user.user_id,
+                                    "session_id": session_id,
+                                },
+                                "messages": recent_messages,  # 攜帶對話上下文
                             }
+                            
+                            logger.debug(f"===== [外部Agent] DEBUG =====")
+                            logger.debug(f"endpoint: {agent_endpoint_url}")
+                            logger.debug(f"task_id: {task_id}")
+                            logger.debug(f"messages count: {len(recent_messages)}")
+                            logger.debug(f"messages: {recent_messages}")
+                            logger.debug(f"agent_request: {agent_request}")
+                            logger.debug(f"===========================")
 
-                            logger.info(f"[mm-agent] 📤 調用 MM-Agent: endpoint={mm_endpoint}")
+                            logger.info(f"[外部Agent] 調用外部 Agent: endpoint={agent_endpoint_url}")
 
-                            import httpx
 
                             response = httpx.post(
-                                mm_endpoint,
-                                json=mm_request,
+                                agent_endpoint_url,
+                                json=agent_request,
                                 headers={"Content-Type": "application/json"},
                                 timeout=120.0,
                             )
 
                             logger.info(
-                                f"[mm-agent] 📥 MM-Agent 回應: status={response.status_code}, content_length={len(response.text)}"
+                                f"[外部Agent] 回應: status={response.status_code}, content_length={len(response.text)}"
                             )
-                            if response.status_code == 200:
-                                logger.info(
-                                    f"[mm-agent] 📄 MM-Agent 回應內容: {response.text[:500]}..."
-                                )
 
                             if response.status_code == 200:
-                                mm_result = response.json()
-                                result_text = ""
-                                inventory_data = None
+                                agent_result = response.json()
+                                yield f"data: {json.dumps({'type': 'start', 'data': {'request_id': request_id, 'session_id': session_id}})}\n\n"
 
-                                if isinstance(mm_result, dict):
-                                    debug_info = mm_result.get("debug_info", {})
-                                    all_results = debug_info.get("all_results", [])
-
-                                    business_explanation = None
-                                    result_data = []
-
-                                    if all_results and isinstance(all_results, list):
-                                        first_result = all_results[0]
-                                        if isinstance(first_result, dict):
-                                            result_debug_info = first_result.get("debug_info", {})
-                                            business_explanation = result_debug_info.get(
-                                                "result", {}
-                                            ).get("business_explanation")
-                                            result_data = result_debug_info.get("result", {}).get(
-                                                "data", []
-                                            )
-
-                                    if business_explanation:
-                                        inventory_data = f"📊 查詢結果：\n\n{business_explanation}"
-                                        logger.info(f"[mm-agent] ✅ 使用 LLM 業務解說")
-                                    elif result_data:
-                                        # 構建表格
-                                        first_item = result_data[0] if result_data else {}
-                                        material_code = (
-                                            first_item.get("item_no")
-                                            or first_item.get("material_code")
-                                            or "N/A"
-                                        )
-                                        stock_key = (
-                                            "existing_stocks"
-                                            if "existing_stocks" in first_item
-                                            else "inventory_value"
-                                        )
-
-                                        lines = [f"📊 查詢結果：", "", f"料號: {material_code}", ""]
-
-                                        if stock_key == "inventory_value":
-                                            lines.append("| 料號 | 庫存價值 |")
-                                            lines.append("|-----|---------|")
-                                            for item in result_data:
-                                                code = (
-                                                    item.get("item_no")
-                                                    or item.get("material_code")
-                                                    or "N/A"
-                                                )
-                                                value = item.get("inventory_value", 0)
-                                                lines.append(f"| {code} | {value:,.2f} |")
-                                        else:
-                                            lines.append("| 倉庫 | 單位 | 庫存數量 |")
-                                            lines.append("|-----|-----|---------|")
-                                            for item in result_data:
-                                                loc = (
-                                                    item.get("location_no")
-                                                    or item.get("warehouse_no")
-                                                    or "N/A"
-                                                )
-                                                u = item.get("unit") or "PC"
-                                                qty = int(item.get("existing_stocks", 0))
-                                                lines.append(f"| {loc} | {u} | {qty:,} |")
-
-                                        sql = result_debug_info.get("result", {}).get("sql", "")
-                                        if sql:
-                                            lines.append("")
-                                            lines.append(f"SQL: {sql}")
-
-                                        inventory_data = "\n".join(lines)
-                                        logger.info(
-                                            f"[mm-agent] ✅ 成功提取庫存數據: {len(result_data)} 行"
-                                        )
-
-                                    # 提取 response 字段
-                                    if "response" in mm_result:
-                                        result_text = mm_result["response"]
-                                    elif "content" in mm_result:
-                                        result_text = str(mm_result["content"])
-                                    else:
-                                        result_text = str(mm_result)
-
-                                    if inventory_data:
-                                        result_text = inventory_data
-
-                                yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': result_text}})}\n\n"
-                                yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
-                                return
+                                
+                                # 使用分類函數處理響應
+                                response_type = _classify_agent_response(agent_result)
+                                
+                                logger.info(f"[外部Agent] 響應類型: {response_type['type']}")
+                                
+                                # 需要澄清
+                                if response_type["type"] == "clarification":
+                                    clarification_msg = response_type.get("clarification_message", "請提供更多資訊")
+                                    logger.info(f"[外部Agent] 需要澄清: {clarification_msg}")
+                                    yield f"data: {json.dumps({'type': 'clarification', 'data': {'message': clarification_msg}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
+                                    return
+                                
+                                # 業務失敗或系統錯誤
+                                elif response_type["type"] in ("business_failure", "system_error"):
+                                    llm_prompt = response_type["llm_prompt"]
+                                    logger.info(f"[外部Agent] 失敗: {llm_prompt}")
+                                    # TODO: 後續可以送給 LLM 婉轉解釋
+                                    yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': llm_prompt}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
+                                    return
+                                
+                                # 成功：提取數據
+                                else:
+                                    result_data = response_type["data"]
+                                    result_text = ""
+                                    
+                                    # 提取 response 文字（多層結構兼容）
+                                    # MM-Agent 回傳結構: result.response 或 result.result.response
+                                    top_response = result_data.get("response")
+                                    if top_response:
+                                        result_text = str(top_response)
+                                    elif isinstance(result_data.get("result"), dict):
+                                        inner = result_data["result"]
+                                        inner_response = inner.get("response")
+                                        if inner_response:
+                                            result_text = str(inner_response)
+                                        elif inner.get("data"):
+                                            result_text = str(inner["data"])
+                                        elif inner.get("stock_list"):
+                                            # fallback: 直接格式化 stock_list
+                                            result_text = json.dumps(inner["stock_list"], ensure_ascii=False, indent=2)
+                                    
+                                    if not result_text:
+                                        # 最後 fallback: 整個 result 轉 JSON
+                                        result_text = json.dumps(result_data, ensure_ascii=False, indent=2)
+                                    
+                                    logger.info(f"[外部Agent] 成功提取數據: {str(result_text)[:100]}...")
+                                    
+                                    # TODO: 後續可以送給 LLM 補全完整回覆
+                                    yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': result_text}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
+                                    return
                             else:
                                 logger.error(
-                                    f"[mm-agent] MM-Agent 調用失敗: HTTP {response.status_code}"
+                                    f"[外部Agent] 外部 Agent 調用失敗: HTTP {response.status_code}"
                                 )
-                    except Exception as mm_error:
-                        logger.error(f"[mm-agent] 錯誤: {mm_error}")
+                                yield f"data: {json.dumps({'type': 'warning', 'content': f'Agent 調用失敗 (HTTP {response.status_code})，將使用 AI 回覆'})}\n\n"
+                        except Exception as agent_error:
+                            logger.error(f"[外部Agent] 錯誤: {agent_error}")
+                            yield f"data: {json.dumps({'type': 'warning', 'content': 'Agent 服務異常，將使用 AI 回覆'})}\n\n"
                 else:
                     logger.warning(
-                        f"[mm-agent] 未找到 MM-Agent 配置: agent_id={user_selected_agent_id}, 將跳過直接調用"
+                        f"[外部Agent] 未找到外部 Agent 配置: agent_id={user_selected_agent_id}, 將跳過直接調用"
                     )
+
 
                 model_selector_dict = (
                     request_body.model_selector.model_dump()
@@ -4379,13 +4157,13 @@ async def chat_product_stream(
                             "session_id": session_id,
                             "task_id": task_id,
                             "request_id": request_id,
-                            "allowed_tools": allowed_tools,  # ✅ 傳遞 allowed_tools
-                            "agent_id": user_selected_agent_id,  # ✅ 傳遞用戶選擇的 agent_id
-                            "model_selector": model_selector_dict,  # ✅ 傳遞 model_selector，尊重用戶選擇的模型
+                            "allowed_tools": allowed_tools,  # 傳遞 allowed_tools
+                            "agent_id": user_selected_agent_id,  # 傳遞用戶選擇的 agent_id
+                            "model_selector": model_selector_dict,  # 傳遞 model_selector，尊重用戶選擇的模型
                         },
                         user_id=current_user.user_id,
                         session_id=session_id,
-                        specified_agent_id=user_selected_agent_id,  # ✅ 設置 specified_agent_id，讓 Task Analyzer 優先使用用戶選擇的 Agent
+                        specified_agent_id=user_selected_agent_id,  # 設置 specified_agent_id，讓 Task Analyzer 優先使用用戶選擇的 Agent
                     )
                 )
 
@@ -4416,7 +4194,7 @@ async def chat_product_stream(
                         )
 
                     logger.info(
-                        f"✅ [Stream] Task Analyzer 完成，立即提取結果: "
+                        f"[Stream] Task Analyzer 完成，立即提取結果: "
                         f"chosen_agent_id={chosen_agent_id}, "
                         f"is_fast_path={is_fast_path}, "
                         f"has_direct_answer={has_direct_answer}"
@@ -4430,7 +4208,6 @@ async def chat_product_stream(
                     )
 
                 # 修改時間：2026-01-06 - 添加詳細的 Console Log 輸出 Task Analyzer 分析結果
-                # 使用 sys.stderr 確保輸出到控制台（不被重定向）
 
                 log_lines = []
                 log_lines.append("\n" + "=" * 80)
@@ -4499,28 +4276,25 @@ async def chat_product_stream(
                             "document_editing" in decision_result.chosen_tools
                             or "file_editing" in decision_result.chosen_tools
                         )
-                        log_lines.append("\n[task_analyzer] 📁 文件創建判斷:")
+                        log_lines.append("\n[task_analyzer] 文件創建判斷:")
                         log_lines.append(f"  - Document Editing Tool Selected: {has_doc_editing}")
                         if has_doc_editing:
-                            log_lines.append("  - ✅ 系統將嘗試創建文件")
+                            log_lines.append("  - 系統將嘗試創建文件")
                         else:
                             log_lines.append(
-                                "  - ⚠️  未選擇 document_editing 工具，將使用關鍵詞匹配作為 fallback"
+                                "  -  未選擇 document_editing 工具，將使用關鍵詞匹配作為 fallback"
                             )
                 else:
-                    log_lines.append("\n[task_analyzer] ⚠️  Task Analyzer 結果為 None")
+                    log_lines.append("\n[task_analyzer]  Task Analyzer 結果為 None")
 
                 log_lines.append("=" * 80 + "\n")
 
                 # 輸出到 stderr（確保顯示在控制台）
-                sys.stderr.write("\n🔍 [DEBUG-1] 準備輸出 log_lines\n")
-                sys.stderr.flush()
+                logger.debug("[DEBUG-1] 準備輸出 log_lines")
                 for line in log_lines:
-                    sys.stderr.write(line + "\n")
-                    sys.stderr.flush()
+                    logger.debug(line + "")
 
-                sys.stderr.write("\n🔍 [DEBUG-2] log_lines 輸出完成，準備記錄 logger.info\n")
-                sys.stderr.flush()
+                logger.debug("[DEBUG-2] log_lines 輸出完成，準備記錄 logger.info")
 
                 # 修改時間：2026-01-06 - 添加詳細日誌追蹤 Task Analyzer 結果
                 logger.info(
@@ -4528,8 +4302,7 @@ async def chat_product_stream(
                     f"chosen_tools={task_analyzer_result.decision_result.chosen_tools if task_analyzer_result and task_analyzer_result.decision_result else None}"
                 )
 
-                sys.stderr.write("\n🔍 [DEBUG-3] logger.info 執行完成\n")
-                sys.stderr.flush()
+                logger.debug("[DEBUG-3] logger.info 執行完成")
 
                 # 修改時間：2026-01-27 - Agent 調用優先級檢查（流式版本）
                 # 優先級順序：
@@ -4543,16 +4316,12 @@ async def chat_product_stream(
                 )
 
                 # 調試日誌：記錄所有相關值
-                import sys
 
-                sys.stderr.write(
-                    f"\n[DEBUG-STREAM] ========== 路由調試 ==========\n"
+                logger.debug(f"[DEBUG-STREAM] ========== 路由調試 ==========\n"
                     f"  - user_selected_agent_id: {user_selected_agent_id}\n"
                     f"  - analysis_result: {analysis_result is not None}\n"
                     f"  - analysis_details: {analysis_result.analysis_details if analysis_result else None}\n"
-                    f"  - is_fast_path: {is_fast_path}\n"
-                )
-                sys.stderr.flush()
+                    f"  - is_fast_path: {is_fast_path}")
                 has_direct_answer = (
                     analysis_result.analysis_details.get("direct_answer", False)
                     if analysis_result.analysis_details
@@ -4567,14 +4336,11 @@ async def chat_product_stream(
                     else False
                 )
 
-                sys.stderr.write(
-                    f"\n[chat_stream] 🔍 Agent 調用優先級檢查（流式）：\n"
+                logger.debug(f"[chat_stream] Agent 調用優先級檢查（流式）：\n"
                     f"  - is_fast_path: {is_fast_path} (用戶明確選擇 Agent)\n"
                     f"  - has_chosen_agent: {has_chosen_agent} (Task Analyzer 選擇了 Agent)\n"
                     f"  - has_direct_answer: {has_direct_answer} (直接答案)\n"
-                    f"  - 優先級：{'快速路徑 -> Agent' if is_fast_path else ('Agent' if has_chosen_agent else ('Direct Answer' if has_direct_answer else 'None'))}\n"
-                )
-                sys.stderr.flush()
+                    f"  - 優先級：{'快速路徑 -> Agent' if is_fast_path else ('Agent' if has_chosen_agent else ('Direct Answer' if has_direct_answer else 'None'))}")
 
                 # 如果用戶明確選擇了 Agent（快速路徑），直接跳過 direct_answer 檢查，進入 Agent 調用流程
                 if is_fast_path:
@@ -4610,14 +4376,10 @@ async def chat_product_stream(
                         return
             except Exception as analyzer_error:
                 # Task Analyzer 失败不影响主流程，记录日志后继续
-                import sys
                 import traceback
 
-                sys.stderr.write(
-                    f"\n[task_analyzer] ❌ Task Analyzer 執行失敗: {str(analyzer_error)}\n"
-                )
-                sys.stderr.write(f"[task_analyzer] ❌ 錯誤堆棧:\n{traceback.format_exc()}\n")
-                sys.stderr.flush()
+                logger.debug(f"[task_analyzer] Task Analyzer 執行失敗: {str(analyzer_error)}")
+                logger.debug(f"[task_analyzer] 錯誤堆棧:\n{traceback.format_exc()}")
                 logger.warning(
                     f"Task Analyzer failed (stream): {str(analyzer_error)}",
                     exc_info=True,
@@ -4634,9 +4396,9 @@ async def chat_product_stream(
             should_trigger_web_search = False
             task_analyzer_has_chosen_tools = False
 
-            # ✅ 新增：如果已選擇 Agent (如 ka-agent)，跳過 WebSearch Fallback
+            # 新增：如果已選擇 Agent (如 ka-agent)，跳過 WebSearch Fallback
             if chosen_agent_id:
-                logger.info(f"✅ 跳過 WebSearch Fallback: 已選擇 Agent '{chosen_agent_id}'")
+                logger.info(f"跳過 WebSearch Fallback: 已選擇 Agent '{chosen_agent_id}'")
                 # 不觸發 WebSearch，保持 chosen_agent_id
             elif task_analyzer_result:
                 # 检查 Task Analyzer 是否已经选择了工具
@@ -4671,19 +4433,10 @@ async def chat_product_stream(
                         for tool_name in decision_result.chosen_tools:
                             tool = tool_registry.get_tool(tool_name)
                             if not tool:
-                                logger.warning(
-                                    "tool_not_found_in_registry",
-                                    request_id=request_id,
-                                    tool_name=tool_name,
-                                )
+                                logger.warning(f"tool_not_found_in_registry: request_id={request_id}, tool_name={tool_name}")
                                 continue
 
-                            logger.info(
-                                "executing_task_analyzer_tool",
-                                request_id=request_id,
-                                tool_name=tool_name,
-                                user_text=last_user_text[:200],
-                            )
+                            logger.info(f"executing_task_analyzer_tool: request_id={request_id}, tool_name={tool_name}, user_text={last_user_text[:200]}")
 
                             # 根据工具类型执行工具
                             if tool_name == "datetime":
@@ -4726,35 +4479,17 @@ async def chat_product_stream(
                             elif tool_name in ["document_editing", "file_editing"]:
                                 # document_editing 工具：Task Analyzer 通過語義分析識別出需要文檔編輯工具
                                 # 注意：這裡不依賴關鍵詞匹配，而是依賴 Task Analyzer 的語義分析結果
-                                logger.info(
-                                    "document_editing_tool_selected_by_task_analyzer",
-                                    request_id=request_id,
-                                    user_text=last_user_text[:200],
-                                    note="Task Analyzer identified document editing intent via semantic analysis",
-                                )
+                                logger.info(f"document_editing_tool_selected_by_task_analyzer: request_id={request_id}, user_text={last_user_text[:200]}, note=Task Analyzer identified document editing intent via semantic analysis")
                                 # document_editing 工具的執行會在 AI 回復生成後，通過 _try_create_file_from_chat_output 處理
                                 # 這裡只記錄日志，實際的文檔生成會在 System Prompt 增強後由 AI 完成
                             else:
                                 # 其他工具：尝试通用执行方式
-                                logger.warning(
-                                    "unknown_tool_type",
-                                    request_id=request_id,
-                                    tool_name=tool_name,
-                                )
+                                logger.warning(f"unknown_tool_type: request_id={request_id}, tool_name={tool_name}")
 
                         if tool_results:
-                            logger.info(
-                                "task_analyzer_tools_executed",
-                                request_id=request_id,
-                                tool_results_count=len(tool_results),
-                            )
+                            logger.info(f"task_analyzer_tools_executed: request_id={request_id}, tool_results_count={len(tool_results)}")
                     except Exception as tool_error:
-                        logger.error(
-                            "task_analyzer_tool_execution_failed",
-                            request_id=request_id,
-                            error=str(tool_error),
-                            exc_info=True,
-                        )
+                        logger.error(f"task_analyzer_tool_execution_failed: request_id={request_id}, error={str(tool_error)}", exc_info=True)
                         # 工具执行失败不影响主流程，继续执行
                 elif (
                     router_decision
@@ -4764,28 +4499,15 @@ async def chat_product_stream(
                 ):
                     # 需要工具但没有匹配的工具，如果有 web_search 权限，则 fallback 到 WebSearch
                     if "web_search" in allowed_tools:
-                        logger.info(
-                            "task_analyzer_web_search_fallback",
-                            request_id=request_id,
-                            user_text=last_user_text[:200],
-                            reason="needs_tools_but_no_matching_tools",
-                        )
+                        logger.info(f"task_analyzer_web_search_fallback: request_id={request_id}, user_text={last_user_text[:200]}, reason=needs_tools_but_no_matching_tools")
                         should_trigger_web_search = True
 
             # 工具调用：如果启用了 web_search 且（消息中包含搜索意图 或 Task Analyzer 建议 fallback 到 WebSearch），直接调用工具
             # 但是，如果 Task Analyzer 已经选择了工具，应该优先使用 Task Analyzer 的选择，而不是执行关键词匹配
-            logger.info(
-                "web_search_check",
-                request_id=request_id,
-                allowed_tools=allowed_tools,
-                has_web_search="web_search" in (allowed_tools or []),
-                user_text=last_user_text[:200],
-                task_analyzer_has_chosen_tools=task_analyzer_has_chosen_tools,
-            )
+            logger.info(f"web_search_check: request_id={request_id}, allowed_tools={allowed_tools}, has_web_search={"web_search" in (allowed_tools or [])}, user_text={last_user_text[:200]}, task_analyzer_has_chosen_tools={task_analyzer_has_chosen_tools}")
 
-            # 添加 print 调试输出
-            print(
-                f"\n[DEBUG] web_search_check: allowed_tools={allowed_tools}, has_web_search={'web_search' in (allowed_tools or [])}, task_analyzer_has_chosen_tools={task_analyzer_has_chosen_tools}"
+            logger.debug(
+                f"web_search_check: allowed_tools={allowed_tools}, has_web_search={'web_search' in (allowed_tools or [])}, task_analyzer_has_chosen_tools={task_analyzer_has_chosen_tools}"
             )
 
             # 如果 Task Analyzer 已经选择了工具，跳过关键词匹配，优先使用 Task Analyzer 的选择
@@ -4834,18 +4556,10 @@ async def chat_product_stream(
                 needs_search = any(keyword in last_user_text for keyword in search_keywords)
                 matched_keywords = [kw for kw in search_keywords if kw in last_user_text]
 
-                logger.info(
-                    "web_search_intent_check",
-                    request_id=request_id,
-                    needs_search=needs_search,
-                    matched_keywords=matched_keywords,
-                    user_text=last_user_text[:200],
-                    search_keywords_count=len(search_keywords),
-                )
+                logger.info(f"web_search_intent_check: request_id={request_id}, needs_search={needs_search}, matched_keywords={matched_keywords}, user_text={last_user_text[:200]}, search_keywords_count={len(search_keywords)}")
 
-                # 添加 print 调试输出
-                print(
-                    f"[DEBUG] web_search_intent_check: needs_search={needs_search}, matched_keywords={matched_keywords}"
+                logger.debug(
+                    f"web_search_intent_check: needs_search={needs_search}, matched_keywords={matched_keywords}"
                 )
 
                 if needs_search or should_trigger_web_search:
@@ -4853,47 +4567,30 @@ async def chat_product_stream(
                         # 直接导入 web_search 模块，避免触发 tools/__init__.py 中的其他导入
                         from tools.web_search.web_search_tool import WebSearchInput, WebSearchTool
 
-                        logger.info(
-                            "web_search_triggered",
-                            request_id=request_id,
-                            query=last_user_text,
-                        )
+                        logger.info(f"web_search_triggered: request_id={request_id}, query={last_user_text}")
 
-                        # 添加 print 调试输出
-                        print(f"[DEBUG] web_search_triggered: query={last_user_text[:100]}")
+                        logger.debug(f"web_search_triggered: query={last_user_text[:100]}")
 
                         # 调用 web_search 工具
                         search_tool = WebSearchTool()
                         search_input = WebSearchInput(query=last_user_text, num=5)
                         search_result = await search_tool.execute(search_input)
 
-                        # 添加 print 调试输出
-                        print(
-                            f"[DEBUG] web_search_result: status={search_result.status}, results_count={len(search_result.results) if search_result.results else 0}"
+                        logger.debug(
+                            f"web_search_result: status={search_result.status}, results_count={len(search_result.results) if search_result.results else 0}"
                         )
 
                         # 将搜索结果添加到消息中
-                        logger.info(
-                            "web_search_result",
-                            request_id=request_id,
-                            status=search_result.status,
-                            results_count=(
+                        logger.info(f"web_search_result: request_id={request_id}, status={search_result.status}, results_count={(
                                 len(search_result.results) if search_result.results else 0
-                            ),
-                            provider=search_result.provider,
-                        )
+                            )}, provider={search_result.provider}")
 
                         if search_result.status == "success" and search_result.results:
-                            search_summary = "\n\n=== 🔍 網絡搜索結果（來自真實搜索） ===\n"
+                            search_summary = "\n\n=== 網絡搜索結果（來自真實搜索） ===\n"
                             search_summary += f"搜索提供商: {search_result.provider}\n"
                             search_summary += f"結果數量: {len(search_result.results)}\n"
                             search_summary += "---\n"
-                            logger.debug(
-                                "web_search_formatting_results",
-                                request_id=request_id,
-                                results_type=type(search_result.results).__name__,
-                                results_count=len(search_result.results),
-                            )
+                            logger.debug(f"web_search_formatting_results: request_id={request_id}, results_type={type(search_result.results).__name__}, results_count={len(search_result.results)}")
 
                             for i, result in enumerate(search_result.results[:3], 1):
                                 # 处理不同的结果格式（可能是 dict 或对象）
@@ -4925,29 +4622,15 @@ async def chat_product_stream(
                                     search_summary += f"摘要: {snippet}\n"
                                     search_summary += f"來源鏈接: {link}\n"
                                 except Exception as format_error:
-                                    logger.warning(
-                                        "web_search_result_format_error",
-                                        request_id=request_id,
-                                        result_index=i,
-                                        error=str(format_error),
-                                        result_type=type(result).__name__,
-                                        result_repr=str(result)[:200],
-                                    )
+                                    logger.warning(f"web_search_result_format_error: request_id={request_id}, result_index={i}, error={str(format_error)}, result_type={type(result).__name__}, result_repr={str(result)[:200]}")
                                     # 如果格式化失败，至少添加基本信息
                                     search_summary += f"{i}. 搜索結果 {i} (格式化失敗: {str(format_error)[:50]})\n\n"
 
-                            logger.info(
-                                "web_search_summary_created",
-                                request_id=request_id,
-                                summary_length=len(search_summary),
-                                summary_preview=search_summary[:500],  # 记录前500字符
-                            )
+                            logger.info(f"web_search_summary_created: request_id={request_id}, summary_length={len(search_summary)}, summary_preview={search_summary[:500]}")
 
-                            # 添加 print 调试输出
-                            print(
-                                f"[DEBUG] web_search_summary_created: length={len(search_summary)}"
+                            logger.debug(
+                                f"web_search_summary_created: length={len(search_summary)}, preview={search_summary[:200]}"
                             )
-                            print(f"[DEBUG] search_summary_preview:\n{search_summary[:500]}")
 
                             # 更新最後一條用戶消息，添加搜索結果
                             # 在搜索結果前添加明确的提示，让AI知道这是真实搜索结果
@@ -4971,24 +4654,11 @@ async def chat_product_stream(
                                     }
                                 )
 
-                            logger.info(
-                                "web_search_completed",
-                                request_id=request_id,
-                                results_count=len(search_result.results),
-                            )
+                            logger.info(f"web_search_completed: request_id={request_id}, results_count={len(search_result.results)}")
                         else:
-                            logger.warning(
-                                "web_search_failed",
-                                request_id=request_id,
-                                status=search_result.status,
-                            )
+                            logger.warning(f"web_search_failed: request_id={request_id}, status={search_result.status}")
                     except Exception as tool_error:
-                        logger.error(
-                            "web_search_error",
-                            request_id=request_id,
-                            error=str(tool_error),
-                            exc_info=True,
-                        )
+                        logger.error(f"web_search_error: request_id={request_id}, error={str(tool_error)}", exc_info=True)
                         # 工具調用失敗不影響正常流程，繼續執行
 
             # G6：Data consent gate（AI_PROCESSING）- 未同意則不檢索/不注入/不寫入
@@ -5001,13 +4671,9 @@ async def chat_product_stream(
                     current_user.user_id, ConsentType.AI_PROCESSING
                 )
             except Exception as exc:  # noqa: BLE001
-                logger.debug(
-                    "Failed to check AI consent, assuming no consent", error=str(exc), exc_info=True
-                )
+                logger.debug(f"Failed to check AI consent, assuming no consent: error={str(exc)}", exc_info=True)
                 has_ai_consent = False
 
-            # 暫時關閉 AI 處理同意檢查（測試用）。正式環境請刪除此行。
-            has_ai_consent = True
 
             # 2026-02-14 新增：獲取 Agent 配置的知識庫文件 ID（流式版本）
             knowledge_base_file_ids: list[str] = []
@@ -5101,20 +4767,15 @@ async def chat_product_stream(
             observability.context_message_count = len(windowed_history)
 
             # 修改時間：2026-01-27 - 如果選擇了 Agent，先調用 Agent 的工具獲取結果（流式版本）
-            import sys
 
-            sys.stderr.write(
-                f"\n🔍 [DEBUG] 檢查 task_analyzer_result: {task_analyzer_result is not None}\n"
-            )
-            sys.stderr.write(
-                f"🔍 [DEBUG] decision_result: {task_analyzer_result.decision_result is not None if task_analyzer_result else False}\n"
-            )
+            logger.debug(f"[DEBUG] 檢查 task_analyzer_result: {task_analyzer_result is not None}")
+            logger.debug(f"[DEBUG] decision_result: {task_analyzer_result.decision_result is not None if task_analyzer_result else False}")
             # ============================================
             # 修改時間：2026-01-28 - 移除重複的 chosen_agent_id 賦值
             # chosen_agent_id 已在 line 2505 後立即提取，此處直接使用
             # ============================================
-            sys.stderr.write(f"🔍 [DEBUG] chosen_agent_id (已提取): {chosen_agent_id}\n")
-            sys.stderr.write(f"🔍 [DEBUG] is_fast_path: {is_fast_path}\n")
+            logger.debug(f"[DEBUG] chosen_agent_id (已提取): {chosen_agent_id}")
+            logger.debug(f"[DEBUG] is_fast_path: {is_fast_path}")
 
             # 注意：不要在此處重新賦值 chosen_agent_id，使用之前提取的值
             logger.info(
@@ -5123,10 +4784,7 @@ async def chat_product_stream(
             )
 
             if chosen_agent_id:
-                sys.stderr.write(
-                    f"\n🤖 [DEBUG] Agent 執行檢查：chosen_agent_id={chosen_agent_id}, is_fast_path={is_fast_path}\n"
-                )
-                sys.stderr.flush()
+                logger.debug(f"[DEBUG] Agent 執行檢查：chosen_agent_id={chosen_agent_id}, is_fast_path={is_fast_path}")
 
                 logger.info(
                     f"Agent execution check (stream): chosen_agent_id={chosen_agent_id}, "
@@ -5134,24 +4792,18 @@ async def chat_product_stream(
                 )
 
                 if chosen_agent_id:
-                    sys.stderr.write(f"\n✅ [DEBUG] chosen_agent_id 有值：{chosen_agent_id}\n")
-                    sys.stderr.flush()
+                    logger.debug(f"[DEBUG] chosen_agent_id 有值：{chosen_agent_id}")
                     try:
                         from agents.services.registry.registry import get_agent_registry
 
                         registry = get_agent_registry()
                         agent_info = registry.get_agent_info(chosen_agent_id)
 
-                        sys.stderr.write(
-                            f"📦 [DEBUG] agent_info: exists={agent_info is not None}, "
-                        )
+                        logger.debug(f"[DEBUG] agent_info: exists={agent_info is not None}, ")
                         if agent_info:
-                            sys.stderr.write(
-                                f"status={agent_info.status.value}, name={agent_info.name}\n"
-                            )
+                            logger.debug(f"status={agent_info.status.value}, name={agent_info.name}")
                         else:
-                            sys.stderr.write("agent_info is None!\n")
-                        sys.stderr.flush()
+                            logger.debug("agent_info is None!")
 
                         # 临时跳过状态检查（用于测试）
                         # if agent_info and agent_info.status.value == "online":
@@ -5175,13 +4827,10 @@ async def chat_product_stream(
                                     f"agent_name={agent_info.name}, calling agent.execute() directly"
                                 )
 
-                                sys.stderr.write(
-                                    f"\n[chat_stream] 🔧 內部 Agent 直接執行：\n"
+                                logger.debug(f"[chat_stream] 內部 Agent 直接執行：\n"
                                     f"  - agent_id: {chosen_agent_id}\n"
                                     f"  - agent_name: {agent_info.name}\n"
-                                    f"  - user_query: {last_user_text[:100]}...\n"
-                                )
-                                sys.stderr.flush()
+                                    f"  - user_query: {last_user_text[:100]}...")
 
                                 try:
                                     from agents.services.protocol.base import AgentServiceRequest
@@ -5192,10 +4841,7 @@ async def chat_product_stream(
                                         logger.error(
                                             f"Failed to get agent instance (stream): agent_id={chosen_agent_id}"
                                         )
-                                        sys.stderr.write(
-                                            f"\n[chat_stream] ❌ 無法獲取 Agent 實例: {chosen_agent_id}\n"
-                                        )
-                                        sys.stderr.flush()
+                                        logger.debug(f"[chat_stream] 無法獲取 Agent 實例: {chosen_agent_id}")
                                     else:
                                         # 構建 AgentServiceRequest
                                         # 修改時間：2026-01-28 - 添加 KA-Agent 必需的 action 字段
@@ -5246,7 +4892,7 @@ async def chat_product_stream(
 
                                             # 添加調試日誌
                                             logger.info(
-                                                f"✅ [DEBUG] Agent 結果格式化完成 (stream): agent_id={chosen_agent_id}, "
+                                                f"[DEBUG] Agent 結果格式化完成 (stream): agent_id={chosen_agent_id}, "
                                                 f"formatted_length={len(agent_result_text)}, "
                                                 f"preview={agent_result_text[:200]}..."
                                             )
@@ -5273,19 +4919,16 @@ async def chat_product_stream(
                                             messages.insert(0, agent_result_message)
 
                                             logger.info(
-                                                f"✅ Internal agent result added to context (stream): agent_id={chosen_agent_id}, "
+                                                f"Internal agent result added to context (stream): agent_id={chosen_agent_id}, "
                                                 f"result_length={len(agent_result_text)}, "
                                                 f"messages_count={len(messages)}"
                                             )
 
                                             # 添加 stderr 輸出以便調試
-                                            sys.stderr.write(
-                                                f"\n[chat_stream] ✅ Agent 結果已注入到 messages:\n"
+                                            logger.debug(f"[chat_stream] Agent 結果已注入到 messages:\n"
                                                 f"  - agent_id: {chosen_agent_id}\n"
                                                 f"  - result_length: {len(agent_result_text)}\n"
-                                                f"  - preview: {agent_result_text[:300]}...\n"
-                                            )
-                                            sys.stderr.flush()
+                                                f"  - preview: {agent_result_text[:300]}...")
                                         else:
                                             logger.warning(
                                                 f"Internal agent returned no result (stream): agent_id={chosen_agent_id}, "
@@ -5293,15 +4936,11 @@ async def chat_product_stream(
                                             )
 
                                 except Exception as internal_agent_error:
-                                    import sys
 
-                                    sys.stderr.write(
-                                        f"\n[chat_stream] ❌ 內部 Agent 執行失敗：\n"
+                                    logger.debug(f"[chat_stream] 內部 Agent 執行失敗：\n"
                                         f"  - agent_id: {chosen_agent_id}\n"
                                         f"  - error: {str(internal_agent_error)}\n"
-                                        f"  - error_type: {type(internal_agent_error).__name__}\n"
-                                    )
-                                    sys.stderr.flush()
+                                        f"  - error_type: {type(internal_agent_error).__name__}")
 
                                     logger.error(
                                         f"Internal agent execution failed (stream): agent_id={chosen_agent_id}, "
@@ -5324,85 +4963,22 @@ async def chat_product_stream(
                                     f"mcp_endpoint={mcp_endpoint}, calling MCP tools"
                                 )
 
-                            # 根據用戶查詢選擇合適的工具
+                            # 使用 agent capabilities 動態選擇工具
                             tool_name: Optional[str] = None
-
-                            # 優先匹配：根據查詢內容選擇最合適的工具
-                            query_lower = last_user_text.lower()
-                            if (
-                                "料號" in last_user_text
-                                or "料" in last_user_text
-                                or "part" in query_lower
-                            ):
-                                # 查找 warehouse_query_part 或類似的查詢工具
-                                for cap in agent_info.capabilities:
-                                    cap_lower = cap.lower()
-                                    if "query_part" in cap_lower or (
-                                        "query" in cap_lower and "part" in cap_lower
-                                    ):
-                                        tool_name = cap
-                                        break
-                                # 如果沒找到，嘗試其他查詢工具
-                                if not tool_name:
-                                    for cap in agent_info.capabilities:
-                                        if "query" in cap.lower():
-                                            tool_name = cap
-                                            break
-                            elif (
-                                "列出" in last_user_text
-                                or "前" in last_user_text
-                                or "list" in query_lower
-                            ):
-                                # 查找 mm_execute_task 或類似的執行工具
-                                for cap in agent_info.capabilities:
-                                    cap_lower = cap.lower()
-                                    if "execute" in cap_lower or "task" in cap_lower:
-                                        tool_name = cap
-                                        break
-
-                            # 如果沒有找到特定工具，使用第一個可用的工具
-                            if not tool_name and agent_info.capabilities:
-                                tool_name = agent_info.capabilities[0]
+                            if agent_info.capabilities:
+                                # 優先使用第一個可用 capability
+                                selected_cap = agent_info.capabilities[0]
+                                tool_name = selected_cap.get("name") if isinstance(selected_cap, dict) else str(selected_cap)
                                 logger.info(
-                                    f"Using first available agent tool (stream): agent_id={chosen_agent_id}, tool_name={tool_name}"
+                                    f"Using agent capability (stream): agent_id={chosen_agent_id}, "
+                                    f"tool_name={tool_name}, all_capabilities={agent_info.capabilities}"
                                 )
-
-                            # 修改時間：2026-01-27 - 若外部 Agent 沒有 capabilities，依名稱/領域做合理預設（流式）
-                            if not tool_name and not agent_info.capabilities:
-                                agent_name = agent_info.name or ""
-                                agent_name_lower = agent_name.lower()
-                                if (
-                                    "庫存" in agent_name
-                                    or "物料" in agent_name
-                                    or "inventory" in agent_name_lower
-                                    or "warehouse" in agent_name_lower
-                                ):
-                                    tool_name = "mm_execute_task"
-                                elif "財務" in agent_name or "finance" in agent_name_lower:
-                                    tool_name = "finance_execute_task"
-                                elif "office" in agent_name_lower:
-                                    tool_name = "office_execute_task"
-
-                                if tool_name:
-                                    logger.info(
-                                        "agent_tool_default_selected_stream",
-                                        request_id=request_id,
-                                        agent_id=chosen_agent_id,
-                                        agent_name=agent_name,
-                                        tool_name=tool_name,
-                                        reason="agent_has_no_capabilities_in_registry",
-                                    )
 
                             if tool_name:
-                                import sys
 
-                                sys.stderr.write(
-                                    f"\n🔥 [DEBUG] if tool_name 块被执行！tool_name={tool_name}, chosen_agent_id={chosen_agent_id}\n"
-                                )
-                                sys.stderr.flush()
+                                logger.debug(f"[DEBUG] if tool_name 块被执行！tool_name={tool_name}, chosen_agent_id={chosen_agent_id}")
                                 try:
                                     # 【修改】从 Agent Registry 读取正确的 endpoint 和 protocol
-                                    import httpx
 
                                     # 从 Agent Registry 获取 endpoint 配置
                                     agent_endpoint_url = None
@@ -5425,10 +5001,7 @@ async def chat_product_stream(
                                             f"using MCP default: {agent_endpoint_url}"
                                         )
 
-                                    sys.stderr.write(
-                                        f"\n✅ [DEBUG] 准备调用 Agent：protocol={agent_protocol}, endpoint={agent_endpoint_url}\n"
-                                    )
-                                    sys.stderr.flush()
+                                    logger.debug(f"[DEBUG] 准备调用 Agent：protocol={agent_protocol}, endpoint={agent_endpoint_url}")
 
                                     logger.info(
                                         f"Calling Agent: agent_id={chosen_agent_id}, "
@@ -5444,6 +5017,7 @@ async def chat_product_stream(
                                             "name": tool_name,
                                             "arguments": {
                                                 "task_id": task_id,
+                                                # TODO: 移除硬編碼 task_type，與 Path A 統一為動態值（待 Path B 重構時處理）
                                                 "task_type": "warehouse_query",
                                                 "task_data": {
                                                     "instruction": last_user_text,  # Agent 期望的字段
@@ -5473,7 +5047,7 @@ async def chat_product_stream(
                                     if gateway_secret:
                                         headers["X-Gateway-Secret"] = gateway_secret
                                         logger.info(
-                                            f"🔐 已添加 Gateway Secret: {gateway_secret[:16]}..."
+                                            "Gateway Secret 已配置"
                                         )
 
                                     # 調用 Gateway（根路徑，使用標準 MCP JSON-RPC 格式）
@@ -5481,10 +5055,10 @@ async def chat_product_stream(
                                         timeout=30.0, follow_redirects=True
                                     ) as client:
                                         logger.info(
-                                            f"🚀 準備調用 Gateway: {agent_endpoint_url} (MCP JSON-RPC)"
+                                            f"準備調用 Gateway: {agent_endpoint_url} (MCP JSON-RPC)"
                                         )
                                         logger.info(
-                                            f"📦 MCP 請求: method={mcp_request['method']}, tool={tool_name}"
+                                            f"MCP 請求: method={mcp_request['method']}, tool={tool_name}"
                                         )
 
                                         try:
@@ -5496,17 +5070,16 @@ async def chat_product_stream(
                                             response.raise_for_status()
                                             mcp_response = response.json()
                                             logger.info(
-                                                f"✅ Gateway 調用成功: status={response.status_code}"
+                                                f"Gateway 調用成功: status={response.status_code}"
                                             )
 
                                             # 打印完整的 MCP 響應（調試用）
-                                            import json as json_lib
 
-                                            mcp_response_str = json_lib.dumps(
+                                            mcp_response_str = json.dumps(
                                                 mcp_response, ensure_ascii=False, indent=2
                                             )[:1000]
                                             logger.info(
-                                                f"📦 完整 MCP 響應（前1000字符）:\n{mcp_response_str}"
+                                                f"完整 MCP 響應（前1000字符）:\n{mcp_response_str}"
                                             )
 
                                             # 檢查 MCP JSON-RPC 錯誤
@@ -5516,7 +5089,7 @@ async def chat_product_stream(
                                             ):
                                                 error_info = mcp_response.get("error", {})
                                                 logger.error(
-                                                    f"❌ Gateway 返回錯誤: "
+                                                    f"Gateway 返回錯誤: "
                                                     f"code={error_info.get('code')}, "
                                                     f"message={error_info.get('message')}, "
                                                     f"data={error_info.get('data')}"
@@ -5537,7 +5110,7 @@ async def chat_product_stream(
                                                 # 從 MCP JSON-RPC 響應中提取 result
                                                 tool_result = mcp_response["result"]
                                                 logger.info(
-                                                    f"✅ 從 MCP 響應提取結果: {type(tool_result).__name__}"
+                                                    f"從 MCP 響應提取結果: {type(tool_result).__name__}"
                                                 )
 
                                                 # 檢查 result 中是否包含失敗狀態
@@ -5557,7 +5130,7 @@ async def chat_product_stream(
                                                                 )
                                                                 # 嘗試解析 JSON
                                                                 try:
-                                                                    result_json = json_lib.loads(
+                                                                    result_json = json.loads(
                                                                         text_content
                                                                     )
                                                                     if isinstance(
@@ -5574,23 +5147,23 @@ async def chat_product_stream(
                                                                             is False
                                                                         ):
                                                                             logger.error(
-                                                                                f"❌ Agent 執行失敗: {result_json}"
+                                                                                f"Agent 執行失敗: {result_json}"
                                                                             )
                                                                 except Exception:
                                                                     pass
                                             else:
                                                 logger.warning(
-                                                    f"⚠️ 未預期的 MCP 響應格式: {list(mcp_response.keys()) if isinstance(mcp_response, dict) else type(mcp_response)}"
+                                                    f"未預期的 MCP 響應格式: {list(mcp_response.keys()) if isinstance(mcp_response, dict) else type(mcp_response)}"
                                                 )
                                                 tool_result = mcp_response
                                         except httpx.HTTPStatusError as http_exc:
                                             logger.error(
-                                                f"❌ Agent HTTP 錯誤: status={http_exc.response.status_code}, response={http_exc.response.text}"
+                                                f"Agent HTTP 錯誤: status={http_exc.response.status_code}, response={http_exc.response.text}"
                                             )
                                             raise
                                         except httpx.RequestError as req_exc:
                                             logger.error(
-                                                f"❌ Agent 請求錯誤: {type(req_exc).__name__} - {str(req_exc)}"
+                                                f"Agent 請求錯誤: {type(req_exc).__name__} - {str(req_exc)}"
                                             )
                                             raise
 
@@ -5612,30 +5185,12 @@ async def chat_product_stream(
                                             0, agent_result_message
                                         )  # 插入到開頭，優先級最高
 
-                                        logger.info(
-                                            "agent_tool_executed_stream",
-                                            request_id=request_id,
-                                            agent_id=chosen_agent_id,
-                                            tool_name=tool_name,
-                                            result_length=len(tool_result_text),
-                                        )
+                                        logger.info(f"agent_tool_executed_stream: request_id={request_id}, agent_id={chosen_agent_id}, tool_name={tool_name}, result_length={len(tool_result_text)}")
                                 except Exception as agent_error:
-                                    logger.error(
-                                        "agent_tool_execution_failed_stream",
-                                        request_id=request_id,
-                                        agent_id=chosen_agent_id,
-                                        tool_name=tool_name,
-                                        error=str(agent_error),
-                                        exc_info=True,
-                                    )
+                                    logger.error(f"agent_tool_execution_failed_stream: request_id={request_id}, agent_id={chosen_agent_id}, tool_name={tool_name}, error={str(agent_error)}", exc_info=True)
                                     # Agent 工具執行失敗不影響主流程，繼續執行
                     except Exception as agent_registry_error:
-                        logger.warning(
-                            "agent_registry_lookup_failed_stream",
-                            request_id=request_id,
-                            error=str(agent_registry_error),
-                            exc_info=True,
-                        )
+                        logger.warning(f"agent_registry_lookup_failed_stream: request_id={request_id}, error={str(agent_registry_error)}", exc_info=True)
                         # Agent 查找失敗不影響主流程，繼續執行
 
             # 修改時間：2026-01-06 - 如果 Task Analyzer 選擇了 document_editing 工具，增強 System Prompt 指示 AI 生成文檔內容
@@ -5684,15 +5239,7 @@ async def chat_product_stream(
                             {"role": "system", "content": document_generation_instruction}
                         ]
 
-                    logger.info(
-                        "document_generation_intent_detected_via_task_analyzer",
-                        request_id=request_id,
-                        user_text=last_user_text[:200],
-                        filename=filename,
-                        doc_format=doc_format,
-                        chosen_tools=decision_result.chosen_tools,
-                        note="Task Analyzer identified document creation intent, added instruction to system prompt",
-                    )
+                    logger.info(f"document_generation_intent_detected_via_task_analyzer: request_id={request_id}, user_text={last_user_text[:200]}, filename={filename}, doc_format={doc_format}, chosen_tools={decision_result.chosen_tools}, note=Task Analyzer identified document creation intent, added instruction to system prompt")
 
             # 修改時間：2026-01-28 - 確保 Agent 結果被包含在 messages_for_llm 中
             # 從 agent_tool_results 中提取 Agent 結果消息
@@ -5711,7 +5258,7 @@ async def chat_product_stream(
 
             # 調試：打印發送給 LLM 的消息
             logger.info(
-                f"📨 發送給 LLM 的消息數量: {len(messages_for_llm)}, "
+                f"發送給 LLM 的消息數量: {len(messages_for_llm)}, "
                 f"agent_result_messages={len(agent_result_messages)}, "
                 f"base_system={len(base_system)}, "
                 f"memory_injections={len(memory_result.injection_messages)}"
@@ -5739,13 +5286,14 @@ async def chat_product_stream(
                     backend_model = simplified_service.map_frontend_to_backend(
                         model_selector.model_id
                     )
+                    original_model_id = model_selector.model_id
                     if backend_model == "auto":
                         model_selector.mode = "auto"
                         model_selector.model_id = None
                     elif backend_model != model_selector.model_id:
                         model_selector.model_id = backend_model
                         logger.info(
-                            f"model_mapped_to_backend_stream: frontend={model_selector.model_id}, backend={backend_model}"
+                            f"model_mapped_to_backend_stream: frontend={original_model_id}, backend={backend_model}"
                         )
 
             if model_selector.mode == "auto":
@@ -5771,14 +5319,7 @@ async def chat_product_stream(
                     favorite_model_ids = _favorite_models_by_user.get(current_user.user_id, [])
 
                 # 任务分析：使用 TaskClassifier 对用户输入进行分类
-                logger.info(
-                    "task_analysis_start",
-                    request_id=request_id,
-                    user_text=last_user_text[:200],
-                    user_id=current_user.user_id,
-                    session_id=session_id,
-                    task_id=task_id,
-                )
+                logger.info(f"task_analysis_start: request_id={request_id}, user_text={last_user_text[:200]}, user_id={current_user.user_id}, session_id={session_id}, task_id={task_id}")
 
                 task_classification = classifier.classify(
                     last_user_text,
@@ -5789,30 +5330,17 @@ async def chat_product_stream(
                     },
                 )
 
-                logger.info(
-                    "task_analysis_completed",
-                    request_id=request_id,
-                    task_type=task_classification.task_type.value if task_classification else None,
-                    confidence=task_classification.confidence if task_classification else None,
-                    reasoning=(
+                logger.info(f"task_analysis_completed: request_id={request_id}, task_type={task_classification.task_type.value if task_classification else None}, confidence={task_classification.confidence if task_classification else None}, reasoning={(
                         task_classification.reasoning[:200]
                         if task_classification and task_classification.reasoning
                         else None
-                    ),
-                )
+                    )}")
 
-                # 添加 print 调试输出
-                print("\n[DEBUG] Task Analysis Result:")
-                print(
-                    f"  Type: {task_classification.task_type.value if task_classification else 'None'}"
+                logger.debug(
+                    f"Task Analysis Result: type={task_classification.task_type.value if task_classification else 'None'}, "
+                    f"confidence={task_classification.confidence if task_classification else 'None'}, "
+                    f"reasoning={task_classification.reasoning[:200] if task_classification and task_classification.reasoning else 'None'}"
                 )
-                print(
-                    f"  Confidence: {task_classification.confidence if task_classification else 'None'}"
-                )
-                print(
-                    f"  Reasoning: {task_classification.reasoning[:200] if task_classification and task_classification.reasoning else 'None'}"
-                )
-                print()
 
                 # 獲取 API keys（所有允許的 providers）
                 llm_api_keys = config_resolver.resolve_api_keys_map(
@@ -5826,23 +5354,11 @@ async def chat_product_stream(
                 provider = _infer_provider_from_model_id(selected_model_id)
                 model = selected_model_id
 
-                logger.debug(
-                    "model_selection_manual",
-                    selected_model_id=selected_model_id,
-                    inferred_provider=provider.value,
-                    tenant_id=tenant_id,
-                    user_id=current_user.user_id,
-                )
+                logger.debug(f"model_selection_manual: selected_model_id={selected_model_id}, inferred_provider={provider.value}, tenant_id={tenant_id}, user_id={current_user.user_id}")
 
                 # G6：manual/favorite allowlist gate
                 if not policy_gate.is_model_allowed(provider.value, selected_model_id):
-                    logger.warning(
-                        "model_not_allowed_by_policy",
-                        model_id=selected_model_id,
-                        provider=provider.value,
-                        tenant_id=tenant_id,
-                        user_id=current_user.user_id,
-                    )
+                    logger.warning(f"model_not_allowed_by_policy: model_id={selected_model_id}, provider={provider.value}, tenant_id={tenant_id}, user_id={current_user.user_id}")
                     # 使用錯誤翻譯函數
                     user_msg, error_code, _ = translate_error_to_user_message(
                         Exception(f"Model {selected_model_id} is not allowed by policy"),
@@ -5878,21 +5394,12 @@ async def chat_product_stream(
             # allowed_tools 已在函数开始处定义（第1069行）
             if allowed_tools:
                 moe_context["allowed_tools"] = allowed_tools
-                logger.debug(
-                    "tools_enabled",
-                    request_id=request_id,
-                    allowed_tools=allowed_tools,
-                )
+                logger.debug(f"tools_enabled: request_id={request_id}, allowed_tools={allowed_tools}")
 
             # 發送開始消息（此時還不知道 provider 和 model，先發送基本信息）
-            logger.info(
-                "stream_start",
-                request_id=request_id,
-                messages_count=len(messages_for_llm),
-                has_web_search_results=any(
+            logger.info(f"stream_start: request_id={request_id}, messages_count={len(messages_for_llm)}, has_web_search_results={any(
                     "網絡搜索結果" in str(m.get("content", "")) for m in messages_for_llm
-                ),
-            )
+                )}")
             yield f"data: {json.dumps({'type': 'start', 'data': {'request_id': request_id, 'session_id': session_id}})}\n\n"
 
             # 累積完整內容（用於後續記錄）
@@ -5901,18 +5408,9 @@ async def chat_product_stream(
 
             # 調用 MoE Manager 的 chat_stream 方法
             try:
-                logger.info(
-                    "moe_chat_stream_start",
-                    request_id=request_id,
-                    provider=provider.value if provider else None,
-                    model=model,
-                    model_selector_mode=model_selector.mode,
-                    task_classification=(
+                logger.info(f"moe_chat_stream_start: request_id={request_id}, provider={provider.value if provider else None}, model={model}, model_selector_mode={model_selector.mode}, task_classification={(
                         task_classification.task_type if task_classification else None
-                    ),
-                    tenant_id=tenant_id,
-                    user_id=current_user.user_id,
-                )
+                    )}, tenant_id={tenant_id}, user_id={current_user.user_id}")
                 async for chunk in moe.chat_stream(
                     messages_for_llm,
                     task_classification=task_classification,
@@ -5927,28 +5425,14 @@ async def chat_product_stream(
                     # 發送內容塊
                     yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': chunk}})}\n\n"
 
-                logger.info(
-                    "moe_chat_stream_completed",
-                    request_id=request_id,
-                    chunk_count=chunk_count,
-                    content_length=len(full_content),
-                )
+                logger.info(f"moe_chat_stream_completed: request_id={request_id}, chunk_count={chunk_count}, content_length={len(full_content)}")
             except Exception as stream_exc:
-                logger.error(
-                    "moe_chat_stream_error",
-                    request_id=request_id,
-                    error=str(stream_exc),
-                    chunk_count=chunk_count,
-                    content_length=len(full_content),
-                    exc_info=True,
-                )
+                logger.error(f"moe_chat_stream_error: request_id={request_id}, error={str(stream_exc)}, chunk_count={chunk_count}, content_length={len(full_content)}", exc_info=True)
                 # 使用錯誤翻譯函數轉換為友好消息
                 user_msg, error_code, log_msg = translate_error_to_user_message(
                     stream_exc, "CHAT_STREAM_ERROR"
                 )
-                logger.warning(
-                    "chat_error_translated", original_error=str(stream_exc), user_message=user_msg
-                )
+                logger.warning(f"chat_error_translated: original_error={str(stream_exc)}, user_message={user_msg}")
                 yield f"data: {json.dumps({'type': 'error', 'data': {'error': user_msg, 'error_code': error_code}})}\n\n"
                 return
 
@@ -5973,14 +5457,7 @@ async def chat_product_stream(
             # 注意：這裡不依賴關鍵詞匹配，而是依賴 Task Analyzer 的語義分析結果
             try:
                 # 添加詳細日誌追蹤
-                logger.info(
-                    "checking_file_creation_intent",
-                    request_id=request_id,
-                    has_task_analyzer_result=task_analyzer_result is not None,
-                    task_id=task_id,
-                    user_text=last_user_text[:200],
-                    content_length=len(full_content),
-                )
+                logger.info(f"checking_file_creation_intent: request_id={request_id}, has_task_analyzer_result={task_analyzer_result is not None}, task_id={task_id}, user_text={last_user_text[:200]}, content_length={len(full_content)}")
 
                 if task_analyzer_result:
                     decision_result = task_analyzer_result.decision_result
@@ -5998,13 +5475,7 @@ async def chat_product_stream(
                         )
                     ):
                         # Task Analyzer 通過語義分析識別出需要 document_editing 工具
-                        logger.info(
-                            "document_editing_tool_detected_for_file_creation",
-                            request_id=request_id,
-                            chosen_tools=decision_result.chosen_tools,
-                            task_id=task_id,
-                            note="Attempting to create file",
-                        )
+                        logger.info(f"document_editing_tool_detected_for_file_creation: request_id={request_id}, chosen_tools={decision_result.chosen_tools}, task_id={task_id}, note=Attempting to create file")
 
                         # 嘗試創建文件（不依賴關鍵詞匹配）
                         create_action = _try_create_file_from_chat_output(
@@ -6015,23 +5486,11 @@ async def chat_product_stream(
                             force_create=True,  # 強制創建，不依賴關鍵詞匹配
                         )
                         if create_action:
-                            logger.info(
-                                "file_created_from_stream",
-                                request_id=request_id,
-                                file_id=create_action.get("file_id"),
-                                filename=create_action.get("filename"),
-                                note="File created based on Task Analyzer semantic analysis",
-                            )
+                            logger.info(f"file_created_from_stream: request_id={request_id}, file_id={create_action.get("file_id")}, filename={create_action.get("filename")}, note=File created based on Task Analyzer semantic analysis")
                             # 發送文件創建事件
                             yield f"data: {json.dumps({'type': 'file_created', 'data': create_action})}\n\n"
                         else:
-                            logger.warning(
-                                "file_creation_returned_none",
-                                request_id=request_id,
-                                task_id=task_id,
-                                user_text=last_user_text[:200],
-                                note="File creation function returned None, check logs for details",
-                            )
+                            logger.warning(f"file_creation_returned_none: request_id={request_id}, task_id={task_id}, user_text={last_user_text[:200]}, note=File creation function returned None, check logs for details")
                     else:
                         # 修改時間：2026-01-06 - 添加詳細日誌追蹤為什麼沒有選擇 document_editing 工具
                         router_decision = (
@@ -6040,33 +5499,18 @@ async def chat_product_stream(
                             and hasattr(task_analyzer_result, "router_decision")
                             else None
                         )
-                        logger.info(
-                            "document_editing_tool_not_detected",
-                            request_id=request_id,
-                            has_decision_result=decision_result is not None,
-                            chosen_tools=decision_result.chosen_tools if decision_result else None,
-                            router_needs_tools=(
+                        logger.info(f"document_editing_tool_not_detected: request_id={request_id}, has_decision_result={decision_result is not None}, chosen_tools={decision_result.chosen_tools if decision_result else None}, router_needs_tools={(
                                 router_decision.needs_tools if router_decision else None
-                            ),
-                            router_intent_type=(
+                            )}, router_intent_type={(
                                 router_decision.intent_type if router_decision else None
-                            ),
-                            router_confidence=(
+                            )}, router_confidence={(
                                 router_decision.confidence if router_decision else None
-                            ),
-                            user_text=last_user_text[:200],
-                            note="❌ Task Analyzer did not select document_editing tool - check Router LLM, Capability Matcher, and Decision Engine logs",
-                        )
+                            )}, user_text={last_user_text[:200]}, note={"Task Analyzer did not select document_editing tool - check Router LLM, Capability Matcher, and Decision Engine logs"}")
 
+                        # TODO: 考慮合併這兩處 _looks_like_create_file_intent fallback 邏輯
                         # 修改時間：2026-01-06 - Fallback：如果 Task Analyzer 沒有選擇 document_editing 工具，但用戶文本包含文件創建關鍵詞，也嘗試創建文件
                         if _looks_like_create_file_intent(last_user_text):
-                            logger.info(
-                                "fallback_to_keyword_matching_for_file_creation",
-                                request_id=request_id,
-                                task_id=task_id,
-                                user_text=last_user_text[:200],
-                                note="Task Analyzer did not select document_editing tool, but user text contains file creation keywords - attempting file creation via keyword matching",
-                            )
+                            logger.info(f"fallback_to_keyword_matching_for_file_creation: request_id={request_id}, task_id={task_id}, user_text={last_user_text[:200]}, note=Task Analyzer did not select document_editing tool, but user text contains file creation keywords - attempting file creation via keyword matching")
 
                             # 嘗試創建文件（使用關鍵詞匹配）
                             create_action = _try_create_file_from_chat_output(
@@ -6077,39 +5521,18 @@ async def chat_product_stream(
                                 force_create=False,  # 使用關鍵詞匹配
                             )
                             if create_action:
-                                logger.info(
-                                    "file_created_from_stream_via_keyword_fallback",
-                                    request_id=request_id,
-                                    file_id=create_action.get("file_id"),
-                                    filename=create_action.get("filename"),
-                                    note="File created via keyword matching fallback",
-                                )
+                                logger.info(f"file_created_from_stream_via_keyword_fallback: request_id={request_id}, file_id={create_action.get("file_id")}, filename={create_action.get("filename")}, note=File created via keyword matching fallback")
                                 # 發送文件創建事件
                                 yield f"data: {json.dumps({'type': 'file_created', 'data': create_action})}\n\n"
                             else:
-                                logger.warning(
-                                    "file_creation_fallback_returned_none",
-                                    request_id=request_id,
-                                    task_id=task_id,
-                                    user_text=last_user_text[:200],
-                                    note="File creation via keyword matching returned None, check logs for details",
-                                )
+                                logger.warning(f"file_creation_fallback_returned_none: request_id={request_id}, task_id={task_id}, user_text={last_user_text[:200]}, note=File creation via keyword matching returned None, check logs for details")
                 else:
-                    logger.info(
-                        "no_task_analyzer_result",
-                        request_id=request_id,
-                        note="Task Analyzer result is None, cannot check for document creation intent",
-                    )
+                    logger.info(f"no_task_analyzer_result: request_id={request_id}, note=Task Analyzer result is None, cannot check for document creation intent")
 
+                    # TODO: 考慮合併這兩處 _looks_like_create_file_intent fallback 邏輯
                     # 修改時間：2026-01-06 - Fallback：如果 Task Analyzer 結果為 None，但用戶文本包含文件創建關鍵詞，也嘗試創建文件
                     if _looks_like_create_file_intent(last_user_text):
-                        logger.info(
-                            "fallback_to_keyword_matching_no_task_analyzer",
-                            request_id=request_id,
-                            task_id=task_id,
-                            user_text=last_user_text[:200],
-                            note="Task Analyzer result is None, but user text contains file creation keywords - attempting file creation via keyword matching",
-                        )
+                        logger.info(f"fallback_to_keyword_matching_no_task_analyzer: request_id={request_id}, task_id={task_id}, user_text={last_user_text[:200]}, note=Task Analyzer result is None, but user text contains file creation keywords - attempting file creation via keyword matching")
 
                         # 嘗試創建文件（使用關鍵詞匹配）
                         create_action = _try_create_file_from_chat_output(
@@ -6120,35 +5543,18 @@ async def chat_product_stream(
                             force_create=False,  # 使用關鍵詞匹配
                         )
                         if create_action:
-                            logger.info(
-                                "file_created_from_stream_via_keyword_fallback_no_analyzer",
-                                request_id=request_id,
-                                file_id=create_action.get("file_id"),
-                                filename=create_action.get("filename"),
-                                note="File created via keyword matching fallback (no Task Analyzer result)",
-                            )
+                            logger.info(f"file_created_from_stream_via_keyword_fallback_no_analyzer: request_id={request_id}, file_id={create_action.get("file_id")}, filename={create_action.get("filename")}, note=File created via keyword matching fallback (no Task Analyzer result)")
                             # 發送文件創建事件
                             yield f"data: {json.dumps({'type': 'file_created', 'data': create_action})}\n\n"
                         else:
-                            logger.warning(
-                                "file_creation_fallback_no_analyzer_returned_none",
-                                request_id=request_id,
-                                task_id=task_id,
-                                user_text=last_user_text[:200],
-                                note="File creation via keyword matching returned None (no Task Analyzer result), check logs for details",
-                            )
+                            logger.warning(f"file_creation_fallback_no_analyzer_returned_none: request_id={request_id}, task_id={task_id}, user_text={last_user_text[:200]}, note=File creation via keyword matching returned None (no Task Analyzer result), check logs for details")
             except Exception as file_create_exc:
                 stream_elapsed_time = time.time() - stream_start_time
                 std_logger.error(
                     f"[{request_id}] file_creation_failed_in_stream after {stream_elapsed_time:.2f}s - {file_create_exc}",
                     exc_info=True,
                 )
-                logger.error(
-                    "file_creation_failed_in_stream",
-                    request_id=request_id,
-                    error=str(file_create_exc),
-                    exc_info=True,
-                )
+                logger.error(f"file_creation_failed_in_stream: request_id={request_id}, error={str(file_create_exc)}", exc_info=True)
 
         except Exception as exc:
             stream_elapsed_time = time.time() - stream_start_time
@@ -6204,11 +5610,7 @@ async def chat_product(
     request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
 
     messages = [m.model_dump() for m in request_body.messages]
-    model_selector = request_body.model_selector
-
-    routing: Dict[str, Any] = {}
     observability = ObservabilityInfo(
-        request_id=request_id,
         session_id=session_id,
         task_id=task_id,
         token_input=None,  # type: ignore[call-arg]  # token_input 有默認值
@@ -6268,388 +5670,6 @@ async def chat_product(
             message="Chat success",
         )
 
-        # G5：入口事件（log + trace）
-        logger.info(
-            "genai_chat_request_received",
-            request_id=request_id,
-            session_id=session_id,
-            task_id=task_id,
-            user_id=current_user.user_id,
-            model_selector_mode=model_selector.mode,
-            model_id=model_selector.model_id,
-        )
-        trace_store.add_event(
-            GenAITraceEvent(
-                event="chat.request_received",
-                request_id=request_id,
-                session_id=session_id,
-                task_id=task_id,
-                user_id=current_user.user_id,
-                status="ok",
-            )
-        )
-
-        # 取最後一則 user message（若找不到就取最後一則）
-        user_messages = [m for m in messages if m.get("role") == "user"]
-        last_user_text = str(user_messages[-1].get("content", "")) if user_messages else ""
-        if not last_user_text and messages:
-            last_user_text = str(messages[-1].get("content", ""))
-
-        # G3：先記錄 user message（避免重複寫入）
-        _record_if_changed(
-            context_manager=context_manager,
-            session_id=session_id,
-            role="user",
-            content=last_user_text,
-            metadata={
-                "user_id": current_user.user_id,
-                "session_id": session_id,
-                "task_id": task_id,
-                "request_id": request_id,
-            },
-        )
-
-        # G3：用 windowed history 作為 MoE 的 messages（並保留前端提供的 system message）
-        system_messages = [m for m in messages if m.get("role") == "system"]
-        windowed_history = context_manager.get_context_with_window(session_id=session_id)
-        observability.context_message_count = (
-            len(windowed_history) if isinstance(windowed_history, list) else 0
-        )
-        # G6：附件 file_id 權限檢查（避免透過 RAG 讀到不屬於自己的文件）
-        if request_body.attachments:
-            for att in request_body.attachments:
-                file_permission_service.check_file_access(
-                    user=current_user,
-                    file_id=att.file_id,
-                    required_permission=Permission.FILE_READ.value,
-                )
-
-        # G6：Data consent gate（AI_PROCESSING）- 未同意則不檢索/不注入/不寫入
-        has_ai_consent = False
-        try:
-            from services.api.models.data_consent import ConsentType
-
-            consent_service = get_consent_service()
-            has_ai_consent = consent_service.check_consent(
-                current_user.user_id, ConsentType.AI_PROCESSING
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "genai_consent_check_failed",
-                error=str(exc),
-                request_id=request_id,
-                user_id=current_user.user_id,
-            )
-            has_ai_consent = False
-
-        # 暫時關閉 AI 處理同意檢查（測試用）。正式環境請刪除此行。
-        has_ai_consent = True
-
-        # 2026-02-14 新增：獲取 Agent 配置的知識庫文件 ID
-        knowledge_base_file_ids: list[str] = []
-        if user_selected_agent_id:
-            try:
-                from services.api.services.agent_display_config_store_service import (
-                    AgentDisplayConfigStoreService,
-                )
-
-                store = AgentDisplayConfigStoreService()
-                agent_config = store.get_agent_config(
-                    agent_key=user_selected_agent_id, tenant_id=None
-                )
-                if not agent_config:
-                    agent_config = store.get_agent_config(
-                        agent_id=user_selected_agent_id, tenant_id=None
-                    )
-                if (
-                    agent_config
-                    and hasattr(agent_config, "knowledge_bases")
-                    and agent_config.knowledge_bases
-                ):
-                    knowledge_base_file_ids = await _get_knowledge_base_file_ids(
-                        kb_ids=agent_config.knowledge_bases,
-                        user_id=current_user.user_id,
-                    )
-                    logger.info(
-                        f"[chat] 獲取知識庫文件 ID: agent={user_selected_agent_id}, "
-                        f"kb_count={len(agent_config.knowledge_bases)}, "
-                        f"file_count={len(knowledge_base_file_ids)}"
-                    )
-            except Exception as e:
-                logger.warning(f"[chat] 獲取知識庫文件 ID 失敗: {e}")
-
-        if has_ai_consent:
-            memory_result = await memory_service.retrieve_for_prompt(
-                user_id=current_user.user_id,
-                session_id=session_id,
-                task_id=task_id,
-                request_id=request_id,
-                query=last_user_text,
-                attachments=request_body.attachments,
-                user=current_user,
-                knowledge_base_file_ids=knowledge_base_file_ids
-                if knowledge_base_file_ids
-                else None,
-            )
-            observability.memory_hit_count = memory_result.memory_hit_count
-            observability.memory_sources = memory_result.memory_sources
-            observability.retrieval_latency_ms = memory_result.retrieval_latency_ms
-        else:
-            from services.api.services.chat_memory_service import (
-                MemoryRetrievalResult,
-                is_file_list_query,
-            )
-
-            if is_file_list_query(last_user_text):
-                memory_result = MemoryRetrievalResult(
-                    injection_messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "當用戶詢問「知識庫有哪些文件」或「我的文件列表」時，請回答："
-                                "請先同意 AI 處理與數據使用條款後，系統才能為您列出已上傳的文件。"
-                                "請勿回答關於 LLM 訓練數據或訓練文件的說明。"
-                            ),
-                        }
-                    ],
-                    memory_hit_count=0,
-                    memory_sources=[],
-                    retrieval_latency_ms=0.0,
-                )
-            else:
-                memory_result = MemoryRetrievalResult(
-                    injection_messages=[],
-                    memory_hit_count=0,
-                    memory_sources=[],
-                    retrieval_latency_ms=0.0,
-                )
-            observability.memory_hit_count = 0
-            observability.memory_sources = []
-            observability.retrieval_latency_ms = 0.0
-
-        base_system = system_messages[:1] if system_messages else []
-
-        reserved_tokens = 0
-        if base_system:
-            reserved_tokens += context_manager._window.count_dict_messages_tokens(base_system)
-        if memory_result.injection_messages:
-            reserved_tokens += context_manager._window.count_dict_messages_tokens(
-                memory_result.injection_messages
-            )
-
-        windowed_history = context_manager.get_context_with_dynamic_window(
-            session_id=session_id, reserved_tokens=reserved_tokens
-        )
-        observability.context_message_count = len(windowed_history)
-
-        messages_for_llm = base_system + memory_result.injection_messages + windowed_history
-
-        trace_store.add_event(
-            GenAITraceEvent(
-                event="chat.memory_retrieved",
-                request_id=request_id,
-                session_id=session_id,
-                task_id=task_id,
-                user_id=current_user.user_id,
-                memory_hit_count=observability.memory_hit_count,
-                memory_sources=observability.memory_sources,
-                retrieval_latency_ms=observability.retrieval_latency_ms,
-                context_message_count=observability.context_message_count,
-                status="ok",
-            )
-        )
-
-        llm_call_start = time.perf_counter()
-        if model_selector.mode == "auto":
-            # G6：provider allowlist（Auto）- 將 allowlist 傳給 MoE 做 provider 過濾
-            allowed_providers = policy_gate.get_allowed_providers()
-
-            # 獲取用戶的收藏模型列表（用於 Auto 模式優先選擇）
-            favorite_model_ids: List[str] = []
-            try:
-                from services.api.services.user_preference_service import (
-                    get_user_preference_service,
-                )
-
-                preference_service = get_user_preference_service()
-                favorite_model_ids = preference_service.get_favorite_models(
-                    user_id=current_user.user_id
-                )
-            except Exception as exc:  # noqa: BLE001
-                logger.debug(
-                    f"Failed to get favorite models for user {current_user.user_id}: {exc}"
-                )
-                # fallback 到內存緩存
-                favorite_model_ids = _favorite_models_by_user.get(current_user.user_id, [])
-
-            task_classification = classifier.classify(
-                last_user_text,
-                context={
-                    "user_id": current_user.user_id,
-                    "session_id": session_id,
-                    "task_id": task_id,
-                },
-            )
-
-            result = await moe.chat(
-                messages_for_llm,
-                task_classification=task_classification,
-                context={
-                    "user_id": current_user.user_id,
-                    "session_id": session_id,
-                    "task_id": task_id,
-                    "allowed_providers": allowed_providers,
-                    "favorite_models": favorite_model_ids,  # 傳遞收藏模型列表
-                },
-            )
-
-        else:
-            # manual/favorite：provider/model override
-            selected_model_id = model_selector.model_id or ""
-            provider = _infer_provider_from_model_id(selected_model_id)
-            # G6：manual/favorite allowlist gate
-            if not policy_gate.is_model_allowed(provider.value, selected_model_id):
-                # 使用錯誤翻譯函數
-                user_msg, error_code, _ = translate_error_to_user_message(
-                    Exception(f"Model {selected_model_id} is not allowed by policy"),
-                    "MODEL_NOT_ALLOWED",
-                )
-                return APIResponse.error(
-                    message=user_msg,
-                    error_code=error_code,
-                    details={
-                        "provider": provider.value,
-                        "model_id": selected_model_id,
-                    },
-                    status_code=status.HTTP_403_FORBIDDEN,
-                )
-            result = await moe.chat(
-                messages_for_llm,
-                provider=provider,
-                model=selected_model_id,
-                context={
-                    "user_id": current_user.user_id,
-                    "session_id": session_id,
-                    "task_id": task_id,
-                },
-            )
-
-        content = _extract_content(result)
-        routing = (result.get("_routing", {}) if isinstance(result, dict) else {}) or {}
-
-        llm_latency_ms = (time.perf_counter() - llm_call_start) * 1000.0
-        total_latency_ms = (time.perf_counter() - start_time) * 1000.0
-
-        trace_store.add_event(
-            GenAITraceEvent(
-                event="chat.llm_completed",
-                request_id=request_id,
-                session_id=session_id,
-                task_id=task_id,
-                user_id=current_user.user_id,
-                provider=str(routing.get("provider") or "unknown"),
-                model=routing.get("model"),
-                strategy=str(routing.get("strategy") or "unknown"),
-                failover_used=bool(routing.get("failover_used") or False),
-                fallback_provider=routing.get("fallback_provider"),
-                memory_hit_count=observability.memory_hit_count,
-                memory_sources=observability.memory_sources,
-                retrieval_latency_ms=observability.retrieval_latency_ms,
-                context_message_count=observability.context_message_count,
-                total_latency_ms=total_latency_ms,
-                llm_latency_ms=llm_latency_ms,
-                status="ok",
-            )
-        )
-
-        # G3：記錄 assistant message（避免重複寫入）
-        _record_if_changed(
-            context_manager=context_manager,
-            session_id=session_id,
-            role="assistant",
-            content=content,
-            metadata={
-                "user_id": current_user.user_id,
-                "session_id": session_id,
-                "task_id": task_id,
-                "request_id": request_id,
-                "routing": routing,
-            },
-        )
-
-        # G6：同意才寫入 long-term（MVP：snippet；失敗不阻擋回覆）
-        if has_ai_consent:
-            await memory_service.write_from_turn(
-                user_id=current_user.user_id,
-                session_id=session_id,
-                task_id=task_id,
-                request_id=request_id,
-                user_text=last_user_text,
-                assistant_text=content,
-            )
-
-        routing_info = RoutingInfo(
-            provider=str(routing.get("provider") or "unknown"),
-            model=routing.get("model"),
-            strategy=str(routing.get("strategy") or "unknown"),
-            latency_ms=routing.get("latency_ms"),
-            failover_used=bool(routing.get("failover_used") or False),
-            fallback_provider=routing.get("fallback_provider"),
-        )
-
-        response = ChatResponse(
-            content=content,
-            session_id=session_id,
-            task_id=task_id,
-            routing=routing_info,
-            observability=observability,
-        )
-
-        final_event = GenAITraceEvent(
-            event="chat.response_sent",
-            request_id=request_id,
-            session_id=session_id,
-            task_id=task_id,
-            user_id=current_user.user_id,
-            provider=routing_info.provider,
-            model=routing_info.model,
-            strategy=routing_info.strategy,
-            failover_used=routing_info.failover_used,
-            fallback_provider=routing_info.fallback_provider,
-            memory_hit_count=observability.memory_hit_count,
-            memory_sources=observability.memory_sources,
-            retrieval_latency_ms=observability.retrieval_latency_ms,
-            context_message_count=observability.context_message_count,
-            total_latency_ms=total_latency_ms,
-            llm_latency_ms=llm_latency_ms,
-            status="ok",
-        )
-        trace_store.add_event(final_event)
-        metrics.record_final_event(final_event)
-
-        logger.info(
-            "genai_chat_response_sent",
-            request_id=request_id,
-            session_id=session_id,
-            task_id=task_id,
-            user_id=current_user.user_id,
-            provider=routing_info.provider,
-            model=routing_info.model,
-            strategy=routing_info.strategy,
-            failover_used=routing_info.failover_used,
-            fallback_provider=routing_info.fallback_provider,
-            memory_hit_count=observability.memory_hit_count,
-            memory_sources=observability.memory_sources,
-            retrieval_latency_ms=observability.retrieval_latency_ms,
-            context_message_count=observability.context_message_count,
-            total_latency_ms=total_latency_ms,
-            llm_latency_ms=llm_latency_ms,
-        )
-
-        return APIResponse.success(
-            data=response.model_dump(mode="json"),
-            message="Chat success",
-        )
     except HTTPException as exc:
         total_latency_ms = (time.perf_counter() - start_time) * 1000.0
         detail = exc.detail
@@ -6683,15 +5703,7 @@ async def chat_product(
                 status_code=exc.status_code,
             )
         else:
-            logger.warning(
-                "chat_product_http_error",
-                error=str(detail),
-                status_code=exc.status_code,
-                user_id=current_user.user_id,
-                session_id=session_id,
-                task_id=task_id,
-                request_id=request_id,
-            )
+            logger.warning(f"chat_product_http_error: error={str(detail)}, status_code={exc.status_code}, user_id={current_user.user_id}, session_id={session_id}, task_id={task_id}, request_id={request_id}")
 
             # 使用錯誤翻譯
             user_friendly_msg, error_code, log_msg = translate_error_to_user_message(
@@ -6738,12 +5750,7 @@ async def chat_product(
         user_friendly_msg, error_code, log_msg = translate_error_to_user_message(
             exc, "CHAT_PRODUCT_FAILED"
         )
-        logger.warning(
-            "chat_error_translated",
-            original_error=str(exc),
-            user_message=user_friendly_msg,
-            error_code=error_code,
-        )
+        logger.warning(f"chat_error_translated: original_error={str(exc)}, user_message={user_friendly_msg}, error_code={error_code}")
 
         failed_event = GenAITraceEvent(
             event="chat.failed",
@@ -6890,11 +5897,7 @@ async def create_chat_request(
                 current_user.to_dict(),
             )
         except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "genai_chat_request_enqueue_failed_fallback_local",
-                request_id=request_id,
-                error=str(exc),
-            )
+            logger.warning(f"genai_chat_request_enqueue_failed_fallback_local: request_id={request_id}, error={str(exc)}")
             executor = "local"
 
     # executor=local：同一進程內背景任務（MVP）
@@ -7054,12 +6057,7 @@ async def get_session_messages(
         messages = context_manager.get_messages(session_id=session_id, limit=safe_limit)
         payload = [m.model_dump(mode="json") for m in messages]
     except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "get_session_messages_failed",
-            error=str(exc),
-            user_id=current_user.user_id,
-            session_id=session_id,
-        )
+        logger.warning(f"get_session_messages_failed: error={str(exc)}, user_id={current_user.user_id}, session_id={session_id}")
         payload = []
     return APIResponse.success(
         data={"session_id": session_id, "messages": payload},
@@ -7084,7 +6082,7 @@ async def get_favorite_models(
         service = get_user_preference_service()
         model_ids = service.get_favorite_models(user_id=user_id)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("favorite_models_service_failed", user_id=user_id, error=str(exc))
+        logger.warning(f"favorite_models_service_failed: user_id={user_id}, error={str(exc)}")
         model_ids = _favorite_models_by_user.get(user_id, [])
     return APIResponse.success(
         data={"model_ids": model_ids},
@@ -7098,7 +6096,6 @@ async def set_favorite_models(
     tenant_id: str = Depends(get_current_tenant_id),
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    import logging
 
     std_logger = logging.getLogger("api.routers.chat")
 
@@ -7131,7 +6128,7 @@ async def set_favorite_models(
             f"set_favorite_models ERROR - user_id={user_id}, error={exc}",
             exc_info=True,
         )
-        logger.warning("favorite_models_service_failed", user_id=user_id, error=str(exc))
+        logger.warning(f"favorite_models_service_failed: user_id={user_id}, error={str(exc)}")
         # 去重且保序（fallback）
         seen: set[str] = set()
         normalized = []

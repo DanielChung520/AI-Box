@@ -1,7 +1,3 @@
-# Data-Agent 主入口
-# 代碼功能說明: Data-Agent 服務入口
-# 創建日期: 2026-02-10
-# 創建人: Daniel Chung
 
 """Data-Agent 服務入口
 
@@ -14,20 +10,17 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# 設定日誌
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-# 建立 FastAPI 應用
 app = FastAPI(
     title="Data-Agent API",
     description="Data-Agent Service with Schema Driven Query Support",
     version="1.0.0",
 )
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,7 +30,6 @@ app.add_middleware(
 )
 
 
-# 路由註冊
 def register_routers():
     """註冊所有路由"""
 

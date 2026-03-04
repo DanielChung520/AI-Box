@@ -1,0 +1,1570 @@
+{
+  "version": "1.0.0",
+  "created_at": "2026-02-22",
+  "description": "MM-Agent 意圖分類場景庫 - 用於 Intent RAG 向量化檢索（去數據化版本）",
+  "source": "docs/測試報告/MM-Agent-意圖分類場景庫.md",
+  "design_principles": {
+    "去數據化": "不含具體料號、倉庫代碼、供應商代碼",
+    "語義優先": "聚焦「查詢」、「統計」、「比較」等意圖表達",
+    "唯一性": "每個場景表達必須與其他場景有明顯區別",
+    "可擴展": "預留空間給未來新增場景"
+  },
+  "intent_hierarchy": {
+    "layer1": {
+      "name": "GAI Intent",
+      "description": "AI-Box Router 處理",
+      "intents": [
+        "GREETING",
+        "THANKS",
+        "COMPLAIN",
+        "CANCEL",
+        "CONTINUE",
+        "MODIFY",
+        "HISTORY",
+        "EXPORT",
+        "CONFIRM",
+        "FEEDBACK",
+        "CLARIFICATION",
+        "BUSINESS"
+      ]
+    },
+    "layer2": {
+      "name": "BPA Intent",
+      "description": "MM-Agent 處理",
+      "intents": [
+        "KNOWLEDGE_QUERY",
+        "SIMPLE_QUERY",
+        "COMPLEX_TASK",
+        "CLARIFICATION",
+        "CONTINUE_WORKFLOW"
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "id": "G01",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "GREETING",
+      "user_input": "你好",
+      "intent_description": "基本問候"
+    },
+    {
+      "id": "G02",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "GREETING",
+      "user_input": "早安",
+      "intent_description": "早晨問候"
+    },
+    {
+      "id": "G03",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "GREETING",
+      "user_input": "午安",
+      "intent_description": "中午問候"
+    },
+    {
+      "id": "G04",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "GREETING",
+      "user_input": "晚安",
+      "intent_description": "晚間問候"
+    },
+    {
+      "id": "G05",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "GREETING",
+      "user_input": "嗨",
+      "intent_description": "輕鬆問候"
+    },
+    {
+      "id": "G06",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "GREETING",
+      "user_input": "在嗎",
+      "intent_description": "確認在線"
+    },
+    {
+      "id": "G07",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "謝謝",
+      "intent_description": "基本感謝"
+    },
+    {
+      "id": "G08",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "感謝你",
+      "intent_description": "感謝回覆"
+    },
+    {
+      "id": "G09",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "多謝幫忙",
+      "intent_description": "書面感謝"
+    },
+    {
+      "id": "G10",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "對不起",
+      "intent_description": "道歉"
+    },
+    {
+      "id": "K01",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "internal",
+      "user_input": "公司的採購流程是什麼？",
+      "intent_description": "詢問內部流程"
+    },
+    {
+      "id": "K02",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "internal",
+      "user_input": "如何建立採購單？",
+      "intent_description": "詢問操作方法"
+    },
+    {
+      "id": "K03",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "internal",
+      "user_input": "入庫作業怎麼做？",
+      "intent_description": "詢問操作步驟"
+    },
+    {
+      "id": "K04",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "internal",
+      "user_input": "收料流程要注意什麼？",
+      "intent_description": "詢問注意事項"
+    },
+    {
+      "id": "K05",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "internal",
+      "user_input": "盤點週期是多久？",
+      "intent_description": "詢問公司規定"
+    },
+    {
+      "id": "K06",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "internal",
+      "user_input": "請購單怎麼開？",
+      "intent_description": "詢問操作方法"
+    },
+    {
+      "id": "K07",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "internal",
+      "user_input": "採購審批流程怎麼跑？",
+      "intent_description": "詢問流程規則"
+    },
+    {
+      "id": "K08",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "terminology",
+      "user_input": "什麼是安全庫存？",
+      "intent_description": "術語定義"
+    },
+    {
+      "id": "K09",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "terminology",
+      "user_input": "ABC庫存分類是什麼？",
+      "intent_description": "術語定義"
+    },
+    {
+      "id": "K10",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "terminology",
+      "user_input": "什麼是VMI？",
+      "intent_description": "術語定義"
+    },
+    {
+      "id": "K11",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "terminology",
+      "user_input": "JIT和JIC有什麼差別？",
+      "intent_description": "概念比較"
+    },
+    {
+      "id": "K12",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "terminology",
+      "user_input": "經濟訂購量EOQ怎麼計算？",
+      "intent_description": "計算公式"
+    },
+    {
+      "id": "K13",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "terminology",
+      "user_input": "什麼是MRP？",
+      "intent_description": "術語定義"
+    },
+    {
+      "id": "K14",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "terminology",
+      "user_input": "庫存週轉率如何計算？",
+      "intent_description": "計算公式"
+    },
+    {
+      "id": "K15",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "best_practice",
+      "user_input": "如何提升庫存準確率？",
+      "intent_description": "詢問方法"
+    },
+    {
+      "id": "K16",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "best_practice",
+      "user_input": "庫存管理要注意什麼？",
+      "intent_description": "詢問原則"
+    },
+    {
+      "id": "K17",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "best_practice",
+      "user_input": "怎麼做好採購管理？",
+      "intent_description": "詢問方法"
+    },
+    {
+      "id": "K18",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "best_practice",
+      "user_input": "倉庫管理的5S是什麼？",
+      "intent_description": "詢問原則"
+    },
+    {
+      "id": "K19",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "best_practice",
+      "user_input": "供應商評估要點有哪些？",
+      "intent_description": "詢問要點"
+    },
+    {
+      "id": "K20",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "best_practice",
+      "user_input": "庫存盤點要注意什麼？",
+      "intent_description": "詢問事項"
+    },
+    {
+      "id": "K21",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "knowledge_base",
+      "user_input": "請你檢查你的知識庫有那些！",
+      "intent_description": "詢問知識庫有哪些文件"
+    },
+    {
+      "id": "K22",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "knowledge_base",
+      "user_input": "知識庫有什麼文件？",
+      "intent_description": "詢問知識庫內容"
+    },
+    {
+      "id": "K23",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "knowledge_base",
+      "user_input": "列出知識庫的文件",
+      "intent_description": "列出知識庫文件"
+    },
+    {
+      "id": "K24",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "knowledge_base",
+      "user_input": "查看知識庫內容",
+      "intent_description": "查看知識庫"
+    },
+    {
+      "id": "K25",
+      "category": "知識查詢",
+      "layer": 2,
+      "intent": "KNOWLEDGE_QUERY",
+      "sub_type": "knowledge_base",
+      "user_input": "我的知識庫有哪些？",
+      "intent_description": "詢問知識庫列表"
+    },
+    {
+      "id": "D01",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "查詢某個料號的庫存",
+      "intent_description": "庫存查詢"
+    },
+    {
+      "id": "D02",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "某個倉庫現在有多少庫存？",
+      "intent_description": "倉庫庫存總量"
+    },
+    {
+      "id": "D03",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "哪些料號的庫存不足？",
+      "intent_description": "低庫存查詢"
+    },
+    {
+      "id": "D04",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "查庫存的存放位置",
+      "intent_description": "庫存位置查詢"
+    },
+    {
+      "id": "D05",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "零庫存的料號有哪些？",
+      "intent_description": "零庫存查詢"
+    },
+    {
+      "id": "D06",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "各倉庫的庫存分佈情況",
+      "intent_description": "庫存分布"
+    },
+    {
+      "id": "D07",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "料號查詢",
+      "user_input": "查詢某個料號的品名",
+      "intent_description": "基本資料查詢"
+    },
+    {
+      "id": "D08",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "料號查詢",
+      "user_input": "某個料號的規格是什麼？",
+      "intent_description": "規格查詢"
+    },
+    {
+      "id": "D09",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "料號查詢",
+      "user_input": "某個料號的單位是什麼？",
+      "intent_description": "單位查詢"
+    },
+    {
+      "id": "D10",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "料號查詢",
+      "user_input": "某個料號有哪些供應商？",
+      "intent_description": "供應商查詢"
+    },
+    {
+      "id": "D11",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "採購查詢",
+      "user_input": "某個料號的採購記錄",
+      "intent_description": "採購歷史"
+    },
+    {
+      "id": "D12",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "採購查詢",
+      "user_input": "最近採購數量多少？",
+      "intent_description": "採購數量"
+    },
+    {
+      "id": "D13",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "採購查詢",
+      "user_input": "採購筆數統計",
+      "intent_description": "採購統計"
+    },
+    {
+      "id": "D14",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "採購查詢",
+      "user_input": "某個供應商的採購記錄",
+      "intent_description": "供應商維度"
+    },
+    {
+      "id": "D15",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "採購查詢",
+      "user_input": "未交貨的採購單",
+      "intent_description": "逾期查詢"
+    },
+    {
+      "id": "D16",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "銷售查詢",
+      "user_input": "某個料號的銷售數量",
+      "intent_description": "銷售查詢"
+    },
+    {
+      "id": "D17",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "銷售查詢",
+      "user_input": "銷售額是多少？",
+      "intent_description": "銷售額統計"
+    },
+    {
+      "id": "D18",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "銷售查詢",
+      "user_input": "未出貨的訂單有哪些？",
+      "intent_description": "未出貨查詢"
+    },
+    {
+      "id": "D19",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "統計分析",
+      "user_input": "各倉庫的總庫存量",
+      "intent_description": "倉庫統計"
+    },
+    {
+      "id": "D20",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "統計分析",
+      "user_input": "共有多少料號？",
+      "intent_description": "料號數量"
+    },
+    {
+      "id": "D21",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "統計分析",
+      "user_input": "庫存金額是多少？",
+      "intent_description": "金額統計"
+    },
+    {
+      "id": "D22",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "統計分析",
+      "user_input": "原料倉的庫存",
+      "intent_description": "倉庫類型查詢"
+    },
+    {
+      "id": "D23",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "統計分析",
+      "user_input": "成品倉的庫存",
+      "intent_description": "倉庫類型查詢"
+    },
+    {
+      "id": "D24",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "統計分析",
+      "user_input": "最近入庫的記錄",
+      "intent_description": "最新入庫"
+    },
+    {
+      "id": "D25",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "統計分析",
+      "user_input": "低於安全庫存的料號",
+      "intent_description": "安全庫存查詢"
+    },
+    {
+      "id": "D26",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "綜合查詢",
+      "user_input": "查詢某段時間的進出庫",
+      "intent_description": "時間區間查詢"
+    },
+    {
+      "id": "D27",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "綜合查詢",
+      "user_input": "某個部門的庫存情況",
+      "intent_description": "組織維度查詢"
+    },
+    {
+      "id": "D28",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "綜合查詢",
+      "user_input": "庫存盤點結果",
+      "intent_description": "盤點結果查詢"
+    },
+    {
+      "id": "D29",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "綜合查詢",
+      "user_input": "在途庫存有多少？",
+      "intent_description": "在途庫存"
+    },
+    {
+      "id": "D30",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "綜合查詢",
+      "user_input": "某個倉庫有哪些料號？",
+      "intent_description": "倉庫料號清單"
+    },
+    {
+      "id": "D31",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "某個庫房有哪些料號？",
+      "intent_description": "庫房料號查詢"
+    },
+    {
+      "id": "D32",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "某個倉庫的料號列表",
+      "intent_description": "倉庫料號清單"
+    },
+    {
+      "id": "D33",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "查詢某倉庫的庫存情況",
+      "intent_description": "倉庫庫存查詢"
+    },
+    {
+      "id": "D34",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "某個工作站有哪些物料？",
+      "intent_description": "工作站物料查詢"
+    },
+    {
+      "id": "D35",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "某條產線的原料有哪些？",
+      "intent_description": "產線原料查詢"
+    },
+    {
+      "id": "D36",
+      "category": "數據查詢",
+      "layer": 2,
+      "intent": "SIMPLE_QUERY",
+      "sub_type": "庫存查詢",
+      "user_input": "某QC區的料號",
+      "intent_description": "QC區料號查詢"
+    },
+    {
+      "id": "C01",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "比較分析",
+      "user_input": "比較不同時間段的採購金額",
+      "intent_description": "時間維度比較"
+    },
+    {
+      "id": "C02",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "比較分析",
+      "user_input": "各倉庫的庫存金額排行",
+      "intent_description": "排行分析"
+    },
+    {
+      "id": "C03",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "比較分析",
+      "user_input": "成品倉與原料倉的對比",
+      "intent_description": "倉庫類型比較"
+    },
+    {
+      "id": "C04",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "比較分析",
+      "user_input": "本月與上月差異",
+      "intent_description": "環比分析"
+    },
+    {
+      "id": "C05",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "比較分析",
+      "user_input": "不同供應商的交貨品質比較",
+      "intent_description": "供應商比較"
+    },
+    {
+      "id": "C06",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "多維度總覽",
+      "user_input": "某個料號的完整庫存與採購概況",
+      "intent_description": "單料號全景"
+    },
+    {
+      "id": "C07",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "多維度總覽",
+      "user_input": "庫存狀況報告",
+      "intent_description": "庫存報告"
+    },
+    {
+      "id": "C08",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "多維度總覽",
+      "user_input": "業務總覽",
+      "intent_description": "月度總覽"
+    },
+    {
+      "id": "C09",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "分析預測",
+      "user_input": "ABC庫存分類分析",
+      "intent_description": "分類分析"
+    },
+    {
+      "id": "C10",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "分析預測",
+      "user_input": "依週轉率分類",
+      "intent_description": "維度分類"
+    },
+    {
+      "id": "C11",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "分析預測",
+      "user_input": "庫存趨勢分析",
+      "intent_description": "趨勢分析"
+    },
+    {
+      "id": "C12",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "分析預測",
+      "user_input": "需求預測",
+      "intent_description": "預測分析"
+    },
+    {
+      "id": "C13",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "報告生成",
+      "user_input": "生成庫存報告",
+      "intent_description": "報告生成"
+    },
+    {
+      "id": "C14",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "報告生成",
+      "user_input": "製作分析儀表板",
+      "intent_description": "儀表板"
+    },
+    {
+      "id": "C15",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "報告生成",
+      "user_input": "採購分析報告",
+      "intent_description": "報告生成"
+    },
+    {
+      "id": "C16",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "報告生成",
+      "user_input": "庫存盤點清單",
+      "intent_description": "清單生成"
+    },
+    {
+      "id": "C17",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "操作引導",
+      "user_input": "教我怎麼建立採購單",
+      "intent_description": "操作教學"
+    },
+    {
+      "id": "C18",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "操作引導",
+      "user_input": "庫存盤點流程",
+      "intent_description": "流程教學"
+    },
+    {
+      "id": "C19",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "操作引導",
+      "user_input": "如何入庫？",
+      "intent_description": "操作引導"
+    },
+    {
+      "id": "C20",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "sub_type": "操作引導",
+      "user_input": "怎麼查詢庫存？",
+      "intent_description": "操作教學"
+    },
+    {
+      "id": "F01",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "查詢庫存",
+      "intent_description": "缺少對象"
+    },
+    {
+      "id": "F02",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "某個料號的庫存",
+      "intent_description": "缺少具體料號"
+    },
+    {
+      "id": "F03",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "那個料號",
+      "intent_description": "代詞指代"
+    },
+    {
+      "id": "F04",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "它有多少？",
+      "intent_description": "無前文指代"
+    },
+    {
+      "id": "F05",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "採購量",
+      "intent_description": "缺少時間"
+    },
+    {
+      "id": "F06",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "給我一些資料",
+      "intent_description": "需求模糊"
+    },
+    {
+      "id": "F07",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "相關資訊",
+      "intent_description": "表述模糊"
+    },
+    {
+      "id": "F08",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "幫我查詢",
+      "intent_description": "命令不完整"
+    },
+    {
+      "id": "F09",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "？",
+      "intent_description": "僅符號"
+    },
+    {
+      "id": "F10",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "查詢",
+      "intent_description": "過於簡短"
+    },
+    {
+      "id": "S01",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "取消這個操作",
+      "intent_description": "取消任務"
+    },
+    {
+      "id": "S02",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "停止",
+      "intent_description": "停止執行"
+    },
+    {
+      "id": "S03",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "導出成Excel",
+      "intent_description": "導出數據"
+    },
+    {
+      "id": "S04",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "顯示歷史記錄",
+      "intent_description": "歷史查詢"
+    },
+    {
+      "id": "S05",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "請確認這筆資料",
+      "intent_description": "請求確認"
+    },
+    {
+      "id": "F11",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "那個料號的品名",
+      "intent_description": "使用代詞指代，不明確"
+    },
+    {
+      "id": "F12",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "最近採購的",
+      "intent_description": "語句不完整"
+    },
+    {
+      "id": "F13",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "查詢某來源單號的交易",
+      "intent_description": "缺少具體單號"
+    },
+    {
+      "id": "F14",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "W03",
+      "intent_description": "僅有倉庫代碼，無查詢目標"
+    },
+    {
+      "id": "F15",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "查一下庫存",
+      "intent_description": "口語化，不完整"
+    },
+    {
+      "id": "F16",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "料號",
+      "intent_description": "僅有關鍵詞"
+    },
+    {
+      "id": "F17",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "倉庫",
+      "intent_description": "僅有倉庫關鍵詞"
+    },
+    {
+      "id": "F18",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "它有多少庫存",
+      "intent_description": "使用代詞但無前文"
+    },
+    {
+      "id": "F19",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "庫存多少",
+      "intent_description": "缺少倉庫或料號"
+    },
+    {
+      "id": "F20",
+      "category": "澄清需求",
+      "layer": 2,
+      "intent": "CLARIFICATION",
+      "user_input": "採購量",
+      "intent_description": "缺少時間和料號"
+    },
+    {
+      "id": "C21",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "比較近三個月採購金額",
+      "intent_description": "時間維度比較分析"
+    },
+    {
+      "id": "C22",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "本月採購單未交貨明細",
+      "intent_description": "業務規則篩選"
+    },
+    {
+      "id": "C23",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "查詢未出貨的訂單",
+      "intent_description": "業務規則篩選"
+    },
+    {
+      "id": "C24",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "逾期未交的採購單",
+      "intent_description": "時間維度業務規則"
+    },
+    {
+      "id": "C25",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "怎麼做庫存盤點",
+      "intent_description": "詢問操作步驟"
+    },
+    {
+      "id": "C26",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "入庫作業要怎麼操作",
+      "intent_description": "詢問操作步驟"
+    },
+    {
+      "id": "C27",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "料號的採購與庫存總覽",
+      "intent_description": "多維度數據總覽"
+    },
+    {
+      "id": "C28",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "提供完整的庫存狀況報告",
+      "intent_description": "完整報告生成"
+    },
+    {
+      "id": "C29",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "這個月的業務總覽",
+      "intent_description": "月度業務總覽"
+    },
+    {
+      "id": "C30",
+      "category": "複雜任務",
+      "layer": 2,
+      "intent": "COMPLEX_TASK",
+      "user_input": "成品倉與原料倉庫存對比",
+      "intent_description": "倉庫類型對比"
+    },
+    {
+      "id": "T04",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "多謝你的幫忙",
+      "intent_description": "廣東話感謝"
+    },
+    {
+      "id": "T05",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "非常感謝你的協助",
+      "intent_description": "正式感謝"
+    },
+    {
+      "id": "T06",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "太好了，謝謝！",
+      "intent_description": "開心感謝"
+    },
+    {
+      "id": "T07",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "感恩有你！",
+      "intent_description": "感性感謝"
+    },
+    {
+      "id": "T08",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "及時雨，謝謝！",
+      "intent_description": "比喻感謝"
+    },
+    {
+      "id": "T09",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "真是幫了大忙，感謝",
+      "intent_description": "強調幫助"
+    },
+    {
+      "id": "T10",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "THANKS",
+      "user_input": "感激不盡！",
+      "intent_description": "強烈感謝"
+    },
+    {
+      "id": "X02",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "這個結果不對勁",
+      "intent_description": "表達不滿"
+    },
+    {
+      "id": "X03",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "怎麼會這樣，太失望了",
+      "intent_description": "強烈不滿"
+    },
+    {
+      "id": "X04",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "這不是我要的",
+      "intent_description": "結果不符預期"
+    },
+    {
+      "id": "X05",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "這樣的答案我不能接受",
+      "intent_description": "無法接受"
+    },
+    {
+      "id": "X06",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "有沒有搞錯啊",
+      "intent_description": "質疑語氣"
+    },
+    {
+      "id": "X07",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "這跟我預期的差太多了",
+      "intent_description": "期望落差"
+    },
+    {
+      "id": "X08",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "你的回覆有問題",
+      "intent_description": "直接批評"
+    },
+    {
+      "id": "X09",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "這不是正確的做法",
+      "intent_description": "否定做法"
+    },
+    {
+      "id": "X10",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "COMPLAIN",
+      "user_input": "我覺得這是不對的",
+      "intent_description": "表達異議"
+    },
+    {
+      "id": "D03",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "算了，不用處理了",
+      "intent_description": "取消任務"
+    },
+    {
+      "id": "D04",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "先停止這個動作",
+      "intent_description": "停止操作"
+    },
+    {
+      "id": "D05",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "不用了，謝謝",
+      "intent_description": "礼貌拒绝"
+    },
+    {
+      "id": "D06",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "我改變主意了",
+      "intent_description": "改變心意"
+    },
+    {
+      "id": "D07",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "先不要做這件事",
+      "intent_description": "暫停任務"
+    },
+    {
+      "id": "D08",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "等等，讓我想想",
+      "intent_description": "考慮中"
+    },
+    {
+      "id": "D09",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "這件事先擱置吧",
+      "intent_description": "擱置任務"
+    },
+    {
+      "id": "D10",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "CANCEL",
+      "user_input": "我想要撤回這個請求",
+      "intent_description": "撤回請求"
+    },
+    {
+      "id": "E02",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "可以把這個匯出嗎",
+      "intent_description": "請求匯出"
+    },
+    {
+      "id": "E03",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "我要把資料下載下來",
+      "intent_description": "下載資料"
+    },
+    {
+      "id": "E04",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "可以轉成檔案嗎",
+      "intent_description": "轉檔請求"
+    },
+    {
+      "id": "E05",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "請把這個存成 PDF",
+      "intent_description": "存為 PDF"
+    },
+    {
+      "id": "E06",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "我需要 Excel 格式",
+      "intent_description": "Excel 格式"
+    },
+    {
+      "id": "E07",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "可以幫我輸出這份報告嗎",
+      "intent_description": "輸出報告"
+    },
+    {
+      "id": "E08",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "我要把查詢結果複製下來",
+      "intent_description": "複製結果"
+    },
+    {
+      "id": "E09",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "能把這些資料寄給我嗎",
+      "intent_description": "郵寄資料"
+    },
+    {
+      "id": "E10",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "EXPORT",
+      "user_input": "我要備份這些資料",
+      "intent_description": "備份資料"
+    },
+    {
+      "id": "H02",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "之前的查詢記錄在哪裡",
+      "intent_description": "查詢記錄"
+    },
+    {
+      "id": "H03",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "可以看見我的歷史嗎",
+      "intent_description": "查看歷史"
+    },
+    {
+      "id": "H04",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "我之前問過什麼",
+      "intent_description": "過去提問"
+    },
+    {
+      "id": "H05",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "給我看看對話記錄",
+      "intent_description": "對話記錄"
+    },
+    {
+      "id": "H06",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "能調出之前的結果嗎",
+      "intent_description": "調出結果"
+    },
+    {
+      "id": "H07",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "之前的任務完成了吗",
+      "intent_description": "任務狀態"
+    },
+    {
+      "id": "H08",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "我想回顧上一次的查詢",
+      "intent_description": "回顧查詢"
+    },
+    {
+      "id": "H09",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "有沒有之前的工作紀錄",
+      "intent_description": "工作紀錄"
+    },
+    {
+      "id": "H10",
+      "category": "系統操作",
+      "layer": 1,
+      "intent": "HISTORY",
+      "user_input": "把我最近的請求列出來",
+      "intent_description": "列出請求"
+    },
+    {
+      "id": "F02",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "請確認這是不是正確的",
+      "intent_description": "請求確認"
+    },
+    {
+      "id": "F03",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "這個理解對嗎",
+      "intent_description": "理解確認"
+    },
+    {
+      "id": "F04",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "你可以再說一次嗎",
+      "intent_description": "再次確認"
+    },
+    {
+      "id": "F05",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "這是我要的答案嗎",
+      "intent_description": "答案確認"
+    },
+    {
+      "id": "F06",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "你有聽懂我的問題嗎",
+      "intent_description": "理解確認"
+    },
+    {
+      "id": "F07",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "這樣處理可以嗎",
+      "intent_description": "處理確認"
+    },
+    {
+      "id": "F08",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "我說的對不對",
+      "intent_description": "對錯確認"
+    },
+    {
+      "id": "F09",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "這個方向是對的嗎",
+      "intent_description": "方向確認"
+    },
+    {
+      "id": "F10",
+      "category": "問候互動",
+      "layer": 1,
+      "intent": "CONFIRM",
+      "user_input": "請問我的理解正確嗎",
+      "intent_description": "理解正確性"
+    }
+  ],
+  "statistics": {
+    "total_scenarios": 177,
+    "by_category": {
+      "問候互動": 26,
+      "知識查詢": 25,
+      "數據查詢": 36,
+      "複雜任務": 30,
+      "澄清需求": 20,
+      "系統操作": 50
+    },
+    "by_layer": {
+      "layer1_gai": 66,
+      "layer2_bpa": 111
+    },
+    "by_intent": {
+      "GREETING": 6,
+      "THANKS": 10,
+      "COMPLAIN": 10,
+      "CANCEL": 10,
+      "EXPORT": 10,
+      "HISTORY": 10,
+      "CONFIRM": 10,
+      "KNOWLEDGE_QUERY": 25,
+      "SIMPLE_QUERY": 36,
+      "COMPLEX_TASK": 30,
+      "CLARIFICATION": 20
+    }
+  }
+}

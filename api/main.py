@@ -110,6 +110,12 @@ from api.routers import (
     user_tasks,
 )
 
+try:
+    from api.routers import line_webhook
+except ImportError as e:
+    logging.warning(f"LINE Webhook import failed: {e}")
+    line_webhook = None
+
 # 修改時間：2025-12-08 12:30:00 UTC+8 - 使用統一的日誌配置模組
 # 修改時間：2026-01-28 10:30:00 UTC+8 - 添加 Agent 日誌配置
 from system.logging_config import setup_agent_logging, setup_fastapi_logging
@@ -488,6 +494,8 @@ app.include_router(agent_files.router, prefix=API_PREFIX, tags=["Agent Files"])
 app.include_router(reports.router, prefix=API_PREFIX, tags=["Reports"])
 app.include_router(chat.router, prefix=API_PREFIX, tags=["Chat"])
 app.include_router(chat_module.router, prefix="/api/v2", tags=["Chat V2"])
+if line_webhook and hasattr(line_webhook, 'router'):
+    app.include_router(line_webhook.router, prefix=API_PREFIX, tags=["LINE Bot"])
 app.include_router(config_definitions.router, prefix=API_PREFIX, tags=["Config Definitions"])
 app.include_router(ontology.router, prefix=API_PREFIX)
 app.include_router(knowledge_base.router, prefix=API_PREFIX, tags=["Knowledge Base"])

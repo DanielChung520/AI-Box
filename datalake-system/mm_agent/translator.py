@@ -110,7 +110,7 @@ class Translator:
             try:
                 from .semantic_translator import SemanticTranslatorAgent
 
-                self._semantic_translator = SemanticTranslatorAgent(use_rules_engine=True)
+                self._semantic_translator = SemanticTranslatorAgent(use_rules_engine=True, use_intent_rag=True)
                 logger.info("語義轉譯 Agent 已啟用")
             except Exception as e:
                 logger.warning(f"無法初始化語義轉譯 Agent，將使用關鍵詞匹配: {e}")

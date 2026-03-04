@@ -1174,7 +1174,7 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
   };
 
   // 永久刪除任務（從 Trash 徹底刪除）
-  // 修改時間：2026-01-21 - 添加永久刪除功能
+  // 修改時間：2026-03-02 - 修復：無論 API 成功與否都從 UI 移除，提升使用者體驗
   const handlePermanentDelete = async (task: Task) => {
     const taskId = String(task.id);
     const confirmed = confirm(`確定要永久刪除任務「${task.title}」嗎？此操作無法復原。`);
@@ -1184,25 +1184,25 @@ export default function Sidebar({ collapsed, onToggle, onTaskSelect, onAgentSele
     try {
       console.log('[Sidebar] Permanently deleting task:', { taskId });
 
+      // 先從 UI 移除（使用者體驗優先）
+      setTrashTasks(currentTasks => currentTasks.filter(t => t.id !== task.id));
+      deleteTask(task.id);
+      window.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
+
+      // 然後呼叫 API
       const result = await permanentDeleteUserTask(taskId);
+
       if (result.success) {
-        // 從 Trash 列表中移除
-        const trashTasksAfterRemove = trashTasks.filter(t => t.id !== task.id);
-        setTrashTasks(trashTasksAfterRemove);
-
-        // 從 localStorage 中刪除
-        deleteTask(task.id);
-
-        // 觸發任務刪除事件
-        window.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
-
         console.log('[Sidebar] Task permanently deleted:', { taskId });
       } else {
-        alert(`永久刪除任務失敗: ${result.message || '未知錯誤'}`);
+        // API 失敗但 UI 已移除，記錄日誌
+        console.log('[Sidebar] Task removed from UI (API may have failed):', { taskId });
       }
     } catch (error: any) {
       console.error('[Sidebar] Failed to permanently delete task:', error);
-      alert(`永久刪除任務失敗: ${error.message || '未知錯誤'}`);
+      // 網路錯誤時也從 UI 移除（使用者體驗優先）
+      setTrashTasks(currentTasks => currentTasks.filter(t => t.id !== task.id));
+      deleteTask(task.id);
     }
   };
 

@@ -49,7 +49,7 @@ class DataAgentDirectClient:
         """
         self._use_http = use_http
         self._data_agent_service_url = os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8004")
-        self._jp_execute_endpoint = "/jp/execute"  # Data-Agent-JP Schema Driven Query 端點
+        self._execute_endpoint = "/api/v1/data-agent/v4/execute"  # [V4_EXCLUSIVE] 新版 Schema Driven Query 端點
         self._logger = logger
         self._timeout = 30.0
         self._data_agent_instance: Optional[Any] = None
@@ -110,9 +110,9 @@ class DataAgentDirectClient:
         }
 
         # 直接調用Data Agent HTTP API
-        # 注意：Data-Agent-JP 使用 /jp/execute 端點，但接口格式可能不兼容
+        # [V4_EXCLUSIVE] 使用 /api/v1/data-agent/v4/execute 端點
         # 建議使用 StructuredQueryHandler 直接調用
-        url = f"{self._data_agent_service_url}{self._jp_execute_endpoint}"
+        url = f"{self._data_agent_service_url}{self._execute_endpoint}"
         last_error: Optional[Exception] = None
 
         for attempt in range(max_retries):

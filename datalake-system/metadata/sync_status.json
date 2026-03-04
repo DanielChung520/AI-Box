@@ -1,20 +1,20 @@
 {
-  "start_time": "2026-02-19T11:08:48.345965+00:00",
+  "start_time": "2026-02-24T05:26:57.925789+00:00",
   "end_time": null,
   "duration_seconds": null,
   "items": {
     "documents": 0,
-    "vectors": 0
+    "vectors": 100
   },
   "warehouses": {
     "documents": 0,
-    "vectors": 0
+    "vectors": 307
   },
   "workstations": {
     "documents": 0,
-    "vectors": 0
+    "vectors": 122
   },
   "total_documents": 0,
-  "total_vectors": 0,
+  "total_vectors": 529,
   "errors": []
 }

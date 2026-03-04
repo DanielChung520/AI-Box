@@ -1,0 +1,65 @@
+{
+  "results": [
+    {
+      "id": "ITEM_001",
+      "question": "查詢料號 8021107404500002 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    },
+    {
+      "id": "ITEM_002",
+      "question": "查詢料號 8021107404600001 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    },
+    {
+      "id": "ITEM_003",
+      "question": "查詢料號 8021107201700000 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    },
+    {
+      "id": "ITEM_004",
+      "question": "查詢料號 8021111101700000 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    },
+    {
+      "id": "ITEM_005",
+      "question": "查詢料號 8021111101800000 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    },
+    {
+      "id": "ITEM_006",
+      "question": "查詢料號 8021304403000000 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    },
+    {
+      "id": "ITEM_007",
+      "question": "查詢料號 8021304403100002 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    },
+    {
+      "id": "ITEM_008",
+      "question": "查詢料號 8021107401600000 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    },
+    {
+      "id": "ITEM_009",
+      "question": "查詢料號 8021302100800001 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    },
+    {
+      "id": "ITEM_010",
+      "question": "查詢料號 8021207216800005 的庫存",
+      "task_type": "query_stock",
+      "success": false
+    }
+  ],
+  "timestamp": "2026-03-02T19:18:19.196832"
+}

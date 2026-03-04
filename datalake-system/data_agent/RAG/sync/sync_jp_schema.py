@@ -86,13 +86,18 @@ def sync_to_qdrant(
     for idx, (name, concept) in enumerate(concepts.items()):
         description = concept.get("description", "")
         labels = concept.get("labels", [])
+        # 從 concept 讀取正確的 type（而非硬編碼）
+        concept_type = concept.get("type", "DIMENSION")
+        text = f"{name}: {description}, 標籤: {', '.join(labels)}"
+        # 從 concept 讀取正確的 type（而非硬編碼）
+        concept_type = concept.get("type", "DIMENSION")
         text = f"{name}: {description}, 標籤: {', '.join(labels)}"
         concept_points.append(
             PointStruct(
                 id=idx,
                 vector=generate_vector(text),
                 payload={
-                    "type": "concept",
+                    "type": concept_type,  # 使用 JSON 中的 type
                     "system_id": system_id,
                     "name": name,
                     "description": description,
@@ -107,6 +112,27 @@ def sync_to_qdrant(
         print(f"  ✅ 上傳 {len(concept_points)} concepts")
 
     intent_points = []
+    for idx, (name, intent) in enumerate(intents.items()):
+        description = intent.get("description", "")
+        # 讀取 mart_table
+        mart_table = intent.get("mart_table")
+        text = f"{name}: {description}"
+        payload = {
+            "type": "intent",
+            "system_id": system_id,
+            "name": name,
+            "description": description,
+            "text": text,
+        }
+        if mart_table:
+            payload["mart_table"] = mart_table
+        intent_points.append(
+            PointStruct(
+                id=idx,
+                vector=generate_vector(text),
+                payload=payload,
+            )
+        )
     for idx, (name, intent) in enumerate(intents.items()):
         description = intent.get("description", "")
         text = f"{name}: {description}"

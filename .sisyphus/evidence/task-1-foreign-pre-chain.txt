@@ -1,0 +1,7 @@
+✓ ProcessorFormatter.__init__ signature verified:
+Parameters: ['self', 'processor', 'processors', 'foreign_pre_chain', 'keep_exc_info', 'keep_stack_info', 'logger', 'pass_foreign_args', 'use_get_message', 'args', 'kwargs']
+
+✓ foreign_pre_chain parameter EXISTS at position 3
+
+Full signature:
+(self, processor: 'Processor | None' = None, processors: 'Sequence[Processor] | None' = (), foreign_pre_chain: 'Sequence[Processor] | None' = None, keep_exc_info: 'bool' = False, keep_stack_info: 'bool' = False, logger: 'logging.Logger | None' = None, pass_foreign_args: 'bool' = False, use_get_message: 'bool' = True, *args: 'Any', **kwargs: 'Any') -> 'None'

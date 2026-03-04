@@ -28,6 +28,73 @@ from system.security.dependencies import get_current_user
 from system.security.models import User
 
 logger = logging.getLogger(__name__)
+import json
+import hashlib
+from database.redis.client import get_redis_client
+
+# 緩存配置
+KNOWLEDGE_CACHE_TTL = 300  # 5 分鐘緩存
+KNOWLEDGE_CACHE_PREFIX = "kb:query:"
+
+
+def _generate_cache_key(
+    query: str,
+    agent_id: Optional[str],
+    agent_key: Optional[str],
+    options: Optional[Dict[str, Any]],
+) -> str:
+    """生成知識庫查詢的緩存鍵"""
+    # 標準化查詢關鍵字
+    normalized_query = query.strip().lower()
+    # 標準化選項
+    opts = options or {}
+    opt_str = json.dumps(opts, sort_keys=True)
+    # 組合 key
+    key_parts = f"{normalized_query}:{agent_id or ''}:{agent_key or ''}:{opt_str}"
+    key_hash = hashlib.md5(key_parts.encode()).hexdigest()
+    return f"{KNOWLEDGE_CACHE_PREFIX}{key_hash}"
+
+
+def _get_cached_results(
+    query: str,
+    agent_id: Optional[str],
+    agent_key: Optional[str],
+    options: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """從緩存獲取知識庫查詢結果"""
+    try:
+        cache_key = _generate_cache_key(query, agent_id, agent_key, options)
+        redis_client = get_redis_client()
+        cached = redis_client.get(cache_key)
+        if cached:
+            logger.info(f"[ka-agent] 🔥 緩存命中: {cache_key[:50]}...")
+            return json.loads(cached)
+        logger.debug(f"[ka-agent] 💨 緩存未命中: {cache_key[:50]}...")
+        return None
+    except Exception as e:
+        logger.warning(f"[ka-agent] 緩存讀取失敗: {e}")
+        return None
+
+
+def _set_cached_results(
+    query: str,
+    agent_id: Optional[str],
+    agent_key: Optional[str],
+    options: Optional[Dict[str, Any]],
+    results: Dict[str, Any],
+) -> None:
+    """將知識庫查詢結果存入緩存"""
+    try:
+        cache_key = _generate_cache_key(query, agent_id, agent_key, options)
+        redis_client = get_redis_client()
+        redis_client.setex(
+            cache_key,
+            KNOWLEDGE_CACHE_TTL,
+            json.dumps(results, ensure_ascii=False),
+        )
+        logger.info(f"[ka-agent] 💾 結果已緩存: {cache_key[:50]}..., TTL={KNOWLEDGE_CACHE_TTL}s")
+    except Exception as e:
+        logger.warning(f"[ka-agent] 緩存寫入失敗: {e}")
 
 router = APIRouter()
 
@@ -486,6 +553,28 @@ async def knowledge_query(
                 agent_key=actual_key if actual_key else None,
             )
 
+        # 🔥 緩存檢查：嘗試從緩存獲取結果
+        caller_agent_key = request.metadata.get("caller_agent_key") if request.metadata else None
+        caller_agent_id = request.metadata.get("caller_agent_id") if request.metadata else None
+        actual_key_for_cache = caller_agent_key or request.agent_id
+        
+        cached = _get_cached_results(
+            query=request.query,
+            agent_id=actual_key_for_cache,
+            agent_key=None,
+            options=request.options,
+        )
+        if cached:
+            logger.info(f"[ka-agent] 🔥 從緩存返回結果")
+            return KnowledgeQueryResponse(
+                request_id=request.request_id,
+                success=cached.get("success", True),
+                results=[KnowledgeQueryResult(**r) for r in cached.get("results", [])],
+                total=cached.get("total", 0),
+                query_time_ms=int((time.time() - start_time) * 1000),
+                audit_log_id=cached.get("audit_log_id"),
+            )
+
         if not kb_ids:
             return KnowledgeQueryResponse(
                 request_id=request.request_id,
@@ -598,6 +687,35 @@ async def knowledge_query(
                 "query_time_ms": query_time_ms,
             },
         )
+
+        # 💾 緩存結果
+        try:
+            cache_data = {
+                "success": True,
+                "results": [
+                    {
+                        "file_id": r["file_id"],
+                        "filename": r["filename"],
+                        "chunk_id": r["chunk_id"],
+                        "content": r["content"],
+                        "confidence": r["confidence"],
+                        "source": r["source"],
+                        "metadata": r.get("metadata"),
+                    }
+                    for r in merged_results
+                ],
+                "total": len(merged_results),
+                "audit_log_id": audit_id,
+            }
+            _set_cached_results(
+                query=request.query,
+                agent_id=actual_key_for_cache,
+                agent_key=None,
+                options=request.options,
+                results=cache_data,
+            )
+        except Exception as cache_err:
+            logger.warning(f"[ka-agent] 緩存寫入失敗: {cache_err}")
 
         return KnowledgeQueryResponse(
             request_id=request.request_id,

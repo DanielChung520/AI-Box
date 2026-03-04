@@ -53,7 +53,8 @@
       "description": "倉庫別在庫集計",
       "input": {
         "filters": [
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "WAREHOUSE_NO"
         ]
       },
       "output": {

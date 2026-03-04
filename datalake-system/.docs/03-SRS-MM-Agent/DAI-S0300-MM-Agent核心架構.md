@@ -1690,7 +1690,142 @@ LLM Fallback → 邊緣案例
 2. 在 `system_intent_mapping` 中新增映射
 3. 執行同步腳本：`python scripts/sync_mm_intent.py --recreate`
 
+----
+
+### 10.9 執行端點（重要）
+
+#### 10.9.1 自動執行端點
+
+**POST /api/v1/chat/auto-execute**
+
+這是 MM-Agent 的主要執行端點，用於接收用戶查詢並自動執行完整流程：
+
+**請求格式**
+```json
+{
+  "instruction": "查詢料號 G3234000461000 的庫存",
+  "session_id": "optional-session-id"
+}
+```
+
+**響應格式**
+```json
+{
+  "success": true,
+  "response": "處理完成！查詢結果...",
+  "responses": [...],
+  "completed_steps": [...],
+  "total_steps": 2,
+  "debug_info": {...}
+}
+```
+
+#### 10.9.2 執行流程
+
+```
+/api/v1/chat/auto-execute
+    │
+    ▼
+┌─────────────────────┐
+│ 1. 意圖分類        │ ← RAG + Qdrant
+│    (MMIntentRAG)   │
+└─────────────────────┘
+    │
+    ▼
+┌─────────────────────┐
+│ 2. 語義分析        │ ← SemanticAnalyzer
+│    (提取參數)       │
+└─────────────────────┘
+    │
+    ▼
+┌─────────────────────┐
+│ 3. 調用 Data-Agent │ ← /api/v1/data-agent/v4/execute
+│    (MAI-S0112)     │
+└─────────────────────┘
+    │
+    ▼
+┌─────────────────────┐
+│ 4. 生成回覆        │ ← LLM Business Response
+│    (格式化結果)     │
+└─────────────────────┘
+```
+
+#### 10.9.3 Data-Agent 調用（MAI-S0112 協議）
+
+MM-Agent 調用 Data-Agent 時使用 MAI-S0112 協議格式：
+
+**請求**
+```json
+{
+  "task_id": "mm-agent-xxx",
+  "task_type": "schema_driven_query",
+  "task_data": {
+    "nlq": "查詢料號 G3234000461000 的庫存",
+    "intent": "QUERY_INVENTORY",
+    "params": {
+      "item_no": "G3234000461000"
+    },
+    "action_plan": "查詢料號 G3234000461000 的庫存"
+  }
+}
+```
+
+**響應**
+```json
+{
+  "status": "success",
+  "task_id": "mm-agent-xxx",
+  "result": {
+    "sql": "SELECT ...",
+    "data": [...],
+    "row_count": 10
+  },
+  "decision_action": "EXECUTE",
+  "errors": [],
+  "warnings": []
+}
+```
+
+#### 10.9.4 decision_action 說明
+
+| 值 | 說明 | 發生時機 |
+|------|------|----------|
+| `EXECUTE` | 正常執行 | SQL 生成成功且執行成功 |
+| `PRE_REJECT` | 前置異常 | SQL 生成前驗證失敗（參數缺失、格式錯誤） |
+| `POST_REJECT` | 後置異常 | SQL 執行失敗（表格不存在、語法錯誤） |
+
 ---
+
+### 10.10 測試結果（100 場景）
+
+| 指標 | 數值 |
+|------|------|
+| 測試場景數 | 100 |
+| 成功 | 100 |
+| 失敗 | 0 |
+| 成功率 | 100% |
+
+**混淆矩陣**
+
+```
+                    預期結果
+                    EXECUTE
+實際     ┌─────────────┐
+結果     │  TP = 100   │  EXECUTE
+         └─────────────┘
+         
+         ┌─────────────┐
+         │  FN = 0     │  FAILED
+         └─────────────┘
+
+精確率: 100%
+召回率: 100%
+F1-Score: 100%
+```
+
+---
+
+**文件結束**
 
 **文件結束**
 

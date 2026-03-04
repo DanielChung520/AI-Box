@@ -1,0 +1,295 @@
+{
+  "version": "1.0",
+  "name": "OrchestratorIntentRAG",
+  "description": "Orchestrator 層意圖分類向量庫 - 用於識別用戶意圖並決定處理策略",
+  "language": "multi",
+  "domain": "orchestrator_intent",
+  "embedding_model": "nomic-embed-text:latest",
+  "vector_dimension": 4096,
+  "collection_name": "orchestrator_intent_rag",
+  "intents": {
+    "GREETING": {
+      "description": "問候語 - 單純的打招呼、問候",
+      "priority": 1,
+      "action_strategy": "direct_response",
+      "response_template": "禮貌問候並詢問需求",
+      "examples": {
+        "zh": [
+          "你好",
+          "嗨",
+          "早安",
+          "午安",
+          "晚安",
+          "哈囉",
+          "您好",
+          "日安",
+          "上好",
+          "在嗎",
+          "好早",
+          "好晚",
+          "您好呀",
+          "嗨嗨",
+          "早呀"
+        ],
+        "en": [
+          "hi",
+          "hello",
+          "hey",
+          "good morning",
+          "good afternoon",
+          "good evening",
+          "howdy",
+          "greetings",
+          "hi there"
+        ],
+        "vi": [
+          "xin chào"
+        ],
+        "th": [
+          "sa-wat-dee",
+          "สวัสดี"
+        ],
+        "ja": [
+          "konnichiwa",
+          "こんにちは"
+        ],
+        "ko": [
+          "annyeonghaseyo",
+          "안녕하세요"
+        ]
+      }
+    },
+    "THANKS": {
+      "description": "感謝語 - 表達謝意",
+      "priority": 2,
+      "action_strategy": "direct_response",
+      "response_template": "禮貌回覆並詢問其他需求",
+      "examples": {
+        "zh": [
+          "謝謝",
+          "感謝",
+          "多謝",
+          "感激",
+          "謝謝你",
+          "謝謝您",
+          "感謝您",
+          "感恩",
+          "致謝",
+          "太感謝了",
+          "多謝您",
+          "感激不盡"
+        ],
+        "en": [
+          "thanks",
+          "thank you",
+          "thank you very much",
+          "appreciate",
+          "much appreciated",
+          "grateful",
+          "thanks a lot",
+          "thank you so much"
+        ]
+      }
+    },
+    "CHITCHAT": {
+      "description": "閒聊 - 不涉及業務的閒聊",
+      "priority": 5,
+      "action_strategy": "direct_response",
+      "response_template": "輕鬆回覆並引導至業務需求",
+      "examples": {
+        "zh": [
+          "今天天氣如何",
+          "你怎麼樣",
+          "最近如何",
+          "有空嗎",
+          "聊聊",
+          "今天好嗎",
+          "在做什麼",
+          "忙嗎",
+          "最近好嗎",
+          "天氣怎樣",
+          "最近工作忙嗎",
+          "你有空嗎"
+        ],
+        "en": [
+          "how are you",
+          "what's up",
+          "nice weather",
+          "how's it going",
+          "any plans",
+          "what are you doing",
+          "talk later",
+          "howdy partner"
+        ]
+      }
+    },
+    "GENERAL_QA": {
+      "description": "知識問答 - 純知識性、概念性問題，不涉及業務系統",
+      "priority": 4,
+      "action_strategy": "knowledge_rag",
+      "response_template": "從知識庫檢索回答",
+      "examples": {
+        "zh": [
+          "什麼是 ERP",
+          "怎麼樣是區塊鏈",
+          "如何開公司",
+          "為什麼太陽會發光",
+          "什麼叫人工智慧",
+          "怎麼說日文",
+          "介紹一下機器學習",
+          "說明一下雲端運算",
+          "解釋一下比特幣",
+          "告訴我量子計算",
+          "啥是 DevOps",
+          "啥叫敏捷開發",
+          "這個是什麼原理",
+          "那個怎麼使用",
+          "教我寫程式",
+          "教學 Python"
+        ],
+        "en": [
+          "what is machine learning",
+          "how to build a website",
+          "why does climate change",
+          "what's artificial intelligence",
+          "how does blockchain work",
+          "can you explain quantum computing",
+          "tell me about neural networks",
+          "what do you mean by IoT",
+          "define deep learning",
+          "what are containers"
+        ]
+      }
+    },
+    "BUSINESS_QUERY": {
+      "description": "業務查詢 - 需要訪問業務系統（ERP、WMS、資料庫）獲取數據",
+      "priority": 3,
+      "action_strategy": "route_to_agent",
+      "response_template": "轉發至正確的業務 Agent 處理",
+      "examples": {
+        "zh": [
+          "查詢庫存",
+          "查看庫存",
+          "看看庫存有多少",
+          "有多少庫存",
+          "庫存多少",
+          "查詢訂單",
+          "訂單狀態",
+          "查看料號",
+          "料號庫存",
+          "料號規格",
+          "單價多少",
+          "採購單查詢",
+          "銷售單查詢",
+          "幫我查庫存",
+          "幫我查一下訂單",
+          "還有貨嗎",
+          "價格查詢",
+          "查詢料號庫存",
+          "查看品名",
+          "料號 12345 庫存",
+          "訂單編號 67890 狀態",
+          "幫我檢查料號",
+          "幫我查一下料號",
+          "查一下庫存",
+          "我要查庫存",
+          "庫存查詢",
+          "庫存盤點",
+          "料號盤點",
+          "查詢庫存數量",
+          "庫存有多少"
+        ],
+        "en": [
+          "check inventory",
+          "query stock",
+          "find order status",
+          "show me inventory",
+          "get stock level",
+          "how many in stock",
+          "inventory quantity",
+          "stock availability",
+          "order status check",
+          "price query",
+          "item availability",
+          "check stock level",
+          "query order",
+          "show my orders"
+        ]
+      }
+    },
+    "BUSINESS_ACTION": {
+      "description": "業務操作 - 需要執行業務動作（創建、修改、刪除等）",
+      "priority": 3,
+      "action_strategy": "route_to_agent",
+      "response_template": "轉發至正確的業務 Agent 處理（需要確認權限）",
+      "examples": {
+        "zh": [
+          "建立採購單",
+          "創建訂單",
+          "修改庫存",
+          "更新料號",
+          "刪除訂單",
+          "新增客戶",
+          "建立工單",
+          "開立發票",
+          "確認出貨",
+          "沖銷庫存"
+        ],
+        "en": [
+          "create purchase order",
+          "update inventory",
+          "delete order",
+          "add customer",
+          "create work order",
+          "confirm shipment",
+          "generate invoice"
+        ]
+      }
+    },
+    "AGENT_WORK": {
+      "description": "Agent 工作 - 需要特定 Agent 處理的任務",
+      "priority": 3,
+      "action_strategy": "route_to_specific_agent",
+      "response_template": "根據用戶選擇的 Agent 轉發處理",
+      "examples": {
+        "zh": [
+          "用經寶查庫存",
+          "讓資料代理查詢",
+          "交給物料管理代理處理"
+        ],
+        "en": [
+          "use data agent to query",
+          "let the inventory agent handle"
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "created_at": "2026-02-27",
+    "updated_at": "2026-02-27",
+    "author": "Daniel Chung",
+    "version_history": [
+      {
+        "version": "1.0",
+        "date": "2026-02-27",
+        "description": "初始版本"
+      }
+    ],
+    "priority_rules": {
+      "description": "意圖優先級規則 - 混合意圖時的處理邏輯",
+      "business_priority": "當混合 GREETING/THANKS/CHITCHAT/GENERAL_QA 與 BUSINESS_QUERY/BUSINESS_ACTION 時，以業務意圖為優先",
+      "examples": [
+        {
+          "input": "你好，幫我查詢料號庫存",
+          "expected_intent": "BUSINESS_QUERY",
+          "reason": "混合問候與業務，以業務為優先"
+        },
+        {
+          "input": "謝謝，我想查庫存",
+          "expected_intent": "BUSINESS_QUERY",
+          "reason": "混合感謝與業務，以業務為優先"
+        }
+      ]
+    }
+  }
+}
