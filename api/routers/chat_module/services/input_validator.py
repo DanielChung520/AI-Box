@@ -95,6 +95,24 @@ class InputValidator:
             else:
                 corrections = []
 
+            # 防護性檢查：如果校正結果跟原文差異過大，很可能是 LLM 產生的亂碼/幻覺
+            # 比對策略：檢查原文中的實體（料號、數字）是否在校正結果中保留
+            if corrected_text != text:
+                import re
+                # 提取原文中的實體（英文字母+數字組合，如 NI002、10-0001）
+                original_entities = set(re.findall(r'[A-Za-z]{0,3}\d[A-Za-z0-9\-]+', text))
+                if original_entities:
+                    corrected_entities = set(re.findall(r'[A-Za-z]{0,3}\d[A-Za-z0-9\-]+', corrected_text))
+                    # 如果原文的實體在校正結果中完全消失，說明校正結果可能有問題
+                    if original_entities and not (original_entities & corrected_entities):
+                        logger.warning(
+                            "InputValidator 校正結果丟失了原文實體，回退原文",
+                            original=text[:50],
+                            corrected=corrected_text[:50],
+                            lost_entities=list(original_entities),
+                        )
+                        corrected_text = text
+                        corrections = []
             return ValidationResult(
                 corrected_text=corrected_text,
                 is_complete=is_complete,

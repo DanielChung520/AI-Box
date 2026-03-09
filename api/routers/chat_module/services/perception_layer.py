@@ -194,20 +194,39 @@ class PerceptionLayer:
         context_text = "\n".join(context_lines)
 
         system_prompt = (
-            "你是一個查詢改寫助手。你的任務是根據對話上下文，將省略或指代的查詢還原為完整、獨立的查詢。\n"
+            "你是一個查詢改寫助手。你的任務是根據對話上下文，判斷用戶查詢是否為省略句，並在需要時還原為完整查詢。\n"
             "\n"
-            "規則：\n"
-            "1. 如果用戶的查詢已經是完整的（不需要上下文就能理解），直接返回原文\n"
-            "2. 如果用戶的查詢包含省略（如「那X呢？」「換成X」），根據上下文補全為完整查詢\n"
-            "3. 保持業務用語不變（料號、品名等專有名詞不要修改）\n"
-            "4. 只返回改寫後的查詢文本，不要解釋\n"
+            "## 核心原則（最重要）\n"
+            "- 如果用戶查詢本身已經包含明確的【查詢對象】和【查詢動作/類型】，它就是完整句，必須原封不動返回\n"
+            "- 只有當用戶查詢缺少關鍵信息（省略了動作、對象、或類型），才根據上下文補全\n"
+            "- 絕對不能更改用戶明確提到的料號、品名、數字等實體\n"
+            "- 絕對不能更改用戶明確提到的查詢類型（庫存→庫存，工單→工單）\n"
             "\n"
-            "範例：\n"
+            "## 判斷規則\n"
+            "1. 完整句（直接返回原文，不做任何修改）：\n"
+            "   - 包含料號/品名 + 查詢類型 → 完整句\n"
+            "   - 例：「幫我查NI005的庫存」→ 完整句，直接返回「幫我查NI005的庫存」\n"
+            "   - 例：「查詢料號10-0001的品名和規格」→ 完整句，直接返回原文\n"
+            "   - 例：「幫我查一下NI003的工單狀態」→ 完整句，直接返回原文\n"
+            "2. 省略句（需要根據上下文補全）：\n"
+            "   - 「那NI002呢？」→ 缺少查詢類型，從上下文繼承\n"
+            "   - 「NI003也查一下」→ 缺少查詢類型，從上下文繼承\n"
+            "   - 「10-0002的呢？」→ 缺少查詢類型，從上下文繼承\n"
+            "   - 「那工單呢？」→ 缺少查詢對象，從上下文繼承\n"
+            "\n"
+            "## 輸出要求\n"
+            "- 只返回改寫後的查詢文本（或原文），不要解釋\n"
+            "- 保持業務用語不變（料號、品名等專有名詞不要修改）\n"
+            "\n"
+            "## 範例\n"
             "上下文: 用戶「幫我查一下NI001的庫存」→ 助手回覆了NI001的庫存數據\n"
             "用戶: 「那NI002呢？」\n"
             "改寫: 「幫我查一下NI002的庫存」\n"
             "\n"
-            "範例：\n"
+            "上下文: 用戶「幫我查一下NI001的庫存」→ 助手回覆了庫存數據\n"
+            "用戶: 「幫我查NI005的庫存」\n"
+            "改寫: 「幫我查NI005的庫存」（已完整，原封不動返回）\n"
+            "\n"
             "上下文: 用戶「查詢料號10-0001的品名和規格」→ 助手回覆了品名規格\n"
             "用戶: 「10-0002的呢？」\n"
             "改寫: 「查詢料號10-0002的品名和規格」"
@@ -248,6 +267,36 @@ class PerceptionLayer:
             if content == user_text:
                 return None
 
+            # 防護性檢查：如果 LLM 返回的是解釋性文字而非查詢，嘗試從中提取改寫結果
+            # 跡象：包含解釋性詞語
+            explanation_markers = ["根據上下文", "已經完整", "不需要改寫", "不需要改", "因此", "所以", "判斷", "核心原則", "判斷規則"]
+            if any(marker in content for marker in explanation_markers):
+                # 嘗試從解釋文字中提取實際改寫查詢
+                extracted = self._extract_query_from_explanation(content, user_text)
+                if extracted:
+                    logger.info(
+                        "省略消解 LLM 返回解釋文字，成功提取改寫查詢",
+                        original=user_text[:50],
+                        extracted=extracted[:50],
+                    )
+                    content = extracted
+                else:
+                    logger.info(
+                        "省略消解 LLM 返回了解釋文字且無法提取查詢，丟棄結果使用原文",
+                        original=user_text[:50],
+                        llm_response=content[:80],
+                    )
+                    return None
+
+            # 如果改寫結果長度超過原文 3 倍，很可能是解釋而非查詢
+            if len(content) > len(user_text) * 3:
+                logger.info(
+                    "省略消解 LLM 返回內容過長，可能非查詢文本，丟棄結果",
+                    original_len=len(user_text),
+                    rewritten_len=len(content),
+                )
+                return None
+
             logger.info(
                 "省略消解 LLM 改寫完成",
                 original=user_text[:50],
@@ -261,6 +310,58 @@ class PerceptionLayer:
         except Exception as exc:
             logger.warning("省略消解 LLM 調用失敗", error=str(exc))
             return None
+
+
+    def _extract_query_from_explanation(self, explanation: str, original_text: str) -> Optional[str]:
+        """
+        從 LLM 的解釋性回覆中提取實際的改寫查詢。
+
+        LLM 有時會先解釋再給答案，例如：
+        "根據上下文，用戶查詢缺少查詢類型。從上下文繼承，幫我查一下NI002的庫存。\n\n因此，改寫後的查詢是：幫我查"
+        我們要嘗試提取出「幫我查一下NI002的庫存」。
+        """
+        import re
+
+        # 策略 1：尋找「查詢是：」「改寫為：」「結果是：」等標記後的內容
+        result_markers = [
+            r"查詢是[:：]\s*(.+)",
+            r"改寫為[:：]\s*(.+)",
+            r"改寫後[^:：]*[:：]\s*(.+)",
+            r"結果[:：]\s*(.+)",
+            r"完整查詢[:：]\s*(.+)",
+        ]
+        for pattern in result_markers:
+            match = re.search(pattern, explanation)
+            if match:
+                candidate = match.group(1).strip()
+                # 清理引號
+                if candidate.startswith(("「", '"', "'")) and candidate.endswith(("」", '"', "'")):
+                    candidate = candidate[1:-1].strip()
+                if candidate and len(candidate) >= 4:
+                    return candidate
+
+        # 策略 2：尋找解釋中包含原文實體（料號）的完整查詢句
+        # 從原文提取實體（如 NI002、10-0001 等）
+        entity_pattern = re.search(r'([A-Za-z]{0,3}\d[A-Za-z0-9\-]+)', original_text)
+        if entity_pattern:
+            entity = entity_pattern.group(1)
+            # 在解釋文字中尋找包含此實體的查詢句
+            # 查找簡短的包含實體的句子（分行或分句）
+            # 排除解釋性句子（包含「因為」「缺少」「發現」「判斷」等）
+            explanation_words = ["因為", "缺少", "發現", "判斷", "不需要", "已經完整", "根據", "規則"]
+            sentences = re.split(r'[\n。]', explanation)
+            for sent in sentences:
+                sent = sent.strip()
+                if entity in sent and 4 <= len(sent) <= 30:
+                    # 跳過解釋性句子
+                    if any(w in sent for w in explanation_words):
+                        continue
+                    # 清理前置詞
+                    cleaned = re.sub(r'^(從上下文繼承|因此)[,，\s]*', '', sent).strip()
+                    if cleaned and len(cleaned) >= 4:
+                        return cleaned
+
+        return None
 
     async def _validate_input(self, text: str) -> Tuple[str, bool, List[str]]:
         try:
