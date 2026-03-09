@@ -4060,6 +4060,7 @@ async def chat_product_stream(
                                 user_text=last_user_text,
                                 session_id=session_id,
                                 user_id=current_user.user_id,
+                                context_messages=messages,  # 傳入歷史對話用於省略消解
                             )
                             perceived_text = _perception_result.corrected_text or last_user_text
                             logger.info(
@@ -4096,7 +4097,15 @@ async def chat_product_stream(
                             # 構造外部 Agent 請求（統一使用 /execute 格式，攜帶對話上下文）
                             # MM-Agent 為無狀態服務，需傳遞最近對話上下文
                             recent_messages = messages[-10:] if messages else []  # 最近 10 條對話
-                            
+                            # 省略消解：將最後一條 user message 替換為改寫後的文本
+                            if perceived_text != last_user_text and recent_messages:
+                                recent_messages = [dict(m) for m in recent_messages]  # 淺拷貝避免污染原始 messages
+                                for i in range(len(recent_messages) - 1, -1, -1):
+                                    if recent_messages[i].get("role") == "user":
+                                        recent_messages[i]["content"] = perceived_text
+                                        logger.info(f"[P-T-A-O] 省略消解替換 messages: '{last_user_text[:30]}' -> '{perceived_text[:30]}'")
+                                        break
+
                             agent_request = {
                                 "task_id": task_id or str(uuid.uuid4()),
                                 "task_type": "data_query",

@@ -39,22 +39,31 @@ class EntityMemoryService:
         self.storage = storage or get_entity_storage()
         self.extractor = extractor or get_entity_extractor()
 
-        # 代詞到實體類型的映射
+        # 代詞到實體類型的映射（支援句內子串匹配）
         self._coreference_patterns = {
             # 近程指代
-            r"^這個$": {"type": "proximal", "weight": 1.0},
-            r"^這個[的]?$": {"type": "proximal", "weight": 1.0},
-            r"^它$": {"type": "proximal", "weight": 0.9},
-            r"^它[的]?$": {"type": "proximal", "weight": 0.9},
+            r"(?:^|(?<=[，。！？、\s]))這個(?:$|[的]?(?=[，。！？、\s]|$))": {"type": "proximal", "weight": 1.0},
+            r"(?:^|(?<=[，。！？、\s]))它(?:$|[的]?(?=[，。！？、\s]|$))": {"type": "proximal", "weight": 0.9},
             # 遠程指代
-            r"^那個$": {"type": "distal", "weight": 0.8},
-            r"^那個[的]?$": {"type": "distal", "weight": 0.8},
-            r"^那$": {"type": "distal", "weight": 0.7},
-            r"^它們?$": {"type": "plural", "weight": 0.8},
+            r"(?:^|(?<=[，。！？、\s]))那個(?:$|[的]?(?=[，。！？、\s]|$))": {"type": "distal", "weight": 0.8},
+            r"(?:^|(?<=[，。！？、\s]))那(?=$|[，。！？、\s])": {"type": "distal", "weight": 0.7},
+            r"(?:^|(?<=[，。！？、\s]))它們(?:$|(?=[，。！？、\s]|$))": {"type": "plural", "weight": 0.8},
             # 人稱代詞
-            r"^他$": {"type": "person", "weight": 0.8},
-            r"^她$": {"type": "person", "weight": 0.8},
+            r"(?:^|(?<=[，。！？、\s]))他(?=$|[，。！？、\s])": {"type": "person", "weight": 0.8},
+            r"(?:^|(?<=[，。！？、\s]))她(?=$|[，。！？、\s])": {"type": "person", "weight": 0.8},
         }
+
+        # 省略消解句型（如「那NI002呢？」→ 省略了動作）
+        self._ellipsis_patterns = [
+            # 「那X呢」「那X呢？」— 最常見的省略句型
+            re.compile(r"^那(?:麼)?(.+?)呢[？?]?$"),
+            # 「X呢」「X呢？」— 簡短省略
+            re.compile(r"^(.+?)呢[？?]?$"),
+            # 「那X怎麼樣」
+            re.compile(r"^那(?:麼)?(.+?)怎麼樣[？?]?$"),
+            # 「換成X」「改成X」「改查X」
+            re.compile(r"^(?:換成|改成|改查|再查)(.+?)$"),
+        ]
 
     # ==================== 指代消解 ====================
 
