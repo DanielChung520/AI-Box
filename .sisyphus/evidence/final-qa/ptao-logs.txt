@@ -1,0 +1,10 @@
+[2m2026-03-09T14:12:31.820544Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Pipeline 已啟用並初始化完成  [0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T14:12:32.024060Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Perceive 完成: latency=203ms, original='幫我查一下NI001的庫存', perceived='幫我查一下NI001的庫存'[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T14:12:50.630594Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Supervise 成功: retries=0, time=16991ms[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T14:12:50.632546Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Complete 完成: status=error, metadata_keys=['actual_error', 'perception', 'intent', 'completed_at'][0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T14:13:08.508355Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Perceive 完成: latency=203ms, original='那NI002呢？', perceived='那NI002呢？'[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T14:13:23.179874Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Supervise 成功: retries=0, time=12690ms[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T14:13:23.181762Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Complete 完成: status=error, metadata_keys=['actual_error', 'perception', 'intent', 'completed_at'][0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T14:13:44.640307Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Perceive 完成: latency=201ms, original='NI001目前有多少庫存？', perceived='NI001目前有多少庫存？'[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T14:14:01.028857Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Supervise 成功: retries=0, time=14475ms[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T14:14:01.029824Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Complete 完成: status=error, metadata_keys=['actual_error', 'perception', 'intent', 'completed_at'][0m [[0m[1m[34mapi.routers.chat[0m][0m

@@ -1,0 +1,6 @@
+data: {"type": "start", "data": {"request_id": "bca7a887-4d27-4780-adf1-548797c14156", "session_id": "final-qa-session-002"}}
+
+data: {"type": "content", "data": {"chunk": "**NI001 \u5eab\u5b58\u67e5\u8a62\u7d50\u679c**  \n\n- **\u6599\u865f**\uff1aNI001  \n- **\u6279\u6b21**\uff1a\u7121\uff08\u672a\u63d0\u4f9b\uff09  \n- **\u5eab\u5b58\u6578\u91cf**\uff1a0 \u4ef6  \n\n\u76ee\u524d NI001 \u5728\u6240\u6709\u5009\u5eab\u7684\u7e3d\u5eab\u5b58\u70ba **0 \u4ef6**\uff0c\u5373\u7121\u53ef\u4f9b\u51fa\u8ca8\u7684\u5eab\u5b58\u3002\u82e5\u9700\u9032\u4e00\u6b65\u67e5\u8a62\u5176\u4ed6\u6599\u865f\u6216\u6307\u5b9a\u5009\u5eab\uff0c\u8acb\u96a8\u6642\u544a\u77e5\u3002\n\n---\n**\ud83d\udccb Generated SQL**:\n```sql\nSELECT item_no, SUM(existing_stocks) AS total FROM mart_inventory_wide WHERE item_no = 'NI001' GROUP BY item_no\n```"}}
+
+data: {"type": "done", "data": {"request_id": "bca7a887-4d27-4780-adf1-548797c14156", "metadata": {"actual_error": "None", "perception": {"coreference_latency_ms": 0.06980798207223415, "validation_latency_ms": 200.99395397119224, "corrections": [], "errors": [], "entity_memory_available": true}, "intent": {"name": "BUSINESS_QUERY"}, "completed_at": 1773065641.0297487}}}
+

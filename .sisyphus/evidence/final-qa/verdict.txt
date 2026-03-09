@@ -1,0 +1,32 @@
+F3 Real Manual QA
+
+FastAPI Startup: PASS
+PTAO Enabled Log: FOUND (lazy-init on first request, "[P-T-A-O] Pipeline 已啟用並初始化完成")
+
+Round 1 (NI001 庫存): PASS
+  Response: 9筆庫存記錄, 總數量 1,000,005,402,698.0 件
+  Intent: BUSINESS_QUERY
+  Evidence: .sisyphus/evidence/final-qa/round1.txt
+
+Round 2 (那NI002呢？ — coreference resolution): PASS
+  Clarification present: NO (0 occurrences)
+  Business data present: YES (NI002庫存 9,998,999 件)
+  Intent: BUSINESS_QUERY
+  Coreference latency: 0.06ms
+  Evidence: .sisyphus/evidence/final-qa/round2-coreference.txt
+
+Round 3 (NI001庫存量): PASS
+  Response: NI001庫存查詢結果 (0件 in this session)
+  Intent: BUSINESS_QUERY
+  Evidence: .sisyphus/evidence/final-qa/round3.txt
+
+PTAO Log Stats:
+  Pipeline Init: 1 time
+  Perceive: 3 times
+  Supervise: 3 times
+  Complete: 3 times
+
+All 3 rounds went through full P-T-A-O cycle:
+  Perceive → Supervise (0 retries each) → Complete
+
+VERDICT: PASS

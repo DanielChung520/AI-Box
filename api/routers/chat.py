@@ -1011,6 +1011,46 @@ _request_tasks_lock = Lock()
 # hybrid MVP：收藏模型先以 localStorage 可用為主；後端提供 Redis 優先、fallback memory 的同步接口
 _favorite_models_by_user: Dict[str, List[str]] = {}
 
+# ===========================================================================
+# P-T-A-O Pipeline — Feature Toggle & Lazy Singleton Initialization
+# ===========================================================================
+_ptao_enabled: bool = os.getenv("ENABLE_PTAO_PIPELINE", "false").lower() == "true"
+_perception_layer: Optional[Any] = None
+_supervision_layer: Optional[Any] = None
+_completion_layer: Optional[Any] = None
+_ptao_initialized: bool = False
+_SupervisionConfig: Optional[type] = None  # type: ignore[assignment]
+
+
+def _init_ptao_pipeline() -> None:
+    """
+    懶加載 P-T-A-O Pipeline，避免模組層級循環導入。
+    在 generate_stream() 第一次調用時執行，此時 chat.py 已完全載入。
+    """
+    global _ptao_enabled, _perception_layer, _supervision_layer, _completion_layer
+    global _ptao_initialized, _SupervisionConfig
+    if _ptao_initialized:
+        return
+    _ptao_initialized = True
+    if not _ptao_enabled:
+        logger.info("[P-T-A-O] Pipeline 未啟用 (ENABLE_PTAO_PIPELINE != true)")
+        return
+    try:
+        # 延遲導入（避免循環導入 via chat_module/__init__.py → chat_pipeline.py → chat.py）
+        from api.routers.chat_module.services.completion_layer import CompletionLayer as _CL
+        from api.routers.chat_module.services.perception_layer import PerceptionLayer as _PL
+        from api.routers.chat_module.services.supervision_layer import (
+            SupervisionLayer as _SL,
+            SupervisionConfig as _SC,
+        )
+        _perception_layer = _PL()
+        _supervision_layer = _SL()
+        _completion_layer = _CL()
+        _SupervisionConfig = _SC
+        logger.info("[P-T-A-O] Pipeline 已啟用並初始化完成")
+    except Exception as _ptao_init_err:
+        _ptao_enabled = False
+        logger.warning(f"[P-T-A-O] Pipeline 初始化失敗: {_ptao_init_err}，降級為禁用")
 
 def _format_agent_result_for_llm(agent_id: str, agent_result: Any) -> str:
     """
@@ -4008,6 +4048,27 @@ async def chat_product_stream(
                         f"[外部Agent] 檢測到外部 Agent (agent_id={user_selected_agent_id})"
                     )
 
+                    # P-T-A-O: 懶加載初始化（僅第一次調用時執行）
+                    _init_ptao_pipeline()
+
+                    # === P-T-A-O: Perceive 階段 ===
+                    _perception_result = None
+                    perceived_text = last_user_text
+                    if _ptao_enabled and _perception_layer is not None:
+                        try:
+                            _perception_result = await _perception_layer.perceive(
+                                user_text=last_user_text,
+                                session_id=session_id,
+                                user_id=current_user.user_id,
+                            )
+                            perceived_text = _perception_result.corrected_text or last_user_text
+                            logger.info(
+                                f"[P-T-A-O] Perceive 完成: latency={_perception_result.latency_ms:.0f}ms, "
+                                f"original='{last_user_text[:30]}', perceived='{perceived_text[:30]}'"
+                            )
+                        except Exception as _perceive_err:
+                            logger.warning(f"[P-T-A-O] Perceive 失敗，使用原始文本: {_perceive_err}")
+
                     # 2026-03-04: 先用 OrchestratorIntentRAG 分類意圖
                     # 若為非業務意圖（GREETING, THANKS, CHITCHAT），直接 LLM 回覆，不送外部 Agent
                     _skip_external_agent = False
@@ -4017,7 +4078,7 @@ async def chat_product_stream(
                             BUSINESS_INTENTS,
                         )
                         _orch_rag = get_orchestrator_intent_rag()
-                        _intent_result = _orch_rag.sync_classify(last_user_text)
+                        _intent_result = _orch_rag.sync_classify(perceived_text)
                         logger.info(
                             f"[外部Agent] OrchestratorIntentRAG 分類: intent={_intent_result.intent_name}, "
                             f"score={_intent_result.score:.3f}, strategy={_intent_result.action_strategy}"
@@ -4040,7 +4101,7 @@ async def chat_product_stream(
                                 "task_id": task_id or str(uuid.uuid4()),
                                 "task_type": "data_query",
                                 "task_data": {
-                                    "instruction": last_user_text,
+                                    "instruction": perceived_text,
                                     "user_id": current_user.user_id,
                                     "session_id": session_id,
                                 },
@@ -4058,12 +4119,38 @@ async def chat_product_stream(
                             logger.info(f"[外部Agent] 調用外部 Agent: endpoint={agent_endpoint_url}")
 
 
-                            response = httpx.post(
-                                agent_endpoint_url,
-                                json=agent_request,
-                                headers={"Content-Type": "application/json"},
-                                timeout=120.0,
-                            )
+                            # === P-T-A-O: Supervise 階段（包裝 BPA 調用）===
+                            if _ptao_enabled and _supervision_layer is not None:
+                                def _make_bpa_coro():
+                                    return asyncio.to_thread(
+                                        httpx.post,
+                                        agent_endpoint_url,
+                                        json=agent_request,
+                                        headers={"Content-Type": "application/json"},
+                                        timeout=120.0,
+                                    )
+                                _sup_config = _SupervisionConfig(timeout_seconds=120, max_retries=2, retry_delay_seconds=1.0) if _SupervisionConfig else None
+                                _sup_result = await _supervision_layer.supervise(
+                                    action_coro=_make_bpa_coro(),
+                                    config=_sup_config,
+                                    action_factory=_make_bpa_coro,
+                                )
+                                if _sup_result.success:
+                                    response = _sup_result.result
+                                    logger.info(
+                                        f"[P-T-A-O] Supervise 成功: retries={_sup_result.retries_used}, "
+                                        f"time={_sup_result.total_time_ms:.0f}ms"
+                                    )
+                                else:
+                                    logger.warning(f"[P-T-A-O] Supervise 失敗: {_sup_result.error}")
+                                    raise Exception(f"SupervisionLayer BPA 失敗: {_sup_result.error}")
+                            else:
+                                response = httpx.post(
+                                    agent_endpoint_url,
+                                    json=agent_request,
+                                    headers={"Content-Type": "application/json"},
+                                    timeout=120.0,
+                                )
 
                             logger.info(
                                 f"[外部Agent] 回應: status={response.status_code}, content_length={len(response.text)}"
@@ -4125,7 +4212,26 @@ async def chat_product_stream(
                                     
                                     # TODO: 後續可以送給 LLM 補全完整回覆
                                     yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': result_text}})}\n\n"
-                                    yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
+                                    # === P-T-A-O: Complete 階段（僅 success 路徑）===
+                                    _completion_metadata: Dict[str, Any] = {}
+                                    if _ptao_enabled and _completion_layer is not None:
+                                        try:
+                                            _final_response = await _completion_layer.complete(
+                                                action_result=agent_result,
+                                                perception_result=_perception_result if "_perception_result" in dir() else None,
+                                                intent_result=_intent_result if "_intent_result" in dir() else None,
+                                            )
+                                            _completion_metadata = _final_response.metadata
+                                            logger.info(
+                                                f"[P-T-A-O] Complete 完成: status={_final_response.status}, "
+                                                f"metadata_keys={list(_completion_metadata.keys())}"
+                                            )
+                                        except Exception as _complete_err:
+                                            logger.warning(f"[P-T-A-O] Complete 失敗，跳過 metadata 注入: {_complete_err}")
+                                    _done_payload = {'type': 'done', 'data': {'request_id': request_id}}
+                                    if _completion_metadata:
+                                        _done_payload['data']['metadata'] = _completion_metadata
+                                    yield 'data: ' + json.dumps(_done_payload) + '\n\n'
                                     return
                             else:
                                 logger.error(

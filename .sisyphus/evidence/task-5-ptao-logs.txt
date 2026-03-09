@@ -1,0 +1,11 @@
+[[32m[1minfo     [0m] [1mPerceptionLayer 初始化成功：EntityMemoryService 可用[0m [[0m[1m[34mapi.routers.chat_module.services.perception_layer[0m][0m
+[2m2026-03-09T13:53:23.742012Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Pipeline 已啟用並初始化完成  [0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T13:53:24.360242Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Perceive 完成: latency=618ms, original='test', perceived='test'[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T13:55:08.366870Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Perceive 完成: latency=202ms, original='你好，請幫我查詢料號NI001的庫存', perceived='你好，請幫我查詢料號NI001的庫存'[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T13:55:28.430892Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Supervise 成功: retries=0, time=19315ms[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T13:55:28.433154Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Complete 完成: status=error, metadata_keys=['actual_error', 'perception', 'intent', 'completed_at'][0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T13:55:44.511920Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Perceive 完成: latency=201ms, original='那NI002呢？', perceived='那NI002呢？'[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T13:56:03.873651Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Supervise 成功: retries=0, time=16812ms[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T13:56:03.874614Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Complete 完成: status=error, metadata_keys=['actual_error', 'perception', 'intent', 'completed_at'][0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T13:56:21.184796Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Perceive 完成: latency=202ms, original='幫我查看NI002最近是什麼時候進貨的', perceived='幫我查看NI002最近是什麼時候進貨的'[0m [[0m[1m[34mapi.routers.chat[0m][0m
+[2m2026-03-09T13:56:38.118288Z[0m [[32m[1minfo     [0m] [1m[P-T-A-O] Supervise 成功: retries=0, time=15185ms[0m [[0m[1m[34mapi.routers.chat[0m][0m

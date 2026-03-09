@@ -1,0 +1,7 @@
+=== Round 1: 查詢 NI001 庫存 ===
+data: {"type": "start", "data": {"request_id": "2431257f-0c25-49be-9cf1-3ea907f69fc8", "session_id": "test-session-ptao-001"}}
+
+data: {"type": "content", "data": {"chunk": "**A001 \u5009\u5eab NI001 \u6599\u865f\u5eab\u5b58\u6e05\u55ae\uff08\u5171 9 \u7b46\uff09**\n\n| \u5e8f\u865f | \u6599\u865f | \u6279\u6b21 | \u5eab\u5b58\u6578\u91cf\uff08\u4ef6\uff09 |\n|------|------|------|----------------|\n| 1 | NI001 | - | 1,000,005,289,876.00 |\n| 2 | NI001 | - | 120.00 |\n| 3 | NI001 | - | 2,002.00 |\n| 4 | NI001 | - | 100,000.00 |\n| 5 | NI001 | - | 9,000.00 |\n| 6 | NI001 | - | 0.00 |\n| 7 | NI001 | - | 700.00 |\n| 8 | NI001 | - | 1,000.00 |\n| 9 | NI001 | - | 0.00 |\n\n**\u5eab\u5b58\u7e3d\u6578\u91cf\uff1a** 1,000,005,402,698.00 \u4ef6\n\n---\n**\ud83d\udccb Generated SQL**:\n```sql\nSELECT warehouse_no, SUM(existing_stocks) as total FROM mart_inventory_wide WHERE item_no = 'NI001' GROUP BY warehouse_no;\n```"}}
+
+data: {"type": "done", "data": {"request_id": "2431257f-0c25-49be-9cf1-3ea907f69fc8", "metadata": {"actual_error": "None", "perception": {"coreference_latency_ms": 0.03926397766917944, "validation_latency_ms": 202.35005696304142, "corrections": [], "errors": [], "entity_memory_available": true}, "intent": {"name": "BUSINESS_QUERY"}, "completed_at": 1773064528.4329557}}}
+

@@ -1,0 +1,6 @@
+data: {"type": "start", "data": {"request_id": "1c0f4090-60ae-473b-a29d-e26a4bfbfda2", "session_id": "final-qa-session-001"}}
+
+data: {"type": "content", "data": {"chunk": "**NI002 \u5eab\u5b58\u8cc7\u8a0a\uff08\u5171 1 \u7b46\uff09**\n\n- **\u6599\u865f**\uff1a-  \n- **\u6279\u6b21**\uff1a-  \n- **\u5eab\u5b58\u6578\u91cf**\uff1a9,998,999 \u4ef6  \n\n**\u5eab\u5b58\u7e3d\u6578\u91cf**\uff1a9,998,999 \u4ef6\n\n---\n**\ud83d\udccb Generated SQL**:\n```sql\nSELECT warehouse_no, SUM(existing_stocks) as total FROM mart_inventory_wide WHERE item_no = 'NI002' GROUP BY warehouse_no;\n```"}}
+
+data: {"type": "done", "data": {"request_id": "1c0f4090-60ae-473b-a29d-e26a4bfbfda2", "metadata": {"actual_error": "None", "perception": {"coreference_latency_ms": 0.060832011513412, "validation_latency_ms": 202.9338190332055, "corrections": [], "errors": [], "entity_memory_available": true}, "intent": {"name": "BUSINESS_QUERY"}, "completed_at": 1773065603.181565}}}
+

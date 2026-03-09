@@ -1,0 +1,7 @@
+=== Round 2: 那NI002呢？(指代消解驗收) ===
+data: {"type": "start", "data": {"request_id": "eec6cef6-07c2-4e83-9e95-3d382213d993", "session_id": "test-session-ptao-001"}}
+
+data: {"type": "content", "data": {"chunk": "**\u6599\u865f NI002 \u5eab\u5b58\u67e5\u8a62\u7d50\u679c\uff08\u5171 1 \u7b46\uff09**\n\n- **\u6599\u865f**\uff1aNI002  \n- **\u5009\u5eab\u4ee3\u78bc**\uff1aA001  \n- **\u6279\u6b21**\uff1a\u672a\u63d0\u4f9b  \n- **\u5eab\u5b58\u6578\u91cf**\uff1a9,998,999 \u4ef6  \n\n**\u5eab\u5b58\u7e3d\u6578\u91cf**\uff1a9,998,999 \u4ef6  \n\n> \u76ee\u524d\u50c5\u6709\u4e00\u7b46\u5eab\u5b58\u8cc7\u6599\uff0c\u6279\u6b21\u8cc7\u8a0a\u7f3a\u5931\uff0c\u82e5\u9700\u66f4\u8a73\u7d30\u7684\u6279\u6b21\u6216\u5176\u4ed6\u5009\u5eab\u8cc7\u8a0a\uff0c\u8acb\u518d\u884c\u67e5\u8a62\u3002\n\n---\n**\ud83d\udccb Generated SQL**:\n```sql\nSELECT warehouse_no, SUM(existing_stocks) as total FROM mart_inventory_wide WHERE item_no = 'NI002' GROUP BY warehouse_no;\n```"}}
+
+data: {"type": "done", "data": {"request_id": "eec6cef6-07c2-4e83-9e95-3d382213d993", "metadata": {"actual_error": "None", "perception": {"coreference_latency_ms": 0.028655980713665485, "validation_latency_ms": 200.67631592974067, "corrections": [], "errors": [], "entity_memory_available": true}, "intent": {"name": "BUSINESS_QUERY"}, "completed_at": 1773064563.8745325}}}
+
