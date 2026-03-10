@@ -204,7 +204,7 @@ class MMAgent(AgentServiceProtocol):
                 responsibility=responsibility,
                 semantic_result=semantic_result,
                 request=request,
-                user_instruction=user_instruction,
+                user_instruction=resolved_instruction,
             )
             result = ptao_result.raw_result
 
@@ -594,6 +594,12 @@ class MMAgent(AgentServiceProtocol):
                     "count": count,
                     "response": explanation,
                     "sql": sql,
+                    "query_context": {
+                        "nlq": nlq,
+                        "intent": "QUERY_INVENTORY",
+                        "warehouse": parameters.get("warehouse", ""),
+                        "part_no": parameters.get("part_number", ""),
+                    },
                 }
 
             # 2. 邊界查詢過大 (QUERY_SCOPE_TOO_LARGE) - 需要回問確認
@@ -910,7 +916,16 @@ class MMAgent(AgentServiceProtocol):
                     # 轉換數據格式：Data-Agent 返回 {warehouse_no, total} → prompt_manager 期望 {part_number, batch_no, quantity}
                     # 嘗試從多個來源獲取料號
                     query_context = inner_result.get("query_context", {})
-                    part_number = query_context.get("part_number", "")
+                    part_number = query_context.get("part_number", "") or query_context.get("part_no", "")
+
+                    # Fallback: 從 SQL 中提取料號
+                    if not part_number:
+                        sql = inner_result.get("sql", "")
+                        if sql:
+                            import re
+                            sql_match = re.search(r"item_no\s*=\s*'([^']+)'", sql, re.IGNORECASE)
+                            if sql_match:
+                                part_number = sql_match.group(1)
 
                     converted_stock_list = []
                     for item in stock_list:

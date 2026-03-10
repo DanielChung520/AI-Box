@@ -1,7 +1,7 @@
 # 代碼功能說明: 上下文管理服務
 # 創建日期: 2026-01-13
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-13
+# 最後修改日期: 2026-03-10
 
 """上下文管理服務 - 管理對話上下文和指代解析"""
 
@@ -83,7 +83,7 @@ class ContextManager:
         context.last_result = result
 
         # 提取實體（用於指代解析）
-        self._extract_entities(context, result)
+        self._extract_entities(context, result, instruction)
 
         # 更新時間戳
         context.updated_at = datetime.now()
@@ -92,12 +92,14 @@ class ContextManager:
         self,
         context: ConversationContext,
         result: Dict[str, Any],
+        instruction: str = "",
     ) -> None:
         """從結果中提取實體
 
         Args:
             context: 對話上下文
             result: 執行結果
+            instruction: 用戶指令（用於 fallback 提取料號）
         """
         # 提取料號（多種可能的字段位置）
         part_number = None
@@ -120,6 +122,24 @@ class ContextManager:
                 part_number = inner_result["part_info"].get("part_number")
             elif "stock_info" in inner_result and isinstance(inner_result["stock_info"], dict):
                 part_number = inner_result["stock_info"].get("part_number")
+
+        # Fallback: 從 SQL 中提取 item_no = 'xxx'
+        if not part_number:
+            sql = result.get("sql", "")
+            if not sql and isinstance(result.get("result"), dict):
+                sql = result["result"].get("sql", "")
+            if sql:
+                match = re.search(r"item_no\s*=\s*'([^']+)'", sql, re.IGNORECASE)
+                if match:
+                    part_number = match.group(1)
+                    self._logger.info(f"從 SQL 中提取料號: {part_number}")
+
+        # Fallback: 從用戶指令中提取料號格式（如 NI001, ABC-123, 10-0001）
+        if not part_number and instruction:
+            match = re.search(r"\b([A-Z]{1,5}[\-]?\d{2,6}(?:[\-]\d{1,6})?)\b", instruction, re.IGNORECASE)
+            if match:
+                part_number = match.group(1)
+                self._logger.info(f"從指令中提取料號: {part_number}")
 
         if part_number:
             context.entities["last_part_number"] = part_number
