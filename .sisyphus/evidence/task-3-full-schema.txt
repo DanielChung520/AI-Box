@@ -1,0 +1,3 @@
+2026-03-10 23:50:06 [info     ] Initialized V5SchemaBuilder    metadata_dir=/home/daniel/ai-box/datalake-system/metadata/systems/tiptop_jp
+Full schema length: 3087 chars
+PASS: full schema includes all tables

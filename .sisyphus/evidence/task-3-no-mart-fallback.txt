@@ -1,0 +1,20 @@
+2026-03-10 23:50:06 [info     ] Initialized V5SchemaBuilder    metadata_dir=/home/daniel/ai-box/datalake-system/metadata/systems/tiptop_jp
+## Intent: QUERY_QUALITY（complexity=complex）
+
+## 可用表格：
+
+### SFCA_T
+| 欄位名稱 | 類型 | 說明 |
+|---------|------|------|
+| SFCADOCNO | DIMENSION | concept=MO_DOC_NO；desc=工單編號 |
+
+### SFCB_T
+| 欄位名稱 | 類型 | 說明 |
+|---------|------|------|
+| SFCB011 | DIMENSION | concept=WORKSTATION；desc=工作站 |
+| SFCB029 | METRIC | concept=REWORK_IN；desc=重工流入；aggregation=SUM |
+| SFCB034 | METRIC | concept=REWORK_OUT；desc=重工流出；aggregation=SUM |
+| SFCB036 | METRIC | concept=SCRAP_IN_STATION；desc=站點報廢；aggregation=SUM |
+| SFCB051 |
+Length: 674
+PASS: no-mart intent falls back to raw tables

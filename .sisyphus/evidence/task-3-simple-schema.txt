@@ -1,0 +1,19 @@
+2026-03-10 23:50:06 [info     ] Initialized V5SchemaBuilder    metadata_dir=/home/daniel/ai-box/datalake-system/metadata/systems/tiptop_jp
+## Intent: QUERY_INVENTORY（complexity=simple）
+
+## 可用表格：
+
+### INAG_T
+| 欄位名稱 | 類型 | 說明 |
+|---------|------|------|
+| INAG001 | DIMENSION | concept=ITEM_NO；desc=料件編號 |
+| INAG004 | DIMENSION | concept=WAREHOUSE_NO；desc=倉庫編號 |
+| INAG005 | DIMENSION | concept=LOCATION_NO；desc=儲位編號 |
+| INAG007 | DIMENSION | concept=UNIT；desc=單位 |
+| INAG008 | METRIC | concept=EXISTING_STOCKS；desc=現有庫存；aggregation=SUM |
+
+### XMDG_T
+| 欄位名稱 | 類型 | 說明 |
+|---------|------|------|
+| XMDGDOCDT | RANGE | concept=TIME_RANGE；desc
+PASS: simple intent uses raw table

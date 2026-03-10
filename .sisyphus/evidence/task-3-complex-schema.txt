@@ -1,0 +1,11 @@
+2026-03-10 23:50:06 [info     ] Initialized V5SchemaBuilder    metadata_dir=/home/daniel/ai-box/datalake-system/metadata/systems/tiptop_jp
+## Intent: QUERY_INVENTORY（complexity=complex, mart_table=mart_inventory_wide）
+
+## 可用表格：
+
+### mart_inventory_wide
+| 欄位名稱 | 類型 | 說明 |
+|---------|------|------|
+| item_no | UNKNOWN | concept=MART_INVENTORY_WIDE |
+
+PASS: complex intent uses mart table
