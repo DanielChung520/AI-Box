@@ -598,3 +598,101 @@ class PromptManager:
             "INTERNAL_ERROR": f"❌ 系統錯誤：{message}，請聯繫系統管理員。",
         }
         return fallback_msgs.get(error_type, f"❌ 錯誤：{message}")
+
+    async def generate_analytical_response(
+        self,
+        user_query: str,
+        last_result: Optional[Dict[str, Any]],
+        context: Any,
+    ) -> str:
+        """基於已有查詢結果生成分析性回覆
+
+        Args:
+            user_query: 用戶的分析性追問
+            last_result: 上一次查詢的結果（Data-Agent 返回的字典）
+            context: 對話上下文（ConversationContext）
+
+        Returns:
+            LLM 生成的分析性回覆字符串
+        """
+        # 邊界情況 1: 無 last_result
+        if last_result is None:
+            return (
+                "目前沒有可供分析的查詢結果。"
+                "請先查詢具體的庫存或業務數據，再提出分析性問題。"
+            )
+
+        # 邊界情況 2: last_result 狀態非成功
+        if last_result.get("status") != "success":
+            error_msg = last_result.get("message", "未知錯誤")
+            return (
+                f"上一次查詢未成功（{error_msg}），無法進行分析。"
+                "請重新查詢後再試。"
+            )
+
+        # 邊界情況 3: 數據為空
+        data = last_result.get("data", [])
+        if not data:
+            return (
+                "上一次查詢結果為空，沒有資料可供分析。"
+                "請確認查詢條件後重新查詢。"
+            )
+
+        # 截斷至 50 rows
+        truncated = data[:50]
+        is_truncated = len(data) > 50
+
+        system_prompt = (
+            """你是一個專業的數據分析助手，專門基於已有的查詢結果回答用戶的分析性問題。
+
+## 你的職責
+- 分析用戶提供的查詢數據，回答分析性問題（如：原因分析、比較、趨勢等）
+- 基於現有數據給出洞察，不要重新查詢數據庫
+- 如果現有數據不足以完整回答問題，明確告知用戶需要哪些額外查詢
+
+## Thinking 規範
+- 你的思考過程（Thinking）必須使用**繁體中文**
+- 分析過程要邏輯清晰，先描述數據分布，再給出結論
+
+## 回覆格式
+- 使用清晰的中文回覆
+- 如有多個觀察點，使用條列格式
+- 結尾給出明確的結論或建議"""
+        )
+
+        # 準備數據摘要
+        columns = last_result.get("columns", [])
+        row_count = last_result.get("row_count", len(data))
+
+        data_json = json.dumps(truncated, ensure_ascii=False, indent=2)
+        truncation_note = (
+            f"\n（注：原始數據共 {row_count} 筆，此處僅顯示前 50 筆）"
+            if is_truncated
+            else ""
+        )
+
+        user_prompt = (
+            f"用戶問題：{user_query}\n\n"
+            f"查詢結果數據（共 {row_count} 筆，"
+            f"欄位：{', '.join(columns)}）{truncation_note}：\n"
+            f"{data_json}\n\n"
+            "請基於以上數據回答用戶的分析性問題。"
+        )
+
+        try:
+            response = await self.call_llm(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.7,
+                max_tokens=2000,
+            )
+            if response and response.strip():
+                return response.strip()
+        except Exception as e:
+            self._logger.warning(f"LLM 生成分析性回覆失敗: {e}")
+
+        # 回退：簡單的數據摘要
+        return (
+            f"根據查詢結果（共 {row_count} 筆數據），"
+            "無法完成詳細分析。請查看原始數據後手動分析。"
+        )

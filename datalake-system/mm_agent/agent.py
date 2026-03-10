@@ -23,7 +23,7 @@ from agents.services.protocol.base import (
     AgentServiceStatus,
 )
 
-from .models import WarehouseAgentResponse
+from .models import ConversationContext, WarehouseAgentResponse
 from .orchestrator_client import OrchestratorClient
 from .services.context_manager import ContextManager
 from .services.part_service import PartService
@@ -178,7 +178,9 @@ class MMAgent(AgentServiceProtocol):
             responsibility = await self._responsibility_analyzer.understand(semantic_result)
 
             # 7. 執行任務
-            result = await self._execute_responsibility(responsibility, semantic_result, request, user_instruction)
+            result = await self._execute_responsibility(
+                responsibility, semantic_result, request, user_instruction
+            )
 
             # 7.5. 生成 LLM 業務回覆（如需要）
             result = await self._generate_llm_business_response(
@@ -290,6 +292,14 @@ class MMAgent(AgentServiceProtocol):
                 }
             return await self._generate_purchase_order(part_number, quantity, request)
 
+        elif responsibility_type == "analyze_existing_result":
+            context = await self._context_manager.get_context(
+                (request.metadata.get("session_id") if request.metadata else None)
+                or request.task_id
+            )
+            result = await self._analyze_existing_result(user_instruction, context)
+            return result
+
         elif responsibility_type == "clarification_needed":
             # 生成澄清問題的自然語言解釋
             questions = responsibility.clarification_questions or []
@@ -383,7 +393,9 @@ class MMAgent(AgentServiceProtocol):
         nlq = ""
 
         try:
-            self._logger.info(f"[Agent] 查詢庫存，參數: {parameters}, user_instruction: {user_instruction}")
+            self._logger.info(
+                f"[Agent] 查詢庫存，參數: {parameters}, user_instruction: {user_instruction}"
+            )
 
             # 構建自然語言查詢
             nlq = parameters.get("nlq", "")
@@ -438,14 +450,12 @@ class MMAgent(AgentServiceProtocol):
                     }
                 ]
 
-            warnings = result.get("warnings", [])
-
             # 判斷錯誤類型
             error_codes = [e.get("code", "") for e in errors]
             error_messages = [e.get("message", "") for e in errors]
 
             # 1. 查询成功 - Data-Agent v5 返回 success: true 或 status: "success"
-            if result.get("success") == True or result.get("status") == "success":
+            if result.get("success") is True or result.get("status") == "success":
                 # Data-Agent v5: result directly contains data
                 data_result = result if result.get("data") else result.get("result", {})
                 rows = data_result.get("data", [])
@@ -590,6 +600,88 @@ class MMAgent(AgentServiceProtocol):
                 "original_query": nlq,
             }
 
+    async def _analyze_existing_result(
+        self,
+        query: str,
+        context: ConversationContext,
+    ) -> Dict[str, Any]:
+        """分析已有的查詢結果
+
+        基於 context.last_result 進行分析性回覆，不重新調用 Data-Agent。
+
+        Args:
+            query: 用戶的分析性問題
+            context: 對話上下文（包含 last_result）
+
+        Returns:
+            分析結果字典
+        """
+        try:
+            self._logger.info(f"[Agent] 分析已有結果，問題: {query[:50]}")
+
+            if self._prompt_manager is None:
+                from .services.prompt_manager import PromptManager
+
+                self._prompt_manager = PromptManager()
+
+            last_result = context.last_result if context else None
+
+            # 邊界情況 1：無 last_result
+            if not last_result:
+                response = await self._prompt_manager.generate_analytical_response(
+                    query, None, context
+                )
+                return {
+                    "success": False,
+                    "needs_clarification": True,
+                    "response": response,
+                }
+
+            # 邊界情況 2：上次查詢失敗
+            if last_result.get("status") != "success" and not last_result.get("success"):
+                return {
+                    "success": False,
+                    "error": "上次查詢結果無效，無法進行分析",
+                    "response": "上次查詢沒有成功，請重新查詢後再進行分析。",
+                }
+
+            # 邊界情況 3：上次查詢無數據
+            # context.last_result 的格式是 _query_stock_info() 的返回值，使用 stock_list 欄位
+            data = last_result.get("stock_list", last_result.get("data", []))
+            if not data:
+                return {
+                    "success": True,
+                    "response": "上次查詢結果沒有資料，無法進行分析。請先查詢有資料的料號或倉庫。",
+                }
+
+            # 正常情況：調用 LLM 分析
+            # 標準化 last_result 格式供 generate_analytical_response 使用
+            normalized_result = {
+                "status": "success",
+                "data": last_result.get("stock_list", last_result.get("data", [])),
+                "sql": last_result.get("sql", ""),
+                "row_count": last_result.get("count", len(last_result.get("stock_list", []))),
+            }
+            response = await self._prompt_manager.generate_analytical_response(
+                query,
+                normalized_result,
+                context,
+            )
+
+            return {
+                "success": True,
+                "response": response,
+                "analysis_source": "last_result",
+            }
+
+        except Exception as e:
+            self._logger.error(f"[Agent] 分析已有結果失敗: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(e),
+                "response": "分析過程中發生錯誤，請稍後再試。",
+            }
+
     async def _generate_llm_business_response(
         self,
         result: Dict[str, Any],
@@ -626,7 +718,7 @@ class MMAgent(AgentServiceProtocol):
                 # 不 return，繼續使用手動格式
 
         # 1. 查無資料 - 生成「查無資料」業務回覆
-        if result.get("data_found") == False:
+        if result.get("data_found") is False:
             self._logger.info("[LLM] 生成查無資料回覆")
             if self._prompt_manager:
                 try:
@@ -706,7 +798,7 @@ class MMAgent(AgentServiceProtocol):
                     self._logger.warning(f"LLM 生成錯誤回覆失敗: {e}")
                     error_msgs = {
                         "SCHEMA_ERROR": f"❌ 資料庫結構錯誤：{message}",
-                        "CONNECTION_ERROR": f"❌ 連線錯誤：無法連接到資料庫服務，請稍後再試。",
+                        "CONNECTION_ERROR": "❌ 連線錯誤：無法連接到資料庫服務，請稍後再試。",
                         "TIMEOUT": f"❌ 查詢超時：{message}",
                         "INTERNAL_ERROR": f"❌ 系統錯誤：{message}",
                     }
@@ -715,7 +807,7 @@ class MMAgent(AgentServiceProtocol):
             else:
                 error_msgs = {
                     "SCHEMA_ERROR": f"❌ 資料庫結構錯誤：{message}",
-                    "CONNECTION_ERROR": f"❌ 連線錯誤：無法連接到資料庫服務，請稍後再試。",
+                    "CONNECTION_ERROR": "❌ 連線錯誤：無法連接到資料庫服務，請稍後再試。",
                     "TIMEOUT": f"❌ 查詢超時：{message}",
                     "INTERNAL_ERROR": f"❌ 系統錯誤：{message}",
                 }
@@ -738,18 +830,21 @@ class MMAgent(AgentServiceProtocol):
                     query_context = inner_result.get("query_context", {})
                     part_number = query_context.get("part_number", "")
 
-
                     converted_stock_list = []
                     for item in stock_list:
                         # 檢查是否為新格式 (warehouse_no, total)
                         if "warehouse_no" in item and "total" in item:
                             qty = item.get("total", 0)
-                            self._logger.info(f"[DEBUG] 轉換: warehouse_no={item.get('warehouse_no')}, total={qty}")
-                            converted_stock_list.append({
-                                "part_number": part_number or "-",
-                                "batch_no": "-",
-                                "quantity": qty
-                            })
+                            self._logger.info(
+                                f"[DEBUG] 轉換: warehouse_no={item.get('warehouse_no')}, total={qty}"
+                            )
+                            converted_stock_list.append(
+                                {
+                                    "part_number": part_number or "-",
+                                    "batch_no": "-",
+                                    "quantity": qty,
+                                }
+                            )
                         else:
                             # 舊格式，直接使用
                             converted_stock_list.append(item)
@@ -757,7 +852,9 @@ class MMAgent(AgentServiceProtocol):
                     self._logger.info(f"[DEBUG] converted_stock_list: {converted_stock_list}")
 
                     llm_response = await self._prompt_manager.generate_stock_response(
-                        warehouse=warehouse or stock_list[0].get("warehouse_no", "未知倉庫") if stock_list else "未知倉庫",
+                        warehouse=warehouse or stock_list[0].get("warehouse_no", "未知倉庫")
+                        if stock_list
+                        else "未知倉庫",
                         stock_list=converted_stock_list,
                         count=count,
                         user_instruction=user_instruction,

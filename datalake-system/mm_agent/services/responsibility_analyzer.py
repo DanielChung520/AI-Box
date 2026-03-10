@@ -119,6 +119,19 @@ class ResponsibilityAnalyzer:
                 required_data=[],
             )
 
+        # 分析已有查詢結果
+        if intent_lower in ("analyze_existing_result", "analyze_result", "explain_data"):
+            return Responsibility(
+                type="analyze_existing_result",
+                description="分析已有查詢結果，回答用戶的分析性追問",
+                steps=[
+                    "從 context 取得上一次查詢結果",
+                    "分析數據並生成分析性回覆",
+                    "返回分析結果",
+                ],
+                required_data=["last_result"],
+            )
+
         # 未識別意圖，需要澄清
         return Responsibility(
             type="clarification_needed",
