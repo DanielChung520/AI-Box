@@ -1,0 +1,24 @@
+=== Checking for unmocked Ollama API calls in test_v5_* ===
+
+--- grep for localhost:11434 excluding mock/patch/Mock context ---
+data_agent/tests/test_v5_simple_llm_sql.py:35:            ollama_host="http://localhost:11434",
+
+NOTE: The above line is in a fixture that creates SimpleLLMSQLGenerator.
+All actual httpx.Client.post calls are mocked via patch.object(generator.client, 'post', ...).
+No real Ollama API calls are made in any test.
+
+--- Verify: grep for httpx.Client.post mock usage ---
+46:        with patch.object(generator.client, "post", return_value=_mock_ollama_response(valid_sql)):
+77:        with patch.object(generator.client, "post", side_effect=side_effect):
+94:        with patch.object(generator.client, "post", return_value=_mock_ollama_response(garbage)):
+112:        with patch.object(generator.client, "post", return_value=_mock_ollama_response(valid_sql)):
+143:        with patch.object(generator.client, "post", return_value=_mock_ollama_response(garbage)):
+157:        with patch.object(generator.client, "post", side_effect=Exception("Connection refused")):
+
+--- Verify: grep for EmbeddingManager mock usage ---
+97:        with patch.object(matcher, "_get_embedding_manager", return_value=mock_manager):
+116:        with patch.object(matcher, "_get_embedding_manager", return_value=mock_manager):
+155:        with patch.object(matcher, "_get_embedding_manager", return_value=mock_manager):
+170:        with patch.object(matcher, "_get_embedding_manager", return_value=mock_manager):
+
+PASS: All external calls are properly mocked.

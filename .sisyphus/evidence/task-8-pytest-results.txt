@@ -1,0 +1,38 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0 -- /home/daniel/ai-box/datalake-system/venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/daniel/ai-box
+configfile: pytest.ini
+plugins: asyncio-1.3.0, Faker-40.1.2, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 27 items
+
+data_agent/tests/test_v5_intent_cache.py::TestCachedIntentMatcher::test_match_intent_returns_result_with_fields PASSED [  3%]
+data_agent/tests/test_v5_intent_cache.py::TestCachedIntentMatcher::test_cache_hit_on_second_call PASSED [  7%]
+data_agent/tests/test_v5_intent_cache.py::TestCachedIntentMatcher::test_low_confidence_returns_unknown PASSED [ 11%]
+data_agent/tests/test_v5_intent_cache.py::TestCachedIntentMatcher::test_missing_intents_file_returns_unknown PASSED [ 14%]
+data_agent/tests/test_v5_schema_builder.py::TestV5SchemaBuilder::test_build_schema_prompt_simple_with_mart PASSED [ 18%]
+data_agent/tests/test_v5_schema_builder.py::TestV5SchemaBuilder::test_build_schema_prompt_complex_with_mart PASSED [ 22%]
+data_agent/tests/test_v5_schema_builder.py::TestV5SchemaBuilder::test_build_schema_prompt_no_mart_intent PASSED [ 25%]
+data_agent/tests/test_v5_schema_builder.py::TestV5SchemaBuilder::test_build_full_schema_prompt_not_empty PASSED [ 29%]
+data_agent/tests/test_v5_schema_builder.py::TestV5SchemaBuilder::test_unknown_intent_raises PASSED [ 33%]
+data_agent/tests/test_v5_schema_builder.py::TestV5SchemaBuilder::test_invalid_complexity_raises PASSED [ 37%]
+data_agent/tests/test_v5_schema_builder.py::TestV5SchemaBuilder::test_complexity_case_insensitive PASSED [ 40%]
+data_agent/tests/test_v5_simple_llm_sql.py::TestSimpleLLMSQLGenerator::test_happy_path_returns_sql PASSED [ 44%]
+data_agent/tests/test_v5_simple_llm_sql.py::TestSimpleLLMSQLGenerator::test_retry_on_invalid_sql PASSED [ 48%]
+data_agent/tests/test_v5_simple_llm_sql.py::TestSimpleLLMSQLGenerator::test_escalation_on_persistent_failure PASSED [ 51%]
+data_agent/tests/test_v5_simple_llm_sql.py::TestSimpleLLMSQLGenerator::test_return_structure PASSED [ 55%]
+data_agent/tests/test_v5_simple_llm_sql.py::TestSimpleLLMSQLGenerator::test_escalation_skipped_when_already_big_model PASSED [ 59%]
+data_agent/tests/test_v5_simple_llm_sql.py::TestSimpleLLMSQLGenerator::test_exception_during_llm_call PASSED [ 62%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_valid_select_accepted PASSED [ 66%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_drop_table_rejected PASSED [ 70%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_delete_rejected PASSED [ 74%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_multi_statement_rejected PASSED [ 77%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_empty_string_rejected PASSED [ 81%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_none_input_rejected PASSED [ 85%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_whitespace_only_rejected PASSED [ 88%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_insert_rejected PASSED [ 92%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_update_rejected PASSED [ 96%]
+data_agent/tests/test_v5_sql_safety.py::TestValidateSqlSafety::test_complex_select_accepted PASSED [100%]
+
+============================== 27 passed in 0.23s ==============================
