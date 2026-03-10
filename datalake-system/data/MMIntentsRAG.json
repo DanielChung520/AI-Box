@@ -29,7 +29,9 @@
     "THANKS": "GREETING",
     "CONFIRM": "SIMPLE_QUERY",
     "CLARIFICATION": "CLARIFICATION",
-    "CHITCHAT": "GREETING"
+    "CHITCHAT": "GREETING",
+    "ANALYZE_RESULT": "analyze_existing_result",
+    "EXPLAIN_DATA": "analyze_existing_result"
   },
   "intents": [
     {
@@ -228,6 +230,46 @@
         "差異分析",
         "對比分析",
         "優缺點比較"
+      ]
+    },
+    {
+      "intent_name": "ANALYZE_RESULT",
+      "responsibility_type": "analyze_existing_result",
+      "description": "分析結果追問 - 用戶對已有查詢結果進行分析性追問，包括原因分析、比較、趨勢、確認等",
+      "category": "analysis",
+      "examples": [
+        "這個庫存是否因為有不同的site或ent？",
+        "為什麼NI001的庫存這麼多？",
+        "這些倉庫的庫存差異是什麼原因？",
+        "為什麼有些倉庫庫存特別高？",
+        "這個結果正常嗎？",
+        "這個庫存水位偏高還是偏低？",
+        "這個庫存是分散在不同倉庫嗎？",
+        "有幾個不同的site在管這個庫存？",
+        "這些庫存數字背後是什麼原因？",
+        "為什麼同一個料號在不同倉庫的庫存差距這麼大？",
+        "這個庫存波動是不是異常？",
+        "這些倉庫代碼代表什麼意思？"
+      ]
+    },
+    {
+      "intent_name": "EXPLAIN_DATA",
+      "responsibility_type": "analyze_existing_result",
+      "description": "數據說明追問 - 用戶詢問欄位含義、數據單位、結果說明等",
+      "category": "analysis",
+      "examples": [
+        "這些欄位代表什麼意思？",
+        "warehouse_no是什麼？",
+        "為什麼有重複的倉庫代碼？",
+        "這個數字的單位是什麼？",
+        "這個查詢返回了幾種類型的結果？",
+        "為什麼有些欄位是空的？",
+        "site_id代表什麼？",
+        "這些列的順序有什麼特殊含義嗎？",
+        "qty_on_hand和available_qty的區別是什麼？",
+        "為什麼這個結果只有5行？",
+        "這些數據的時間戳是什麼時候的？",
+        "這個查詢的結果精準度如何？"
       ]
     }
   ]
