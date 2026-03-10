@@ -1,0 +1,59 @@
+====================================================================
+  Task 9 — V5 E2E Intent Routing Integration Test Summary
+  Date: 2026-03-11T00:21:00+08:00
+  Endpoint: POST http://localhost:8004/api/v1/data-agent/v5/execute
+====================================================================
+
+OVERALL RESULT: ❌ ALL TESTS FAILED (7/7)
+
+Root Cause:
+  The running data-agent process (PID 1122754) uses stale inline V5 code
+  in scripts/start_data_agent_service.py (lines 379-416).
+  
+  Line 389: generator.generate_sql(nlq, return_mode)
+  
+  But SimpleLLMSQLGenerator.generate_sql() now requires:
+    generate_sql(nlq, schema_prompt, model, timeout)
+  
+  The correct V5 implementation in data_agent/routers/data_agent_jp/v5_routes.py
+  is NEVER imported or included via app.include_router(). The running process
+  only has the broken inline handler.
+
+Error: TypeError: SimpleLLMSQLGenerator.generate_sql() missing 1 required positional argument: 'model'
+
+Health Check: ✅ PASS (returns healthy — health endpoint works fine)
+
+--------------------------------------------------------------------
+Test Results (all HTTP 500 — Internal Server Error)
+--------------------------------------------------------------------
+
+| # | Intent Category    | NLQ                                              | HTTP | Result |
+|---|--------------------|--------------------------------------------------|------|--------|
+| 1 | QUERY_INVENTORY    | 查詢料號 NI001 的庫存                              | 500  | ❌ FAIL |
+| 2 | QUERY_WORK_ORDER   | 查詢工單 WO-2024-001 的狀態                        | 500  | ❌ FAIL |
+| 3 | QUERY_SHIPPING     | 查詢今天的出貨明細                                  | 500  | ❌ FAIL |
+| 4 | QUERY_PRICE        | 查詢客戶 C001 的售價                               | 500  | ❌ FAIL |
+| 5 | QUERY_QUALITY      | 查詢品質檢驗紀錄                                    | 500  | ❌ FAIL |
+| 6 | QUERY_OUTSOURCING  | 查詢外包加工進度                                    | 500  | ❌ FAIL |
+| 7 | COMPLEX            | 查詢各倉庫的庫存總量，按倉庫分組排名，並只顯示前五名    | 500  | ❌ FAIL |
+
+--------------------------------------------------------------------
+Assertions NOT verifiable (due to 500 errors)
+--------------------------------------------------------------------
+- metadata.matched_intent is non-empty → CANNOT VERIFY
+- metadata.query_complexity == "complex" → CANNOT VERIFY
+- status field exists → CANNOT VERIFY (no JSON body returned)
+
+--------------------------------------------------------------------
+Required Fix (for next task)
+--------------------------------------------------------------------
+Option A: Update start_data_agent_service.py to import and include V5_router
+  from data_agent.routers.data_agent_jp.v5_routes and remove inline V5 code.
+  Then restart the service.
+
+Option B: Fix the inline code at line 389 to pass the correct arguments:
+  sql_result = generator.generate_sql(nlq=nlq, schema_prompt=schema_prompt, model=model, timeout=timeout)
+  This also requires adding intent matching + schema building logic.
+  Then restart the service.
+
+Recommendation: Option A (use the already-correct v5_routes.py)

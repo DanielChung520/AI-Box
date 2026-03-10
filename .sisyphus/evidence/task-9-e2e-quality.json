@@ -1,0 +1,20 @@
+{
+  "test": "E2E QUERY_QUALITY",
+  "timestamp": "2026-03-11T00:21:00+08:00",
+  "endpoint": "POST http://localhost:8004/api/v1/data-agent/v5/execute",
+  "request": {
+    "task_id": "e2e-quality",
+    "task_type": "data_query",
+    "task_data": {
+      "nlq": "查詢品質檢驗紀錄",
+      "module": "jp"
+    }
+  },
+  "response": {
+    "http_code": 500,
+    "body": "Internal Server Error"
+  },
+  "result": "FAIL",
+  "root_cause": "Same as inventory: stale inline V5 code in start_data_agent_service.py (line 389). generate_sql() signature mismatch.",
+  "error_traceback": "TypeError: SimpleLLMSQLGenerator.generate_sql() missing 1 required positional argument: 'model'"
+}

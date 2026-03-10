@@ -1,0 +1,20 @@
+{
+  "test": "E2E QUERY_INVENTORY",
+  "timestamp": "2026-03-11T00:21:00+08:00",
+  "endpoint": "POST http://localhost:8004/api/v1/data-agent/v5/execute",
+  "request": {
+    "task_id": "e2e-inventory",
+    "task_type": "data_query",
+    "task_data": {
+      "nlq": "查詢料號 NI001 的庫存",
+      "module": "jp"
+    }
+  },
+  "response": {
+    "http_code": 500,
+    "body": "Internal Server Error"
+  },
+  "result": "FAIL",
+  "root_cause": "start_data_agent_service.py line 389 calls generator.generate_sql(nlq, return_mode) but SimpleLLMSQLGenerator.generate_sql() now requires (nlq, schema_prompt, model, timeout). The running process uses stale inline V5 code that was never updated to match v5_routes.py.",
+  "error_traceback": "TypeError: SimpleLLMSQLGenerator.generate_sql() missing 1 required positional argument: 'model'"
+}
