@@ -1,0 +1,57 @@
+=== F3 QA: EXPLAIN_DATA Intent ===
+Date: 2026-03-10
+
+=== REQUEST Step 1 ===
+curl -s -X POST http://localhost:8003/execute \
+  -H 'Content-Type: application/json' \
+  -d '{"task_id":"fqa-004","task_data":{"instruction":"查NI001的庫存"},"metadata":{"session_id":"final-qa-session-3"}}'
+
+=== RESPONSE Step 1 ===
+{
+    "task_id": "fqa-004",
+    "status": "completed",
+    "result": {
+        "success": true,
+        "task_type": "query_stock",
+        "result": {
+            "success": true,
+            "data_found": true,
+            "stock_list": [9 warehouse records for NI001],
+            "count": 9,
+            "sql": "SELECT warehouse_no, SUM(existing_stocks) as total FROM mart_inventory_wide WHERE item_no = 'NI001' GROUP BY warehouse_no",
+            "response_type": "llm_business"
+        },
+        "semantic_analysis": {
+            "intent": "QUERY_INVENTORY",
+            "confidence": 0.9
+        }
+    }
+}
+
+=== REQUEST Step 2 (Field Explanation) ===
+curl -s -X POST http://localhost:8003/execute \
+  -H 'Content-Type: application/json' \
+  -d '{"task_id":"fqa-005","task_data":{"instruction":"這些warehouse_no欄位代表什麼意思？"},"metadata":{"session_id":"final-qa-session-3"}}'
+
+=== RESPONSE Step 2 ===
+{
+    "task_id": "fqa-005",
+    "status": "completed",
+    "result": {
+        "success": true,
+        "task_type": "analyze_existing_result",
+        "result": {
+            "success": true,
+            "response": "[Detailed explanation of warehouse_no field: literal meaning (倉庫編號), encoding structure (letter prefix + number), possible prefix meanings (A=area/business line, V=verification/temp, LIU/G/M=person/company/function), value distribution analysis, conclusion that it's a unique warehouse identifier, and recommended follow-up actions]",
+            "analysis_source": "last_result"
+        },
+        "semantic_analysis": {
+            "intent": "EXPLAIN_DATA",
+            "confidence": 0.9
+        },
+        "responsibility": "分析已有查詢結果，回答用戶的分析性追問"
+    }
+}
+
+=== VERDICT ===
+PASS — Step 2 semantic_analysis.intent is exactly "EXPLAIN_DATA" (perfect match). task_type is "analyze_existing_result" with analysis_source="last_result". Response provides detailed field explanation including encoding structure, prefix meanings, and value distribution analysis. No re-query to Data-Agent.

@@ -1,0 +1,35 @@
+=== F3 QA: No Context Degradation ===
+Date: 2026-03-10
+
+=== REQUEST ===
+curl -s -X POST http://localhost:8003/execute \
+  -H 'Content-Type: application/json' \
+  -d '{"task_id":"fqa-003","task_data":{"instruction":"為什麼庫存這麼多？"},"metadata":{"session_id":"final-qa-session-2"}}'
+
+=== RESPONSE ===
+{
+    "task_id": "fqa-003",
+    "status": "failed",
+    "result": {
+        "success": false,
+        "task_type": "analyze_existing_result",
+        "result": {
+            "success": false,
+            "needs_clarification": true,
+            "response": "您好！感謝您的提問。為了更精確地說明庫存量較高的原因，還需要您提供以下資訊：\n1. 商品或產品類別：請問您指的是哪一項商品？\n2. 倉庫或地點：是指哪個倉庫、門店或分銷中心的庫存？\n3. 時間範圍：您想了解的是目前的庫存狀況，還是某段時間的變化？\n4. 其他條件：是否有特定的庫存類型需要關注？\n提供上述資訊後，我將為您分析庫存偏高的可能原因，並給予相應的建議。謝謝！",
+            "response_type": "clarification"
+        },
+        "semantic_analysis": {
+            "intent": "ANALYZE_RESULT",
+            "confidence": 0.9
+        },
+        "responsibility": "分析已有查詢結果，回答用戶的分析性追問"
+    },
+    "error": null,
+    "metadata": {
+        "session_id": "final-qa-session-2"
+    }
+}
+
+=== VERDICT ===
+PASS — No HTTP 500 error. Returns needs_clarification=true with response_type="clarification". Response politely asks user to specify product, warehouse, time range, and conditions before analysis. Graceful degradation when no prior query context exists.
