@@ -21,8 +21,6 @@ from collections import OrderedDict
 from threading import Lock
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
-import duckdb
-
 from .config import DuckDBConfig, S3Config
 
 logger = logging.getLogger(__name__)
@@ -52,7 +50,7 @@ class QueryResultCache:
                 return None
 
             self.cache.move_to_end(key)
-            logger.info(f"Query result cache hit")
+            logger.info("Query result cache hit")
             return entry["data"]
 
     def set(self, sql: str, data: Dict):
@@ -90,121 +88,6 @@ def parse_time_range_from_sql(sql: str) -> tuple[Optional[str], Optional[str]]:
     return None, None
 
 
-class S3PathMapper:
-    """Oracle Table → S3 Parquet Path 映射"""
-
-    TABLE_S3_PATH = {
-        "INAG_T": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet",
-        "SFAA_T": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet",
-        "SFCA_T": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet",
-        "SFCB_T": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet",
-        "XMDG_T": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet",
-        "XMDH_T": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDH_T/year=*/month=*/data.parquet",
-        "XMDT_T": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet",
-        "XMDU_T": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet",
-    }
-
-    def __init__(self, s3_config: S3Config):
-        self.s3_config = s3_config
-
-    def map_table(self, table_name: str) -> str:
-        """將 Table 名稱映射為 S3 Parquet 路徑"""
-        if table_name in self.TABLE_S3_PATH:
-            base_path = self.TABLE_S3_PATH[table_name]
-            bucket = self.s3_config.bucket
-            s3_path = base_path.replace("s3://tiptop-raw", f"s3://{bucket}")
-            return s3_path
-        return table_name
-
-    def map_sql(self, sql: str) -> str:
-        """將 SQL 中的 Table 名稱替換為 S3 Parquet 路徑"""
-        import re
-
-        for table_name in self.TABLE_S3_PATH:
-            s3_path = self.map_table(table_name)
-            read_parquet_func = f"read_parquet('{s3_path}') AS _{table_name.lower().rstrip('_t')}"
-
-            # Handle FROM clause with comma-separated tables (implicit JOIN)
-            sql = re.sub(
-                rf"(?i)(FROM\s+)({table_name})(?=\s*[,)])",
-                rf"\1{read_parquet_func}",
-                sql,
-            )
-
-            # Handle FROM clause with alias
-            sql = re.sub(
-                rf"(?i)(FROM\s+)({table_name})(\s+(?:AS\s+)?([a-zA-Z0-9_]+))",
-                rf"\1{read_parquet_func} \4",
-                sql,
-            )
-
-            # Handle FROM clause with quoted table name
-            sql = re.sub(
-                rf'(?i)(FROM\s+)("{table_name}")(\s+(?:AS\s+)?([a-zA-Z0-9_]+))',
-                rf"\1{read_parquet_func} \4",
-                sql,
-            )
-
-            # Handle FROM clause WITHOUT alias (standalone table) - 添加別名
-            sql = re.sub(
-                rf"(?i)(FROM\s+)({table_name})(?=\s+(?:INNER|LEFT|RIGHT|OUTER|CROSS|WHERE|GROUP|ORDER|LIMIT|HAVING|$|and|OR))",
-                rf"\1{read_parquet_func}",
-                sql,
-            )
-
-            # Handle FROM clause without alias at end of statement - 添加別名
-            sql = re.sub(rf"(?i)(FROM\s+)({table_name})(?=\s*$)", rf"\1{read_parquet_func}", sql)
-
-            # Handle comma-separated table in FROM (e.g., "FROM INAG_T, SFCA_T")
-            sql = re.sub(
-                rf"(?i)(,\s*){table_name}(?=\s*[,)])",
-                rf", {read_parquet_func}",
-                sql,
-            )
-            sql = re.sub(
-                rf"(?i)(,\s*){table_name}(?=\s+(?:WHERE|GROUP|ORDER|LIMIT|HAVING|$))",
-                rf", {read_parquet_func}",
-                sql,
-            )
-
-            # Handle JOIN clause with alias
-            sql = re.sub(
-                rf"(?i)(JOIN\s+)({table_name})(\s+(?:AS\s+)?([a-zA-Z0-9_]+))",
-                rf"\1{read_parquet_func} \4",
-                sql,
-            )
-
-            # Handle JOIN clause with quoted table name
-            sql = re.sub(
-                rf'(?i)(JOIN\s+)("{table_name}")(\s+(?:AS\s+)?([a-zA-Z0-9_]+))',
-                rf"\1{read_parquet_func} \4",
-                sql,
-            )
-
-            # Handle JOIN clause WITHOUT alias - 添加別名
-            sql = re.sub(
-                rf"(?i)(JOIN\s+)({table_name})(?=\s+(?:INNER|LEFT|RIGHT|OUTER|CROSS|WHERE|GROUP|ORDER|LIMIT|ON|and|OR|$))",
-                rf"\1{read_parquet_func}",
-                sql,
-            )
-
-            # Handle JOIN clause without alias at end
-            sql = re.sub(
-                rf"(?i)(JOIN\s+)({table_name})(?=\s*$)",
-                rf"\1{read_parquet_func}",
-                sql,
-            )
-
-        # 解析 TIME_RANGE 並優化 S3 路徑
-        year, month = parse_time_range_from_sql(sql)
-        if year and month:
-            logger.info(f"Applying TIME_RANGE filter: year={year}, month={month}")
-            # 將 year=*/month=* 替換為特定的 year/month
-            sql = re.sub(r"year=\*/month=\*", f"year={year}/month={month:02d}", sql)
-
-        return sql
-
-
 class DuckDBExecutor:
     """DuckDB SQL 執行器"""
 
@@ -216,12 +99,10 @@ class DuckDBExecutor:
         self.config = config or DuckDBConfig()
         self.s3_config = s3_config or self.config.s3
         self._connection = None
-        self._path_mapper = S3PathMapper(self.s3_config)
 
     def _map_sql(self, sql: str) -> str:
         """映射 SQL 中的 Table 為 S3 Path，並優化 TIME_RANGE"""
-        # 先映射表格
-        mapped_sql = self._path_mapper.map_sql(sql)
+        mapped_sql = sql
 
         # 解析 TIME_RANGE 並優化 S3 路徑
         year, month = parse_time_range_from_sql(mapped_sql)
@@ -275,7 +156,7 @@ class DuckDBExecutor:
         has_limit = "LIMIT" in sql_upper or "TOP" in sql_upper
         if join_count > 0 and not has_limit:
             # 自動添加 LIMIT 防止返回過多數據
-            logger.warning(f"複雜 JOIN 查詢缺乏 LIMIT 限制，自動添加 LIMIT 1000")
+            logger.warning("複雜 JOIN 查詢缺乏 LIMIT 限制，自動添加 LIMIT 1000")
 
         return True, None
 
@@ -421,11 +302,9 @@ class DuckDBExecutor:
             plan_rows = cursor.fetchall()
             plan = []
             for row in plan_rows:
-                plan.append({
-                    "id": row[0],
-                    "name": row[1],
-                    "detail": row[2] if len(row) > 2 else None
-                })
+                plan.append(
+                    {"id": row[0], "name": row[1], "detail": row[2] if len(row) > 2 else None}
+                )
 
             # 獲取 ANALYZE 信息
             analyze_sql = f"EXPLAIN ANALYZE {mapped_sql}"
@@ -434,11 +313,13 @@ class DuckDBExecutor:
                 analyze_rows = cursor.fetchall()
                 analyze_info = []
                 for row in analyze_rows:
-                    analyze_info.append({
-                        "timing": row[0],
-                        "name": row[1],
-                        "info": row[2] if len(row) > 2 else str(row)
-                    })
+                    analyze_info.append(
+                        {
+                            "timing": row[0],
+                            "name": row[1],
+                            "info": row[2] if len(row) > 2 else str(row),
+                        }
+                    )
             except Exception:
                 analyze_info = None
 
@@ -505,7 +386,7 @@ class DuckDBExecutor:
     def validate_connection(self) -> Dict[str, Any]:
         """驗證 S3 連線"""
         try:
-            result = self.execute("SELECT 1")
+            self.execute("SELECT 1")
             return {
                 "status": "healthy",
                 "duckdb": True,

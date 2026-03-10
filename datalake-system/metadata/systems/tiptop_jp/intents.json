@@ -333,7 +333,7 @@
           "VALID_DATE"
         ]
       },
-      "mart_table": "mart_shipping_wide"
+      "mart_table": "mart_price_wide"
     },
     "QUERY_PRICE": {
       "description": "售價查詢",
@@ -353,7 +353,7 @@
           "STATUS"
         ]
       },
-      "mart_table": "mart_shipping_wide"
+      "mart_table": "mart_price_wide"
     }
   }
 }

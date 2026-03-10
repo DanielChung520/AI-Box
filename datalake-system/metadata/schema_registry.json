@@ -56,10 +56,17 @@
       "tiptop_name": "庫存寬表",
       "datasource": "jp_duckdb",
       "columns": [
+        {"id": "ent", "name": "企業編號"},
+        {"id": "site", "name": "營運據點"},
         {"id": "item_no", "name": "料號"},
+        {"id": "item_name", "name": "品名"},
+        {"id": "item_spec", "name": "規格"},
+        {"id": "item_type", "name": "類別"},
+        {"id": "item_category", "name": "分類"},
         {"id": "warehouse_no", "name": "倉庫"},
         {"id": "location_no", "name": "儲位"},
         {"id": "unit", "name": "單位"},
+        {"id": "stock_unit", "name": "庫存單位"},
         {"id": "existing_stocks", "name": "現有庫存"}
       ]
     },
@@ -67,8 +74,17 @@
       "tiptop_name": "工單寬表",
       "datasource": "jp_duckdb",
       "columns": [
+        {"id": "ent", "name": "企業編號"},
+        {"id": "site", "name": "營運據點"},
         {"id": "item_no", "name": "料號"},
+        {"id": "item_name", "name": "品名"},
+        {"id": "item_spec", "name": "規格"},
         {"id": "customer_no", "name": "客戶編號"},
+        {"id": "customer_name", "name": "客戶名稱"},
+        {"id": "so_order", "name": "訂單編號"},
+        {"id": "so_line", "name": "訂單項次"},
+        {"id": "warehouse_no", "name": "倉庫"},
+        {"id": "location_no", "name": "儲位"},
         {"id": "status", "name": "狀態"},
         {"id": "scrap_qty", "name": "報廢數量"},
         {"id": "workstation", "name": "工作站"}
@@ -78,12 +94,24 @@
       "tiptop_name": "出貨寬表",
       "datasource": "jp_duckdb",
       "columns": [
+        {"id": "ent", "name": "企業編號"},
+        {"id": "site", "name": "營運據點"},
         {"id": "doc_no", "name": "單據編號"},
         {"id": "doc_date", "name": "單據日期"},
         {"id": "status", "name": "狀態"},
+        {"id": "sales_person", "name": "業務人員"},
+        {"id": "sales_dept", "name": "業務部門"},
         {"id": "customer_no", "name": "客戶編號"},
+        {"id": "customer_name", "name": "客戶名稱"},
+        {"id": "expected_date", "name": "預計出貨日期"},
+        {"id": "sales_category", "name": "銷售類別"},
+        {"id": "order_no", "name": "訂單編號"},
+        {"id": "so_line", "name": "訂單項次"},
         {"id": "seq", "name": "項次"},
         {"id": "item_no", "name": "料號"},
+        {"id": "item_name", "name": "品名"},
+        {"id": "item_spec", "name": "規格"},
+        {"id": "request_qty", "name": "請算出貨數量"},
         {"id": "actual_qty", "name": "實際數量"},
         {"id": "unit_price", "name": "單價"}
       ]
@@ -206,6 +234,136 @@
         {"id": "ime01", "name": "倉庫代號"},
         {"id": "ime02", "name": "儲位代號"},
         {"id": "ime03", "name": "儲位名稱"}
+      ]
+    },
+    "INAG_T": {
+      "tiptop_name": "在庫明細",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "INAGENT", "name": "企業編號"},
+        {"id": "INAGSITE", "name": "營運據點"},
+        {"id": "INAG001", "name": "料件編號"},
+        {"id": "INAG004", "name": "倉庫編號"},
+        {"id": "INAG005", "name": "儲位編號"},
+        {"id": "INAG007", "name": "單位"},
+        {"id": "INAG008", "name": "現有庫存"}
+      ]
+    },
+    "SFAA_T": {
+      "tiptop_name": "工單頭檔",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "SFAAENT", "name": "企業編號"},
+        {"id": "SFAASITE", "name": "營運據點"},
+        {"id": "SFAA010", "name": "料件編號"},
+        {"id": "SFAA056", "name": "報廢數量"},
+        {"id": "SFAA022", "name": "訂單編號"},
+        {"id": "SFAA023", "name": "訂單項次"},
+        {"id": "SFAA024", "name": "訂單批次序號"},
+        {"id": "SFAA025", "name": "訂單批次序號2"},
+        {"id": "SFAA009", "name": "客戶編號"},
+        {"id": "SFAA034", "name": "儲位編號"},
+        {"id": "SFAA035", "name": "倉庫編號"},
+        {"id": "SFAASTUS", "name": "狀態"}
+      ]
+    },
+    "SFCA_T": {
+      "tiptop_name": "工單製造頭檔",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "SFCAENT", "name": "企業編號"},
+        {"id": "SFCASITE", "name": "營運據點"},
+        {"id": "SFCADOCNO", "name": "工單編號"},
+        {"id": "SFCA002", "name": "工單項次"},
+        {"id": "SFCA001", "name": "RUN CARD編號"},
+        {"id": "SFCA003", "name": "生產數量"},
+        {"id": "SFCA004", "name": "完工數量"}
+      ]
+    },
+    "SFCB_T": {
+      "tiptop_name": "工單製造明細檔",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "SFCBENT", "name": "企業編號"},
+        {"id": "SFCBSITE", "name": "營運據點"},
+        {"id": "SFCBDOCNO", "name": "工單編號"},
+        {"id": "SFCB002", "name": "項次"},
+        {"id": "SFCB003", "name": "目前工序"},
+        {"id": "SFCB004", "name": "工序序號"},
+        {"id": "SFCB011", "name": "工作站"},
+        {"id": "SFCB027", "name": "標準產出"},
+        {"id": "SFCB028", "name": "良品流入"},
+        {"id": "SFCB033", "name": "良品流出"},
+        {"id": "SFCB034", "name": "重工流出"},
+        {"id": "SFCB029", "name": "重工流入"},
+        {"id": "SFCB036", "name": "站點報廢"},
+        {"id": "SFCB041", "name": "外包加工數量"},
+        {"id": "SFCB042", "name": "外包完工數量"},
+        {"id": "SFCB050", "name": "在製品數量"},
+        {"id": "SFCB051", "name": "待PQC數量"}
+      ]
+    },
+    "XMDG_T": {
+      "tiptop_name": "出貨通知頭檔",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "XMDGENT", "name": "企業編號"},
+        {"id": "XMDGSITE", "name": "營運據點"},
+        {"id": "XMDGDOCNO", "name": "出貨通知編號"},
+        {"id": "XMDGDOCDT", "name": "單據日期"},
+        {"id": "XMDGSTUS", "name": "狀態"},
+        {"id": "XMDG002", "name": "業務人員"},
+        {"id": "XMDG003", "name": "業務部門"},
+        {"id": "XMDG005", "name": "客戶編號"},
+        {"id": "XMDG028", "name": "預計出貨日期"},
+        {"id": "XMDG027", "name": "銷售類別"}
+      ]
+    },
+    "XMDH_T": {
+      "tiptop_name": "出貨通知明細檔",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "XMDHENT", "name": "企業編號"},
+        {"id": "XMDHSITE", "name": "營運據點"},
+        {"id": "XMDHDOCNO", "name": "出貨通知編號"},
+        {"id": "XMDHSEQ", "name": "項次"},
+        {"id": "XMDH001", "name": "訂單編號"},
+        {"id": "XMDH002", "name": "訂單項次"},
+        {"id": "XMDH003", "name": "訂單批次序號"},
+        {"id": "XMDH004", "name": "訂單批次序號2"},
+        {"id": "XMDHUD001", "name": "客戶PO編號"},
+        {"id": "XMDH006", "name": "料件編號"},
+        {"id": "XMDH016", "name": "請算出貨數量"},
+        {"id": "XMDH017", "name": "實際出貨數量"},
+        {"id": "XMDH023", "name": "單價"}
+      ]
+    },
+    "XMDT_T": {
+      "tiptop_name": "售價審核頭檔",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "XMDTENT", "name": "企業編號"},
+        {"id": "XMDTSITE", "name": "營運據點"},
+        {"id": "XMDTDOCNO", "name": "售價審核編號"},
+        {"id": "XMDTDOCDT", "name": "單據日期"},
+        {"id": "XMDT004", "name": "售價客戶"},
+        {"id": "XMDT002", "name": "申請人"},
+        {"id": "XMDT003", "name": "申請部門"},
+        {"id": "XMDTSTUS", "name": "狀態"},
+        {"id": "XMDT015", "name": "有效日期"}
+      ]
+    },
+    "XMDU_T": {
+      "tiptop_name": "售價審核明細檔",
+      "datasource": "jp_duckdb",
+      "columns": [
+        {"id": "XMDUENT", "name": "企業編號"},
+        {"id": "XMDUSITE", "name": "營運據點"},
+        {"id": "XMDUDOCNO", "name": "售價審核編號"},
+        {"id": "XMDUSEQ", "name": "項次"},
+        {"id": "XMDU002", "name": "料件編號"},
+        {"id": "XMDU008", "name": "單位"},
+        {"id": "XMDU011", "name": "單價"}
       ]
     }
   }

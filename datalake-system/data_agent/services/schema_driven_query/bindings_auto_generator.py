@@ -13,13 +13,13 @@
 
 import json
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 class BindingsAutoGenerator:
     """Bindings 自動生成器"""
 
-    TABLE_S3_PATH = {
+    TABLE_PATH_TEMPLATES = {
         "INAG_T": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet",
         "SFAA_T": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet",
         "SFCA_T": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet",
@@ -60,13 +60,13 @@ class BindingsAutoGenerator:
                         "column": oracle_mapping.get("column", ""),
                         "aggregation": oracle_mapping.get("aggregation", "NONE"),
                         "operator": oracle_mapping.get("operator", "="),
-                        "s3_path": self.TABLE_S3_PATH.get(table, ""),
+                        "s3_path": self.TABLE_PATH_TEMPLATES.get(table, ""),
                     }
                 }
 
         return duckdb_bindings
 
-    def update_bindings(self, output_path: str = None):
+    def update_bindings(self, output_path: Optional[str] = None):
         """更新 bindings.json，新增 DUCKDB dialect"""
         duckdb_bindings = self.generate_duckdb_bindings()
 
