@@ -54,10 +54,8 @@ class SemanticAnalyzer:
         # 預設值
         intent = None
         confidence = 0.0
-        return_mode = "summary"  # 預設
         clarification_needed = False
         clarification_questions: List[str] = []
-        responsibility_type = None  # 從 MMIntentRAG 獲取
 
         # 1. 使用 MMIntentRAG 進行意圖分類
         if self._intent_rag_client:
@@ -70,12 +68,6 @@ class SemanticAnalyzer:
                     intent = rag_intent
                     confidence = 0.9
                     logger.info(f"[SemanticAnalyzer] 意圖分類: {rag_intent} -> {system_intent}")
-                    
-                    # 獲取 responsibility_type
-                    responsibility_type = self._intent_rag_client.get_responsibility_type(rag_intent)
-                    if responsibility_type:
-                        logger.info(f"[SemanticAnalyzer] responsibility_type: {responsibility_type}")
-
                 else:
                     # 未匹配到意圖，檢查是否需要澄清
                     logger.info("[SemanticAnalyzer] 未匹配到意圖，可能需要澄清")
@@ -95,18 +87,7 @@ class SemanticAnalyzer:
             clarification_needed = True
             clarification_questions = ["系統暫時無法處理您的請求"]
 
-        # 2. 使用 MMIntentRAG 判斷 return_mode
-        if self._intent_rag_client and intent:
-            try:
-                rag_return_mode = self._intent_rag_client.classify_return_mode(instruction)
-                if rag_return_mode == "RETURN_LIST":
-                    return_mode = "list"
-                elif rag_return_mode == "RETURN_SUMMARY":
-                    return_mode = "summary"
-                logger.info(f"[SemanticAnalyzer] return_mode: {return_mode}")
-            except Exception as e:
-                logger.warning(f"[SemanticAnalyzer] return_mode 分類失敗: {e}")
-
+        # Note: return_mode 和 responsibility_type 由 Data-Agent 後續處理
         # 3. 檢查模糊詞彙（需要 clarification）
         ambiguous_keywords = ["最近", "這幾天", "近來", "近期"]
         if any(kw in instruction for kw in ambiguous_keywords):
@@ -118,21 +99,6 @@ class SemanticAnalyzer:
                 "• 最近一個月",
                 "• 最近三個月",
             ]
-    
-        # 預設 responsibility_type
-        if not responsibility_type:
-            responsibility_type = "unknown"
-    
-        return SemanticAnalysisResult(
-            intent=intent,
-            confidence=confidence,
-            parameters={},  # 參數由 Data-Agent 提取
-            original_instruction=instruction,
-            clarification_needed=clarification_needed,
-            clarification_questions=clarification_questions,
-            return_mode=return_mode,
-            responsibility_type=responsibility_type,
-        )
 
         return SemanticAnalysisResult(
             intent=intent,
@@ -141,5 +107,5 @@ class SemanticAnalyzer:
             original_instruction=instruction,
             clarification_needed=clarification_needed,
             clarification_questions=clarification_questions,
-            return_mode=return_mode,
         )
+
