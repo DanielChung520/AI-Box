@@ -25,6 +25,7 @@ from agents.services.protocol.base import (
 
 from .models import ConversationContext, WarehouseAgentResponse
 from .orchestrator_client import OrchestratorClient
+from .ptao.loop import PTAOLoop
 from .services.context_manager import ContextManager
 from .services.part_service import PartService
 from .services.purchase_service import PurchaseService
@@ -112,6 +113,26 @@ class MMAgent(AgentServiceProtocol):
             + "/api/v1/data-agent/v5/execute"
         )
 
+        # 初始化職責分派 Registry
+        from mm_agent.ptao.responsibility_registry import ResponsibilityRegistry
+
+        self._responsibility_registry = ResponsibilityRegistry()
+        self._responsibility_registry.register("query_part", self._handle_query_part)
+        self._responsibility_registry.register("query_stock", self._handle_query_stock)
+        self._responsibility_registry.register(
+            "query_stock_history", self._handle_query_stock_history
+        )
+        self._responsibility_registry.register("analyze_shortage", self._handle_analyze_shortage)
+        self._responsibility_registry.register(
+            "generate_purchase_order", self._handle_generate_purchase_order
+        )
+        self._responsibility_registry.register(
+            "analyze_existing_result", self._handle_analyze_existing_result
+        )
+        self._responsibility_registry.register(
+            "clarification_needed", self._handle_clarification_needed
+        )
+
     async def execute(
         self,
         request: AgentServiceRequest,
@@ -132,6 +153,7 @@ class MMAgent(AgentServiceProtocol):
                 - error: 錯誤信息（如果有）
                 - metadata: 元數據
         """
+        ptao_result = None
         try:
             # 1. 獲取會話ID
             session_id = (
@@ -177,10 +199,14 @@ class MMAgent(AgentServiceProtocol):
             # 6. 職責理解
             responsibility = await self._responsibility_analyzer.understand(semantic_result)
 
-            # 7. 執行任務
-            result = await self._execute_responsibility(
-                responsibility, semantic_result, request, user_instruction
+            # 7. 執行任務（P-T-A-O 迴圈）
+            ptao_result = await PTAOLoop(self._responsibility_registry).run(
+                responsibility=responsibility,
+                semantic_result=semantic_result,
+                request=request,
+                user_instruction=user_instruction,
             )
+            result = ptao_result.raw_result
 
             # 7.5. 生成 LLM 業務回覆（如需要）
             result = await self._generate_llm_business_response(
@@ -197,12 +223,20 @@ class MMAgent(AgentServiceProtocol):
             )
 
             # 9. 構建響應
+            ptao_metadata = {
+                "ptao": {
+                    "thought": ptao_result.thought.model_dump(),
+                    "observation": ptao_result.observation.model_dump(),
+                    "decision_log": [e.model_dump() for e in ptao_result.decision_log.entries],
+                }
+            }
             response = WarehouseAgentResponse(
                 success=result.get("success", False),
                 task_type=responsibility.type,
                 result=result,
                 semantic_analysis=semantic_result.model_dump(),
                 responsibility=responsibility.description,
+                metadata=ptao_metadata,
             )
 
             return AgentServiceResponse(
@@ -244,84 +278,132 @@ class MMAgent(AgentServiceProtocol):
         Returns:
             執行結果
         """
-        responsibility_type = responsibility.type
+        handler = self._responsibility_registry.get_handler(responsibility.type)
+        if handler is None:
+            return {"success": False, "error": f"未知的職責類型: {responsibility.type}"}
+        return await handler(responsibility, semantic_result, request, user_instruction)
+
+    async def _handle_query_part(
+        self,
+        responsibility: Any,
+        semantic_result: Any,
+        request: AgentServiceRequest,
+        user_instruction: str = "",
+    ) -> Dict[str, Any]:
+        """處理料號查詢職責"""
         parameters = semantic_result.parameters
-
-        if responsibility_type == "query_part":
-            part_number = parameters.get("part_number")
-            if not part_number:
-                return {
-                    "success": False,
-                    "error": "缺少料號參數（part_number）",
-                }
-            return await self._query_part_info(part_number, request)
-
-        elif responsibility_type == "query_stock":
-            return await self._query_stock_info(parameters, request, user_instruction)
-
-        elif responsibility_type == "query_stock_history":
-            part_number = parameters.get("part_number")
-            if not part_number:
-                return {
-                    "success": False,
-                    "error": "缺少料號參數（part_number）",
-                }
-            return await self._query_stock_history(part_number, request)
-
-        elif responsibility_type == "analyze_shortage":
-            part_number = parameters.get("part_number")
-            if not part_number:
-                return {
-                    "success": False,
-                    "error": "缺少料號參數（part_number）",
-                }
-            return await self._analyze_shortage(part_number, request)
-
-        elif responsibility_type == "generate_purchase_order":
-            part_number = parameters.get("part_number")
-            quantity = parameters.get("quantity")
-            if not part_number:
-                return {
-                    "success": False,
-                    "error": "缺少料號參數（part_number）",
-                }
-            if not quantity:
-                return {
-                    "success": False,
-                    "error": "缺少數量參數（quantity）",
-                }
-            return await self._generate_purchase_order(part_number, quantity, request)
-
-        elif responsibility_type == "analyze_existing_result":
-            context = await self._context_manager.get_context(
-                (request.metadata.get("session_id") if request.metadata else None)
-                or request.task_id
-            )
-            result = await self._analyze_existing_result(user_instruction, context)
-            return result
-
-        elif responsibility_type == "clarification_needed":
-            # 生成澄清問題的自然語言解釋
-            questions = responsibility.clarification_questions or []
-            if questions:
-                explanation = questions[0] + "\n"
-                for q in questions[1:]:
-                    explanation += q + "\n"
-            else:
-                explanation = "您的指令不夠明確，請提供更多細節。"
-
+        part_number = parameters.get("part_number")
+        if not part_number:
             return {
                 "success": False,
-                "error": "需要澄清用戶意圖",
-                "clarification_questions": questions,
-                "response": explanation.strip(),
+                "error": "缺少料號參數（part_number）",
             }
+        return await self._query_part_info(part_number, request)
 
+    async def _handle_query_stock(
+        self,
+        responsibility: Any,
+        semantic_result: Any,
+        request: AgentServiceRequest,
+        user_instruction: str = "",
+    ) -> Dict[str, Any]:
+        """處理庫存查詢職責"""
+        parameters = semantic_result.parameters
+        return await self._query_stock_info(parameters, request, user_instruction)
+
+    async def _handle_query_stock_history(
+        self,
+        responsibility: Any,
+        semantic_result: Any,
+        request: AgentServiceRequest,
+        user_instruction: str = "",
+    ) -> Dict[str, Any]:
+        """處理進料歷史查詢職責"""
+        parameters = semantic_result.parameters
+        part_number = parameters.get("part_number")
+        if not part_number:
+            return {
+                "success": False,
+                "error": "缺少料號參數（part_number）",
+            }
+        return await self._query_stock_history(part_number, request)
+
+    async def _handle_analyze_shortage(
+        self,
+        responsibility: Any,
+        semantic_result: Any,
+        request: AgentServiceRequest,
+        user_instruction: str = "",
+    ) -> Dict[str, Any]:
+        """處理缺料分析職責"""
+        parameters = semantic_result.parameters
+        part_number = parameters.get("part_number")
+        if not part_number:
+            return {
+                "success": False,
+                "error": "缺少料號參數（part_number）",
+            }
+        return await self._analyze_shortage(part_number, request)
+
+    async def _handle_generate_purchase_order(
+        self,
+        responsibility: Any,
+        semantic_result: Any,
+        request: AgentServiceRequest,
+        user_instruction: str = "",
+    ) -> Dict[str, Any]:
+        """處理採購單生成職責"""
+        parameters = semantic_result.parameters
+        part_number = parameters.get("part_number")
+        quantity = parameters.get("quantity")
+        if not part_number:
+            return {
+                "success": False,
+                "error": "缺少料號參數（part_number）",
+            }
+        if not quantity:
+            return {
+                "success": False,
+                "error": "缺少數量參數（quantity）",
+            }
+        return await self._generate_purchase_order(part_number, quantity, request)
+
+    async def _handle_analyze_existing_result(
+        self,
+        responsibility: Any,
+        semantic_result: Any,
+        request: AgentServiceRequest,
+        user_instruction: str = "",
+    ) -> Dict[str, Any]:
+        """處理分析既有結果職責"""
+        context = await self._context_manager.get_context(
+            (request.metadata.get("session_id") if request.metadata else None) or request.task_id
+        )
+        result = await self._analyze_existing_result(user_instruction, context)
+        return result
+
+    async def _handle_clarification_needed(
+        self,
+        responsibility: Any,
+        semantic_result: Any,
+        request: AgentServiceRequest,
+        user_instruction: str = "",
+    ) -> Dict[str, Any]:
+        """處理需要澄清的職責"""
+        questions = responsibility.clarification_questions or []
+        if questions:
+            explanation = questions[0] + "\n"
+            for q in questions[1:]:
+                explanation += q + "\n"
         else:
-            return {
-                "success": False,
-                "error": f"未知的職責類型: {responsibility_type}",
-            }
+            explanation = "您的指令不夠明確，請提供更多細節。"
+
+        return {
+            "success": False,
+            "error": "需要澄清用戶意圖",
+            "clarification_questions": questions,
+            "response": explanation.strip(),
+        }
 
     async def _query_part_info(
         self,
