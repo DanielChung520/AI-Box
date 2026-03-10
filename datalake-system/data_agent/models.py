@@ -1,7 +1,7 @@
 # 代碼功能說明: Data Agent 數據模型
 # 創建日期: 2026-01-08
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-13
+# 最後修改日期: 2026-03-10
 
 """Data Agent 數據模型定義"""
 
@@ -196,3 +196,4 @@ class V5ExecuteResponse(BaseModel):
     suggestion: Optional[str] = Field(None, description="建議")
     errors: List[str] = Field(default_factory=list, description="錯誤列表")
     warnings: List[str] = Field(default_factory=list, description="警告列表")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="觀測性元數據（model_used, matched_intent, intent_confidence, complexity, fallback_triggered）")
