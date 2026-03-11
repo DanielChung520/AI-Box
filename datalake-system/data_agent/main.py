@@ -7,8 +7,21 @@
 """
 
 import logging
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# 載入環境變數（優先 data_agent/.env，備用 datalake-system/.env）
+# 確保透過 uvicorn --reload 啟動時也能讀取 S3/LLM 等配置
+_this_dir = Path(__file__).resolve().parent
+_agent_env = _this_dir / ".env"
+_root_env = _this_dir.parent / ".env"
+if _agent_env.exists():
+    load_dotenv(dotenv_path=_agent_env, override=False)
+elif _root_env.exists():
+    load_dotenv(dotenv_path=_root_env, override=False)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
