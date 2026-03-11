@@ -156,29 +156,28 @@ class MMAgentChain:
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
-                    "http://localhost:8004/api/v1/data-agent/v4/execute",
+                    "http://localhost:8004/api/v1/data-agent/v5/execute",
                     json={
                         "task_id": f"mm_query_{int(time.time())}",
-                        "task_type": "schema_driven_query",
+                        "task_type": "simple_query",
                         "task_data": {
                             "nlq": semantic_result.raw_text,
-                            "intent": semantic_result.intent,
-                            "params": params,
+                            "module": "tiptop_jp",
+                            "return_mode": "summary",
                         },
                     },
                 )
 
             if response.status_code == 200:
                 result = response.json()
-                if result.get("status") == "success":
-                    data_result = result.get("result", {})
+                if result.get("success", False):
                     return {
                         "status": "success",
-                        "sql": data_result.get("sql", "N/A"),  # SQL 由 Data-Agent 生成
-                        "data": data_result.get("data", [])[:10],  # 只取前 10 筆
-                        "row_count": data_result.get("row_count", 0),
-                        "columns": data_result.get("columns", []),
-                        "execution_time_ms": data_result.get("execution_time_ms", 0),
+                        "sql": result.get("sql", "N/A"),
+                        "data": result.get("data", [])[:10],  # 只取前 10 筆
+                        "row_count": result.get("row_count", 0),
+                        "columns": result.get("columns", []),
+                        "execution_time_ms": result.get("execution_time_ms", 0),
                     }
                 else:
                     return {

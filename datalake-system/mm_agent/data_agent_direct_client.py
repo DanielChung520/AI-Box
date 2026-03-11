@@ -49,7 +49,7 @@ class DataAgentDirectClient:
         """
         self._use_http = use_http
         self._data_agent_service_url = os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8004")
-        self._execute_endpoint = "/api/v1/data-agent/v4/execute"  # [V4_EXCLUSIVE] 新版 Schema Driven Query 端點
+        self._execute_endpoint = "/api/v1/data-agent/v5/execute"  # V5 LLM SQL 生成端點
         self._logger = logger
         self._timeout = 30.0
         self._data_agent_instance: Optional[Any] = None
@@ -110,8 +110,8 @@ class DataAgentDirectClient:
         }
 
         # 直接調用Data Agent HTTP API
-        # [V4_EXCLUSIVE] 使用 /api/v1/data-agent/v4/execute 端點
-        # 建議使用 StructuredQueryHandler 直接調用
+        # 使用 /api/v1/data-agent/v5/execute 端點
+        # V5 使用 LLM 意圖路由 + SQL 生成
         url = f"{self._data_agent_service_url}{self._execute_endpoint}"
         last_error: Optional[Exception] = None
 
@@ -126,9 +126,12 @@ class DataAgentDirectClient:
                         url,
                         json={
                             "task_id": f"{request.task_id}-data-query",
-                            "task_type": "data_query",
-                            "task_data": data_agent_request,
-                            "metadata": request.metadata or {},
+                            "task_type": "simple_query",
+                            "task_data": {
+                                "nlq": data_agent_request.get("natural_language_query", data_agent_request.get("action", "")),
+                                "module": "tiptop_jp",
+                                "return_mode": "summary",
+                            },
                         },
                     )
 
@@ -141,46 +144,28 @@ class DataAgentDirectClient:
 
                     result = response.json()
 
-                    # 檢查響應結構
+                    # V5 回應格式：{ success: bool, sql, data, row_count, columns, ... }
                     if not isinstance(result, dict):
                         error_msg = f"Data Agent響應格式錯誤: {type(result)}"
                         self._logger.error(error_msg)
                         raise RuntimeError(error_msg)
 
-                    # 檢查執行結果
-                    if result.get("status") != "completed":
-                        error_msg = result.get("error", "Data Agent查詢失敗")
+                    if not result.get("success", False):
+                        error_msg = result.get("message", "Data Agent查詢失敗")
                         self._logger.error(f"Data Agent查詢失敗: {error_msg}")
                         raise RuntimeError(f"Data Agent查詢失敗: {error_msg}")
 
-                    # Data Agent HTTP API返回格式：
-                    # {
-                    #   "status": "completed",
-                    #   "result": {
-                    #     "success": true,
-                    #     "action": "query_datalake",
-                    #     "result": { "success": true, "rows": [...] }
-                    #   }
-                    # }
-                    # 需要提取内部的result字段
-                    task_result = result.get("result", {})
-                    if isinstance(task_result, dict):
-                        # 如果task_result包含嵌套的result字段（DataAgentResponse格式）
-                        if "result" in task_result and isinstance(task_result["result"], dict):
-                            # 提取内部的result字段
-                            inner_result = task_result["result"]
-                            if not inner_result.get("success", True):
-                                error_msg = inner_result.get("error", "Data Agent查詢失敗")
-                                self._logger.error(f"Data Agent查詢失敗: {error_msg}")
-                                raise RuntimeError(f"Data Agent查詢失敗: {error_msg}")
-                            return inner_result
-                        # 如果task_result本身就是结果（直接格式）
-                        elif not task_result.get("success", True):
-                            error_msg = task_result.get("error", "Data Agent查詢失敗")
-                            self._logger.error(f"Data Agent查詢失敗: {error_msg}")
-                            raise RuntimeError(f"Data Agent查詢失敗: {error_msg}")
-
-                    return task_result
+                    # 將 V5 flat 回應轉為統一格式
+                    return {
+                        "success": True,
+                        "rows": result.get("data", []),
+                        "data": result.get("data", []),
+                        "sql": result.get("sql", ""),
+                        "row_count": result.get("row_count", 0),
+                        "columns": result.get("columns", []),
+                        "execution_time_ms": result.get("execution_time_ms", 0),
+                        "metadata": result.get("metadata", {}),
+                    }
 
             except Exception as e:
                 last_error = e
