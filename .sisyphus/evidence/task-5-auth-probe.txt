@@ -1,0 +1,240 @@
+data: {"type": "start", "data": {"request_id": "5b4bcfa3-f119-4d8c-b90d-2a4c9e822707", "session_id": "8829f9a7-0342-4530-912c-fa3d64efec64"}}
+
+data: {"type": "content", "data": {"chunk": "\u60a8\u597d"}}
+
+data: {"type": "content", "data": {"chunk": "\uff01"}}
+
+data: {"type": "content", "data": {"chunk": "\u9019"}}
+
+data: {"type": "content", "data": {"chunk": "\u662f\u4e00\u500b"}}
+
+data: {"type": "content", "data": {"chunk": "\u6e2c"}}
+
+data: {"type": "content", "data": {"chunk": "\u8a66"}}
+
+data: {"type": "content", "data": {"chunk": "\u6307\u4ee4"}}
+
+data: {"type": "content", "data": {"chunk": "\u3002"}}
+
+data: {"type": "content", "data": {"chunk": "\u5982\u679c\u60a8"}}
+
+data: {"type": "content", "data": {"chunk": "\u6709\u4efb\u4f55"}}
+
+data: {"type": "content", "data": {"chunk": "\u5177"}}
+
+data: {"type": "content", "data": {"chunk": "\u9ad4"}}
+
+data: {"type": "content", "data": {"chunk": "\u554f\u984c"}}
+
+data: {"type": "content", "data": {"chunk": "\uff08"}}
+
+data: {"type": "content", "data": {"chunk": "\u4f8b\u5982"}}
+
+data: {"type": "content", "data": {"chunk": "\u95dc\u65bc"}}
+
+data: {"type": "content", "data": {"chunk": "\u7269\u6599"}}
+
+data: {"type": "content", "data": {"chunk": "\u7ba1\u7406"}}
+
+data: {"type": "content", "data": {"chunk": "\u54e1"}}
+
+data: {"type": "content", "data": {"chunk": "\u7684"}}
+
+data: {"type": "content", "data": {"chunk": "\u8077"}}
+
+data: {"type": "content", "data": {"chunk": "\u8cac"}}
+
+data: {"type": "content", "data": {"chunk": "\u3001"}}
+
+data: {"type": "content", "data": {"chunk": "\u4f5c"}}
+
+data: {"type": "content", "data": {"chunk": "\u696d"}}
+
+data: {"type": "content", "data": {"chunk": "\u6d41\u7a0b"}}
+
+data: {"type": "content", "data": {"chunk": "\u6216"}}
+
+data: {"type": "content", "data": {"chunk": "\u7cfb\u7d71"}}
+
+data: {"type": "content", "data": {"chunk": "\u64cd\u4f5c"}}
+
+data: {"type": "content", "data": {"chunk": "\u7b49"}}
+
+data: {"type": "content", "data": {"chunk": "\uff09\uff0c"}}
+
+data: {"type": "content", "data": {"chunk": "\u6b61\u8fce"}}
+
+data: {"type": "content", "data": {"chunk": "\u63d0\u51fa"}}
+
+data: {"type": "content", "data": {"chunk": "\uff0c"}}
+
+data: {"type": "content", "data": {"chunk": "\u6211"}}
+
+data: {"type": "content", "data": {"chunk": "\u5c07"}}
+
+data: {"type": "content", "data": {"chunk": "\u6839\u64da"}}
+
+data: {"type": "content", "data": {"chunk": "\u77e5\u8b58"}}
+
+data: {"type": "content", "data": {"chunk": "\u5eab"}}
+
+data: {"type": "content", "data": {"chunk": "\u4e2d\u7684"}}
+
+data: {"type": "content", "data": {"chunk": "\u6587\u4ef6"}}
+
+data: {"type": "content", "data": {"chunk": "\u5167\u5bb9"}}
+
+data: {"type": "content", "data": {"chunk": "\u70ba"}}
+
+data: {"type": "content", "data": {"chunk": "\u60a8"}}
+
+data: {"type": "content", "data": {"chunk": "\u63d0\u4f9b"}}
+
+data: {"type": "content", "data": {"chunk": "\u8a73\u7d30"}}
+
+data: {"type": "content", "data": {"chunk": "\u89e3\u7b54"}}
+
+data: {"type": "content", "data": {"chunk": "\u3002"}}
+
+data: {"type": "content", "data": {"chunk": "\u76ee\u524d"}}
+
+data: {"type": "content", "data": {"chunk": "\u77e5\u8b58"}}
+
+data: {"type": "content", "data": {"chunk": "\u5eab"}}
+
+data: {"type": "content", "data": {"chunk": "\u4e2d"}}
+
+data: {"type": "content", "data": {"chunk": "\u5df2"}}
+
+data: {"type": "content", "data": {"chunk": "\u5305\u542b"}}
+
+data: {"type": "content", "data": {"chunk": "\u300a"}}
+
+data: {"type": "content", "data": {"chunk": "\u7269\u6599"}}
+
+data: {"type": "content", "data": {"chunk": "\u7ba1\u7406"}}
+
+data: {"type": "content", "data": {"chunk": "\u54e1"}}
+
+data: {"type": "content", "data": {"chunk": "\u8077"}}
+
+data: {"type": "content", "data": {"chunk": "\u80fd"}}
+
+data: {"type": "content", "data": {"chunk": "\u8207"}}
+
+data: {"type": "content", "data": {"chunk": "\u6a19\u6e96"}}
+
+data: {"type": "content", "data": {"chunk": "\u4f5c"}}
+
+data: {"type": "content", "data": {"chunk": "\u696d"}}
+
+data: {"type": "content", "data": {"chunk": "\u898f"}}
+
+data: {"type": "content", "data": {"chunk": "\u7bc4"}}
+
+data: {"type": "content", "data": {"chunk": "\u624b"}}
+
+data: {"type": "content", "data": {"chunk": "\u518a"}}
+
+data: {"type": "content", "data": {"chunk": ".md"}}
+
+data: {"type": "content", "data": {"chunk": "\u300b"}}
+
+data: {"type": "content", "data": {"chunk": "\u7684"}}
+
+data: {"type": "content", "data": {"chunk": "\u76f8\u95dc"}}
+
+data: {"type": "content", "data": {"chunk": "\u8cc7\u8a0a"}}
+
+data: {"type": "content", "data": {"chunk": "\uff0c"}}
+
+data: {"type": "content", "data": {"chunk": "\u6db5"}}
+
+data: {"type": "content", "data": {"chunk": "\u84cb"}}
+
+data: {"type": "content", "data": {"chunk": "\u6536"}}
+
+data: {"type": "content", "data": {"chunk": "\u8ca8"}}
+
+data: {"type": "content", "data": {"chunk": "\u9a57"}}
+
+data: {"type": "content", "data": {"chunk": "\u6536\u5165"}}
+
+data: {"type": "content", "data": {"chunk": "\u5eab"}}
+
+data: {"type": "content", "data": {"chunk": "\u3001"}}
+
+data: {"type": "content", "data": {"chunk": "ERP"}}
+
+data: {"type": "content", "data": {"chunk": "\u7cfb\u7d71"}}
+
+data: {"type": "content", "data": {"chunk": "\u64cd\u4f5c"}}
+
+data: {"type": "content", "data": {"chunk": "\uff08"}}
+
+data: {"type": "content", "data": {"chunk": "\u5982"}}
+
+data: {"type": "content", "data": {"chunk": " TI"}}
+
+data: {"type": "content", "data": {"chunk": "PT"}}
+
+data: {"type": "content", "data": {"chunk": "OP"}}
+
+data: {"type": "content", "data": {"chunk": " \u7684"}}
+
+data: {"type": "content", "data": {"chunk": " `"}}
+
+data: {"type": "content", "data": {"chunk": "ap"}}
+
+data: {"type": "content", "data": {"chunk": "mt"}}
+
+data: {"type": "content", "data": {"chunk": "1"}}
+
+data: {"type": "content", "data": {"chunk": "1"}}
+
+data: {"type": "content", "data": {"chunk": "0"}}
+
+data: {"type": "content", "data": {"chunk": "`"}}
+
+data: {"type": "content", "data": {"chunk": "\u3001"}}
+
+data: {"type": "content", "data": {"chunk": "`"}}
+
+data: {"type": "content", "data": {"chunk": "aim"}}
+
+data: {"type": "content", "data": {"chunk": "p"}}
+
+data: {"type": "content", "data": {"chunk": "6"}}
+
+data: {"type": "content", "data": {"chunk": "2"}}
+
+data: {"type": "content", "data": {"chunk": "0"}}
+
+data: {"type": "content", "data": {"chunk": "`"}}
+
+data: {"type": "content", "data": {"chunk": " \u7b49"}}
+
+data: {"type": "content", "data": {"chunk": "\u6a21"}}
+
+data: {"type": "content", "data": {"chunk": "\u7d44"}}
+
+data: {"type": "content", "data": {"chunk": "\uff09"}}
+
+data: {"type": "content", "data": {"chunk": "\u4ee5\u53ca"}}
+
+data: {"type": "content", "data": {"chunk": "\u5c08\u696d"}}
+
+data: {"type": "content", "data": {"chunk": "\u6280\u80fd"}}
+
+data: {"type": "content", "data": {"chunk": "\u8981\u6c42"}}
+
+data: {"type": "content", "data": {"chunk": "\u7b49"}}
+
+data: {"type": "content", "data": {"chunk": "\u5167\u5bb9"}}
+
+data: {"type": "content", "data": {"chunk": "\u3002"}}
+
+data: {"type": "done", "data": {"request_id": "5b4bcfa3-f119-4d8c-b90d-2a4c9e822707"}}
+
+
+HTTP_CODE:200

@@ -1,0 +1,14 @@
+Response (first 300 chars): **分析過程**
+
+1. **資料分布**  
+   - 同一商品 `item_no = NI001` 在兩個倉庫（site）出現：  
+     - `warehouse_no = W01`，庫存量 `qty = 100`  
+     - `warehouse_no = W02`，庫存量 `qty = 50`  
+
+2. **庫存差異**  
+   - W01 的庫存是 W02 的兩倍，兩者相差 **50 件**。  
+   - 若將兩個倉庫的庫存相加，總庫存為 **150 件**，但各倉庫的分布並不均衡。
+
+3. **結論**  
+   - 從現有資料可看出，**庫存量的差異確實與不同的
+PASS: Returns non-empty response with valid last_result

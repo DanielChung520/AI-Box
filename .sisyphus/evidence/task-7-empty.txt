@@ -1,0 +1,4 @@
+PASS: empty/None blocked
+Empty string: {'safe': False, 'reason': 'SQL is empty'}
+None: {'safe': False, 'reason': 'SQL is empty'}
+Whitespace: {'safe': False, 'reason': 'SQL is empty'}

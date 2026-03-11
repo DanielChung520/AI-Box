@@ -1,0 +1,107 @@
+================================================================================
+TASK 1: RESEARCH STRUCTLOG + DICTCONFIG INTEGRATION PATTERN
+================================================================================
+
+STATUS: ✓ COMPLETE
+
+DELIVERABLES CREATED:
+================================================================================
+
+1. Reference Snippet
+   Location: .sisyphus/notepads/logging-unification/structlog-reference.py
+   Size: 14 KB, 348 lines
+   Status: VERIFIED - Executes without errors
+   
+   Contents:
+   - Complete dictConfig dict with 5 formatters (console, json + domain-specific)
+   - Handler definitions (console + 5 RotatingFileHandlers for domains)
+   - Logger definitions (root + 5 domain loggers with propagate=False)
+   - Shared processor chain for both structlog and stdlib
+   - structlog.configure() with LoggerFactory
+   - Three working examples
+   - Full inline comments explaining each section
+
+2. Evidence Files
+   - .sisyphus/evidence/task-1-structlog-version.txt
+     Confirms: structlog==25.5.0
+   
+   - .sisyphus/evidence/task-1-foreign-pre-chain.txt
+     Confirms: foreign_pre_chain parameter exists in ProcessorFormatter.__init__
+
+3. Learnings Updated
+   Location: .sisyphus/notepads/logging-unification/learnings.md
+   Status: APPENDED (not overwritten)
+
+VERIFICATION COMPLETED:
+================================================================================
+
+✓ Import Verification
+  - logging, logging.config, structlog all available
+  - ProcessorFormatter, ConsoleRenderer, JSONRenderer all available
+  - All stdlib processors available (add_log_level, add_logger_name, etc.)
+  - TimeStamper, BoundLogger, LoggerFactory all available
+  
+✓ Code Execution
+  - Reference snippet executes without errors
+  - Produces colored console output (development mode)
+  - Produces JSON file output (production mode)
+  - Domain logger with propagate=False works correctly
+  
+✓ Pattern Validation
+  - dictConfig called FIRST, structlog.configure() called SECOND
+  - Order verified as critical
+  - ProcessorFormatter acts as bridge between stdlib and structlog
+  - foreign_pre_chain parameter verified at position 3
+
+ARCHITECTURE PATTERN CONFIRMED:
+================================================================================
+
+Order (CRITICAL):
+1. logging.config.dictConfig(LOGGING_CONFIG)
+   - Sets up formatters, handlers, loggers
+   - ProcessorFormatter with foreign_pre_chain for stdlib loggers
+
+2. structlog.configure(
+     logger_factory=structlog.stdlib.LoggerFactory(),
+     ...
+   )
+   - Delegates logging to stdlib LoggerFactory
+   - Both structlog.get_logger() and logging.getLogger() route through handlers
+
+Result:
+- All 228 structlog.get_logger() calls will route through stdlib handlers
+- Domain-specific routing via propagate=False prevents double-logging
+- Unified output with ProcessorFormatter formatting both structlog and stdlib calls
+- Colored console output for development, JSON output for production
+
+KEY DESIGN DECISIONS FOR SYSTEM/LOGGING_CONFIG.PY:
+================================================================================
+
+1. Domain Logger Separation (5 domains)
+   - workers: database.rq, workers, services.api.tasks
+   - vectorization: database.chromadb, database.qdrant, embedding_service, etc.
+   - graph: kag, database.arangodb, knowledge_ontology_agent, etc.
+   - agent: agents.orchestrator, orchestrator_manager, registry_manager, moe_agent, etc.
+   - ka_agent: agents.builtin.ka_agent (special)
+
+2. propagate=False on ALL domain loggers
+   - Prevents double-logging to system.log
+   - Each domain logger only goes to its own file handler
+
+3. Shared Processors vs. Specific Processor Chains
+   - foreign_pre_chain: [add_log_level, add_logger_name, TimeStamper, ExtraAdder]
+   - Structlog processors: same + ProcessorFormatter.wrap_for_formatter
+
+4. Output Formats
+   - Console: ConsoleRenderer with colors (development)
+   - Files: JSONRenderer (production/aggregation)
+
+READY FOR NEXT TASK:
+================================================================================
+
+Task 2 will use this reference snippet to rewrite system/logging_config.py:
+- Keep existing setup_file_logger() and other functions for backwards compatibility
+- Add new dictConfig-based configuration in parallel
+- Update initialize_logging() to call both
+- Test with existing 228 structlog.get_logger() calls
+

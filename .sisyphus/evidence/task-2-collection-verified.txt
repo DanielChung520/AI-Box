@@ -1,0 +1,56 @@
+== Task 2: jp_intents Collection Verification ==
+Date: 2026-03-11 11:21:36
+
+=== Collection Stats ===
+PASS
+  vectors_size=4096
+  points_count=15
+  distance=Cosine
+  status=green
+
+=== Sample Point (id=0) ===
+{
+    "id": 0,
+    "payload": {
+        "intent_name": "QUERY_INVENTORY",
+        "description": "在庫照会",
+        "input_filters": ["ITEM_NO", "WAREHOUSE_NO", "LOCATION_NO", "UNIT", "TIME_RANGE", "EXISTING_STOCKS"],
+        "source_tables": ["INAG_T", "XMDG_T"],
+        "mart_table": "mart_inventory_wide"
+    },
+    "vector_len": 4096
+}
+
+=== Sample Point (id=1) ===
+{
+    "id": 1,
+    "payload": {
+        "intent_name": "QUERY_WORK_ORDER_COUNT",
+        "description": "工單數量統計",
+        "input_filters": ["TIME_RANGE"],
+        "source_tables": ["XMDG_T"],
+        "mart_table": "mart_work_order_wide"
+    }
+}
+
+=== Files Modified ===
+1. CREATED: datalake-system/data_agent/RAG/sync/sync_jp_intents.py (263 lines)
+   - Reads 15 intents from intents.json
+   - Embeds descriptions using Ollama qwen3-embedding (4096 dim)
+   - Uploads to Qdrant collection jp_intents with Cosine distance
+   - Payload: intent_name, description, input_filters, source_tables, mart_table
+
+2. EDITED: datalake-system/data_agent/services/schema_driven_query/upload/qdrant_uploader.py
+   - Line 44: EMBEDDING_DIMENSION = 1024 → 4096
+
+3. EDITED: datalake-system/data_agent/RAG/sync/sync_jp_schema.py
+   - Lines 60, 70: VectorParams size=1024 → size=4096
+   - Line 83: hash vector range check updated
+
+=== Verification Commands ===
+curl -s http://localhost:6333/collections/jp_intents | python3 -c "import sys,json; d=json.load(sys.stdin); r=d['result']; assert r['config']['params']['vectors']['size']==4096; assert r['points_count']==15; print('PASS')"
+
+=== Notes ===
+- intents.json contains 15 intents (not 16 as originally stated in task spec)
+- EmbeddingManager requires explicit config to use Ollama: config={"primary": {"model": "qwen3-embedding:latest", "endpoint": "http://localhost:11434", "timeout": 60}}
+- Without explicit config, EmbeddingManager falls back to SentenceTransformers (384 dim)

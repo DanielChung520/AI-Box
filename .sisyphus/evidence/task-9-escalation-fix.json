@@ -1,0 +1,19 @@
+{
+  "test_type": "unit_test_escalation",
+  "timestamp": "2026-03-11T00:35:33+00:00",
+  "command": "python3 test script with 2.0s timeout on llama3:8b",
+  "result": {
+    "status": "success",
+    "model_used": "gpt-oss:120b",
+    "escalated": true,
+    "error": null,
+    "explanation": "llama3:8b timed out after 2s, escalated to gpt-oss:120b which succeeded"
+  },
+  "log_output": "2026-03-11 00:35:33 [warning  ] small model failed, escalating to big model error='timed out' model=llama3:8b\n2026-03-11 00:35:36 [info     ] LLM SQL generation attempt     attempt_number=1_escalated latency_ms=3101.172524970025 model=gpt-oss:120b sqlglot_valid=True",
+  "key_observations": [
+    "Small model (llama3:8b) timeout exception was caught",
+    "Escalation immediately tried gpt-oss:120b without retry",
+    "Big model succeeded and returned valid SQL",
+    "Return dict correctly shows escalated=true and model_used=gpt-oss:120b"
+  ]
+}

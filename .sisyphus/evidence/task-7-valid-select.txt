@@ -1,0 +1,2 @@
+PASS: valid SELECT accepted
+{'safe': True, 'reason': ''}

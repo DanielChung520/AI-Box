@@ -1,0 +1,5 @@
+joins_path=/home/daniel/ai-box/datalake-system/metadata/systems/tiptop_jp/joins.json
+exists=True
+join_count=2
+LEFT SFAA_T.SFAA010 = MA_T.ma001
+LEFT SFAA_T.SFAA009 = OEEF_T.ooef001

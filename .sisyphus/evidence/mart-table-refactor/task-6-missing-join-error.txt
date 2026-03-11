@@ -1,0 +1,2 @@
+Missing JOIN path raises ResolverError OK
+No JOIN path found between tables: ['INAG_T', 'UNKNOWN_TABLE']

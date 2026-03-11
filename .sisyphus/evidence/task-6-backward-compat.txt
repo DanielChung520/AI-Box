@@ -1,0 +1,118 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0 -- /home/daniel/ai-box/datalake-system/venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/daniel/ai-box/datalake-system/mm_agent
+configfile: pytest.ini
+plugins: asyncio-1.3.0, Faker-40.1.2, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 34 items
+
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestAgentServiceResponseFields::test_agent_service_response_fields PASSED [  2%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestAgentServiceResponseFields::test_agent_service_response_field_types PASSED [  5%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestAgentServiceResponseFields::test_agent_service_response_no_extra_fields PASSED [  8%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestWarehouseAgentResponseFields::test_warehouse_agent_response_fields PASSED [ 11%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestWarehouseAgentResponseFields::test_warehouse_agent_response_field_types PASSED [ 14%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestWarehouseAgentResponseFields::test_warehouse_response_core_fields_mandatory PASSED [ 17%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoNotPollutingTopLevel::test_ptao_metadata_not_polluting_top_level PASSED [ 20%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoNotPollutingTopLevel::test_ptao_only_in_warehouse_metadata PASSED [ 23%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoNotPollutingTopLevel::test_ptao_does_not_leak_into_result PASSED [ 26%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoNotPollutingTopLevel::test_ptao_does_not_leak_into_semantic_analysis PASSED [ 29%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoNotPollutingTopLevel::test_agent_response_result_contains_ptao_in_metadata_only PASSED [ 32%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoThoughtStructure::test_ptao_thought_structure PASSED [ 35%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoThoughtStructure::test_thought_reasoning_is_string PASSED [ 38%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoThoughtStructure::test_thought_intent_summary_is_string PASSED [ 41%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoThoughtStructure::test_thought_complexity_value PASSED [ 44%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoThoughtStructure::test_thought_timestamp_is_serializable PASSED [ 47%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoThoughtStructure::test_thought_model_validates_empty_reasoning PASSED [ 50%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoObservationStructure::test_ptao_observation_structure PASSED [ 52%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoObservationStructure::test_observation_source_is_string PASSED [ 55%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoObservationStructure::test_observation_success_is_bool PASSED [ 58%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoObservationStructure::test_observation_duration_ms_is_numeric PASSED [ 61%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoObservationStructure::test_observation_success_has_data PASSED [ 64%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoObservationStructure::test_observation_failure_has_error PASSED [ 67%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoDecisionLogStructure::test_ptao_decision_log_structure PASSED [ 70%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoDecisionLogStructure::test_decision_log_entry_keys PASSED [ 73%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoDecisionLogStructure::test_decision_log_phase_values PASSED [ 76%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoDecisionLogStructure::test_decision_log_action_and_rationale_are_strings PASSED [ 79%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestPtaoDecisionLogStructure::test_decision_log_can_be_empty PASSED [ 82%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestOldClientCompat::test_old_client_compat PASSED [ 85%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestOldClientCompat::test_old_client_ignores_metadata PASSED [ 88%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestOldClientCompat::test_old_client_can_access_warehouse_response_without_ptao PASSED [ 91%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestOldClientCompat::test_old_client_json_serialization PASSED [ 94%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestEndToEndResponseConstruction::test_full_response_chain PASSED [ 97%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py::TestEndToEndResponseConstruction::test_no_metadata_response_is_valid PASSED [100%]
+
+=============================== warnings summary ===============================
+services/api/models/llm_model.py:124
+  /home/daniel/ai-box/services/api/models/llm_model.py:124: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class LLMModel(LLMModelBase):
+
+services/api/models/file_access_control.py:50
+  /home/daniel/ai-box/services/api/models/file_access_control.py:50: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FileAccessControl(BaseModel):
+
+datalake-system/venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+datalake-system/venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+datalake-system/venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+datalake-system/venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+datalake-system/venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+datalake-system/venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+datalake-system/venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+datalake-system/venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+  /home/daniel/ai-box/datalake-system/venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.12/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    warnings.warn(
+
+services/api/models/file_metadata.py:152
+  /home/daniel/ai-box/services/api/models/file_metadata.py:152: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FileMetadata(FileMetadataBase):
+
+agents/services/file_service/models.py:27
+  /home/daniel/ai-box/agents/services/file_service/models.py:27: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AgentFileInfo(BaseModel):
+
+services/api/models/change_proposal.py:23
+  /home/daniel/ai-box/services/api/models/change_proposal.py:23: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ChangeProposal(BaseModel):
+
+services/api/models/change_proposal.py:48
+  /home/daniel/ai-box/services/api/models/change_proposal.py:48: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ChangeProposalCreate(BaseModel):
+
+services/api/models/audit_log.py:67
+  /home/daniel/ai-box/services/api/models/audit_log.py:67: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AuditLog(BaseModel):
+
+services/api/models/audit_log.py:83
+  /home/daniel/ai-box/services/api/models/audit_log.py:83: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AuditLogCreate(BaseModel):
+
+services/api/models/audit_log.py:98
+  /home/daniel/ai-box/services/api/models/audit_log.py:98: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AuditLogResponse(BaseModel):
+
+services/api/models/version_history.py:14
+  /home/daniel/ai-box/services/api/models/version_history.py:14: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VersionHistory(BaseModel):
+
+services/api/models/version_history.py:33
+  /home/daniel/ai-box/services/api/models/version_history.py:33: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VersionHistoryCreate(BaseModel):
+
+datalake-system/mm_agent/models/query_spec.py:44
+  /home/daniel/ai-box/datalake-system/mm_agent/models/query_spec.py:44: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class QuerySpec(BaseModel):
+
+datalake-system/mm_agent/ptao/models.py:109
+  /home/daniel/ai-box/datalake-system/mm_agent/ptao/models.py:109: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class PTAOResult(BaseModel):
+
+tests/test_ptao_backward_compat.py::TestAgentServiceResponseFields::test_agent_service_response_fields
+  /home/daniel/ai-box/datalake-system/mm_agent/tests/test_ptao_backward_compat.py:149: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    model_fields = set(agent_service_response.model_fields.keys())
+
+tests/test_ptao_backward_compat.py::TestWarehouseAgentResponseFields::test_warehouse_agent_response_fields
+  /home/daniel/ai-box/datalake-system/mm_agent/tests/test_ptao_backward_compat.py:207: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    model_fields = set(warehouse_response.model_fields.keys())
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 34 passed, 23 warnings in 0.09s ========================

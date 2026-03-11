@@ -1,0 +1,83 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/daniel/ai-box/datalake-system/mm_agent
+configfile: pytest.ini
+plugins: langsmith-0.6.7, asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 7 items
+
+datalake-system/mm_agent/tests/test_ptao_e2e.py::test_e2e_simple_part_query PASSED [ 14%]
+datalake-system/mm_agent/tests/test_ptao_e2e.py::test_e2e_stock_query PASSED [ 28%]
+datalake-system/mm_agent/tests/test_ptao_e2e.py::test_e2e_shortage_analysis PASSED [ 42%]
+datalake-system/mm_agent/tests/test_ptao_e2e.py::test_e2e_missing_params_error PASSED [ 57%]
+datalake-system/mm_agent/tests/test_ptao_e2e.py::test_e2e_unknown_intent PASSED [ 71%]
+datalake-system/mm_agent/tests/test_ptao_e2e.py::test_e2e_clarification_request PASSED [ 85%]
+datalake-system/mm_agent/tests/test_ptao_e2e.py::test_ptao_compliance_report PASSED [100%]
+
+=============================== warnings summary ===============================
+services/api/models/llm_model.py:124
+  /home/daniel/ai-box/services/api/models/llm_model.py:124: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class LLMModel(LLMModelBase):
+
+services/api/models/file_access_control.py:50
+  /home/daniel/ai-box/services/api/models/file_access_control.py:50: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FileAccessControl(BaseModel):
+
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+  /home/daniel/.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.12/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    warnings.warn(
+
+services/api/models/file_metadata.py:152
+  /home/daniel/ai-box/services/api/models/file_metadata.py:152: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FileMetadata(FileMetadataBase):
+
+agents/services/file_service/models.py:27
+  /home/daniel/ai-box/agents/services/file_service/models.py:27: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AgentFileInfo(BaseModel):
+
+services/api/models/change_proposal.py:23
+  /home/daniel/ai-box/services/api/models/change_proposal.py:23: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ChangeProposal(BaseModel):
+
+services/api/models/change_proposal.py:48
+  /home/daniel/ai-box/services/api/models/change_proposal.py:48: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ChangeProposalCreate(BaseModel):
+
+services/api/models/audit_log.py:67
+  /home/daniel/ai-box/services/api/models/audit_log.py:67: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AuditLog(BaseModel):
+
+services/api/models/audit_log.py:83
+  /home/daniel/ai-box/services/api/models/audit_log.py:83: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AuditLogCreate(BaseModel):
+
+services/api/models/audit_log.py:98
+  /home/daniel/ai-box/services/api/models/audit_log.py:98: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AuditLogResponse(BaseModel):
+
+services/api/models/version_history.py:14
+  /home/daniel/ai-box/services/api/models/version_history.py:14: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VersionHistory(BaseModel):
+
+services/api/models/version_history.py:33
+  /home/daniel/ai-box/services/api/models/version_history.py:33: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VersionHistoryCreate(BaseModel):
+
+tests/test_ptao_e2e.py::test_e2e_simple_part_query
+  /home/daniel/ai-box/datalake-system/mm_agent/models/query_spec.py:44: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class QuerySpec(BaseModel):
+
+tests/test_ptao_e2e.py::test_e2e_simple_part_query
+  /home/daniel/ai-box/datalake-system/mm_agent/ptao/models.py:109: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class PTAOResult(BaseModel):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 7 passed, 21 warnings in 0.22s ========================

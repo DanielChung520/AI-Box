@@ -1,0 +1,7 @@
+28:from api.routers.chat_module.services.completion_layer import CompletionLayer
+29:from api.routers.chat_module.services.perception_layer import PerceptionLayer
+30:from api.routers.chat_module.services.supervision_layer import SupervisionLayer
+459:_ptao_enabled: bool = os.getenv("ENABLE_PTAO_PIPELINE", "false").lower() == "true"
+466:if _ptao_enabled:
+476:        _ptao_enabled = False
+478:    logger.info("[P-T-A-O] Pipeline 未啟用 (ENABLE_PTAO_PIPELINE != true)")

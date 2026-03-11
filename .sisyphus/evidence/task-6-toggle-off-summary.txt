@@ -1,0 +1,34 @@
+=== Task 6: Feature Toggle OFF 回歸測試 Evidence ===
+日期: 2026-03-09
+
+--- 1. FastAPI 啟動 ---
+啟動方式: 不帶 ENABLE_PTAO_PIPELINE 環境變數（預設 false）
+PID: 3084517
+Log: logs/fastapi_toggle_off_test.log
+
+--- 2. Health Check ---
+URL: http://localhost:8000/health
+Response: {"success":true,"message":"Service is healthy","data":{"status":"healthy","service":"api","version":"1.0.0"}}
+Result: ✅ 200 OK
+
+--- 3. PTAO 初始化日誌 ---
+[P-T-A-O] Pipeline 未啟用 (ENABLE_PTAO_PIPELINE != true)
+Result: ✅ 出現「Pipeline 未啟用」初始化訊息
+
+--- 4. Chat Stream 請求 ---
+Endpoint: POST /api/v1/chat/stream
+Payload: {"messages": [{"role": "user", "content": "你好，請幫我查詢料號NI001的庫存"}], "agent_id": "-h0tjyh", "model_selector": {"mode": "manual", "model_id": "qwen3:32b"}, "session_id": "test-session-toggle-off-001"}
+Response types: start, content, done
+Content: 業務查詢結果（料號NI001庫存清單，9筆）
+Result: ✅ 正常業務回應
+
+--- 5. PTAO 運作日誌檢查 ---
+Perceive/Supervise/Complete 出現次數: 0
+Result: ✅ 無 PTAO 運作日誌
+
+--- 綜合結論 ---
+✅ Feature Toggle OFF 回歸測試通過
+- FastAPI 在無 ENABLE_PTAO_PIPELINE 環境變數下正常啟動
+- 日誌正確顯示「Pipeline 未啟用」
+- 無任何 Perceive/Supervise/Complete 日誌
+- 業務回應正常（SSE type=content 含庫存查詢結果）

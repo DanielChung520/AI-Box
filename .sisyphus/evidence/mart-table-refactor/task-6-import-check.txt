@@ -1,0 +1,2 @@
+All imports OK
+JoinClause OK: left_table='INAG_T' left_column='INAG001' right_table='MA_T' right_column='ma001' join_type='LEFT'

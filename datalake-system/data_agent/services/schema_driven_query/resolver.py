@@ -15,7 +15,9 @@ INIT → PARSE_NLQ → MATCH_CONCEPTS → RESOLVE_BINDINGS
 → VALIDATE → BUILD_AST → EMIT_SQL → EXECUTE
 """
 
+import json
 import logging
+from collections import deque
 from typing import Dict, Any, Optional, List
 from enum import Enum
 
@@ -24,6 +26,7 @@ from .models import (
     ParsedIntent,
     MatchedConcept,
     ResolvedBinding,
+    JoinClause,
     QueryAST,
     IntentDefinition,
     ConceptDefinition,
@@ -355,7 +358,6 @@ class Resolver:
     def _resolve_bindings(self, context: ResolverContext) -> ResolverContext:
         """State 3: 解析綁定"""
         import re
-        from datetime import datetime
 
         context.transition_to(ResolverState.RESOLVE_BINDINGS)
 
@@ -424,7 +426,9 @@ class Resolver:
                     table=binding.table,
                     column=binding.column,
                     aggregation=None,
-                    operator=binding.operator or "=",
+                    operator=OperatorType(binding.operator)
+                    if binding.operator
+                    else OperatorType.EQUAL,
                 )
             )
 
@@ -441,7 +445,9 @@ class Resolver:
                     table=binding.table,
                     column=binding.column,
                     aggregation=binding.aggregation,
-                    operator=binding.operator or "=",
+                    operator=OperatorType(binding.operator)
+                    if binding.operator
+                    else OperatorType.EQUAL,
                 )
             )
 
@@ -489,7 +495,9 @@ class Resolver:
                     table=binding.table,
                     column=binding.column,
                     aggregation=None,
-                    operator=binding.operator or "=",
+                    operator=OperatorType(binding.operator)
+                    if binding.operator
+                    else OperatorType.EQUAL,
                     value=matched.value,
                 )
             )
@@ -531,6 +539,9 @@ class Resolver:
             tables.add(binding.table)
 
         ast.from_tables = list(tables)
+
+        if len(tables) > 1:
+            ast.join_clauses = self._resolve_joins(ast.from_tables)
 
         # SELECT 子句
         for binding in context.resolved_bindings:
@@ -582,6 +593,122 @@ class Resolver:
         )
 
         return context
+
+    def _resolve_joins(self, tables: List[str]) -> List[JoinClause]:
+        if len(tables) <= 1:
+            return []
+
+        joins_path = self.config.bindings_path.parent / "joins.json"
+        try:
+            with open(joins_path, "r", encoding="utf-8") as f:
+                joins_data = json.load(f)
+        except FileNotFoundError as e:
+            raise ResolverError(
+                ResolverState.BUILD_AST,
+                f"joins.json not found: {joins_path}",
+                {"path": str(joins_path)},
+            ) from e
+        except json.JSONDecodeError as e:
+            raise ResolverError(
+                ResolverState.BUILD_AST,
+                f"Invalid joins.json format: {e}",
+                {"path": str(joins_path)},
+            ) from e
+
+        requested_tables = [table.upper() for table in tables]
+        requested_set = set(requested_tables)
+
+        join_graph: Dict[str, List[JoinClause]] = {}
+        for join_def in joins_data.get("joins", []):
+            left_table = str(join_def.get("left_table", "")).strip()
+            right_table = str(join_def.get("right_table", "")).strip()
+            left_column = str(join_def.get("left_column", "")).strip()
+            right_column = str(join_def.get("right_column", "")).strip()
+            join_type = str(join_def.get("join_type", "LEFT")).strip().upper()
+
+            if not left_table or not right_table or not left_column or not right_column:
+                continue
+
+            left_upper = left_table.upper()
+            right_upper = right_table.upper()
+
+            clause = JoinClause(
+                left_table=left_table,
+                left_column=left_column,
+                right_table=right_table,
+                right_column=right_column,
+                join_type=join_type,
+            )
+            join_graph.setdefault(left_upper, []).append(clause)
+            join_graph.setdefault(right_upper, []).append(clause)
+
+        connected = {requested_tables[0]}
+        resolved_joins: List[JoinClause] = []
+        used_edges = set()
+
+        for target_table in requested_tables[1:]:
+            if target_table in connected:
+                continue
+
+            queue = deque((start, []) for start in connected)
+            visited = set(connected)
+            found_path: Optional[List[JoinClause]] = None
+
+            while queue:
+                current_table, path = queue.popleft()
+                if current_table == target_table:
+                    found_path = path
+                    break
+
+                for edge in join_graph.get(current_table, []):
+                    left_upper = edge.left_table.upper()
+                    right_upper = edge.right_table.upper()
+                    next_table = right_upper if left_upper == current_table else left_upper
+
+                    if next_table in visited:
+                        continue
+
+                    visited.add(next_table)
+                    queue.append((next_table, [*path, edge]))
+
+            if found_path is None:
+                raise ResolverError(
+                    ResolverState.BUILD_AST,
+                    f"No JOIN path found between tables: {tables}",
+                    {"tables": tables, "path": str(joins_path)},
+                )
+
+            for edge in found_path:
+                edge_key = (
+                    edge.left_table.upper(),
+                    edge.left_column.upper(),
+                    edge.right_table.upper(),
+                    edge.right_column.upper(),
+                    edge.join_type.upper(),
+                )
+                reverse_key = (
+                    edge.right_table.upper(),
+                    edge.right_column.upper(),
+                    edge.left_table.upper(),
+                    edge.left_column.upper(),
+                    edge.join_type.upper(),
+                )
+                if edge_key in used_edges or reverse_key in used_edges:
+                    continue
+
+                resolved_joins.append(edge)
+                used_edges.add(edge_key)
+                connected.add(edge.left_table.upper())
+                connected.add(edge.right_table.upper())
+
+        if not requested_set.issubset(connected):
+            raise ResolverError(
+                ResolverState.BUILD_AST,
+                f"No JOIN path found between tables: {tables}",
+                {"tables": tables, "path": str(joins_path)},
+            )
+
+        return resolved_joins
 
     def _emit_sql(self, context: ResolverContext) -> ResolverContext:
         """State 6: 生成 SQL"""

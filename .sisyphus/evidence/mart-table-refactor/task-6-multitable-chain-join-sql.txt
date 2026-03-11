@@ -1,0 +1,4 @@
+SELECT SFAA_T.SFAA010 AS item_no
+FROM read_parquet('s3://tiptop-raw/raw/v1/SFAA_T/year=*/month=*/data.parquet') AS SFAA_T
+LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/MA_T/year=*/month=*/data.parquet') AS MA_T ON SFAA_T.SFAA010 = MA_T.ma001
+LEFT JOIN read_parquet('s3://tiptop-raw/raw/v1/OEEF_T/year=*/month=*/data.parquet') AS OEEF_T ON SFAA_T.SFAA009 = OEEF_T.ooef001

@@ -1,0 +1,76 @@
+# Task 5: Unified IntentMatchResult Definition & Dead Code Removal
+
+## VERIFICATION RESULTS (2026-03-11)
+
+### ✓ CHECK 1: IntentMatchResult Single Definition
+Command: grep -rn "class IntentMatchResult" datalake-system/data_agent/ --include='*.py'
+Result:
+  data_agent/services/schema_driven_query/da_intent_rag.py:27:class IntentMatchResult:
+Status: ✓ PASS (exactly 1 definition found)
+
+### ✓ CHECK 2: v5_intent_cache Direct Import
+Location: data_agent/services/v5_intent_cache.py lines 26-29
+Import Statement:
+  from data_agent.services.schema_driven_query.da_intent_rag import (
+      IntentMatchResult,
+      detect_query_complexity,
+  )
+Status: ✓ PASS (imports from da_intent_rag, NO fallback redefinition)
+
+### ✓ CHECK 3: IntentMatchResult Field Verification
+Fields in IntentMatchResult:
+  1. intent: str
+  2. confidence: float
+  3. description: str
+  4. input_filters: List[str]
+  5. mart_table: Optional[str]
+  6. complexity: str = "simple"
+
+Status: ✓ PASS (6 fields, NO output_metrics or output_dimensions)
+
+### ✓ CHECK 4: output_metrics/output_dimensions Analysis
+Search Results:
+  v5_schema_builder.py:98-99 - Reading from intent_def.get() ✓ ACTIVE
+  v5_schema_builder.py:101 - Used in ordered_concepts construction ✓ ACTIVE
+  qdrant_uploader.py:178,182,194,195 - Used for Qdrant indexing ✓ ACTIVE
+
+Status: ✓ PASS (7 references, all ACTIVE not dead)
+  → These fields are still needed in intents.json metadata
+  → But NOT stored as IntentMatchResult dataclass fields
+  → This is the correct design
+
+### ✓ CHECK 5: Import Test
+Command: python3 -c "from data_agent.services.schema_driven_query.da_intent_rag import IntentMatchResult; print('SINGLE_DEF_OK')"
+Result: SINGLE_DEF_OK
+Status: ✓ PASS
+
+### ✓ CHECK 6: v5_intent_cache Import Test
+Command: python3 -c "from data_agent.services.v5_intent_cache import CachedIntentMatcher"
+Result: Success
+Status: ✓ PASS
+
+## CHANGES APPLIED
+
+1. ✓ Removed try/except fallback import block from v5_intent_cache.py (lines 26-75 original)
+   - Replaced with direct import from da_intent_rag
+   - Removed fallback @dataclass definition
+   - Removed COMPLEX_QUERY_KEYWORDS local copy
+   - Removed detect_query_complexity() local copy
+
+2. ✓ Verified IntentMatchResult definition is unified in da_intent_rag.py
+   - Single source of truth
+   - No duplicate definitions anywhere
+   - Correct 6 fields only
+
+3. ✓ Confirmed output_metrics/output_dimensions are NOT dead
+   - Still active in v5_schema_builder and qdrant_uploader
+   - Correctly not included in IntentMatchResult fields
+   - Maintained in intents.json metadata for schema building
+
+## SUMMARY
+
+✓ Task 5 COMPLETE
+- IntentMatchResult: 1 definition (da_intent_rag.py:27)
+- v5_intent_cache: Direct import, NO fallback
+- Dead fields: NONE found (output_metrics/output_dimensions are active)
+- Import verification: PASSED

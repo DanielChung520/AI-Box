@@ -1,0 +1,4 @@
+2026-03-11 00:06:32 [warning  ] 無法從 da_intent_rag 匯入，使用本地相容定義  reason='da_intent_rag.py 存在語法錯誤'
+2026-03-11 00:06:32 [info     ] Initialized V5SchemaBuilder    metadata_dir=/home/daniel/ai-box/datalake-system/metadata/systems/tiptop_jp
+PASS: complex query routing logic present
+Key constants found in source

@@ -1,0 +1,44 @@
+=== schema_registry.json Validation ===
+JSON parse: OK
+Total tables: 24
+
+JP Raw Tables:
+  INAG_T: 7 columns -> PASS
+  SFAA_T: 12 columns -> PASS
+  SFCA_T: 7 columns -> PASS
+  SFCB_T: 17 columns -> PASS
+  XMDG_T: 10 columns -> PASS
+  XMDH_T: 13 columns -> PASS
+  XMDT_T: 9 columns -> PASS
+  XMDU_T: 7 columns -> PASS
+
+Mart Wide Tables:
+  mart_inventory_wide: 12 columns -> ['ent', 'site', 'item_no', 'item_name', 'item_spec', 'item_type', 'item_category', 'warehouse_no', 'location_no', 'unit', 'stock_unit', 'existing_stocks']
+  mart_work_order_wide: 14 columns -> ['ent', 'site', 'item_no', 'item_name', 'item_spec', 'customer_no', 'customer_name', 'so_order', 'so_line', 'warehouse_no', 'location_no', 'status', 'scrap_qty', 'workstation']
+  mart_shipping_wide: 20 columns -> ['ent', 'site', 'doc_no', 'doc_date', 'status', 'sales_person', 'sales_dept', 'customer_no', 'customer_name', 'expected_date', 'sales_category', 'order_no', 'so_line', 'seq', 'item_no', 'item_name', 'item_spec', 'request_qty', 'actual_qty', 'unit_price']
+
+All tables present:
+  INAG_T: 7 columns
+  SFAA_T: 12 columns
+  SFCA_T: 7 columns
+  SFCB_T: 17 columns
+  XMDG_T: 10 columns
+  XMDH_T: 13 columns
+  XMDT_T: 9 columns
+  XMDU_T: 7 columns
+  cmc_file: 2 columns
+  coptc_file: 3 columns
+  coptd_file: 6 columns
+  ima_file: 6 columns
+  imd_file: 2 columns
+  ime_file: 3 columns
+  img_file: 5 columns
+  mart_inventory_wide: 12 columns
+  mart_shipping_wide: 20 columns
+  mart_work_order_wide: 14 columns
+  pmc_file: 2 columns
+  pmm_file: 4 columns
+  pmn_file: 6 columns
+  prc_file: 6 columns
+  rvb_file: 4 columns
+  tlf_file: 6 columns

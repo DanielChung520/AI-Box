@@ -1,0 +1,4 @@
+2026-03-11 00:00:56 [info     ] Initialized V5SchemaBuilder    metadata_dir=/home/daniel/ai-box/datalake-system/metadata/systems/tiptop_jp
+2026-03-11 00:00:57 [info     ] LLM SQL generation attempt     attempt_number=1 latency_ms=659.8361899377778 model=llama3:8b sqlglot_valid=True
+{'sql': "SELECT INAG008.EXISTING_STOCKS \nFROM INAG_T \nWHERE INAG001 = 'NI001';", 'status': 'success', 'model_used': 'llama3:8b', 'retries': 0, 'escalated': False, 'sqlglot_valid': True, 'generation_time_ms': 659.9167520180345, 'error': None}
+PASS

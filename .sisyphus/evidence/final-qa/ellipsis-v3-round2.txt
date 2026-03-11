@@ -1,0 +1,6 @@
+data: {"type": "start", "data": {"request_id": "cdd91491-4c65-4520-905f-33cf470be23e", "session_id": "ellipsis-fix-v3-001"}}
+
+data: {"type": "content", "data": {"chunk": "\u62b1\u6b49\uff0c\u7121\u6cd5\u5b8c\u6210\u60a8\u7684\u8acb\u6c42\uff1a\u767c\u751f\u932f\u8aa4\u3002"}}
+
+data: {"type": "done", "data": {"request_id": "cdd91491-4c65-4520-905f-33cf470be23e"}}
+

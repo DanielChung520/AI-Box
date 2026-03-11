@@ -1,0 +1,78 @@
+Task 6: Enhancement Validation Evidence
+========================================
+Date: 2026-03-10
+Branch: feature/agent-upgrade-phase1
+
+## CONCLUSION: Enhancement does NOT break analytical intent. No fix needed.
+
+## Test Setup
+- MM-Agent running on port 8003
+- Ollama models available: qwen3:32b, qwen3-embedding:latest (qwen3:8b NOT available)
+- Log file: /home/daniel/ai-box/datalake-system/logs/mm_agent_error.log
+
+## Finding 1: Enhancement silently fails in production
+- main.py L130: `model=os.getenv("MM_AGENT_MODEL", "qwen3:8b")`
+- MM_AGENT_MODEL env var is NOT set in MM-Agent process
+- Default `qwen3:8b` does not exist on this Ollama instance
+- Log evidence: `[上下文補全] 失敗: Failed to generate text: Ollama returned HTTP 404: {"error":"model 'qwen3:8b' not found"}`
+- Fallback behavior: returns original question unchanged (correct)
+
+## Finding 2: When enhancement works (tested with qwen3:32b), analytical intent is PRESERVED
+
+### Direct LLM test (3 runs, temperature=0.3):
+Input: "這個庫存是否是因為有不同的site或ent？"
+Context: user asked "幫我查NI001的庫存", assistant replied with 9 rows
+
+Run 1: [補全後的問題：NI001的庫存是否是因為有不同的site或ent？]
+Run 2: [補全後的問題：NI001的庫存是否是因為有不同的site或ent？]
+Run 3: [補全後的問題：NI001的庫存是否是因為有不同的site或ent？]
+
+Analysis:
+- ✅ "這個庫存" correctly resolved to "NI001的庫存" (reference resolution only)
+- ✅ "是否是因為有不同的site或ent？" preserved (analytical intent kept)
+- ✅ NOT rewritten to "查詢 NI001 的 site/ent 庫存分布" (would be wrong)
+- ⚠️ LLM adds prefix "補全後的問題：" — minor issue, doesn't affect classification
+
+## Finding 3: Prefix does NOT affect intent classification
+- Cosine similarity with/without prefix: 0.9755
+- WITH prefix "補全後的問題：NI001的庫存是否是因為有不同的site或ent？": ANALYZE_RESULT (score=0.817)
+- WITHOUT prefix "NI001的庫存是否是因為有不同的site或ent？": ANALYZE_RESULT (score=0.807)
+
+## Finding 4: Step 2 response details (from live test)
+- Request: messages format with 3-turn conversation
+- task_type returned: analyze_existing_result ✅ (correct routing)
+- needs_clarification: True (expected — context.last_result not available in stateless test)
+- Intent classification: ANALYZE_RESULT (score=0.844) ✅
+
+## LOG_EVIDENCE (from mm_agent_error.log, lines after our test):
+
+```
+2026-03-10 14:15:10 - mm_agent.main - WARNING - [上下文補全] 失敗: Failed to generate text: Ollama returned HTTP 404: {"error":"model 'qwen3:8b' not found"}
+2026-03-10 14:15:10 - mm_agent.main - INFO - [execute]  指令: 這個庫存是否是因為有不同的site或ent？
+2026-03-10 14:15:10 - mm_agent.mm_intent_rag_client - INFO - [MMIntentRAG] 匹配結果: ANALYZE_RESULT (score=0.844)
+2026-03-10 14:15:10 - mm_agent.main - INFO - [execute] 識別意圖: ANALYZE_RESULT
+2026-03-10 14:15:10 - mm_agent.services.semantic_analyzer - INFO - [SemanticAnalyzer] 意圖分類: ANALYZE_RESULT -> analyze_existing_result
+2026-03-10 14:15:10 - mm_agent.agent - INFO - [Agent] 分析已有結果，問題: 這個庫存是否是因為有不同的site或ent？
+```
+
+## STEP2_RESULT (curl response from analytical follow-up):
+```json
+{
+  "status": "failed",
+  "task_type": "analyze_existing_result",
+  "result": {
+    "success": false,
+    "needs_clarification": true,
+    "response": "您好！為了協助您確認此筆庫存是否因為不同的 Site 或 Ent...",
+    "response_type": "clarification"
+  }
+}
+```
+Note: "failed" status and needs_clarification=true is because context.last_result
+was not available (separate HTTP requests are stateless from agent's context perspective).
+This is a context management issue, NOT an enhancement issue.
+
+## Summary
+- Enhancement prompt is well-designed: only resolves references, preserves question intent
+- No modification to main.py is needed for analytical intent preservation
+- Separate issue noted: MM_AGENT_MODEL env var should be set to an available model

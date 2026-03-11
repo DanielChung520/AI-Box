@@ -1,0 +1,42 @@
+TASK 6: Update AGENTS.md Logging Section - COMPLETED
+
+VERIFICATION RESULTS:
+====================
+
+1. Structlog Ban Removed:
+   grep result: No match for "禁止.*structlog" in old format (ban removed ✓)
+   
+2. New Structlog Pattern Documented:
+   Line 543: logger = structlog.get_logger(__name__)
+   Location: Found in logging section ✓
+
+3. Six Log Channels Documented:
+   Lines 555-561: All 6 channels listed:
+   - system
+   - worker
+   - vectorization
+   - graph_extraction
+   - agent_management
+   - ka_agent
+   ✓
+
+4. Logging Section Updated:
+   Old content (lines 536-550):
+   - "禁止使用 structlog 格式"
+   - ❌ structlog examples
+   - ✅ stdlib logging only
+   
+   New content (lines 536-563):
+   - "使用 structlog 作為統一日誌庫"
+   - ✅ structlog keyword format (canonical)
+   - ✅ stdlib logging also accepted (both route same pipeline)
+   - ✅ Configuration centralized in system/logging_config.py
+   - ✅ 6 log channels explained
+   ✓
+
+5. Surgical Edit Verified:
+   Only lines 536-563 changed
+   No other sections modified
+   All surrounding content (編碼慣例, etc.) unchanged ✓
+
+STATUS: ✅ READY FOR COMMIT

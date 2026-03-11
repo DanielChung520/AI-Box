@@ -1,7 +1,7 @@
 # 代碼功能說明: V5 LLM SQL 生成服務 — 動態 schema + sqlglot 驗證 + 分層 fallback
 # 創建日期: 2026-03-02
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-03-10
+# 最後修改日期: 2026-03-11
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ class SimpleLLMSQLGenerator:
         self.client = httpx.Client(timeout=60.0)
 
     def _build_system_prompt(self, schema_prompt: str) -> str:
-        return f"""你是 SQL 專家。根據用戶的自然語言查詢，生成 DuckDB SQL。
+        return f"""你是 DuckDB SQL 專家。根據用戶的自然語言查詢，生成可直接執行的 DuckDB SQL。
 
 {schema_prompt}
 
@@ -41,6 +41,25 @@ class SimpleLLMSQLGenerator:
 1. 只使用上述表格的實際欄位名稱
 2. 只使用 SELECT 語句（只讀）
 3. 直接輸出 SQL，不要包含任何解釋或 markdown 標記
+4. 原始表格（非 mart_*）必須使用 read_parquet() 語法，例如: `SELECT col FROM read_parquet('s3://tiptop-raw/raw/v1/tiptop_jp/TABLE/year=*/month=*/data.parquet') WHERE ...`
+5. Mart 表格（mart_*）直接使用表格名稱，例如: `SELECT col FROM mart_inventory_wide WHERE ...`
+
+## SQL 品質規範（必須遵守）：
+6. **禁止使用 SELECT ***：必須明確列出需要的欄位名稱。根據用戶查詢意圖選擇相關欄位。
+7. **必須加 LIMIT**：
+   - 明細查詢（用戶要求列表/明細/前N筆）：使用用戶指定的數量，若未指定預設 LIMIT 100
+   - 聚合查詢（含 SUM/COUNT/AVG/GROUP BY）：預設 LIMIT 100
+8. **METRIC 欄位聚合規則**：
+   - 表格說明中標記為 `type=METRIC` 且帶有 `aggregation=SUM` 的欄位，在彙總統計時必須使用 SUM() 聚合
+   - 標記為 `type=DIMENSION` 的欄位是分組維度，用於 GROUP BY
+   - 當查詢需要「彙總」「統計」「合計」「各XX的」時，對 METRIC 欄位使用對應聚合函數
+9. **GROUP BY 規則**：使用聚合函數時，SELECT 中所有非聚合欄位必須出現在 GROUP BY 中
+10. **排序**：聚合查詢建議加 ORDER BY 讓結果更有意義（如 ORDER BY total DESC）
+
+## 查詢類型判斷：
+- 「列出/明細/前N筆/查詢XX的資料」→ 明細查詢：SELECT 具體欄位 + WHERE 條件 + LIMIT
+- 「各XX統計/彙總/合計/有多少種」→ 聚合查詢：SELECT 維度 + SUM/COUNT(指標) + GROUP BY + ORDER BY + LIMIT
+- 「大於/小於/超過」→ 篩選查詢：SELECT 具體欄位 + WHERE 條件 + LIMIT
 """
 
     def _invoke_llm(
@@ -104,21 +123,57 @@ class SimpleLLMSQLGenerator:
             return (time.perf_counter() - start) * 1000
 
         try:
-            attempt_start = time.perf_counter()
-            final_sql = self._invoke_llm(
-                nlq=nlq,
-                schema_prompt=schema_prompt,
-                model=model,
-                timeout=timeout,
-            )
-            final_valid, parse_error = self._validate_sql(final_sql)
-            logger.info(
-                "LLM SQL generation attempt",
-                model=model,
-                attempt_number=1,
-                sqlglot_valid=final_valid,
-                latency_ms=(time.perf_counter() - attempt_start) * 1000,
-            )
+            # Attempt 1: first try with provided model
+            try:
+                attempt_start = time.perf_counter()
+                final_sql = self._invoke_llm(
+                    nlq=nlq,
+                    schema_prompt=schema_prompt,
+                    model=model,
+                    timeout=timeout,
+                )
+                final_valid, parse_error = self._validate_sql(final_sql)
+                logger.info(
+                    "LLM SQL generation attempt",
+                    model=model,
+                    attempt_number=1,
+                    sqlglot_valid=final_valid,
+                    latency_ms=(time.perf_counter() - attempt_start) * 1000,
+                )
+            except Exception as first_error:
+                # If small model failed (timeout, connection error, etc.), escalate to big model
+                if model != self.big_model:
+                    logger.warning(
+                        "small model failed, escalating to big model",
+                        model=model,
+                        error=str(first_error),
+                    )
+                    escalated = True
+                    final_model = self.big_model
+                    attempt_start = time.perf_counter()
+                    final_sql = self._invoke_llm(
+                        nlq=nlq,
+                        schema_prompt=schema_prompt,
+                        model=self.big_model,
+                        timeout=self.big_model_timeout,
+                    )
+                    final_valid, parse_error = self._validate_sql(final_sql)
+                    logger.info(
+                        "LLM SQL generation attempt",
+                        model=self.big_model,
+                        attempt_number="1_escalated",
+                        sqlglot_valid=final_valid,
+                        latency_ms=(time.perf_counter() - attempt_start) * 1000,
+                    )
+                else:
+                    # Big model already failed on first attempt
+                    logger.error(
+                        "big model LLM call failed on first attempt",
+                        model=final_model,
+                        error=str(first_error),
+                        exc_info=True,
+                    )
+                    raise
 
             if final_valid:
                 return {
@@ -132,7 +187,8 @@ class SimpleLLMSQLGenerator:
                     "error": None,
                 }
 
-            if model == self.big_model:
+            # If we escalated on first attempt, return error (don't retry with parse_error)
+            if escalated:
                 return {
                     "sql": final_sql,
                     "status": "error",
@@ -144,77 +200,92 @@ class SimpleLLMSQLGenerator:
                     "error": f"sqlglot parse failed: {parse_error}",
                 }
 
-            retries = 1
-            attempt_start = time.perf_counter()
-            final_sql = self._invoke_llm(
-                nlq=nlq,
-                schema_prompt=schema_prompt,
-                model=model,
-                timeout=30.0,
-                correction_hint=parse_error,
-            )
-            final_valid, retry_error = self._validate_sql(final_sql)
-            logger.info(
-                "LLM SQL generation attempt",
-                model=model,
-                attempt_number=2,
-                sqlglot_valid=final_valid,
-                latency_ms=(time.perf_counter() - attempt_start) * 1000,
-            )
+            # Attempt 2: Retry with parse error hint (only if original model wasn't big model)
+            if model != self.big_model:
+                retries = 1
+                attempt_start = time.perf_counter()
+                final_sql = self._invoke_llm(
+                    nlq=nlq,
+                    schema_prompt=schema_prompt,
+                    model=model,
+                    timeout=30.0,
+                    correction_hint=parse_error,
+                )
+                final_valid, retry_error = self._validate_sql(final_sql)
+                logger.info(
+                    "LLM SQL generation attempt",
+                    model=model,
+                    attempt_number=2,
+                    sqlglot_valid=final_valid,
+                    latency_ms=(time.perf_counter() - attempt_start) * 1000,
+                )
 
-            if final_valid:
+                if final_valid:
+                    return {
+                        "sql": final_sql,
+                        "status": "success",
+                        "model_used": final_model,
+                        "retries": retries,
+                        "escalated": escalated,
+                        "sqlglot_valid": True,
+                        "generation_time_ms": elapsed_ms(),
+                        "error": None,
+                    }
+
+                # Attempt 3: Escalate to big model
+                escalated = True
+                final_model = self.big_model
+                attempt_start = time.perf_counter()
+                final_sql = self._invoke_llm(
+                    nlq=nlq,
+                    schema_prompt=schema_prompt,
+                    model=self.big_model,
+                    timeout=self.big_model_timeout,
+                    correction_hint=retry_error,
+                )
+                final_valid, escalation_error = self._validate_sql(final_sql)
+                logger.info(
+                    "LLM SQL generation attempt",
+                    model=self.big_model,
+                    attempt_number=3,
+                    sqlglot_valid=final_valid,
+                    latency_ms=(time.perf_counter() - attempt_start) * 1000,
+                )
+
+                if final_valid:
+                    return {
+                        "sql": final_sql,
+                        "status": "success",
+                        "model_used": final_model,
+                        "retries": retries,
+                        "escalated": escalated,
+                        "sqlglot_valid": True,
+                        "generation_time_ms": elapsed_ms(),
+                        "error": None,
+                    }
+
                 return {
                     "sql": final_sql,
-                    "status": "success",
+                    "status": "error",
                     "model_used": final_model,
                     "retries": retries,
                     "escalated": escalated,
-                    "sqlglot_valid": True,
+                    "sqlglot_valid": False,
                     "generation_time_ms": elapsed_ms(),
-                    "error": None,
+                    "error": f"sqlglot parse failed: {escalation_error}",
                 }
-
-            escalated = True
-            final_model = self.big_model
-            attempt_start = time.perf_counter()
-            final_sql = self._invoke_llm(
-                nlq=nlq,
-                schema_prompt=schema_prompt,
-                model=self.big_model,
-                timeout=self.big_model_timeout,
-                correction_hint=retry_error,
-            )
-            final_valid, escalation_error = self._validate_sql(final_sql)
-            logger.info(
-                "LLM SQL generation attempt",
-                model=self.big_model,
-                attempt_number=3,
-                sqlglot_valid=final_valid,
-                latency_ms=(time.perf_counter() - attempt_start) * 1000,
-            )
-
-            if final_valid:
+            else:
+                # Big model on first attempt returned invalid SQL
                 return {
                     "sql": final_sql,
-                    "status": "success",
+                    "status": "error",
                     "model_used": final_model,
                     "retries": retries,
                     "escalated": escalated,
-                    "sqlglot_valid": True,
+                    "sqlglot_valid": False,
                     "generation_time_ms": elapsed_ms(),
-                    "error": None,
+                    "error": f"sqlglot parse failed: {parse_error}",
                 }
-
-            return {
-                "sql": final_sql,
-                "status": "error",
-                "model_used": final_model,
-                "retries": retries,
-                "escalated": escalated,
-                "sqlglot_valid": False,
-                "generation_time_ms": elapsed_ms(),
-                "error": f"sqlglot parse failed: {escalation_error}",
-            }
         except Exception as error:
             logger.error(
                 "LLM SQL generation failed",

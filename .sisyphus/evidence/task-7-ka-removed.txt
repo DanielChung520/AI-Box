@@ -1,0 +1,15 @@
+Task 7: Remove _route_to_ka_agent — Evidence
+=============================================
+Date: 2026-03-09
+
+QA Scenario 1: KA-Agent 直接調用已移除
+Result: PASS: _route_to_ka_agent removed from OrchestratorService
+
+QA Scenario 2: 無殘留 KA-Agent import
+Result: PASS — grep for '_route_to_ka_agent|ka_agent|get_ka_agent_client' returned no matches
+
+Verification:
+- LSP diagnostics: clean (no errors)
+- ruff check: All checks passed!
+- AST parse: successful
+- No references to _route_to_ka_agent in entire chat_module directory

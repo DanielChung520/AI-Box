@@ -1,13 +1,13 @@
 # 代碼功能說明: v5 簡化版 DuckDB 執行器（使用本地 DuckDB）
 # 創建日期: 2026-03-02
 # 創建人: Daniel Chung
-# 用途: v5 端點使用，支援 summary/list 模式
+# 最後修改日期: 2026-03-11
 
 """SimpleDBExecutor - 簡化版 DuckDB 執行器
 
 v5 專用執行器，支援：
 - return_mode: summary / list
-- summary: 聚合 + 前 10 筆 + 總數
+- summary: 執行原始 SQL + 額外計算總數（不改寫 SQL）
 - list: 最多 1000 筆 + 總數
 
 使用本地 DuckDB 數據庫（與 V4 相同）
@@ -84,38 +84,27 @@ class SimpleDBExecutor:
             raise SimpleDBExecutionError(str(e), sql)
 
     def _execute_summary(self, connection, sql: str) -> Dict[str, Any]:
-        """執行 summary 模式"""
+        """執行 summary 模式
+
+        直接執行 LLM 生成的原始 SQL（不改寫）。
+        額外計算總數供 pagination 使用。
+        如果原始 SQL 沒有 LIMIT，自動加上 SUMMARY_ROWS 限制。
+        """
         sql_upper = sql.upper()
-        has_aggregation = any(
-            kw in sql_upper for kw in ["GROUP BY", "SUM(", "COUNT(", "AVG(", "MAX(", "MIN("]
-        )
+        has_limit = "LIMIT" in sql_upper
 
-        if has_aggregation:
-            cursor = connection.cursor()
-            cursor.execute(sql)
-            data, columns = self._fetch_results(cursor)
-            total = len(data)
-            if "LIMIT" in sql_upper:
-                count_sql = self._strip_limit(sql)
-                count_sql = f"SELECT COUNT(*) as _total FROM ({count_sql}) _sub"
-                try:
-                    cursor.execute(count_sql)
-                    total = cursor.fetchone()[0]
-                except Exception:
-                    pass
+        # 執行原始 SQL（如果沒有 LIMIT，加上預設限制避免過大結果集）
+        if has_limit:
+            exec_sql = sql
         else:
-            aggregation_sql = self._add_aggregation(sql)
-            cursor = connection.cursor()
-            cursor.execute(aggregation_sql)
-            agg_data, agg_columns = self._fetch_results(cursor)
+            exec_sql = sql.rstrip(";") + f" LIMIT {SUMMARY_ROWS}"
 
-            limit_sql = self._strip_limit(sql) + f" LIMIT {SUMMARY_ROWS}"
-            cursor.execute(limit_sql)
-            raw_data, raw_columns = self._fetch_results(cursor)
+        cursor = connection.cursor()
+        cursor.execute(exec_sql)
+        data, columns = self._fetch_results(cursor)
 
-            total = self._get_total_count(connection, sql)
-            data = agg_data + raw_data
-            columns = agg_columns if agg_columns else raw_columns
+        # 計算總數（去掉 LIMIT 後包一層 COUNT）
+        total = self._get_total_count(connection, sql)
 
         return {
             "data": data,
@@ -148,22 +137,8 @@ class SimpleDBExecutor:
             },
         }
 
-    def _add_aggregation(self, sql: str) -> str:
-        """為 SQL 添加聚合查詢"""
-        sql = sql.strip().rstrip(";")
-        select_match = re.match(r"SELECT\s+(.+?)\s+FROM", sql, re.IGNORECASE)
-        if select_match:
-            select_part = select_match.group(1).strip()
-            if select_part == "*":
-                where_match = re.search(r"WHERE\s+(\w+)\s*=\s*'([^']+)'", sql, re.IGNORECASE)
-                if where_match:
-                    column = where_match.group(1)
-                    return sql.replace(
-                        "SELECT *",
-                        f"SELECT {column}, COUNT(*) as record_count",
-                        1,
-                    )
-        return f"SELECT COUNT(*) as total_count FROM ({sql}) _sub"
+    # _add_aggregation 已移除 — V5 不再由 executor 改寫 SQL，
+    # LLM 負責生成完整可執行的 SQL（含聚合、LIMIT 等）。
 
     def _get_total_count(self, connection, sql: str) -> int:
         """計算總數"""

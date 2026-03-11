@@ -1,0 +1,15 @@
+Task 6: BPA Payload Enrichment — Evidence
+==========================================
+Date: 2026-03-09
+
+QA Scenario: Enriched payload 結構驗證
+Result: PASS
+
+_call_bpa_agent signature updated: ['self', 'endpoint_url', 'instruction', 'context', 'perception_result', 'intent_result']
+
+Verification:
+- LSP diagnostics: clean (no errors)
+- ruff check: All checks passed!
+- AST parse: successful
+- Call sites updated: _route_to_bpa() and _route_to_specific_agent() both pass perception_result and intent_result
+- Backward compatible: perception_result and intent_result default to None

@@ -1,0 +1,7 @@
+=== Round 3: NI002 進貨時間 ===
+data: {"type": "start", "data": {"request_id": "45b69406-70bc-41cf-bad5-d2ad68f49e24", "session_id": "test-session-ptao-001"}}
+
+data: {"type": "content", "data": {"chunk": "\u62b1\u6b49\uff0c\u7121\u6cd5\u5b8c\u6210\u60a8\u7684\u8acb\u6c42\uff1a\u767c\u751f\u932f\u8aa4\u3002"}}
+
+data: {"type": "done", "data": {"request_id": "45b69406-70bc-41cf-bad5-d2ad68f49e24"}}
+

@@ -1,0 +1,2 @@
+Response: 目前沒有可供分析的查詢結果。請先查詢具體的庫存或業務數據，再提出分析性問題。
+PASS: None last_result returns clarification

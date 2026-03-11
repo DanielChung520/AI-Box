@@ -1,0 +1,5 @@
+=== Test 1: Minimal V5ExecuteResponse (backward compatibility) ===
+{"success":true,"sql":"SELECT 1","data":[],"row_count":0,"columns":null,"pagination":null,"execution_time_ms":null,"error_type":null,"error_code":null,"message":null,"details":null,"clarification_needed":null,"suggestion":null,"errors":[],"warnings":[],"metadata":null}
+
+=== Test 2: V5ExecuteResponse with metadata ===
+{"success":true,"sql":"SELECT 1","data":[],"row_count":0,"columns":null,"pagination":null,"execution_time_ms":null,"error_type":null,"error_code":null,"message":null,"details":null,"clarification_needed":null,"suggestion":null,"errors":[],"warnings":[],"metadata":{"model_used":"llama3:8b","matched_intent":"QUERY_INVENTORY","intent_confidence":0.85,"complexity":"simple","fallback_triggered":false}}

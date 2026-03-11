@@ -1,0 +1,8 @@
+{'left_table': 'INAG_T', 'left_column': 'INAG001', 'right_table': 'MA_T', 'right_column': 'ma001', 'join_type': 'LEFT', 'source_mart': 'mart_inventory_wide', 'description': '庫存明細 → 物料主檔（料件編號關聯）'}
+{'left_table': 'SFAA_T', 'left_column': 'SFAA009', 'right_table': 'OEEF_T', 'right_column': 'ooef001', 'join_type': 'LEFT', 'source_mart': 'mart_work_order_wide', 'description': '工單頭檔 → 客戶主檔（客戶編號關聯）'}
+{'left_table': 'SFAA_T', 'left_column': 'SFAA010', 'right_table': 'MA_T', 'right_column': 'ma001', 'join_type': 'LEFT', 'source_mart': 'mart_work_order_wide', 'description': '工單頭檔 → 物料主檔（料件編號關聯）'}
+{'left_table': 'SFAA_T', 'left_column': 'SFAA010', 'right_table': 'SFCB_T', 'right_column': 'sfcb011', 'join_type': 'LEFT', 'source_mart': 'mart_work_order_wide', 'description': '工單頭檔 → 工作站資料（工單料件與工作站關聯）'}
+{'left_table': 'XMDG_T', 'left_column': 'XMDGDOCNO', 'right_table': 'XMDH_T', 'right_column': 'XMDHDOCNO', 'join_type': 'INNER', 'source_mart': 'mart_shipping_wide', 'description': '出貨通知頭檔 → 出貨通知明細檔（單據編號關聯）'}
+{'left_table': 'XMDG_T', 'left_column': 'XMDG005', 'right_table': 'OEEF_T', 'right_column': 'ooef001', 'join_type': 'LEFT', 'source_mart': 'mart_shipping_wide', 'description': '出貨通知頭檔 → 客戶主檔（客戶編號關聯）'}
+{'left_table': 'XMDH_T', 'left_column': 'XMDH006', 'right_table': 'MA_T', 'right_column': 'ma001', 'join_type': 'LEFT', 'source_mart': 'mart_shipping_wide', 'description': '出貨通知明細檔 → 物料主檔（料件編號關聯）'}
+Total: 7 joins

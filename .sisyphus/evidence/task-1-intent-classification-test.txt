@@ -1,0 +1,18 @@
+======================================================================
+MM-Agent Intent Classification Test - Qdrant Search
+======================================================================
+
+Query: 這個庫存是否因為有不同的site或ent？
+Intent: ANALYZE_RESULT (score=0.841)
+
+Query: 為什麼NI001的庫存這麼多？
+Intent: ANALYZE_RESULT (score=0.744)
+
+Query: warehouse_no是什麼意思？
+Intent: EXPLAIN_DATA (score=0.734)
+
+
+[期望結果]
+- Query 1: ANALYZE_RESULT (分析原因)
+- Query 2: ANALYZE_RESULT (分析原因)
+- Query 3: EXPLAIN_DATA (數據說明)

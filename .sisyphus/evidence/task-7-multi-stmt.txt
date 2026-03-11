@@ -1,0 +1,3 @@
+2026-03-10 23:57:18 [warning  ] Multi-statement SQL rejected   sql='SELECT 1; DROP TABLE INAG_T' statement_count=2
+PASS: multi-statement blocked
+{'safe': False, 'reason': 'Multiple statements detected (2). Only single SELECT allowed.'}

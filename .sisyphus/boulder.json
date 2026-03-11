@@ -1,10 +1,10 @@
 {
-  "active_plan": "/home/daniel/ai-box/.sisyphus/plans/mm-agent-analytical-followup.md",
-  "started_at": "2026-03-10T00:00:00+08:00",
+  "active_plan": "/home/daniel/ai-box/.sisyphus/plans/v5-qdrant-productionize.md",
+  "started_at": "2026-03-11T03:16:15+08:00",
   "session_ids": [
     "ses_current",
-    "ses_32e3a7540ffeeb3vfFH0byS6o9"
+    "ses_327d3db73ffe1uFlKfFrHY70ua"
   ],
-  "plan_name": "mm-agent-analytical-followup",
+  "plan_name": "v5-qdrant-productionize",
   "status": "in_progress"
 }

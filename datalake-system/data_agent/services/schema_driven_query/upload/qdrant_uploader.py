@@ -41,7 +41,7 @@ class QdrantSchemaUploader:
 
     COLLECTION_CONCEPTS = "jp_concepts"
     COLLECTION_INTENTS = "jp_intents"
-    EMBEDDING_DIMENSION = 1024
+    EMBEDDING_DIMENSION = 4096
 
     def __init__(self, client: Optional[QdrantClient] = None, collection_prefix: str = "jp_"):
         self._client = client

@@ -11,7 +11,7 @@
 - Query AST 模型
 """
 
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from enum import Enum
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -90,7 +90,9 @@ class TaskData(BaseModel):
     nlq: str = Field(..., description="完整表達的自然語言查詢")
     intent: Optional[str] = Field(None, description="意圖類型 (如 QUERY_INVENTORY)")
     params: Dict[str, Any] = Field(default_factory=dict, description="查詢參數")
-    action_plan: Optional[str] = Field(None, description="行動方案描述 (如 '查詢料號 10-0001 在倉庫 8802 的庫存')")
+    action_plan: Optional[str] = Field(
+        None, description="行動方案描述 (如 '查詢料號 10-0001 在倉庫 8802 的庫存')"
+    )
     options: QueryOptions = Field(default_factory=QueryOptions)
     intent: Optional[str] = Field(None, description="意圖類型")
     params: Dict[str, Any] = Field(default_factory=dict, description="查詢參數")
@@ -134,7 +136,9 @@ class ExecuteResponse(BaseModel):
     result: Optional[QueryResult] = Field(None, description="查詢結果")
     error_code: Optional[str] = Field(None, description="錯誤碼")
     message: Optional[str] = Field(None, description="訊息")
-    decision_action: Optional[str] = Field(None, description="決策動作: EXECUTE, PRE_REJECT, POST_REJECT")
+    decision_action: Optional[str] = Field(
+        None, description="決策動作: EXECUTE, PRE_REJECT, POST_REJECT"
+    )
     errors: List[str] = Field(default_factory=list, description="錯誤列表")
     warnings: List[str] = Field(default_factory=list, description="警告列表")
 
@@ -283,11 +287,22 @@ class ResolvedBinding(BaseModel):
     value: Optional[Any] = None
 
 
+class JoinClause(BaseModel):
+    """JOIN 子句定義"""
+
+    left_table: str
+    left_column: str
+    right_table: str
+    right_column: str
+    join_type: str
+
+
 class QueryAST(BaseModel):
     """查詢 AST"""
 
     select: List[Dict[str, str]] = Field(default_factory=list)
     from_tables: List[str] = Field(default_factory=list)
+    join_clauses: List["JoinClause"] = Field(default_factory=list)
     where_conditions: List[Dict[str, Any]] = Field(default_factory=list)
     having_conditions: List[Dict[str, Any]] = Field(default_factory=list)
     group_by: List[str] = Field(default_factory=list)

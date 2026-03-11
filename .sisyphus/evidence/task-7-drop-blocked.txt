@@ -1,0 +1,3 @@
+2026-03-10 23:57:14 [warning  ] Non-SELECT SQL rejected        sql='DROP TABLE INAG_T' stmt_type=Drop
+PASS: DROP TABLE blocked
+{'safe': False, 'reason': 'Only SELECT statements allowed. Got: Drop'}

@@ -1,0 +1,4 @@
+compiled: datalake-system/data_agent/services/schema_driven_query/models.py
+compiled: datalake-system/data_agent/services/schema_driven_query/resolver.py
+compiled: datalake-system/data_agent/services/schema_driven_query/sql_generator.py
+compile check OK

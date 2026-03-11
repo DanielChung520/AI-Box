@@ -1,0 +1,157 @@
+============================================================================================================================================
+AI-Box Parquet 表格欄位映射完整驗證報告
+============================================================================================================================================
+
+生成日期: 2026-03-10
+驗證目標: 8 個原始表的 DUCKDB Binding Column 是否正確對應
+
+============================================================================================================================================
+第 1 部分：原始表 (Raw Tables) 驗證
+============================================================================================================================================
+
+
+表: INAG_T
+說明: Inventory Details 在庫明細
+Parquet 欄位: ['INAGENT', 'INAGSITE', 'INAG001', 'INAG004', 'INAG005', 'INAG007', 'INAG008']
+DUCKDB Bindings: ['ENT', 'SITE']
+✅ 原始表的 Binding 全部正確
+
+表: MOCTA_T
+說明: (未定義)
+Parquet 欄位: []
+DUCKDB Bindings: []
+⚠️  此表在 original_schema.md 中未定義，無法驗證
+
+表: MOCTO_T
+說明: (未定義)
+Parquet 欄位: []
+DUCKDB Bindings: []
+⚠️  此表在 original_schema.md 中未定義，無法驗證
+
+表: SFCA_T
+說明: WO Manufacturing Header 工單製造頭檔
+Parquet 欄位: ['SFCAENT', 'SFCASITE', 'SFCADOCNO', 'SFCA002', 'SFCA001', 'SFCA003', 'SFCA004']
+DUCKDB Bindings: ['MO_DOC_SEQ', 'RUN_CARD_NO', 'TIME_RANGE']
+✅ 原始表的 Binding 全部正確
+
+表: SFCB_T
+說明: WO Manufacturing Details 工單製造明細檔
+Parquet 欄位: ['SFCBENT', 'SFCBSITE', 'SFCBDOCNO', 'SFCB002', 'SFCB003', 'SFCB004', 'SFCB011', 'SFCB027', 'SFCB028', 'SFCB034', 'SFCB029', 'SFCB050', 'SFCB036', 'SFCB051', 'SFCB033', 'SFCB041', 'SFCB042']
+DUCKDB Bindings: ['REWORK_IN', 'REWORK_OUT', 'SCRAP_IN_STATION', 'PENDING_PQC_QTY', 'OUTSOURCED_QTY', 'OUTSOURCED_FINISH_QTY']
+✅ 原始表的 Binding 全部正確
+
+表: COPTA_T
+說明: (未定義)
+Parquet 欄位: []
+DUCKDB Bindings: []
+⚠️  此表在 original_schema.md 中未定義，無法驗證
+
+表: COPTD_T
+說明: (未定義)
+Parquet 欄位: []
+DUCKDB Bindings: []
+⚠️  此表在 original_schema.md 中未定義，無法驗證
+
+表: COPTG_T
+說明: (未定義)
+Parquet 欄位: []
+DUCKDB Bindings: []
+⚠️  此表在 original_schema.md 中未定義，無法驗證
+
+============================================================================================================================================
+第 2 部分：語義驗證 - 發現的 10 個 Binding 錯誤
+============================================================================================================================================
+
+
+1. 🔴 CRITICAL - MO_DOC_NO
+   表: mart_work_order_wide
+   說明: 工單編號
+   預期欄位: mo_doc_no
+   實際欄位: item_no
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+2. 🔴 CRITICAL - PRODUCTION_QTY
+   表: mart_work_order_wide
+   說明: 生產數量
+   預期欄位: production_qty
+   實際欄位: item_no
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+3. 🔴 CRITICAL - COMPLETION_QTY
+   表: mart_work_order_wide
+   說明: 完工數量
+   預期欄位: completion_qty
+   實際欄位: item_no
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+4. 🔴 CRITICAL - STANDARD_OUTPUT
+   表: mart_work_order_wide
+   說明: 標準產出
+   預期欄位: standard_output
+   實際欄位: scrap_qty
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+5. 🔴 CRITICAL - GOOD_ITEMS_OUT
+   表: mart_work_order_wide
+   說明: 良品流出
+   預期欄位: good_items_out
+   實際欄位: scrap_qty
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+6. 🔴 CRITICAL - LN
+   表: mart_work_order_wide
+   說明: 項次
+   預期欄位: line_number
+   實際欄位: item_no
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+7. 🔴 CRITICAL - OPERATION_SEQ
+   表: mart_work_order_wide
+   說明: 工序序號
+   預期欄位: operation_seq
+   實際欄位: item_no
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+8. 🔴 CRITICAL - TIME_YEAR_WO
+   表: mart_work_order_wide
+   說明: 工單建立日期
+   預期欄位: created_date
+   實際欄位: item_no
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+9. 🔴 CRITICAL - WORK_ORDER_COUNT
+   表: mart_work_order_wide
+   說明: 工單計數
+   預期欄位: count(*)
+   實際欄位: item_no
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+10. 🔴 CRITICAL - REQUEST_QTY
+   表: mart_shipping_wide
+   說明: 請算出貨數量
+   預期欄位: request_qty
+   實際欄位: actual_qty
+   影響: 查詢使用此 Concept 時，將返回錯誤的資料
+
+============================================================================================================================================
+統計摘要
+============================================================================================================================================
+
+✅ 已驗證的 8 個原始表
+   - 定義完整的表: 3 個 (INAG_T, SFCA_T, SFCB_T)
+   - 未定義的表: 5 個 (MOCTA_T, MOCTO_T, COPTA_T, COPTD_T, COPTG_T)
+
+🔴 發現的 Binding 錯誤: 10 個
+   - mart_work_order_wide: 9 個錯誤
+   - mart_shipping_wide: 1 個錯誤
+
+❌ 錯誤率: 10/69 DUCKDB Bindings = 14.5%
+
+============================================================================================================================================
+建議
+============================================================================================================================================
+
+1. 立即更新 bindings.json 中錯誤的 column 值
+2. 實施 Binding 驗證流程，防止類似錯誤再次發生
+3. 為 mart 表建立 column 清單並與 binding 進行自動驗證
+4. 完善 MOCTA_T, MOCTO_T, COPTA_T, COPTD_T, COPTG_T 的定義

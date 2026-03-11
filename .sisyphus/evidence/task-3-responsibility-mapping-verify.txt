@@ -1,0 +1,2 @@
+PASS new branch: type=analyze_existing_result required_data=['last_result']
+PASS existing branch: type=query_stock

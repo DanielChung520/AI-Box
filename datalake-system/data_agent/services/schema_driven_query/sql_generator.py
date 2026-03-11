@@ -18,7 +18,7 @@ import hashlib
 from typing import Dict, Any, List, Optional
 from collections import OrderedDict
 
-from .models import QueryAST
+from .models import QueryAST, JoinClause
 
 logger = logging.getLogger(__name__)
 
@@ -247,25 +247,72 @@ class DuckDBSQLGenerator(SQLGenerator):
         """判斷是否為 mart 寬表"""
         return table_name.lower().startswith("mart_")
 
+    def _get_s3_source(self, table_name: str) -> str:
+        table_upper = table_name.upper()
+        s3_path = self._get_table_path(table_upper)
+
+        if s3_path:
+            if self._is_mart_table(table_name):
+                return table_name
+
+            path = s3_path.replace("s3://tiptop-raw", f"s3://{self.bucket}")
+            return f"read_parquet('{path}')"
+
+        return table_name
+
+    def _build_join_from_clause(
+        self, from_tables: List[str], join_clauses: List[JoinClause]
+    ) -> str:
+        primary_table = from_tables[0]
+        primary_source = self._get_s3_source(primary_table)
+        from_clause = primary_source
+        if primary_source != primary_table:
+            from_clause = f"{primary_source} AS {primary_table}"
+
+        joined_tables = {primary_table.upper()}
+        pending_joins = list(join_clauses)
+
+        while pending_joins:
+            progressed = False
+            remaining_joins: List[JoinClause] = []
+
+            for join_clause in pending_joins:
+                left_upper = join_clause.left_table.upper()
+                right_upper = join_clause.right_table.upper()
+                left_joined = left_upper in joined_tables
+                right_joined = right_upper in joined_tables
+
+                if left_joined == right_joined:
+                    remaining_joins.append(join_clause)
+                    continue
+
+                join_table = join_clause.right_table if left_joined else join_clause.left_table
+                join_source = self._get_s3_source(join_table)
+                join_fragment = join_source
+                if join_source != join_table:
+                    join_fragment = f"{join_source} AS {join_table}"
+
+                from_clause += (
+                    f"\n{join_clause.join_type.upper()} JOIN {join_fragment}"
+                    f" ON {join_clause.left_table}.{join_clause.left_column} ="
+                    f" {join_clause.right_table}.{join_clause.right_column}"
+                )
+
+                joined_tables.add(join_table.upper())
+                progressed = True
+
+            if not progressed:
+                raise ValueError(f"Unable to resolve JOIN order for tables: {from_tables}")
+
+            pending_joins = remaining_joins
+
+        return from_clause
+
     def _build_from_clause(self, from_tables: List[str]) -> str:
         """建構 FROM 子句 (支援 S3 Path / DuckDB 寬表)"""
         mapped_tables = []
         for table in from_tables:
-            table_upper = table.upper()
-
-            # 優先從 bindings 取得路徑
-            s3_path = self._get_table_path(table_upper)
-
-            if s3_path:
-                # 判斷是否為 DuckDB 寬表
-                if self._is_mart_table(table):
-                    mapped_tables.append(f"{table}")
-                else:
-                    path = s3_path.replace("s3://tiptop-raw", f"s3://{self.bucket}")
-                    mapped_tables.append(f"read_parquet('{path}')")
-            else:
-                # Fallback: 使用表名作為 DuckDB 表格
-                mapped_tables.append(table)
+            mapped_tables.append(self._get_s3_source(table))
         return ", ".join(mapped_tables)
 
     def generate(self, ast: QueryAST) -> str:
@@ -289,7 +336,10 @@ class DuckDBSQLGenerator(SQLGenerator):
         select_clause = self._build_select(ast.select)
         sql_parts.append(f"SELECT {select_clause}")
 
-        from_clause = self._build_from_clause(ast.from_tables)
+        if ast.join_clauses:
+            from_clause = self._build_join_from_clause(ast.from_tables, ast.join_clauses)
+        else:
+            from_clause = self._build_from_clause(ast.from_tables)
         sql_parts.append(f"FROM {from_clause}")
 
         if ast.where_conditions:

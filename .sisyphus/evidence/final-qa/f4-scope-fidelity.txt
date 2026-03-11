@@ -1,0 +1,68 @@
+F4 Scope Fidelity Check
+Date: 2026-03-10
+Range: HEAD~3..HEAD
+
+[A] Commits in scope
+- 44b9975 test(mm-agent): add P-T-A-O backward compat, regression, and E2E tests
+- 4b5be68 refactor(mm-agent): integrate P-T-A-O into execute() with dict dispatch
+- 85d7281 feat(mm-agent): add P-T-A-O data models and responsibility registry
+
+[B] Changed files (git diff --stat / --name-only)
+- datalake-system/mm_agent/agent.py
+- datalake-system/mm_agent/ptao/__init__.py
+- datalake-system/mm_agent/ptao/loop.py
+- datalake-system/mm_agent/ptao/models.py
+- datalake-system/mm_agent/ptao/responsibility_registry.py
+- datalake-system/mm_agent/tests/test_execute_ptao_integration.py
+- datalake-system/mm_agent/tests/test_ptao_backward_compat.py
+- datalake-system/mm_agent/tests/test_ptao_e2e.py
+- datalake-system/mm_agent/tests/test_ptao_loop.py
+- datalake-system/mm_agent/tests/test_ptao_models.py
+- datalake-system/mm_agent/tests/test_responsibility_registry.py
+
+[C] Task-by-task fidelity (spec vs diff)
+1) Task 1 P-T-A-O Models: COMPLIANT
+   - models.py exists with ThoughtTrace/Observation/DecisionEntry/DecisionLog/PTAOResult.
+
+2) Task 2 ResponsibilityRegistry: NOT 1:1 COMPLIANT
+   - Registry file and required APIs exist: register/get_handler/has_handler/list_types.
+   - Spec text includes default preloading of 7 types in Task 2; implementation keeps registry empty and defers registration to agent.__init__.
+
+3) Task 3 PTAOLoop: COMPLIANT
+   - loop.py has PTAOLoop.run() and run_ptao_cycle().
+   - Plan→Think→Act→Observe phases and DecisionLog entries are present.
+
+4) Task 4 Dict Dispatch: NOT 1:1 COMPLIANT
+   - _execute_responsibility() is 4-line registry dispatch and 7 handlers are registered in __init__ (compliant part).
+   - Expected deliverables include new test file test_responsibility_dispatch.py, but this file is not in HEAD~3..HEAD diff.
+
+5) Task 5 execute() integration: COMPLIANT
+   - Step 7 calls PTAOLoop.
+   - Step 9 injects ptao metadata into WarehouseAgentResponse.metadata.
+
+6) Task 6 backward compatibility tests: COMPLIANT
+   - test_ptao_backward_compat.py exists with 8 test classes.
+
+7) Task 7 regression verification: COMPLIANT
+   - Regression evidence exists (.sisyphus/evidence/task-7-regression.txt).
+   - Evidence shows 362 passed, 11 failed, 14 errors (passes threshold of >=253 pass and <=41 fail from plan criteria).
+
+8) Task 8 E2E tests: COMPLIANT
+   - test_ptao_e2e.py exists with >=6 E2E tests + compliance report test.
+   - Evidence file task-8-compliance-report.txt confirms TOTAL: 9/9 compliant.
+
+[D] Must-NOT-Do guardrails
+- No api/ or agents/ code changes in range: PASS
+- No datalake-system/mm_agent/main.py changes: PASS
+- No forbidden GRO imports in ptao/ (agents.services.react_fsm / agents.task_analyzer): PASS
+- No changes to agents/services/protocol/base.py (AgentServiceResponse): PASS
+
+[E] Scope creep / unaccounted files
+- git diff HEAD~3..HEAD --name-only | grep -v "datalake-system/mm_agent/" => no output
+- Unaccounted outside allowed scope: CLEAN
+
+[F] Cross-task contamination
+- No out-of-scope directory contamination detected.
+- One in-scope fidelity gap: expected test_responsibility_dispatch.py not present in scoped 3 commits.
+
+Tasks [6/8 compliant] | Contamination [1 issue] | Unaccounted [CLEAN] | VERDICT: REJECT

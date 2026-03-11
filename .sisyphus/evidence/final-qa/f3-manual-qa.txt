@@ -1,0 +1,86 @@
+============================================================
+F3: Real Manual QA — P-T-A-O Refactor Validation
+Date: 2026-03-10
+============================================================
+
+## Step A: Full PTAO Test Suite
+Command: python3 -m pytest test_ptao_e2e.py test_ptao_backward_compat.py test_execute_ptao_integration.py test_ptao_models.py test_ptao_loop.py -v
+Result: 81/81 PASSED (0 failures, 0 errors)
+
+Breakdown:
+  - test_ptao_e2e.py:                    7/7 pass (part query, stock query, shortage, missing params, unknown intent, clarification, compliance)
+  - test_ptao_backward_compat.py:       34/34 pass (field structure, non-pollution, thought/observation/decision structure, old client compat, e2e response chain)
+  - test_execute_ptao_integration.py:    2/2 pass (metadata in completed response, metadata kept on failure)
+  - test_ptao_models.py:                23/23 pass (ThoughtTrace, Observation, DecisionEntry, DecisionLog, PTAOResult, serialization)
+  - test_ptao_loop.py:                  15/15 pass (plan simple/complex, think, act+observe, unknown responsibility, 4 phases, complete fields)
+
+## Step B: P-T-A-O Metadata Structure Verification (inline)
+Simulated query_part response with manual model construction.
+Result: PASS
+
+Validated keys:
+  thought keys:     ['complexity', 'intent_summary', 'reasoning', 'timestamp']
+  observation keys: ['data', 'duration_ms', 'error', 'source', 'success']
+  decision_log:     1 entry with phase='plan'
+  complexity:       simple
+  success:          True
+  source:           _handle_query_part
+  reasoning:        present (non-empty)
+  intent_summary:   '查詢料號 NI001'
+
+## Step C: Backward Compat — Old Client Field Access (inline)
+Simulated WarehouseAgentResponse + AgentServiceResponse construction.
+Result: PASS
+
+Verified old client reads:
+  task_id:                test-001
+  status:                 completed
+  result['success']:      True
+  result['task_type']:    query_stock
+  result['data']:         {'stock': 100}
+  ptao in metadata only:  True (result.metadata.ptao)
+  Old client ignores metadata: True (no crash)
+
+## Step D: Unknown Intent Graceful Degradation (inline)
+Tested ResponsibilityRegistry with unknown intent types.
+Result: PASS
+
+  Empty registry:
+    get_handler('unknown_intent_xyz') → None
+    has_handler('unknown_intent_xyz') → False
+    No exception raised
+
+  Populated registry:
+    register('query_part', handler) → OK
+    get_handler('query_part') → <function>
+    get_handler('unknown_intent_xyz') → None (graceful)
+    list_types() → ['query_part', 'query_stock']
+
+============================================================
+SUMMARY
+============================================================
+
+4 Core Scenarios:
+  [PASS] Part query          — test_e2e_simple_part_query + inline metadata verification
+  [PASS] Stock query         — test_e2e_stock_query + backward compat inline
+  [PASS] Shortage analysis   — test_e2e_shortage_analysis (complex complexity)
+  [PASS] Unknown intent      — test_e2e_unknown_intent + graceful degradation inline
+
+P-T-A-O Metadata:
+  [PASS] ThoughtTrace:   reasoning, complexity, intent_summary, timestamp
+  [PASS] Observation:    source, success, data/error, duration_ms
+  [PASS] DecisionLog:    entries with phase/action/rationale/timestamp
+  [PASS] PTAOResult:     thought + observation + decision_log + raw_result
+
+Backward Compat:
+  [PASS] Old client fields (task_id, status, result.success, result.task_type, result.data)
+  [PASS] PTAO only in result.metadata.ptao (not polluting top-level)
+  [PASS] JSON serialization works for old clients
+
+Graceful Degradation:
+  [PASS] Unknown responsibility type → None (no exception)
+  [PASS] Registry correctly handles registered vs unregistered types
+
+============================================================
+Scenarios [4/4 pass] | Integration [2/2] | Edge Cases [3 tested] | VERDICT: APPROVE
+============================================================

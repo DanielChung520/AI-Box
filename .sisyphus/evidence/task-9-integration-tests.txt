@@ -1,0 +1,19 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/daniel/ai-box
+configfile: pytest.ini
+plugins: langsmith-0.6.7, asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 8 items
+
+tests/integration/orchestrator/test_ptao_pipeline.py::test_full_pipeline_business_query PASSED [ 12%]
+tests/integration/orchestrator/test_ptao_pipeline.py::test_full_pipeline_greeting PASSED [ 25%]
+tests/integration/orchestrator/test_ptao_pipeline.py::test_full_pipeline_knowledge_query PASSED [ 37%]
+tests/integration/orchestrator/test_ptao_pipeline.py::test_regression_existing_greeting PASSED [ 50%]
+tests/integration/orchestrator/test_ptao_pipeline.py::test_regression_existing_bpa_routing PASSED [ 62%]
+tests/integration/orchestrator/test_ptao_pipeline.py::test_empty_input PASSED [ 75%]
+tests/integration/orchestrator/test_ptao_pipeline.py::test_garbled_input PASSED [ 87%]
+tests/integration/orchestrator/test_ptao_pipeline.py::test_no_session_id PASSED [100%]
+
+======================== 8 passed, 42 warnings in 0.99s ========================

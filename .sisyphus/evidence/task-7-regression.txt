@@ -1,0 +1,433 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0
+rootdir: /home/daniel/ai-box/datalake-system/mm_agent
+configfile: pytest.ini
+plugins: langsmith-0.6.7, asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 387 items
+
+datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py F.F.....FFF [  2%]
+........                                                                 [  4%]
+datalake-system/mm_agent/tests/test_execute_ptao_integration.py ..       [  5%]
+datalake-system/mm_agent/tests/test_intent_classification_full.py E      [  5%]
+datalake-system/mm_agent/tests/test_intent_classification_scenarios.py . [  5%]
+........................................................................ [ 24%]
+...............................                                          [ 32%]
+datalake-system/mm_agent/tests/test_intent_integration.py .....F........ [ 36%]
+...                                                                      [ 36%]
+datalake-system/mm_agent/tests/test_material_category_extractor.py ..... [ 38%]
+....................                                                     [ 43%]
+datalake-system/mm_agent/tests/test_mm_agent_chain.py ....EEEEEEEEEEEEE  [ 47%]
+datalake-system/mm_agent/tests/test_positive_list.py ................... [ 52%]
+.                                                                        [ 52%]
+datalake-system/mm_agent/tests/test_ptao_backward_compat.py ............ [ 56%]
+......................                                                   [ 61%]
+datalake-system/mm_agent/tests/test_ptao_loop.py ..............          [ 65%]
+datalake-system/mm_agent/tests/test_ptao_models.py ..................... [ 70%]
+...                                                                      [ 71%]
+datalake-system/mm_agent/tests/test_responsibility_dispatch.py ......... [ 73%]
+................                                                         [ 78%]
+datalake-system/mm_agent/tests/test_responsibility_registry.py ......... [ 80%]
+.                                                                        [ 80%]
+datalake-system/mm_agent/tests/test_semantic_translator.py ....          [ 81%]
+datalake-system/mm_agent/tests/test_time_extractor.py .................. [ 86%]
+................                                                         [ 90%]
+datalake-system/mm_agent/tests/test_translator.py ...................FFF [ 96%]
+.FF                                                                      [ 96%]
+datalake-system/mm_agent/tests/test_warehouse_extractor.py ............  [100%]
+
+==================================== ERRORS ====================================
+_______________________ ERROR at setup of test_scenario ________________________
+file /home/daniel/ai-box/datalake-system/mm_agent/tests/test_intent_classification_full.py, line 680
+  async def test_scenario(analyzer: SemanticAnalyzer, scenario: dict) -> dict:
+      """測試單一場景"""
+      start_time = time.time()
+
+      # 第一層: GAI Intent 分類
+      gai_intent = classify_gai_intent(scenario["user_input"])
+
+      # 第二層: Semantic Analysis
+      try:
+          analysis = await analyzer.analyze(scenario["user_input"])
+
+          # 根據 clarifiction_needed 判斷 BPA Intent
+          if analysis.clarification_needed:
+              bpa_intent = "CLARIFICATION"
+          elif analysis.intent:
+              # 根據 intent 映射到 BPA Intent
+              intent_map = {
+                  "QUERY_STOCK": "SIMPLE_QUERY",
+                  "QUERY_ITEM": "SIMPLE_QUERY",
+                  "QUERY_PURCHASE": "SIMPLE_QUERY",
+                  "KNOWLEDGE": "KNOWLEDGE_QUERY",
+                  "INFO": "KNOWLEDGE_QUERY",
+              }
+              bpa_intent = intent_map.get(analysis.intent, "UNKNOWN")
+          else:
+              bpa_intent = "UNKNOWN"
+
+          elapsed_ms = (time.time() - start_time) * 1000
+
+          return {
+              "id": scenario["id"],
+              "type": scenario["type"],
+              "user_input": scenario["user_input"],
+              "expected_gai": scenario.get("expected_gai", "BUSINESS"),
+              "expected_bpa": scenario.get("expected_bpa", ""),
+              "actual_gai": gai_intent,
+              "actual_bpa": bpa_intent,
+              "clarification_needed": analysis.clarification_needed,
+              "elapsed_ms": round(elapsed_ms, 2),
+              "success_gai": gai_intent == scenario.get("expected_gai", "BUSINESS"),
+              "success_bpa": bpa_intent == scenario.get("expected_bpa", ""),
+              "error": None,
+          }
+      except Exception as e:
+          elapsed_ms = (time.time() - start_time) * 1000
+          return {
+              "id": scenario["id"],
+              "type": scenario["type"],
+              "user_input": scenario["user_input"],
+              "expected_gai": scenario.get("expected_gai", "BUSINESS"),
+              "expected_bpa": scenario.get("expected_bpa", ""),
+              "actual_gai": gai_intent,
+              "actual_bpa": "ERROR",
+              "clarification_needed": None,
+              "elapsed_ms": round(elapsed_ms, 2),
+              "success_gai": gai_intent == scenario.get("expected_gai", "BUSINESS"),
+              "success_bpa": False,
+              "error": str(e),
+          }
+E       fixture 'analyzer' not found
+>       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_scoped_runner, ai_box_root_path, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, datalake_system_path, doctest_namespace, event_loop_policy, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/daniel/ai-box/datalake-system/mm_agent/tests/test_intent_classification_full.py:680
+_________ ERROR at setup of TestMMAgentChain.test_system_prompt_exists _________
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:76: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+______ ERROR at setup of TestMMAgentChain.test_check_positive_list_valid _______
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:76: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+_____ ERROR at setup of TestMMAgentChain.test_check_positive_list_invalid ______
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:76: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+________ ERROR at setup of TestMMAgentChain.test_translate_instruction _________
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:76: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+_______ ERROR at setup of TestMMAgentChain.test_analyze_intent_purchase ________
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:76: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+_________ ERROR at setup of TestMMAgentChain.test_analyze_intent_sales _________
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:76: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+_______ ERROR at setup of TestMMAgentChain.test_analyze_intent_inventory _______
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:76: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+________ ERROR at setup of TestMMAgentChain.test_analyze_intent_unknown ________
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:76: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+__________ ERROR at setup of TestMMAgentChainRun.test_run_valid_query __________
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:167: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+_ ERROR at setup of TestMMAgentChainRun.test_run_invalid_query_needs_clarification _
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:167: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+_________ ERROR at setup of TestMMAgentChainRun.test_run_with_context __________
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:167: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+__________ ERROR at setup of TestMMAgentChainRun.test_run_debug_info ___________
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:167: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+_______ ERROR at setup of TestMMAgentChainAsyncRun.test_arun_valid_query _______
+datalake-system/mm_agent/tests/test_mm_agent_chain.py:228: in chain
+    with patch("mm_agent.chain.mm_agent_chain.ChatOllama", return_value=mock_llm):
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'mm_agent.chain.mm_agent_chain' from '/home/daniel/ai-box/datalake-system/mm_agent/chain/mm_agent_chain.py'> does not have the attribute 'ChatOllama'
+=================================== FAILURES ===================================
+___________________ TestBPASemanticAnalyzer.test_basic_query ___________________
+datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py:30: in test_basic_query
+    assert result.intent == QueryIntent.QUERY_PURCHASE
+E   AssertionError: assert <QueryIntent....LARIFICATION'> == <QueryIntent....ERY_PURCHASE'>
+E     
+E     - QUERY_PURCHASE
+E     + CLARIFICATION
+----------------------------- Captured stdout call -----------------------------
+2026-03-10 18:20:05 [info     ] Using default model for scene embedding: qwen3-embedding:latest
+2026-03-10 18:20:05 [info     ] embedding_using_moe_config     model=qwen3-embedding:latest scene=embedding timeout=120
+2026-03-10 18:20:05 [info     ] batch_size exceeds concurrency_limit, adjusting batch_size concurrency_limit=3 original_batch_size=10
+2026-03-10 18:20:05 [info     ] Global semaphore initialized synchronously concurrency_limit=3
+2026-03-10 18:20:05 [info     ] EmbeddingService initialized   batch_size=3 concurrency_limit=3 global_concurrency_limit=3 global_semaphore_initialized=True model=qwen3-embedding:latest ollama_url=http://localhost:11434
+2026-03-10 18:20:05 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+2026-03-10 18:20:06 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=15
+2026-03-10 18:20:06 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+------------------------------ Captured log call -------------------------------
+ERROR    asyncio:base_events.py:1821 Task was destroyed but it is pending!
+task: <Task pending name='Task-2' coro=<LLMFailoverManager._health_check_loop() running at /home/daniel/ai-box/llm/failover.py:103> wait_for=<_GatheringFuture pending cb=[Task.task_wakeup()]>>
+WARNING  data_agent.services.schema_driven_query.master_loader:master_loader.py:505 sentence-transformers not installed, falling back to exact match only
+WARNING  data_agent.services.schema_driven_query.master_loader:master_loader.py:505 sentence-transformers not installed, falling back to exact match only
+___________________ TestBPASemanticAnalyzer.test_sales_query ___________________
+datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py:45: in test_sales_query
+    assert result.intent == QueryIntent.QUERY_SALES
+E   AssertionError: assert <QueryIntent....'QUERY_STOCK'> == <QueryIntent....'QUERY_SALES'>
+E     
+E     - QUERY_SALES
+E     + QUERY_STOCK
+----------------------------- Captured stdout call -----------------------------
+2026-03-10 18:20:09 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+2026-03-10 18:20:09 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=15
+2026-03-10 18:20:09 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+------------------------------ Captured log call -------------------------------
+WARNING  data_agent.services.schema_driven_query.master_loader:master_loader.py:505 sentence-transformers not installed, falling back to exact match only
+WARNING  data_agent.services.schema_driven_query.master_loader:master_loader.py:505 sentence-transformers not installed, falling back to exact match only
+_________________ TestBPASemanticAnalyzer.test_purchase_intent _________________
+datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py:83: in test_purchase_intent
+    assert result.intent == QueryIntent.QUERY_PURCHASE
+E   AssertionError: assert <QueryIntent....'QUERY_STOCK'> == <QueryIntent....ERY_PURCHASE'>
+E     
+E     - QUERY_PURCHASE
+E     + QUERY_STOCK
+----------------------------- Captured stdout call -----------------------------
+2026-03-10 18:20:15 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+2026-03-10 18:20:15 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=4
+2026-03-10 18:20:15 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+_________________ TestBPASemanticAnalyzer.test_shortage_intent _________________
+datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py:88: in test_shortage_intent
+    assert result.intent == QueryIntent.ANALYZE_SHORTAGE
+E   AssertionError: assert <QueryIntent....LARIFICATION'> == <QueryIntent....YZE_SHORTAGE'>
+E     
+E     - ANALYZE_SHORTAGE
+E     + CLARIFICATION
+----------------------------- Captured stdout call -----------------------------
+2026-03-10 18:20:15 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+2026-03-10 18:20:16 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=4
+2026-03-10 18:20:16 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+__________________ TestBPASemanticAnalyzer.test_order_intent ___________________
+datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py:93: in test_order_intent
+    assert result.intent == QueryIntent.GENERATE_ORDER
+E   AssertionError: assert <QueryIntent....'QUERY_STOCK'> == <QueryIntent....NERATE_ORDER'>
+E     
+E     - GENERATE_ORDER
+E     + QUERY_STOCK
+----------------------------- Captured stdout call -----------------------------
+2026-03-10 18:20:16 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+2026-03-10 18:20:16 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=4
+2026-03-10 18:20:16 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+____________ TestAutoExecuteIntegration.test_simple_query_execution ____________
+datalake-system/mm_agent/tests/test_intent_integration.py:167: in test_simple_query_execution
+    assert "intent" in result or "status" in result
+E   assert ('intent' in {'error': "name '_react_engine' is not defined", 'success': False} or 'status' in {'error': "name '_react_engine' is not defined", 'success': False})
+______________ TestTranslator.test_translate_purchase_instruction ______________
+datalake-system/mm_agent/tests/test_translator.py:139: in test_translate_purchase_instruction
+    assert result.tlf19 == "101"
+           ^^^^^^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'tlf19'
+_____________ TestTranslator.test_translate_inventory_instruction ______________
+datalake-system/mm_agent/tests/test_translator.py:148: in test_translate_inventory_instruction
+    assert result.table_name == "img_file"
+           ^^^^^^^^^^^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'table_name'
+_______________ TestTranslator.test_translate_sales_instruction ________________
+datalake-system/mm_agent/tests/test_translator.py:155: in test_translate_sales_instruction
+    assert result.tlf19 == "202"
+           ^^^^^^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'tlf19'
+___________________ TestTableMapping.test_transaction_tables ___________________
+datalake-system/mm_agent/tests/test_translator.py:185: in test_transaction_tables
+    assert translator.TABLE_MAP["101"] == "tlf_file"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: '101'
+____________________ TestTableMapping.test_inventory_table _____________________
+datalake-system/mm_agent/tests/test_translator.py:193: in test_inventory_table
+    assert translator.TABLE_MAP["inventory"] == "img_file"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'inventory'
+=============================== warnings summary ===============================
+services/api/models/llm_model.py:124
+  /home/daniel/ai-box/services/api/models/llm_model.py:124: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class LLMModel(LLMModelBase):
+
+services/api/models/file_access_control.py:50
+  /home/daniel/ai-box/services/api/models/file_access_control.py:50: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FileAccessControl(BaseModel):
+
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+../.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319
+  /home/daniel/.local/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:319: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.12/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    warnings.warn(
+
+services/api/models/file_metadata.py:152
+  /home/daniel/ai-box/services/api/models/file_metadata.py:152: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FileMetadata(FileMetadataBase):
+
+agents/services/file_service/models.py:27
+  /home/daniel/ai-box/agents/services/file_service/models.py:27: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AgentFileInfo(BaseModel):
+
+services/api/models/change_proposal.py:23
+  /home/daniel/ai-box/services/api/models/change_proposal.py:23: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ChangeProposal(BaseModel):
+
+services/api/models/change_proposal.py:48
+  /home/daniel/ai-box/services/api/models/change_proposal.py:48: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ChangeProposalCreate(BaseModel):
+
+services/api/models/audit_log.py:67
+  /home/daniel/ai-box/services/api/models/audit_log.py:67: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AuditLog(BaseModel):
+
+services/api/models/audit_log.py:83
+  /home/daniel/ai-box/services/api/models/audit_log.py:83: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AuditLogCreate(BaseModel):
+
+services/api/models/audit_log.py:98
+  /home/daniel/ai-box/services/api/models/audit_log.py:98: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AuditLogResponse(BaseModel):
+
+services/api/models/version_history.py:14
+  /home/daniel/ai-box/services/api/models/version_history.py:14: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VersionHistory(BaseModel):
+
+services/api/models/version_history.py:33
+/home/daniel/.local/lib/python3.12/site-packages/_pytest/unraisableexception.py:33: RuntimeWarning: coroutine 'Translator.translate' was never awaited
+  gc.collect()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+  /home/daniel/ai-box/services/api/models/version_history.py:33: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VersionHistoryCreate(BaseModel):
+
+datalake-system/mm_agent/models/query_spec.py:44
+  /home/daniel/ai-box/datalake-system/mm_agent/models/query_spec.py:44: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class QuerySpec(BaseModel):
+
+datalake-system/mm_agent/ptao/models.py:109
+  /home/daniel/ai-box/datalake-system/mm_agent/ptao/models.py:109: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class PTAOResult(BaseModel):
+
+tests/test_bpa_semantic_analyzer.py::TestBPASemanticAnalyzer::test_basic_query
+  /home/daniel/ai-box/llm/moe/moe_manager.py:102: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+tests/test_bpa_semantic_analyzer.py::TestBPASemanticAnalyzer::test_basic_query
+  /usr/lib/python3.12/copy.py:118: RuntimeWarning: coroutine 'LLMFailoverManager.check_provider_health' was never awaited
+    def deepcopy(x, memo=None, _nil=[]):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_ptao_backward_compat.py::TestAgentServiceResponseFields::test_agent_service_response_fields
+  /home/daniel/ai-box/datalake-system/mm_agent/tests/test_ptao_backward_compat.py:149: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    model_fields = set(agent_service_response.model_fields.keys())
+
+tests/test_ptao_backward_compat.py::TestWarehouseAgentResponseFields::test_warehouse_agent_response_fields
+  /home/daniel/ai-box/datalake-system/mm_agent/tests/test_ptao_backward_compat.py:207: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    model_fields = set(warehouse_response.model_fields.keys())
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py::TestBPASemanticAnalyzer::test_basic_query
+FAILED datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py::TestBPASemanticAnalyzer::test_sales_query
+FAILED datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py::TestBPASemanticAnalyzer::test_purchase_intent
+FAILED datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py::TestBPASemanticAnalyzer::test_shortage_intent
+FAILED datalake-system/mm_agent/tests/test_bpa_semantic_analyzer.py::TestBPASemanticAnalyzer::test_order_intent
+FAILED datalake-system/mm_agent/tests/test_intent_integration.py::TestAutoExecuteIntegration::test_simple_query_execution
+FAILED datalake-system/mm_agent/tests/test_translator.py::TestTranslator::test_translate_purchase_instruction
+FAILED datalake-system/mm_agent/tests/test_translator.py::TestTranslator::test_translate_inventory_instruction
+FAILED datalake-system/mm_agent/tests/test_translator.py::TestTranslator::test_translate_sales_instruction
+FAILED datalake-system/mm_agent/tests/test_translator.py::TestTableMapping::test_transaction_tables
+FAILED datalake-system/mm_agent/tests/test_translator.py::TestTableMapping::test_inventory_table
+ERROR datalake-system/mm_agent/tests/test_intent_classification_full.py::test_scenario
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChain::test_system_prompt_exists
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChain::test_check_positive_list_valid
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChain::test_check_positive_list_invalid
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChain::test_translate_instruction
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChain::test_analyze_intent_purchase
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChain::test_analyze_intent_sales
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChain::test_analyze_intent_inventory
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChain::test_analyze_intent_unknown
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChainRun::test_run_valid_query
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChainRun::test_run_invalid_query_needs_clarification
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChainRun::test_run_with_context
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChainRun::test_run_debug_info
+ERROR datalake-system/mm_agent/tests/test_mm_agent_chain.py::TestMMAgentChainAsyncRun::test_arun_valid_query
+=========== 11 failed, 362 passed, 25 warnings, 14 errors in 27.70s ============

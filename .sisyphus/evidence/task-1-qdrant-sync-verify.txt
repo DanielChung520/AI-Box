@@ -1,0 +1,90 @@
+{"result":{"status":"green","optimizer_status":"ok","indexed_vectors_count":0,"points_count":12,"segments_count":8,"config":{"params":{"vectors":{"size":4096,"distance":"Cosine"},"shard_number":1,"replication_factor":1,"write_consistency_factor":1,"on_disk_payload":true},"hnsw_config":{"m":16,"ef_construct":100,"full_scan_threshold":10000,"max_indexing_threads":0,"on_disk":false},"optimizer_config":{"deleted_threshold":0.2,"vacuum_min_vector_number":1000,"default_segment_number":0,"max_segment_size":null,"memmap_threshold":null,"indexing_threshold":10000,"flush_interval_sec":5,"max_optimization_threads":null},"wal_config":{"wal_capacity_mb":32,"wal_segments_ahead":0,"wal_retain_closed":1},"quantization_config":null},"payload_schema":{}},"status":"ok","time":0.000222336}INFO:__main__:Found 12 intents
+INFO:httpx:HTTP Request: GET http://localhost:6333 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: DELETE http://localhost:6333/collections/mm_intents_rag "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: PUT http://localhost:6333/collections/mm_intents_rag "HTTP/1.1 200 OK"
+INFO:llm.routing.base:已註冊路由策略: task_type
+INFO:llm.routing.base:已註冊路由策略: complexity
+INFO:llm.routing.base:已註冊路由策略: cost
+INFO:llm.routing.base:已註冊路由策略: latency
+INFO:llm.routing.base:已註冊路由策略: hybrid
+INFO:httpx:HTTP Request: GET http://127.0.0.1:6333 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:6333/collections "HTTP/1.1 200 OK"
+INFO:database.qdrant.client:Qdrant connection established: host=127.0.0.1, port=6333, collections_count=36
+INFO:httpx:HTTP Request: GET http://127.0.0.1:6333/collections "HTTP/1.1 200 OK"
+2026-03-10 13:44:25 [info     ] Using default model for scene embedding: qwen3-embedding:latest
+2026-03-10 13:44:25 [info     ] embedding_using_moe_config     model=qwen3-embedding:latest scene=embedding timeout=120
+2026-03-10 13:44:25 [info     ] batch_size exceeds concurrency_limit, adjusting batch_size concurrency_limit=3 original_batch_size=10
+2026-03-10 13:44:25 [info     ] Global semaphore initialized synchronously concurrency_limit=3
+2026-03-10 13:44:25 [info     ] EmbeddingService initialized   batch_size=3 concurrency_limit=3 global_concurrency_limit=3 global_semaphore_initialized=True model=qwen3-embedding:latest ollama_url=http://localhost:11434
+2026-03-10 13:44:25 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:llm.failover:LLM failover manager started
+WARNING:llm.failover:Failed to create client for chatgpt: OpenAI SDK is not installed. Please install it with: pip install openai
+WARNING:llm.failover:Failed to create client for gemini: Google Generative AI SDK is not installed. Please install it with: pip install google-generativeai
+WARNING:llm.failover:Failed to create client for grok: Grok API key is required
+INFO:llm.clients.factory:Created qwen client (cached: True)
+INFO:llm.clients.factory:Created ollama client (cached: True)
+WARNING:llm.failover:Failed to create client for volcano: OpenAI SDK is not installed. Please install it with: pip install openai
+WARNING:llm.failover:Failed to create client for chatglm: OpenAI SDK is not installed. Please install it with: pip install openai
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:27 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=114
+2026-03-10 13:44:27 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: QUERY_INVENTORY
+2026-03-10 13:44:27 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:27 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=111
+2026-03-10 13:44:27 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: QUERY_INVENTORY_BY_WAREHOUSE
+2026-03-10 13:44:27 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:27 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=67
+2026-03-10 13:44:27 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: RETURN_SUMMARY
+2026-03-10 13:44:27 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:27 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=71
+2026-03-10 13:44:27 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: RETURN_LIST
+2026-03-10 13:44:27 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:27 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=126
+2026-03-10 13:44:27 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: QUERY_SHIPPING
+2026-03-10 13:44:27 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:27 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=133
+2026-03-10 13:44:27 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: KNOWLEDGE_PROCESS
+2026-03-10 13:44:27 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:28 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=113
+2026-03-10 13:44:28 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: KNOWLEDGE_RULE
+2026-03-10 13:44:28 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:28 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=56
+2026-03-10 13:44:28 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: GREETING
+2026-03-10 13:44:28 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:28 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=53
+2026-03-10 13:44:28 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: CLARIFICATION
+2026-03-10 13:44:28 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:28 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=43
+2026-03-10 13:44:28 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: COMPLEX_COMPARE
+2026-03-10 13:44:28 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:28 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=231
+2026-03-10 13:44:28 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: ANALYZE_RESULT
+2026-03-10 13:44:28 [debug    ] Starting embedding request     active_requests=1 concurrency_limit=3 file_id=None
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-03-10 13:44:28 [debug    ] Generated embedding            embedding_dim=4096 file_id=None text_length=215
+2026-03-10 13:44:28 [debug    ] Completed embedding request    active_requests=0 concurrency_limit=3 file_id=None
+INFO:__main__:Prepared: EXPLAIN_DATA
+INFO:httpx:HTTP Request: PUT http://localhost:6333/collections/mm_intents_rag/points?wait=true "HTTP/1.1 200 OK"
+INFO:__main__:Uploaded 12 points

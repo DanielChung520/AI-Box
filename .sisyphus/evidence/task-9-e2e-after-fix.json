@@ -1,0 +1,33 @@
+{
+    "success": false,
+    "sql": null,
+    "data": null,
+    "row_count": null,
+    "columns": null,
+    "pagination": null,
+    "execution_time_ms": null,
+    "error_type": "execution",
+    "error_code": "SQL_EXECUTION_FAILED",
+    "message": "SQL \u57f7\u884c\u5931\u6557: SimpleDB Execution Error: Catalog Error: Table with name INAG_T does not exist!\nDid you mean \"pg_am\"?\n\nLINE 2: FROM INAG_T \n             ^\nSQL: SELECT INAG008.EXISTING_STOCKS \nFROM INAG_T \nWHERE INAG001 = 'NI001';",
+    "details": {
+        "original_query": "\u67e5\u8a62\u6599\u865f NI001 \u7684\u5eab\u5b58",
+        "ambiguity": null,
+        "sql": "SELECT INAG008.EXISTING_STOCKS \nFROM INAG_T \nWHERE INAG001 = 'NI001';",
+        "error_detail": null
+    },
+    "clarification_needed": null,
+    "suggestion": null,
+    "errors": [],
+    "warnings": [],
+    "metadata": {
+        "matched_intent": "QUERY_INVENTORY",
+        "intent_confidence": 0.7933678030967712,
+        "complexity": "simple",
+        "model_used": "llama3:8b",
+        "retries": 0,
+        "escalated": false,
+        "sqlglot_valid": true,
+        "generation_time_ms": 650.461929035373,
+        "total_time_ms": 2056.1280410038307
+    }
+}

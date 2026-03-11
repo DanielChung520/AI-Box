@@ -1,0 +1,5 @@
+2026-03-11 00:00:50 [info     ] LLM SQL generation attempt     attempt_number=1 latency_ms=16.38183300383389 model=llama3:8b sqlglot_valid=False
+2026-03-11 00:00:50 [info     ] LLM SQL generation attempt     attempt_number=2 latency_ms=0.21629303228110075 model=llama3:8b sqlglot_valid=False
+2026-03-11 00:00:50 [info     ] LLM SQL generation attempt     attempt_number=3 latency_ms=0.2175410045310855 model=gpt-oss:120b sqlglot_valid=True
+{'sql': "SELECT * FROM INAG_T WHERE item_no = 'NI001'", 'status': 'success', 'model_used': 'gpt-oss:120b', 'retries': 1, 'escalated': True, 'sqlglot_valid': True, 'generation_time_ms': 16.971973003819585, 'error': None}
+PASS: escalation to gpt-oss:120b works

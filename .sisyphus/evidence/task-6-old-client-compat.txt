@@ -1,0 +1,19 @@
+=== Old Client Compatibility Test ===
+
+task_id: old-client-test
+status: completed
+error: None
+result["success"]: True
+result["task_type"]: query_stock
+result["response"]: 料號 ABC-123 庫存為 50
+
+--- Verifications ---
+ptao NOT in top-level keys: True
+thought NOT in top-level keys: True
+ptao IS in result["metadata"]: True
+
+JSON serialization OK: True
+Parsed task_id: old-client-test
+Parsed status: completed
+
+=== ALL OLD CLIENT COMPAT CHECKS PASSED ===

@@ -1,0 +1,4 @@
+2026-03-11 00:00:50 [info     ] LLM SQL generation attempt     attempt_number=1 latency_ms=15.15630492940545 model=llama3:8b sqlglot_valid=False
+2026-03-11 00:00:50 [info     ] LLM SQL generation attempt     attempt_number=2 latency_ms=0.27038902044296265 model=llama3:8b sqlglot_valid=True
+{'sql': "SELECT * FROM INAG_T WHERE item_no = 'NI001'", 'status': 'success', 'model_used': 'llama3:8b', 'retries': 1, 'escalated': False, 'sqlglot_valid': True, 'generation_time_ms': 15.54375293198973, 'error': None}
+PASS: self-correction works

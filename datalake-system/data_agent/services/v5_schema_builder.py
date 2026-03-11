@@ -1,7 +1,7 @@
 # 代碼功能說明: V5 動態 Schema Prompt 建構器 — 根據 intent + 複雜度從 intents.json/bindings.json 建構 LLM schema context
 # 創建日期: 2026-03-10
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-03-10
+# 最後修改日期: 2026-03-11
 
 from __future__ import annotations
 
@@ -116,6 +116,7 @@ class V5SchemaBuilder:
         concept_meta = self._load_concepts().get("concepts", {})
 
         table_columns: dict[str, dict[str, dict[str, str]]] = {}
+        table_s3_paths: dict[str, str] = {}  # Store s3_path per table
         for concept in concepts:
             duckdb_binding = bindings.get(concept, {}).get("DUCKDB")
             if not isinstance(duckdb_binding, dict):
@@ -127,6 +128,12 @@ class V5SchemaBuilder:
                 continue
             if not isinstance(column_name, str) or not column_name:
                 continue
+
+            # Record s3_path on first encounter of this table
+            if table_name not in table_s3_paths:
+                s3_path = duckdb_binding.get("s3_path")
+                if isinstance(s3_path, str) and s3_path:
+                    table_s3_paths[table_name] = s3_path
 
             concept_info = concept_meta.get(concept, {})
             concept_type = concept_info.get("type", "UNKNOWN")
@@ -145,51 +152,97 @@ class V5SchemaBuilder:
                 "description": "；".join(description_parts),
             }
 
+        # Add s3_path as sentinel _s3_path key for tables that have it
+        for table_name, s3_path in table_s3_paths.items():
+            table_columns.setdefault(table_name, {})["_s3_path"] = {
+                "column": "_s3_path",
+                "type": "META",
+                "description": f"read_parquet('{s3_path}')",
+            }
+
         return table_columns
 
     def _collect_mart_table_columns(self, mart_table: str) -> dict[str, dict[str, str]]:
-        bindings = self._load_bindings().get("bindings", {})
-        concept_meta = self._load_concepts().get("concepts", {})
+        from data_agent.services.schema_driven_query.config import get_config
+        import duckdb
 
-        columns: dict[str, dict[str, str]] = {}
-        for concept, binding_group in bindings.items():
-            duckdb_binding = binding_group.get("DUCKDB")
-            if not isinstance(duckdb_binding, dict):
-                continue
-            if duckdb_binding.get("table") != mart_table:
-                continue
+        conn: duckdb.DuckDBPyConnection | None = None
+        try:
+            config = get_config()
+            db_path = config.duckdb.database
+            conn = duckdb.connect(database=db_path, read_only=True)
+            rows = conn.execute(f"DESCRIBE {mart_table}").fetchall()
 
-            column_name = duckdb_binding.get("column")
-            if not isinstance(column_name, str) or not column_name:
-                continue
-
-            concept_info = concept_meta.get(concept, {})
-            concept_type = concept_info.get("type", "UNKNOWN")
-            concept_desc = concept_info.get("description", "")
-            columns[column_name] = {
-                "column": column_name,
-                "type": str(concept_type),
-                "description": f"concept={concept}；desc={concept_desc}"
-                if concept_desc
-                else f"concept={concept}",
-            }
-
-        return columns
+            columns: dict[str, dict[str, str]] = {}
+            for row in rows:
+                col_name = str(row[0])
+                col_type = str(row[1])
+                columns[col_name] = {
+                    "column": col_name,
+                    "type": col_type,
+                    "description": col_name,
+                }
+            return columns
+        except Exception as error:
+            logger.warning(
+                "DuckDB introspection failed for mart table",
+                mart_table=mart_table,
+                error=str(error),
+            )
+            return {}
+        finally:
+            if conn is not None:
+                conn.close()
 
     def _build_mart_prompt(self, intent_name: str, mart_table: str, concepts: list[str]) -> str:
+        """建構 mart 表的 schema prompt，融合 DuckDB 欄位資訊與 concept 語意描述。"""
         mart_columns = self._collect_mart_table_columns(mart_table)
-        if not mart_columns:
-            concept_meta = self._load_concepts().get("concepts", {})
+        concept_meta = self._load_concepts().get("concepts", {})
+        bindings = self._load_bindings().get("bindings", {})
+
+        # 建立 concept → mart column 的映射
+        concept_column_map: dict[str, dict[str, str]] = {}
+        for concept in concepts:
+            concept_info = concept_meta.get(concept, {})
+            duckdb_binding = bindings.get(concept, {}).get("DUCKDB", {})
+            bound_column = duckdb_binding.get("column", "").lower()
+            concept_column_map[bound_column] = {
+                "concept": concept,
+                "type": concept_info.get("type", "UNKNOWN"),
+                "description": concept_info.get("description", ""),
+                "aggregation": concept_info.get("aggregation", duckdb_binding.get("aggregation", "")),
+            }
+
+        # 用 concept 語意豐富 mart 欄位描述
+        if mart_columns:
+            for col_name, col_info in mart_columns.items():
+                enrichment = concept_column_map.get(col_name.lower())
+                if enrichment:
+                    parts = [f"concept={enrichment['concept']}"]
+                    if enrichment["description"]:
+                        parts.append(f"desc={enrichment['description']}")
+                    parts.append(f"type={enrichment['type']}")
+                    if enrichment["aggregation"]:
+                        parts.append(f"aggregation={enrichment['aggregation']}")
+                    col_info["type"] = enrichment["type"]
+                    col_info["description"] = "；".join(parts)
+        else:
+            # DuckDB introspection 失敗，用 concept 資訊建構
             for concept in concepts:
                 concept_info = concept_meta.get(concept, {})
                 concept_type = concept_info.get("type", "UNKNOWN")
                 concept_desc = concept_info.get("description", "")
+                agg = concept_info.get("aggregation", "")
+                parts = [f"concept={concept}"]
+                if concept_desc:
+                    parts.append(f"desc={concept_desc}")
+                parts.append(f"type={concept_type}")
+                if agg:
+                    parts.append(f"aggregation={agg}")
                 mart_columns[concept] = {
                     "column": concept,
                     "type": str(concept_type),
-                    "description": f"concept={concept}；desc={concept_desc}"
-                    if concept_desc
-                    else f"concept={concept}",
+                    "description": "；".join(parts),
                 }
 
         return self._render_prompt(
@@ -203,6 +256,17 @@ class V5SchemaBuilder:
         lines: list[str] = [
             f"## {title}",
             "",
+            "## DuckDB 查詢說明",
+            "",
+            "- 原始表格（raw tables）使用 read_parquet() 語法，例如: `SELECT col FROM read_parquet('s3://bucket/path/*.parquet') WHERE ...`",
+            "- Mart 表格（mart_*）直接使用表格名稱",
+            "- 範例：`SELECT item_no, existing_stocks FROM read_parquet('s3://tiptop-raw/raw/v1/tiptop_jp/MB/year=*/month=*/data.parquet') WHERE existing_stocks > 0`",
+            "",
+            "## 欄位類型說明：",
+            "",
+            "- **METRIC**（指標）：數值型欄位，彙總時必須使用聚合函數（見欄位說明中的 aggregation）",
+            "- **DIMENSION**（維度）：分類/編號型欄位，用於 GROUP BY 和 WHERE 條件",
+            "",
             "## 可用表格：",
             "",
         ]
@@ -213,11 +277,24 @@ class V5SchemaBuilder:
 
         for table_name in sorted(table_columns):
             lines.append(f"### {table_name}")
-            lines.append("| 欄位名稱 | 類型 | 說明 |")
+
+            # Extract and display s3_path hint if present
+            table_data = table_columns[table_name]
+            s3_path_info = table_data.get("_s3_path")
+            if s3_path_info:
+                read_parquet_path = s3_path_info["description"]  # e.g., "read_parquet('s3://...')"
+                lines.append(f"> 使用 DuckDB {read_parquet_path}")
+                lines.append("")
+
+            lines.append("| 欄位名稱 | 類形 | 說明 |")
             lines.append("|---------|------|------|")
 
-            for column_name in sorted(table_columns[table_name]):
-                column_info = table_columns[table_name][column_name]
+            for column_name in sorted(table_data):
+                # Skip the sentinel _s3_path key from column rendering
+                if column_name == "_s3_path":
+                    continue
+
+                column_info = table_data[column_name]
                 lines.append(
                     f"| {column_info['column']} | {column_info['type']} | {column_info['description']} |"
                 )

@@ -57,7 +57,7 @@ def sync_to_qdrant(
         print(f"  📝 建立 Collection: {concepts_collection}")
         client.create_collection(
             collection_name=concepts_collection,
-            vectors_config=VectorParams(size=1024, distance=Distance.COSINE),
+            vectors_config=VectorParams(size=4096, distance=Distance.COSINE),
         )
 
     try:
@@ -67,7 +67,7 @@ def sync_to_qdrant(
         print(f"  📝 建立 Collection: {intents_collection}")
         client.create_collection(
             collection_name=intents_collection,
-            vectors_config=VectorParams(size=1024, distance=Distance.COSINE),
+            vectors_config=VectorParams(size=4096, distance=Distance.COSINE),
         )
 
     concepts_data = load_json_file(concepts_path)
@@ -80,7 +80,7 @@ def sync_to_qdrant(
 
     def generate_vector(text: str) -> list:
         hash_val = int(hashlib.md5(text.encode()).hexdigest(), 16)
-        return [(hash_val % 100) / 100.0 for _ in range(1024)]
+        return [(hash_val % 100) / 100.0 for _ in range(4096)]
 
     concept_points = []
     for idx, (name, concept) in enumerate(concepts.items()):

@@ -1,0 +1,15 @@
+Task 5 Evidence — execute() PTAO happy path
+Date: 2026-03-10
+
+Command:
+python3 -m pytest datalake-system/mm_agent/tests/test_execute_ptao_integration.py -q -k 'completed_response'
+
+Result:
+- 1 passed, 1 deselected
+
+Validated assertions:
+- AgentServiceResponse.task_id 保持原格式
+- status == "completed"
+- error == None
+- result.metadata.ptao.thought / observation / decision_log 存在
+- result.result 來源為 ptao_result.raw_result

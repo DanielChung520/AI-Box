@@ -1,0 +1,23 @@
+=== intents.json Validation ===
+JSON parse: OK
+Total intents: 15
+
+QUERY_PRICE.mart_table = mart_price_wide -> PASS
+QUERY_CUSTOMER_PRICE.mart_table = mart_price_wide -> PASS
+
+All mart_table values:
+  QUERY_INVENTORY: mart_inventory_wide
+  QUERY_WORK_ORDER_COUNT: mart_work_order_wide
+  QUERY_INVENTORY_BY_WAREHOUSE: mart_inventory_wide
+  QUERY_WORK_ORDER: mart_work_order_wide
+  QUERY_MANUFACTURING_PROGRESS: mart_work_order_wide
+  QUERY_WORKSTATION_OUTPUT: mart_work_order_wide
+  QUERY_QUALITY: (none)
+  QUERY_OUTSOURCING: (none)
+  QUERY_SHIPPING: mart_shipping_wide
+  QUERY_SHIPPING_BY_CUSTOMER: mart_shipping_wide
+  QUERY_SHIPPING_DETAILS: mart_shipping_wide
+  QUERY_PRICE_APPROVAL: (none)
+  QUERY_PRICE_DETAILS: (none)
+  QUERY_CUSTOMER_PRICE: mart_price_wide
+  QUERY_PRICE: mart_price_wide
