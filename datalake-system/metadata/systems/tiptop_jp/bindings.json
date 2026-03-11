@@ -113,7 +113,7 @@
     "STATUS_CODE": {
       "JP_TIPTOP_ERP": {
         "table": "SFAA_T",
-        "column": "SFASTUS",
+        "column": "SFAASTUS",
         "aggregation": "NONE",
         "operator": "="
       },
@@ -201,6 +201,12 @@
       }
     },
     "MO_DOC_NO": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCA_T",
+        "column": "SFCADOCNO",
+        "aggregation": "NONE",
+        "operator": "="
+      },
       "DUCKDB": {
         "table": "SFCA_T",
         "column": "SFCADOCNO",
@@ -227,13 +233,13 @@
     "RUN_CARD_NO": {
       "JP_TIPTOP_ERP": {
         "table": "SFCA_T",
-        "column": "SFCA003",
+        "column": "SFCA001",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
         "table": "SFCA_T",
-        "column": "SFCA003",
+        "column": "SFCA001",
         "aggregation": "NONE",
         "operator": "=",
         "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
@@ -271,29 +277,29 @@
     },
     "LN": {
       "JP_TIPTOP_ERP": {
-        "table": "SFCA_T",
-        "column": "SFCA001",
+        "table": "SFCB_T",
+        "column": "SFCB002",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCA_T",
-        "column": "SFCA001",
+        "table": "SFCB_T",
+        "column": "SFCB002",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
+        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
       }
     },
     "CURRENT_OPERATION": {
       "JP_TIPTOP_ERP": {
         "table": "SFCB_T",
-        "column": "SFCB004",
+        "column": "SFCB003",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
         "table": "SFCB_T",
-        "column": "SFCB004",
+        "column": "SFCB003",
         "aggregation": "NONE",
         "operator": "=",
         "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
@@ -302,13 +308,13 @@
     "OPERATION_SEQ": {
       "JP_TIPTOP_ERP": {
         "table": "SFCB_T",
-        "column": "SFCB003",
+        "column": "SFCB004",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
         "table": "SFCB_T",
-        "column": "SFCB003",
+        "column": "SFCB004",
         "aggregation": "NONE",
         "operator": "=",
         "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
@@ -500,7 +506,7 @@
     "EXPECTED_DATE": {
       "JP_TIPTOP_ERP": {
         "table": "XMDG_T",
-        "column": "XMDG003",
+        "column": "XMDG028",
         "aggregation": "NONE",
         "operator": "="
       },
@@ -515,7 +521,7 @@
     "SALES_CATEGORY": {
       "JP_TIPTOP_ERP": {
         "table": "XMDG_T",
-        "column": "XMDG004",
+        "column": "XMDG027",
         "aggregation": "NONE",
         "operator": "="
       },
@@ -530,7 +536,7 @@
     "SEQ": {
       "JP_TIPTOP_ERP": {
         "table": "XMDH_T",
-        "column": "XMDH001",
+        "column": "XMDHSEQ",
         "aggregation": "NONE",
         "operator": "="
       },
@@ -545,13 +551,13 @@
     "CUSTOMER_PO_NO": {
       "JP_TIPTOP_ERP": {
         "table": "XMDH_T",
-        "column": "XMDH004",
+        "column": "XMDHUD001",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
         "table": "XMDH_T",
-        "column": "XMDH004",
+        "column": "XMDHUD001",
         "aggregation": "NONE",
         "operator": "=",
         "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDH_T/year=*/month=*/data.parquet"
@@ -605,13 +611,13 @@
     "APPLICANT": {
       "JP_TIPTOP_ERP": {
         "table": "XMDT_T",
-        "column": "XMDT003",
+        "column": "XMDT002",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
         "table": "XMDT_T",
-        "column": "XMDT003",
+        "column": "XMDT002",
         "aggregation": "NONE",
         "operator": "=",
         "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
@@ -635,13 +641,13 @@
     "VALID_DATE": {
       "JP_TIPTOP_ERP": {
         "table": "XMDT_T",
-        "column": "XMDT005",
+        "column": "XMDT015",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
         "table": "XMDT_T",
-        "column": "XMDT005",
+        "column": "XMDT015",
         "aggregation": "NONE",
         "operator": "=",
         "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
@@ -701,7 +707,7 @@
         "column": "item_no",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
+        "s3_path": "s3://tiptop-raw/mart/v1/tiptop_jp/mart_inventory_wide/year=*/month=*/data.parquet"
       }
     },
     "MART_WORK_ORDER_WIDE": {
@@ -710,7 +716,7 @@
         "column": "SFAA010",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet"
+        "s3_path": "s3://tiptop-raw/mart/v1/tiptop_jp/mart_work_order_wide/year=*/month=*/data.parquet"
       }
     },
     "MART_SHIPPING_WIDE": {
@@ -719,7 +725,7 @@
         "column": "XMDGDOCNO",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+        "s3_path": "s3://tiptop-raw/mart/v1/tiptop_jp/mart_shipping_wide/year=*/month=*/data.parquet"
       }
     },
     "ITEM_MASTER": {
