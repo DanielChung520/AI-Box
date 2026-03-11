@@ -23,56 +23,10 @@ logger = structlog.get_logger(__name__)
 # ──────────────────────────────────────────────────
 # 從 da_intent_rag.py 匯入（該檔案目前有語法錯誤，故用 try/except 並附本地備份定義）
 # ──────────────────────────────────────────────────
-try:
-    from data_agent.services.schema_driven_query.da_intent_rag import (
-        IntentMatchResult,
-        detect_query_complexity,
-    )
-except (SyntaxError, ImportError):
-    from dataclasses import dataclass
-
-    logger.warning(
-        "無法從 da_intent_rag 匯入，使用本地相容定義",
-        reason="da_intent_rag.py 存在語法錯誤",
-    )
-
-    @dataclass
-    class IntentMatchResult:  # type: ignore[no-redef]
-        """意圖匹配結果（相容備份）"""
-
-        intent: str
-        confidence: float
-        description: str
-        input_filters: List[str]
-        mart_table: Optional[str]
-        complexity: str = "simple"
-
-    COMPLEX_QUERY_KEYWORDS = [
-        "最大",
-        "最多",
-        "最少",
-        "最低",
-        "最高",
-        "排序",
-        "前",
-        "名",
-        "佔比",
-        "比例",
-        "百分比",
-        "比較",
-        "對比",
-        "總計",
-        "合計",
-        "小計",
-    ]
-
-    def detect_query_complexity(query: str) -> str:  # type: ignore[no-redef]
-        """根據查詢內容判斷複雜度"""
-        for keyword in COMPLEX_QUERY_KEYWORDS:
-            if keyword in query:
-                return "complex"
-        return "simple"
-
+from data_agent.services.schema_driven_query.da_intent_rag import (
+    IntentMatchResult,
+    detect_query_complexity,
+)
 
 class CachedIntentMatcher:
     """
@@ -281,7 +235,9 @@ class CachedIntentMatcher:
                     description=intent_data["description"],
                     input_filters=intent_data["input_filters"],
                     mart_table=intent_data.get("mart_table"),
-                    complexity=detect_query_complexity(nlq),
+                    complexity="complex"
+                    if intent_data.get("mart_table")
+                    else detect_query_complexity(nlq),
                 )
 
             logger.info(
