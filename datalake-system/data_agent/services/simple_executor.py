@@ -37,10 +37,17 @@ class SimpleDBExecutor:
         self.duckdb_config = self.config.duckdb
 
     def _get_connection(self):
-        """建立 DuckDB 連線"""
+        """建立 DuckDB 連線（含 S3/httpfs 設定）"""
+        s3 = self.duckdb_config.s3
         return duckdb.connect(
             database=self.duckdb_config.database,
             config={
+                "s3_endpoint": s3.endpoint_host,
+                "s3_access_key_id": s3.access_key,
+                "s3_secret_access_key": s3.secret_key,
+                "s3_region": s3.region,
+                "s3_use_ssl": str(s3.use_ssl).lower(),
+                "s3_url_style": s3.url_style,
                 "temp_directory": self.duckdb_config.temp_directory,
                 "memory_limit": self.duckdb_config.memory_limit,
                 "worker_threads": self.duckdb_config.threads,
