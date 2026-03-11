@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any
 
@@ -17,7 +18,7 @@ from sqlglot.errors import ParseError
 logger = structlog.get_logger(__name__)
 
 DEFAULT_OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-DEFAULT_MODEL = os.environ.get("MOE_CHAT_MODEL", "llama3.2:3b-instruct-q4_0")
+DEFAULT_MODEL = os.environ.get("OLLAMA_DEFAULT_MODEL", os.environ.get("MOE_CHAT_MODEL", "mistral-nemo:12b"))
 
 
 class SimpleLLMSQLGenerator:
@@ -40,7 +41,7 @@ class SimpleLLMSQLGenerator:
 ## 重要規則：
 1. 只使用上述表格的實際欄位名稱
 2. 只使用 SELECT 語句（只讀）
-3. 直接輸出 SQL，不要包含任何解釋或 markdown 標記
+3. **嚴格限制輸出格式**：回覆中只能包含一條 SQL 語句，禁止輸出任何解釋、說明文字或 markdown 標記。不要寫「Here is」「以下是」等前綴。
 4. 原始表格（非 mart_*）必須使用 read_parquet() 語法，例如: `SELECT col FROM read_parquet('s3://tiptop-raw/raw/v1/tiptop_jp/TABLE/year=*/month=*/data.parquet') WHERE ...`
 5. Mart 表格（mart_*）直接使用表格名稱，例如: `SELECT col FROM mart_inventory_wide WHERE ...`
 
@@ -92,8 +93,48 @@ class SimpleLLMSQLGenerator:
         )
         response.raise_for_status()
         result = response.json()
-        sql = result.get("response", "").strip()
-        return sql.replace("```sql", "").replace("```", "").strip()
+        raw_text = result.get("response", "").strip()
+        return self._extract_sql(raw_text)
+
+    @staticmethod
+    def _extract_sql(raw: str) -> str:
+        """從 LLM 回應中提取純 SQL 語句。
+
+        處理常見 LLM 輸出問題：
+        - markdown 代碼塊 (```sql ... ```)
+        - 前綴說明文字 ("Here is the query:")
+        - 後綴解釋 ("This query returns ...")
+        """
+        if not raw:
+            return ""
+
+        # 1. 嘗試從 markdown 代碼塊中提取
+        md_match = re.search(r"```(?:sql)?\s*\n?(.*?)\n?```", raw, re.DOTALL | re.IGNORECASE)
+        if md_match:
+            return md_match.group(1).strip()
+
+        # 2. 嘗試用 SELECT 關鍵字定位 SQL 起始位置
+        select_match = re.search(r"(SELECT\s.+)", raw, re.DOTALL | re.IGNORECASE)
+        if select_match:
+            sql_candidate = select_match.group(1).strip()
+            # 移除 SQL 結尾後的自然語言解釋（以常見句首詞截斷）
+            # 匹配：換行後跟英文/中文說明句
+            tail_pattern = re.compile(
+                r"\n\s*(?:"
+                r"This |Here |The |Note[ :]|Explanation|It |I |--|//"
+                r"|這|以上|此|說明|備註|注意|解釋"
+                r").*",
+                re.DOTALL | re.IGNORECASE,
+            )
+            sql_candidate = tail_pattern.split(sql_candidate, maxsplit=1)[0].strip()
+            # 清除尾部分號後多餘文字
+            semicolon_idx = sql_candidate.rfind(";")
+            if semicolon_idx > 0:
+                sql_candidate = sql_candidate[: semicolon_idx + 1]
+            return sql_candidate
+
+        # 3. Fallback: 原文清洗
+        return raw.replace("```sql", "").replace("```", "").strip()
 
     def _validate_sql(self, sql: str) -> tuple[bool, str | None]:
         try:

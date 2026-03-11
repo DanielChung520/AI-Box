@@ -89,7 +89,7 @@ class TestSimpleLLMSQLGenerator:
 
     def test_escalation_on_persistent_failure(self, generator):
         """兩次 retry 都失敗 → escalate to big model → 仍失敗 → status=error"""
-        garbage = "NOT A SELECT STATEMENT ;;;"
+        garbage = "DEFINITELY_NOT_VALID_SQL @@@"
 
         with patch.object(generator.client, "post", return_value=_mock_ollama_response(garbage)):
             result = generator.generate_sql(
@@ -138,7 +138,7 @@ class TestSimpleLLMSQLGenerator:
 
     def test_escalation_skipped_when_already_big_model(self, generator):
         """當初始 model 就是 big_model 且第一次失敗 → 不做 retry/escalation"""
-        garbage = "GARBAGE SQL"
+        garbage = "DEFINITELY_NOT_VALID_SQL @@@"
 
         with patch.object(generator.client, "post", return_value=_mock_ollama_response(garbage)):
             result = generator.generate_sql(
