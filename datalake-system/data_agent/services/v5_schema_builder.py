@@ -57,7 +57,7 @@ class V5SchemaBuilder:
                 intent_name=intent_name, mart_table=mart_table, concepts=concepts
             )
 
-        raw_tables = self._collect_raw_table_columns(concepts)
+        raw_tables = self._collect_raw_table_columns(concepts, intent_name=intent_name)
         return self._render_prompt(
             title=f"Intent: {intent_name}（complexity={normalized_complexity}）",
             table_columns=raw_tables,
@@ -110,7 +110,7 @@ class V5SchemaBuilder:
         return unique_concepts
 
     def _collect_raw_table_columns(
-        self, concepts: list[str]
+        self, concepts: list[str], intent_name: str | None = None
     ) -> dict[str, dict[str, dict[str, str]]]:
         bindings = self._load_bindings().get("bindings", {})
         concept_meta = self._load_concepts().get("concepts", {})
@@ -118,7 +118,13 @@ class V5SchemaBuilder:
         table_columns: dict[str, dict[str, dict[str, str]]] = {}
         table_s3_paths: dict[str, str] = {}  # Store s3_path per table
         for concept in concepts:
-            duckdb_binding = bindings.get(concept, {}).get("DUCKDB")
+            concept_binding = bindings.get(concept, {})
+            # Per-intent override: check intents.{intent_name}.DUCKDB first
+            duckdb_binding = None
+            if intent_name:
+                duckdb_binding = concept_binding.get("intents", {}).get(intent_name, {}).get("DUCKDB")
+            if not isinstance(duckdb_binding, dict):
+                duckdb_binding = concept_binding.get("DUCKDB")
             if not isinstance(duckdb_binding, dict):
                 continue
 

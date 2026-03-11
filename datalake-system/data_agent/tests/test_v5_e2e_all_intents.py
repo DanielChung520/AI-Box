@@ -229,7 +229,7 @@ class TestV5E2EAllIntents:
         _assert_success_data(payload)
         _log_response_summary(payload, intent, complexity, nlq)
 
-    @pytest.mark.xfail(strict=False, reason="LLM fabricates column name sfcbadocno (should be SFCBDOCNO)")
+    @pytest.mark.xfail(strict=False, reason="Multi-table JOIN needed: SFCA_T + SFCB_T + irrelevant XMDG_T pollutes prompt")
     def test_query_quality(self, e2e_client: httpx.Client) -> None:
         intent = "QUERY_QUALITY"
         complexity = "simple"
@@ -268,7 +268,6 @@ class TestV5E2EAllIntents:
         _assert_success_data(payload)
         _log_response_summary(payload, intent, complexity, nlq)
 
-    @pytest.mark.xfail(strict=False, reason="Intent misroute to SHIPPING_BY_CUSTOMER + LLM uses non-existent XMDH015")
     def test_query_shipping_details(self, e2e_client: httpx.Client) -> None:
         intent = "QUERY_SHIPPING_DETAILS"
         complexity = "simple"
@@ -288,7 +287,6 @@ class TestV5E2EAllIntents:
         _assert_success_data(payload)
         _log_response_summary(payload, intent, complexity, nlq)
 
-    @pytest.mark.xfail(strict=False, reason="LLM non-deterministic: concept name usage + type mismatch on XMDHSEQ")
     def test_query_price_details(self, e2e_client: httpx.Client) -> None:
         intent = "QUERY_PRICE_DETAILS"
         complexity = "simple"
@@ -298,7 +296,7 @@ class TestV5E2EAllIntents:
         _assert_success_data(payload)
         _log_response_summary(payload, intent, complexity, nlq)
 
-    @pytest.mark.xfail(strict=False, reason="LLM cross-references SFAA_T columns when querying XMDH_T/XMDU_T")
+    @pytest.mark.xfail(strict=False, reason="Cross-table query: CUSTOMER_NO in XMDT_T but UNIT_PRICE in XMDU_T requires JOIN")
     def test_query_customer_price(self, e2e_client: httpx.Client) -> None:
         intent = "QUERY_CUSTOMER_PRICE"
         complexity = "simple"
@@ -308,7 +306,7 @@ class TestV5E2EAllIntents:
         _assert_success_data(payload)
         _log_response_summary(payload, intent, complexity, nlq)
 
-    @pytest.mark.xfail(strict=False, reason="LLM uses concept names (item_no, unit_price) instead of DuckDB columns + type mismatch")
+    @pytest.mark.xfail(strict=False, reason="LLM non-deterministic: may generate type-mismatch WHERE on VARCHAR XMDU002")
     def test_query_price(self, e2e_client: httpx.Client) -> None:
         intent = "QUERY_PRICE"
         complexity = "simple"
