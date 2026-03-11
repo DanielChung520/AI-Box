@@ -39,29 +39,30 @@ class SimpleLLMSQLGenerator:
 {schema_prompt}
 
 ## 重要規則：
-1. 只使用上述表格的實際欄位名稱
-2. 只使用 SELECT 語句（只讀）
-3. **嚴格限制輸出格式**：回覆中只能包含一條 SQL 語句，禁止輸出任何解釋、說明文字或 markdown 標記。不要寫「Here is」「以下是」等前綴。
-4. 原始表格（非 mart_*）必須使用 read_parquet() 語法，例如: `SELECT col FROM read_parquet('s3://tiptop-raw/raw/v1/tiptop_jp/TABLE/year=*/month=*/data.parquet') WHERE ...`
-5. Mart 表格（mart_*）直接使用表格名稱，例如: `SELECT col FROM mart_inventory_wide WHERE ...`
+1. **嚴禁跨表引用欄位**：每張表只能使用「可用表格」章節中列出的欄位。如果你需要的欄位不在該表中，不可以從其他表借用——請僅使用該表現有的欄位。
+2. 只使用上述表格的實際欄位名稱（注意大小寫，例如 SFCBDOCNO 而非 sfcbdocno）
+3. 只使用 SELECT 語句（只讀）
+4. **嚴格限制輸出格式**：回覆中只能包含一條 SQL 語句，禁止輸出任何解釋、說明文字或 markdown 標記。不要寫「Here is」「以下是」等前綴。
+5. 原始表格（非 mart_*）必須使用 read_parquet() 語法，例如: `SELECT col FROM read_parquet('s3://tiptop-raw/raw/v1/tiptop_jp/TABLE/year=*/month=*/data.parquet') WHERE ...`
+6. Mart 表格（mart_*）直接使用表格名稱，例如: `SELECT col FROM mart_inventory_wide WHERE ...`
 
 ## SQL 品質規範（必須遵守）：
-6. **禁止使用 SELECT ***：必須明確列出需要的欄位名稱。根據用戶查詢意圖選擇相關欄位。
-7. **必須加 LIMIT**：
+7. **禁止使用 SELECT ***：必須明確列出需要的欄位名稱。根據用戶查詢意圖選擇相關欄位。
+8. **必須加 LIMIT**：
    - 明細查詢（用戶要求列表/明細/前N筆）：使用用戶指定的數量，若未指定預設 LIMIT 100
    - 聚合查詢（含 SUM/COUNT/AVG/GROUP BY）：預設 LIMIT 100
-8. **METRIC 欄位聚合規則**：
+9. **METRIC 欄位聚合規則**：
    - 表格說明中標記為 `type=METRIC` 且帶有 `aggregation=SUM` 的欄位，在彙總統計時必須使用 SUM() 聚合
    - 標記為 `type=DIMENSION` 的欄位是分組維度，用於 GROUP BY
    - 當查詢需要「彙總」「統計」「合計」「各XX的」時，對 METRIC 欄位使用對應聚合函數
-9. **GROUP BY 規則**：使用聚合函數時，SELECT 中所有非聚合欄位必須出現在 GROUP BY 中
-10. **排序**：聚合查詢建議加 ORDER BY 讓結果更有意義（如 ORDER BY total DESC）
+10. **GROUP BY 規則**：使用聚合函數時，SELECT 中所有非聚合欄位必須出現在 GROUP BY 中
+11. **排序**：聚合查詢建議加 ORDER BY 讓結果更有意義（如 ORDER BY total DESC）
+12. **欄位名稱必須完全匹配**：使用表格中列出的確切欄位名稱，不要自行拼接或猜測欄位名（例如不要把 SFCBDOCNO 寫成 sfcbadocno）
 
 ## 查詢類型判斷：
 - 「列出/明細/前N筆/查詢XX的資料」→ 明細查詢：SELECT 具體欄位 + WHERE 條件 + LIMIT
 - 「各XX統計/彙總/合計/有多少種」→ 聚合查詢：SELECT 維度 + SUM/COUNT(指標) + GROUP BY + ORDER BY + LIMIT
-- 「大於/小於/超過」→ 篩選查詢：SELECT 具體欄位 + WHERE 條件 + LIMIT
-"""
+- 「大於/小於/超過」→ 篩選查詢：SELECT 具體欄位 + WHERE 條件 + LIMIT"""
 
     def _invoke_llm(
         self,

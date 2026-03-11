@@ -104,7 +104,9 @@ async def embed_intents(
 
     for intent_name, intent_data in intents.items():
         description = intent_data.get("description", "")
-        text = f"{intent_name}: {description}"
+        example_queries = intent_data.get("example_queries", [])
+        examples_text = f" | 範例: {', '.join(example_queries)}" if example_queries else ""
+        text = f"{intent_name}: {description}{examples_text}"
         logger.info("生成嵌入向量", intent=intent_name, text=text)
 
         embedding = await manager.embed(text)
@@ -180,6 +182,9 @@ def upload_points(
             "input_filters": input_filters,
             "source_tables": source_tables,
         }
+        example_queries = intent_data.get("example_queries", [])
+        if example_queries:
+            payload["example_queries"] = example_queries
         if mart_table is not None:
             payload["mart_table"] = mart_table
 

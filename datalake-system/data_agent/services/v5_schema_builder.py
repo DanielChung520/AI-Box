@@ -275,8 +275,30 @@ class V5SchemaBuilder:
             lines.append("（無可用表格映射）")
             return "\n".join(lines)
 
+        # Build per-table column name lists for the boundary summary
+        table_column_names: dict[str, list[str]] = {}
         for table_name in sorted(table_columns):
+            col_names = [
+                cn for cn in sorted(table_columns[table_name]) if cn != "_s3_path"
+            ]
+            table_column_names[table_name] = col_names
+
+        # Emit a global column-boundary summary block
+        lines.append("## ⚠️ 嚴格欄位歸屬規則（最重要！）")
+        lines.append("")
+        lines.append("每張表只能使用該表定義的欄位，嚴禁跨表引用欄位。")
+        lines.append("")
+        for tname, cnames in table_column_names.items():
+            lines.append(f"- **{tname}** 的合法欄位：{', '.join(cnames)}")
+        lines.append("")
+        lines.append("若某張表沒有你需要的欄位，不可從其他表借用——請僅使用該表現有的欄位。")
+        lines.append("")
+
+        for table_name in sorted(table_columns):
+            col_names = table_column_names[table_name]
             lines.append(f"### {table_name}")
+            lines.append(f"⚠️ **{table_name}** 僅包含以下 {len(col_names)} 個欄位，禁止使用其他表的欄位：")
+            lines.append("")
 
             # Extract and display s3_path hint if present
             table_data = table_columns[table_name]

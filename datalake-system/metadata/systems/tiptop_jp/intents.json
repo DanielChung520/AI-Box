@@ -5,6 +5,12 @@
   "intents": {
     "QUERY_INVENTORY": {
       "description": "在庫照会",
+      "example_queries": [
+        "查詢所有料件的庫存",
+        "查詢料件 A001 的庫存數量",
+        "查詢倉庫 W01 的庫存",
+        "在庫一覧を表示"
+      ],
       "input": {
         "filters": [
           "ITEM_NO",
@@ -33,6 +39,12 @@
     },
     "QUERY_WORK_ORDER_COUNT": {
       "description": "工單數量統計",
+      "example_queries": [
+        "本月工單數量統計",
+        "工單有幾張",
+        "統計工單總數",
+        "今月の工単件数"
+      ],
       "input": {
         "filters": [
           "TIME_RANGE"
@@ -51,6 +63,12 @@
     },
     "QUERY_INVENTORY_BY_WAREHOUSE": {
       "description": "倉庫別在庫集計",
+      "example_queries": [
+        "各倉庫庫存數量前10名排名",
+        "按倉庫統計庫存",
+        "哪個倉庫庫存最多",
+        "倉庫別の在庫集計"
+      ],
       "input": {
         "filters": [
           "TIME_RANGE",
@@ -72,6 +90,12 @@
     },
     "QUERY_WORK_ORDER": {
       "description": "工單照会（使用 SFCA_T 單表，客戶/物料資訊參考寬表 mart_work_order_wide）",
+      "example_queries": [
+        "查詢工單 MO-001 的詳細資訊",
+        "查詢工單明細",
+        "工單 MO-002 的狀態",
+        "工単の詳細情報"
+      ],
       "input": {
         "filters": [
           "MO_DOC_NO",
@@ -99,6 +123,12 @@
     },
     "QUERY_MANUFACTURING_PROGRESS": {
       "description": "製造進捗照会",
+      "example_queries": [
+        "查詢製造進度報告",
+        "工單的製程進度如何",
+        "查詢製造工序的完成狀態",
+        "製造進捗レポート"
+      ],
       "input": {
         "filters": [
           "MO_DOC_NO",
@@ -129,6 +159,12 @@
     },
     "QUERY_WORKSTATION_OUTPUT": {
       "description": "工作站產出照会",
+      "example_queries": [
+        "查詢各工作站的產出數量",
+        "各工作站生產了多少",
+        "工作站產出統計",
+        "ワークステーション別の生産数"
+      ],
       "input": {
         "filters": [
           "WORKSTATION",
@@ -152,6 +188,12 @@
     },
     "QUERY_QUALITY": {
       "description": "品質関連照会",
+      "example_queries": [
+        "查詢品質檢驗結果",
+        "查詢報廢和重工數量",
+        "品質不良率統計",
+        "品質検査結果の照会"
+      ],
       "input": {
         "filters": [
           "MO_DOC_NO",
@@ -174,6 +216,12 @@
     },
     "QUERY_OUTSOURCING": {
       "description": "外包加工照会",
+      "example_queries": [
+        "查詢外包加工的完成數量",
+        "外包工序進度如何",
+        "外注加工の進捗",
+        "外包完成量統計"
+      ],
       "input": {
         "filters": [
           "MO_DOC_NO",
@@ -191,7 +239,13 @@
       }
     },
     "QUERY_SHIPPING": {
-      "description": "出荷通知照会",
+      "description": "出荷通知一覧照会（出貨通知列表，非單一明細）",
+      "example_queries": [
+        "列出所有出貨通知單號",
+        "出貨通知列表",
+        "查詢出貨通知一覽",
+        "出荷通知の一覧表示"
+      ],
       "input": {
         "filters": [
           "DOC_NO",
@@ -219,7 +273,13 @@
       "mart_table": "mart_shipping_wide"
     },
     "QUERY_SHIPPING_BY_CUSTOMER": {
-      "description": "客戶別出荷集計",
+      "description": "客戶別出荷集計（按客戶彙總統計出貨數量）",
+      "example_queries": [
+        "按客戶統計出貨數量",
+        "各客戶出貨量排名",
+        "客戶出貨彙總",
+        "顧客別出荷集計"
+      ],
       "input": {
         "filters": [
           "CUSTOMER_NO",
@@ -243,7 +303,13 @@
       "mart_table": "mart_shipping_wide"
     },
     "QUERY_SHIPPING_DETAILS": {
-      "description": "出荷明细照会",
+      "description": "出荷明细照会（查詢特定出貨單號的明細行項目）",
+      "example_queries": [
+        "查詢出貨通知 SN-001 的明細",
+        "出貨單 SN-002 的明細內容",
+        "某張出貨單的詳細品項資料",
+        "出荷通知SN-001の明細照会"
+      ],
       "input": {
         "filters": [
           "DOC_NO",
@@ -267,7 +333,13 @@
       "mart_table": "mart_shipping_wide"
     },
     "QUERY_PRICE_APPROVAL": {
-      "description": "售價審核照会",
+      "description": "售價審核一覧照会（售價審核單列表，非單一明細）",
+      "example_queries": [
+        "查詢售價審核單列表",
+        "售價審核單一覽",
+        "列出所有售價審核單",
+        "売価承認一覧の照会"
+      ],
       "input": {
         "filters": [
           "DOC_NO",
@@ -295,7 +367,13 @@
       }
     },
     "QUERY_PRICE_DETAILS": {
-      "description": "售價明细照会",
+      "description": "售價明细照会（查詢特定售價審核單號的明細行項目）",
+      "example_queries": [
+        "查詢售價審核單 PR-001 的明細",
+        "售價單 PR-002 的明細內容",
+        "某張售價審核單的詳細品項",
+        "売価承認PR-001の明細照会"
+      ],
       "input": {
         "filters": [
           "DOC_NO",
@@ -315,7 +393,13 @@
       }
     },
     "QUERY_CUSTOMER_PRICE": {
-      "description": "客戶售價列表",
+      "description": "客戶售價列表（查詢特定客戶的售價資料）",
+      "example_queries": [
+        "查詢客戶 C001 的售價",
+        "客戶 C002 有哪些售價",
+        "特定客戶的售價列表",
+        "顧客C001の売価照会"
+      ],
       "input": {
         "filters": [
           "CUSTOMER_NO",
@@ -336,7 +420,13 @@
       "mart_table": "mart_price_wide"
     },
     "QUERY_PRICE": {
-      "description": "售價查詢",
+      "description": "售價查詢（不限定客戶的售價資訊查詢）",
+      "example_queries": [
+        "查詢料件的售價資訊",
+        "查詢所有料件售價",
+        "售價列表查詢",
+        "品目の売価情報照会"
+      ],
       "input": {
         "filters": [
           "ITEM_NO",
