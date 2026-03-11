@@ -104,6 +104,14 @@ class TestDetectQueryComplexity:
             ("各工作站的產出排序", "complex", "排序"),
             ("品質良率排名", "complex", "排名（含 名 字）"),
             ("銷售額排序統計", "complex", "排序"),
+            # 統計/趨勢/分析
+            ("統計上個月各刀庫庫存總量", "complex", "統計"), 
+            ("統計每個刀庫過去三個月的庫存總量並按刀庫分組", "complex", "統計 + 月度 + 分組"),
+            ("各工廠月度出貨量趨勢分析", "complex", "月度 + 趨勢 + 分析"),
+            ("每月出貨量統計", "complex", "統計"),
+            ("過去一年的庫存趨勢", "complex", "趨勢"),
+            ("年度出貨初管理", "complex", "年度"),
+            ("季度預算統計", "complex", "季度 + 統計"),
         ],
         ids=[
             "topn_warehouse_inventory",
@@ -126,6 +134,13 @@ class TestDetectQueryComplexity:
             "agg_sort_output",
             "agg_quality_rank",
             "agg_sales_sort",
+            "agg_monthly_prev_warehouse",
+            "agg_monthly_by_warehouse",
+            "agg_factory_monthly_trend",
+            "agg_monthly_shipping",
+            "agg_yearly_inventory_trend",
+            "agg_annual_shipping_management",
+            "agg_quarterly_budget",
         ],
     )
     def test_complex_queries(self, query: str, expected_complexity: str, reason: str):
@@ -203,6 +218,16 @@ class TestComplexKeywordsList:
             "總計",
             "合計",
             "小計",
+            "統計",
+            "趨勢",
+            "分析",
+            "月度",
+            "年度",
+            "季度",
+            "彙總",
+            "匯總",
+            "平均",
+            "排名",
         ]
         for keyword in expected_keywords:
             assert keyword in COMPLEX_QUERY_KEYWORDS, f"Missing keyword: {keyword}"

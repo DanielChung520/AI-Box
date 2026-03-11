@@ -6,6 +6,7 @@
 import asyncio
 import concurrent.futures
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -28,27 +29,26 @@ class IntentMatchResult:
 
 
 COMPLEX_QUERY_KEYWORDS = [
-    "最大",
-    "最多",
-    "最少",
-    "最低",
-    "最高",
-    "排序",
-    "前",
-    "名",
-    "佔比",
-    "比例",
-    "百分比",
-    "比較",
-    "對比",
-    "對比",
-    "總計",
-    "合計",
-    "小計",
+    "最大", "最多", "最少", "最低", "最高",
+    "排序", "名", "佔比", "比例", "百分比",
+    "比較", "對比",
+    "總計", "合計", "小計",
+    "統計", "趨勢", "分析",
+    "月度", "年度", "季度",
+    "彙總", "匯總", "平均", "排名",
 ]
 
 
 def detect_query_complexity(query: str) -> str:
+    """根據查詢內容判斷複雜度（context-aware 「前」處理）"""
+    # Context-aware check for 「前」: ranking/Top-N usage → complex
+    # e.g. 前10名, 前5大, 前三個（排名意圖）
+    if re.search(r'前\s*\d+\s*[名大個位]', query):
+        return "complex"
+    # Temporal / positional / pagination uses of 「前」→ NOT complex
+    # (前天, 前月, 前年, 以前, 之前, 前幾, 最前, 前10筆 — these fall through)
+
+    # Standard keyword check (「前」excluded from list)
     for keyword in COMPLEX_QUERY_KEYWORDS:
         if keyword in query:
             return "complex"

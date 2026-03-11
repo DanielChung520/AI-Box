@@ -56,4 +56,4 @@ data_agent/tests/test_complexity_truth_table.py::TestDetectQueryComplexityEdgeCa
 data_agent/tests/test_complexity_truth_table.py::TestDetectQueryComplexityEdgeCases::test_multiple_keywords_in_query PASSED [ 97%]
 data_agent/tests/test_complexity_truth_table.py::TestDetectQueryComplexityEdgeCases::test_keyword_as_substring PASSED [100%]
 
-============================== 48 passed in 0.37s ==============================
+============================== 48 passed in 0.38s ==============================

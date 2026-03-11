@@ -1,174 +1,228 @@
-# 代碼功能說明: V5 pipeline pytest unit tests for v5_intent_cache
+# -*- coding: utf-8 -*-
+# 代碼功能說明: CachedIntentMatcher (v5_intent_cache) 單元測試 — thin wrapper 驗證
 # 創建日期: 2026-03-11
 # 創建人: Daniel Chung
 # 最後修改日期: 2026-03-11
-# -*- coding: utf-8 -*-
 """
-V5 Intent Cache 單元測試
+CachedIntentMatcher 單元測試
 
-測試 CachedIntentMatcher 的語意匹配功能。
-所有 embedding 呼叫都透過 mock 避免真實 Ollama API 呼叫。
+測試覆蓋：
+1. match_intent 委派給 DA_IntentRAG
+2. DA_IntentRAG 返回 None → 回傳 UNKNOWN
+3. DA_IntentRAG 返回結果 → 直接透傳
+4. UNKNOWN 結果包含 detect_query_complexity
+5. get_cached_intent_matcher singleton
+6. 各種 intent 類型正確透傳
+
+所有 DA_IntentRAG 呼叫都透過 mock，無真實 Qdrant / Ollama 請求。
 """
 
-import json
+from unittest.mock import AsyncMock, patch
 
-import numpy as np
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
-from data_agent.services.v5_intent_cache import CachedIntentMatcher
+from data_agent.services.schema_driven_query.da_intent_rag import (
+    DA_IntentRAG,
+    IntentMatchResult,
+    detect_query_complexity,
+)
+from data_agent.services.v5_intent_cache import (
+    CachedIntentMatcher,
+    get_cached_intent_matcher,
+)
 
 
 # ──────────────────────────────────────────────────
-# Test data
+# Fixtures
 # ──────────────────────────────────────────────────
 
-SAMPLE_INTENTS = {
-    "intents": {
-        "QUERY_INVENTORY": {
-            "description": "在庫照会",
-            "input": {"filters": ["ITEM_NO", "WAREHOUSE_NO"]},
-            "output": {"metrics": ["EXISTING_STOCKS"], "dimensions": ["ITEM_NO"]},
-            "mart_table": "mart_inventory_wide",
-        },
-        "QUERY_WORK_ORDER": {
-            "description": "工單查詢",
-            "input": {"filters": ["TIME_RANGE"]},
-            "output": {"metrics": ["WORK_ORDER_COUNT"], "dimensions": []},
-            "mart_table": "mart_work_order_wide",
-        },
-    }
-}
+
+@pytest.fixture(autouse=True)
+def reset_singletons():
+    """Reset singletons before and after each test."""
+    DA_IntentRAG._instance = None
+    import data_agent.services.v5_intent_cache as cache_mod
+
+    cache_mod._singleton = None
+    yield
+    DA_IntentRAG._instance = None
+    cache_mod._singleton = None
 
 
-def _make_embedding(seed: int, dim: int = 384) -> list:
-    """產生可重現的假 embedding 向量"""
-    rng = np.random.RandomState(seed)
-    vec = rng.randn(dim).astype(np.float32)
-    return (vec / np.linalg.norm(vec)).tolist()
+def _make_intent_result(
+    intent: str = "QUERY_INVENTORY",
+    confidence: float = 0.85,
+    description: str = "在庫照会",
+    input_filters: list | None = None,
+    mart_table: str | None = "mart_inventory_wide",
+    complexity: str = "simple",
+) -> IntentMatchResult:
+    """Helper: 建構 IntentMatchResult"""
+    return IntentMatchResult(
+        intent=intent,
+        confidence=confidence,
+        description=description,
+        input_filters=input_filters or ["ITEM_NO"],
+        mart_table=mart_table,
+        complexity=complexity,
+    )
 
 
-# inventory 和 work_order 的 embedding 應有所不同
-INVENTORY_VEC = _make_embedding(42)
-WORK_ORDER_VEC = _make_embedding(99)
-
-
-@pytest.fixture
-def intents_file(tmp_path):
-    """建立測試用 intents.json"""
-    path = tmp_path / "intents.json"
-    path.write_text(json.dumps(SAMPLE_INTENTS), encoding="utf-8")
-    return str(path)
-
-
-def _build_mock_embed_manager(query_vec: list):
-    """建構 mock EmbeddingManager，可自定義 query embedding 回傳值"""
-    mock_manager = AsyncMock()
-    # 每次 embed() 呼叫：前兩次回傳 intent embedding，後續回傳 query embedding
-    call_count = 0
-
-    async def embed_side_effect(text: str):
-        nonlocal call_count
-        call_count += 1
-        # 前面的呼叫是 _ensure_cache（intent embedding）
-        if call_count == 1:
-            return INVENTORY_VEC
-        elif call_count == 2:
-            return WORK_ORDER_VEC
-        else:
-            # query embedding
-            return query_vec
-
-    mock_manager.embed = AsyncMock(side_effect=embed_side_effect)
-    return mock_manager
+# ──────────────────────────────────────────────────
+# Tests: CachedIntentMatcher
+# ──────────────────────────────────────────────────
 
 
 class TestCachedIntentMatcher:
-    """CachedIntentMatcher 測試"""
+    """CachedIntentMatcher thin wrapper 測試"""
 
     @pytest.mark.asyncio
-    async def test_match_intent_returns_result_with_fields(self, intents_file):
-        """match_intent 應回傳含 intent、confidence、description 等欄位的結果"""
-        # query embedding 與 INVENTORY_VEC 相同 → 應匹配 QUERY_INVENTORY
-        mock_manager = _build_mock_embed_manager(INVENTORY_VEC)
+    async def test_match_intent_delegates_to_da_intent_rag(self):
+        """match_intent 應委派給 DA_IntentRAG.get_instance().match_intent()"""
+        mock_result = _make_intent_result()
 
-        matcher = CachedIntentMatcher(intents_file=intents_file, confidence_threshold=0.3)
+        with patch.object(DA_IntentRAG, "get_instance", new_callable=AsyncMock) as mock_get:
+            mock_rag = AsyncMock()
+            mock_rag.match_intent = AsyncMock(return_value=mock_result)
+            mock_get.return_value = mock_rag
 
-        with patch.object(matcher, "_get_embedding_manager", return_value=mock_manager):
+            matcher = CachedIntentMatcher()
             result = await matcher.match_intent("查詢料號 NI001 的庫存")
 
         assert result.intent == "QUERY_INVENTORY"
-        assert result.confidence > 0.3
-        assert hasattr(result, "description")
-        assert hasattr(result, "input_filters")
-        assert hasattr(result, "mart_table")
-        assert hasattr(result, "complexity")
+        assert result.confidence == 0.85
+        assert result.description == "在庫照会"
+        assert result.complexity == "simple"
+        mock_rag.match_intent.assert_awaited_once_with("查詢料號 NI001 的庫存")
 
     @pytest.mark.asyncio
-    async def test_cache_hit_on_second_call(self, intents_file):
-        """第二次呼叫應使用快取，不再重新計算 intent embeddings"""
-        mock_manager = AsyncMock()
-        # 所有 embed 呼叫回傳相同向量
-        mock_manager.embed = AsyncMock(return_value=INVENTORY_VEC)
+    async def test_rag_returns_none_yields_unknown(self):
+        """DA_IntentRAG 返回 None → CachedIntentMatcher 回傳 UNKNOWN"""
+        with patch.object(DA_IntentRAG, "get_instance", new_callable=AsyncMock) as mock_get:
+            mock_rag = AsyncMock()
+            mock_rag.match_intent = AsyncMock(return_value=None)
+            mock_get.return_value = mock_rag
 
-        matcher = CachedIntentMatcher(intents_file=intents_file, confidence_threshold=0.3)
-
-        with patch.object(matcher, "_get_embedding_manager", return_value=mock_manager):
-            # 第一次呼叫：載入 intents + 計算 intent embeddings + query embedding
-            result1 = await matcher.match_intent("庫存查詢")
-            embed_calls_after_first = mock_manager.embed.call_count
-
-            # 第二次呼叫：只需 query embedding（快取已建立）
-            result2 = await matcher.match_intent("在庫查詢")
-            embed_calls_after_second = mock_manager.embed.call_count
-
-        # 第一次：2 intent embed + 1 query = 3 次
-        assert embed_calls_after_first == 3
-        # 第二次：只有 1 次 query embed（快取命中）
-        assert embed_calls_after_second == 4  # 3 + 1
-
-    @pytest.mark.asyncio
-    async def test_low_confidence_returns_unknown(self, intents_file):
-        """當所有 intent 的 cosine similarity 都低於閾值時，應回傳 UNKNOWN"""
-        # 使用一個與任何 intent 都不相似的向量
-        orthogonal_vec = [0.0] * 384
-        orthogonal_vec[0] = 1.0  # 一個極端方向的向量
-
-        mock_manager = AsyncMock()
-        call_count = 0
-
-        async def embed_side_effect(text: str):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                return INVENTORY_VEC
-            elif call_count == 2:
-                return WORK_ORDER_VEC
-            else:
-                return orthogonal_vec
-
-        mock_manager.embed = AsyncMock(side_effect=embed_side_effect)
-
-        # 設定很高的閾值，確保匹配失敗
-        matcher = CachedIntentMatcher(intents_file=intents_file, confidence_threshold=0.99)
-
-        with patch.object(matcher, "_get_embedding_manager", return_value=mock_manager):
-            result = await matcher.match_intent("一些完全不相關的內容")
+            matcher = CachedIntentMatcher()
+            result = await matcher.match_intent("完全不相關的內容")
 
         assert result.intent == "UNKNOWN"
         assert result.confidence == 0.0
+        assert result.description == ""
+        assert result.input_filters == []
+        assert result.mart_table is None
 
     @pytest.mark.asyncio
-    async def test_missing_intents_file_returns_unknown(self, tmp_path):
-        """當 intents.json 不存在時，應 graceful 回傳 UNKNOWN"""
-        missing_file = str(tmp_path / "nonexistent_intents.json")
-        matcher = CachedIntentMatcher(intents_file=missing_file, confidence_threshold=0.3)
+    async def test_unknown_complexity_uses_detect_query_complexity(self):
+        """UNKNOWN 結果的 complexity 由 detect_query_complexity 決定"""
+        with patch.object(DA_IntentRAG, "get_instance", new_callable=AsyncMock) as mock_get:
+            mock_rag = AsyncMock()
+            mock_rag.match_intent = AsyncMock(return_value=None)
+            mock_get.return_value = mock_rag
 
-        mock_manager = AsyncMock()
-        mock_manager.embed = AsyncMock(return_value=INVENTORY_VEC)
+            matcher = CachedIntentMatcher()
 
-        with patch.object(matcher, "_get_embedding_manager", return_value=mock_manager):
-            result = await matcher.match_intent("查詢庫存")
+            # Simple query
+            result_simple = await matcher.match_intent("查詢料號的庫存")
+            assert result_simple.intent == "UNKNOWN"
+            assert result_simple.complexity == "simple"
 
-        assert result.intent == "UNKNOWN"
-        assert result.confidence == 0.0
+            # Complex query (排序 keyword)
+            result_complex = await matcher.match_intent("庫存排序統計")
+            assert result_complex.intent == "UNKNOWN"
+            assert result_complex.complexity == "complex"
+
+    @pytest.mark.asyncio
+    async def test_passthrough_all_intent_fields(self):
+        """所有 IntentMatchResult 欄位都正確透傳"""
+        mock_result = IntentMatchResult(
+            intent="QUERY_SHIPPING",
+            confidence=0.91,
+            description="出荷通知照会",
+            input_filters=["DOC_NO", "CUSTOMER_NO"],
+            mart_table="mart_shipping_wide",
+            complexity="complex",
+        )
+
+        with patch.object(DA_IntentRAG, "get_instance", new_callable=AsyncMock) as mock_get:
+            mock_rag = AsyncMock()
+            mock_rag.match_intent = AsyncMock(return_value=mock_result)
+            mock_get.return_value = mock_rag
+
+            matcher = CachedIntentMatcher()
+            result = await matcher.match_intent("出貨查詢排序")
+
+        assert result.intent == "QUERY_SHIPPING"
+        assert result.confidence == 0.91
+        assert result.description == "出荷通知照会"
+        assert result.input_filters == ["DOC_NO", "CUSTOMER_NO"]
+        assert result.mart_table == "mart_shipping_wide"
+        assert result.complexity == "complex"
+
+    @pytest.mark.asyncio
+    async def test_work_order_intent_passthrough(self):
+        """工單意圖正確透傳"""
+        mock_result = _make_intent_result(
+            intent="QUERY_WORK_ORDER",
+            confidence=0.78,
+            description="工單照会",
+            input_filters=["MO_DOC_NO", "TIME_RANGE"],
+            mart_table="mart_work_order_wide",
+            complexity="simple",
+        )
+
+        with patch.object(DA_IntentRAG, "get_instance", new_callable=AsyncMock) as mock_get:
+            mock_rag = AsyncMock()
+            mock_rag.match_intent = AsyncMock(return_value=mock_result)
+            mock_get.return_value = mock_rag
+
+            matcher = CachedIntentMatcher()
+            result = await matcher.match_intent("查詢工單 SF001 的狀態")
+
+        assert result.intent == "QUERY_WORK_ORDER"
+        assert result.mart_table == "mart_work_order_wide"
+
+    @pytest.mark.asyncio
+    async def test_match_intent_called_multiple_times(self):
+        """多次呼叫 match_intent 每次都委派到 DA_IntentRAG"""
+        results = [
+            _make_intent_result(intent="QUERY_INVENTORY"),
+            _make_intent_result(intent="QUERY_SHIPPING", description="出荷通知照会"),
+        ]
+
+        with patch.object(DA_IntentRAG, "get_instance", new_callable=AsyncMock) as mock_get:
+            mock_rag = AsyncMock()
+            mock_rag.match_intent = AsyncMock(side_effect=results)
+            mock_get.return_value = mock_rag
+
+            matcher = CachedIntentMatcher()
+            r1 = await matcher.match_intent("庫存查詢")
+            r2 = await matcher.match_intent("出貨查詢")
+
+        assert r1.intent == "QUERY_INVENTORY"
+        assert r2.intent == "QUERY_SHIPPING"
+        assert mock_rag.match_intent.await_count == 2
+
+
+class TestGetCachedIntentMatcher:
+    """get_cached_intent_matcher factory 測試"""
+
+    def test_returns_cached_intent_matcher(self):
+        """get_cached_intent_matcher 返回 CachedIntentMatcher 實例"""
+        matcher = get_cached_intent_matcher()
+        assert isinstance(matcher, CachedIntentMatcher)
+
+    def test_singleton_returns_same_instance(self):
+        """get_cached_intent_matcher 返回同一個 singleton"""
+        matcher1 = get_cached_intent_matcher()
+        matcher2 = get_cached_intent_matcher()
+        assert matcher1 is matcher2
+
+    def test_new_instance_after_reset(self):
+        """reset _singleton 後返回新實例"""
+        import data_agent.services.v5_intent_cache as cache_mod
+
+        matcher1 = get_cached_intent_matcher()
+        cache_mod._singleton = None
+        matcher2 = get_cached_intent_matcher()
+        assert matcher1 is not matcher2
