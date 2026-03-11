@@ -3,6 +3,7 @@
 # 創建人: Daniel Chung
 # 最後修改日期: 2026-03-11
 
+import os
 import time
 
 import structlog
@@ -38,8 +39,8 @@ async def v5_execute(request: V5ExecuteRequest):
     matcher = get_cached_intent_matcher()
     intent_result = await matcher.match_intent(nlq)
 
-    small_model = "llama3:8b"
-    big_model = "gpt-oss:120b"
+    small_model = os.environ.get("OLLAMA_DEFAULT_MODEL", "mistral-nemo:12b")
+    big_model = os.environ.get("OLLAMA_BIG_MODEL", "gpt-oss:120b")
     small_timeout = 30.0
     big_timeout = 90.0
     confidence_threshold = 0.3
