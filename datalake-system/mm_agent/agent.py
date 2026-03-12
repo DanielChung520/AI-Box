@@ -109,8 +109,9 @@ class MMAgent(AgentServiceProtocol):
 
         # DT-Agent endpoint 直接調用
         self._jp_endpoint = (
-            os.getenv("DT_AGENT_SERVICE_URL",
-                      os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8005"))
+            os.getenv(
+                "DT_AGENT_SERVICE_URL", os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8005")
+            )
             + "/api/v1/dt-agent/execute"
         )
 
@@ -635,9 +636,7 @@ class MMAgent(AgentServiceProtocol):
                 clarification_steps = result.get("clarification_needed", [])
                 suggestion = result.get("suggestion", "")
                 error_msg = result.get("message", "查詢被攔截")
-                self._logger.warning(
-                    f"[Agent] Guard 攔截 ({guard_type}): {error_msg}"
-                )
+                self._logger.warning(f"[Agent] Guard 攔截 ({guard_type}): {error_msg}")
                 return {
                     "success": False,
                     "needs_clarification": True,
@@ -674,7 +673,11 @@ class MMAgent(AgentServiceProtocol):
             # 3.8 DT-Agent SQL 安全檢查失敗 (SQL_SAFETY_CHECK_FAILED)
             if "SQL_SAFETY_CHECK_FAILED" in error_codes:
                 error_msg = error_messages[0] if error_messages else "SQL 安全檢查未通過"
-                sql = result.get("details", {}).get("sql", "") if isinstance(result.get("details"), dict) else ""
+                sql = (
+                    result.get("details", {}).get("sql", "")
+                    if isinstance(result.get("details"), dict)
+                    else ""
+                )
                 self._logger.error(f"[Agent] SQL 安全檢查失敗: {error_msg}, sql={sql}")
                 return {
                     "success": False,
@@ -686,7 +689,11 @@ class MMAgent(AgentServiceProtocol):
             # 3.9 DT-Agent SQL 執行失敗 (SQL_EXECUTION_FAILED)
             if "SQL_EXECUTION_FAILED" in error_codes:
                 error_msg = error_messages[0] if error_messages else "SQL 執行失敗"
-                sql = result.get("details", {}).get("sql", "") if isinstance(result.get("details"), dict) else ""
+                sql = (
+                    result.get("details", {}).get("sql", "")
+                    if isinstance(result.get("details"), dict)
+                    else ""
+                )
                 self._logger.error(f"[Agent] SQL 執行失敗: {error_msg}, sql={sql}")
                 return {
                     "success": False,
@@ -888,14 +895,10 @@ class MMAgent(AgentServiceProtocol):
                     result["response_type"] = "no_data"
                 except Exception as e:
                     self._logger.warning(f"LLM 生成查無資料回覆失敗: {e}")
-                    result["response"] = (
-                        f"抱歉，根據您的查詢條件「{user_instruction}」，系統中沒有找到符合的資料。"
-                    )
+                    result["response"] = f"抱歉，根據您的查詢條件「{user_instruction}」，系統中沒有找到符合的資料。"
                     result["response_type"] = "no_data_fallback"
             else:
-                result["response"] = (
-                    f"抱歉，根據您的查詢條件「{user_instruction}」，系統中沒有找到符合的資料。"
-                )
+                result["response"] = f"抱歉，根據您的查詢條件「{user_instruction}」，系統中沒有找到符合的資料。"
                 result["response_type"] = "no_data_fallback"
             return result
 
@@ -929,7 +932,9 @@ class MMAgent(AgentServiceProtocol):
                     }
                     # Guard 攔截的 fallback 回覆
                     if clarification_type == "QUERY_GUARD_REJECTED" and clarification_steps:
-                        steps_text = "\n".join(f"  {i+1}. {step}" for i, step in enumerate(clarification_steps))
+                        steps_text = "\n".join(
+                            f"  {i+1}. {step}" for i, step in enumerate(clarification_steps)
+                        )
                         guard_response = f"⚠️ {message}\n\n建議步驟：\n{steps_text}"
                         if suggestion:
                             guard_response += f"\n\n💡 建議查詢：{suggestion}"
@@ -943,7 +948,9 @@ class MMAgent(AgentServiceProtocol):
                 }
                 # Guard 攔截的 fallback 回覆
                 if clarification_type == "QUERY_GUARD_REJECTED" and clarification_steps:
-                    steps_text = "\n".join(f"  {i+1}. {step}" for i, step in enumerate(clarification_steps))
+                    steps_text = "\n".join(
+                        f"  {i+1}. {step}" for i, step in enumerate(clarification_steps)
+                    )
                     guard_response = f"⚠️ {message}\n\n建議步驟：\n{steps_text}"
                     if suggestion:
                         guard_response += f"\n\n💡 建議查詢：{suggestion}"
@@ -1008,21 +1015,39 @@ class MMAgent(AgentServiceProtocol):
                     # 轉換數據格式：Data-Agent 返回 {warehouse_no, total} → prompt_manager 期望 {part_number, batch_no, quantity}
                     # 嘗試從多個來源獲取料號
                     query_context = inner_result.get("query_context", {})
-                    part_number = query_context.get("part_number", "") or query_context.get("part_no", "")
+                    part_number = query_context.get("part_number", "") or query_context.get(
+                        "part_no", ""
+                    )
 
                     # Fallback: 從 SQL 中提取料號
                     if not part_number:
                         sql = inner_result.get("sql", "")
                         if sql:
                             import re
+
                             sql_match = re.search(r"item_no\s*=\s*'([^']+)'", sql, re.IGNORECASE)
                             if sql_match:
                                 part_number = sql_match.group(1)
 
                     converted_stock_list = []
                     for item in stock_list:
-                        # 檢查是否為新格式 (warehouse_no, total)
-                        if "warehouse_no" in item and "total" in item:
+                        # DT-Agent 新格式 (item_no, existing_stocks)
+                        if "item_no" in item and "existing_stocks" in item:
+                            qty = item.get("existing_stocks", 0)
+                            wh = item.get("warehouse_no", "-")
+                            self._logger.info(
+                                f"[DEBUG] DT-Agent 格式轉換: item_no={item.get('item_no')}, "
+                                f"warehouse_no={wh}, existing_stocks={qty}"
+                            )
+                            converted_stock_list.append(
+                                {
+                                    "part_number": item.get("item_no", "-"),
+                                    "batch_no": wh,
+                                    "quantity": qty,
+                                }
+                            )
+                        # 舊格式 (warehouse_no, total)
+                        elif "warehouse_no" in item and "total" in item:
                             qty = item.get("total", 0)
                             self._logger.info(
                                 f"[DEBUG] 轉換: warehouse_no={item.get('warehouse_no')}, total={qty}"
@@ -1035,7 +1060,7 @@ class MMAgent(AgentServiceProtocol):
                                 }
                             )
                         else:
-                            # 舊格式，直接使用
+                            # 未知格式，直接使用
                             converted_stock_list.append(item)
 
                     self._logger.info(f"[DEBUG] converted_stock_list: {converted_stock_list}")
