@@ -167,8 +167,6 @@ def execute_agent_todo_sync(
     Returns:
         執行結果字典
     """
-    import uuid
-    from datetime import datetime
     from shared.agents.todo.schema import Todo, TodoType, TodoState
     from shared.database.arango_client import SharedArangoClient
 
@@ -272,7 +270,6 @@ def _execute_action(
     Returns:
         執行結果
     """
-    import httpx
 
     if action_type == "data_query":
         return _execute_data_query(instruction, parameters, session_id, step_id)
@@ -294,7 +291,7 @@ def _execute_data_query(
     session_id: str = "",
     step_id: int = 0,
 ) -> Dict[str, Any]:
-    """執行數據查詢 - 調用 Data-Agent
+    """執行數據查詢 - 調用 DT-Agent
 
     Args:
         instruction: 查詢指令
@@ -313,21 +310,23 @@ def _execute_data_query(
     try:
         with httpx.Client(timeout=120.0) as client:
             response = client.post(
-                "http://localhost:8004/jp/execute",
+                "http://localhost:8005/api/v1/dt-agent/execute",
                 json={
                     "task_id": f"rq_data_{uuid.uuid4().hex[:8]}",
-                    "task_type": "schema_driven_query",
+                    "task_type": "simple_query",
                     "task_data": {
                         "nlq": instruction,
+                        "module": "tiptop_jp",
+                        "return_mode": "summary",
                     },
                 },
             )
-
             result = response.json()
 
-            if result.get("status") == "success":
-                rows = result.get("result", {}).get("data", [])
-                sql = result.get("result", {}).get("sql", "")
+            # DT-Agent V5 回應格式
+            if result.get("success", False):
+                rows = result.get("data", [])
+                sql = result.get("sql", "")
 
                 logger.info(f"[RQ-Task] 數據查詢完成: {len(rows)} 行")
 
@@ -355,16 +354,17 @@ def _execute_data_query(
                     "observation": f"數據查詢完成，返回 {len(rows)} 行",
                 }
             else:
-                error_msg = result.get("error", "未知錯誤")
+                error_msg = result.get("message", result.get("error", "未知錯誤"))
                 logger.error(f"[RQ-Task] 數據查詢失敗: {error_msg}")
                 return {
                     "success": False,
                     "error": error_msg,
+                    "error_code": result.get("error_code", ""),
                     "observation": f"數據查詢失敗: {error_msg}",
                 }
 
     except Exception as e:
-        logger.error(f"[RQ-Task] 調用 Data-Agent 失敗: {e}")
+        logger.error(f"[RQ-Task] 調用 DT-Agent 失敗: {e}")
         return {
             "success": False,
             "error": str(e),
@@ -390,7 +390,6 @@ def _execute_knowledge_retrieval(
         檢索結果
     """
     import httpx
-    import uuid
 
     logger.info(f"[RQ-Task] 執行知識檢索: {instruction[:50]}...")
 
@@ -484,7 +483,7 @@ def _execute_response_generation(
     """
     import httpx
 
-    logger.info(f"[RQ-Task] 執行回覆生成")
+    logger.info("[RQ-Task] 執行回覆生成")
 
     # 收集上下文數據
     context_data = parameters.get("context_data", {})

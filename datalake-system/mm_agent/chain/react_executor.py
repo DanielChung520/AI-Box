@@ -755,7 +755,7 @@ class TodoTracker:
 # RQ 任務已移到 rq_task.py 模組，避免循環導入問題
 
 # 導入新的 RQ 任務模組
-from .rq_task import enqueue_agent_todo, execute_agent_todo_sync, AGENT_TODO_QUEUE
+from .rq_task import enqueue_agent_todo
 
 
 def enqueue_rq_task(
@@ -812,7 +812,7 @@ class ReActExecutor:
         total_steps = len(plan.steps)
 
         # 1. 建立 Todo（含 Heartbeat）
-        todo_id = await self._tracker.create_todo(action.step_id, action, instruction, total_steps)
+        _todo_id = await self._tracker.create_todo(action.step_id, action, instruction, total_steps)
 
         # 2. 使用 RQ 交付任務（非同步執行）
         if self._use_rq:
@@ -1020,15 +1020,15 @@ class ReActExecutor:
             from llm.clients.factory import get_client
 
             logger.info(
-                f"[Data] 準備調用 Data-Agent-V5: http://localhost:8004/api/v1/data-agent/v5/execute"
+                "[Data] 準備調用 DT-Agent: http://localhost:8005/api/v1/dt-agent/execute"
             )
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 # V5 只需要 nlq，意圖路由由 V5 內部處理
-                logger.info(f"[Data] 發送請求到 Data-Agent V5: nlq={instruction}")
+                logger.info(f"[Data] 發送請求到 DT-Agent: nlq={instruction}")
 
                 response = await client.post(
-                    "http://localhost:8004/api/v1/data-agent/v5/execute",
+                    "http://localhost:8005/api/v1/dt-agent/execute",
                     json={
                         "task_id": f"react_data_{id(instruction)}",
                         "task_type": "simple_query",
@@ -1047,10 +1047,10 @@ class ReActExecutor:
                     rows = result.get("data", [])
                     sql = result.get("sql", "")
 
-                    logger.info(f"[Data] Data-Agent 返回: rows={len(rows)}")
+                    logger.info(f"[Data] DT-Agent 返回: rows={len(rows)}")
 
                     # 調用 LLM 生成業務解說（無論是否有資料）
-                    logger.info(f"[Data] 調用 LLM 生成業務解說...")
+                    logger.info("[Data] 調用 LLM 生成業務解說...")
                     try:
                         # 構建數據摘要
                         data_summary = self._build_data_summary(rows, instruction)
@@ -1091,7 +1091,7 @@ class ReActExecutor:
 
                         llm_client = get_client(LLMProvider.OLLAMA)
 
-                        logger.info(f"[Data] 發送請求到 LLM...")
+                        logger.info("[Data] 發送請求到 LLM...")
                         llm_response = await llm_client.generate(
                             prompt=explanation_prompt,
                             temperature=0.3,
@@ -1141,11 +1141,11 @@ class ReActExecutor:
                         observation=f"數據查詢完成，返回 {len(rows)} 行",
                     )
                 else:
-                    # Data-Agent 返回錯誤狀態
+                    # DT-Agent 返回錯誤狀態
                     error_code = result.get("error_code", "")
                     error_msg = result.get("message", "未知錯誤")
                     logger.warning(
-                        f"[Data] Data-Agent 返回錯誤: error_code={error_code}, message={error_msg}"
+                        f"[Data] DT-Agent 返回錯誤: error_code={error_code}, message={error_msg}"
                     )
 
                     return ExecutionResult(
@@ -1164,7 +1164,7 @@ class ReActExecutor:
                     )
 
         except Exception as e:
-            logger.warning(f"[Data] Data-Agent 調用失敗: {e}，返回錯誤")
+            logger.warning(f"[Data] DT-Agent 調用失敗: {e}，返回錯誤")
             error_explanation = ""
 
             # 嘗試讓 LLM 生成錯誤解說
@@ -1278,7 +1278,7 @@ class ReActExecutor:
             positive_stocks = [s for s in stocks if s > 0]
 
             if positive_stocks:
-                lines.append(f"\n**📊 庫存統計**")
+                lines.append("\n**📊 庫存統計**")
                 lines.append(f"- 總庫存：{total:,.0f}")
                 lines.append(f"- 有庫存的筆數：{len(positive_stocks)} 筆")
 
@@ -1635,7 +1635,7 @@ class ReActExecutor:
             if business_explanation:
                 response = business_explanation
             else:
-                logger.info(f"[Debug] business_explanation is None, using default response")
+                logger.info("[Debug] business_explanation is None, using default response")
                 response = "處理完成！"
 
         return ExecutionResult(

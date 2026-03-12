@@ -1,7 +1,7 @@
 # 代碼功能說明: MM-Agent 對話鏈 - LangChain 編排 + 多輪對話
 # 創建日期: 2026-01-31
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-02-03
+# 最後修改日期: 2026-03-12
 
 """MM-Agent 對話鏈 - 意圖語義分析 + 多輪對話支持"""
 
@@ -15,7 +15,6 @@ from mm_agent.negative_list import NegativeListChecker
 from mm_agent.coreference_resolver import CoreferenceResolver
 from mm_agent.chain.context_manager import get_context_manager
 from mm_agent.semantic_translator import SemanticTranslatorAgent
-from mm_agent.translation_models import SemanticTranslationResult
 
 logger = logging.getLogger(__name__)
 
@@ -126,10 +125,10 @@ class MMAgentChain:
         return "\n".join(messages)
 
     async def _execute_data_agent_query(self, semantic_result) -> dict:
-        """執行 Data-Agent 查詢
+        """執行 DT-Agent 查詢
 
         MM-Agent 只負責發送完整的自然語言查詢，
-        SQL 生成由 Data-Agent 負責（使用 SchemaRAG）。
+        SQL 生成由 DT-Agent 負責（使用 Schema Driven Query）。
 
         Args:
             semantic_result: 語義分析結果
@@ -156,7 +155,7 @@ class MMAgentChain:
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
-                    "http://localhost:8004/api/v1/data-agent/v5/execute",
+                    "http://localhost:8005/api/v1/dt-agent/execute",
                     json={
                         "task_id": f"mm_query_{int(time.time())}",
                         "task_type": "simple_query",
@@ -193,7 +192,7 @@ class MMAgentChain:
                 }
 
         except Exception as e:
-            logger.error(f"MM-Agent: Data-Agent 查詢失敗: {e}", exc_info=True)
+            logger.error(f"MM-Agent: DT-Agent 查詢失敗: {e}", exc_info=True)
             return {
                 "status": "error",
                 "sql": "N/A",
@@ -673,7 +672,7 @@ class MMAgentChain:
         # 【重要】數據查詢意圖優先，不執行知識庫檢索
         # 如果已經有 semantic_result 識別為數據查詢意圖，直接跳過知識庫檢索判斷
         if has_data_query_intent:
-            logger.info(f"MM-Agent: 檢測到數據查詢意圖（semantic_result），跳過知識庫檢索")
+            logger.info("MM-Agent: 檢測到數據查詢意圖（semantic_result），跳過知識庫檢索")
         elif await self._needs_knowledge_retrieval(working_query):
             has_knowledge_intent = True  # LLM 判斷為知識查詢
             logger.info(
@@ -765,7 +764,7 @@ class MMAgentChain:
         elif data_result and data_result.get("status") == "success" and not knowledge_result:
             response = self._format_data_response(data_result)
             used_data_query = True
-            logger.info(f"MM-Agent: 使用 Data-Agent 結果回復")
+            logger.info("MM-Agent: 使用 Data-Agent 結果回復")
 
         # 情況 3: 兩者都有 → 由 LLM 整合回覆
         elif knowledge_result and data_result and data_result.get("status") == "success":
@@ -774,7 +773,7 @@ class MMAgentChain:
             )
             used_knowledge = True
             used_data_query = True
-            logger.info(f"MM-Agent: 使用整合回覆（知識+數據）")
+            logger.info("MM-Agent: 使用整合回覆（知識+數據）")
 
         # 情況 4: 沒有結果 → 默認回覆
         else:
