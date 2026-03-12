@@ -858,6 +858,35 @@ def _classify_agent_response(agent_result: dict) -> dict:
             "clarification_message": None,
         }
     
+    # 需要澄清 — 多路徑檢測（覆蓋 MM-Agent 不同回傳格式）
+    # 路徑 1: result.needs_clarification（main.py 意圖不明直接回傳）
+    # 路徑 2: result.task_type == "clarification_needed"（P-T-A-O pipeline）
+    # 路徑 3: result.result.needs_clarification（嵌套在 WarehouseAgentResponse.result 內）
+    # 路徑 4: result.semantic_analysis.clarification_needed（語義分析標記）
+    if isinstance(result, dict):
+        _needs_clarification = (
+            result.get("needs_clarification")
+            or result.get("task_type") == "clarification_needed"
+            or (isinstance(result.get("result"), dict) and result["result"].get("needs_clarification"))
+            or (isinstance(result.get("semantic_analysis"), dict) and result["semantic_analysis"].get("clarification_needed"))
+        )
+        if _needs_clarification:
+            # 從多個位置提取澄清訊息
+            clarification_msg = (
+                result.get("clarification_message")
+                or result.get("response")
+                or (isinstance(result.get("result"), dict) and (result["result"].get("clarification_message") or result["result"].get("response")))
+                or (isinstance(result.get("semantic_analysis"), dict) and "\n".join(result["semantic_analysis"].get("clarification_questions", [])))
+                or "請提供更多資訊"
+            )
+            return {
+                "type": "clarification",
+                "data": result,
+                "llm_prompt": None,
+                "clarification_message": clarification_msg,
+            }
+    
+    
     # 業務失敗 (result.success: false 或 status: "failed")
     if isinstance(result, dict) and not result.get("success", True):
         # 提取錯誤訊息（可能在 result.error 或 result.result.message）
@@ -873,17 +902,6 @@ def _classify_agent_response(agent_result: dict) -> dict:
             "llm_prompt": f"抱歉，無法完成您的請求：{error_msg}。",
             "clarification_message": None,
         }
-    
-    # 需要澄清 (needs_clarification: true)
-    if isinstance(result, dict) and result.get("needs_clarification"):
-        clarification_msg = result.get("clarification_message", "請提供更多資訊")
-        return {
-            "type": "clarification",
-            "data": result,
-            "llm_prompt": None,
-            "clarification_message": clarification_msg,
-        }
-    
     # 成功 (status: "completed", result.success: true)
     return {
         "type": "success",

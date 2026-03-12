@@ -401,8 +401,9 @@ class MMAgent(AgentServiceProtocol):
             explanation = "您的指令不夠明確，請提供更多細節。"
 
         return {
-            "success": False,
-            "error": "需要澄清用戶意圖",
+            "success": True,
+            "needs_clarification": True,
+            "clarification_message": explanation.strip(),
             "clarification_questions": questions,
             "response": explanation.strip(),
         }
