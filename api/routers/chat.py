@@ -822,6 +822,64 @@ def _get_endpoint_url(agent_key: str) -> Optional[str]:
         logger = logging.getLogger(__name__)
         logger.warning(f"獲取 endpoint URL 失敗: agent_key={agent_key}, error={e}")
         return None
+
+
+# ============================================================================
+# 澄清延續（Clarification Continuation）— Redis 狀態追蹤
+# 當外部 Agent 返回 needs_clarification 時，將原始查詢和 Agent 資訊
+# 寫入 Redis，下一條用戶消息會 bypass 意圖分類直接路由回同一 Agent。
+# ============================================================================
+
+_CLARIFICATION_PREFIX = "clarification:pending:"
+_CLARIFICATION_TTL_SECONDS = 600  # 10 分鐘
+
+
+def _save_pending_clarification(
+    session_id: str,
+    original_query: str,
+    agent_id: str,
+    agent_endpoint_url: str,
+    clarification_message: str,
+) -> bool:
+    """將待澄清狀態寫入 Redis。"""
+    _logger = logging.getLogger(__name__)
+    try:
+        from database.redis.client import get_redis_client
+        rc = get_redis_client()
+        payload = json.dumps({
+            "original_query": original_query,
+            "agent_id": agent_id,
+            "agent_endpoint_url": agent_endpoint_url,
+            "clarification_message": clarification_message,
+            "created_at": datetime.utcnow().isoformat(),
+        }, ensure_ascii=False)
+        rc.set(f"{_CLARIFICATION_PREFIX}{session_id}", payload, ex=_CLARIFICATION_TTL_SECONDS)
+        _logger.info(f"[澄清延續] 已寫入 pending clarification: session={session_id}, query='{original_query[:50]}'")
+        return True
+    except Exception as e:
+        _logger.warning(f"[澄清延續] 寫入 Redis 失敗: {e}")
+        return False
+
+
+def _get_pending_clarification(session_id: str) -> Optional[Dict[str, Any]]:
+    """從 Redis 讀取待澄清狀態，讀取後自動刪除（consume once）。"""
+    _logger = logging.getLogger(__name__)
+    try:
+        from database.redis.client import get_redis_client
+        rc = get_redis_client()
+        key = f"{_CLARIFICATION_PREFIX}{session_id}"
+        raw = rc.get(key)
+        if raw:
+            rc.delete(key)
+            data = json.loads(raw)
+            _logger.info(f"[澄清延續] 讀取 pending clarification: session={session_id}, original_query='{data.get('original_query', '')[:50]}'")
+            return data
+        return None
+    except Exception as e:
+        _logger.warning(f"[澄清延續] 讀取 Redis 失敗: {e}")
+        return None
+
+
 def _classify_agent_response(agent_result: dict) -> dict:
     """
     分類外部 Agent 的響應狀態
@@ -4088,6 +4146,92 @@ async def chat_product_stream(
                         except Exception as _perceive_err:
                             logger.warning(f"[P-T-A-O] Perceive 失敗，使用原始文本: {_perceive_err}")
 
+
+                    # === 2026-03-12: 澄清延續（Clarification Continuation）===
+                    # 若此 session 正在等待用戶回答澄清問題，bypass 意圖分類，直接路由回原 Agent
+                    _clarification_ctx = _get_pending_clarification(session_id)
+                    if _clarification_ctx:
+                        _orig_query = _clarification_ctx["original_query"]
+                        _clari_agent_url = _clarification_ctx["agent_endpoint_url"]
+                        _merged_instruction = f"{_orig_query}（補充：{perceived_text}）"
+                        logger.info(
+                            f"[澄清延續] 偵測到 pending clarification，bypass 意圖分類。"
+                            f"original='{_orig_query[:50]}', answer='{perceived_text[:50]}', "
+                            f"merged='{_merged_instruction[:80]}'"
+                        )
+
+                        # 構造合併請求，直接調用原 Agent
+                        recent_messages = messages[-10:] if messages else []
+                        _clari_request = {
+                            "task_id": task_id or str(uuid.uuid4()),
+                            "task_type": "data_query",
+                            "task_data": {
+                                "instruction": _merged_instruction,
+                                "user_id": current_user.user_id,
+                                "session_id": session_id,
+                            },
+                            "messages": recent_messages,
+                        }
+                        logger.info(f"[澄清延續] 調用 Agent: endpoint={_clari_agent_url}")
+                        try:
+                            _clari_resp = httpx.post(
+                                _clari_agent_url,
+                                json=_clari_request,
+                                headers={"Content-Type": "application/json"},
+                                timeout=120.0,
+                            )
+                            if _clari_resp.status_code == 200:
+                                _clari_result = _clari_resp.json()
+                                yield f"data: {json.dumps({'type': 'start', 'data': {'request_id': request_id, 'session_id': session_id}})}\n\n"
+                                _clari_resp_type = _classify_agent_response(_clari_result)
+                                logger.info(f"[澄清延續] Agent 響應類型: {_clari_resp_type['type']}")
+
+                                if _clari_resp_type["type"] == "clarification":
+                                    # 再次澄清：寫回 Redis，繼續等待
+                                    _new_clari_msg = _clari_resp_type.get("clarification_message", "請提供更多資訊")
+                                    _save_pending_clarification(
+                                        session_id=session_id,
+                                        original_query=_orig_query,
+                                        agent_id=_clarification_ctx["agent_id"],
+                                        agent_endpoint_url=_clari_agent_url,
+                                        clarification_message=_new_clari_msg,
+                                    )
+                                    yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': _new_clari_msg}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
+                                    return
+                                elif _clari_resp_type["type"] in ("business_failure", "system_error"):
+                                    _fail_msg = _clari_resp_type["llm_prompt"]
+                                    yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': _fail_msg}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
+                                    return
+                                else:
+                                    # 成功：提取數據（與正常流程相同的提取邏輯）
+                                    _clari_data = _clari_resp_type["data"]
+                                    _clari_text = ""
+                                    _top_resp = _clari_data.get("response")
+                                    if _top_resp:
+                                        _clari_text = str(_top_resp)
+                                    elif isinstance(_clari_data.get("result"), dict):
+                                        _inner = _clari_data["result"]
+                                        _inner_resp = _inner.get("response")
+                                        if _inner_resp:
+                                            _clari_text = str(_inner_resp)
+                                        elif _inner.get("data"):
+                                            _clari_text = str(_inner["data"])
+                                        elif _inner.get("stock_list"):
+                                            _clari_text = json.dumps(_inner["stock_list"], ensure_ascii=False, indent=2)
+                                    if not _clari_text:
+                                        _clari_text = json.dumps(_clari_data, ensure_ascii=False, indent=2)
+                                    yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': _clari_text}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
+                                    return
+                            else:
+                                logger.warning(f"[澄清延續] Agent 調用失敗: HTTP {_clari_resp.status_code}")
+                                yield f"data: {json.dumps({'type': 'warning', 'content': f'Agent 調用失敗 (HTTP {_clari_resp.status_code})，將使用 AI 回覆'})}\n\n"
+                        except Exception as _clari_err:
+                            logger.error(f"[澄清延續] Agent 調用異常: {_clari_err}")
+                            yield f"data: {json.dumps({'type': 'warning', 'content': 'Agent 服務異常，將使用 AI 回覆'})}\n\n"
+
                     # 2026-03-04: 先用 OrchestratorIntentRAG 分類意圖
                     # 若為非業務意圖（GREETING, THANKS, CHITCHAT），直接 LLM 回覆，不送外部 Agent
                     _skip_external_agent = False
@@ -4197,6 +4341,14 @@ async def chat_product_stream(
                                 if response_type["type"] == "clarification":
                                     clarification_msg = response_type.get("clarification_message", "請提供更多資訊")
                                     logger.info(f"[外部Agent] 需要澄清: {clarification_msg}")
+                                    # 2026-03-12: 寫入 Redis pending clarification，讓下一條用戶消息能路由回同一 Agent
+                                    _save_pending_clarification(
+                                        session_id=session_id,
+                                        original_query=perceived_text,
+                                        agent_id=user_selected_agent_id,
+                                        agent_endpoint_url=agent_endpoint_url,
+                                        clarification_message=clarification_msg,
+                                    )
                                     yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': clarification_msg}})}\n\n"
                                     yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
                                     return

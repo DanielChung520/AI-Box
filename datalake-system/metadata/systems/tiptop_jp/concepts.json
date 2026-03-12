@@ -38,13 +38,15 @@
       "type": "METRIC"
     },
     "STATUS_CODE": {
-      "description": "工單狀態碼（M/F/C/N/Y/X）",
-      "type": "DIMENSION"
+      "description": "工單狀態碼（M/F/C/N/Y/X）- SFAA_T 不在 mart，暫無 DUCKDB binding",
+      "type": "DIMENSION",
+      "deprecated": true
     },
     "SCRAP_QTY": {
-      "description": "報廢數量",
+      "description": "報廢數量 - SFAA_T 不在 mart，暫無 DUCKDB binding（mart_work_order_wide 有 scrap_in_station 可替代）",
       "type": "METRIC",
-      "aggregation": "SUM"
+      "aggregation": "SUM",
+      "deprecated": true
     },
     "SO_ORDER": {
       "description": "訂單編號",
@@ -217,6 +219,47 @@
     "TIME_RANGE": {
       "description": "時間範圍",
       "type": "RANGE"
+    },
+    "WORK_ORDER_COUNT": {
+      "description": "工單件數（COUNT 聚合）",
+      "type": "METRIC",
+      "aggregation": "COUNT"
+    },
+    "ITEM_MASTER": {
+      "description": "料件主檔（ArangoDB master data）",
+      "type": "MASTER"
+    },
+    "WAREHOUSE_MASTER": {
+      "description": "倉庫主檔（ArangoDB master data）",
+      "type": "MASTER"
+    },
+    "WORKSTATION_MASTER": {
+      "description": "工作站主檔（ArangoDB master data）",
+      "type": "MASTER"
+    },
+    "CUSTOMER_MASTER": {
+      "description": "客戶主檔（ArangoDB master data）",
+      "type": "MASTER"
+    },
+    "TIME_YEAR": {
+      "description": "年份篩選",
+      "type": "DIMENSION"
+    },
+    "TIME_MONTH": {
+      "description": "月份篩選",
+      "type": "DIMENSION"
+    },
+    "TIME_YEAR_WO": {
+      "description": "工單年份篩選（從工單編號）",
+      "type": "DIMENSION"
+    },
+    "NUMERIC_GT": {
+      "description": "數值大於比較運算",
+      "type": "OPERATOR"
+    },
+    "NUMERIC_LT": {
+      "description": "數值小於比較運算",
+      "type": "OPERATOR"
     },
     "AGGREGATION": {
       "description": "集計方法",

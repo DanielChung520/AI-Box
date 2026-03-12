@@ -1,9 +1,10 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "datasource": {
     "type": "JP_TIPTOP_ERP",
     "dialect": "DUCKDB"
   },
+  "note": "v2.0: 所有 DUCKDB binding 指向 DuckDB 內部 mart 寬表，不再使用 S3 parquet。JP_TIPTOP_ERP 保留 Oracle 原始表映射作為參考。",
   "bindings": {
     "ENT": {
       "JP_TIPTOP_ERP": {
@@ -13,11 +14,116 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAGENT",
+        "table": "mart_inventory_wide",
+        "column": "ent",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
+        "operator": "="
+      },
+      "intents": {
+        "QUERY_WORK_ORDER": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_WORK_ORDER_COUNT": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_MANUFACTURING_PROGRESS": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_WORKSTATION_OUTPUT": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_QUALITY": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_OUTSOURCING": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_SHIPPING": {
+          "DUCKDB": {
+            "table": "mart_shipping_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_SHIPPING_DETAILS": {
+          "DUCKDB": {
+            "table": "mart_shipping_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_SHIPPING_BY_CUSTOMER": {
+          "DUCKDB": {
+            "table": "mart_shipping_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE_DETAILS": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_CUSTOMER_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "ent",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        }
       }
     },
     "SITE": {
@@ -28,11 +134,116 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAGSITE",
+        "table": "mart_inventory_wide",
+        "column": "site",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
+        "operator": "="
+      },
+      "intents": {
+        "QUERY_WORK_ORDER": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_WORK_ORDER_COUNT": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_MANUFACTURING_PROGRESS": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_WORKSTATION_OUTPUT": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_QUALITY": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_OUTSOURCING": {
+          "DUCKDB": {
+            "table": "mart_work_order_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_SHIPPING": {
+          "DUCKDB": {
+            "table": "mart_shipping_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_SHIPPING_DETAILS": {
+          "DUCKDB": {
+            "table": "mart_shipping_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_SHIPPING_BY_CUSTOMER": {
+          "DUCKDB": {
+            "table": "mart_shipping_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE_DETAILS": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_CUSTOMER_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "site",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        }
       }
     },
     "ITEM_NO": {
@@ -43,38 +254,66 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAG001",
+        "table": "mart_inventory_wide",
+        "column": "item_no",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
+        "operator": "="
       },
       "intents": {
+        "QUERY_SHIPPING": {
+          "DUCKDB": {
+            "table": "mart_shipping_wide",
+            "column": "item_no",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_SHIPPING_DETAILS": {
+          "DUCKDB": {
+            "table": "mart_shipping_wide",
+            "column": "item_no",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_SHIPPING_BY_CUSTOMER": {
+          "DUCKDB": {
+            "table": "mart_shipping_wide",
+            "column": "item_no",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "item_no",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
         "QUERY_PRICE_DETAILS": {
           "DUCKDB": {
-            "table": "XMDU_T",
-            "column": "XMDU002",
+            "table": "mart_price_wide",
+            "column": "item_no",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         },
         "QUERY_CUSTOMER_PRICE": {
           "DUCKDB": {
-            "table": "XMDU_T",
-            "column": "XMDU002",
+            "table": "mart_price_wide",
+            "column": "item_no",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         },
         "QUERY_PRICE": {
           "DUCKDB": {
-            "table": "XMDU_T",
-            "column": "XMDU002",
+            "table": "mart_price_wide",
+            "column": "item_no",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         }
       }
@@ -87,11 +326,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAG004",
+        "table": "mart_inventory_wide",
+        "column": "warehouse_no",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "LOCATION_NO": {
@@ -102,11 +340,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAG005",
+        "table": "mart_inventory_wide",
+        "column": "location_no",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "UNIT": {
@@ -117,20 +354,42 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAG007",
+        "table": "mart_inventory_wide",
+        "column": "unit",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
+        "operator": "="
       },
       "intents": {
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "unit",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
         "QUERY_PRICE_DETAILS": {
           "DUCKDB": {
-            "table": "XMDU_T",
-            "column": "XMDU008",
+            "table": "mart_price_wide",
+            "column": "unit",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet"
+            "operator": "="
+          }
+        },
+        "QUERY_CUSTOMER_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "unit",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "unit",
+            "aggregation": "NONE",
+            "operator": "="
           }
         }
       }
@@ -143,26 +402,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAG008",
+        "table": "mart_inventory_wide",
+        "column": "existing_stocks",
         "aggregation": "SUM",
-        "operator": ">=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
-      }
-    },
-    "STATUS_CODE": {
-      "JP_TIPTOP_ERP": {
-        "table": "SFAA_T",
-        "column": "SFAASTUS",
-        "aggregation": "NONE",
-        "operator": "="
-      },
-      "DUCKDB": {
-        "table": "SFAA_T",
-        "column": "SFAASTUS",
-        "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet"
+        "operator": ">="
       }
     },
     "ZERO_STOCKS": {
@@ -173,26 +416,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAG008",
-        "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
-      }
-    },
-    "SCRAP_QTY": {
-      "JP_TIPTOP_ERP": {
-        "table": "SFAA_T",
-        "column": "SFAA056",
+        "table": "mart_inventory_wide",
+        "column": "existing_stocks",
         "aggregation": "SUM",
         "operator": "="
-      },
-      "DUCKDB": {
-        "table": "SFAA_T",
-        "column": "SFAA056",
-        "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet"
       }
     },
     "SO_ORDER": {
@@ -203,22 +430,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFAA_T",
-        "column": "SFAA022",
+        "table": "mart_shipping_wide",
+        "column": "order_no",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet"
-      },
-      "intents": {
-        "QUERY_SHIPPING_DETAILS": {
-          "DUCKDB": {
-            "table": "XMDH_T",
-            "column": "XMDH001",
-            "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDH_T/year=*/month=*/data.parquet"
-          }
-        }
+        "operator": "="
       }
     },
     "SO_LINE": {
@@ -229,44 +444,56 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFAA_T",
-        "column": "SFAA023",
+        "table": "mart_shipping_wide",
+        "column": "so_line",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "CUSTOMER_NO": {
       "JP_TIPTOP_ERP": {
-        "table": "SFAA_T",
-        "column": "SFAA009",
+        "table": "XMDG_T",
+        "column": "XMDG005",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFAA_T",
-        "column": "SFAA009",
+        "table": "mart_shipping_wide",
+        "column": "customer_no",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet"
+        "operator": "="
       },
       "intents": {
-        "QUERY_CUSTOMER_PRICE": {
+        "QUERY_PRICE_APPROVAL": {
           "DUCKDB": {
-            "table": "XMDT_T",
-            "column": "XMDT004",
+            "table": "mart_price_wide",
+            "column": "customer_no",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         },
-        "QUERY_SHIPPING_DETAILS": {
+        "QUERY_PRICE_DETAILS": {
           "DUCKDB": {
-            "table": "XMDG_T",
-            "column": "XMDG005",
+            "table": "mart_price_wide",
+            "column": "customer_no",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+            "operator": "="
+          }
+        },
+        "QUERY_CUSTOMER_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "customer_no",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "customer_no",
+            "aggregation": "NONE",
+            "operator": "="
           }
         }
       }
@@ -279,11 +506,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCA_T",
-        "column": "SFCADOCNO",
+        "table": "mart_work_order_wide",
+        "column": "mo_doc_no",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "MO_DOC_SEQ": {
@@ -294,11 +520,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCA_T",
-        "column": "SFCA002",
+        "table": "mart_work_order_wide",
+        "column": "mo_doc_seq",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "RUN_CARD_NO": {
@@ -309,11 +534,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCA_T",
-        "column": "SFCA001",
+        "table": "mart_work_order_wide",
+        "column": "run_card_no",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "PRODUCTION_QTY": {
@@ -324,11 +548,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCA_T",
-        "column": "SFCA003",
+        "table": "mart_work_order_wide",
+        "column": "production_qty",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "COMPLETION_QTY": {
@@ -339,11 +562,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCA_T",
-        "column": "SFCA004",
+        "table": "mart_work_order_wide",
+        "column": "completion_qty",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "LN": {
@@ -354,11 +576,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB002",
+        "table": "mart_work_order_wide",
+        "column": "ln",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "CURRENT_OPERATION": {
@@ -369,11 +590,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB003",
+        "table": "mart_work_order_wide",
+        "column": "current_operation",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "OPERATION_SEQ": {
@@ -384,11 +604,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB004",
+        "table": "mart_work_order_wide",
+        "column": "operation_seq",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "WORKSTATION": {
@@ -399,11 +618,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB011",
+        "table": "mart_work_order_wide",
+        "column": "workstation",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet",
         "master_source": "arangodb://mm_master?type=workstation"
       }
     },
@@ -415,11 +633,25 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB027",
+        "table": "mart_work_order_wide",
+        "column": "standard_output",
         "aggregation": "SUM",
         "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet",
+        "default_value": "0"
+      }
+    },
+    "GOOD_ITEMS_IN": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB032",
+        "aggregation": "SUM",
+        "operator": "="
+      },
+      "DUCKDB": {
+        "table": "mart_work_order_wide",
+        "column": "good_items_in",
+        "aggregation": "SUM",
+        "operator": "=",
         "default_value": "0"
       }
     },
@@ -431,11 +663,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB033",
+        "table": "mart_work_order_wide",
+        "column": "good_items_out",
         "aggregation": "SUM",
         "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet",
         "default_value": "0"
       }
     },
@@ -447,11 +678,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB029",
+        "table": "mart_work_order_wide",
+        "column": "rework_in",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "REWORK_OUT": {
@@ -462,11 +692,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB034",
+        "table": "mart_work_order_wide",
+        "column": "rework_out",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "SCRAP_IN_STATION": {
@@ -477,11 +706,24 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB036",
+        "table": "mart_work_order_wide",
+        "column": "scrap_in_station",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
+        "operator": "="
+      }
+    },
+    "WIP_QTY": {
+      "JP_TIPTOP_ERP": {
+        "table": "SFCB_T",
+        "column": "SFCB037",
+        "aggregation": "SUM",
+        "operator": "="
+      },
+      "DUCKDB": {
+        "table": "mart_work_order_wide",
+        "column": "wip_qty",
+        "aggregation": "SUM",
+        "operator": "="
       }
     },
     "PENDING_PQC_QTY": {
@@ -492,11 +734,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB051",
+        "table": "mart_work_order_wide",
+        "column": "pending_pqc_qty",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "OUTSOURCED_QTY": {
@@ -507,11 +748,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB041",
+        "table": "mart_work_order_wide",
+        "column": "outsourced_qty",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "OUTSOURCED_FINISH_QTY": {
@@ -522,11 +762,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "SFCB_T",
-        "column": "SFCB042",
+        "table": "mart_work_order_wide",
+        "column": "outsourced_finish_qty",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCB_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "DOC_NO": {
@@ -537,38 +776,42 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDG_T",
-        "column": "XMDGDOCNO",
+        "table": "mart_shipping_wide",
+        "column": "doc_no",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+        "operator": "="
       },
       "intents": {
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "doc_no",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
         "QUERY_PRICE_DETAILS": {
           "DUCKDB": {
-            "table": "XMDT_T",
-            "column": "XMDTDOCNO",
+            "table": "mart_price_wide",
+            "column": "doc_no",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         },
         "QUERY_CUSTOMER_PRICE": {
           "DUCKDB": {
-            "table": "XMDT_T",
-            "column": "XMDTDOCNO",
+            "table": "mart_price_wide",
+            "column": "doc_no",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         },
         "QUERY_PRICE": {
           "DUCKDB": {
-            "table": "XMDT_T",
-            "column": "XMDTDOCNO",
+            "table": "mart_price_wide",
+            "column": "doc_no",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         }
       }
@@ -581,11 +824,44 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDG_T",
-        "column": "XMDGDOCDT",
+        "table": "mart_shipping_wide",
+        "column": "doc_date",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+        "operator": "="
+      },
+      "intents": {
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "doc_date",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE_DETAILS": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "doc_date",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_CUSTOMER_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "doc_date",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "doc_date",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        }
       }
     },
     "STATUS": {
@@ -596,20 +872,42 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDG_T",
-        "column": "XMDGSTUS",
+        "table": "mart_shipping_wide",
+        "column": "status",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+        "operator": "="
       },
       "intents": {
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "status",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE_DETAILS": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "status",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_CUSTOMER_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "status",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
         "QUERY_PRICE": {
           "DUCKDB": {
-            "table": "XMDT_T",
-            "column": "XMDTSTUS",
+            "table": "mart_price_wide",
+            "column": "status",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         }
       }
@@ -622,11 +920,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDG_T",
-        "column": "XMDG028",
+        "table": "mart_shipping_wide",
+        "column": "expected_shipping_date",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "SALES_CATEGORY": {
@@ -637,11 +934,38 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDG_T",
-        "column": "XMDG027",
+        "table": "mart_shipping_wide",
+        "column": "sales_category",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+        "operator": "="
+      }
+    },
+    "SALES_PERSON": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDG_T",
+        "column": "XMDG003",
+        "aggregation": "NONE",
+        "operator": "="
+      },
+      "DUCKDB": {
+        "table": "mart_shipping_wide",
+        "column": "sales_person",
+        "aggregation": "NONE",
+        "operator": "="
+      }
+    },
+    "SALES_DEPT": {
+      "JP_TIPTOP_ERP": {
+        "table": "XMDG_T",
+        "column": "XMDG004",
+        "aggregation": "NONE",
+        "operator": "="
+      },
+      "DUCKDB": {
+        "table": "mart_shipping_wide",
+        "column": "sales_department",
+        "aggregation": "NONE",
+        "operator": "="
       }
     },
     "SEQ": {
@@ -652,20 +976,42 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDH_T",
-        "column": "XMDHSEQ",
+        "table": "mart_shipping_wide",
+        "column": "seq",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDH_T/year=*/month=*/data.parquet"
+        "operator": "="
       },
       "intents": {
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "seq",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
         "QUERY_PRICE_DETAILS": {
           "DUCKDB": {
-            "table": "XMDU_T",
-            "column": "XMDUSEQ",
+            "table": "mart_price_wide",
+            "column": "seq",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet"
+            "operator": "="
+          }
+        },
+        "QUERY_CUSTOMER_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "seq",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
+        "QUERY_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "seq",
+            "aggregation": "NONE",
+            "operator": "="
           }
         }
       }
@@ -678,11 +1024,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDH_T",
-        "column": "XMDHUD001",
+        "table": "mart_shipping_wide",
+        "column": "customer_po_no",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDH_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "REQUEST_QTY": {
@@ -693,11 +1038,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDH_T",
-        "column": "XMDH016",
+        "table": "mart_shipping_wide",
+        "column": "request_qty",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDH_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "ACTUAL_QTY": {
@@ -708,11 +1052,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDH_T",
-        "column": "XMDH017",
+        "table": "mart_shipping_wide",
+        "column": "actual_qty",
         "aggregation": "SUM",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDH_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "UNIT_PRICE": {
@@ -723,38 +1066,42 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDH_T",
-        "column": "XMDH023",
+        "table": "mart_shipping_wide",
+        "column": "unit_price",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDH_T/year=*/month=*/data.parquet"
+        "operator": "="
       },
       "intents": {
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "unit_price",
+            "aggregation": "NONE",
+            "operator": "="
+          }
+        },
         "QUERY_PRICE_DETAILS": {
           "DUCKDB": {
-            "table": "XMDU_T",
-            "column": "XMDU011",
+            "table": "mart_price_wide",
+            "column": "unit_price",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         },
         "QUERY_CUSTOMER_PRICE": {
           "DUCKDB": {
-            "table": "XMDU_T",
-            "column": "XMDU011",
+            "table": "mart_price_wide",
+            "column": "unit_price",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         },
         "QUERY_PRICE": {
           "DUCKDB": {
-            "table": "XMDU_T",
-            "column": "XMDU011",
+            "table": "mart_price_wide",
+            "column": "unit_price",
             "aggregation": "NONE",
-            "operator": "=",
-            "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDU_T/year=*/month=*/data.parquet"
+            "operator": "="
           }
         }
       }
@@ -767,11 +1114,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDT_T",
-        "column": "XMDT002",
+        "table": "mart_price_wide",
+        "column": "applicant",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "DEPT": {
@@ -782,11 +1128,10 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDT_T",
-        "column": "XMDT003",
+        "table": "mart_price_wide",
+        "column": "department",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "VALID_DATE": {
@@ -797,86 +1142,88 @@
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDT_T",
-        "column": "XMDT015",
+        "table": "mart_price_wide",
+        "column": "valid_date",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "ORDER_LINE_SN": {
       "JP_TIPTOP_ERP": {
-        "table": "XMDT_T",
-        "column": "XMDT001",
+        "table": "XMDH_T",
+        "column": "XMDH004",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDT_T",
-        "column": "XMDT001",
+        "table": "mart_shipping_wide",
+        "column": "order_line_sn",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "ORDER_BATCH_SEQ": {
       "JP_TIPTOP_ERP": {
-        "table": "XMDT_T",
-        "column": "XMDT002",
+        "table": "XMDH_T",
+        "column": "XMDH005",
         "aggregation": "NONE",
         "operator": "="
       },
       "DUCKDB": {
-        "table": "XMDT_T",
-        "column": "XMDT002",
+        "table": "mart_shipping_wide",
+        "column": "order_batch_seq",
         "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDT_T/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "TIME_RANGE": {
       "DUCKDB": {
-        "table": "XMDG_T",
-        "column": "XMDGDOCDT",
+        "table": "mart_shipping_wide",
+        "column": "doc_date",
         "aggregation": "NONE",
-        "operator": "BETWEEN",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+        "operator": "BETWEEN"
+      },
+      "intents": {
+        "QUERY_PRICE_APPROVAL": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "doc_date",
+            "aggregation": "NONE",
+            "operator": "BETWEEN"
+          }
+        },
+        "QUERY_PRICE_DETAILS": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "doc_date",
+            "aggregation": "NONE",
+            "operator": "BETWEEN"
+          }
+        },
+        "QUERY_CUSTOMER_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "doc_date",
+            "aggregation": "NONE",
+            "operator": "BETWEEN"
+          }
+        },
+        "QUERY_PRICE": {
+          "DUCKDB": {
+            "table": "mart_price_wide",
+            "column": "doc_date",
+            "aggregation": "NONE",
+            "operator": "BETWEEN"
+          }
+        }
       }
     },
     "WORK_ORDER_COUNT": {
       "DUCKDB": {
-        "table": "SFAA_T",
-        "column": "SFAA010",
+        "table": "mart_work_order_wide",
+        "column": "mo_doc_no",
         "aggregation": "COUNT",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFAA_T/year=*/month=*/data.parquet"
-      }
-    },
-    "MART_INVENTORY_WIDE": {
-      "DUCKDB": {
-        "table": "mart_inventory_wide",
-        "column": "item_no",
-        "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/mart/v1/tiptop_jp/mart_inventory_wide/year=*/month=*/data.parquet"
-      }
-    },
-    "MART_WORK_ORDER_WIDE": {
-      "DUCKDB": {
-        "table": "SFAA_T",
-        "column": "SFAA010",
-        "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/mart/v1/tiptop_jp/mart_work_order_wide/year=*/month=*/data.parquet"
-      }
-    },
-    "MART_SHIPPING_WIDE": {
-      "DUCKDB": {
-        "table": "XMDG_T",
-        "column": "XMDGDOCNO",
-        "aggregation": "NONE",
-        "operator": "=",
-        "s3_path": "s3://tiptop-raw/mart/v1/tiptop_jp/mart_shipping_wide/year=*/month=*/data.parquet"
+        "operator": "="
       }
     },
     "ITEM_MASTER": {
@@ -885,7 +1232,7 @@
         "column": "item_no",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "arangodb://mm_master?type=item"
+        "source": "arangodb://mm_master?type=item"
       }
     },
     "WAREHOUSE_MASTER": {
@@ -894,7 +1241,7 @@
         "column": "warehouse_no",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "arangodb://mm_master?type=warehouse"
+        "source": "arangodb://mm_master?type=warehouse"
       }
     },
     "WORKSTATION_MASTER": {
@@ -903,7 +1250,7 @@
         "column": "workstation_id",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "arangodb://mm_master?type=workstation"
+        "source": "arangodb://mm_master?type=workstation"
       }
     },
     "CUSTOMER_MASTER": {
@@ -912,52 +1259,47 @@
         "column": "customer_no",
         "aggregation": "NONE",
         "operator": "=",
-        "s3_path": "arangodb://mm_master?type=customer"
+        "source": "arangodb://mm_master?type=customer"
       }
     },
     "TIME_YEAR": {
       "DUCKDB": {
-        "table": "XMDG_T",
-        "column": "XMDGDOCDT",
+        "table": "mart_shipping_wide",
+        "column": "doc_date",
         "aggregation": "NONE",
-        "operator": "LIKE",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+        "operator": "LIKE"
       }
     },
     "TIME_MONTH": {
       "DUCKDB": {
-        "table": "XMDG_T",
-        "column": "XMDGDOCDT",
+        "table": "mart_shipping_wide",
+        "column": "doc_date",
         "aggregation": "NONE",
-        "operator": "LIKE",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/XMDG_T/year=*/month=*/data.parquet"
+        "operator": "LIKE"
       }
     },
     "TIME_YEAR_WO": {
       "DUCKDB": {
-        "table": "SFCA_T",
-        "column": "SFCADOCNO",
+        "table": "mart_work_order_wide",
+        "column": "mo_doc_no",
         "aggregation": "NONE",
-        "operator": "LIKE",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/SFCA_T/year=*/month=*/data.parquet"
+        "operator": "LIKE"
       }
     },
     "NUMERIC_GT": {
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAG008",
+        "table": "mart_inventory_wide",
+        "column": "existing_stocks",
         "aggregation": "NONE",
-        "operator": ">",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
+        "operator": ">"
       }
     },
     "NUMERIC_LT": {
       "DUCKDB": {
-        "table": "INAG_T",
-        "column": "INAG008",
+        "table": "mart_inventory_wide",
+        "column": "existing_stocks",
         "aggregation": "NONE",
-        "operator": "<",
-        "s3_path": "s3://tiptop-raw/raw/v1/tiptop_jp/INAG_T/year=*/month=*/data.parquet"
+        "operator": "<"
       }
     }
   }

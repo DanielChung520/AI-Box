@@ -74,7 +74,10 @@ class PTAOLoop:
                 if isinstance(raw_result, dict) and raw_result.get("success") is False:
                     observation_success = False
                     observation_error = str(raw_result.get("error", "執行失敗"))
-                    raw_result = {}
+                    # 保留需要澄清的結果（Guard 攔截、意圖不清晰等）
+                    # 清空 raw_result 會導致 needs_clarification 等欄位丟失
+                    if not raw_result.get("needs_clarification"):
+                        raw_result = {}
                 decision_log.add_entry(
                     DecisionEntry(
                         phase="act",

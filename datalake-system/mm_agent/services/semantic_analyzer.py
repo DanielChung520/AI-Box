@@ -1,13 +1,13 @@
 # 代碼功能說明: 簡化版語義分析服務
 # 創建日期: 2026-03-02
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-03-02
+# 最後修改日期: 2026-03-12
 
 """簡化版語義分析服務 - 使用 MMIntentRAG"""
 
 import logging
+import re
 from typing import Any, Dict, List, Optional
-
 from ..models import SemanticAnalysisResult
 from ..mm_intent_rag_client import get_mm_intent_rag_client
 
@@ -89,8 +89,22 @@ class SemanticAnalyzer:
 
         # Note: return_mode 和 responsibility_type 由 Data-Agent 後續處理
         # 3. 檢查模糊詞彙（需要 clarification）
+        # 但如果用戶已提供具體時間範圍，則視為已澄清，不觸發 clarification
         ambiguous_keywords = ["最近", "這幾天", "近來", "近期"]
-        if any(kw in instruction for kw in ambiguous_keywords):
+        specific_time_patterns = [
+            "一天", "兩天", "三天", "四天", "五天",
+            "一週", "兩週", "三週", "一個月", "兩個月", "三個月",
+            "六個月", "半年", "一年",
+            "今天", "昨天", "前天", "本週", "上週", "本月", "上個月",
+        ]
+        # 也匹配數字+時間單位，如「7天」、「30天」、「2個月」
+        numeric_time_pattern = re.compile(r"\d+\s*[天週月年日]")  # noqa: W605
+        has_ambiguous = any(kw in instruction for kw in ambiguous_keywords)
+        has_specific_time = (
+            any(tp in instruction for tp in specific_time_patterns)
+            or bool(numeric_time_pattern.search(instruction))
+        )
+        if has_ambiguous and not has_specific_time:
             clarification_needed = True
             clarification_questions = [
                 "「最近」是指什麼時間範圍？",

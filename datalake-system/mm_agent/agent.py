@@ -235,6 +235,7 @@ class MMAgent(AgentServiceProtocol):
             response = WarehouseAgentResponse(
                 success=result.get("success", False),
                 task_type=responsibility.type,
+                response=result.get("response"),  # 提取 LLM 回覆到頂層
                 result=result,
                 semantic_analysis=semantic_result.model_dump(),
                 responsibility=responsibility.description,
