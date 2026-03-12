@@ -1031,17 +1031,18 @@ class MMAgent(AgentServiceProtocol):
 
                     converted_stock_list = []
                     for item in stock_list:
-                        # DT-Agent 新格式 (item_no, existing_stocks)
-                        if "item_no" in item and "existing_stocks" in item:
+                        # DT-Agent 格式：只要有 existing_stocks 就認為是 DT-Agent 資料
+                        # （DT-Agent SQL 可能只 SELECT existing_stocks，不含 item_no）
+                        if "existing_stocks" in item:
                             qty = item.get("existing_stocks", 0)
                             wh = item.get("warehouse_no", "-")
                             self._logger.info(
-                                f"[DEBUG] DT-Agent 格式轉換: item_no={item.get('item_no')}, "
+                                f"[DEBUG] DT-Agent 格式轉換: item_no={item.get('item_no', part_number)}, "
                                 f"warehouse_no={wh}, existing_stocks={qty}"
                             )
                             converted_stock_list.append(
                                 {
-                                    "part_number": item.get("item_no", "-"),
+                                    "part_number": item.get("item_no", part_number or "-"),
                                     "batch_no": wh,
                                     "quantity": qty,
                                 }
