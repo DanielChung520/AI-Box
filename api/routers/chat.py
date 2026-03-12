@@ -4197,7 +4197,7 @@ async def chat_product_stream(
                                 if response_type["type"] == "clarification":
                                     clarification_msg = response_type.get("clarification_message", "請提供更多資訊")
                                     logger.info(f"[外部Agent] 需要澄清: {clarification_msg}")
-                                    yield f"data: {json.dumps({'type': 'clarification', 'data': {'message': clarification_msg}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'content', 'data': {'chunk': clarification_msg}})}\n\n"
                                     yield f"data: {json.dumps({'type': 'done', 'data': {'request_id': request_id}})}\n\n"
                                     return
                                 
