@@ -4,6 +4,9 @@
   "domain": "jp_tiptop_erp",
   "intents": {
     "QUERY_INVENTORY": {
+      "intent_id": "INT_001",
+      "type": "simple",
+      "intent_table": "mart_inventory_wide",
       "description": "在庫照会",
       "example_queries": [
         "查詢所有料件的庫存",
@@ -18,7 +21,9 @@
           "LOCATION_NO",
           "UNIT",
           "TIME_RANGE",
-          "EXISTING_STOCKS"
+          "EXISTING_STOCKS",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -26,6 +31,8 @@
           "EXISTING_STOCKS"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
           "ITEM_NO",
           "WAREHOUSE_NO",
           "LOCATION_NO",
@@ -37,31 +44,10 @@
       },
       "mart_table": "mart_inventory_wide"
     },
-    "QUERY_WORK_ORDER_COUNT": {
-      "description": "工單數量統計",
-      "example_queries": [
-        "本月工單數量統計",
-        "工單有幾張",
-        "統計工單總數",
-        "今月の工単件数"
-      ],
-      "input": {
-        "filters": [
-          "TIME_RANGE"
-        ]
-      },
-      "output": {
-        "metrics": [
-          "WORK_ORDER_COUNT"
-        ],
-        "dimensions": []
-      },
-      "constraints": {
-        "require_at_least_one_filter": false
-      },
-      "mart_table": "mart_work_order_wide"
-    },
     "QUERY_INVENTORY_BY_WAREHOUSE": {
+      "intent_id": "INT_002",
+      "type": "summary",
+      "intent_table": "mart_inventory_wide",
       "description": "倉庫別在庫集計",
       "example_queries": [
         "各倉庫庫存數量前10名排名",
@@ -72,7 +58,9 @@
       "input": {
         "filters": [
           "TIME_RANGE",
-          "WAREHOUSE_NO"
+          "WAREHOUSE_NO",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -89,7 +77,10 @@
       "mart_table": "mart_inventory_wide"
     },
     "QUERY_WORK_ORDER": {
-      "description": "工單照会（使用 SFCA_T 單表，客戶/物料資訊參考寬表 mart_work_order_wide）",
+      "intent_id": "INT_003",
+      "type": "simple",
+      "intent_table": "mart_work_order_wide",
+      "description": "工單照会",
       "example_queries": [
         "查詢工單 MO-001 的詳細資訊",
         "查詢工單明細",
@@ -101,7 +92,9 @@
           "MO_DOC_NO",
           "ITEM_NO",
           "STATUS",
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -110,18 +103,51 @@
           "COMPLETION_QTY"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
           "MO_DOC_NO",
           "ITEM_NO",
           "STATUS"
         ]
       },
       "constraints": {
-        "require_at_least_one_filter": false,
-        "note": "SCRAP_QTY 在 SFAA_T，如需請使用 mart_work_order_wide"
+        "require_at_least_one_filter": false
+      },
+      "mart_table": "mart_work_order_wide"
+    },
+    "QUERY_WORK_ORDER_COUNT": {
+      "intent_id": "INT_004",
+      "type": "summary",
+      "intent_table": "mart_work_order_wide",
+      "description": "工單數量統計",
+      "example_queries": [
+        "本月工單數量統計",
+        "工單有幾張",
+        "統計工單總數",
+        "今月の工単件数"
+      ],
+      "input": {
+        "filters": [
+          "TIME_RANGE",
+          "ENT",
+          "SITE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "WORK_ORDER_COUNT"
+        ],
+        "dimensions": []
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
       },
       "mart_table": "mart_work_order_wide"
     },
     "QUERY_MANUFACTURING_PROGRESS": {
+      "intent_id": "INT_005",
+      "type": "master-detail",
+      "intent_table": "mart_work_order_wide",
       "description": "製造進捗照会",
       "example_queries": [
         "查詢製造進度報告",
@@ -134,7 +160,9 @@
           "MO_DOC_NO",
           "CURRENT_OPERATION",
           "WORKSTATION",
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -145,6 +173,8 @@
           "SCRAP_IN_STATION"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
           "MO_DOC_NO",
           "LN",
           "CURRENT_OPERATION",
@@ -158,6 +188,9 @@
       "mart_table": "mart_work_order_wide"
     },
     "QUERY_WORKSTATION_OUTPUT": {
+      "intent_id": "INT_006",
+      "type": "summary",
+      "intent_table": "mart_work_order_wide",
       "description": "工作站產出照会",
       "example_queries": [
         "查詢各工作站的產出數量",
@@ -168,7 +201,9 @@
       "input": {
         "filters": [
           "WORKSTATION",
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -187,6 +222,9 @@
       "mart_table": "mart_work_order_wide"
     },
     "QUERY_QUALITY": {
+      "intent_id": "INT_007",
+      "type": "master-detail",
+      "intent_table": "mart_work_order_wide",
       "description": "品質関連照会",
       "example_queries": [
         "查詢品質檢驗結果",
@@ -198,7 +236,9 @@
         "filters": [
           "MO_DOC_NO",
           "WORKSTATION",
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -209,12 +249,21 @@
           "REWORK_OUT"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
           "MO_DOC_NO",
           "WORKSTATION"
         ]
-      }
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      },
+      "mart_table": "mart_work_order_wide"
     },
     "QUERY_OUTSOURCING": {
+      "intent_id": "INT_008",
+      "type": "master-detail",
+      "intent_table": "mart_work_order_wide",
       "description": "外包加工照会",
       "example_queries": [
         "查詢外包加工的完成數量",
@@ -225,7 +274,9 @@
       "input": {
         "filters": [
           "MO_DOC_NO",
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -234,12 +285,21 @@
           "OUTSOURCED_FINISH_QTY"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
           "MO_DOC_NO"
         ]
-      }
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      },
+      "mart_table": "mart_work_order_wide"
     },
     "QUERY_SHIPPING": {
-      "description": "出荷通知一覧照会（出貨通知列表，非單一明細）",
+      "intent_id": "INT_009",
+      "type": "simple",
+      "intent_table": "mart_shipping_wide",
+      "description": "出荷通知一覧照会",
       "example_queries": [
         "列出所有出貨通知單號",
         "出貨通知列表",
@@ -252,7 +312,9 @@
           "CUSTOMER_NO",
           "STATUS",
           "SALES_CATEGORY",
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -261,6 +323,48 @@
           "ACTUAL_QTY"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
+          "DOC_NO",
+          "DOC_DATE",
+          "CUSTOMER_NO",
+          "STATUS"
+        ]
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      },
+      "mart_table": "mart_shipping_wide"
+    },
+    "QUERY_SHIPPING_DETAILS": {
+      "intent_id": "INT_010",
+      "type": "master-detail",
+      "intent_table": "mart_shipping_wide",
+      "description": "出荷明细照会",
+      "example_queries": [
+        "查詢出貨通知 SN-001 的明細",
+        "出貨單 SN-002 的明細內容",
+        "某張出貨單的詳細品項資料",
+        "出荷通知SN-001の明細照会"
+      ],
+      "input": {
+        "filters": [
+          "DOC_NO",
+          "ITEM_NO",
+          "SO_ORDER",
+          "ENT",
+          "SITE"
+        ]
+      },
+      "output": {
+        "metrics": [
+          "REQUEST_QTY",
+          "ACTUAL_QTY",
+          "UNIT_PRICE"
+        ],
+        "dimensions": [
+          "ENT",
+          "SITE",
           "DOC_NO",
           "DOC_DATE",
           "CUSTOMER_NO",
@@ -273,7 +377,10 @@
       "mart_table": "mart_shipping_wide"
     },
     "QUERY_SHIPPING_BY_CUSTOMER": {
-      "description": "客戶別出荷集計（按客戶彙總統計出貨數量）",
+      "intent_id": "INT_011",
+      "type": "summary",
+      "intent_table": "mart_shipping_wide",
+      "description": "客戶別出荷集計",
       "example_queries": [
         "按客戶統計出貨數量",
         "各客戶出貨量排名",
@@ -283,7 +390,9 @@
       "input": {
         "filters": [
           "CUSTOMER_NO",
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -302,38 +411,11 @@
       },
       "mart_table": "mart_shipping_wide"
     },
-    "QUERY_SHIPPING_DETAILS": {
-      "description": "出荷明细照会（查詢特定出貨單號的明細行項目）",
-      "example_queries": [
-        "查詢出貨通知 SN-001 的明細",
-        "出貨單 SN-002 的明細內容",
-        "某張出貨單的詳細品項資料",
-        "出荷通知SN-001の明細照会"
-      ],
-      "input": {
-        "filters": [
-          "DOC_NO",
-          "ITEM_NO",
-          "SO_ORDER"
-        ]
-      },
-      "output": {
-        "metrics": [
-          "REQUEST_QTY",
-          "ACTUAL_QTY",
-          "UNIT_PRICE"
-        ],
-        "dimensions": [
-          "DOC_NO",
-          "DOC_DATE",
-          "CUSTOMER_NO",
-          "STATUS"
-        ]
-      },
-      "mart_table": "mart_shipping_wide"
-    },
     "QUERY_PRICE_APPROVAL": {
-      "description": "售價審核一覧照会（售價審核單列表，非單一明細）",
+      "intent_id": "INT_012",
+      "type": "simple",
+      "intent_table": "mart_price_wide",
+      "description": "售價審核一覧照会",
       "example_queries": [
         "查詢售價審核單列表",
         "售價審核單一覽",
@@ -346,7 +428,9 @@
           "CUSTOMER_NO",
           "STATUS",
           "ITEM_NO",
-          "TIME_RANGE"
+          "TIME_RANGE",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -354,6 +438,8 @@
           "UNIT_PRICE"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
           "DOC_NO",
           "DOC_DATE",
           "CUSTOMER_NO",
@@ -364,10 +450,14 @@
       },
       "constraints": {
         "require_at_least_one_filter": false
-      }
+      },
+      "mart_table": "mart_price_wide"
     },
     "QUERY_PRICE_DETAILS": {
-      "description": "售價明细照会（查詢特定售價審核單號的明細行項目）",
+      "intent_id": "INT_013",
+      "type": "master-detail",
+      "intent_table": "mart_price_wide",
+      "description": "售價明细照会",
       "example_queries": [
         "查詢售價審核單 PR-001 的明細",
         "售價單 PR-002 的明細內容",
@@ -377,7 +467,9 @@
       "input": {
         "filters": [
           "DOC_NO",
-          "ITEM_NO"
+          "ITEM_NO",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -385,15 +477,24 @@
           "UNIT_PRICE"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
           "DOC_NO",
           "SEQ",
           "ITEM_NO",
           "UNIT"
         ]
-      }
+      },
+      "constraints": {
+        "require_at_least_one_filter": false
+      },
+      "mart_table": "mart_price_wide"
     },
     "QUERY_CUSTOMER_PRICE": {
-      "description": "客戶售價列表（查詢特定客戶的售價資料）",
+      "intent_id": "INT_014",
+      "type": "master-detail",
+      "intent_table": "mart_price_wide",
+      "description": "客戶售價列表",
       "example_queries": [
         "查詢客戶 C001 的售價",
         "客戶 C002 有哪些售價",
@@ -403,7 +504,9 @@
       "input": {
         "filters": [
           "CUSTOMER_NO",
-          "ITEM_NO"
+          "ITEM_NO",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -411,16 +514,24 @@
           "UNIT_PRICE"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
           "CUSTOMER_NO",
           "ITEM_NO",
           "DOC_NO",
           "VALID_DATE"
         ]
       },
+      "constraints": {
+        "require_at_least_one_filter": false
+      },
       "mart_table": "mart_price_wide"
     },
     "QUERY_PRICE": {
-      "description": "售價查詢（不限定客戶的售價資訊查詢）",
+      "intent_id": "INT_015",
+      "type": "simple",
+      "intent_table": "mart_price_wide",
+      "description": "售價查詢",
       "example_queries": [
         "查詢料件的售價資訊",
         "查詢所有料件售價",
@@ -430,7 +541,9 @@
       "input": {
         "filters": [
           "ITEM_NO",
-          "STATUS"
+          "STATUS",
+          "ENT",
+          "SITE"
         ]
       },
       "output": {
@@ -438,12 +551,51 @@
           "UNIT_PRICE"
         ],
         "dimensions": [
+          "ENT",
+          "SITE",
           "ITEM_NO",
           "DOC_NO",
           "STATUS"
         ]
       },
+      "constraints": {
+        "require_at_least_one_filter": false
+      },
       "mart_table": "mart_price_wide"
+    },
+    "QUERY_MULTI_STEP_ANALYSIS": {
+      "intent_id": "INT_016",
+      "type": "multi-step",
+      "intent_table": null,
+      "description": "多步驟分析查詢（需分解為多個子查詢的複雜分析，如波動分析、偏離分析、分散分析）",
+      "example_queries": [
+        "計算庫存的波動",
+        "查詢庫存偏離平均值最大的料號",
+        "查詢庫存分散的倉庫",
+        "庫存波動分析",
+        "哪個倉庫的庫存分散最大",
+        "庫存偏離正常值的料件",
+        "計算工單完成率的波動趨勢",
+        "分析各倉庫庫存分散程度"
+      ],
+      "input": {
+        "filters": [
+          "ITEM_NO",
+          "WAREHOUSE_NO",
+          "ENT",
+          "SITE"
+        ]
+      },
+      "output": {
+        "metrics": [],
+        "dimensions": []
+      },
+      "constraints": {
+        "require_at_least_one_filter": false,
+        "multi_step": true,
+        "note": "此意圖需分解為多個子查詢才能回答，系統將回覆建議的分析步驟"
+      },
+      "mart_table": null
     }
   }
 }
