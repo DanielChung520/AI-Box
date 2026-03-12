@@ -487,7 +487,7 @@ class MMAgent(AgentServiceProtocol):
                 part_no = parameters.get("part_number", "")
                 warehouse = parameters.get("warehouse", "")
                 if part_no:
-                    nlq = f"查詢料號 {part_no} 的庫存"
+                    nlq = f"查詢料號 {part_no} 各倉庫的庫存數量"
                 elif warehouse:
                     nlq = f"查詢 {warehouse} 倉庫的庫存"
 
@@ -1031,22 +1031,15 @@ class MMAgent(AgentServiceProtocol):
 
                     converted_stock_list = []
                     for item in stock_list:
-                        # DT-Agent 格式：只要有 existing_stocks 就認為是 DT-Agent 資料
-                        # （DT-Agent SQL 可能只 SELECT existing_stocks，不含 item_no）
+                        # DT-Agent 格式：保留所有原始欄位，額外加上 prompt_manager 所需的別名
+                        # （DT-Agent SQL 可能只 SELECT 部分欄位）
                         if "existing_stocks" in item:
-                            qty = item.get("existing_stocks", 0)
-                            wh = item.get("warehouse_no", "-")
-                            self._logger.info(
-                                f"[DEBUG] DT-Agent 格式轉換: item_no={item.get('item_no', part_number)}, "
-                                f"warehouse_no={wh}, existing_stocks={qty}"
-                            )
-                            converted_stock_list.append(
-                                {
-                                    "part_number": item.get("item_no", part_number or "-"),
-                                    "batch_no": wh,
-                                    "quantity": qty,
-                                }
-                            )
+                            converted = dict(item)  # 保留所有原始欄位（ent, site, item_no, warehouse_no 等）
+                            converted["part_number"] = item.get("item_no", part_number or "-")
+                            converted["batch_no"] = item.get("warehouse_no", "-")
+                            converted["quantity"] = item.get("existing_stocks", 0)
+                            self._logger.info(f"[DEBUG] DT-Agent 格式轉換: {converted}")
+                            converted_stock_list.append(converted)
                         # 舊格式 (warehouse_no, total)
                         elif "warehouse_no" in item and "total" in item:
                             qty = item.get("total", 0)

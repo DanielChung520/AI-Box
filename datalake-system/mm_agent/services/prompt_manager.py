@@ -248,13 +248,25 @@ class PromptManager:
 
 ## 請將以下庫存資料整理成對用户友善的回覆："""
 
-        # 構建庫存數據摘要
         stock_data = []
         for i, item in enumerate(stock_list[:50], 1):
-            part_no = item.get("part_number", "-")
-            batch = item.get("batch_no", "-")
-            qty = item.get("quantity", 0)
-            stock_data.append(f"{i}. 料號: {part_no}, 批次: {batch}, 數量: {qty:,}")
+            # DT-Agent 格式：包含所有原始欄位（ent, site, item_no, warehouse_no, existing_stocks）
+            if "existing_stocks" in item:
+                parts = [f"料號: {item.get('item_no', item.get('part_number', '-'))}"]
+                if item.get("ent"):
+                    parts.append(f"企業: {item['ent']}")
+                if item.get("site"):
+                    parts.append(f"廠區: {item['site']}")
+                if item.get("warehouse_no"):
+                    parts.append(f"倉庫: {item['warehouse_no']}")
+                parts.append(f"庫存數量: {item.get('existing_stocks', 0):,}")
+                stock_data.append(f"{i}. {', '.join(parts)}")
+            else:
+                # 舊格式 fallback
+                part_no = item.get("part_number", "-")
+                batch = item.get("batch_no", "-")
+                qty = item.get("quantity", 0)
+                stock_data.append(f"{i}. 料號: {part_no}, 批次: {batch}, 數量: {qty:,}")
 
         data_summary = "\n".join(stock_data)
         if len(stock_list) > 50:
@@ -292,13 +304,26 @@ class PromptManager:
             explanation = f"### 📦 所有倉庫庫存清單（共 {count} 筆）\n\n"
         else:
             explanation = f"### 📦 {warehouse} 倉庫庫存清單（共 {count} 筆）\n\n"
-        explanation += "| 序號 | 料號 | 批次 | 數量 |\n"
-        explanation += "|------|------|------|------|\n"
-        for i, item in enumerate(stock_list[:30], 1):
-            part_no = item.get("part_number", "-")
-            batch = item.get("batch_no", "-")
-            qty = item.get("quantity", 0)
-            explanation += f"| {i} | {part_no} | {batch} | {qty:,} |\n"
+        # DT-Agent 格式：顯示所有欄位
+        has_dt_fields = any("existing_stocks" in item for item in stock_list[:1])
+        if has_dt_fields:
+            explanation += "| 序號 | 企業 | 廠區 | 料號 | 倉庫 | 庫存數量 |\n"
+            explanation += "|------|------|------|------|------|------|\n"
+            for i, item in enumerate(stock_list[:30], 1):
+                ent = item.get("ent", "-")
+                site = item.get("site", "-")
+                pn = item.get("item_no", item.get("part_number", "-"))
+                wh = item.get("warehouse_no", "-")
+                qty = item.get("existing_stocks", 0)
+                explanation += f"| {i} | {ent} | {site} | {pn} | {wh} | {qty:,} |\n"
+        else:
+            explanation += "| 序號 | 料號 | 批次 | 數量 |\n"
+            explanation += "|------|------|------|------|\n"
+            for i, item in enumerate(stock_list[:30], 1):
+                part_no = item.get("part_number", "-")
+                batch = item.get("batch_no", "-")
+                qty = item.get("quantity", 0)
+                explanation += f"| {i} | {part_no} | {batch} | {qty:,} |\n"
         if count > 30:
             explanation += f"\n*... 還有 {count - 30} 筆，請縮小查詢範圍*\n"
         return explanation
@@ -617,33 +642,23 @@ class PromptManager:
         """
         # 邊界情況 1: 無 last_result
         if last_result is None:
-            return (
-                "目前沒有可供分析的查詢結果。"
-                "請先查詢具體的庫存或業務數據，再提出分析性問題。"
-            )
+            return "目前沒有可供分析的查詢結果。" "請先查詢具體的庫存或業務數據，再提出分析性問題。"
 
         # 邊界情況 2: last_result 狀態非成功
         if last_result.get("status") != "success":
             error_msg = last_result.get("message", "未知錯誤")
-            return (
-                f"上一次查詢未成功（{error_msg}），無法進行分析。"
-                "請重新查詢後再試。"
-            )
+            return f"上一次查詢未成功（{error_msg}），無法進行分析。" "請重新查詢後再試。"
 
         # 邊界情況 3: 數據為空
         data = last_result.get("data", [])
         if not data:
-            return (
-                "上一次查詢結果為空，沒有資料可供分析。"
-                "請確認查詢條件後重新查詢。"
-            )
+            return "上一次查詢結果為空，沒有資料可供分析。" "請確認查詢條件後重新查詢。"
 
         # 截斷至 50 rows
         truncated = data[:50]
         is_truncated = len(data) > 50
 
-        system_prompt = (
-            """你是一個專業的數據分析助手，專門基於已有的查詢結果回答用戶的分析性問題。
+        system_prompt = """你是一個專業的數據分析助手，專門基於已有的查詢結果回答用戶的分析性問題。
 
 ## 你的職責
 - 分析用戶提供的查詢數據，回答分析性問題（如：原因分析、比較、趨勢等）
@@ -658,18 +673,13 @@ class PromptManager:
 - 使用清晰的中文回覆
 - 如有多個觀察點，使用條列格式
 - 結尾給出明確的結論或建議"""
-        )
 
         # 準備數據摘要
         columns = last_result.get("columns", [])
         row_count = last_result.get("row_count", len(data))
 
         data_json = json.dumps(truncated, ensure_ascii=False, indent=2)
-        truncation_note = (
-            f"\n（注：原始數據共 {row_count} 筆，此處僅顯示前 50 筆）"
-            if is_truncated
-            else ""
-        )
+        truncation_note = f"\n（注：原始數據共 {row_count} 筆，此處僅顯示前 50 筆）" if is_truncated else ""
 
         user_prompt = (
             f"用戶問題：{user_query}\n\n"
@@ -692,7 +702,4 @@ class PromptManager:
             self._logger.warning(f"LLM 生成分析性回覆失敗: {e}")
 
         # 回退：簡單的數據摘要
-        return (
-            f"根據查詢結果（共 {row_count} 筆數據），"
-            "無法完成詳細分析。請查看原始數據後手動分析。"
-        )
+        return f"根據查詢結果（共 {row_count} 筆數據），" "無法完成詳細分析。請查看原始數據後手動分析。"
