@@ -1,36 +1,34 @@
-# 代碼功能說明: Data-Agent 客戶端
+# 代碼功能說明: DT-Agent 客戶端（原 Data-Agent 客戶端，遷移至 DT-Agent port 8005）
 # 創建日期: 2026-01-31
 # 創建人: Daniel Chung
 
-"""Data-Agent 客戶端 - 統一調用 Data-Agent API"""
+"""DT-Agent 客戶端 - 統一調用 DT-Agent API"""
 
 import asyncio
 import logging
 import os
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 import httpx
-from dotenv import load_dotenv
 
-from agents.services.protocol.base import AgentServiceRequest
 
 logger = logging.getLogger(__name__)
 
 
-class DataAgentClient:
-    """Data-Agent 客戶端 - 調用 Data-Agent API"""
+class DTAgentClient:
+    """DT-Agent 客戶端 - 調用 DT-Agent API"""
 
     def __init__(self, service_url: Optional[str] = None):
-        """初始化 Data-Agent 客戶端
+        """初始化 DT-Agent 客戶端
 
         Args:
-            service_url: Data-Agent 服務 URL（默認從環境變數讀取）
+            service_url: DT-Agent 服務 URL（默認從環境變數讀取）
         """
         self._service_url = service_url or os.getenv(
-            "DATA_AGENT_SERVICE_URL", "http://localhost:8004"
+            "DT_AGENT_SERVICE_URL",
+            os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8005")
         )
-        self._api_path = "/execute"
+        self._api_path = "/api/v1/dt-agent/execute"
         self._timeout = 30.0
         self._logger = logger
 
@@ -42,10 +40,10 @@ class DataAgentClient:
         tenant_id: Optional[str] = None,
         timeout: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """執行 Data-Agent 操作
+        """執行 DT-Agent 操作
 
         Args:
-            action: 操作類型（text_to_sql/execute_query/execute_sql_on_datalake 等）
+            action: 操作類型
             parameters: 操作參數
             user_id: 用戶 ID
             tenant_id: 租戶 ID
@@ -55,10 +53,13 @@ class DataAgentClient:
             操作結果
         """
         request_data = {
-            "action": action,
-            **parameters,
-            "user_id": user_id,
-            "tenant_id": tenant_id,
+            "task_id": f"mm-agent-{action}",
+            "task_type": "simple_query",
+            "task_data": {
+                "nlq": parameters.get("natural_language", parameters.get("nlq", "")),
+                "module": "tiptop_jp",
+                "return_mode": "summary",
+            },
         }
 
         return await self._call_api(request_data, timeout)
@@ -164,7 +165,7 @@ class DataAgentClient:
         request_data: Dict[str, Any],
         timeout: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """調用 Data-Agent API
+        """調用 DT-Agent API
 
         Args:
             request_data: 請求數據
@@ -177,23 +178,18 @@ class DataAgentClient:
         timeout = timeout or self._timeout
 
         action = request_data.get("action", "")
-        self._logger.debug(f"調用 Data-Agent API: action={action}, url={url}")
+        self._logger.debug(f"調用 DT-Agent API: action={action}, url={url}")
 
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     url,
-                    json={
-                        "task_id": f"mm-agent-{action}",
-                        "task_type": "data_agent",
-                        "task_data": request_data,
-                        "metadata": {},
-                    },
+                    json=request_data,
                 )
 
                 if response.status_code != 200:
                     error_msg = (
-                        f"Data-Agent API 調用失敗: HTTP {response.status_code}, {response.text}"
+                        f"DT-Agent API 調用失敗: HTTP {response.status_code}, {response.text}"
                     )
                     self._logger.error(error_msg)
                     return {
@@ -206,61 +202,55 @@ class DataAgentClient:
                 if not isinstance(result, dict):
                     return {
                         "success": False,
-                        "error": f"Data-Agent API 響應格式錯誤: {type(result)}",
+                        "error": f"DT-Agent API 響應格式錯誤: {type(result)}",
                     }
 
-                if result.get("status") == "completed":
-                    task_result = result.get("result", {})
-                    if isinstance(task_result, dict):
-                        if task_result.get("success", False):
-                            inner_result = task_result.get("result", task_result)
-                            if isinstance(inner_result, dict) and "rows" in inner_result:
-                                return inner_result
-                            return task_result
-                        else:
-                            return {
-                                "success": False,
-                                "error": task_result.get("error", "Data-Agent 操作失敗"),
-                            }
-                    return task_result
+                # DT-Agent V5 格式：頂層 success 欄位
+                if result.get("success") is True:
+                    return result
                 else:
                     return {
                         "success": False,
-                        "error": result.get("error", "Data-Agent 操作失敗"),
+                        "error": result.get("message", "DT-Agent 操作失敗"),
+                        "error_code": result.get("error_code", ""),
+                        "error_type": result.get("error_type", ""),
+                        "clarification_needed": result.get("clarification_needed"),
+                        "suggestion": result.get("suggestion"),
+                        "metadata": result.get("metadata"),
                     }
 
         except httpx.TimeoutException:
-            error_msg = "Data-Agent API 調用超時"
+            error_msg = "DT-Agent API 調用超時"
             self._logger.error(error_msg)
             return {"success": False, "error": error_msg}
         except httpx.RequestError as e:
-            error_msg = f"Data-Agent API 請求錯誤: {e}"
+            error_msg = f"DT-Agent API 請求錯誤: {e}"
             self._logger.error(error_msg)
             return {"success": False, "error": error_msg}
         except Exception as e:
-            error_msg = f"Data-Agent API 調用失敗: {e}"
+            error_msg = f"DT-Agent API 調用失敗: {e}"
             self._logger.error(error_msg, exc_info=True)
             return {"success": False, "error": error_msg}
 
 
-async def create_data_agent_client() -> DataAgentClient:
-    """創建 Data-Agent 客戶端（異步工廠方法）
+async def create_dt_agent_client() -> DTAgentClient:
+    """創建 DT-Agent 客戶端（異步工廠方法）
 
     Returns:
-        DataAgentClient 實例
+        DTAgentClient 實例
     """
-    return DataAgentClient()
+    return DTAgentClient()
 
 
 if __name__ == "__main__":
     import sys
 
     async def test_client():
-        """測試 Data-Agent 客戶端"""
-        client = DataAgentClient()
+        """測試 DT-Agent 客戶端"""
+        client = DTAgentClient()
 
         print("=" * 60)
-        print("測試 Data-Agent 客戶端")
+        print("測試 DT-Agent 客戶端")
         print("=" * 60)
 
         print("\n1. 測試 text_to_sql:")

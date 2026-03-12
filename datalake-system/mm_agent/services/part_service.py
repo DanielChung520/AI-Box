@@ -1,9 +1,9 @@
 # 代碼功能說明: 料號查詢服務
 # 創建日期: 2026-01-13
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-02-17
+# 最後修改日期: 2026-03-12
 
-"""料號查詢服務 - 通過 Data-Agent 直接查詢物料信息"""
+"""料號查詢服務 - 通過 DT-Agent 直接查詢物料信息"""
 
 import logging
 import os
@@ -27,7 +27,7 @@ class PartService:
     ) -> Dict[str, Any]:
         """查詢物料信息
 
-        直接調用 Data-Agent 的 /jp/execute 端點進行查詢。
+        直接調用 DT-Agent 的 /api/v1/dt-agent/execute 端點進行查詢。
 
         Args:
             part_number: 料號
@@ -38,9 +38,9 @@ class PartService:
         try:
             import httpx
 
-            # 直接調用 Data-Agent /api/v1/data-agent/jp/execute 端點
-            data_agent_url = os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8004")
-            endpoint = f"{data_agent_url}/api/v1/data-agent/jp/execute"
+            # 直接調用 DT-Agent /api/v1/dt-agent/execute 端點
+            data_agent_url = os.getenv("DT_AGENT_SERVICE_URL", os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8005"))
+            endpoint = f"{data_agent_url}/api/v1/dt-agent/execute"
 
             async with httpx.AsyncClient(timeout=60.0) as client:
                 # 先嘗試供應商查詢
@@ -48,33 +48,37 @@ class PartService:
                     endpoint,
                     json={
                         "task_id": f"part_query_{part_number}",
-                        "task_type": "schema_driven_query",
+                        "task_type": "simple_query",
                         "task_data": {
                             "nlq": f"料號 {part_number} 的供應商是誰",
+                            "module": "tiptop_jp",
+                            "return_mode": "summary",
                         },
                     },
                 )
 
                 if response.status_code != 200:
-                    raise ValueError(f"Data-Agent 調用失敗: HTTP {response.status_code}")
+                    raise ValueError(f"DT-Agent 調用失敗: HTTP {response.status_code}")
 
                 result = response.json()
 
-                if result.get("status") != "success":
+                if not result.get("success", False):
                     # 嘗試庫存查詢（回退）
                     stock_response = await client.post(
                         endpoint,
                         json={
                             "task_id": f"part_stock_{part_number}",
-                            "task_type": "schema_driven_query",
+                            "task_type": "simple_query",
                             "task_data": {
                                 "nlq": f"料號 {part_number} 的庫存數量",
+                                "module": "tiptop_jp",
+                                "return_mode": "summary",
                             },
                         },
                     )
                     stock_result = stock_response.json()
-                    if stock_result.get("status") == "success":
-                        stock_data = stock_result.get("result", {}).get("data", [])
+                    if stock_result.get("success", False):
+                        stock_data = stock_result.get("data", [])
                         return {
                             "success": True,
                             "part_number": part_number,
@@ -82,25 +86,27 @@ class PartService:
                             "response": f"料號 {part_number} 查詢結果：\n庫存數據：{stock_data}",
                         }
 
-                    raise ValueError(f"Data-Agent 查詢失敗: {result.get('message')}")
+                    raise ValueError(f"DT-Agent 查詢失敗: {result.get('message')}")
 
                 # 提取查詢結果
-                data = result.get("result", {}).get("data", [])
+                data = result.get("data", [])
                 if not data:
                     # 嘗試庫存查詢（回退）
                     stock_response = await client.post(
                         endpoint,
                         json={
                             "task_id": f"part_stock_{part_number}",
-                            "task_type": "schema_driven_query",
+                            "task_type": "simple_query",
                             "task_data": {
                                 "nlq": f"料號 {part_number} 的庫存數量",
+                                "module": "tiptop_jp",
+                                "return_mode": "summary",
                             },
                         },
                     )
                     stock_result = stock_response.json()
-                    if stock_result.get("status") == "success":
-                        stock_data = stock_result.get("result", {}).get("data", [])
+                    if stock_result.get("success", False):
+                        stock_data = stock_result.get("data", [])
                         return {
                             "success": True,
                             "part_number": part_number,

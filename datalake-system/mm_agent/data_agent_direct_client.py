@@ -1,9 +1,9 @@
-# 代碼功能說明: Data Agent直接客戶端（獨立測試用）
+# 代碼功能說明: DT-Agent 直接客戶端（獨立測試用）
 # 創建日期: 2026-01-13
 # 創建人: Daniel Chung
-# 最後修改日期: 2026-01-13
+# 最後修改日期: 2026-03-12
 
-"""Data Agent直接客戶端 - 用於獨立測試，不通過AI-Box Orchestrator"""
+"""DT-Agent 直接客戶端 - 用於獨立測試，不通過AI-Box Orchestrator"""
 
 import asyncio
 import logging
@@ -34,11 +34,11 @@ from agents.services.protocol.base import AgentServiceRequest
 logger = logging.getLogger(__name__)
 
 
-class DataAgentDirectClient:
-    """Data Agent直接客戶端 - 用於獨立測試
+class DTAgentDirectClient:
+    """DT-Agent 直接客戶端 - 用於獨立測試
 
-    注意：Data-Agent-JP 的 /jp/execute 端點僅支持自然語言查詢（Schema Driven Query），
-          不支持結構化查詢。對於結構化查詢，請直接使用 StructuredQueryHandler。
+    注意：DT-Agent 的 /api/v1/dt-agent/execute 端點使用 Schema Driven Query，
+          支持自然語言查詢。
     """
 
     def __init__(self, use_http: bool = True) -> None:
@@ -48,8 +48,8 @@ class DataAgentDirectClient:
             use_http: 是否使用HTTP API調用（True）或直接實例化（False）
         """
         self._use_http = use_http
-        self._data_agent_service_url = os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8004")
-        self._execute_endpoint = "/api/v1/data-agent/v5/execute"  # V5 LLM SQL 生成端點
+        self._dt_agent_service_url = os.getenv("DT_AGENT_SERVICE_URL", os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8005"))
+        self._execute_endpoint = "/api/v1/dt-agent/execute"  # DT-Agent 端點
         self._logger = logger
         self._timeout = 30.0
         self._data_agent_instance: Optional[Any] = None
@@ -101,7 +101,7 @@ class DataAgentDirectClient:
         Raises:
             RuntimeError: 調用失敗時拋出異常
         """
-        # 構建Data Agent請求
+        # 構建 DT-Agent 請求
         data_agent_request = {
             "action": action,
             **parameters,
@@ -109,18 +109,17 @@ class DataAgentDirectClient:
             "tenant_id": request.metadata.get("tenant_id") if request.metadata else None,
         }
 
-        # 直接調用Data Agent HTTP API
-        # 使用 /api/v1/data-agent/v5/execute 端點
-        # V5 使用 LLM 意圖路由 + SQL 生成
-        url = f"{self._data_agent_service_url}{self._execute_endpoint}"
+        # 直接調用 DT-Agent HTTP API
+        # 使用 /api/v1/dt-agent/execute 端點
+        # DT-Agent 使用 LLM 意圖路由 + Schema Driven Query
+        url = f"{self._dt_agent_service_url}{self._execute_endpoint}"
         last_error: Optional[Exception] = None
 
         for attempt in range(max_retries):
             try:
                 self._logger.debug(
-                    f"直接調用Data Agent: action={action}, url={url}, task_id={request.task_id}"
+                    f"直接調用 DT-Agent: action={action}, url={url}, task_id={request.task_id}"
                 )
-
                 async with httpx.AsyncClient(timeout=self._timeout) as client:
                     response = await client.post(
                         url,
@@ -137,25 +136,35 @@ class DataAgentDirectClient:
 
                     if response.status_code != 200:
                         error_msg = (
-                            f"Data Agent調用失敗: HTTP {response.status_code}, {response.text}"
+                            f"DT-Agent 調用失敗: HTTP {response.status_code}, {response.text}"
                         )
                         self._logger.error(error_msg)
                         raise RuntimeError(error_msg)
 
                     result = response.json()
 
-                    # V5 回應格式：{ success: bool, sql, data, row_count, columns, ... }
+                    # DT-Agent V5 回應格式：{ success: bool, sql, data, row_count, columns, ... }
                     if not isinstance(result, dict):
-                        error_msg = f"Data Agent響應格式錯誤: {type(result)}"
+                        error_msg = f"DT-Agent 響應格式錯誤: {type(result)}"
                         self._logger.error(error_msg)
                         raise RuntimeError(error_msg)
 
+                    # DT-Agent 查詢失敗 - 傳遞完整回應（含 Guard 欄位）
                     if not result.get("success", False):
-                        error_msg = result.get("message", "Data Agent查詢失敗")
-                        self._logger.error(f"Data Agent查詢失敗: {error_msg}")
-                        raise RuntimeError(f"Data Agent查詢失敗: {error_msg}")
+                        return {
+                            "success": False,
+                            "error_code": result.get("error_code", ""),
+                            "error_type": result.get("error_type", ""),
+                            "message": result.get("message", "DT-Agent 查詢失敗"),
+                            "clarification_needed": result.get("clarification_needed"),
+                            "suggestion": result.get("suggestion"),
+                            "metadata": result.get("metadata"),
+                            "details": result.get("details"),
+                            "errors": result.get("errors", []),
+                            "warnings": result.get("warnings", []),
+                        }
 
-                    # 將 V5 flat 回應轉為統一格式
+                    # 成功 - 將 V5 flat 回應轉為統一格式
                     return {
                         "success": True,
                         "rows": result.get("data", []),
@@ -172,18 +181,18 @@ class DataAgentDirectClient:
                 if attempt < max_retries - 1:
                     wait_time = 2**attempt  # 指數退避
                     self._logger.warning(
-                        f"Data Agent調用失敗（嘗試 {attempt + 1}/{max_retries}），{wait_time}秒後重試: {e}"
+                        f"DT-Agent 調用失敗（嘗試 {attempt + 1}/{max_retries}），{wait_time}秒後重試: {e}"
                     )
                     await asyncio.sleep(wait_time)
                     continue
                 else:
-                    self._logger.error(f"Data Agent調用失敗，已重試{max_retries}次: {e}")
+                    self._logger.error(f"DT-Agent 調用失敗，已重試{max_retries}次: {e}")
                     raise
 
         if last_error:
             raise last_error
 
-        raise RuntimeError("Data Agent調用失敗：未知錯誤")
+        raise RuntimeError("DT-Agent 調用失敗：未知錯誤")
 
     async def _call_data_agent_direct(
         self,
@@ -191,7 +200,7 @@ class DataAgentDirectClient:
         parameters: Dict[str, Any],
         request: AgentServiceRequest,
     ) -> Dict[str, Any]:
-        """直接實例化Data Agent調用（不通過HTTP）
+        """直接實例化 DT-Agent 調用（不通過HTTP）
 
         Args:
             action: Data Agent操作類型
@@ -210,7 +219,7 @@ class DataAgentDirectClient:
 
             self._data_agent_instance = DataAgent()
 
-        # 構建Data Agent請求
+        # 構建 DT-Agent 請求
         data_agent_request = {
             "action": action,
             **parameters,
@@ -226,28 +235,27 @@ class DataAgentDirectClient:
             metadata=request.metadata or {},
         )
 
-        # 直接調用Data Agent
+        # 直接調用 DT-Agent
         try:
             self._logger.debug(
-                f"直接實例化調用Data Agent: action={action}, task_id={request.task_id}"
+                f"直接實例化調用 DT-Agent: action={action}, task_id={request.task_id}"
             )
-
             response = await self._data_agent_instance.execute(agent_request)
 
             if response.status != "completed":
-                error_msg = response.error or "Data Agent查詢失敗"
-                self._logger.error(f"Data Agent查詢失敗: {error_msg}")
-                raise RuntimeError(f"Data Agent查詢失敗: {error_msg}")
+                error_msg = response.error or "DT-Agent 查詢失敗"
+                self._logger.error(f"DT-Agent 查詢失敗: {error_msg}")
+                raise RuntimeError(f"DT-Agent 查詢失敗: {error_msg}")
 
             result = response.result or {}
             if isinstance(result, dict) and not result.get("success", True):
-                error_msg = result.get("error", "Data Agent查詢失敗")
-                self._logger.error(f"Data Agent查詢失敗: {error_msg}")
-                raise RuntimeError(f"Data Agent查詢失敗: {error_msg}")
+                error_msg = result.get("error", "DT-Agent 查詢失敗")
+                self._logger.error(f"DT-Agent 查詢失敗: {error_msg}")
+                raise RuntimeError(f"DT-Agent 查詢失敗: {error_msg}")
 
             return result
 
         except Exception as e:
-            error_msg = f"Data Agent調用失敗: {e}"
+            error_msg = f"DT-Agent 調用失敗: {e}"
             self._logger.error(error_msg)
             raise RuntimeError(error_msg) from e
