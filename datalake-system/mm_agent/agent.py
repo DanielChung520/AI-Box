@@ -79,9 +79,9 @@ class MMAgent(AgentServiceProtocol):
         if orchestrator_client is None:
             use_direct = os.getenv("MM_AGENT_USE_DIRECT_CLIENT", "false").lower() == "true"
             if use_direct:
-                from .data_agent_direct_client import DataAgentDirectClient
+                from .data_agent_direct_client import DTAgentDirectClient
 
-                orchestrator_client = DataAgentDirectClient()
+                orchestrator_client = DTAgentDirectClient()
             else:
                 orchestrator_client = OrchestratorClient()
 
@@ -107,10 +107,11 @@ class MMAgent(AgentServiceProtocol):
 
         self._query_handler = StructuredQueryHandler()
 
-        # JP endpoint 直接調用
+        # DT-Agent endpoint 直接調用
         self._jp_endpoint = (
-            os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8004")
-            + "/api/v1/data-agent/v5/execute"
+            os.getenv("DT_AGENT_SERVICE_URL",
+                      os.getenv("DATA_AGENT_SERVICE_URL", "http://localhost:8005"))
+            + "/api/v1/dt-agent/execute"
         )
 
         # 初始化職責分派 Registry
@@ -459,7 +460,7 @@ class MMAgent(AgentServiceProtocol):
     ) -> Dict[str, Any]:
         """查詢庫存信息
 
-        使用 Data-Agent-JP 的 /jp/execute 端點處理庫存查詢。
+        使用 DT-Agent 的 /api/v1/dt-agent/execute 端點處理庫存查詢。
         必須使用新架構（schema_driven_query），禁止使用舊的 StructuredQueryHandler。
 
         Args:
@@ -502,10 +503,10 @@ class MMAgent(AgentServiceProtocol):
                     "message": "查詢條件不足，需要澄清",
                 }
 
-            # 使用新的 /jp/execute 端點 (schema_driven_query)
+            # 使用 DT-Agent /api/v1/dt-agent/execute 端點
             payload = {
                 "task_id": f"mm-agent-{request.task_id}",
-                "task_type": "schema_driven_query",
+                "task_type": "simple_query",
                 "task_data": {"nlq": nlq},
             }
 
@@ -514,10 +515,10 @@ class MMAgent(AgentServiceProtocol):
                 resp = client.post(self._jp_endpoint, json=payload)
                 result = resp.json()
 
-            self._logger.info(f"[Agent] JP response: {result.get('status')}")
+            self._logger.info(f"[Agent] DT-Agent response: {result.get('success')}")
 
             # ============================================================
-            # 處理 Data-Agent 結構化響應
+            # 處理 DT-Agent 結構化響應
             # ============================================================
 
             # 檢查是否有錯誤 - 支援兩種格式：errors 陣列 或 error_code 頂層欄位
@@ -536,9 +537,9 @@ class MMAgent(AgentServiceProtocol):
             error_codes = [e.get("code", "") for e in errors]
             error_messages = [e.get("message", "") for e in errors]
 
-            # 1. 查询成功 - Data-Agent v5 返回 success: true 或 status: "success"
-            if result.get("success") is True or result.get("status") == "success":
-                # Data-Agent v5: result directly contains data
+            # 1. 查詢成功 - DT-Agent 返回 success: true
+            if result.get("success") is True:
+                # DT-Agent: result directly contains data
                 data_result = result if result.get("data") else result.get("result", {})
                 rows = data_result.get("data", [])
 
@@ -628,6 +629,72 @@ class MMAgent(AgentServiceProtocol):
                     "original_query": nlq,
                 }
 
+            # 3.5 DT-Agent Guard 攔截 (QUERY_GUARD_REJECTED) - 需要引導用戶
+            if "QUERY_GUARD_REJECTED" in error_codes:
+                guard_type = result.get("metadata", {}).get("guard_type", "unknown")
+                clarification_steps = result.get("clarification_needed", [])
+                suggestion = result.get("suggestion", "")
+                error_msg = result.get("message", "查詢被攔截")
+                self._logger.warning(
+                    f"[Agent] Guard 攔截 ({guard_type}): {error_msg}"
+                )
+                return {
+                    "success": False,
+                    "needs_clarification": True,
+                    "clarification_type": "QUERY_GUARD_REJECTED",
+                    "guard_type": guard_type,
+                    "clarification_needed": clarification_steps,
+                    "suggestion": suggestion,
+                    "message": error_msg,
+                    "original_query": nlq,
+                }
+
+            # 3.6 DT-Agent Schema 構建失敗 (SCHEMA_PROMPT_BUILD_FAILED)
+            if "SCHEMA_PROMPT_BUILD_FAILED" in error_codes:
+                error_msg = error_messages[0] if error_messages else "Schema 構建失敗"
+                self._logger.error(f"[Agent] Schema 構建失敗: {error_msg}")
+                return {
+                    "success": False,
+                    "error_type": "SCHEMA_ERROR",
+                    "message": error_msg,
+                    "original_query": nlq,
+                }
+
+            # 3.7 DT-Agent SQL 生成失敗 (SQL_GENERATION_FAILED)
+            if "SQL_GENERATION_FAILED" in error_codes:
+                error_msg = error_messages[0] if error_messages else "SQL 生成失敗"
+                self._logger.error(f"[Agent] SQL 生成失敗: {error_msg}")
+                return {
+                    "success": False,
+                    "error_type": "SQL_GENERATION_ERROR",
+                    "message": error_msg,
+                    "original_query": nlq,
+                }
+
+            # 3.8 DT-Agent SQL 安全檢查失敗 (SQL_SAFETY_CHECK_FAILED)
+            if "SQL_SAFETY_CHECK_FAILED" in error_codes:
+                error_msg = error_messages[0] if error_messages else "SQL 安全檢查未通過"
+                sql = result.get("details", {}).get("sql", "") if isinstance(result.get("details"), dict) else ""
+                self._logger.error(f"[Agent] SQL 安全檢查失敗: {error_msg}, sql={sql}")
+                return {
+                    "success": False,
+                    "error_type": "SQL_SAFETY_ERROR",
+                    "message": error_msg,
+                    "original_query": nlq,
+                }
+
+            # 3.9 DT-Agent SQL 執行失敗 (SQL_EXECUTION_FAILED)
+            if "SQL_EXECUTION_FAILED" in error_codes:
+                error_msg = error_messages[0] if error_messages else "SQL 執行失敗"
+                sql = result.get("details", {}).get("sql", "") if isinstance(result.get("details"), dict) else ""
+                self._logger.error(f"[Agent] SQL 執行失敗: {error_msg}, sql={sql}")
+                return {
+                    "success": False,
+                    "error_type": "SQL_EXECUTION_ERROR",
+                    "message": error_msg,
+                    "original_query": nlq,
+                }
+
             # 4. Schema 錯誤 (SCHEMA_NOT_FOUND) - 記錄異常
             if "SCHEMA_NOT_FOUND" in error_codes:
                 error_msg = error_messages[0] if error_messages else "Schema 錯誤"
@@ -676,7 +743,7 @@ class MMAgent(AgentServiceProtocol):
             return {
                 "success": False,
                 "error_type": "CONNECTION_ERROR",
-                "message": "無法連接到 Data-Agent 服務，請確認服務是否正常運行",
+                "message": "無法連接到 DT-Agent 服務，請確認服務是否正常運行",
                 "original_query": nlq,
             }
         except Exception as e:
@@ -838,6 +905,11 @@ class MMAgent(AgentServiceProtocol):
             message = result.get("message", "需要確認")
             suggestions = result.get("suggestions", [])
 
+            # Guard 攔截特殊處理：提取 clarification_needed 和 suggestion
+            guard_type = result.get("guard_type", "")  # noqa: F841 - 保留用於日誌追蹤
+            clarification_steps = result.get("clarification_needed", [])
+            suggestion = result.get("suggestion", "")
+
             self._logger.info(f"[LLM] 生成確認回覆: {clarification_type}")
             if self._prompt_manager:
                 try:
@@ -855,6 +927,13 @@ class MMAgent(AgentServiceProtocol):
                         "QUERY_SCOPE_TOO_LARGE": f"⚠️ {message}\n\n請提供更多篩選條件以縮小查詢範圍。",
                         "INTENT_UNCLEAR": f"⚠️ {message}\n\n請重新描述您的查詢需求。",
                     }
+                    # Guard 攔截的 fallback 回覆
+                    if clarification_type == "QUERY_GUARD_REJECTED" and clarification_steps:
+                        steps_text = "\n".join(f"  {i+1}. {step}" for i, step in enumerate(clarification_steps))
+                        guard_response = f"⚠️ {message}\n\n建議步驟：\n{steps_text}"
+                        if suggestion:
+                            guard_response += f"\n\n💡 建議查詢：{suggestion}"
+                        clarification_msgs["QUERY_GUARD_REJECTED"] = guard_response
                     result["response"] = clarification_msgs.get(clarification_type, f"⚠️ {message}")
                     result["response_type"] = "clarification_fallback"
             else:
@@ -862,6 +941,13 @@ class MMAgent(AgentServiceProtocol):
                     "QUERY_SCOPE_TOO_LARGE": f"⚠️ {message}\n\n請提供更多篩選條件以縮小查詢範圍。",
                     "INTENT_UNCLEAR": f"⚠️ {message}\n\n請重新描述您的查詢需求。",
                 }
+                # Guard 攔截的 fallback 回覆
+                if clarification_type == "QUERY_GUARD_REJECTED" and clarification_steps:
+                    steps_text = "\n".join(f"  {i+1}. {step}" for i, step in enumerate(clarification_steps))
+                    guard_response = f"⚠️ {message}\n\n建議步驟：\n{steps_text}"
+                    if suggestion:
+                        guard_response += f"\n\n💡 建議查詢：{suggestion}"
+                    clarification_msgs["QUERY_GUARD_REJECTED"] = guard_response
                 result["response"] = clarification_msgs.get(clarification_type, f"⚠️ {message}")
                 result["response_type"] = "clarification_fallback"
             return result
@@ -889,6 +975,9 @@ class MMAgent(AgentServiceProtocol):
                         "CONNECTION_ERROR": "❌ 連線錯誤：無法連接到資料庫服務，請稍後再試。",
                         "TIMEOUT": f"❌ 查詢超時：{message}",
                         "INTERNAL_ERROR": f"❌ 系統錯誤：{message}",
+                        "SQL_GENERATION_ERROR": f"❌ SQL 生成失敗：{message}，請嘗試更明確的查詢條件。",
+                        "SQL_SAFETY_ERROR": f"❌ 查詢安全檢查未通過：{message}",
+                        "SQL_EXECUTION_ERROR": f"❌ SQL 執行失敗：{message}，請檢查查詢條件是否正確。",
                     }
                     result["response"] = error_msgs.get(error_type, f"❌ 錯誤：{message}")
                     result["response_type"] = "error_fallback"
@@ -898,6 +987,9 @@ class MMAgent(AgentServiceProtocol):
                     "CONNECTION_ERROR": "❌ 連線錯誤：無法連接到資料庫服務，請稍後再試。",
                     "TIMEOUT": f"❌ 查詢超時：{message}",
                     "INTERNAL_ERROR": f"❌ 系統錯誤：{message}",
+                    "SQL_GENERATION_ERROR": f"❌ SQL 生成失敗：{message}，請嘗試更明確的查詢條件。",
+                    "SQL_SAFETY_ERROR": f"❌ 查詢安全檢查未通過：{message}",
+                    "SQL_EXECUTION_ERROR": f"❌ SQL 執行失敗：{message}，請檢查查詢條件是否正確。",
                 }
                 result["response"] = error_msgs.get(error_type, f"❌ 錯誤：{message}")
                 result["response_type"] = "error_fallback"
