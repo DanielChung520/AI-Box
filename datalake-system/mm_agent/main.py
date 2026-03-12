@@ -127,11 +127,12 @@ async def _enhance_instruction_with_context(messages: list, last_user_msg: str) 
         llm_client = _get_llm_client()
         response = await llm_client.generate(
             prompt=prompt,
-            model=os.getenv("MM_AGENT_MODEL", "qwen3:8b"),
+            model=os.getenv("MM_AGENT_MODEL", "qwen3:32b"),
             temperature=0.3,
         )
         
-        enhanced = response.strip() if response else last_user_msg
+        text = response.get("text", "") if isinstance(response, dict) else str(response)
+        enhanced = text.strip() if text else last_user_msg
         was_enhanced = enhanced != last_user_msg
         
         logger.info(f"[上下文補全] 原問題: {last_user_msg[:50]}... -> 補全後: {enhanced[:50]}... (was_enhanced={was_enhanced})")
