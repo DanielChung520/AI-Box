@@ -906,6 +906,13 @@ class MMAgent(AgentServiceProtocol):
 
         # 2. 需要回問確認 - 生成確認請求回覆
         if result.get("needs_clarification"):
+            # 如果已經有 clarification_message（來自 _handle_clarification_needed 路徑），
+            # 直接使用，不再透過 LLM 重寫（避免覆蓋結構化的澄清問題）
+            if result.get("clarification_message") and result.get("response"):
+                self._logger.info("[LLM] 跳過 LLM 重寫：已有結構化澄清問題")
+                result["response_type"] = "clarification"
+                return result
+
             clarification_type = result.get("clarification_type", "UNKNOWN")
             message = result.get("message", "需要確認")
             suggestions = result.get("suggestions", [])
